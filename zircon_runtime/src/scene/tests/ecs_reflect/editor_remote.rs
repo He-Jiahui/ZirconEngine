@@ -1,3 +1,5 @@
+//! 模拟编辑器和远端客户端经反射 DTO 访问 World，验证稳定字段身份、可序列化响应及写入与读回的边界。
+
 use serde_json::json;
 use zircon_runtime_interface::reflect::{
     ReflectError, ReflectFieldId, ReflectFieldValue, ReflectFieldsRequest, ReflectObjectAddress,
@@ -235,6 +237,7 @@ fn component_adapter_lookup_borrows_for_read_paths_and_clones_only_for_write() {
     );
 }
 
+// 写响应确认通过验证的请求值；需要观察适配器最终状态的调用方应另发读请求。
 #[test]
 fn reflection_write_returns_the_accepted_request_without_post_write_readback() {
     let source = include_str!("../../reflect/world_reflection.rs");

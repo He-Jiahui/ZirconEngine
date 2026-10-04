@@ -1,3 +1,4 @@
+//! 把资产元数据和系统 fontdb 信息转为统一 face 描述，供注册、匹配及来源去重共用。
 use std::path::Path;
 
 use glyphon::fontdb;
@@ -17,6 +18,7 @@ fn family_from_source_path(source_path: &Path) -> String {
         .unwrap_or_else(|| "Zircon Sans".to_string())
 }
 
+/// 资产指定的 family 优先，其次是字体内名称；路径推断仅作为无法取得名称时的兜底。
 pub(super) fn descriptor_from_font_metadata(
     metadata: &FontFaceMetadata,
     family: Option<&str>,

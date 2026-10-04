@@ -1,3 +1,5 @@
+//! 树行的正文、图标、次要内容和操作在当前视觉规范中共用同一文字角色；已标记行与不可用行优先调整该角色。
+
 use super::palette::{workbench_tree_row_palette, WorkbenchTreeRowPalette};
 use super::state::is_unavailable_tree_row_state;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;

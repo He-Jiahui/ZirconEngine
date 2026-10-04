@@ -1,3 +1,4 @@
+//! 专用 provider 更新共用统计载体，让提交端报告本帧结果而不泄漏内部状态类型。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct RuntimeProviderUpdate<S> {
     stats: S,

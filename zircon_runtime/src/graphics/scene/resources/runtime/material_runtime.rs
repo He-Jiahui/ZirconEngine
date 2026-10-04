@@ -107,6 +107,8 @@ pub(crate) struct MaterialCaptureSeed {
     pub(crate) emissive_texture_uv_channel: u32,
 }
 
+/// 一个材质候选代际的绘制语义快照；发布后由 draw proxy 与对应 GPU 绑定一起选取，
+/// 捕获诊断从此生成轻量 seed，避免向采集层泄漏设备资源。
 #[derive(Clone, Debug)]
 pub(crate) struct MaterialRuntime {
     pub(crate) base_color: Vec4,

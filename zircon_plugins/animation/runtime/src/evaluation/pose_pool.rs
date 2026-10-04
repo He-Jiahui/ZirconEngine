@@ -1,3 +1,4 @@
+//! 剪辑评估器按骨架缓存可复用姿态缓冲区，减少连续帧的分配；取得的缓冲区必须按当前关节数重置后再采样。
 use super::PoseBuffer;
 
 /// Reusable pose-buffer storage for allocation-free steady-state evaluation.
@@ -19,6 +20,7 @@ impl PosePool {
         }
     }
 
+    /// 暂借按当前关节数重置的缓冲区；使用结束后归还，否则后续帧可能增加分配。
     pub fn acquire(&mut self, joint_count: usize) -> PoseBuffer {
         let mut buffer = self.available.pop().unwrap_or_else(|| {
             self.miss_count = self.miss_count.saturating_add(1);
@@ -31,6 +33,7 @@ impl PosePool {
         buffer
     }
 
+    /// 清空逻辑行数并保留容量；池以骨架缓存为所有者，不跨评估器共享。
     pub fn release(&mut self, mut buffer: PoseBuffer) {
         buffer.clear();
         self.available.push(buffer);

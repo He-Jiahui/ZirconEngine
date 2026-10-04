@@ -1,3 +1,6 @@
+//! 定义可靠 UDP 的固定 wire header、可选分片 header 及编解码错误，供收包方与 ACK 逻辑共享。
+//! 序列号在 wire 上只有 u16；与 manager 的 u64 内部序号映射须受活动窗口约束。
+
 pub const RELIABLE_UDP_FLAG_FRAGMENT: u8 = 0b0000_0001;
 pub const RELIABLE_UDP_FLAG_LAST_FRAGMENT: u8 = 0b0000_0010;
 
@@ -85,6 +88,8 @@ impl ReliableUdpWirePacket {
         }
     }
 
+    /// 序列化当前 header 与 payload；调用者需保持 fragment flag 与可选分片 header 一致。
+    /// decode 只保证字节范围可读，片号和片数语义还需接收层校验。
     pub fn encode(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(
             RELIABLE_UDP_BASE_HEADER_LEN

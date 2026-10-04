@@ -1,3 +1,5 @@
+//! 工具资源仲裁对外返回的身份与生命周期协议；排队请求预留租约身份，晋升保持身份连续，结果必须连同事件提交给有序分发。
+
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -49,6 +51,7 @@ impl ToolRequestHandle {
     }
 }
 
+/// 已授予原子资源集合的身份；持有副本不授予额外权限，释放与撤销仍须通过工具服务核验代次。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ToolLeaseHandle {
     id: ToolLeaseId,
@@ -203,6 +206,7 @@ pub enum ToolLifecycleEvent {
     },
 }
 
+/// 把调度结果与同一次状态变化的通知绑定；调用方必须提交整个报告，避免观察者遗漏释放或晋升事件。
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[must_use = "tool scheduler reports must be committed to the ordered transition dispatcher"]
 pub struct ToolScheduleReport<O> {

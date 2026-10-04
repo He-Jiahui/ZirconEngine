@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use super::super::GpuTextureResource;
 
+/// 同一资产修订的设备纹理与当前连续 mip 驻留前沿；材质代理可在修订不变时换用更新的 mip 资源。
 pub(in crate::graphics::scene::resources) struct PreparedTexture {
     pub(in crate::graphics::scene::resources) revision: u64,
     pub(in crate::graphics::scene::resources) resource: Arc<GpuTextureResource>,

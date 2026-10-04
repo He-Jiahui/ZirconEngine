@@ -1,3 +1,5 @@
+//! 设备契约的统一错误面；后端把句柄、描述符、提交与回读失败映射到这些类型。
+
 use std::time::Duration;
 
 use thiserror::Error;

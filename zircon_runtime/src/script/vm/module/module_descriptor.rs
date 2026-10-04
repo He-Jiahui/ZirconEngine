@@ -12,6 +12,7 @@ use crate::script::{
     VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
 };
 
+/// 在 Scene 可用后的模块阶段注册宿主驱动，再创建 VM 管理器和脚本插件入口；工厂顺序保证反射世界扩展先于包激活。
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(SCRIPT_MODULE_NAME, "VM plugin hosting and hot reload")
         .with_init_level(InitLevel::Post)

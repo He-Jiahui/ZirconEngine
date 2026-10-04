@@ -1,3 +1,4 @@
+// 通过管理器样式及检查器命令核对规则、令牌、控件和布局编辑结果及匹配摘要投影。
 use std::fs;
 
 use crate::ui::host::module::EDITOR_MANAGER_NAME;

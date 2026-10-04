@@ -1,3 +1,5 @@
+//! 表格子构件的行、单元格、排序和分页字段保留为可编写的组合契约。这些工厂被总目录集中注册；分页和排序事件交给状态或宿主消费者处理。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

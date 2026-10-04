@@ -1,3 +1,4 @@
+//! 场景切换导出只在当前 Level 写入一个待处理请求；请求 ID 单调递增，新的请求替换尚未消费的旧请求，由动态会话最终执行。
 use crate::core::framework::scene::SceneResource;
 use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValue};
 use crate::script::runtime_context_for_frame;

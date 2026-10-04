@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0063] 运动模糊产品的速度场景与执行器夹具的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_render_product_post_process_motion_blur_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/tests/render_product_post_process.rs");

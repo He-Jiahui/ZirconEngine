@@ -6,6 +6,7 @@ pub(super) const CONSOLE_OUTPUT_LINE_CHUNK_CAPACITY: usize = 64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 /// Describes the immutable generation's transition from its predecessor.
+/// 发布代次的进入/过期/保留账本；计数与宿主行补丁必须消费同一Delta。
 pub(crate) struct ConsoleOutputLineDelta {
     pub entered: usize,
     pub expired: usize,
@@ -13,6 +14,7 @@ pub(crate) struct ConsoleOutputLineDelta {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 单逻辑行的来源与展示slot身份；文本和跳转信息随不可变代次发布。
 pub(crate) struct ConsoleOutputLineSnapshot {
     source_id: u64,
     slot_id: u64,
@@ -77,6 +79,7 @@ impl ConsoleOutputLineSnapshot {
 }
 
 #[derive(Clone, Debug, Default)]
+/// 逻辑行chunk共享代次；仅替换追加/裁剪触及的边界块，保留旧快照可读性。
 pub(crate) struct ConsoleOutputLineGeneration {
     chunks: Arc<[Arc<[ConsoleOutputLineSnapshot]>]>,
     first_chunk_offset: usize,
@@ -99,6 +102,7 @@ impl ConsoleOutputLineGeneration {
         }
     }
 
+    /// 固定容量日志的代次更新；调用方须同步消费返回Delta更新计数和展示，容量零清空。
     pub(crate) fn append_bounded(
         &self,
         entered_lines: Vec<ConsoleOutputLineSnapshot>,
@@ -177,6 +181,7 @@ impl ConsoleOutputLineGeneration {
         )
     }
 
+    /// 来源窗口前移时裁掉旧序列；调用方保证source_id在同一来源流中单调有序。
     pub(crate) fn trim_before_source_id(&self, first_source_id: u64) -> (Self, usize) {
         let expired = self
             .iter()
@@ -251,6 +256,7 @@ impl ConsoleOutputLineGeneration {
             .take(self.line_count)
     }
 
+    /// 局部行复用依据；共享存储不代表两代次的展示行索引相同。
     pub(crate) fn shares_storage_chunk_with(
         &self,
         other: &Self,

@@ -1,3 +1,5 @@
+//! 每个设备代际拥有独立句柄与原生对象表；撤销逻辑句柄与延迟丢弃原生对象引用、回退后端预算估算分开。
+//! 这里的所有权与提交时序由同一设备代际统一管理。
 //! Generation-local WGPU resource tables.
 //!
 //! The root owns identity and native object storage. Resource, binding, and

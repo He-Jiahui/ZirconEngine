@@ -1,3 +1,5 @@
+//! 图标按钮外框、图标槽和完整容纳检查；实例 value_number 在此域表示期望图标边长，受容器与密度约束。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::icon_button_glyph_metrics;
 use super::style::IconButtonContext;
@@ -48,6 +50,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_i
         && inner_bottom <= outer_bottom
 }
 
+/// value_number 的正有限值可声明图标尺寸；先限制在密度留边内，再由入口判断是否达到该语境最低尺寸。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_glyph_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -77,6 +80,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bu
     corner_radius_for_frame(rect, requested_radius)
 }
 
+/// 对状态位移后的槽做完整容纳和最低密度尺寸检查；窄控件保留表面但省略图标。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_glyph_is_paintable(
     glyph: &FrameRect,
     button: &FrameRect,

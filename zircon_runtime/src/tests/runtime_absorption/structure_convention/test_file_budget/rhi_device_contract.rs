@@ -1,3 +1,4 @@
+//! 核对渲染硬件设备契约测试迁移后的父子分工与数量快照，并检查文件预算；出现次数来自源码文本，后续新增测试需按当前职责复核快照。
 use super::*;
 
 #[test]
@@ -13,6 +14,7 @@ fn runtime_15_rhi_device_contract_tests_are_folder_backed() {
     let invalid_descriptors = read_repo(
         "zircon_runtime/crates/zr_rhi_wgpu/src/tests/device_contract/invalid_descriptors.rs",
     );
+    // BUG: [CR-RUNTIME-TESTS-BUDGET-0002] 此设备传输测试路径在当前工作树不存在，统一仓库读取器会立即终止；需按现行目录入口调整读取与后续锚点。
     let transfer_and_fences = read_repo(
         "zircon_runtime/crates/zr_rhi_wgpu/src/tests/device_contract/transfer_and_fences.rs",
     );

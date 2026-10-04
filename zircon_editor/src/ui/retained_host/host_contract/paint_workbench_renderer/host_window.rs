@@ -4,6 +4,7 @@ use super::root_frames::resolve_root_frames;
 use super::scene_layers::draw_host_scene;
 use super::skeleton::draw_root_skeleton;
 
+// 普通工作台绘制入口先把展示态转换为 pane 交互快照，再解析根框并依序绘制基础层和场景层。
 pub(in crate::ui::retained_host::host_contract) fn draw_host_workbench_window(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
@@ -15,6 +16,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_host_workbench_window(
     draw_host_scene(frame, &root, presentation);
 }
 
+// 测试与性能采样入口沿用相同绘制顺序，只把根框、骨架和场景划成独立的宿主 profile 范围。
 pub(in crate::ui::retained_host::host_contract) fn draw_host_workbench_window_profiled(
     frame: &mut HostRgbaFrame,
     width: u32,

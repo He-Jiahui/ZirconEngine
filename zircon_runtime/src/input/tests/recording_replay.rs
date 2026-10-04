@@ -4,6 +4,7 @@ use crate::input::{
     InputButton, InputEvent, InputEventRecordingConfig, InputRecording, InputRecordingFrame,
 };
 
+// 记录器保留原始事件与完整性状态；游标回放应重建按键、轴和失焦释放结果。
 #[test]
 fn input_recording_captures_drainable_event_records_by_frame() {
     let input = DefaultInputManager::default();

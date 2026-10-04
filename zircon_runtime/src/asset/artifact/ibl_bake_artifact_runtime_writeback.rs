@@ -9,6 +9,7 @@ use crate::core::framework::render::{
 
 use super::{IblBakeArtifactCacheError, IblBakeArtifactCacheStore};
 
+/// 区分已持久化 GPU 读回与因描述符过期而跳过的缓存写回。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IblBakeArtifactRuntimeWritebackStatus {
     Written,
@@ -50,6 +51,7 @@ impl IblBakeArtifactRuntimeWritebackReport {
     }
 }
 
+/// GPU 读回结束后由运行时路径调用；只把当前请求对应的描述符写入运行时缓存。
 pub fn write_ibl_bake_artifact_runtime_readback(
     store: &IblBakeArtifactCacheStore,
     request: &IblBakeArtifactRequest,

@@ -1,3 +1,5 @@
+//! 从已导入的示例场景生成渲染帧，检查动画网格、静态批次、活动相机和天空回退的运行时交接。
+
 use super::vampire_root;
 use crate::asset::project::ProjectManager;
 use crate::asset::AssetUri;
@@ -34,6 +36,7 @@ fn vampire_example_scene_extracts_playable_third_person_meshes() {
         player_state_machine.parameters.get("attacking"),
         Some(&AnimationParameterValue::Bool(false))
     );
+    // 场景加载只建立 World；渲染帧提取才决定网格批次、相机和后处理是否可供渲染器消费。
     let extract = world.to_render_frame_extract();
     let mesh_entities = extract
         .geometry

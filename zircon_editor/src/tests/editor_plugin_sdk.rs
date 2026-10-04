@@ -1,3 +1,4 @@
+//! 从插件示例、目录物化和 host 重用路径核对窗口与资产贡献的注册代际，确保批量诊断不被另一类扩展失败吞掉。
 use crate::core::asset::{
     AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId, AssetTypeRegistry,
 };

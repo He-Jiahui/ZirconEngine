@@ -9,6 +9,7 @@ pub(super) struct GlyphAtlasBitmapRendererAtlasResource {
     pub(super) atlas: GlyphAtlasBitmapAtlasResources,
 }
 
+/// 缓冲与绘制命令跨帧缓存；实例内容哈希是上传去重依据，空闲释放由上层渲染器决定。
 pub(super) struct GlyphAtlasBitmapRendererDrawPass {
     pub(super) instance_buffer: Option<wgpu::Buffer>,
     pub(super) instance_buffer_capacity_bytes: u64,
@@ -22,6 +23,7 @@ pub(super) struct GlyphAtlasBitmapPipelineResource {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 汇总单帧字形图集准备结果，供 UI 诊断、上传债务确认与容量预算汇报使用。
 pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapRendererPrepareReport {
     pub(super) atlas_size: UVec2,
     pub(super) atlas_layer_count: u32,

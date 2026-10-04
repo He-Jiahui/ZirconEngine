@@ -1,3 +1,4 @@
+//! 通过输出失败验证 shutdown 的错误状态，并区分 write/flush 成功计数与后续 sync_data 失败。
 use std::time::Duration;
 
 use super::super::worker::SinkRuntime;

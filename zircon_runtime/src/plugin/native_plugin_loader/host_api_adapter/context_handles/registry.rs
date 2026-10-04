@@ -40,6 +40,8 @@ impl Default for NativeHostRegistrationScopeState {
 }
 
 impl NativeHostRegistrationScopeState {
+    // TODO: [CR-PLUGIN-NATIVE-0105] 核实关闭位和活动计数分别用 Acquire/Release 时，acquire 的二次检查与 close_and_wait 的读零能否同时成立；缺少跨变量内存模型证明；下一步以 Loom 覆盖并发交错。
+    /// 两次检查关闭位包住计数递增，意在让关闭线程等待已经入场的注册回调。
     pub(super) fn acquire(self: &Arc<Self>) -> Option<NativeHostRegistrationLease> {
         if self.closing.load(Ordering::Acquire) {
             return None;
@@ -212,6 +214,7 @@ impl<T> HostContextRegistry<T> {
         encode_handle(index, FIRST_GENERATION)
     }
 
+    /// 读取前后都核对世代；返回的 Arc 允许已开始的桥接调用在句柄注销后完成。
     pub(super) fn get(&self, handle: u64) -> Option<Arc<T>> {
         let (index, generation) = decode_handle(handle)?;
         let directory = self.directory.load();
@@ -226,6 +229,7 @@ impl<T> HostContextRegistry<T> {
         Some(context)
     }
 
+    /// 注销先阻止新解析，再推进世代；代数耗尽的槽位永久退役以免旧句柄复活。
     pub(super) fn remove(&self, handle: u64) -> bool {
         let Some((index, generation)) = decode_handle(handle) else {
             return false;

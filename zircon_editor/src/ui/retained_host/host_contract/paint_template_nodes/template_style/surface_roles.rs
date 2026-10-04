@@ -1,3 +1,5 @@
+//! 资源浏览器不同部位共用明确语义名；颜色与轮廓策略须一致消费这些身份，不靠 control_id 猜测。
+
 use super::super::super::data::TemplatePaneNodeData;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_asset_preview_surface(

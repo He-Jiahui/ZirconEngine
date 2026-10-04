@@ -1,3 +1,4 @@
+//! 共享字段读取要求类型正确且非空，返回值借用解析表；去除边缘空白、命名空间和重复项由各领域断言进一步约束。
 use std::path::Path;
 
 pub(in crate::tests::plugin_extensions::static_manifest_contracts) fn assert_non_empty_string(

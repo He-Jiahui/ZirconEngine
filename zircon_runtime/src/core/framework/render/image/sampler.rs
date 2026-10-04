@@ -17,6 +17,7 @@ pub enum RenderSamplerFilter {
     Linear,
 }
 
+/// 纹理导入配置与 GPU 采样器缓存之间的稳定描述；纹理元数据校验会限制各向异性组合。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderSamplerDescriptor {
     pub address_mode_u: RenderSamplerAddressMode,

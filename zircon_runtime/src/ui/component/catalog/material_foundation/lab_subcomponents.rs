@@ -1,3 +1,5 @@
+//! 实验组件的标签上下文、时间线片段和树项以独立描述符提供属性与组合槽。value/context_value/itemId 等身份字段作为编写契约交付，实际父子关系与交互由消费方维护。
+
 use super::shared::*;
 
 const TAB_ORIENTATIONS: [&str; 2] = ["horizontal", "vertical"];

@@ -1,5 +1,6 @@
 use crate::graphics::feature::BuiltinRenderFeature;
 
+/// 管线资产中的 feature 身份：内建项从枚举派生描述符名称，插件项保存名称供资产与描述符匹配。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RendererFeatureSource {
     Builtin(BuiltinRenderFeature),

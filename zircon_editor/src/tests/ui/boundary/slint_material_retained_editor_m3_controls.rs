@@ -1,3 +1,5 @@
+//! 验证M3 控件来源事实及按钮、图标和浮动按钮样例元数据。
+
 use std::{fs, path::PathBuf};
 
 use toml::Value;

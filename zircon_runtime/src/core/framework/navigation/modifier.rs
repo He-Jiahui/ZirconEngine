@@ -18,6 +18,7 @@ impl Default for NavMeshModifierMode {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
+/// 通过场景层级影响烘焙源；最近的适用修饰器优先，子级是否继承由 apply_to_children 决定。
 pub struct NavMeshModifierDescriptor {
     pub mode: NavMeshModifierMode,
     pub affected_agents: Vec<String>,

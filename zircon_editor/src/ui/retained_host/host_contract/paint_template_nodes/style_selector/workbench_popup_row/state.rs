@@ -1,3 +1,5 @@
+//! 弹出行把运行时热态与已投影状态共同用于表面和装饰；禁用或加载统一限制颜色输出。
+
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_hot(

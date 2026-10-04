@@ -1,5 +1,6 @@
 use crate::core::framework::project::ExportPackagingStrategy;
 
+// 三种封闭策略共用位集，按声明顺序只报告后续重复项；新增枚举变体时必须同步扩展该映射。
 pub(super) fn validate_runtime_plugin_default_packaging_strategy_uniqueness(
     owner: &str,
     strategy: ExportPackagingStrategy,

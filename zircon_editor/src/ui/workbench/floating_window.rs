@@ -1,3 +1,4 @@
+//! 测试和集成契约使用的悬浮窗口设计参照，固定层级、交互类别和资源路径；生产窗口实例由注册表与布局管理。
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -92,6 +93,7 @@ pub const FLOATING_WINDOW_DESIGN_CONTRACTS: [FloatingWindowDesignContract; 3] = 
 ];
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 供设计和资源契约测试构造的声明；公开字段可修改，取得设计参照不会验证当前字段与参照一致。
 pub struct FloatingWindow {
     pub kind: FloatingWindowKind,
     pub modal: bool,
@@ -122,6 +124,7 @@ impl FloatingWindow {
         }
     }
 
+    /// 为调用方指定的页面资源建立独立窗口设计声明；资源合法性须由实际资源加载链核验。
     pub fn detached_editor(content_asset: impl Into<String>) -> Self {
         Self {
             kind: FloatingWindowKind::DetachedEditor,
@@ -131,6 +134,7 @@ impl FloatingWindow {
         }
     }
 
+    /// 按种类返回固定设计参照，用于一致性测试；不校验本声明的可修改字段。
     pub fn design_contract(&self) -> &'static FloatingWindowDesignContract {
         self.kind.design_contract()
     }

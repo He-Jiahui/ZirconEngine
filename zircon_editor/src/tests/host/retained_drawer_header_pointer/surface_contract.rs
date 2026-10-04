@@ -1,3 +1,4 @@
+// 读取抽屉标题回调和内容消费者源码，约束原生回执传递与组件化布局帧归属。
 fn source(relative: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))

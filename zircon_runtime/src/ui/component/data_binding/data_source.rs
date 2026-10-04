@@ -1,8 +1,11 @@
+//! 选中实体检查器的静态字段目录，供绑定适配器和属性编辑器交换目标元数据；subject 由宿主解析为当前选中实体。
+
 use zircon_runtime_interface::ui::component::{
     UiComponentDataSourceDescriptor, UiComponentDataSourceFieldDescriptor,
     UiComponentDataSourceKind, UiValueKind,
 };
 
+/// 交付可写字段、分组与数值步长契约；调用方另行负责读取选中实体、校验实际写入和刷新投影。
 pub fn inspector_selected_entity_data_source() -> UiComponentDataSourceDescriptor {
     UiComponentDataSourceDescriptor::new(
         "inspector",

@@ -3,6 +3,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use super::constants::{DEFAULT_MIN_WINDOW_HEIGHT, DEFAULT_MIN_WINDOW_WIDTH};
 use super::validation::{valid_max_window_axis, valid_window_axis};
 
+/// 启动窗口尺寸约束，供 App 构造后端属性；此处对旧配置执行容错归一化。
+/// 运行期命令使用严格的 `WindowStateResizeConstraints`，无效请求应被拒绝。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct WindowResizeConstraints {
     pub min_width: f32,
@@ -47,6 +49,7 @@ impl Default for WindowResizeConstraints {
 }
 
 impl Serialize for WindowResizeConstraints {
+    // 无界上限在配置格式中写为 null，以便 JSON 等不支持无穷值的格式往返。
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

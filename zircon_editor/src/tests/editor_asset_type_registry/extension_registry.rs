@@ -1,3 +1,4 @@
+//! 核对插件扩展只登记一种类型化资产贡献，拒绝同一插件对同一资产类型的并行所有权。
 use crate::core::asset::{
     AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId, AssetTypePresentation,
     ThumbnailProviderDescriptor,

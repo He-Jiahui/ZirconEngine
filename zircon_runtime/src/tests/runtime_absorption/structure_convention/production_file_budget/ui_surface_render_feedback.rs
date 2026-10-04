@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0115] 界面组件反馈颜色与图形原语构建的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_ui_surface_render_feedback_commands_are_child_owners() {
     let parent = read_runtime_src("ui/surface/render/feedback.rs");

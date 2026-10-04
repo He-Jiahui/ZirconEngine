@@ -10,6 +10,7 @@ use zircon_runtime::core::framework::ai::{
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::Vec3;
 
+// 调试快照和节点结果事件的 schema 必须与编辑器镜像消费端一致。
 #[test]
 fn behavior_debug_snapshot_is_declared_as_a_typed_runtime_event() {
     let manifest = package_manifest();

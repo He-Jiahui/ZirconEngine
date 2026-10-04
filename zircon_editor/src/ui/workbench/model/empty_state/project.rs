@@ -3,6 +3,7 @@ use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use super::super::pane_empty_state_model::PaneEmptyStateModel;
 use super::action_factory::open_project_action;
 
+/// 只处理项目未打开的恢复入口；资产内容为空由各内容面展示。
 pub(super) fn project_or_assets_empty_state(
     chrome: &EditorChromeSnapshot,
 ) -> Option<PaneEmptyStateModel> {

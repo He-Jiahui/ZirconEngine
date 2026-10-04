@@ -46,6 +46,7 @@ fn reflected_value_budget_counts_reflected_and_embedded_json_graphs() {
 
 #[test]
 fn reflected_value_budget_rejects_each_bounded_dimension() {
+    // 四个样本分别越过深度、节点、字符串和容器上限，确保错误来源不会互相替代。
     let depth = ReflectedValue::List(vec![ReflectedValue::List(vec![ReflectedValue::Null])]);
     assert_eq!(
         depth.validate_with_budget(budget(2, 8, 8, 8)),

@@ -70,6 +70,7 @@ impl EnvironmentIblSourceStagingTiming {
         self.bundle_commit
     }
 
+    /// 汇总互不重叠的拥有阶段；cubemap_build 已包含投影、mip、PMREM 与 SH9 子阶段。
     pub const fn total(&self) -> Duration {
         self.source_classify
             .saturating_add(self.source_identity)

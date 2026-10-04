@@ -1,3 +1,5 @@
+//! 列表、图像列表与表格子组件依附父组件布局；目录须公开正确插槽和本地默认值。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{UiComponentEventKind, UiRenderCapability, UiValue};
 

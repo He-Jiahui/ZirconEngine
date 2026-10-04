@@ -1,3 +1,5 @@
+//! 输入管理器持有指针表、计时器和处理器；共享表面夹具比较捕获、弹窗、触摸与窗口事件的权威路径。
+
 use crate::ui::{
     dispatch::{UiInputManager, UI_INPUT_ROUTE_ORDER},
     surface::UiSurface,

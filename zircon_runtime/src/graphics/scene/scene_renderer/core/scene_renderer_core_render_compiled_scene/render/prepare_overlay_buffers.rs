@@ -5,6 +5,7 @@ use zr_rhi_wgpu::WgpuTextureUploadBatch;
 
 use super::super::super::scene_renderer_core::SceneRendererCore;
 
+/// 图执行前准备 overlay 的 CPU/GPU 数据；纹理上传由同一帧资源上传批次提交。
 pub(super) fn prepare_overlay_buffers(
     renderer: &mut SceneRendererCore,
     device: &wgpu::Device,

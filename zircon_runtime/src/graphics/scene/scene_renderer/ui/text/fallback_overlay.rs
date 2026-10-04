@@ -14,6 +14,8 @@ impl ScreenSpaceUiTextBatch {
         frame: UiFrame,
         text_direction: UiTextDirection,
     ) -> Self {
+        // TODO: [CR-W12-UI-TEXT-0004] 此处清空 shape/artifact 后，下游 native_glyph_run 对空 glyph 输入返回 None；尚未找到局部回退后的重塑调用。
+        // 证据缺口是有效字体、正 CPU advances 与局部 atlas 失败共同可达；下一步用该生产输入贯通 overlay 到 native glyph run 的生成路径。
         Self {
             route_identity: self.route_identity.clone(),
             command_generation: self.command_generation,

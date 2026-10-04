@@ -5,6 +5,7 @@ mod mutation;
 
 use std::collections::HashSet;
 
+// 同时保留诊断显示顺序和成员集合：能力解锁时只改集合，最终投影再过滤显示列表。
 #[derive(Clone, Debug, Default)]
 pub(super) struct FeatureStatus {
     feature_id: String,

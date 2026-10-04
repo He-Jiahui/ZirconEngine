@@ -2,6 +2,9 @@ use super::super::{ScriptHostError, ScriptHostValue};
 use super::byte_view::ScriptHostByteView;
 use super::value_ref::ScriptHostValueRef;
 
+/// 将 VM 参数作为短生命周期借用值交给 host export，而不要求先深拷贝整帧。
+///
+/// 成功访问一个索引时实现者必须恰好调用一次 visitor；值不能逃出这次同步访问。
 pub trait ScriptHostArgumentSource {
     fn len(&self) -> usize;
 
@@ -14,6 +17,7 @@ pub trait ScriptHostArgumentSource {
     ) -> Result<(), ScriptHostError>;
 }
 
+/// 单次 host 调用的参数门面；调用表先校验参数数量和能力，再把它交给回调。
 pub struct ScriptHostArguments<'call> {
     source: &'call dyn ScriptHostArgumentSource,
 }
@@ -31,6 +35,7 @@ impl<'call> ScriptHostArguments<'call> {
         self.len() == 0
     }
 
+    /// 在借用值有效期间完成读取或显式拥有型转换；缺失或重复回调都会返回错误。
     pub fn with_argument<T>(
         &self,
         index: usize,

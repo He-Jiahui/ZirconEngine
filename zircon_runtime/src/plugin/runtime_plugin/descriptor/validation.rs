@@ -10,6 +10,7 @@ use super::super::{
 };
 use crate::core::framework::platform::RuntimeTargetMode;
 
+// 注册报告先校验描述符身份与默认策略，再校验其投影出的包清单；诊断累积而不在首错处中断。
 pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_descriptor(
     plugin: &dyn RuntimePlugin,
     diagnostics: &mut Vec<String>,

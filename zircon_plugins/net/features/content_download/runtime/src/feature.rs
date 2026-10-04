@@ -1,3 +1,6 @@
+//! 登记内容下载 feature 的懒加载 manager，并通过 Core 绑定根 net manager 服务句柄。
+//! 包依赖要求 HTTP 能力；实际 fetch 每次重新解析句柄，避免持有跨 Core 生命周期的强引用。
+
 use std::sync::Arc;
 
 use zircon_runtime::core::manager::net_manager_handle;

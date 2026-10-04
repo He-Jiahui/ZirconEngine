@@ -5,6 +5,7 @@ use super::probe_scene_data::HybridGiRuntimeProbeSceneData;
 use super::trace_region_scene_data::HybridGiRuntimeTraceRegionSceneData;
 use crate::hybrid_gi::scene_representation::HybridGiSceneRepresentation;
 
+/// 每视图运行态：场景表示维护当前几何与缓存，其他映射保存探针计划、GPU 回传和驻留槽位。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct HybridGiRuntimeState {
     pub(super) scene_representation: HybridGiSceneRepresentation,

@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+/// 区分只读实现与持久化失败，供调用方报告配置未写入的原因。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum PhysicsSettingsStoreError {
     #[error("physics settings are read-only for backend {backend}")]

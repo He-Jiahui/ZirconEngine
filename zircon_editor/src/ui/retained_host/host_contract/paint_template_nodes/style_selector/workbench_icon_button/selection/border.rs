@@ -1,3 +1,5 @@
+//! 基础工具栏图标仅在无其他热态的可见焦点输出轮廓；面板边框按身份和状态选色，边宽用宿主度量；导入命令随后可覆写。
+
 use super::super::model::WorkbenchIconButtonContext;
 use super::super::palette::workbench_icon_button_palette;
 use super::super::state::{icon_button_node_is_hot, is_unavailable_icon_button_state};

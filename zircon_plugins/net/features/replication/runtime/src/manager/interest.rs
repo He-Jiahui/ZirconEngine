@@ -1,3 +1,6 @@
+//! 按 session 的兴趣描述符筛选当前快照；未设置兴趣时默认允许所有对象。
+//! 这是调度前的可见性规则，客户端权限和隐私策略不能仅依赖该内存过滤器。
+
 use zircon_runtime::core::framework::net::{
     NetSessionId, SyncInterestDescriptor, SyncObjectSnapshot,
 };

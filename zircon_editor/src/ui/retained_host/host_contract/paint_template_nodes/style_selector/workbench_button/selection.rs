@@ -1,3 +1,6 @@
+//! 模板按钮在绘制前调用此入口：先解析不可用与交互状态，再处理普通声明色、命令或标签身份，最后应用亮度。
+//! 持久选中/勾选在 Normal 和 Focused 的基础配方中借用悬停表面，真实交互态保持不变；命令及标签身份随后可覆盖外观。
+
 use super::super::super::template_style_color::resolved_style_color;
 use super::super::resolved_state_for_node;
 use super::brightness::apply_visual_brightness;
@@ -17,6 +20,7 @@ use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::template_component_family::uses_workbench_visual_language;
 use zircon_runtime_interface::ui::style::{ButtonInteractionState, UiStyleColor};
 
+/// 模板按钮的完整视觉选择入口；传入已判定的按钮类型与添加组件身份，不修改节点状态。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_button_style(
     node: &TemplatePaneNodeData,
     kind: WorkbenchButtonKind,

@@ -4,6 +4,7 @@ use thiserror::Error;
 
 use crate::asset::{AssetUri, AssetUuid};
 
+/// 注册表操作无法继续时返回的结构化错误；可恢复的扫描告警由 `AssetRegistryDiagnostic` 单独报告。
 #[derive(Debug, Error)]
 pub enum AssetRegistryError {
     #[error("asset registry I/O failed for {path}: {source}")]
@@ -68,6 +69,7 @@ pub enum AssetRegistryError {
     },
 }
 
+// I/O 与 serde 错误本身不支持相等比较；这里连同路径一起比较错误类别和展示文本，供调用方测试精确诊断。
 impl PartialEq for AssetRegistryError {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {

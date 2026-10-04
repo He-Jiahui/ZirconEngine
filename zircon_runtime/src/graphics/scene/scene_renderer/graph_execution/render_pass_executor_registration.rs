@@ -13,6 +13,8 @@ pub enum RenderPassRecordingPolicy {
     ParallelSafe,
 }
 
+/// 插件或内建 pass 的录制入口；执行时只能通过当前 pass 上下文取用资源。
+/// 默认串行录制，确认只读准备输入且无共享可变状态后才声明 ParallelSafe。
 pub trait RenderPassExecutor: Send + Sync {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String>;
 
@@ -60,6 +62,8 @@ fn render_pass_executor_from_fn_with_policy(
 }
 
 #[derive(Clone)]
+/// 把编译图使用的 executor ID 与具体录制实现显式配对。
+/// 注册表不会为未知插件 ID 自动生成可成功返回的占位实现。
 pub struct RenderPassExecutorRegistration {
     pub executor_id: RenderPassExecutorId,
     pub executor: Arc<dyn RenderPassExecutor>,

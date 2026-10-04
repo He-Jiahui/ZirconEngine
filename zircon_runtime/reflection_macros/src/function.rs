@@ -1,3 +1,5 @@
+//! 将无 receiver、非 async/泛型且具名参数的自由函数包装成宿主描述符及延迟调用的导出闭包。
+
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::spanned::Spanned;
@@ -90,6 +92,7 @@ pub(crate) fn host_function_impl(
             })
         }
     });
+    // 描述符阶段声明参数类型；值在回调调用时按索引转换，再交给原函数执行。
     let conversions = params.iter().enumerate().map(|(index, param)| {
         let name = &param.ident;
         let ty = &param.ty;

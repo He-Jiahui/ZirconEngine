@@ -1,3 +1,4 @@
+//! 缓存键绑定文档身份和布局尺寸，日志内容另由逻辑代次检查；避免把旧 Pane 节点投影误复用到新文档。
 use std::collections::BTreeMap;
 
 use crate::ui::retained_host::ConsolePaneData;

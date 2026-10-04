@@ -1,3 +1,5 @@
+//! Material 前导图标保留资源原色，并要求可容纳固定 swatch 尺寸；不足时字段文字仍可独立显示。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;

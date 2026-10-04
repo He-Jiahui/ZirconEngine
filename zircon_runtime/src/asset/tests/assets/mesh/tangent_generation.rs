@@ -1,3 +1,5 @@
+//! glTF 导入在虚拟几何与 SDF 烘焙前生成 MikkTSpace 切线，并在顶点分裂后同步形变通道；此处守住该调用顺序。
+
 use std::collections::BTreeMap;
 
 use crate::asset::importer::cook_mesh_asset_derived_data;
@@ -172,6 +174,7 @@ fn mesh_asset_splits_indexed_vertex_across_mikktspace_corner_groups() {
     assert_eq!(mesh.validate(), Ok(()));
 }
 
+// 先完成角点切线造成的顶点拆分，再烘焙虚拟几何和 SDF；两种派生数据必须基于同一最终几何。
 #[test]
 fn mesh_asset_cooks_virtual_geometry_after_mikktspace_corner_splits() {
     let mut mesh = mikktspace_corner_split_mesh();
@@ -524,6 +527,7 @@ fn quad_unindexed_attributes() -> BTreeMap<String, MeshAttributeValues> {
     ])
 }
 
+// 共享顶点处故意制造切线分组冲突，用于验证拆分后的索引、颜色及形变数据仍对齐。
 fn mikktspace_corner_split_mesh() -> MeshAsset {
     MeshAsset {
         uri: AssetUri::parse("res://meshes/mikktspace-corner-split.zmesh").unwrap(),

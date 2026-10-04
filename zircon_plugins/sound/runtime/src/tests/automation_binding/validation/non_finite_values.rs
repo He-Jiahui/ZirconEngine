@@ -1,3 +1,4 @@
+// 多类目标共用有限数值边界；在目标查找前也须拒绝非有限输入，避免部分状态被更新。
 use super::super::super::*;
 
 fn assert_finite_error(result: Result<(), SoundError>) {

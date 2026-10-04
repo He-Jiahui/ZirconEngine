@@ -2,6 +2,7 @@ use crate::core::math::UVec2;
 use crate::text::atlas::GlyphAtlasStorageFormat;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 图集存储格式与层数的 GPU 资源契约；位图和彩色图集须按计划分别创建，不能复用格式不匹配的数组。
 pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasTextureArraySpec {
     pub(in crate::graphics::scene::scene_renderer::ui) texture_label: &'static str,
     pub(in crate::graphics::scene::scene_renderer::ui) view_label: &'static str,
@@ -56,6 +57,7 @@ pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_texture_array_
     }
 }
 
+/// 按图集计划创建供采样的纹理数组；尺寸和层数至少为 1，实际写入区域由上传命令校验。
 pub(in crate::graphics::scene::scene_renderer::ui) fn create_glyph_atlas_texture_array_resources(
     device: &wgpu::Device,
     spec: GlyphAtlasTextureArraySpec,

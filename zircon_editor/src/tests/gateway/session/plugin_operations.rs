@@ -1,3 +1,4 @@
+//! 核对插件事件与操作结果经 ABI 转发和释放，交叉身份、截断帧及未知状态不得被当成成功输出。
 use std::sync::atomic::Ordering;
 
 use zircon_runtime_interface::{

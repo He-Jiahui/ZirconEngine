@@ -1,3 +1,4 @@
+// 从资产及欢迎页绑定调用派发器，约束资源身份、目标位置和最近项目动作在宿主事件中保持类型与原值。
 use crate::core::editor_event::{EditorAssetSurface, EditorAssetUtilityTab, EditorAssetViewMode};
 use crate::ui::binding::{
     AssetCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, WelcomeCommand,

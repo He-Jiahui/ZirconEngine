@@ -1,3 +1,4 @@
+//! 把通知生产者及标题键绑定到一张任务身份，供进度中心查询权威任务快照；载荷不复制工作进度或拥有任务取消权。
 use std::sync::Arc;
 
 use crate::core::jobs::{JobId, JobTicket};

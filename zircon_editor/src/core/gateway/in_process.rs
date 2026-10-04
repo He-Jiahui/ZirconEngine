@@ -21,6 +21,7 @@ thread_local! {
     static BORROWED_WORLD_CALLBACK_ACTIVE: Cell<bool> = const { Cell::new(false) };
 }
 
+// World 借用回调持有本线程的重入门；回调结束或 unwind 时由 Drop 清除。
 struct BorrowedWorldCallbackGuard;
 
 impl BorrowedWorldCallbackGuard {
@@ -42,6 +43,7 @@ impl Drop for BorrowedWorldCallbackGuard {
 }
 
 #[derive(Clone, Debug)]
+/// 作者世界的本地网关；只开放 LevelSystem 可直接兑现的能力，不伪造运行时会话。
 pub struct InProcessGateway {
     _core: Option<CoreHandle>,
     level: LevelSystem,

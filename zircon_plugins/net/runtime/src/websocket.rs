@@ -1,3 +1,6 @@
+//! 定义根 manager 与可选 WS feature 间的监听、连接和帧协议，并区分真实网络与 loopback 连接。
+//! manager 管理连接 ID、事件队列和 Tokio runtime；feature 实现异步读写。
+
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;

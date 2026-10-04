@@ -4,6 +4,7 @@ use zircon_runtime_interface::ui::template::{
     UiCompiledAssetPackageManifest, UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
 };
 
+/// 为调用方实际写出的包字节生成完整清单；artifact 与字节必须来自同一次序列化，此入口不会反解字节核对二者。
 pub fn compiled_asset_package_manifest_from_artifact_bytes(
     artifact: &UiRuntimeCompiledAssetArtifact,
     artifact_bytes: &[u8],
@@ -21,6 +22,7 @@ pub fn compiled_asset_package_manifest_from_artifact_bytes(
     }
 }
 
+// 复用输入键描述何时失效，产物指纹描述交付的具体字节；二者服务于不同检查，不能互换。
 fn compiled_asset_cache_record_from_artifact_bytes(
     artifact: &UiRuntimeCompiledAssetArtifact,
     artifact_bytes: &[u8],

@@ -1,3 +1,5 @@
+//! 图标大小与文字行高来自同一宿主密度快照，避免 DPI 切换后标题图文错位。
+
 use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]

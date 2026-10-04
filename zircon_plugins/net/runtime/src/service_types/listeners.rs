@@ -1,3 +1,6 @@
+//! 通过统一 NetListenerId 查询或撤销 TCP、HTTP、WS 监听登记；各传输的关闭由其所有者处理。
+//! HTTP/WS 的关闭事件只表明管理表已移除并发出了取消或释放请求；这里不等待 HTTP 任务退出或最后一个 WS Arc 释放。
+
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::net::{

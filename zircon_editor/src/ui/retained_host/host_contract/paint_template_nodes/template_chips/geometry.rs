@@ -1,3 +1,5 @@
+//! chip 外框与标签槽沿用布局的浮点坐标；内容先按可用宽度收缩，像素级裁剪交给命令的 clip。
+
 use super::super::super::data::FrameRect;
 use super::metrics::{chip_line_height, chip_text_left};
 
@@ -12,6 +14,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_pai
         && rect.height > 0.0
 }
 
+/// caller 按可绘箭头决定 right_reserve；调用者仍须检查所得文字槽有正宽且与 clip 相交。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_label_rect(
     rect: &FrameRect,
     right_reserve: f32,

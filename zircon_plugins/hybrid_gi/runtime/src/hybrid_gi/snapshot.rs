@@ -4,6 +4,7 @@ use super::HybridGiRuntimeState;
 impl HybridGiRuntimeState {
     pub(crate) fn snapshot(&self) -> HybridGiRuntimeSnapshot {
         let scene_representation = self.scene_representation();
+        // 前两个槽位均统计旧探针驻留集；场景探针、辐射缓存、表面页和体素另列专门计数。
         HybridGiRuntimeSnapshot::new(
             self.resident_probe_count(),
             self.resident_probe_count(),

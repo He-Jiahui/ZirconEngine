@@ -1,4 +1,5 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 保存待上传页的大小和发起代次，供准备帧生成 GPU 请求。
 pub(crate) struct VirtualGeometryPageRequest {
     page_id: u32,
     size_bytes: u64,

@@ -1,3 +1,4 @@
+// 核对浮动窗口宿主边界为空时回退到共享投影目标。
 use crate::ui::host::NativeWindowHostState;
 use crate::ui::retained_host::callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge;
 use crate::ui::retained_host::floating_window_projection::{

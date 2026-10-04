@@ -1,5 +1,7 @@
 use super::RenderVirtualGeometryExecutionSegment;
 
+/// 虚拟几何队列把可执行绘制投影到后端提交时的中立记录。
+/// 间接参数可用性和执行段必须随同一帧决策传递，诊断计数才对应实际 draw。
 #[derive(Clone)]
 pub struct RenderVirtualGeometryExecutionDraw {
     pub indirect_args_buffer_available: bool,

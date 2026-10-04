@@ -1,3 +1,4 @@
+// 状态只属于静态清单测试扫描器；切换表时提交当前能力，最终由 metadata 用例与运行时类型比较。
 // Keeps capability-status row finalization tied to the static TOML table scanner.
 #[derive(Default)]
 pub(in super::super) struct CapabilityStatusParserState {

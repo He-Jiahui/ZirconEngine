@@ -1,3 +1,4 @@
+//! 独立两骨链和注视求解器的目标、边界及角度限制契约。
 use zircon_plugin_animation_runtime::{LookAtJob, TwoBoneIkJob};
 use zircon_runtime::core::math::{Quat, Vec3};
 

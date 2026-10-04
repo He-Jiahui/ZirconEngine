@@ -1,3 +1,4 @@
+// 注册报告以 owner 回退规则标识提供者；这里核对其清单签名及成功状态，独立包身份需另查发布边界。
 use super::support::{
     sorted_registration_report_optional_feature_signatures,
     sorted_runtime_optional_feature_signatures,

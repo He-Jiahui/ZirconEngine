@@ -1,3 +1,5 @@
+//! 验证编辑器组件目录记录层级、插槽和属性契约，并迁移旧默认 token。
+
 use super::support::EDITOR_HOST_WINDOW_ASSET_TOML;
 use crate::ui::template::{
     parse_editor_component_catalog_manifest, EditorComponentCatalog,

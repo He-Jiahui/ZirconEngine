@@ -7,6 +7,7 @@ use super::placeholder::placeholder_empty_state;
 use super::project::project_or_assets_empty_state;
 use super::scene::scene_empty_state;
 
+/// 给同一chrome中的标签选择空态；返回None表示由内容pane自行展示，不表示业务数据一定非空。
 pub(crate) fn empty_state_for_tab(
     tab: &ViewTabSnapshot,
     chrome: &EditorChromeSnapshot,

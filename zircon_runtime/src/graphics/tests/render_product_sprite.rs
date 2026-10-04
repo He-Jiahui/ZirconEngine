@@ -1,3 +1,4 @@
+//! Sprite 与 Particle 是不同提取通道；此处验证 2D 阶段排序、资源回退统计及无粒子特性时的提交。
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;

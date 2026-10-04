@@ -1,3 +1,4 @@
+//! UI 测试入口按资源、输入、布局、渲染与运行时场景划分；这里注册测试模块并提供事件类型夹具。
 mod accessibility;
 mod accessibility_disabled_gate;
 mod accessibility_state_values;

@@ -5,6 +5,7 @@ use zircon_runtime_interface::reflect::ReflectedValue;
 
 use crate::scene::dynamic_scene::{DynamicSceneError, EntityRemap};
 
+// 实体引用在提交前随源实体映射迁移；映射外的 ID 保持原值，以允许引用已有目标实体。
 pub(in crate::scene::dynamic_scene) fn remap_reflected_value(
     value: &ReflectedValue,
     remap: &EntityRemap,
@@ -32,6 +33,7 @@ pub(in crate::scene::dynamic_scene) fn remap_reflected_value(
     })
 }
 
+// BUG: [CR-SCENE-DYNAMIC-CORE-0001] Json 字段可存任意对象，但这里把所有单键 {entity: 数字} 当成引用重映射；普通业务 JSON 可能被静默改写。
 pub(super) fn remap_json_entity_objects(value: &Value, remap: &EntityRemap) -> Value {
     match value {
         Value::Array(values) => Value::Array(

@@ -1,6 +1,7 @@
 use crate::asset::{AssetEvent, SceneAsset};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 事件尚未进入准备任务时的拒收原因；后续编译或世界应用错误由失败报告承载。
 pub enum DynamicSceneAssetReloadSkipReason {
     Removed,
     ReloadFailed,

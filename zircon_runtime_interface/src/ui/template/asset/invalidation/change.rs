@@ -19,6 +19,7 @@ pub enum UiAssetChange {
 // Snapshot fields mirror the compiler cache key, but remain owned by the
 // invalidation module so graph classification is usable outside caching.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 前后快照保存缓存键所用的文档、导入和外部注册修订；失效图比较它们以分类变化来源。
 pub struct UiInvalidationSnapshot {
     pub document: UiAssetFingerprint,
     pub widget_imports: BTreeMap<String, UiAssetFingerprint>,

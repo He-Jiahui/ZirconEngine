@@ -1,5 +1,6 @@
 use std::ops::Range;
 
+/// 队列内部的请求身份，用于取消交付；不是中立设备提交票据，也不能跨队列使用。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ReadbackTicket(u64);
 
@@ -9,6 +10,8 @@ impl ReadbackTicket {
     }
 }
 
+/// 成功字节只在回调期间借用 staging 映射；长期保留的消费者须复制到自有内存。
+/// 一次性终态交付；队列隔离回调 panic 后继续处理其他请求。
 pub type ReadbackCallback =
     Box<dyn for<'a> FnOnce(Result<&'a [u8], ReadbackError>) + Send + 'static>;
 

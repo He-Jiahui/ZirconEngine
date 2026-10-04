@@ -1,3 +1,4 @@
+// 模块行的身份、种类、目标与能力必须保留同一记录，供静态与运行时模块元组对照。
 use super::{capabilities, identity, kind, targets};
 
 pub(super) fn parse_module_contribution_line(

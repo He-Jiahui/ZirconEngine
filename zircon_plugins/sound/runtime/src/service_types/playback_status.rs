@@ -1,3 +1,4 @@
+//! 查询时轮询 Kira 完成状态；已结束的 ID 留在结束日志，调用方须提取日志而非继续读取活动状态。
 use zircon_runtime::core::framework::sound::{
     SoundError, SoundPlaybackFinished, SoundPlaybackId, SoundPlaybackStatus,
 };

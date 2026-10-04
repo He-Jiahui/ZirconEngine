@@ -1,3 +1,4 @@
+//! 图导入时把缺失的声源 ID 补齐并拒绝重复，提交后推进运行时游标以避免后续分配碰撞。
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::sound::{

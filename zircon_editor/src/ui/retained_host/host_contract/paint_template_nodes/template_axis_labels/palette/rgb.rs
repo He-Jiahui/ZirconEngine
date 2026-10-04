@@ -1,3 +1,5 @@
+//! 比例颜色仅缩放 RGB 而保留透明度，供轴文字和链接资源的主题投影共享。
+
 const COLOR_CHANNEL_MIN: f32 = 0.0;
 const COLOR_CHANNEL_MAX: f32 = 255.0;
 

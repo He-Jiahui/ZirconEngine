@@ -1,5 +1,6 @@
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
 
+/// 时间抗锯齿解析绑定的深度槽跟随后端深度采样模式，其余槽维持历史/速度输入契约。
 pub(crate) fn taa_resolve(
     device: &wgpu::Device,
     depth_sampling_mode: PostProcessDepthSamplingMode,

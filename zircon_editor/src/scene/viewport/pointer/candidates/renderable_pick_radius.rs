@@ -1,3 +1,5 @@
+//! 渲染候选半径按缩放生成有界交互近似，用于粗选呈现，不替代渲染器空间包围体。
+
 use zircon_runtime_interface::math::Transform;
 
 pub(in crate::scene::viewport::pointer) fn renderable_pick_radius(transform: Transform) -> f32 {

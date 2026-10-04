@@ -1,3 +1,4 @@
+//! 从弹层渲染提取核对命令过滤、锚点几何与样式覆写；源码断言守护文字处理的所有权约束。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     design_tokens::EditorTypographyTokens,

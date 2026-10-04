@@ -1,3 +1,5 @@
+//! MenuList、移动步骤和标签滚动按钮补齐导航组合的可编写契约；菜单与搜索字段复用 keyboard 的读取名称。列表焦点和动作的实例变更由事件归约器维护。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

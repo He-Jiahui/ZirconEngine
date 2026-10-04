@@ -1,3 +1,6 @@
+//! 提供同一 manager 内成对 WS 连接，供无外部 socket 的帧和生命周期语义调用。
+//! 此路径不证明真实握手、TLS 或后端并发行为；两个 ID 使用统一分配器。
+
 use std::collections::VecDeque;
 
 use zircon_runtime::core::framework::net::{

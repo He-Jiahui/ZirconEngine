@@ -1,3 +1,6 @@
+//! 编辑器网关的动态库权限、会话寿命和插件消费链契约测试。
+//! 源码字符串断言须与真实实现一起审核；注释不得充当这些断言的匹配文本。
+
 #[cfg(feature = "target-editor-host")]
 use std::sync::Arc;
 
@@ -27,6 +30,7 @@ fn runtime_session_satisfies_editor_gateway_thread_safety_contract() {
     assert_send_sync::<RuntimeSession>();
 }
 
+// TODO: [CR-APP-ENTRY-0003] 确认编辑器网关测试与当前构造 API 的迁移关系；当前测试仍引用已缺失的 linked 方法且源码断言与会话入口不同，待外来 RuntimeSession 改动稳定后核对受管测试。
 #[cfg(feature = "target-editor-host")]
 #[test]
 fn editor_gateway_is_owned_by_session_gateway_instead_of_runtime_session() {

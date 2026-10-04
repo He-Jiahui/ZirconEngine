@@ -29,6 +29,8 @@ impl AntiAliasFallbackReason {
     }
 }
 
+/// 把相机请求、实际执行模式及图归一化结果一起交给帧提交和诊断。
+/// 调用方应使用 `effective_settings` 构建后处理栈，不能据 `requested_mode` 安排 GPU 通道。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AntiAliasFallbackReport {
     pub requested_mode: AntiAliasMode,

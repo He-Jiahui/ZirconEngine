@@ -1,3 +1,4 @@
+// 提供模板运行时展示页绑定查找与共享测试夹具。
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 

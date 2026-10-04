@@ -7,6 +7,7 @@ use super::recent_project_item_snapshot::RecentProjectItemSnapshot;
 use super::welcome_pane_snapshot::WelcomePaneSnapshot;
 
 impl EditorStartupSessionDocument {
+    /// 同轮recents共用一次时钟；browse能力由宿主提供，按钮提示不替代执行时的项目验证。
     pub fn welcome_pane_snapshot(&self, browse_supported: bool) -> WelcomePaneSnapshot {
         let project_path_preview = self
             .draft

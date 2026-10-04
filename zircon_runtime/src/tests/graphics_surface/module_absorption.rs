@@ -1,3 +1,4 @@
+//! 核对图形模块吸收后的根入口与旧转发职责退役；读取不存在的旧入口时使用空文本，现有新入口另有存在性断言。
 #[test]
 fn graphics_module_host_is_absorbed_into_runtime_graphics_surface() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

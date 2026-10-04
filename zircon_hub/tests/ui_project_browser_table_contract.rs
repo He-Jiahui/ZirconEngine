@@ -1,4 +1,5 @@
 //! Static contracts for the React/MUI Projects Browser table layout.
+//! 维护最近项目 DTO 到浏览器表格的展示、选择和详情动作契约。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,8 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 表格列与项目行 DTO 要共同承担选择和详情入口。
+// BUG: [CR-HUBTESTB-0003] 表格菜单可用时标题由菜单标签决定，旧的固定详情标签断言已失配，当前测试必失败；证据：project_table_owns_recent_project_columns_selection_and_detail_action 读取 ProjectTable.tsx。
 #[test]
 fn project_table_owns_recent_project_columns_selection_and_detail_action() {
     let table = read_crate_file("web/src/components/data/ProjectTable.tsx");
@@ -95,6 +99,7 @@ fn project_table_owns_recent_project_columns_selection_and_detail_action() {
     );
 }
 
+// 浏览器筛选结果须进入表格，选中 ID 由后端投影提供。
 #[test]
 fn project_browser_page_feeds_table_from_filtered_browser_projects() {
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
@@ -126,6 +131,7 @@ fn project_browser_page_feeds_table_from_filtered_browser_projects() {
     );
 }
 
+// 总览表格应直接消费最近项目 DTO，避免从显示文案逆推字段。
 #[test]
 fn dashboard_table_rows_consume_backend_recent_project_dtos_without_language_parsing() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
@@ -151,6 +157,7 @@ fn dashboard_table_rows_consume_backend_recent_project_dtos_without_language_par
     );
 }
 
+// 工具栏与侧面板维持浏览器在窄视口下的组合关系。
 #[test]
 fn project_browser_toolbar_and_panel_layout_stay_responsive_and_componentized() {
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
@@ -195,6 +202,7 @@ fn project_browser_toolbar_and_panel_layout_stay_responsive_and_componentized() 
     );
 }
 
+// Rust 序列化与前端类型共同决定最近项目行的字段语义。
 #[test]
 fn view_model_and_types_project_browser_rows_remain_camel_case_dtos() {
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
@@ -237,6 +245,7 @@ fn view_model_and_types_project_browser_rows_remain_camel_case_dtos() {
     );
 }
 
+// 文档记录表格跨前后端的数据边界及聚焦测试入口。
 #[test]
 fn project_browser_table_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -267,6 +276,7 @@ fn project_browser_table_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检此测试继续追踪当前表格和 DTO 源码。
 #[test]
 fn project_browser_table_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_project_browser_table_contract.rs");

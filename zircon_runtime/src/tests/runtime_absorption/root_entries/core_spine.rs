@@ -1,3 +1,4 @@
+//! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn core_root_retires_channel_and_service_alias_fragments() {
     let source = include_str!("../../../core/mod.rs");

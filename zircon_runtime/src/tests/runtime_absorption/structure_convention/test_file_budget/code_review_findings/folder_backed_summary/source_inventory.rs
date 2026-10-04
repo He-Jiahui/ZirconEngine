@@ -1,3 +1,4 @@
+//! 核对审查守卫汇总的父子职责、源码清单及迁移锚点；子串与计数约束保留结构快照，后续合法新增需同步复核预期。
 use super::super::super::*;
 
 #[path = "sources/budgets.rs"]

@@ -1,3 +1,4 @@
+/// 扁平层级中的节点范围；裁剪器按 child 与 cluster 区间遍历同一提取包。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderVirtualGeometryHierarchyNode {
     pub instance_index: u32,

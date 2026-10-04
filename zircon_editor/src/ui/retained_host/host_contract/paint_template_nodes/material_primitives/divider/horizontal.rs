@@ -4,6 +4,7 @@ use super::geometry::{horizontal_divider_extent, horizontal_label_bounds, horizo
 use super::labels::{divider_label, push_horizontal_divider_label};
 use super::lines::push_horizontal_line;
 
+/// 有标签时把线拆在测得的标签缺口两侧；无标签时仅提交完整线段。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_horizontal_divider(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

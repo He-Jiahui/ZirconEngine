@@ -1,3 +1,6 @@
+//! 字段接管入口统一布置表面、搜索前缀、清除动作、步进器和文字；后续绘制由本地完整容纳条件控制。
+
+// TODO: [CR-EDITOR-PAINT-FORMS-0002] 确认部分窗格/损伤区裁剪也必须整块省略字段的设计意图；上游接受相交而这里要求完整容纳，现有偏移测试不覆盖部分可见绘制。
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_field_stepper::workbench_field_stepper_metrics;
@@ -8,6 +11,7 @@ use super::style::{field_opacity, field_style};
 use super::surface::push_field_surface;
 use super::text::push_field_text;
 
+/// 返回 true 表示接管节点，不代表输出。当前要求偏移后整个字段落在 node_clip 内；部分相交时也会被静默消费。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -72,6 +76,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     true
 }
 
+// 步进 divider 和图标必须完整装入字段框，入口据此决定是否把文字右侧空间留给步进器。
 fn field_can_paint_stepper(rect: &FrameRect) -> bool {
     let metrics = workbench_field_stepper_metrics();
     let left = rect.x + rect.width - metrics.width;

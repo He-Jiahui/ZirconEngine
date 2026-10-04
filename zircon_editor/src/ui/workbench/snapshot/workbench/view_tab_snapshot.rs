@@ -8,6 +8,7 @@ use crate::ui::workbench::view::{
 use super::ViewContentKind;
 
 #[derive(Clone, Debug)]
+/// 实例状态与descriptor声明的联接结果；placeholder标记缺失引用，content_kind只指定UI策略。
 pub struct ViewTabSnapshot {
     pub instance_id: ViewInstanceId,
     pub descriptor_id: ViewDescriptorId,

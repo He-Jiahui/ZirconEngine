@@ -1,3 +1,5 @@
+//! 层级删除和移动性校验应依赖已维护的父子与身份索引，保护实体移除路径免于退化为全表扫描。
+
 fn section_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
     source
         .split(start)
@@ -27,6 +29,7 @@ fn removal_uses_indexed_identity_hierarchy_and_camera_boundaries() {
     assert!(detached.contains("pub fn remove_entity_subtrees"));
     assert!(detached.contains("self.ensure_hierarchy_mutation_index_current()"));
     assert!(detached.contains("self.subtree_entity_ids(root)"));
+    // BUG: [CR-R02-runtime_world_transaction_hierarchy-0001] 运行此测试时该断言必失败：完整摘除模块已通过 stable_entity_order 封装读取顺序，不含所期待的直达字段文本；前面断言均成立。
     assert!(detached.contains("self.stable_query_order"));
     assert!(!detached.contains("self.entities.iter()"));
 }

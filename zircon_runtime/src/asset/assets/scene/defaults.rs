@@ -1,3 +1,5 @@
+//! 场景作者格式在此共享缺省值，保证旧文档反序列化和新组件构造有相同含义；修改它们需要同时审查 World 导入/导出往返。
+
 use crate::core::framework::render::{DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES};
 use crate::core::math::Real;
 

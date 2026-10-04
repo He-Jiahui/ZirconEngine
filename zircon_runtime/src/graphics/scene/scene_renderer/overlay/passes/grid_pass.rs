@@ -1,6 +1,7 @@
 use crate::graphics::scene::scene_renderer::overlay::begin_line_pass_for_region;
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 
+/// 使用渲染器持有的固定世界网格，仅在帧的网格可见开关开启时叠加到场景。
 pub(crate) struct GridPass;
 
 impl GridPass {

@@ -1,3 +1,4 @@
+//! 这些映射只负责已准入中立枚举到原生描述符的边界转换，不代替上层能力检查。
 use zr_rhi::{
     BufferUsage, ColorWriteMask, SamplerBindingType, StorageTextureAccess, TextureCopyAspect,
     TextureDimension, TextureFormat, TextureSampleType, TextureUsage, TextureViewAspect,

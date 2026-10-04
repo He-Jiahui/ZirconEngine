@@ -1,3 +1,5 @@
+//! 验证crate 与 UI 根模块的职责边界和运行时服务入口。
+
 #[test]
 fn editor_crate_root_stops_flattening_asset_editor_and_workbench_specialists() {
     let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

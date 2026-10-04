@@ -1,3 +1,4 @@
+// 静态选项基础签名与 sound_options 的构造字段一一对应，附加字段由后续阶段接入。
 use super::super::super::super::storage::PendingOptionManifest;
 use super::super::record::OptionManifestSignature;
 use super::required;

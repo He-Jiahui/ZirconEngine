@@ -584,6 +584,8 @@ impl RenderGraphBuilder {
         metadata: RenderGraphResourceAccessMetadata,
         input_version: Option<RenderGraphResourceVersionToken>,
     ) -> Result<usize, RenderGraphError> {
+        // 先校验 pass/resource，再按 authoring ordinal 追加；该 ordinal 会进入 access id，
+        // 后续拓扑排序只重排 pass，不改变同一 pass 内访问的身份。
         self.ensure_pass(pass)?;
         self.ensure_resource(resource)?;
         let access_index = self.passes[pass.0].resources.len();
@@ -600,6 +602,8 @@ impl RenderGraphBuilder {
     fn legacy_resource_access_metadata(
         resource: RenderGraphResource,
     ) -> RenderGraphResourceAccessMetadata {
+        // 旧 API 保留 Legacy：图内资源使用完整逻辑范围，external 先记为 UnresolvedExternal。
+        // 编译时可用 typed external descriptor 解析范围；精确 API 直接传入 metadata。
         let range = match resource {
             RenderGraphResource::TransientTexture(_) => {
                 RenderGraphResourceAccessRange::Texture(RenderGraphTextureSubresourceRange::full())

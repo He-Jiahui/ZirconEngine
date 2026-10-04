@@ -1,3 +1,5 @@
+//! 目录构建按组件家族拆分；此结构检查应与真实模块树保持同步，避免漏接描述符注册。
+
 use super::*;
 
 #[test]
@@ -54,6 +56,7 @@ fn material_editor_foundation_catalog_stays_folder_backed_by_family() {
         })
         .collect::<BTreeSet<_>>();
 
+    // BUG: [CR-UI-TEST-0201] 当前 material_foundation 目录含 capacity_tests.rs 和 shared/，清单未列出，结构测试恒失败；证据：read_dir 与 expected_modules 集合断言。
     assert_eq!(
         actual_modules,
         expected_modules
@@ -85,6 +88,8 @@ fn material_editor_foundation_catalog_stays_folder_backed_by_family() {
                 source.lines().count() <= 300,
                 "{module} should stay below the split-module size budget"
             );
+            // BUG: [CR-W12-UI-CATALOG-0010] 前面的目录清单断言修正后，此守卫仍要求各分组的字面量 extend 调用。
+            // 当前 mod.rs 通过 descriptor_groups 循环汇总，已注册的分组也会被此 contains 判为缺失。
             assert!(
                 mod_source.contains(&format!("descriptors.extend({stem}::descriptors());")),
                 "Material foundation registry should include `{stem}` descriptors"

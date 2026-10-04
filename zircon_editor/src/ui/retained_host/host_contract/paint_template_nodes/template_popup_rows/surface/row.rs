@@ -1,3 +1,5 @@
+//! 只在共享状态样式有背景或轮廓时提交行底面；纯文本普通行不必额外画透明面。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

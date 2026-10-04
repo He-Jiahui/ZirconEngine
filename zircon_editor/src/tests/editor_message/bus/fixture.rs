@@ -1,3 +1,4 @@
+//! 集中构造各类类型化编辑器消息、主题和响应，让发布、请求与广播测试使用同一协议样本。
 use crate::core::editing::engine::{HistoryContextId, TransactionId};
 use crate::core::editor_event::ViewInstanceId;
 use crate::core::editor_message::{

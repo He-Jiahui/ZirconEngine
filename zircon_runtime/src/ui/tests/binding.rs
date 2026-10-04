@@ -1,3 +1,5 @@
+//! 绑定文本是声明式事件与原生调用之间的可往返标识；更新报告给运行时提供来源、目标和脏域。
+
 use crate::ui::binding::{
     binding_update_report, component_state_value_update, rejected_widget_alias_update,
     retained_attribute_update, runtime_state_update_with_source_kind,

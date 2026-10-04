@@ -1,3 +1,4 @@
+//! sink 测试入口把格式、文件候选、批处理、背压、生命周期和性能契约组合到同一私有模块。
 mod backpressure;
 mod batching;
 mod durability;

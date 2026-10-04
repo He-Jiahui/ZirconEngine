@@ -1,3 +1,5 @@
+//! 将集成任务分派给宿主，并把宿主状态与诊断原样交还行为树执行器。
+
 use crate::behavior_tree::{
     BehaviorIntegrationTaskContext, BehaviorNodeSemantics, CompiledBehaviorNode,
     CompiledBehaviorTree,
@@ -25,9 +27,11 @@ pub(super) fn evaluate_integration_task(
     tree: &CompiledBehaviorTree,
     context: &mut BehaviorTreeExecutionContext<'_, '_>,
 ) -> BehaviorTreeExecution {
+    // 显式 task_result 是静态占位结果，不调用导航、动画或脚本宿主。
     if parameter(node, TASK_RESULT_PARAMETER_KEY).is_some() {
         return evaluate_task(node);
     }
+    // 执行器仅将 Running/Idle 留作活跃状态；重新进入时需让宿主识别一次新启动。
     let started = !context.instance.node_mut(tree, node_index).is_active;
     let request = BehaviorIntegrationTaskContext {
         node_id: node.id(),

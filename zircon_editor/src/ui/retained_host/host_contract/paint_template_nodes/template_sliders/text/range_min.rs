@@ -1,3 +1,5 @@
+//! 较高范围滑块可在轨道下方显示下限值；表面与文字层级配对。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchSliderStyle;

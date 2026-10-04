@@ -1,3 +1,4 @@
+// 子模块行收集身份、种类、目标与能力；最终归属当前可选功能。
 use super::{capabilities, identity, kind, targets};
 
 pub(super) fn parse_module_line(

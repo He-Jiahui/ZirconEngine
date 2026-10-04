@@ -1,3 +1,4 @@
+// 提供最小有效单声道脉冲响应，供拒绝用例逐项改变采样、引用或数值边界。
 use super::super::super::*;
 
 pub(super) fn valid_ray_traced_descriptor() -> SoundRayTracedImpulseResponseDescriptor {

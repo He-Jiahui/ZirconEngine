@@ -1,3 +1,5 @@
+//! 汇集工作台投影迁移断言，并提供读取源码与查找旧路径的辅助函数。
+
 use super::support::collect_rust_files;
 
 fn source_file(path: &[&str]) -> String {

@@ -2,6 +2,7 @@ use super::*;
 
 #[test]
 fn gameplay_host_current_hp_and_particle_sprites_use_dynamic_components() {
+    // current_hp 从脚本绑定读取 hp；粒子导出写入动态组件，再由 LevelSystem 回读验证；测试避免把静态节点字段误当作脚本状态。
     let core = CoreRuntime::new();
     let mut world = World::empty();
     let entity = world
@@ -100,6 +101,7 @@ fn gameplay_host_current_hp_and_particle_sprites_use_dynamic_components() {
 
 #[test]
 fn gameplay_host_component_string_reads_string_dynamic_state() {
+    // component_string 对缺失键返回调用方给定的默认值，读取仍限定在当前实体。
     let core = CoreRuntime::new();
     let mut world = World::empty();
     let entity = world

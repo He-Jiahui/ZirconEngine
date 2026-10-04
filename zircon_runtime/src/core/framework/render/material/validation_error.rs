@@ -6,6 +6,7 @@ use super::{RenderMaterialDiagnosticSource, RenderMaterialTextureDimension};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "error", rename_all = "snake_case")]
+/// 可序列化的材质契约失败原因；资产和 streamer 汇入 readiness 报告，供回退与管理诊断而非立刻丢失上下文。
 pub enum RenderMaterialValidationError {
     InvalidMaskCutoff {
         cutoff: f32,

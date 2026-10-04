@@ -10,6 +10,7 @@ use super::SceneEntries;
 pub(crate) struct SceneEntryProjectionCache;
 
 impl SceneEntryProjectionCache {
+    /// 以当前artifact复用层级分配并叠加本轮selection；此owner不缓存过期world行。
     pub(crate) fn project(
         &self,
         artifact: &WorldInspectionArtifact,

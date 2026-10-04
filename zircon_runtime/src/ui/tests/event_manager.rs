@@ -1,3 +1,5 @@
+//! 远程控制请求、事件绑定和反射订阅共用事件管理器；路由缺失及批量反射失败应有明确对外结果。
+
 use serde_json::json;
 
 use crate::ui::event_ui::UiEventManager;

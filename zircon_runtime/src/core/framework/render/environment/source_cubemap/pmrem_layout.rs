@@ -3,6 +3,7 @@ use super::{
 };
 
 /// Independent result layout for a prefiltered radiance cubemap.
+/// 导入和重建路径用它选择 PMREM 尺寸；源 mip 布局可以保持原分辨率供其他派生数据复用。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SourceCubemapPmremLayout {
     face_size: u32,

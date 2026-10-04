@@ -8,6 +8,7 @@ use super::no_project_open::no_project_open;
 use super::{editor_state::EditorState, EditorStateOperationError};
 
 #[derive(Clone, Debug)]
+/// 编辑侧Play恢复点；runtime实例与world生命周期由宿主Play控制器管理。
 pub(crate) struct EditorPlaySession {
     selection: SelectionModel,
     gizmos_enabled: bool,
@@ -29,6 +30,7 @@ impl EditorState {
         self.play_session.is_some()
     }
 
+    /// 在独占场景切换边界保存编辑侧状态；runtime实例创建成功后宿主再激活Play选择domain。
     pub fn enter_play_mode(&mut self) -> Result<bool, EditorStateOperationError> {
         if self.play_session.is_some() {
             self.set_status_line("Already in play mode");
@@ -69,6 +71,7 @@ impl EditorState {
         }
     }
 
+    /// 恢复进入前的编辑选择、gizmo和会话模式；宿主负责runtime停止顺序。
     pub fn exit_play_mode(&mut self) -> Result<bool, EditorStateOperationError> {
         if !self.world.is_loaded() {
             let error = no_project_open();
@@ -95,6 +98,7 @@ impl EditorState {
         })
     }
 
+    /// 复制Play报告的诊断矩阵；清空报告时清空展示，不改变bridge provider状态。
     pub(crate) fn sync_bridge_diagnostics_matrix(
         &mut self,
         matrix: Option<&BridgeDiagnosticsMatrix>,

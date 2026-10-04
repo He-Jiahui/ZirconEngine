@@ -24,6 +24,7 @@ pub enum PickingEventLabel {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 从悬停快照和按键状态派生的交互语义；拖拽事件同时保留被拖目标与当前接收目标。
 pub enum PickingEventKind {
     Over {
         hit: HitData,
@@ -123,6 +124,7 @@ impl PickingEventKind {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 派发给具体目标的指针事件；propagate 区分可向上冒泡的动作与直接目标边界事件。
 pub struct PickingPointerEvent {
     pub pointer: PointerId,
     pub location: PointerLocation,

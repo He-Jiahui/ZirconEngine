@@ -1,5 +1,8 @@
+//! 资产管理视图聚合已注册材质的作者信息与诊断；其摘要不能替代资源流中的 shader 与纹理就绪判断。
+
 use super::*;
 
+// TODO: [CR-ASSET-TEST-MESH-0005] 负向断言写死 LF 片段，而被扫描生产文件全为 CRLF；先归一化换行再验证单遍汇总。
 #[test]
 fn material_management_summary_accumulates_records_in_one_pass() {
     let source = include_str!("../../../assets/material/material_asset/management.rs");

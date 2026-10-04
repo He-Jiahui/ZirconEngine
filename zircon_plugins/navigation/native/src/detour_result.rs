@@ -10,6 +10,7 @@ pub(crate) fn convert_path_result(result: &ZrNavDetourPathResult) -> Option<NavP
     if result.points.is_null() || result.point_count == 0 {
         return None;
     }
+    // SAFETY: 非空且正计数的路径点由原生查询分配，结果释放前保持有效并在调用方完成复制。
     let points = unsafe { slice::from_raw_parts(result.points, result.point_count as usize) }
         .iter()
         .map(|point| NavPathPoint {

@@ -1,3 +1,4 @@
+//! 核对运行时报告的策略、语言和资源行在编辑器产品视图中有结构化投影，供使用者定位实际运行状态。
 use super::support::*;
 
 const RUNTIME_REPORT_LAYOUT_ASSET_TOML: &str = r##"

@@ -1,3 +1,4 @@
+//! 源级环境投影先更新监听器与区域贡献，再做卷积发送和末级增益；调用者应提供一段交错声道缓冲及对应的稳定源身份。
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::sound::{

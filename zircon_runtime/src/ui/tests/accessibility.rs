@@ -1,3 +1,4 @@
+//! 可访问性测试共用 surface 与分发辅助入口；子模块从快照抽取和输入动作两侧核对同一节点契约。
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,

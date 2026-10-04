@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0109] 树形控件导航与重命名编辑状态的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_ui_component_state_reducer_tree_view_editing_is_child_owner() {
     let parent = read_runtime_src("ui/component/state_reducer/tree_view.rs");

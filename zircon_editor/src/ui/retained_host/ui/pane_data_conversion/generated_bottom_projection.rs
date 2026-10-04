@@ -1,3 +1,4 @@
+//! 生成的底部 Pane 尝试消费当前模板文档；模板无法投影时沿用原生节点，但状态文本继续来自同一视图数据。
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::windows::workbench_host_window::{PaneContentSize, PaneData};
 use crate::ui::retained_host as host_contract;

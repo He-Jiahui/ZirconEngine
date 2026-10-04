@@ -1,3 +1,4 @@
+// 固定同一带负载事件，供多个处理器的内容一致性、排序与排空用例复用。
 use super::super::super::super::*;
 
 use super::ids::{EVENT_ID, PAYLOAD_SCHEMA};

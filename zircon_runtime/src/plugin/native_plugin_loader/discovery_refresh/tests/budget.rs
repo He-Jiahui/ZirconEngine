@@ -1,3 +1,5 @@
+//! 覆盖收集前准入与真实文件读取预算，区分资源拒绝、取消和可恢复内容诊断。
+//! 源码结构检查保护收集边界；输出快照额外派生的存储与诊断仍需独立核算。
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -99,6 +101,7 @@ fn production_api_keeps_collector_admission_inside_native_discovery_authority() 
 }
 
 #[test]
+// 计数只在取得额度后增加，故拒绝测试同时证明超额资源没有先形成再被丢弃。
 fn collector_admission_rejects_each_resource_before_materialization() {
     for (kind, expected_budget, expected_materialized_units) in [
         (
@@ -258,6 +261,8 @@ fn manifest_reads_use_one_handle_and_reject_mutated_lengths() {
     let source = include_str!("../../candidate_from_manifest.rs");
 
     assert!(source.contains("let mut file = fs::File::open"));
+    // BUG: [CR-PLUGIN-NATIVE-0210] 当前读取器的两次句柄元数据调用以换行分隔接收者与方法，
+    // 连续调用字节匹配为零；此断言即使两次检查都存在也会失败。证据：被读源码当前哈希。
     assert!(source.matches("file.metadata()").count() >= 2);
     assert!(source.contains("ensure_bounded_read_is_stable("));
     assert!(source.contains("fn ensure_bounded_read_is_stable"));

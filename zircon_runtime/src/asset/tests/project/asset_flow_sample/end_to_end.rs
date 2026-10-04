@@ -1,3 +1,5 @@
+//! 从真实项目文件导入到资产句柄和渲染资源管理投影，验证同一依赖图在各消费层保持一致。
+
 use super::assertions::{
     assert_dependencies, assert_loaded_with_dependencies, assert_ready_record, load_material,
     load_mesh, load_model, load_scene, load_shader, load_texture, resource_record,
@@ -102,6 +104,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
         ],
     );
 
+    // 项目扫描产出持久记录后，再由独立运行时入口打开同一根目录，验证缓存可被加载而非只在当前管理器内可见。
     let asset_manager = Arc::new(project_asset_manager_with_sample_importers());
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
@@ -412,6 +415,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
         project_issue_view
     );
 
+    // 渲染侧应消费同一资产管理投影；离屏设备只用于建立 ResourceStreamer 的真实调用边界。
     let RenderBackend { device, queue, .. } = RenderBackend::new_offscreen().unwrap();
     let texture_layout = texture_bind_group_layout(&device);
     let streamer =

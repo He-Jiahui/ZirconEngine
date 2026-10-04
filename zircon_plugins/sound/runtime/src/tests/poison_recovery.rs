@@ -1,3 +1,4 @@
+// 用 Mutex<u32> 验证 panic 后取得锁内当时内容；不证明声音状态不变量或公共管理器完整恢复。
 use std::sync::{Arc, Mutex};
 
 use crate::poison_recovery::lock_recover;

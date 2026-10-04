@@ -1,3 +1,6 @@
+//! 定义直接上传的实例字节布局及对应顶点属性。
+//! 结构体表示、属性偏移和 WGSL location 必须同步维护；页索引按实例传入，纹理内容不包含屏幕位置。
+
 use bytemuck::{Pod, Zeroable};
 
 const GLYPH_ATLAS_GPU_INSTANCE_F32_BYTES: u64 = std::mem::size_of::<f32>() as u64;
@@ -21,6 +24,8 @@ const GLYPH_ATLAS_GPU_INSTANCE_STRIDE_BYTES: u64 =
     GLYPH_ATLAS_GPU_INSTANCE_PAGE_INDEX_OFFSET_BYTES + GLYPH_ATLAS_GPU_INSTANCE_U32_BYTES;
 const GLYPH_ATLAS_GPU_INSTANCE_ATTRIBUTE_COUNT: usize = 5;
 
+/// 一个已经裁剪的字形出现，供实例缓冲区直接上传。
+/// 屏幕矩形使用像素边缘坐标，UV 使用内容区域，颜色已由 CPU 绘制计划规范化。
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 pub(crate) struct GlyphAtlasGpuInstance {

@@ -11,6 +11,7 @@ use self::{
     target_modes::validate_runtime_plugin_feature_module_target_modes,
 };
 
+// 重复身份来自整份 feature 投影；每行按身份、能力、目标顺序累积诊断。
 pub(super) fn validate_runtime_plugin_feature_module_row(
     feature: &PluginFeatureBundleManifest,
     module: &PluginModuleManifest,

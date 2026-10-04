@@ -7,6 +7,7 @@ use super::super::ExportPackagingStrategy;
 use super::{ProjectPluginFeatureSelection, ProjectPluginSelection};
 
 impl ProjectPluginSelection {
+    /// 建立项目侧默认选择，后续可为导出目标覆盖包名、打包方式与功能项。
     pub fn runtime_plugin(id: impl fmt::Display, enabled: bool, required: bool) -> Self {
         Self {
             id: id.to_string(),

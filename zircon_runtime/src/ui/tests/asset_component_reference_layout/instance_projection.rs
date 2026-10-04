@@ -1,3 +1,4 @@
+//! 验证组件引用实例的布局、属性、样式和绑定最终落在展开根，原型路径保持同一契约。
 use crate::ui::template::{
     UiAssetLoader, UiDocumentCompiler, UiPrototypeStoreBuilder, UiTemplateSurfaceBuilder,
 };
@@ -447,6 +448,7 @@ fn ui_document_compiler_applies_reference_instance_style_overrides_after_stylesh
 #[test]
 fn ui_document_compiler_preserves_reference_instance_bindings_on_expanded_root() {
     let widget = UiAssetLoader::load_toml_str(TOOLBAR_ICON_WIDGET_TOML).unwrap();
+    // BUG: [CR-W12-UI-ASSET-0001] 此夹具同时声明 action.route/action.action；加载时唯一目标校验返回 InvalidDocument，故此 unwrap 先于绑定保留断言失败。
     let layout = UiAssetLoader::load_toml_str(TOOLBAR_ACTION_LAYOUT_TOML).unwrap();
     let mut compiler = UiDocumentCompiler::default();
     compiler

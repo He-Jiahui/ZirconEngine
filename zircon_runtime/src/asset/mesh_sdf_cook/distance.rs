@@ -1,5 +1,6 @@
 use crate::core::math::Vec3;
 
+/// 供 BVH 最近表面查询使用；输入三角形已由构建阶段过滤退化面。
 pub(super) fn point_triangle_distance_squared(point: Vec3, a: Vec3, b: Vec3, c: Vec3) -> f32 {
     let ab = b - a;
     let ac = c - a;
@@ -48,6 +49,7 @@ pub(super) fn point_triangle_distance_squared(point: Vec3, a: Vec3, b: Vec3, c: 
     (point - (a + ab * v + ac * w)).length_squared()
 }
 
+/// 供 SDF 符号的奇偶射线判定使用；拓扑闭合不在此层验证，双面模式会跳过符号判定。
 pub(super) fn positive_x_ray_intersects_triangle(origin: Vec3, a: Vec3, b: Vec3, c: Vec3) -> bool {
     const EPSILON: f32 = 1.0e-7;
     let direction = Vec3::X;

@@ -1,3 +1,4 @@
+// 构造空状态和正文载荷，约束窗格外壳与正文分层时保留动作及载荷类型。
 use super::support::{chrome_fixture, pane_body_spec};
 
 use crate::ui::layouts::views::blank_viewport_chrome;

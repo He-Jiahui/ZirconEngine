@@ -98,6 +98,8 @@ pub(super) fn source_restore_is_rebuildable_cache_miss(
     )
 }
 
+// Viewer 恢复失败时只清除需要重建的缓存层；未知 I/O 或布局错误继续上抛，
+// 避免把真实存储故障伪装为普通缓存未命中。
 pub(super) fn recover_source_restore_error(
     error: IblSourceCubemapStagingError,
     source_zcube_path: &Path,

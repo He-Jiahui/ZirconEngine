@@ -1,3 +1,5 @@
+//! 本组固定本地排序、服务端排序和列宽同步的不同所有权；源码守卫只约束特定热路径形态。
+
 use std::collections::BTreeMap;
 
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
@@ -5,6 +7,7 @@ use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventKind, UiComponentState, UiValue,
 };
 
+// TODO: [CR-UI-TEST-0203] 确认热路径无深拷贝是否需要行为或分配证据；当前只匹配两个源码片段，换一种克隆写法仍会通过。
 #[test]
 fn table_common_sort_and_column_width_paths_avoid_deep_value_clones() {
     let source = include_str!("../../../component/state_reducer/table.rs");
@@ -68,6 +71,8 @@ fn table_sort_column_toggles_direction_and_sorts_rows() {
 }
 
 #[test]
+// TODO: [CR-W12-UI-CATALOG-0008] 当前 4、9 已按升序排列，首次 asc 即使误走本地排序仍会通过。
+// 改用逆序行，并验证 asc、desc 事件后均保留源行顺序，以区分 server 排序守卫。
 fn data_grid_server_sort_updates_sort_model_without_reordering_rows() {
     let registry = UiComponentDescriptorRegistry::material_editor_foundation();
     let data_grid = registry

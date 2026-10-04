@@ -1,3 +1,6 @@
+//! 主机契约设备与原生管线注册共用结构验证；实际 WGSL 编译和设备限制仍由原生后端验证。
+//! 这里检查阶段、布局、顶点 ABI 与附件形状，不能据此认定着色器入口与绑定反射已兼容。
+
 use std::collections::BTreeSet;
 
 use zr_rhi::{
@@ -6,6 +9,7 @@ use zr_rhi::{
     VertexBufferLayoutDesc, VertexInputLayoutDesc,
 };
 
+/// 解析当前活跃资源的描述符，使验证依赖设备归属而非全局编号。
 pub(crate) trait PipelineResourceLookup {
     fn bind_group_layout_exists(&self, handle: BindGroupLayoutHandle) -> bool;
     fn pipeline_layout_desc(
@@ -52,6 +56,7 @@ pub(crate) fn validate_pipeline_layout_desc(
     Ok(())
 }
 
+/// 分配管线前拒绝中立描述符的不一致；深度专用管线可不带片元阶段。
 pub(crate) fn validate_pipeline_desc(
     lookup: &impl PipelineResourceLookup,
     desc: &PipelineDesc,

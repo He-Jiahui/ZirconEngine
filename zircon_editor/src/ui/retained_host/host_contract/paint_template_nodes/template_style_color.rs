@@ -1,3 +1,5 @@
+//! 将 runtime typed 颜色和主题角色解析为宿主 RGBA；None 保留上层继承/回退，透明颜色保留明确清空语义。
+
 mod buttons;
 mod roles;
 

@@ -7,6 +7,7 @@ use super::{
     SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundTrackId,
 };
 
+/// 混音配置的可序列化快照；插件先验证主轨、路由和声道布局，再替换活动图。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundMixerGraph {
     pub sample_rate_hz: u32,

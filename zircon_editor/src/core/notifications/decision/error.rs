@@ -1,3 +1,4 @@
+//! 把决策载荷校验、容量不足、票据代际、跨中心使用和回执过期分开报告，供宿主按失败类型选择重试或重同步。
 use std::fmt::{Display, Formatter};
 
 use crate::core::notifications::NotificationId;

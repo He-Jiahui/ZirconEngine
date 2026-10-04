@@ -1,3 +1,6 @@
+//! 由 scene renderer 与物化器建立逻辑资源名到本帧物理 backing 的映射。
+//! 导入资源属于外部生产者，owned backing 属于临时池；绑定 API 不转移外部所有权。
+
 use crate::graphics::resource_identity::SampledTextureIdentity;
 use crate::render_graph::RenderGraphTextureSubresourceRange;
 use crate::rhi::{BufferDesc, TextureDesc};
@@ -180,6 +183,7 @@ impl RenderGraphExecutionResources {
         Ok(previous)
     }
 
+    /// 为编译图的子资源别名建立视图，仍沿用父纹理的池 backing 和物理身份。
     pub(in crate::graphics::scene::scene_renderer::graph_execution) fn bind_owned_texture_subresource_view(
         &mut self,
         logical_name: impl Into<String>,

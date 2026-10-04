@@ -38,6 +38,7 @@ pub fn hybrid_gi_voxel_clipmap_bounds_cell_ranges(
     hybrid_gi_voxel_clipmap_aabb_cell_ranges(clipmap, bounds_min, bounds_max)
 }
 
+/// 将有限 AABB 裁到体素层，并返回各轴包含端点的格子范围；无效输入或不相交时返回 None。
 pub fn hybrid_gi_voxel_clipmap_aabb_cell_ranges(
     clipmap: &HybridGiPrepareVoxelClipmap,
     bounds_min: Vec3,
@@ -63,6 +64,7 @@ pub fn hybrid_gi_voxel_clipmap_aabb_cell_ranges(
     ])
 }
 
+/// 按 x、y、z 顺序展开 4³ 格；调用方必须保证三个坐标均小于层分辨率。
 pub fn hybrid_gi_voxel_clipmap_cell_bit_index(x: usize, y: usize, z: usize) -> usize {
     x + y * HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION
         + z * HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION * HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION

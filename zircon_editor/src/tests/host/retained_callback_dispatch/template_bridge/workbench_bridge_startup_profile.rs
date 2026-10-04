@@ -1,3 +1,4 @@
+// 测量工作台启动模板桥的保留节点与表面边界，固定启动阶段的结构预算。
 use std::time::Instant;
 
 use super::super::support::*;

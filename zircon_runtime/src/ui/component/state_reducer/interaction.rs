@@ -1,3 +1,5 @@
+//! 通用事件归约入口使用的节点反馈标志写入点；事件准入由上层描述符检查，渲染脏标记和投影由状态消费方管理。
+
 use zircon_runtime_interface::ui::component::UiComponentState;
 
 pub(super) fn focus(state: &mut UiComponentState, focused: bool) {

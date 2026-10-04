@@ -1,3 +1,5 @@
+/// 初始化阶段统一持有后处理 uniform 和 storage 缓冲，帧阶段仅提交对应上传事务。
+/// 固定容量与参数结构/WGSL 布局配套，不能用本帧有效计数替代实际分配容量。
 pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) struct BufferBundle
 {
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) post_process_pass_parameter_buffers:

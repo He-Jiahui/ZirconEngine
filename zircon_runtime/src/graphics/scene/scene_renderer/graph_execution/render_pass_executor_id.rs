@@ -2,6 +2,8 @@ use std::borrow::Borrow;
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// 编译 pass 与运行时注册表共用的 executor 身份。
+/// 图编译只存此身份，提交前必须能在当前注册表中找到对应实现。
 pub struct RenderPassExecutorId(String);
 
 impl RenderPassExecutorId {

@@ -1,3 +1,5 @@
+//! 槽位到 World/Level 的消费入口：diff 仅读取，apply 合入现有世界，restore 从空世界替换。
+
 mod apply;
 mod diff;
 mod restore;

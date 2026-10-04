@@ -1,3 +1,4 @@
+//! UI 边界结构测试共用文件扫描辅助函数；扫描结果用于资源位置与模块导出限制的断言。
 mod asset_fixture_projection;
 mod binding_event_roots;
 mod layout_tree_surface;
@@ -26,6 +27,7 @@ fn collect_files_with_suffixes(root: &Path, suffixes: &[&str]) -> Vec<PathBuf> {
 }
 
 fn collect_files_with_suffixes_inner(root: &Path, suffixes: &[&str], files: &mut Vec<PathBuf>) {
+    // BUG: [CR-UI-TEST-0801] 目录不可读取时扫描结果被当作空集合，资源目录的否定断言会假通过；证据：boundary/asset_fixture_projection.rs:4-13 的否定断言。
     let Ok(entries) = fs::read_dir(root) else {
         return;
     };

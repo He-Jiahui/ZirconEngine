@@ -1,3 +1,4 @@
+//! 汇集调度、消息泵、进度、配额和线程所有权契约，记录任务夹具用于验证可控执行顺序。
 mod admission_scaling_contract;
 mod background_storm_contract;
 mod progress_contract;

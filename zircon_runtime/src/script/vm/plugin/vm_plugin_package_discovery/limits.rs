@@ -1,3 +1,4 @@
+//! 发现预算限制树深、条目、清单和字节码体积；调用方可缩小预算，扫描和物化阶段都应应用相应限额。
 use std::time::Duration;
 
 pub const DEFAULT_VM_PLUGIN_DISCOVERY_MAX_DEPTH: usize = 16;

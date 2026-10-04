@@ -29,6 +29,7 @@ macro_rules! direct_property_field {
 }
 
 impl World {
+    /// 供脚本、编辑器和场景工具按路径观察组件值；高频动画应在装载边界编译目标后走类型化入口。
     pub fn property(
         &self,
         entity: EntityId,

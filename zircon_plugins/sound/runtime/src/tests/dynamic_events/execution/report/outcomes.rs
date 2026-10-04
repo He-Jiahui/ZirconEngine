@@ -1,3 +1,4 @@
+// 报告按交付顺序记录成功、失败和缺少执行器；调用者依赖该明细区分未执行与执行失败。
 use super::super::super::*;
 
 use super::support::report_fixture;

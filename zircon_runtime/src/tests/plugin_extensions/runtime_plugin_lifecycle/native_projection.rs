@@ -1,3 +1,4 @@
+//! 原生包和特性报告将清单模块的描述、初始化层级及依赖完整投影到核心模块描述符。
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::{InitLevel, ModuleDependencySpec};
 use crate::plugin::{

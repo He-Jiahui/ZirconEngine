@@ -2,6 +2,7 @@ use thiserror::Error;
 
 use crate::asset::artifact::RenderSubresourceId;
 
+/// CPU 解码块进入设备前的预算上限，由上传计划在分配 staging 与目标资源前校验。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct RenderAssetGpuUploadLimits {
     max_subresources: usize,

@@ -1,10 +1,12 @@
 //! Static contracts for the Hub React/MUI visual standard and reference artifacts.
+//! 约束视觉 token、组件密度、页面状态及设计参考资源的边界。
 
 use std::{
     fs,
     path::{Path, PathBuf},
 };
 
+// 参考图仅是设计比较基线；真正运行页面由 React 组件生成。
 const FINAL_VISUAL_ARTIFACTS: &[&str] = &[
     "hub.png",
     "hub-editor.png",
@@ -67,6 +69,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -129,6 +132,7 @@ fn contains_hex_color_literal(line: &str) -> bool {
         .any(|window| window[0] == b'#' && window[1..].iter().all(u8::is_ascii_hexdigit))
 }
 
+// 组件和页面必须从视觉 token 取色与圆角，避免局部样式漂移。
 #[test]
 fn component_and_page_styles_do_not_bypass_visual_tokens() {
     let mut files = Vec::new();
@@ -159,6 +163,7 @@ fn component_and_page_styles_do_not_bypass_visual_tokens() {
     }
 }
 
+// 主题与全局 CSS 定义页面和组件共同使用的视觉常量。
 #[test]
 fn react_tokens_global_css_and_mui_theme_define_reference_visual_standard() {
     let tokens = read_crate_file("web/src/theme/tokens.ts");
@@ -266,6 +271,8 @@ fn react_tokens_global_css_and_mui_theme_define_reference_visual_standard() {
     );
 }
 
+// 窗口、侧栏与弹层消费相同的主题尺寸和状态色。
+// BUG: [CR-HUBTESTB-0015] 共享面板与侧栏结构已变更，视觉契约旧的源码片段断言必失败；证据：shell_chrome_drawer_topbar_and_popups_use_visual_tokens 读取 NavigationDrawer.tsx。
 #[test]
 fn shell_chrome_drawer_topbar_and_popups_use_visual_tokens() {
     let window = read_crate_file("web/src/components/shell/HubWindow.tsx");
@@ -387,6 +394,7 @@ fn shell_chrome_drawer_topbar_and_popups_use_visual_tokens() {
     );
 }
 
+// 按钮、表格和数据组件应维持一致的密度及反馈状态。
 #[test]
 fn shared_inputs_and_data_components_preserve_reference_density_and_states() {
     let button = read_crate_file("web/src/components/inputs/HubButton.tsx");
@@ -582,6 +590,7 @@ fn shared_inputs_and_data_components_preserve_reference_density_and_states() {
     assert_not_contains_any(&data_index, &["ButtonStatesPanel"], "components/data index");
 }
 
+// 各路由页保留窄视口、空态和任务态的视觉组合。
 #[test]
 fn pages_keep_reference_responsive_density_and_state_surfaces() {
     for (page, snippets) in [
@@ -711,6 +720,7 @@ fn pages_keep_reference_responsive_density_and_state_surfaces() {
     );
 }
 
+// 运行时图形资源与静态参考图承担不同用途。
 #[test]
 fn runtime_visual_assets_are_react_assets_not_reference_screenshots() {
     let data = read_crate_file("web/src/data/hubData.ts");
@@ -742,6 +752,7 @@ fn runtime_visual_assets_are_react_assets_not_reference_screenshots() {
     );
 }
 
+// 参考图清单与导出器应保持可供设计回归比较的资源。
 #[test]
 fn visual_reference_artifacts_manifest_and_web_reference_remain_available() {
     let manifest = read_repo_file("docs/ui-and-layout/hub-ai-reference-manifest.json");
@@ -880,6 +891,7 @@ fn visual_reference_artifacts_manifest_and_web_reference_remain_available() {
     }
 }
 
+// 文档说明视觉基线及其验证入口。
 #[test]
 fn visual_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -913,6 +925,7 @@ fn visual_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检视觉契约仍读取现行主题与 React 源码。
 #[test]
 fn visual_standard_contract_is_cut_over_to_react_sources() {
     let source = read_crate_file("tests/ui_visual_standard_contract.rs");
@@ -975,6 +988,7 @@ fn assert_png_canvas(path: &Path, expected: (u32, u32), label: &str) {
     );
 }
 
+// TODO: [CR-HUBTESTB-0017] 确认短 PNG 输入应怎样报告缺少尺寸头；当前仅验证签名就读取尺寸字节；下一步补 8 至 23 字节样本。
 fn png_dimensions(path: &Path) -> (u32, u32) {
     let bytes = fs::read(path)
         .unwrap_or_else(|error| panic!("failed to read PNG {}: {error}", path.display()));

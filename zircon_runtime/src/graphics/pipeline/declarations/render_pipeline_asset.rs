@@ -1,7 +1,9 @@
+//! 管线资产是 renderer data 与运行时编译图之间可修订的契约，作者内容变化要推进修订。
 use crate::core::framework::render::{CorePipelineKind, RenderPhase, RenderPipelineHandle};
 
 use super::renderer_asset::RendererAsset;
 
+/// 注册到框架的作者资产；修订号参与编译图缓存键。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderPipelineAsset {
     pub handle: RenderPipelineHandle,

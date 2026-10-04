@@ -1,3 +1,6 @@
+//! 选择标记、开关拇指和标签使用不同颜色通道；禁用或加载优先于节点声明色，正文仍使用主题正文角色。
+//! 这些声明色入口把零透明度视作未提供覆盖，调用方需接受其主题回退语义。
+
 use super::super::super::template_style_color::resolved_style_color;
 use super::palette::WorkbenchSelectionControlPalette;
 use super::state::is_unavailable_selection_state;

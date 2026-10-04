@@ -1,3 +1,5 @@
+//! 普通状态确定四类按钮的基础色阶；声明色与命令身份由上层在准许的状态下覆盖。
+
 use super::super::metrics::workbench_button_border_width;
 use super::super::model::{WorkbenchButtonKind, WorkbenchButtonStyle};
 use super::super::palette::workbench_button_palette;

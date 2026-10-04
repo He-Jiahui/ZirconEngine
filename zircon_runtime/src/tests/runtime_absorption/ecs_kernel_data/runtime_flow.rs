@@ -1,3 +1,4 @@
+//! 实体组件存储与标识能力吸收后，核心拥有者和文档锚点需一致。保存同组守卫使用的局部数据或辅助变换。
 use super::support::assert_source_anchors;
 
 pub(super) fn assert_runtime_08_flow_anchors() {

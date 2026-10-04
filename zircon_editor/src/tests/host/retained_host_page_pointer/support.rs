@@ -1,3 +1,4 @@
+// 为宿主页面回执测试提供共享页面布局和原生事件夹具。
 use crate::ui::retained_host::host_page_pointer::{HostPagePointerItem, HostPagePointerLayout};
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::view::ViewInstanceId;

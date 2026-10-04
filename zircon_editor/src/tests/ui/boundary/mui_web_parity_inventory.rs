@@ -1,3 +1,5 @@
+//! 验证本地 MUI 源基线、图标来源及保留的 MUI X 目标。
+
 use std::{fs, path::PathBuf};
 
 const MUI_MONOREPO_VERSION: &str = "\"version\": \"9.0.1\"";

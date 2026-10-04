@@ -1,3 +1,4 @@
+// 由底部生成窗格构造模板正文，约束保留式转换只消费投影后的面板节点。
 use std::collections::BTreeMap;
 
 use crate::scene::viewport::SceneViewportChromeSettings;

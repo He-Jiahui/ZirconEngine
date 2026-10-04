@@ -1,3 +1,4 @@
+// 同时核对静态文件、运行时描述符、包清单和内建目录，防止成熟度与能力状态在发布链分叉。
 use super::support::{static_plugin_metadata, STATIC_SOUND_PLUGIN_MANIFEST};
 
 #[test]

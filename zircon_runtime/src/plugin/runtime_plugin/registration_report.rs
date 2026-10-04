@@ -8,6 +8,7 @@ mod plugin;
 mod status;
 mod validation;
 
+/// 保存一次包注册的清单、项目默认选择、扩展登记和诊断，供目录统一建立投影。
 #[derive(Clone, Debug)]
 pub struct RuntimePluginRegistrationReport {
     pub package_manifest: PluginPackageManifest,

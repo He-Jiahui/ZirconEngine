@@ -1,3 +1,5 @@
+//! 为视口提取测试构造直接 ECS 输入，验证相机选择、层过滤和渲染负载边界；合成资源句柄不代表资源已加载。
+
 #[cfg(feature = "animation")]
 use std::collections::BTreeMap;
 
@@ -152,6 +154,7 @@ fn test_pose(bone: &str) -> AnimationPoseOutput {
     }
 }
 
+// 该源码守卫限制正式提交链绕回快照适配器；跳过测试树，保留预览和合成验证使用适配器的空间。
 fn assert_runtime_submit_tree_excludes_snapshot_adapters(root: &std::path::Path) {
     for entry in std::fs::read_dir(root).unwrap() {
         let entry = entry.unwrap();

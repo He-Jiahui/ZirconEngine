@@ -1,4 +1,5 @@
 //! Static contracts for the Hub React/MUI shell composition.
+//! 约束 App 管理状态和反馈、HubWindow 管理路由与壳层组件的职责边界。
 
 use std::{fs, path::PathBuf};
 
@@ -6,6 +7,7 @@ fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -51,6 +53,8 @@ fn assert_not_contains_any(source: &str, snippets: &[&str], label: &str) {
     }
 }
 
+// App 只协调状态与反馈，再把当前快照交给 HubWindow。
+// BUG: [CR-HUBTESTB-0009] 应用启动与壳层路由已拆分为状态协调和延迟页面，旧的直接组合片段断言必失败；证据：app_installs_hub_window_and_keeps_state_flow_outside_page_chrome 读取 App.tsx。
 #[test]
 fn app_installs_hub_window_and_keeps_state_flow_outside_page_chrome() {
     let app = read_crate_file("web/src/App.tsx");
@@ -112,6 +116,7 @@ fn app_installs_hub_window_and_keeps_state_flow_outside_page_chrome() {
     );
 }
 
+// 窗口壳负责侧栏、主页面槽及路由 ID 到页面组件的映射。
 #[test]
 fn hub_window_owns_root_layout_drawer_slot_and_page_router() {
     let window = read_crate_file("web/src/components/shell/HubWindow.tsx");
@@ -199,6 +204,7 @@ fn hub_window_owns_root_layout_drawer_slot_and_page_router() {
     );
 }
 
+// 顶栏组合账户、引擎和原生窗口操作而不拥有页面内容。
 #[test]
 fn top_bar_composes_brand_engine_status_user_menu_and_window_controls() {
     let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
@@ -281,6 +287,7 @@ fn top_bar_composes_brand_engine_status_user_menu_and_window_controls() {
     );
 }
 
+// 侧栏从本地化导航项发动作，选择状态仍来自 Hub 快照。
 #[test]
 fn navigation_drawer_uses_permanent_mui_drawer_and_forwards_page_actions() {
     let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
@@ -352,6 +359,7 @@ fn navigation_drawer_uses_permanent_mui_drawer_and_forwards_page_actions() {
     );
 }
 
+// 公共弹层由顶栏和数据状态调用，避免壳层内重复绘制。
 #[test]
 fn topbar_popups_are_shared_overlay_components_not_inline_shell_paint() {
     let hub_popover = read_crate_file("web/src/components/overlays/HubPopover.tsx");
@@ -436,6 +444,7 @@ fn topbar_popups_are_shared_overlay_components_not_inline_shell_paint() {
     );
 }
 
+// 前端类型将状态和动作处理器连到壳层组件接口。
 #[test]
 fn shell_state_type_matches_shell_component_contracts() {
     let types = read_crate_file("web/src/types/hub.ts");
@@ -468,6 +477,7 @@ fn shell_state_type_matches_shell_component_contracts() {
     );
 }
 
+// 文档记录壳层职责和跨模块测试入口。
 #[test]
 fn shell_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -500,6 +510,7 @@ fn shell_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检壳层测试聚焦当前 React 组合路径。
 #[test]
 fn shell_composition_contract_is_cut_over_to_react_sources() {
     let source = read_crate_file("tests/ui_shell_composition_contract.rs");

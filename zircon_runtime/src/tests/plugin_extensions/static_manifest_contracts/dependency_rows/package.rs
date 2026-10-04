@@ -1,3 +1,4 @@
+//! 包依赖身份遍历覆盖所有行，能力遍历仅消费显式能力声明；接口依赖由独立接口及包依赖断言检查。
 use std::path::Path;
 
 use super::super::non_empty_string_value;

@@ -5,6 +5,8 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 };
 
 #[derive(Clone, Copy)]
+/// 帧提取后的各 mesh 阶段命令流借用视图，由场景图 pass 按阶段选择并录制。
+/// 该视图不拥有 GPU 命令或资源；间接绘制记录必须与同一帧的命令切片配对。
 pub(in crate::graphics::scene::scene_renderer) struct RenderPassMeshCommandLists<'a> {
     pub replay_stats: &'a MeshDrawReplayStatsAccumulator,
     pub gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,

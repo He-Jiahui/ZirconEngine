@@ -38,6 +38,7 @@ pub(super) fn preflight_execution_budget(
     Ok(())
 }
 
+// 预算拒绝发生在 variant 执行前：单独记录 rejected 与 preflight_error，不伪造逐 variant 失败。
 pub(super) fn execution_budget_preflight_failure_report(
     manifest: &ShaderVariantPrewarmManifest,
     budget: ShaderVariantPrewarmExecutionBudget,

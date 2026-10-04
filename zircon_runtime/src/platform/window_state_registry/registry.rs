@@ -173,6 +173,8 @@ impl WindowStateRegistry {
     }
 }
 
+// native 完成旧请求时 effective 可以落后最新 requested；但 source generation
+// 不能超前当前请求，也不能回退已经发布的 effective 来源。
 fn validate_effective_source_generation(
     window: WindowId,
     entry: &WindowStateEntry,

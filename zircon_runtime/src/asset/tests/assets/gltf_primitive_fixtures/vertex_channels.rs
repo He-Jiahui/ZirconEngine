@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// 为显式切线与顶点色提供独立 accessor，检验导入器不以生成数据覆盖源通道。
 pub(in super::super) fn write_tangent_color_triangle_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("tangent_color_triangle.bin");
     let gltf_path = root.join("tangent_color_triangle.gltf");
@@ -97,6 +98,7 @@ pub(in super::super) fn write_tangent_color_triangle_gltf(root: &Path) -> PathBu
     gltf_path
 }
 
+/// 同时提供 UV0/UV1，材质明确选择 UV1；测试还会改写选择值来核对 readiness 的拒绝路径。
 pub(in super::super) fn write_uv_channel_triangle_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("uv_channel_triangle.bin");
     let gltf_path = root.join("uv_channel_triangle.gltf");
@@ -210,6 +212,7 @@ pub(in super::super) fn write_uv_channel_triangle_gltf(root: &Path) -> PathBuf {
     gltf_path
 }
 
+/// 提供 JOINTS_0/WEIGHTS_0 通道，以验证网格投影保留权重和索引；此夹具不声明 glTF skin。
 pub(in super::super) fn write_skinned_triangle_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("skinned_triangle.bin");
     let gltf_path = root.join("skinned_triangle.gltf");

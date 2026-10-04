@@ -1,3 +1,4 @@
+//! 对重叠音量区域只选一个最大影响者，优先级和几何权重决定区域效果的归属。
 use zircon_runtime::core::framework::sound::SoundVolumeDescriptor;
 
 use super::weight::volume_weight;

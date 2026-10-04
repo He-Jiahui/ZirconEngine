@@ -1,3 +1,6 @@
+//! 维护 chunk 完成、cache hit、哈希失败和取消状态，供 fetch 与恢复流程投影可查询进度。
+//! cache hit 依赖调用者先验证内容；这里的完成声明不会再次读取或校验缓存字节。
+
 use zircon_runtime::core::framework::net::{NetDownloadId, NetDownloadProgress, NetDownloadStatus};
 
 use super::NetContentDownloadRuntimeManager;
@@ -85,6 +88,7 @@ impl NetContentDownloadRuntimeManager {
         self.state().progress.get(&download).cloned()
     }
 
+    // BUG: [CR-PLUGIN-NET-0011] 只改状态；next_attempt/fetch_next_chunk 无取消门禁，后续调用可把 Cancelled 覆写为 Complete。
     pub fn cancel_download(&self, download: NetDownloadId) -> Option<NetDownloadProgress> {
         let mut state = self.state();
         let progress = state.progress.get_mut(&download)?;

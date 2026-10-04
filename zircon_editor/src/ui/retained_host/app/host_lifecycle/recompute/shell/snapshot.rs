@@ -9,6 +9,7 @@ use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use crate::ui::workbench::view::ViewDescriptor;
 
+/// 汇集一次 shell 提交的模型、布局和几何；尺寸快路可复用已提交模型与 pane 载荷，只重算几何及模板布局帧。
 pub(in crate::ui::retained_host::app::host_lifecycle::recompute) struct RecomputeShellSnapshot {
     pub(in crate::ui::retained_host::app::host_lifecycle::recompute) layout: WorkbenchLayout,
     pub(in crate::ui::retained_host::app::host_lifecycle::recompute) chrome: EditorChromeSnapshot,

@@ -1,3 +1,4 @@
+// 通过停机管理器应用未注册绑定，核对 UnknownAutomationBinding 错误。
 use super::super::super::*;
 
 #[test]

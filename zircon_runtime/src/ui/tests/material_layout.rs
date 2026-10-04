@@ -1,3 +1,5 @@
+//! 这里搭建真实表面测量夹具；子测试从作者布局指标到期望尺寸和绘制命令验证 Material 约束。
+
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
@@ -12,6 +14,7 @@ mod constraints_children;
 mod field_values;
 mod row_label_metrics;
 
+// TODO: [CR-UI-TEST-0204] 确认是否需观测实际扫描次数；当前源码字符串守卫无法证明未换名重引入预扫描。
 #[test]
 fn material_layout_resolves_metrics_without_preflight_attribute_rescan() {
     let source = include_str!("../layout/pass/material.rs");

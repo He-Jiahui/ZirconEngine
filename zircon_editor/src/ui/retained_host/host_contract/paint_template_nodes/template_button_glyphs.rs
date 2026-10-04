@@ -1,3 +1,5 @@
+//! 为普通按钮内容提供有限的语义图标和共享密度尺寸；实际像素由 template_icon_assets 统一加载。
+
 mod identity;
 mod metrics;
 mod shapes;

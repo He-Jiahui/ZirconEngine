@@ -1,3 +1,4 @@
+//! 桥接回归共享多接口提供者及快照断言；子模块分别核对调用、诊断、代际与所有者生命周期，强引用和弱解析保留各自所有权。
 use std::sync::Arc;
 
 use crate::core::framework::bridge::{

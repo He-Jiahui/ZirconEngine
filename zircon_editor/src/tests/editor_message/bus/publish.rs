@@ -1,3 +1,4 @@
+//! 核对按主题精确发布、视图失效标记和零路由快速路径，避免消息送达错误订阅者或提前消耗序号。
 use crate::core::editor_message::{
     EditorMessageBus, EditorMessageProtocol, EditorViewInvalidationMask,
 };

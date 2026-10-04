@@ -1,3 +1,5 @@
+//! 供分段与页签模板绘制前选择视觉通道；调用端提供控件类型，并决定何处绘制选中项标记。
+
 use super::super::resolved_state_for_node;
 use super::control::{control_background, control_border, control_border_width};
 use super::model::{WorkbenchSegmentedControlKind, WorkbenchSegmentedControlStyle};
@@ -9,6 +11,7 @@ use super::text::{group_label_color, idle_text_color, selected_text_color};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterFamily;
 
+/// 接收节点与调用端识别的类别，生成外壳、选中项和组标签配方；不修改选择状态。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_segmented_control_style(
     node: &TemplatePaneNodeData,
     kind: WorkbenchSegmentedControlKind,

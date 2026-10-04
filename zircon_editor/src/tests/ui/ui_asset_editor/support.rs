@@ -1,3 +1,5 @@
+//! 汇集编辑器与运行时 ZUI 夹具，并在导入水合后创建设计或预览会话。
+
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
 use zircon_runtime::ui::{template::UiDocumentCompiler, v2::UiV2AssetLoader};
 use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};

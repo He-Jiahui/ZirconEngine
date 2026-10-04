@@ -22,6 +22,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
     module_descriptor_with_config(InputConfig::default())
 }
 
+/// 在 CoreRuntime 注册阶段固定平台依赖与服务工厂；动作配置移动进工厂，供服务启动时构造求值器。
 pub fn module_descriptor_with_config(config: InputConfig) -> ModuleDescriptor {
     let action_config = config;
     ModuleDescriptor::new(

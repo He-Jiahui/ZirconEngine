@@ -1,3 +1,5 @@
+//! 验证反射适配器把活动宿主和菜单绑定映射到控制投影。
+
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::{

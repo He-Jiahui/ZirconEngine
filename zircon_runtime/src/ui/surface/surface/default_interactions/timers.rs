@@ -10,6 +10,7 @@ use crate::ui::{dispatch::DEFAULT_TOOLTIP_DELAY_MS, surface::UiSurface};
 
 use super::semantics::component_role_is_one_of;
 
+// 此模块仅从仍可交互的保留节点读取计时配置；输入管理器负责计时，事件层负责确认所有权及消费过期事件。
 const DEFAULT_TYPEAHEAD_TIMEOUT_MS: u64 = 500;
 const DEFAULT_SUBMENU_HOVER_DELAY_MS: u64 = 300;
 
@@ -67,6 +68,7 @@ impl UiSurface {
         Some((tooltip_id, delay_ms))
     }
 
+    /// 计时输入已经清理当前会话后，按仍存在且可用的菜单绑定生成通知；返回报告不等同于再次清理计时状态。
     pub(crate) fn apply_default_typeahead_expired_component_event(
         &self,
         node_id: UiNodeId,
@@ -85,6 +87,7 @@ impl UiSurface {
         )
     }
 
+    /// 通知作者绑定“悬停延时已满足”；实际打开哪个子菜单仍由绑定/宿主协议决定。
     pub(crate) fn apply_default_submenu_hover_ready_component_event(
         &self,
         node_id: UiNodeId,

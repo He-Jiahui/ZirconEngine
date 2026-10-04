@@ -1,3 +1,5 @@
+//! 选择输入目录连接弹层、候选项和多选状态；宿主能力与默认选项声明决定可调用的交互路径。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventKind, UiHostCapability, UiValue,

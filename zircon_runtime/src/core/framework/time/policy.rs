@@ -80,6 +80,7 @@ impl TimePolicy {
 }
 
 /// A requested time-policy change that must validate before the runtime mutates its clocks.
+/// 时钟策略的提交请求；先校验值，再由 Runtime/World 权威检查活动固定步和待偿欠债后原子应用。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TimePolicyTransaction {
     requested: TimePolicy,

@@ -1,3 +1,4 @@
+//! 静态清单的外部特性提供包的元数据、依赖与模块声明回归；经共享读取和本领域断言检查当前包声明，不执行插件行为。
 use super::{
     assert_known_default_packaging_strategies, assert_known_runtime_targets,
     assert_unique_dependency_row, assert_unique_string_array_entries, bool_value,

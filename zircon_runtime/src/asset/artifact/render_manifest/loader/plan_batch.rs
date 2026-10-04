@@ -5,6 +5,7 @@ use super::contract::{RenderArtifactBlockAdmissionError, RenderArtifactBlockRequ
 use super::loader::{RenderArtifactBlockLoader, RenderArtifactBlockTicketBatch};
 
 impl RenderArtifactBlockLoader {
+    /// 把清单规划好的依赖批次一次登记为票据；调用方仍需显式派发并保留票据至完成。
     pub fn request_load_batch(
         &self,
         batch: &RenderArtifactLoadBatch,

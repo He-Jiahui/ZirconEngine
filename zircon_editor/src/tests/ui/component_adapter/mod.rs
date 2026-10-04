@@ -1,3 +1,5 @@
+//! 统一构造组件事件信封与编辑器运行时夹具，供命令、检查器和资源编辑器适配测试复用。
+
 use crate::core::editor_event::{
     EditorEvent, EditorEventEffect, EditorEventSource, EditorEventTransient, MenuAction,
 };

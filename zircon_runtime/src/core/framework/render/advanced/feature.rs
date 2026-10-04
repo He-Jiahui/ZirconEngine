@@ -1,5 +1,6 @@
 use super::super::{RenderCapabilityKind, RenderProductFeature};
 
+/// 产品 profile 用稳定特性键生成 provider 资格报告；渲染管线还需独立启用对应 pass。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AdvancedRenderFeature {
     VirtualGeometry,
@@ -30,6 +31,7 @@ impl AdvancedRenderFeature {
         }
     }
 
+    /// 运行高级 provider 需要完整后端能力，不能只检查同名产品能力位。
     pub const fn required_capabilities(self) -> &'static [RenderCapabilityKind] {
         match self {
             Self::VirtualGeometry => &[

@@ -14,6 +14,7 @@ pub enum PlatformRuntimeHostRequirement {
 }
 
 impl PlatformRuntimeHostRequirement {
+    // requirement 与宿主证据逐项对应；WindowingAndEventLoop 必须同时观察到两者。
     pub(crate) const fn is_observed_by(self, observed: PlatformHostObservedCapabilities) -> bool {
         match self {
             Self::EventLoop => observed.event_loop(),
@@ -60,6 +61,7 @@ pub enum PlatformRuntimeCapabilityStatus<T> {
 }
 
 impl<T> PlatformRuntimeCapabilityStatus<T> {
+    // Ready 同时携带 provider/generation/value；其它状态即使有静态 value 也不能当作已就绪。
     pub const fn is_ready(&self) -> bool {
         matches!(self, Self::Ready { .. })
     }

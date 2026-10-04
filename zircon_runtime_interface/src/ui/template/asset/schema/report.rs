@@ -4,6 +4,7 @@ use super::super::document::UiAssetDocument;
 use super::policy::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 迁移输出把新文档和过程报告成对返回，调用方据 can_edit 与诊断决定是否允许作者继续修改。
 pub struct UiAssetMigrationOutcome {
     pub document: UiAssetDocument,
     pub report: UiAssetMigrationReport,
@@ -43,6 +44,7 @@ impl UiAssetMigrationReport {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 来源种类区分树文档、旧版本、扁平节点表和未来版本，决定迁移路径及编辑许可。
 pub enum UiAssetSchemaSourceKind {
     CurrentTree,
     OlderTree,

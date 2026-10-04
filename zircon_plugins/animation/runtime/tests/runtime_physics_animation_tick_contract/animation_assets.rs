@@ -1,3 +1,4 @@
+//! 帧集成测试共用的骨架、剪辑、图与状态机资产构造器；测试调用这些数据覆盖真实加载边界。
 use zircon_runtime::asset::{AssetReference, AssetUri, ProjectAssetManager};
 use zircon_runtime::core::framework::animation::AnimationParameterValue;
 use zircon_runtime::core::framework::animation::{

@@ -1,3 +1,4 @@
+//! 文档leaf内的相对标签插入必须同时选择新标签。
 use crate::ui::workbench::layout::{
     DocumentNode, LayoutCommand, LayoutManager, MainHostPageLayout, MainPageId, TabInsertionAnchor,
     TabInsertionSide, WorkbenchLayout,
@@ -5,6 +6,7 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
 #[test]
+/// 依靠实例锚点插入，不把标题当作目标；成功后leaf活动项与插入顺序共同成立。
 fn attach_view_to_document_inserts_after_anchor_and_keeps_it_active() {
     let manager = LayoutManager::default();
     let mut layout = WorkbenchLayout::default();

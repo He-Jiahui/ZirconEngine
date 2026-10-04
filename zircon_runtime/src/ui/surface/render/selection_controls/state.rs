@@ -10,6 +10,8 @@ use super::{
     metadata::{bool_attribute, selection_painter_family},
 };
 
+/// 选择控件的视觉投影：运行时与模板选择/勾选状态合并，active 保留语义真值，视觉优先级另行解析。
+/// 禁用/加载仍可保留选中语义，绘制使用不可用角色色；是否允许输入须由交互门禁判定。
 #[derive(Clone, Copy)]
 pub(super) struct SelectionRenderState {
     family: UiPainterFamily,

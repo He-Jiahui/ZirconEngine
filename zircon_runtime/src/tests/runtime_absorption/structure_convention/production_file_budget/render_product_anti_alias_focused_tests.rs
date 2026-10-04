@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0061] 抗锯齿产品的粒子和响应掩码测试的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_render_product_anti_alias_focused_tests_are_child_owners() {
     let parent = read_runtime_src("graphics/tests/render_product_anti_alias.rs");

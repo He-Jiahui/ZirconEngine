@@ -1,3 +1,4 @@
+//! 特性依赖行按调用者给出的上下文传递提供包与能力，字段缺失由读取器失败，未声明数组留给必需性测试约束。
 use std::path::Path;
 
 use super::super::non_empty_string_value;

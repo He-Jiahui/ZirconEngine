@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 事件绑定 ID、路由及跨资产唯一性。
+
 use std::collections::{BTreeMap, BTreeSet};
 use zircon_runtime_interface::ui::binding::UiEventKind;
 

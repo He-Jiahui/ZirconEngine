@@ -1,3 +1,5 @@
+//! 渲染 owner 的粗屏幕候选供表面或可见空间查询结果使用；半径是交互近似，不能充当真实网格交点或可见性证明。
+
 use crate::scene::viewport::pointer::constants::{
     RENDERABLE_PICK_MIN_RADIUS_PX, RENDERABLE_PRIORITY,
 };

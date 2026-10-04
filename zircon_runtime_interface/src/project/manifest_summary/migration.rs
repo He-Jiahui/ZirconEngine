@@ -17,6 +17,7 @@ static PROJECT_MANIFEST_MIGRATIONS: MigrationChain<ProjectManifestValue> = Migra
 ]);
 
 // TODO: [CR-PROJECT-0003] 此公开入口未检查 MAX_PROJECT_MANIFEST_BYTES；确认是否应在此收敛字节限额，避免新调用方绕过。
+/// Parses TOML into the shared JSON value domain and applies the validated manifest chain.
 /// 将经调用方限长的 TOML 转为共享值域，并沿统一版本链迁移到当前格式。
 /// `migrated_from` 供预检和 Runtime 判断是否允许旧格式继续进入准入。
 pub fn load_project_manifest_value_from_toml_str(

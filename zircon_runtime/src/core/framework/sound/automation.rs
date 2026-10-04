@@ -19,6 +19,7 @@ pub struct SoundAutomationCurve {
 }
 
 impl SoundAutomationCurve {
+    /// 仅保留输入关键帧；严格递增、有限值与非空约束由调度或采样入口执行。
     pub fn from_keyframes(keyframes: impl Into<Vec<SoundAutomationKeyframe>>) -> Self {
         Self {
             keyframes: keyframes.into(),
@@ -26,6 +27,7 @@ impl SoundAutomationCurve {
     }
 }
 
+/// 声音参数时间线的调度输入；绑定目标需在当前混音图存在，步进产生采样报告。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundTimelineSequence {
     pub id: SoundTimelineSequenceId,

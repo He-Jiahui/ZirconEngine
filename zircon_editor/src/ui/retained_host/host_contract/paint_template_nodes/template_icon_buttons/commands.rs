@@ -1,3 +1,5 @@
+//! 图标按钮接管入口；可见表面和可容纳的图标独立输出，空框仍接管节点以阻止通用回退。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_button_glyphs::push_icon_button_glyph;
@@ -12,6 +14,7 @@ use super::style::{icon_button_context, icon_button_style};
 use super::surface::push_icon_button_surface;
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
+/// secondary 链的接管契约；true 只表示此域负责节点，尺寸或裁剪导致没有命令仍阻止通用回退。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_icon_button_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

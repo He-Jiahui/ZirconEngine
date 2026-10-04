@@ -7,6 +7,7 @@ const THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS: usize = 3;
 const THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS: usize = 4;
 
 #[derive(Clone, Copy)]
+/// 运行时名称显示策略；最少可辨字符与可用宽度共同约束，不能用于重写文件身份。
 pub(crate) struct RuntimeFileNameCompaction {
     pub(crate) max_width: f32,
     pub(crate) font_size: f32,
@@ -15,6 +16,7 @@ pub(crate) struct RuntimeFileNameCompaction {
     pub(crate) preferred_tail_stem_chars: usize,
 }
 
+/// 为当前显示框缩短名称并保留可辨尾部；最小字符fallback可能仍需节点裁剪。
 pub(crate) fn compact_file_like_display_name(
     display_name: &str,
     extension: &str,
@@ -36,6 +38,7 @@ pub(crate) fn compact_file_like_display_name(
         .unwrap_or_else(|| name.to_string())
 }
 
+/// 缩略图slot重绑定时使用当前资产名和框宽；结果只是展示文案。
 pub(crate) fn compact_thumbnail_file_name_to_width(
     display_name: &str,
     extension: &str,

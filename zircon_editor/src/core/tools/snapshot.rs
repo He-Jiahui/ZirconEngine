@@ -1,3 +1,5 @@
+//! 提供工具调度的不可变观察快照，用于诊断当前占用、排队与输入捕获；快照句柄不能替代服务对实时身份的核验。
+
 use super::{ToolInputCaptureHandle, ToolLeaseHandle, ToolRequestHandle, ToolResourceKey};
 
 /// Immutable state of one exclusive resource in a scheduler snapshot.

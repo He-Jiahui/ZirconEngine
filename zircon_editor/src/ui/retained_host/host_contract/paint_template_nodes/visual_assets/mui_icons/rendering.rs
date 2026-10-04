@@ -11,6 +11,7 @@ use super::{
     svg_document::module_svg,
 };
 
+/// 把模块路径解析为 SVG 树后按请求目标栅格化；上层仍负责结果缓存与失效。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn render_module_pixels(
     path: &Path,
     target: RasterTargetSize,

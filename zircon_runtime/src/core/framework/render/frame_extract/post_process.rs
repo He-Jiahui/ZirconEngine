@@ -8,6 +8,8 @@ use super::super::{
     VolumeEvaluationRequest, VolumeEvaluator, DEFAULT_CAMERA_EXPOSURE_EV100,
 };
 
+/// 场景作者设置、体积覆盖与已验证通道图的帧边界表示。
+/// 相机提交时先按位置和体积层解析设置，再由渲染端决定实际图执行。
 #[derive(Clone, Debug, PartialEq)]
 pub struct PostProcessExtract {
     pub preview: PreviewEnvironmentExtract,
@@ -111,6 +113,7 @@ impl PostProcessExtract {
         self.graph = self.stack.validated_graph();
     }
 
+    /// 设置或抗锯齿策略变化后更新通道图；调用方应在图被执行前完成重建。
     pub fn rebuild_graph_with_anti_alias(
         &mut self,
         temporal_history_enabled: bool,
@@ -130,6 +133,7 @@ impl PostProcessExtract {
         self.graph = self.stack.validated_graph();
     }
 
+    /// 按该相机的位置与体积层合成最终设置，供每相机渲染准备使用。
     pub fn resolved_settings_for_camera(
         &self,
         camera_position: crate::core::math::Vec3,

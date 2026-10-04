@@ -139,6 +139,8 @@ pub struct AnimationChannelKeyAsset {
     pub out_tangent: Option<AnimationChannelValueAsset>,
 }
 
+/// 可序列化的原始关键帧通道；序列源编译器在世界绑定前验证值域、时间和插值契约，
+/// 因而资产读取成功不代表该通道可直接应用于场景属性。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationChannelAsset {
     pub interpolation: AnimationInterpolationAsset,

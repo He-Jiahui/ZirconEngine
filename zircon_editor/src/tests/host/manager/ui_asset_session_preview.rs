@@ -1,3 +1,4 @@
+// 以真实界面资源会话核对打开保存、预览预设、模拟数据、导入和源偏移选择的状态边界。
 use std::fs;
 
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetPreviewPreset};

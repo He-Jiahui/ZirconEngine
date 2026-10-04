@@ -1,3 +1,4 @@
+//! 运行时整合回归的挂载入口；图形与界面分支遵循功能开关，共享夹具和领域测试在各子模块拥有，不在根入口拼装行为。
 mod camera_controller;
 mod extensions;
 mod gizmos;

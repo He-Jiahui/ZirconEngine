@@ -1,3 +1,5 @@
+//! 配额释放与后端失败种类的回归测试，依赖父模块提供的受控 MemoryBackend。
+
 use super::*;
 
 #[test]

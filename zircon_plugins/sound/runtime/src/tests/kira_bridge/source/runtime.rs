@@ -1,3 +1,4 @@
+// 非活跃声源先保存配置，激活后绑定真实 Kira 句柄；控制命令及不支持的输入分别核对。
 use std::collections::HashMap;
 
 use kira::{backend::mock::MockBackend, sound::PlaybackState};

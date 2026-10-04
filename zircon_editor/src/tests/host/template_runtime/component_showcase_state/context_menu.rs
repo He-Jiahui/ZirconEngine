@@ -1,3 +1,4 @@
+// 核对上下文动作菜单从元数据提取标签并保留指针锚点。
 use super::support::apply_showcase_binding;
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostValue, UiComponentShowcaseDemoEventInput,

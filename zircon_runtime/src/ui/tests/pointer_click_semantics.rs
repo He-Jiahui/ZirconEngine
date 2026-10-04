@@ -1,3 +1,5 @@
+//! 点击和键盘激活依据组件行为契约发布动作；禁用状态应阻断默认动作及绑定事件。
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,

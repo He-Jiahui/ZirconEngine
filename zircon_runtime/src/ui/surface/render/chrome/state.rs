@@ -7,6 +7,8 @@ use zircon_runtime_interface::ui::{
 
 use super::super::painter_state::UiRenderPainterStateSource;
 
+/// 共享 painter 优先级在外壳族中的投影；“不可用”和“活动表面”仅控制视觉，不能代替输入门禁。
+/// 焦点仍属于活动文字/边框状态，但不自动等同于选中表面，二者由样式层分别查询。
 #[derive(Clone, Copy)]
 pub(super) struct ChromeRenderState {
     visual_state: UiPainterResolvedState,

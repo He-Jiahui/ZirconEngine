@@ -1,3 +1,5 @@
+//! MUI 风格布局元数据以明确的布局角色连接模板与布局消费方，字符串断点和间距字段保留编写契约。needs_support 随描述符交付，消费方须结合实际支持能力使用。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

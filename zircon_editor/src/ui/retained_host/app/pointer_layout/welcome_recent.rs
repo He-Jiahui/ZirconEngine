@@ -2,6 +2,7 @@ use super::super::*;
 use crate::ui::retained_host::welcome_recent_geometry::welcome_recent_viewport_for_layout;
 
 impl RetainedEditorHost {
+    // 欢迎页最近项目列表从已提交 chrome 快照取得数据，同时按当前模板 pane 尺寸更新命中与滚动范围。
     pub(in crate::ui::retained_host::app) fn sync_welcome_recent_pointer_layout(
         &mut self,
         chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,

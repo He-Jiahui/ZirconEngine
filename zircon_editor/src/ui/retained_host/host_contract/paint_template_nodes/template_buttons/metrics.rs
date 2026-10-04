@@ -1,3 +1,5 @@
+//! 把宿主控件尺度投影为按钮外观参数；纯投影入口供密度回归测试使用。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, HostControlMetrics,
 };

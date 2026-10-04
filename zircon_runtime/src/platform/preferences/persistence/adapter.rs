@@ -33,6 +33,7 @@ const VISIBLE_NOT_DURABLE_STATE: &str = "visible_not_durable";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PreferencePersistenceLimits {
+    // overlay 与 lane 分别按保留字节准入，限制可见代际和排队任务各自占用的预算。
     pub max_value_bytes: usize,
     pub max_overlay_entries: usize,
     pub max_overlay_retained_bytes: usize,
@@ -59,6 +60,7 @@ pub struct PreferencePersistenceQuote {
 }
 
 impl PreferencePersistenceQuote {
+    // quote 必须覆盖 key、值、元数据及固定上限的失败投影，避免提交后才发现无法记账。
     fn quote_retained_bytes(key: &PreferenceKey, value_bytes: usize) -> Option<Self> {
         let key_bytes = key.namespace().len().checked_add(key.key().len())?;
         let opaque_key_bytes = key_bytes.checked_add(1)?;
@@ -157,6 +159,7 @@ impl Drop for PreferenceBackendWallGuard {
 }
 
 pub struct PreferencePersistenceAdapter {
+    // submission 串行化代际分配；overlay 保存立即可见值，lane 负责按 opaque key 排队执行。
     backend: RwLock<Arc<dyn PreferenceStorageBackend>>,
     submission: Mutex<()>,
     lane: BoundedKeyedIoLane,
@@ -227,6 +230,7 @@ impl PreferencePersistenceAdapter {
     }
 
     pub(crate) fn replace_backend(&self, backend: Arc<dyn PreferenceStorageBackend>) {
+        // submission 锁使后端替换与新任务取快照互斥；已排队任务继续持有此前取得的 Arc。
         let _submission = self.lock_submission();
         *self.backend_mut() = backend;
     }
@@ -235,6 +239,7 @@ impl PreferencePersistenceAdapter {
         &self,
         key: &PreferenceKey,
     ) -> Result<PreferenceReadSnapshot, PreferenceStorageError> {
+        // 已有 overlay 直接返回；首次读取先安装 Pending 代际，再由 worker 异步填充。
         let _submission = self.lock_submission();
         if let Some(snapshot) = self.snapshot_if_present(key) {
             return Ok(snapshot);
@@ -255,6 +260,7 @@ impl PreferencePersistenceAdapter {
         value: Arc<[u8]>,
         deadline: PreferenceWorkDeadline,
     ) -> Result<PreferenceMutationSubmission, PreferenceStorageError> {
+        // 写入先做硬上限检查，随后以同一提交锁分配代际并发布可见值。
         let _submission = self.lock_submission();
         if value.len() > self.limits.max_value_bytes {
             return Err(immediate_error(
@@ -276,6 +282,7 @@ impl PreferencePersistenceAdapter {
         key: PreferenceKey,
         deadline: PreferenceWorkDeadline,
     ) -> Result<PreferenceMutationSubmission, PreferenceStorageError> {
+        // remove 复用 mutation 状态机，以 None 值表达删除并保留 ticket/fence 语义。
         let _submission = self.lock_submission();
         self.submit_mutation(key, None, deadline, PreferenceStorageOperation::Remove)
     }
@@ -284,6 +291,7 @@ impl PreferencePersistenceAdapter {
         &self,
         deadline: PreferenceWorkDeadline,
     ) -> Result<Arc<dyn PreferenceFlushTicket>, PreferenceStorageError> {
+        // fence 排在此前 lane 工作之后；已知非持久化失败会在 fence 执行时直接投影，跳过后端 flush。
         let _submission = self.lock_submission();
         let quote = PreferencePersistenceQuote::for_fence().ok_or_else(|| {
             immediate_error(
@@ -341,6 +349,7 @@ impl PreferencePersistenceAdapter {
         &self,
         deadline: Instant,
     ) -> Result<BoundedKeyedIoShutdownReport, BoundedKeyedIoShutdownReport> {
+        // 关闭 guard 只创建一次；重复调用复用该 guard，并按本次 deadline 等待、获取当前报告。
         let mut shutdown_guard = lock(&self.shutdown_guard);
         let guard = shutdown_guard.get_or_insert_with(|| self.lane.shutdown());
         if guard.wait_until(deadline) {
@@ -356,6 +365,7 @@ impl PreferencePersistenceAdapter {
     }
 
     fn submit_initial_read(&self, key: PreferenceKey) -> Result<(), PreferenceStorageError> {
+        // 初次读取按最大值预留两层预算；读完后按实际值缩减 overlay 保留量。
         let quote =
             PreferencePersistenceQuote::quote_retained_bytes(&key, self.limits.max_value_bytes)
                 .ok_or_else(|| {
@@ -432,6 +442,7 @@ impl PreferencePersistenceAdapter {
         deadline: PreferenceWorkDeadline,
         operation: PreferenceStorageOperation,
     ) -> Result<PreferenceMutationSubmission, PreferenceStorageError> {
+        // lane 准入成功后、activate 前安装 Pending 代际，避免 worker 终态先于可见状态发布。
         let value_bytes = value.as_ref().map_or(0, |value| value.len());
         let quote = PreferencePersistenceQuote::quote_retained_bytes(&key, value_bytes)
             .ok_or_else(|| {
@@ -595,6 +606,7 @@ impl PreferenceMutationTicket for PreferenceTicketView {
     }
 
     fn wait_until(&self, deadline: Instant) -> PreferenceTicketWaitResult {
+        // 先等待 lane，再把终态反射回 overlay；超时只表示观察者等待结束，不改后端结果。
         match self.ticket.wait_until(deadline) {
             BoundedKeyedIoWaitResult::ObserverTimedOut => {
                 PreferenceTicketWaitResult::ObserverTimedOut
@@ -632,6 +644,7 @@ impl fmt::Debug for PreferenceCancellationView {
 
 impl PreferenceMutationCancellation for PreferenceCancellationView {
     fn cancel_before_start(&self) -> Result<(), PreferenceMutationCancelError> {
+        // 取消必须使用与 admission 配对的 authority，并在成功后主动刷新投影终态。
         self.ticket
             .cancel_before_start(&self.authority)
             .map_err(|error| match error {
@@ -677,6 +690,7 @@ impl PreferenceFlushTicket for PreferenceFenceView {
     }
 
     fn wait_until(&self, deadline: Instant) -> PreferenceTicketWaitResult {
+        // fence 观察同一 lane ticket；后端失败投影优先于通用 lane 代码。
         match self.fence.ticket().wait_until(deadline) {
             BoundedKeyedIoWaitResult::ObserverTimedOut => {
                 PreferenceTicketWaitResult::ObserverTimedOut

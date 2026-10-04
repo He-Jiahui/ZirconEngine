@@ -6,6 +6,7 @@ use super::constants::{NavAreaId, AREA_WALKABLE, DEFAULT_AGENT_TYPE};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 选择烘焙源的空间范围；Hierarchy、Volume 和 ModifierOnly 由插件的场景收集阶段解释。
 pub enum NavMeshCollectMode {
     AllObjects,
     Hierarchy,
@@ -34,6 +35,7 @@ impl Default for NavMeshUseGeometry {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
+/// 场景 surface 组件的烘焙策略；请求可覆盖代理类型与输出路径，其余字段进入插件的收集及资产指纹。
 pub struct NavMeshSurfaceDescriptor {
     pub enabled: bool,
     pub agent_type: String,
@@ -44,6 +46,7 @@ pub struct NavMeshSurfaceDescriptor {
     pub include_layers: Vec<String>,
     pub default_area: NavAreaId,
     pub generate_links: bool,
+    // TODO: [CR-NAVIGATION-0003] 补齐体素、区域面积和高度网格选项的实际烘焙应用；当前阶段仅写设置哈希并发警告。
     pub override_voxel_size: Option<Real>,
     pub override_tile_size: Option<u32>,
     pub min_region_area: Real,

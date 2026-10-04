@@ -1,8 +1,11 @@
+//! 从当前宿主密度集中提供标签、分隔线、选中表面与页签尺寸；绘制域的各部件应遵守同一规格。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, HostControlMetrics,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 分段组与页签共享的宿主密度快照；文字槽、选中态和分隔线都要用同一投影。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchSegmentedControlMetrics
 {
     pub segment_font_size: f32,

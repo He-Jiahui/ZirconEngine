@@ -5,6 +5,7 @@ const FLOATING_WINDOW_CENTER_BAND_CONTROL_ID: &str = "FloatingWindowCenterBandRo
 const FLOATING_WINDOW_DOCUMENT_CONTROL_ID: &str = "FloatingWindowDocumentRoot";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+// 来源帧把模板布局的窗口锚点交给宿主窗口管理，缺失控件时保留可选结果。
 pub(crate) struct BuiltinFloatingWindowSourceFrames {
     pub document_frame: Option<UiFrame>,
     pub center_band_frame: Option<UiFrame>,

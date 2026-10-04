@@ -1,9 +1,12 @@
+//! 压缩容器的正向案例检查格式识别、设备特性和实际 payload 范围；上传计划随后供渲染资源解析与制品烹制使用。
+
 use super::container_fixtures::*;
 use crate::asset::{
     AssetUri, TextureAsset, TextureUploadCompressionFamily, TextureUploadReadiness,
     TextureUploadSupport,
 };
 
+// 有效容器与设备能力缺失必须分别报告；只有格式、头部和字节布局均成立才可形成上传计划。
 #[test]
 fn texture_upload_readiness_reports_compressed_container_support() {
     let uri = AssetUri::parse("res://textures/bc1.dds").unwrap();
@@ -24,6 +27,7 @@ fn texture_upload_readiness_reports_compressed_container_support() {
         1,
         1,
     );
+    // BUG: [CR-ASSET-TEST-TEXTURE-0001] 1 字节 DDS 生成非空子资源列表后先报缺少压缩子资源字节，旧连续长度文案断言必失败；证据：upload_support/dds.rs:92、compressed.rs:20-24,203-207。
     assert_eq!(
         short
             .upload_readiness(TextureUploadSupport {
@@ -117,6 +121,7 @@ fn texture_upload_readiness_reports_compressed_container_support() {
         }
     }
 
+    // typeless DXGI 编码不能直接交给 GPU；导入阶段须先解析为明确的可上传格式。
     for (dxgi, expected_bytes_per_block) in [
         (70, 8_usize),
         (73, 16),
@@ -149,6 +154,7 @@ fn texture_upload_readiness_reports_compressed_container_support() {
     }
 }
 
+// KTX 头部和层级索引不能作为纹理字节上传；此处固定范围与块布局，供后续切分子资源。
 #[test]
 fn texture_upload_readiness_extracts_ktx_level_payload_offsets() {
     let support = TextureUploadSupport {
@@ -258,6 +264,7 @@ fn texture_upload_readiness_extracts_ktx_level_payload_offsets() {
             assert_eq!(plan.format, "ktx2/vk-133/supercompression-0");
             assert_eq!(plan.compression, TextureUploadCompressionFamily::Bc);
             assert_eq!(plan.data_offset, KTX2_TEST_LEVEL_DATA_OFFSET);
+            // BUG: [CR-ASSET-TEST-TEXTURE-0002] KTX2 正常计划将 data_length 设为 None，断言 Some(8) 必失败；证据：upload_support/ktx.rs:124-134。
             assert_eq!(plan.data_length, Some(8));
             assert_eq!(plan.bytes_per_block, 8);
         }

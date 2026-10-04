@@ -1,3 +1,5 @@
+//! 作者变换是场景文档与 World 层级之间的稳定表示；保存/加载都应保留相同的局部空间语义。
+
 use crate::core::math::Real;
 use serde::{Deserialize, Serialize};
 

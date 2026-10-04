@@ -1,3 +1,4 @@
+// 比较 SoundPlaybackSettings 的模式常量和构造器字段，固定循环及完成意图的数据契约；不执行播放。
 use super::super::super::*;
 
 #[test]

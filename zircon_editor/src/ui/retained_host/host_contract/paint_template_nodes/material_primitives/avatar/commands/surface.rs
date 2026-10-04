@@ -2,6 +2,7 @@ use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::style::{avatar_border_color, avatar_border_width};
 
+// 根序列先画背景、再放内容、最后画可选边框；背景和边框使用同一圆角框，内容共用宿主裁剪。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_avatar_background(
     commands: &mut Vec<HostPaintCommand>,
     avatar_rect: FrameRect,

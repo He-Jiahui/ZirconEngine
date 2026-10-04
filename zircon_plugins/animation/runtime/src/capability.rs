@@ -1,3 +1,4 @@
+//! 运行时能力声明是包清单、原生入口和模块注册共享的身份基线；真正可用性由注册报告确认。
 zircon_plugin_sdk::declare_plugin! {
     pub ANIMATION_DECLARATION {
         id: PLUGIN_ID = "animation",

@@ -1,3 +1,5 @@
+//! 校验语义优先于文本语义作为进度填充回退；节点投影须提供已规范化的 token，未知值继续回退到主题 accent。
+
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::palette::MaterialFeedbackPalette;
 

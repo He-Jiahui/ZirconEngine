@@ -1,3 +1,4 @@
+//! clip 片段与速度的约束由播放和声源绑定共同使用，保证切片位置始终按原素材采样率解释。
 use zircon_runtime::core::framework::sound::{SoundError, SoundPlaybackSettings};
 
 use crate::automation::values::ensure_finite_value;

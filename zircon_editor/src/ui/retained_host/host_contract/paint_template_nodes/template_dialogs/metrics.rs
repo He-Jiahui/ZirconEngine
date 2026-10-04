@@ -1,3 +1,6 @@
+//! 把宿主密度投影为对话框内容与动作尺寸；标题/动作与正文沿用各自的字体角色。
+//! legacy_action_bottom 只为 AlertDialog 既有单行动作布局服务，不能与普通确认动作带混用。
+
 use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 const CONTENT_TOP_ROW_MULTIPLIER: f32 = 2.0;

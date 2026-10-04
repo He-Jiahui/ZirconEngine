@@ -1,3 +1,5 @@
+//! 保存物理子节点到逻辑行的投影；安排只访问有限物理节点，同时使用逻辑总数恢复完整滚动几何。
+
 use std::collections::BTreeMap;
 
 use zircon_runtime_interface::ui::{event_ui::UiNodeId, tree::UiTree};
@@ -16,6 +18,7 @@ pub(super) struct UiMaterializedVirtualListLayout {
 }
 
 impl UiLayoutSlotIndex {
+    /// 物化提交成功后整体替换投影；过滤越界逻辑索引，未登记的物理子节点在安排时隐藏。
     pub(crate) fn replace_materialized_virtual_list(
         &self,
         owner_id: UiNodeId,
@@ -39,6 +42,7 @@ impl UiLayoutSlotIndex {
         self.virtual_lists.borrow_mut().owners.remove(&owner_id);
     }
 
+    /// 表面结构变更后移除已不存在的 owner；存活 owner 的槽位更新仍由物化提交负责。
     pub(crate) fn prune_materialized_virtual_lists(&self, tree: &UiTree) -> usize {
         let mut index = self.virtual_lists.borrow_mut();
         let previous_count = index.owners.len();

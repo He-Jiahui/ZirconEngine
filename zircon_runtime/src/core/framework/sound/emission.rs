@@ -22,6 +22,7 @@ pub struct SoundGameplayEmission {
     pub emitted_at_seconds: f64,
 }
 
+/// 每个世界独立的有界日志读取结果；next_sequence 是下次游标，missed_events 表示已覆盖的历史。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct SoundGameplayEmissionRead {
     pub events: Vec<SoundGameplayEmission>,

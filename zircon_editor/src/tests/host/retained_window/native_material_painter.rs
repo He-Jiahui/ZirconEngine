@@ -1,3 +1,4 @@
+// 核对原生模板绘制中的材质状态调色板、圆角与按钮优先级。
 use std::rc::Rc;
 
 use crate::ui::retained_host::primitives::{Color, ModelRc, VecModel};

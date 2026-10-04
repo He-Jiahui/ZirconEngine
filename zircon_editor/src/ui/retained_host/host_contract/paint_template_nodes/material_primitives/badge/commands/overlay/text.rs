@@ -4,6 +4,7 @@ use super::super::super::geometry::badge_overlay_text_frame;
 use super::super::super::style::badge_overlay_text_color;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+// 非圆点覆盖层在底面之上绘制计数文字；文字框根据运行时实测字宽居中。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_badge_overlay_text(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

@@ -1,5 +1,8 @@
+//! 表格行视觉结果携带行身份和文字角色；绘制端按列序调用 text_for_cell，必须与四列表格布局一致。
+
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
+/// 供表格外壳和四列文字绘制端共享的视觉配方；列索引契约见 text_for_cell。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchTableRowStyle
 {

@@ -19,6 +19,8 @@ pub(super) enum MeshShaderProgramKind {
     Oit,
 }
 
+/// 每类 Mesh pass 必需的 WGSL 入口清单，供异步校验与缓存模块再次准入。
+/// 纯深度/阴影顶点 pass 不要求片段入口，其余 pass 匹配专用片段名。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct MeshShaderEntryContract {
     vertex_entry: &'static str,

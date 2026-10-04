@@ -1,3 +1,4 @@
+// 检查内建窗格模板对外动作集合，约束已退役夹具动作不再暴露。
 use super::super::support::*;
 #[test]
 fn builtin_pane_surface_does_not_expose_the_retired_fixture_action() {

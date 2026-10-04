@@ -3,6 +3,8 @@ use crate::core::framework::render::RenderGpuSceneUploadPath;
 use crate::graphics::scene::gpu_scene::{GpuSceneStats, GpuSceneUploadPath, GpuSceneUploadReport};
 
 impl PreparedMeshQueueStats {
+    /// 在帧成功提交后并入 GPUScene 实际上传结果。
+    /// 调用方须传入对应本帧的 upload_report，避免把预估值当提交事实。
     pub(crate) fn with_gpu_scene_stats(
         mut self,
         stats: GpuSceneStats,

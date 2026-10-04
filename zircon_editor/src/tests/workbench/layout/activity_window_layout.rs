@@ -1,3 +1,4 @@
+//! 活动窗口身份与宿主模式的持久化边界；抽屉属于各窗口。
 use std::collections::BTreeMap;
 
 use crate::ui::workbench::layout::{
@@ -7,6 +8,7 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 
 #[test]
+/// 窗口ID持久化为稳定文本；显示标题和原生句柄不参与身份。
 fn activity_window_id_roundtrips_as_stable_string() {
     let id = ActivityWindowId::new("window:workbench");
 
@@ -19,6 +21,7 @@ fn activity_window_id_roundtrips_as_stable_string() {
 }
 
 #[test]
+/// 检查嵌入与原生宿主模式协议；整数句柄的serde往返不证明句柄仍有效。
 fn activity_window_host_mode_roundtrips_embedded_and_native_modes() {
     for mode in [
         ActivityWindowHostMode::EmbeddedMainFrame,
@@ -33,6 +36,7 @@ fn activity_window_host_mode_roundtrips_embedded_and_native_modes() {
 }
 
 #[test]
+/// 验证窗口载荷内有自己的抽屉集合，使同槽位不退化为全局共享抽屉。
 fn activity_window_layout_owns_drawers_per_window() {
     let mut drawers = BTreeMap::new();
     let mut left_drawer = ActivityDrawerLayout::new(ActivityDrawerSlot::LeftTop);

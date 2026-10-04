@@ -1,3 +1,5 @@
+//! 表面将重入脏标记聚合为一次失效提交；稳定重建或未变化属性不应产生新的代际。
+
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface};
 use zircon_runtime_interface::ui::{
     component::UiValue,
@@ -74,6 +76,7 @@ fn unchanged_property_and_stable_rebuild_do_not_advance_generation() {
     assert_eq!(surface.pending_invalidation_changed_node_count(), 0);
 }
 
+// 先完成布局并清掉初建脏域，后续代际断言只衡量测试实际施加的变更。
 fn test_surface() -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.invalidation"));
     surface.tree.insert_root(

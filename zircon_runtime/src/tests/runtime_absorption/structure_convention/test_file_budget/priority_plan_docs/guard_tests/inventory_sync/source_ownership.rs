@@ -1,3 +1,4 @@
+//! 约束优先计划文档守卫的入口清单与子文件归属；保留名称的文本证据需随职责迁移更新，归档文字不等于当前验证结果。
 use super::*;
 
 pub(super) fn assert_priority_plan_doc_guard_row_data_sources_are_child_owned() {

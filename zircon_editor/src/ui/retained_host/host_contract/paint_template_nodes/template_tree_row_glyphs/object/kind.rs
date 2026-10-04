@@ -1,3 +1,6 @@
+//! 为未提供图标资源的现有场景行选择后备对象种类；识别依赖 control ID 与标题约定。
+//! 新语义对象应优先显式给出资源，避免扩大名称启发式。
+
 use super::super::super::super::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

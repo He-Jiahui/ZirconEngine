@@ -1,3 +1,5 @@
+// TODO: [CR-RUNTIME-SCENE-EXTRACT-0002] 确认页依赖是否需约束驻留调度；当前只进入调试快照，规划器未读取。
+/// cooked 页间关系的提取表示，调试快照可用于解释页结构。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderVirtualGeometryPageDependency {
     pub page_id: u32,

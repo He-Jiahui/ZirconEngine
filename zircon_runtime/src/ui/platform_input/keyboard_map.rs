@@ -1,3 +1,6 @@
+//! 键盘适配只提供共享输入契约所需的兼容键码和键名；文本编辑仍消费独立的 text/IME 载荷。
+//! key_code 为 DOM 兼容值，不能代替物理键身份；无法表示的字符返回零，调用方应保留 logical_key。
+
 use winit::event::ElementState;
 use winit::keyboard::{Key, NamedKey, NativeKeyCode, PhysicalKey};
 use zircon_runtime_interface::ui::dispatch::UiKeyboardInputState;

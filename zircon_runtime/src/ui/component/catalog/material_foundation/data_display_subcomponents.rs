@@ -1,3 +1,5 @@
+//! 列表和图片列表的子构件提供独立的命名槽、样式字段与动作声明，供组合模板检查。图片与向量子项各自声明渲染要求，注册不会创建对应资源。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

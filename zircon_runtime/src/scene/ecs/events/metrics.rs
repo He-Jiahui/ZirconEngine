@@ -3,6 +3,7 @@ use std::mem::size_of;
 pub const EVENT_INLINE_PAYLOAD_MAX_BYTES: usize = 128;
 pub const EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES: u32 = 8;
 
+/// 事件负载大小的诊断建议，不改变 Events<T> 的实际存储或发送语义。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EventPayloadStorage {
     Inline,

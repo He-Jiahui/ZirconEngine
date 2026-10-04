@@ -3,6 +3,7 @@ use super::super::super::super::primitives::LineVertex;
 
 const LINE_SHADER: &str = include_str!("../../shaders/line.wgsl");
 
+/// 各辅助线层共享最终目标管线；读取已有场景深度而不写入，避免遮挡后续辅助层。
 pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) fn create_line_pipeline(
     device: &wgpu::Device,
     target_format: wgpu::TextureFormat,

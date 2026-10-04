@@ -1,3 +1,4 @@
+//! 脚本生成、HUD 与粒子操作均以当前场景为所有者；返回的实体句柄随后由世界存在性和宿主调用能力约束。
 use crate::core::framework::script::{
     ScriptHostCallFrame, ScriptHostError, ScriptHostHotPathMetrics, ScriptHostValue,
 };

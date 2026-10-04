@@ -1,3 +1,4 @@
+// 以帧面积辅助比较工作台窗口菜单锚点，固定几何断言的计算口径。
 pub(super) use std::collections::{BTreeMap, BTreeSet};
 pub(super) use std::sync::Arc;
 

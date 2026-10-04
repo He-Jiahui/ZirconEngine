@@ -11,6 +11,7 @@ use crate::scene::World;
 
 use super::remap::remap_json_entity_objects;
 
+// 插件组件写入前将稳定字段 ID 解析成目标模式名称；旧名称只供诊断，不决定写入目标。
 pub(in crate::scene::dynamic_scene) fn reflected_fields_to_json_object(
     world: &World,
     type_path: &str,
@@ -56,6 +57,7 @@ pub(in crate::scene::dynamic_scene) fn reflected_fields_to_json_object(
     Ok(Value::Object(object))
 }
 
+// 目标尚无运行时注册时，使用快照携带的插件描述符构造预检值；描述符先由场景校验约束。
 pub(in crate::scene::dynamic_scene) fn descriptor_fields_to_json_object(
     descriptor: &ComponentTypeDescriptor,
     fields: &[ReflectFieldValue],

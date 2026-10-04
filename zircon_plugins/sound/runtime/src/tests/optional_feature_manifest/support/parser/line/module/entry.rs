@@ -1,3 +1,4 @@
+// 模块字段仅在所属区段汇入当前待提交记录，避免静态对照把跨表同名字段视为同一声明。
 pub(in super::super::super) fn parse_optional_feature_module_line(
     line: &str,
     name: &mut Option<String>,

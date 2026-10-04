@@ -12,6 +12,7 @@ impl VmWeatherBridge for VmWeatherProvider {}
 
 #[test]
 fn runtime13_bridge_host_module_borrows_vm_call_arguments_through_resolved_slots() {
+    // 桥接闭包接收紧凑槽编号和原始参数切片；断言宿主闭包看到的编号与借用参数内容。
     let mut registry = RuntimeExtensionRegistry::default();
     let owner = registry.intern_plugin_module("weather.runtime").unwrap();
     registry
@@ -90,6 +91,7 @@ fn runtime13_bridge_host_module_borrows_vm_call_arguments_through_resolved_slots
 
 #[test]
 fn bridge_host_module_reports_disabled_bridge_to_vm_callers() {
+    // 冻结表中的 disabled 标记在宿主导出层生效，调用方应得到可诊断错误而非调用实现。
     let mut registry = RuntimeExtensionRegistry::default();
     let owner = registry.intern_plugin_module("weather.runtime").unwrap();
     registry

@@ -11,6 +11,7 @@ pub const AUDIO_SOURCE_COMPONENT_TYPE: &str = "sound.Component.AudioSource";
 pub const AUDIO_LISTENER_COMPONENT_TYPE: &str = "sound.Component.AudioListener";
 pub const AUDIO_VOLUME_COMPONENT_TYPE: &str = "sound.Component.AudioVolume";
 
+/// 声源在混音图中的声明与更新快照；输入、路由和空间属性一起交给插件验证。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundSourceDescriptor {
     pub id: Option<SoundSourceId>,

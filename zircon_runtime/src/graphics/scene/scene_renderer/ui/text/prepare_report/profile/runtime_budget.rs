@@ -1,5 +1,6 @@
 use super::super::ScreenSpaceUiTextPrepareReport;
 
+/// 把 CPU 页影子和异步 SDF 调度预算暴露给运行时诊断；这些上限由 text 子系统拥有。
 pub(super) fn record_runtime_budget_profile(report: &ScreenSpaceUiTextPrepareReport) {
     let raster = &report.raster_upload;
     crate::profile_counter!(

@@ -1,3 +1,5 @@
+//! 资源选择与分组标题共用 shell 下拉符视觉；展开语义及点击路由由上层控件管理。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;

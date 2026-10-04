@@ -6,6 +6,7 @@ const DEFAULT_EVENT_QUEUE_ENTRY_CAPACITY: usize = 256;
 const DEFAULT_EVENT_QUEUE_RETAINED_BYTES: usize = 512 * 1024;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 权威内存日志与派发队列的双重上限；队列不得超过可供重新同步的存储窗口。
 pub struct EditorLogConfig {
     entry_capacity: usize,
     retained_bytes: usize,

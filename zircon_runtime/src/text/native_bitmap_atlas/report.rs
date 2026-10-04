@@ -1,3 +1,6 @@
+//! 把文字来源、图集分配、GPU 计划和异步缓存结果汇合成一次原生位图帧报告。
+//! 准备报告是渲染交接决策输入；空闲报告只更新缓存/队列诊断，不制造虚假的可见绘制。
+
 use crate::text::atlas::{
     GlyphAtlasBitmapRenderSubmissionReport, GlyphAtlasBitmapRetryFrameState,
     GlyphAtlasBitmapRetryFrameStateReport, GlyphAtlasBitmapRetryFrameSubmissionReport,
@@ -8,6 +11,8 @@ use super::handoff::{NativeBitmapAtlasDegradationReason, NativeBitmapAtlasFirstF
 use super::source_cache::{NativeBitmapAtlasSourceCache, NativeBitmapAtlasSourceCacheFrameReport};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 同一帧各阶段共享的交接证据；来源数量、可见字形、提交可见数和背景合成就绪性必须一起判断。
+/// `native_submission_ready` 由帧对象按完整条件产生，不能仅凭任一计数为正就宣称可替换文字。
 pub(crate) struct NativeBitmapAtlasPrepareReport {
     pub(crate) frame_index: u64,
     pub(crate) visible_raster_glyph_count: usize,

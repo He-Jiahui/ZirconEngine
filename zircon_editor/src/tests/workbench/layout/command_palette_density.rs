@@ -1,3 +1,4 @@
+//! 命令面板弹层尺寸来自共享density级联，主题必须登记相同token。
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
 const COMMAND_PALETTE_ASSET: &str = include_str!(
@@ -5,6 +6,7 @@ const COMMAND_PALETTE_ASSET: &str = include_str!(
 );
 
 #[test]
+/// 同时核对消费资产和token定义，防止局部像素约束绕过全局密度设置。
 fn command_palette_uses_shared_density_constraints_for_its_popup_surface() {
     for token in [
         "$editor.density.command_palette.min_width",

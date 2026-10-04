@@ -1,3 +1,4 @@
+// 用 key 确认当前表项有效，再提取比较所需的基础签名；缺失必填项让测试失败。
 use super::super::super::super::storage::PendingOptionManifest;
 use super::super::record::OptionManifestSignature;
 use super::{assembly, key};

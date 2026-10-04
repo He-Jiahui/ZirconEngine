@@ -4,6 +4,7 @@ use crate::core::math::{UVec2, Vec2};
 use super::PointerId;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 指针在某个渲染视口内的位置；射线构建要求 position 使用该视口的局部像素坐标。
 pub struct PointerLocation {
     pub pointer: PointerId,
     pub viewport: RenderViewportHandle,

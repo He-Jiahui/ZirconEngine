@@ -1,3 +1,4 @@
+//! 每帧推进状态机实例、采样过渡姿态并积累待提交的活动状态、触发器和事件。
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -26,6 +27,7 @@ pub(super) struct ActiveStateUpdate {
     pub(super) consumed_triggers: Option<Arc<[String]>>,
 }
 
+/// 这里只生成候选更新；帧所有者通过事件准入后才提交状态和消耗一次性触发器。
 pub(super) fn resolve_state_machine_pose_requests(
     pipeline: &mut AnimationEvaluationPipeline,
     asset_manager: &ProjectAssetManager,

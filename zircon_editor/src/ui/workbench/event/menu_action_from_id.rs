@@ -5,6 +5,8 @@ use crate::core::play::PlayKind;
 
 use super::node_kind_from_id::{node_kind_from_control_id, node_kind_from_id};
 
+// 保留界面回调与无界面测试共用的动作身份入口；现有资源同时使用领域动作名和旧控件名。
+// 这里只识别动作与后缀，打开视图的存在性、能力及执行状态留给宿主和注册表核验。
 pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
     let action_id = action_id
         .strip_prefix("menu_action.")

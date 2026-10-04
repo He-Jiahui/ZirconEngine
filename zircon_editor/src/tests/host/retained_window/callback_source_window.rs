@@ -1,3 +1,4 @@
+// 核对子窗口面板回调携带正确的来源窗口身份。
 #[test]
 fn child_window_callback_wiring_tracks_source_window_for_pane_interactions() {
     let wiring = include_str!(concat!(

@@ -1,3 +1,4 @@
+//! 图形提供方样板收敛的守卫入口；子模块分别检查共享注册、输入、更新和反馈归属。
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
 #[path = "provider_boilerplate/feedback.rs"]

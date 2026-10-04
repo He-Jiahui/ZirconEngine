@@ -1,5 +1,7 @@
 use std::ops::{BitOr, BitOrAssign};
 
+/// 指出一次组件投影中哪些字段需要重新读取和传递。
+/// 只用于解释 `RenderComponentSnapshot` 的变更范围，不代表实体可见性。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderComponentChangeMask(u8);
 

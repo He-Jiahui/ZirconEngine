@@ -1,3 +1,5 @@
+//! 项目文档编解码在资产模型与可持久化引用之间转换；场景/材质/模型保存须通过 ProjectManager 校验 UUID 与路径提示的一致性。
+
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 

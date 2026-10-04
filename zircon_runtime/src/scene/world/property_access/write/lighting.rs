@@ -9,6 +9,7 @@ use super::super::value_conversion::{
 };
 
 impl World {
+    // 灯光属性编辑使用同一组件访问和校验边界；渲染帧在 World 提取阶段重新投影灯光。
     pub(super) fn set_ambient_light_property(
         &mut self,
         entity: EntityId,

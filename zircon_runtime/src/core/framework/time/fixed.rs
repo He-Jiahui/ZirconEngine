@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 /// Fixed-step clock marker and accumulator state.
+/// World 固定步的欠债累加器；先按外层帧积累虚拟时间，成功提交的步才扣除欠债。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Fixed {
     timestep: Duration,

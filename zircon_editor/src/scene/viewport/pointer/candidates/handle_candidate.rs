@@ -1,3 +1,5 @@
+//! Handle 世界几何转换为屏幕精确形状，保留 owner 和轴；中心锚点只作呈现，退化或不可投影元素不授予命中能力。
+
 use crate::scene::viewport::HandleElementExtract;
 
 use crate::scene::viewport::pointer::constants::{HANDLE_PICK_THRESHOLD_PX, HANDLE_PRIORITY};

@@ -1,6 +1,7 @@
 use super::super::*;
 
 #[test]
+// 静态 Supported 与运行时 Ready 是两层契约；本组测试只验证前者及 disabled/headless 边界。
 fn capability_status_supported_predicate_only_accepts_supported_values() {
     assert!(CapabilityStatus::Supported(WindowBackend::Winit).is_supported());
     assert!(!CapabilityStatus::<WindowBackend>::FeatureDisabled {

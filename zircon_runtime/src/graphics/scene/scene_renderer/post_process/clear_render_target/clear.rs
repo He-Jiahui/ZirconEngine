@@ -1,3 +1,5 @@
+/// 为停用的效果写入确定的中性输出，防止后续合成读到上一帧残留。
+/// 调用者提供可作颜色附件的目标视图，并负责提交包含此清除的命令编码器。
 pub(in crate::graphics::scene::scene_renderer::post_process) fn clear_render_target(
     encoder: &mut wgpu::CommandEncoder,
     label: &'static str,

@@ -8,6 +8,7 @@ use super::schema::{
     ZIRCON_NATIVE_COMMAND_MANIFEST_SCHEMA_V4, ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3,
 };
 
+/// 对声明与回调存在性的摘要；Clean 不是对任意外来代码或状态快照内容的安全认证。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NativePluginBehaviorHealth {
     Clean,
@@ -15,6 +16,8 @@ pub enum NativePluginBehaviorHealth {
     Invalid,
 }
 
+/// 从入口行为声明复制的可长期保存诊断快照，不借用动态库，也不执行回调。
+/// 命令、注册与状态迁移的调用端仍须执行各自的内容检查和准入检查。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativePluginBehaviorValidationReport {
     pub abi_version: u32,
@@ -37,6 +40,8 @@ pub struct NativePluginBehaviorValidationReport {
 }
 
 impl NativePluginBehaviorValidationReport {
+    /// 针对本次传入的 Runtime 或 Editor 入口构建一份报告；模块类型决定注册 schema，
+    /// 避免编辑器贡献被当成运行时注册。
     pub(in crate::plugin::native_plugin_loader) fn from_behavior(
         plugin_id: &str,
         module_kind: PluginModuleKind,
@@ -105,6 +110,7 @@ impl NativePluginBehaviorValidationReport {
         }
     }
 
+    // 区分完全没有行为表与具体回调缺失；描述符仍可用于发现和诊断，不能据此假定命令可执行。
     fn missing_behavior(plugin_id: &str, module_kind: PluginModuleKind, abi_version: u32) -> Self {
         Self {
             abi_version,

@@ -1,3 +1,4 @@
+// 提供组件化工作台节点、选项、指针采样及像素测量夹具。
 pub(super) use std::cell::RefCell;
 pub(super) use std::path::PathBuf;
 pub(super) use std::rc::Rc;

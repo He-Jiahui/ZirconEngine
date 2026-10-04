@@ -1,3 +1,4 @@
+//! pane控件事件的路由域身份，与载荷种类分离；注册表按此决定可接收的交互。
 use serde::{Deserialize, Serialize};
 use std::fmt;
 

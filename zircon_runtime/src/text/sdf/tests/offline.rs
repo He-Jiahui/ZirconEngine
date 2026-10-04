@@ -1,3 +1,5 @@
+//! 用可控产物验证离线编解码的字节稳定性、字形顺序、身份失效、路径版本与坏区块拒绝。
+
 use std::path::Path;
 
 use crate::core::math::UVec2;

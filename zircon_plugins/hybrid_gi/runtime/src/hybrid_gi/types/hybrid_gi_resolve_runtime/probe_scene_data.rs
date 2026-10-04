@@ -1,4 +1,5 @@
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 探针场景数据的整数编码；位置使用带偏移的有符号坐标，半径使用正值尺度。
 pub struct HybridGiResolveProbeSceneData {
     position_x_q: u32,
     position_y_q: u32,

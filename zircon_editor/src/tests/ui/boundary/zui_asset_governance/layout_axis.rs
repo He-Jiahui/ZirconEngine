@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 轴向拉伸和定宽区间的语义。
+
 use std::collections::BTreeMap;
 
 use toml::Value;

@@ -1,3 +1,5 @@
+//! 一次解析节点归属、几何、进度、刻度和样式；NotSlider/Consumed/Ready 区分继续回退与已接管的空输出。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::style_selector::WorkbenchSliderStyle;
 use super::super::super::template_slider_geometry::{
@@ -6,12 +8,14 @@ use super::super::super::template_slider_geometry::{
 };
 use super::super::identity::{is_workbench_slider, slider_style};
 
+/// NotSlider 允许后续绘制器继续尝试；Consumed 表示归属成立但不适合绘制；Ready 保存整帧的布局与样式。
 pub(super) enum SliderCommandContext {
     NotSlider,
     Consumed,
     Ready(SliderCommandParts),
 }
 
+/// 单次入口解析后供标签、轨道、滑块和浮层共享，避免同次绘制从节点反复推断归属。
 pub(super) struct SliderCommandParts {
     pub(super) rect: FrameRect,
     pub(super) value_rect: Option<FrameRect>,

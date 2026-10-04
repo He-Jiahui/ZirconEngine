@@ -71,6 +71,7 @@ pub enum RenderTextureExtentRounding {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum RenderResourceFallback {
     #[default]
+    // 当前唯一策略是拒绝；显式字段让后续资源目录扩展不会悄悄改变失败语义。
     Reject,
 }
 

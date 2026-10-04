@@ -1,3 +1,4 @@
+//! 由主循环在条数和时间预算内把工作事件转入编辑器消息总线；消费者背压时恢复日志队首，生命周期缺口要求消费者从权威状态重新同步。
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 

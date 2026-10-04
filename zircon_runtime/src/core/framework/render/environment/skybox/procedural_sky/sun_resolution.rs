@@ -7,6 +7,8 @@ use super::{
 };
 
 impl ProceduralSkyParams {
+    /// 将可编辑太阳参数收敛成渲染与烘焙共用的有效输入，确保缓存键和实际采样一致。
+    /// 非有限强度或退化方向视为关闭太阳，角半径在进入两条路径前统一限幅。
     pub(crate) fn resolved_sun(&self) -> ResolvedProceduralSun {
         let intensity = if self.sun_intensity.is_finite() {
             self.sun_intensity.max(0.0)

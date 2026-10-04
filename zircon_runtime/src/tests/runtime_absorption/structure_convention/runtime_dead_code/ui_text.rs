@@ -1,6 +1,7 @@
 use super::super::assert_contains_all;
 use super::{dead_code_suppression_lines, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0137] 文本编辑状态在输入路由中的消费的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_ui_text_edit_state_dead_code_suppression_cleanup() {
     let ui_text_mod = read_runtime_src("ui/text/mod.rs");

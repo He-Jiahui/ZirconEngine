@@ -5,6 +5,7 @@ use crate::asset::{
     VirtualGeometryAsset,
 };
 
+// 模型子网格与引用按库工件顺序格式保存；项目加载路径会把它恢复为 ModelAsset。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) struct ArtifactCacheModelAsset {
     uri: AssetUri,

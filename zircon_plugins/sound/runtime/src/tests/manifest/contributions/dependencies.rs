@@ -1,3 +1,4 @@
+// 静态依赖声明必须与 package_manifest 的运行时依赖一致，避免导出规划和运行时装载看到不同要求。
 use super::super::support::{static_sound_contributions, STATIC_SOUND_PLUGIN_MANIFEST};
 
 #[test]

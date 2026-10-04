@@ -1,3 +1,4 @@
+/// 图集查询键从原始资源键提取条目名；调用方随后按该键解析当前图集代际。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn entry_name_for_source_key(
     source_key: &str,
 ) -> Option<&str> {

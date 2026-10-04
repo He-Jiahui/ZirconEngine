@@ -1,3 +1,5 @@
+//! 从 derive 与函数、类型属性中筛选模块宏可识别的直接条目，并把 zircon_script 元数据委托给参数解析器。
+
 use syn::{Attribute, Ident, Path};
 
 use crate::args::{parse_lit_bool, parse_lit_str, FieldArgs, ScriptTypeArgs};

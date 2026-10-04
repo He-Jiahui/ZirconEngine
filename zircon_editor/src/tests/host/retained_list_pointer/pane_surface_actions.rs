@@ -1,3 +1,4 @@
+// 读取窗格表面动作源码，约束控件回调走通用 Rust 宿主入口。
 fn source(relative: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))

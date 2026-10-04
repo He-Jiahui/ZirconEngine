@@ -1,3 +1,6 @@
+//! 把可靠数据报算法 manager 作为根 net 模块的懒加载依赖注册，并声明 server/client 目标。
+//! 当前 factory 只创建内存状态，不取根 NetManager socket；包依赖是装配约束，非数据通路。
+
 use std::sync::Arc;
 
 use zircon_runtime::core::runtime::ServiceObject;

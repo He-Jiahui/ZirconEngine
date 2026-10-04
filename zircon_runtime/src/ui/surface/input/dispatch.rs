@@ -25,6 +25,8 @@ use super::{
 };
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher, UiTextDocumentSession};
 
+/// UI 输入的 surface 入口：按事件类型交给专属 owner，最后汇合焦点/IME 后续效应、
+/// 安全文本遮蔽及诊断预算。返回结果仍交由宿主消费其中的异步请求。
 pub(crate) fn dispatch_input_event(
     surface: &mut UiSurface,
     pointer_dispatcher: &UiPointerDispatcher,

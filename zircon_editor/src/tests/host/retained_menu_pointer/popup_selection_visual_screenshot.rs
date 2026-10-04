@@ -1,3 +1,4 @@
+// 核对弹出菜单及下拉候选的选项、快捷键和交互状态的原生绘制。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

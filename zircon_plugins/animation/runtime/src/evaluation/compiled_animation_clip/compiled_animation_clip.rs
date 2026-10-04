@@ -1,3 +1,4 @@
+//! 持有已解析目标槽的剪辑对象；采样器不得将它与不同骨架目标表配对。
 use std::sync::Arc;
 
 use super::super::{CompiledClipTrack, SkeletonTargetTable};

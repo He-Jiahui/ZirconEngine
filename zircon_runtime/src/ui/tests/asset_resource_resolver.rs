@@ -1,3 +1,4 @@
+//! 验证资源解析器区分缺失、占位和 URI 映射，缓存失效仅移除受影响引用。
 use crate::core::resource::{
     ResourceId, ResourceKind, ResourceLocator, ResourceManager, ResourceScheme,
 };

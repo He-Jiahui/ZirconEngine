@@ -3,6 +3,7 @@ use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewKind, WorkbenchSlot};
 
+/// 保持预览样本具备UI资产文档入口；真实视图注册与打开规则仍归宿主。
 pub(super) fn ensure_ui_asset_descriptor(descriptors: &mut Vec<ViewDescriptor>) {
     if descriptors
         .iter()

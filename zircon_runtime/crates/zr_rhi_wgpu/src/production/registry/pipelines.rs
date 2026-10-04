@@ -1,3 +1,4 @@
+//! 着色器和管线建立在已登记的本代依赖上，后续提交可追踪传递使用关系。
 use zr_rhi::{
     BindGroupLayoutHandle, PipelineDesc, PipelineHandle, PipelineKind, PipelineLayoutDesc,
     PipelineLayoutHandle, RhiError, ShaderModuleDesc, ShaderModuleHandle,

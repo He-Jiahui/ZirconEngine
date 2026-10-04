@@ -18,6 +18,8 @@ use super::upscale_params_buffer::upscale_params_buffer;
 use super::velocity_camera_params_buffer::velocity_camera_params_buffer;
 use crate::graphics::scene::scene_renderer::post_process::resources::post_process_pass_parameter_buffers::PostProcessPassParameterBuffers;
 
+/// 为完整场景效果一次性创建参数缓冲和固定容量数据缓冲。
+/// 调用者负责在录制使用这些缓冲的 pass 前提交本帧上传；默认曝光缓冲提供缺省绑定。
 pub(in super::super) fn create_buffer_bundle(device: &wgpu::Device) -> BufferBundle {
     BufferBundle {
         post_process_pass_parameter_buffers: PostProcessPassParameterBuffers::new(device),

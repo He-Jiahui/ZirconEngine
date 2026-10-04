@@ -1,3 +1,4 @@
+//! 图形资源和渲染后端的死代码清理守卫入口；子模块将生产源码与迁移记录对照。
 mod backend_owners;
 mod gpu_resource_owners;
 mod module_layout;

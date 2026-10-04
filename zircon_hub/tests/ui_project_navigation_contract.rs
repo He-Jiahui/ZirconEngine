@@ -1,4 +1,5 @@
 //! Static contracts for React + Material UI Projects subpage navigation.
+//! 约束项目页面的子路由动作从 React 回调进入 Tauri 会话状态。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 总览动作在项目子路由、选择和新建弹窗之间保持目标一致。
 #[test]
 fn dashboard_routes_project_subpages_and_primary_project_commands() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
@@ -81,6 +84,8 @@ fn dashboard_routes_project_subpages_and_primary_project_commands() {
     );
 }
 
+// 浏览器筛选不能吞掉返回总览、打开详情或新建的动作入口。
+// BUG: [CR-HUBTESTB-0005] 项目浏览器搜索已延迟提交且表格菜单标签可变，旧调用形态断言必失败；证据：browser_page_keeps_dashboard_new_project_filter_and_detail_navigation 读取 ProjectBrowserPage.tsx。
 #[test]
 fn browser_page_keeps_dashboard_new_project_filter_and_detail_navigation() {
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
@@ -108,6 +113,7 @@ fn browser_page_keeps_dashboard_new_project_filter_and_detail_navigation() {
     );
 }
 
+// 表格行选择与图标详情动作必须保持不同结果。
 #[test]
 fn project_table_separates_row_selection_from_detail_icon_navigation() {
     let table = read_crate_file("web/src/components/data/ProjectTable.tsx");
@@ -134,6 +140,7 @@ fn project_table_separates_row_selection_from_detail_icon_navigation() {
     );
 }
 
+// 卡片角落动作应打开明确的项目详情目标。
 #[test]
 fn project_cards_route_corner_action_to_detail_instead_of_empty_menu() {
     let card = read_crate_file("web/src/components/data/ProjectCard.tsx");
@@ -173,6 +180,7 @@ fn project_cards_route_corner_action_to_detail_instead_of_empty_menu() {
     );
 }
 
+// 详情页返回浏览器时保留项目作用域动作目标。
 #[test]
 fn detail_page_routes_back_to_browser_and_project_scoped_actions() {
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
@@ -210,6 +218,7 @@ fn detail_page_routes_back_to_browser_and_project_scoped_actions() {
     );
 }
 
+// 前端动作 ID 经 Tauri 解释后应更新同一持久化子页面状态。
 #[test]
 fn tauri_runtime_preserves_project_navigation_state_transitions() {
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
@@ -265,6 +274,7 @@ fn tauri_runtime_preserves_project_navigation_state_transitions() {
     );
 }
 
+// 文档保留项目子路由状态的跨层说明和测试入口。
 #[test]
 fn project_navigation_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -301,6 +311,7 @@ fn project_navigation_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检路由测试仅依赖现行项目页面与运行时。
 #[test]
 fn project_navigation_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_project_navigation_contract.rs");

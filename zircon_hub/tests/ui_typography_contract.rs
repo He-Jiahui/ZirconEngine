@@ -1,4 +1,5 @@
 //! Static contracts for the Hub React/MUI typography system.
+//! 约束主题字体比例经共享组件和页面标题逐层使用。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 主题字阶与全局字体继承是组件排版的公共起点。
 #[test]
 fn mui_theme_and_global_css_define_shared_typography_scale() {
     let theme = read_crate_file("web/src/theme/muiTheme.ts");
@@ -104,6 +107,8 @@ fn mui_theme_and_global_css_define_shared_typography_scale() {
     );
 }
 
+// 数据组件按标题、正文和说明语义共享排版规则。
+// BUG: [CR-HUBTESTB-0014] 面板标题和列表结构已加入语义节点，旧的精确排版片段断言必失败；证据：data_components_use_mui_typography_variants_and_truncation 读取 HubPanel.tsx。
 #[test]
 fn data_components_use_mui_typography_variants_and_truncation() {
     let hub_panel = read_crate_file("web/src/components/data/HubPanel.tsx");
@@ -226,6 +231,7 @@ fn data_components_use_mui_typography_variants_and_truncation() {
     }
 }
 
+// 输入与弹层文案应继续沿用正文和辅助文本字阶。
 #[test]
 fn input_and_overlay_components_use_body_caption_label_typography() {
     let checkbox = read_crate_file("web/src/components/inputs/HubCheckbox.tsx");
@@ -296,6 +302,7 @@ fn input_and_overlay_components_use_body_caption_label_typography() {
     }
 }
 
+// 顶栏与侧栏同时呈现品牌、状态和导航层级。
 #[test]
 fn shell_components_use_reference_title_status_and_navigation_typography() {
     let top_bar = read_crate_file("web/src/components/shell/TopBar.tsx");
@@ -334,6 +341,7 @@ fn shell_components_use_reference_title_status_and_navigation_typography() {
     }
 }
 
+// 路由页通过共享标题和内容组件保持文字层级一致。
 #[test]
 fn routed_pages_use_page_title_subtitle_typography_and_shared_components() {
     let pages = [
@@ -407,6 +415,7 @@ fn routed_pages_use_page_title_subtitle_typography_and_shared_components() {
     );
 }
 
+// 文档记录字体体系的入口、组件消费面及聚焦验证。
 #[test]
 fn typography_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -442,6 +451,7 @@ fn typography_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检字体契约仍追踪现行主题和页面。
 #[test]
 fn typography_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_typography_contract.rs");

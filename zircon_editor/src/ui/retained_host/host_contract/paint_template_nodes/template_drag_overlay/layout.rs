@@ -1,3 +1,5 @@
+//! 拖拽反馈的几何边界：预览与落点指示器共用密度指标，但位置来自两组独立投影数据。
+
 mod indicator;
 mod metrics;
 mod preview;

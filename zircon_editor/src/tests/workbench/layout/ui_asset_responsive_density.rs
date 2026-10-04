@@ -1,9 +1,11 @@
+//! UI资产编辑器的列、标题和工具尺寸来源于共享density级联。
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
 const UI_ASSET_EDITOR_ASSET: &str =
     include_str!("../../../../assets/ui/editor/ui_asset_editor.zui");
 
 #[test]
+/// 验证消费token存在定义并淘汰旧局部尺寸；宽度响应计算另由布局运行时完成。
 fn ui_asset_editor_uses_shared_density_constraints_for_chrome_columns() {
     for token in [
         "$editor.density.ui_asset.side.min_width",

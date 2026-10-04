@@ -2,6 +2,9 @@ use std::any::Any;
 
 use super::ScriptHostArguments;
 
+/// host export 回调的一次性调用上下文，包含已校验调用的能力和借用参数。
+///
+/// runtime_context 与参数只在同步回调期间有效，不得跨线程或保存到回调之后。
 pub struct ScriptHostCallFrame<'call> {
     pub module_name: &'call str,
     pub function_name: &'call str,

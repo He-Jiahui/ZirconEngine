@@ -1,3 +1,5 @@
+//! 将当前宿主度量投影为分段容器边宽与选中下划线默认高度；节点显式尺寸由 segments 另行判定。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, HostControlMetrics,
 };

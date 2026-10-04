@@ -1,3 +1,4 @@
+//! 核对异步网关句柄的会话身份、操作轮询和资源释放；跨线程提交与结果收割须保持同一请求所有权。
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Barrier};
 use std::time::{Duration, Instant};

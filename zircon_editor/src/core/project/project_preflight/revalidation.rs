@@ -1,3 +1,4 @@
+//! 向启动边界说明旧预检证据能否继续使用，或必须以新证据替换；调用端不能把先前路径或清单摘要当作永久授权。
 use zircon_runtime_interface::project::ProjectManifestDigest;
 
 use super::ProjectPreflightReceipt;

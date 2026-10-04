@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// Logical task class used by the shared TaskGraph and by standalone low-level
-/// pool descriptors. It does not select a TaskGraph worker set.
+/// Execution domain selected by the shared TaskGraph and standalone pool descriptors.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TaskPoolKind {
     #[default]

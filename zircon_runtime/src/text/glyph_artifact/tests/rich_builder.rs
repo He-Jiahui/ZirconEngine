@@ -1,3 +1,4 @@
+//! 富文本虚拟字形的归属契约：样式、源区间和视觉 run 的收据必须来自同一布局来源。
 use super::*;
 use crate::core::framework::text::{TextGlyphFlags, TextGlyphRotation};
 use zircon_runtime_interface::ui::layout::UiFrame;

@@ -1,3 +1,6 @@
+//! 空闲读回槽的容量策略：扩容满足负载，持续低利用率后才缩容，避免诊断负载抖动反复分配。
+//! 只在槽可安全重建时调用；缩容延迟按全局经过帧数计，不能只数该槽被轮转到的次数。
+
 pub(super) const READBACK_FRAME_SLOTS: usize = 3;
 pub(super) const READBACK_OFFSET_ALIGNMENT: u64 = 256;
 pub(super) const MIN_STAGING_CAPACITY: u64 = 256 * 1024;

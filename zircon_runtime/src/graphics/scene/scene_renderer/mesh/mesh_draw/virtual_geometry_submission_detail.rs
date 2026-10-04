@@ -1,5 +1,7 @@
 use crate::core::framework::render::RenderVirtualGeometryExecutionState;
 
+/// 在 MeshDraw 到帧报告投影间保留虚拟几何间接提交的选择与溯源记录。
+/// entity/page 和 draw-ref 序号分别用于执行选择、去重与提交令牌。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct VirtualGeometrySubmissionDetail {
     instance_index: Option<u32>,

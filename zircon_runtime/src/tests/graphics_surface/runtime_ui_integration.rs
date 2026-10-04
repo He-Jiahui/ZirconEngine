@@ -1,3 +1,4 @@
+//! 共享界面夹具构造帧后交给真实渲染框架；命令统计验证提交链，帧捕获与区域采样进一步验证暂停菜单的像素贡献。
 #[cfg(feature = "runtime-ui-integration-tests")]
 #[test]
 fn render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels() {

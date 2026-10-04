@@ -1,3 +1,6 @@
+//! 主机注册表与预算的释放契约：删除资源不等于删除引用它的描述符，使用失效引用时必须报错。
+//! 大量 churn 检查回到基线；它测的是逻辑资源登记，不是原生驱动分配回收速度。
+
 use crate::DeterministicRhiContractDevice;
 use zr_rhi::{
     BindGroupDesc, BindGroupEntryDesc, BindGroupEntryResource, BindGroupLayoutDesc,

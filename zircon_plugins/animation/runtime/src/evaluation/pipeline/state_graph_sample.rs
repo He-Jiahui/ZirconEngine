@@ -1,3 +1,4 @@
+//! 状态机叶状态可引用剪辑或图；事件范围与姿态共享当前已编译图求值和参数投影。
 use zircon_runtime::asset::ProjectAssetManager;
 use zircon_runtime::core::framework::animation::{AnimationPoseOutput, AnimationPoseSource};
 use zircon_runtime::core::math::Real;

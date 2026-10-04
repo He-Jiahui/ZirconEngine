@@ -1,3 +1,4 @@
+//! 报告通知身份、重复任务绑定和容量失败，使进度生产者能够区分替换规则与拒绝准入；任务真实状态仍由任务系统拥有。
 use std::fmt::{Display, Formatter};
 
 use crate::core::jobs::JobId;

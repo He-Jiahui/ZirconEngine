@@ -1,3 +1,4 @@
+// 首次执行消耗已排队事件并返回三项报告，重复执行应为空，避免同一调用再次触发处理器。
 use super::super::super::*;
 
 use super::support::report_fixture;

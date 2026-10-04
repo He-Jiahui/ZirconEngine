@@ -1,3 +1,5 @@
+//! shader 导入依赖先由作者文件解析，再投影为渲染依赖描述；资源流据此跟踪编译输入及失效关系。
+
 use serde::{Deserialize, Serialize};
 
 use crate::core::framework::render::RenderShaderDependency;

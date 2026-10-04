@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{EditorRegion, EditorRegionRole};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 绑定失败的结构化诊断；资产解析层保留位置与预期/实际职责，便于指向作者配置。
 pub struct RegionBindingError {
     region: EditorRegion,
     expected_role: EditorRegionRole,

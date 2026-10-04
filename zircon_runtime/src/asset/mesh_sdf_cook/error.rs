@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::asset::MeshSdfValidationError;
 
+/// 区分可降级的容量上限与应终止导入的几何、设置或成品校验错误。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MeshSdfCookError {
     EmptyGeometry,
@@ -67,6 +68,7 @@ impl fmt::Display for MeshSdfCookError {
 impl std::error::Error for MeshSdfCookError {}
 
 impl MeshSdfCookError {
+    /// 仅容量限制允许导入器保留基础网格并省略 SDF；输入损坏和校验失败必须继续上报。
     pub fn is_budget_exceeded(&self) -> bool {
         matches!(
             self,

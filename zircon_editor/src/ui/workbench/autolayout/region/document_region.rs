@@ -12,6 +12,7 @@ use super::super::constraints::{
 use super::super::region_state::RegionState;
 use super::super::{LogicalRegionPreferredExtents, PaneConstraints, ShellRegionId};
 
+/// 将当前文档、descriptor与活动窗口持久化差量投影为logical约束；空文档仍保留中心壳区域。
 pub(crate) fn build_document_region_state(
     model: &WorkbenchViewModel,
     layout: &WorkbenchLayout,

@@ -1,3 +1,4 @@
+//! 从 UI binding 到 EditorHostEventController 的运行时事件测试，共用真实宿主 harness。
 use crate::ui::binding::{
     AnimationCommand, DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
 };

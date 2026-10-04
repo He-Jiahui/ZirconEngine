@@ -7,6 +7,7 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_command_conversion::image::push_image_resource_command;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 
+/// 上游把带图像的 Runtime 命令拆成背景、图像、文字和边框元素；此处只投影当前笔刷元素，保留裁剪、层级与透明度。
 pub(super) fn push_brush_paint_commands(
     output: &mut Vec<HostPaintCommand>,
     command: &UiRenderCommand,

@@ -44,6 +44,7 @@ impl PostProcessSettingsComponent {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 摄像机周围可混合的后处理体积配置；提取阶段按空间关系与优先级组合，而非直接修改全局渲染设置。
 pub struct PostProcessVolumeComponent {
     pub active: bool,
     pub is_global: bool,
@@ -77,6 +78,7 @@ impl PostProcessVolumeComponent {
         }
     }
 
+    /// 创建局部体积配置；实体还须挂载盒形或球形碰撞体，帧提取才会形成对应体积。
     pub fn local(
         priority: Real,
         weight: Real,

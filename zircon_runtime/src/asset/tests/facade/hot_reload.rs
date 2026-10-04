@@ -1,3 +1,5 @@
+//! 重载状态与事件由 ResourceManager 发布，Assets facade 需把同一资源的中间态、成功和失败暴露给 typed 订阅者。
+
 use std::time::Duration;
 
 use crate::asset::{AssetEvent, AssetLoadState, Assets, Handle, TextureAsset};

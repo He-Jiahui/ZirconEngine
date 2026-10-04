@@ -69,6 +69,7 @@ impl RenderVirtualGeometryRenderPathWordStreams {
     }
 }
 
+// 可视缓冲流即使无条目也保留 clear-value 头；运行时负载判断须排除此头部。
 impl RenderVirtualGeometryVisBuffer64ReadbackStream {
     pub fn has_payload(&self) -> bool {
         self.payload_u32_word_count() != 0
@@ -126,6 +127,7 @@ impl RenderVirtualGeometryDebugSnapshotReadbackStreams {
         self.payload_u32_word_count() * U32_WORD_BYTE_COUNT
     }
 
+    /// 不依赖解码成功计算传输占用，供失败诊断仍能显示各段原始大小。
     pub fn footprint(&self) -> RenderVirtualGeometryDebugSnapshotReadbackStreamFootprint {
         let node_and_cluster_cull_u32_word_count = self.node_and_cluster_cull.u32_word_count();
         let render_path_u32_word_count = self.render_path.u32_word_count();

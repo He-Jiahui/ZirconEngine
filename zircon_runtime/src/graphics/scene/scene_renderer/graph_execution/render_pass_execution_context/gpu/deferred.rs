@@ -1,3 +1,6 @@
+//! 延迟渲染 pass 通过编译图授权的视图连接 GBuffer 生产与光照消费。
+//! 可选 AO 和体积光输入在缺席时走中性资源，SSS 的双目标则必须同时存在。
+
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 

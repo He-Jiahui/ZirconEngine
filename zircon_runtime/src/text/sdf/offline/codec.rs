@@ -1,3 +1,5 @@
+//! 定义版本化的离线 SDF 二进制边界：固定头、页记录、字形记录、连续像素段与全文件校验和；解码最后再交给 artifact 验证几何和身份。
+
 use crate::core::math::UVec2;
 use crate::text::sdf::{SdfBakeParams, SdfMode};
 
@@ -14,6 +16,7 @@ const CHECKSUM_LEN: usize = 32;
 const PAGE_RECORD_LEN: usize = 20;
 const GLYPH_RECORD_LEN: usize = 48;
 
+/// 仅序列化已经由 SdfOfflineArtifact::new 归一化并验证的产物；写入格式版本与校验和，使烘焙工具和运行时使用同一磁盘契约。
 pub(super) fn encode(artifact: &SdfOfflineArtifact) -> Result<Vec<u8>, SdfOfflineArtifactError> {
     let page_count = u32::try_from(artifact.pages().len())
         .map_err(|_| SdfOfflineArtifactError::LengthOverflow)?;
@@ -103,6 +106,7 @@ pub(super) fn encode(artifact: &SdfOfflineArtifact) -> Result<Vec<u8>, SdfOfflin
     Ok(bytes)
 }
 
+/// 先限制长度、版本、校验和及页像素连续性，再交给 artifact 的语义校验；缓存读入的字节不能直接信任为可上传页面。
 pub(super) fn decode(bytes: &[u8]) -> Result<SdfOfflineArtifact, SdfOfflineArtifactError> {
     let mut cursor = Cursor::new(bytes);
     if cursor.read_array::<8>()? != MAGIC {

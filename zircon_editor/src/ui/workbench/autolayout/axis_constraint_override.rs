@@ -4,6 +4,7 @@ use super::{AxisConstraint, StretchMode};
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
+/// 单轴持久化差量；未设置字段保留区域或descriptor基线，数值合法性在解算边界归一。
 pub struct AxisConstraintOverride {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min: Option<f32>,
@@ -20,6 +21,7 @@ pub struct AxisConstraintOverride {
 }
 
 impl AxisConstraintOverride {
+    /// 按覆盖层的优先级应用差量；调用方负责选择正确基线及区域/实例层次。
     pub fn apply_to(self, base: AxisConstraint) -> AxisConstraint {
         AxisConstraint {
             min: self.min.unwrap_or(base.min),

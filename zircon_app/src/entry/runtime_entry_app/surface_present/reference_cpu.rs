@@ -1,3 +1,6 @@
+//! 显式诊断模式的窗口 CPU presenter 懒创建边界。
+//! 非显式请求和创建失败都形成产品错误，不能隐式回退。
+
 use winit::event_loop::ActiveEventLoop;
 use zircon_runtime::diagnostic_log::write_log;
 
@@ -5,6 +8,7 @@ use super::super::RuntimeEntryApp;
 use crate::reference_cpu_presenter::ReferenceCpuPresenter;
 
 impl RuntimeEntryApp {
+    /// 只为显式降级诊断创建并保留 presenter；缺少 opt-in 属于产品错误。
     pub(in crate::entry::runtime_entry_app) fn ensure_reference_cpu_presenter(
         &mut self,
         event_loop: &dyn ActiveEventLoop,

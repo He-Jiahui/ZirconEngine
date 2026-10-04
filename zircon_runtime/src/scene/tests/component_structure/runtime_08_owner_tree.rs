@@ -1,3 +1,6 @@
+//! ECS 数据、命令、变更跟踪和存储各自维护实现树，mod.rs 只负责路由；
+//! 这里约束迁移后的所有权，避免实体存储与公共入口重新混在一起。
+
 #[test]
 fn runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

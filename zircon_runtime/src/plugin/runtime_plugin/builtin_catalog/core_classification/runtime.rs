@@ -9,6 +9,7 @@ pub(super) fn is_runtime_foundation_descriptor(package_id: &str) -> bool {
     is_runtime_service_descriptor(package_id) || is_runtime_system_descriptor(package_id)
 }
 
+// 运行时基础包按服务或系统规则分类，避免普通包的兜底状态覆盖它们。
 pub(super) fn classify_runtime_foundation_descriptor(
     package_id: &str,
     descriptor: BuiltinCatalogDescriptorBuilder,

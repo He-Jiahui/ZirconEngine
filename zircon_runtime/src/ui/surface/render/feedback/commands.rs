@@ -1,3 +1,5 @@
+//! 反馈内容层提供几何与角色颜色，本层保留原节点身份、裁剪、不透明度和共享 painter 状态。
+//! 生成命令不负责 popup 生命周期、自动关闭或可点击语义；文字布局由统一提取流程补齐。
 use std::borrow::Cow;
 
 use zircon_runtime_interface::ui::{

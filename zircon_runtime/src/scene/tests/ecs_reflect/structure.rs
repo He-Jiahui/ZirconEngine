@@ -1,3 +1,5 @@
+//! 源码结构守卫锁定中立模式目录、派生适配器和稠密字段槽的唯一所有权。
+
 #[test]
 fn type_registry_publication_uses_the_neutral_schema_catalog() {
     let source = include_str!("../../reflect/type_registry.rs");
@@ -147,6 +149,7 @@ fn reflection_json_persistence_stays_folder_backed_and_versioned() {
     );
 }
 
+// 组件自身的 ZrReflect 派生元数据与统一适配器是固定反射的维护入口；结构守卫防止旧手写分支回流。
 #[test]
 fn reflection_hard_cut_removes_the_manual_fixed_adapter_tree() {
     let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

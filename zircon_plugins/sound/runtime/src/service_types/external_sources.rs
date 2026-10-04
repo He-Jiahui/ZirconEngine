@@ -1,3 +1,4 @@
+//! 外部音源按句柄保存最新的完整块，提交会替换旧块；当前 Kira 播放入口仍拒绝外部输入，保存成功不表示已进入设备输出。
 use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundError, SoundExternalSourceBlock,
 };

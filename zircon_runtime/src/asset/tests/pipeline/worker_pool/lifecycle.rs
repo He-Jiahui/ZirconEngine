@@ -1,3 +1,5 @@
+//! 请求与完成结果各有时限；取消、过期和销毁必须及时唤醒 ticket，不能依赖被占用的 IO worker。
+
 use super::*;
 
 #[test]
@@ -102,6 +104,7 @@ fn completion_age_expiry_is_observable_and_removes_unharvested_payload() {
     ));
 }
 
+// 完成后 ticket 转为结果保留期，先前的请求截止时间不得再使已完成结果过期。
 #[test]
 fn completion_deadline_replaces_the_pending_request_deadline() {
     let pool = AssetWorkerPool::new(
@@ -218,6 +221,7 @@ fn dropping_worker_pool_preserves_cancelled_ticket_after_armed_deadline() {
     release.send(()).unwrap();
 }
 
+// 若最后一个 pool 所有者在唯一 IO worker 上析构，同步等待队列会形成自锁；ticket 应先被取消。
 #[test]
 fn dropping_worker_pool_on_its_io_worker_cancels_its_queued_ticket() {
     let io_pool = single_worker_io_pool();

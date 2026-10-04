@@ -5,6 +5,7 @@ use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 
 use super::super::super::resolved_style_color;
 
+// 表面绘制优先采用显式节点样式，再按 outlined、filled、standard 语义选背景和边框。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_background_color(
     node: &TemplatePaneNodeData,
 ) -> Option<[u8; 4]> {

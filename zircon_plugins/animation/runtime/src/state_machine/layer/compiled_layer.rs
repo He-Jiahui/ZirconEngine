@@ -1,3 +1,4 @@
+//! 已编译层的名称、子机引用、权重、掩码与混合模式；帧管线按顺序采样。
 use zircon_runtime::asset::AssetReference;
 use zircon_runtime::core::math::Real;
 

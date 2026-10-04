@@ -1,3 +1,5 @@
+//! 显式有效半径先于宿主度量；面板可使用更大的节点半径，其他上下文回到宿主控件半径。
+
 use super::super::model::WorkbenchIconButtonContext;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{

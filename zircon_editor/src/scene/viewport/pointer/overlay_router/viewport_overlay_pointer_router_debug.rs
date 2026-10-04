@@ -1,3 +1,5 @@
+//! 调试查询通过相同静态候选和渲染空间来源重新解析，不伪造输入事件，也不复用其他光标位置的旧报告。
+
 use zircon_runtime::core::framework::picking::PickingDebugFeed;
 use zircon_runtime_interface::ui::layout::UiPoint;
 

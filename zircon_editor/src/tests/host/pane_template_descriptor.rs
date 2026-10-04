@@ -1,3 +1,4 @@
+// 经宿主模块注册读取窗格描述符，约束模板文档、交互模式与载荷路由元数据。
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,

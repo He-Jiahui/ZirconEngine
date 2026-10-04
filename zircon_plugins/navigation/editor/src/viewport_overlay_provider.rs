@@ -16,6 +16,7 @@ pub(crate) struct NavigationViewportOverlayProvider {
     mirror: Arc<Mutex<NavigationPieMirror>>,
 }
 
+// 视口只提取 PIE 镜像的已接受帧；没有当前会话数据时不发布旧导航叠加层。
 impl NavigationViewportOverlayProvider {
     pub(crate) fn new(mirror: Arc<Mutex<NavigationPieMirror>>) -> Self {
         Self { mirror }

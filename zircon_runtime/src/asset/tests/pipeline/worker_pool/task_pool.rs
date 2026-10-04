@@ -1,3 +1,5 @@
+//! AssetWorkerPool 借用 Runtime IO TaskPool 的执行所有权；管理器注入和默认共享路径必须报告同一预算来源。
+
 use super::*;
 
 #[test]

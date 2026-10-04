@@ -1,3 +1,4 @@
+//! 框架编译器先校验动画图语义，运行时再把图节点、参数和掩码绑定到特定骨架的稠密索引。
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::animation::compiler::{
@@ -14,6 +15,7 @@ use super::types::{
 };
 
 /// Compiles source semantics once in the framework and lowers the accepted IR for evaluation.
+/// 使用框架语义校验后的图和目标骨架创建运行布局；目标掩码不能跨骨架复用。
 pub fn compile_animation_graph_runtime(
     source: &AnimationGraphAsset,
     targets: Arc<SkeletonTargetTable>,

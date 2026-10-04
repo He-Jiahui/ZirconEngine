@@ -10,6 +10,7 @@ const DEFAULT_REQUEST_MAX_AGE: Duration = Duration::from_secs(30);
 const DEFAULT_COMPLETION_MAX_AGE: Duration = Duration::from_secs(60);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// IO 任务、未完成请求的观察者及结果缓存分别受预算约束；相同请求可合并为一次解码。
 pub struct AssetWorkerPoolOptions {
     /// `None` selects the same bounded admission limit as the default options.
     pub queue_depth: Option<usize>,

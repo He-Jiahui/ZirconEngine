@@ -3,6 +3,7 @@ use super::super::{
     SoundMixerSnapshot, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
 };
 
+/// 混音拓扑的配置入口；完整图与局部轨道变更由插件验证后发布到活动音频后端。
 pub trait SoundMixerGraphManager {
     fn available_mixer_presets(&self) -> Result<Vec<SoundMixerPresetDescriptor>, SoundError>;
     fn apply_mixer_preset(&self, locator: &str) -> Result<(), SoundError>;

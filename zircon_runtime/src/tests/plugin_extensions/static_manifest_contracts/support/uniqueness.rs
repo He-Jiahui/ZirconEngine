@@ -1,3 +1,4 @@
+//! 调用者决定唯一性表的生命周期与范围；重复身份或依赖键保留首次来源，便于跨清单定位冲突。
 use std::collections::BTreeMap;
 use std::path::Path;
 

@@ -1,3 +1,5 @@
+//! 多种焦点作用域夹具用于检查自动焦点、模态陷阱及恢复策略；属性变更与导航共享表面状态。
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,

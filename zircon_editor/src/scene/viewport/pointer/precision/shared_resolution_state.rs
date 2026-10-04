@@ -1,3 +1,5 @@
+//! 表面分发器与路由器共享当前候选和结果；隔离回调导致锁中毒后继续恢复状态，事件入口仍先清旧结果。
+
 use std::collections::BTreeMap;
 use std::sync::{Mutex, MutexGuard};
 

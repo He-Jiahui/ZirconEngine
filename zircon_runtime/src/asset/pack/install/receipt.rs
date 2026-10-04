@@ -7,6 +7,7 @@ use crate::asset::pack::ZrPackDocumentManifest;
 
 pub const ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION: u32 = 2;
 
+/// 安装审计凭据：同时记录 staged、已发布文件及备份位置，供后续核对发布结果。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ZrPackInstallReceipt {
     pub format_version: u32,

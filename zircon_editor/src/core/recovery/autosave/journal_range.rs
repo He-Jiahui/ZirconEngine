@@ -1,3 +1,5 @@
+//! 声明快照与耐久日志覆盖范围的关系；当前捕获仅记录Unavailable，恢复不能据此认定任何日志前缀已被快照覆盖。
+
 use serde::{Deserialize, Serialize};
 
 /// The durable transaction span represented by an autosave snapshot.

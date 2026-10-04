@@ -1,3 +1,4 @@
+// 用模块文件清单约束界面资源会话职责分布，避免宿主编排逻辑重新集中到单文件。
 #[test]
 fn editor_manager_ui_asset_sessions_are_split_by_host_orchestration_behaviors() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

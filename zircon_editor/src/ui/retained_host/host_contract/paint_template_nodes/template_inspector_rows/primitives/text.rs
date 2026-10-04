@@ -1,3 +1,6 @@
+//! Inspector 子列文字通过宿主单行排版命令绘制；空文字或不可绘子框不追加命令。
+//! 调用者应传入自己分配的子框及祖先裁剪，避免字段和标签竞争同一列。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_theme::current_host_metrics;
 use super::super::super::render_commands::HostPaintCommand;

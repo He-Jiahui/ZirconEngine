@@ -1,3 +1,4 @@
+//! 中立命令按执行域下沉到独立编码器，共享状态与验证边界仍归设备提交链。
 //! Native command encoding split by execution domain.
 
 mod compute;

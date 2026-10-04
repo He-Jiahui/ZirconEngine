@@ -1,3 +1,4 @@
+// 提供滚动弹层、关闭提示和嵌套菜单等窗口外观截图入口。
 use super::*;
 
 const SCROLLED_WINDOW_POPUP_SCREENSHOT: &str =

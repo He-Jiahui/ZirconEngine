@@ -1,3 +1,4 @@
+//! 依赖政策回归同时核对清单的包身份与文档决策；缓存的是本进程首次读取的产品清单快照，源码和文档字符串检查不替代后端运行验证。
 fn runtime_root() -> &'static std::path::Path {
     std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
 }

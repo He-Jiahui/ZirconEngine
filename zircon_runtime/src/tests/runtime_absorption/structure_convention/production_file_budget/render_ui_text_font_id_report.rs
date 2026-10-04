@@ -1,6 +1,7 @@
 use super::super::rust_source_view::production_code_view;
 use super::{assert_contains_all, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0089] 界面文本的字体身份诊断与句柄投影的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/text.rs");

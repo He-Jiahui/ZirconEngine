@@ -1,3 +1,4 @@
+//! 核对欢迎页、项目初始选区、多选编辑和删除后的存活选区投影，避免过期编辑器选区污染当前世界快照。
 use crate::core::editing::intent::EditorIntent;
 use crate::scene::selection::WorldDomain;
 use crate::ui::workbench::startup::EditorSessionMode;

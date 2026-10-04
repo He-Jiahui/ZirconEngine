@@ -61,6 +61,7 @@ fn decode_cluster_selection_input_source(
     }
 }
 
+/// 与剔除全局状态共享固定 GPU 字布局，保留预算、驻留和调试输入供读回诊断。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderVirtualGeometryCullInputSnapshot {
     pub cluster_budget: u32,
@@ -108,6 +109,7 @@ impl RenderVirtualGeometryCullInputSnapshot {
         ]
     }
 
+    /// 仅要求至少一个完整记录；处理流数组时须先按 GPU_WORD_COUNT 切片。
     pub fn from_packed_words(words: &[u32]) -> Option<Self> {
         if words.len() < Self::GPU_WORD_COUNT {
             return None;

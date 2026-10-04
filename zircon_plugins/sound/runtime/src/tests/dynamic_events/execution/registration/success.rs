@@ -1,3 +1,4 @@
+// 事件和处理器注册完成后应可绑定执行器；本用例只核对注册成功。
 use super::super::super::*;
 
 use super::support::{register_dynamic_event_handler, HANDLER_ID, PLUGIN_ID};

@@ -1,3 +1,6 @@
+//! 将 TCP 连接状态变更转换成类型化 NetEvent，并抑制重复状态事件。
+//! worker 连接、接受、轮询与关闭消费状态机；它不拥有 socket 或自动重连。
+
 use zircon_runtime::core::framework::net::{
     NetConnectionId, NetConnectionState, NetEvent, NetTransportKind,
 };

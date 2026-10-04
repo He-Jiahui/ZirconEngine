@@ -1,3 +1,4 @@
+// 核对宿主源码不依赖已删除保留树，且原生事件循环与模板权威边界保持成立。
 use std::fs;
 use std::path::{Path, PathBuf};
 

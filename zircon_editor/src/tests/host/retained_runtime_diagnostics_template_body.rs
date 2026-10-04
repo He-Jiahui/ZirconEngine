@@ -1,3 +1,4 @@
+// 核对运行时诊断模板先呈现状态内容再呈现调试反射节点。
 use std::collections::BTreeMap;
 
 use zircon_runtime_interface::math::UVec2;

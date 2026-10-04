@@ -1,3 +1,4 @@
+//! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 pub(in super::super) const EXPECTED_RUNTIME_10_FUNCTION_TABLES: &[(&str, &str, usize)] = &[
     (
         "zircon_runtime_interface/src/runtime_api/api_table.rs",

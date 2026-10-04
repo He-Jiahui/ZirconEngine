@@ -1,3 +1,4 @@
+// 固定清单模块列表仅在 modules 顶层表内读取；后续过滤 runtime 类型再与运行时包清单比较。
 mod line;
 mod state;
 

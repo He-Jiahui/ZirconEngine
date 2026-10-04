@@ -174,6 +174,7 @@ fn mode_matches(effective: &WindowEffectiveMode, observed: WindowObservedMode) -
     }
 }
 
+// TODO: [CR-FRAMEWORK-WINDOW-0003] 确认最小化是否应视为隐藏并触发 ReapplyEffective；当前比较把 Minimized 映射为 false，缺少重应用策略下的最小化用例。
 const fn observed_is_visible(visibility: WindowVisibilityState) -> bool {
     matches!(visibility, WindowVisibilityState::Visible)
 }

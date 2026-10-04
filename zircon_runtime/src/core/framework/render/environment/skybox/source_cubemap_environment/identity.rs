@@ -4,6 +4,7 @@ use super::super::super::{
 use super::{SourceCubemapEnvironment, SourceCubemapUploadKey};
 
 impl SourceCubemapEnvironment {
+    /// 标识 GPU 纹理内容而非烘焙来源；只有源图、PMREM 或 IEM 内容变化才需要重传。
     pub fn texture_upload_key(&self) -> SourceCubemapUploadKey {
         SourceCubemapUploadKey {
             source_revision: self.source_revision,

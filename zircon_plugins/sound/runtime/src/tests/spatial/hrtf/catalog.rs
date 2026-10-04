@@ -1,3 +1,4 @@
+// 经公共声管理器加载、排序列出并移除 HRTF 描述符，核对目录身份及剩余集合；不执行空间混音。
 use super::super::super::*;
 use super::super::support::test_hrtf_profile;
 

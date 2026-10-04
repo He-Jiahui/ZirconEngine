@@ -1,3 +1,5 @@
+//! chip 背景可完全透明，文字仍由状态样式选择器决定；视觉偏移来自模板属性并与信号项分开。
+
 mod text;
 
 use self::text::push_status_chip_text;
@@ -20,6 +22,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
 ) {
     let parent_rect = rect;
     let control_rect = status_control_offset_rect(node, parent_rect);
+    // BUG: [CR-EDITOR-PAINT-CONTROLSTYLE-0003] 状态栏右侧继承非零视觉偏移时，等尺寸的 control_rect 无法仍在 parent_rect 内；
+    // 本分支会丢弃整个 chip。证据：workbench_status_bar.zui 的 status_right_offset_y=-0.5 传入 Grid/Snap/Zoom。
     if !frame_is_within(parent_rect, &control_rect) || intersect(&control_rect, clip).is_none() {
         return;
     }

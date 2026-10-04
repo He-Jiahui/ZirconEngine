@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{NetEndpoint, NetSecurityPolicy};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// WebSocket 客户端协商参数；URL、安全策略和子协议一起交给可选后端建立连接。
 pub struct NetWebSocketConnectDescriptor {
     pub url: String,
     pub headers: Vec<(String, String)>,
@@ -12,6 +13,7 @@ pub struct NetWebSocketConnectDescriptor {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 服务端握手准入约束；允许路径、必需头和子协议由监听后端在升级前验证。
 pub struct NetWebSocketListenerDescriptor {
     pub bind: NetEndpoint,
     pub allowed_paths: Vec<String>,

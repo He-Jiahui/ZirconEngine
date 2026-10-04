@@ -1,3 +1,5 @@
+//! watcher 增量更新须与完整重建等价，同时保护原有 UUID 所有权、反向边和持久化失败时的活动索引。
+
 use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::{AssetKind, AssetUuid};
@@ -57,6 +59,7 @@ fn watch_incremental_state_equals_a_fresh_full_rebuild() {
     std::fs::remove_dir_all(project).unwrap();
 }
 
+// 磁盘扫描顺序不能夺走已发布 UUID 的原持有者；新复制文件即使排序更早也应重铸身份。
 #[test]
 fn copied_asset_sorted_before_original_preserves_existing_owner_and_remints_copy() {
     let project = unique_root("incremental_duplicate_order");
@@ -284,6 +287,7 @@ fn renamed_source_releases_previous_path_and_preserves_guid() {
     std::fs::remove_dir_all(project).unwrap();
 }
 
+// 增量索引先构造候选并完成原子持久化，再替换活动视图；故障注入验证失败不会曝光半提交状态。
 #[test]
 fn persistence_failure_keeps_live_index_unchanged() {
     let project = unique_root("incremental_candidate_rollback");
@@ -321,6 +325,7 @@ fn persistence_failure_keeps_live_index_unchanged() {
     std::fs::remove_dir_all(project).unwrap();
 }
 
+// 替换 source 身份时只需重解引用该路径的边；无关条目及原活动索引应保持不变。
 #[test]
 fn targeted_source_replacement_refreshes_only_the_path_referencer_closure() {
     let project = unique_root("targeted_source_replacement");

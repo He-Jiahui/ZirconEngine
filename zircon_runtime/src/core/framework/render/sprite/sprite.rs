@@ -7,6 +7,8 @@ use crate::core::resource::{MaterialMarker, ResourceHandle, TextureMarker};
 
 use super::{RenderSpriteAnchor, RenderSpriteAtlasRegion, RenderSpriteImageMode, RenderSpriteRect};
 
+/// 场景组件抽取后的帧级绘制输入；资源句柄标识纹理/材质，队列另行决定绘制阶段和顺序。
+/// 顶点构建还会按相机层、颜色和尺寸过滤，不能把快照存在等同于最终可见。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RenderSpriteSnapshot {
     pub entity: EntityId,

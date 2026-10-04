@@ -1,3 +1,4 @@
+//! 动画运行时的剪辑、图、状态机和姿态评估导出层；帧入口通过 pipeline 消费这些构件。
 mod animation_clip_compile_error;
 mod animation_evaluation_diagnostic;
 mod clip_evaluator;

@@ -1,3 +1,4 @@
+// 核对材质反馈基础件的头像、徽章、分隔线、进度和遮罩绘制。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

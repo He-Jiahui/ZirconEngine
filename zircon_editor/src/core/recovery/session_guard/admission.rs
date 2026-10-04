@@ -1,3 +1,5 @@
+//! 把启动意图、项目根和构建集身份固化为会话准入请求；残留接管必须与同一物理项目/构建集核对。
+
 use zircon_runtime_interface::project::session_lock::ProjectSessionPrincipalV1;
 use zircon_runtime_interface::project::{ProjectActivationOperationId, ProjectLaunchIntent};
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;

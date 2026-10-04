@@ -1,3 +1,5 @@
+//! 验证 ProjectManager 扫描 UI 文件后登记资产种类并从制品恢复负载；此链路跨越导入、注册表和缓存。
+
 use super::*;
 
 #[test]

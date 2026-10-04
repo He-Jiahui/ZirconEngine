@@ -1,3 +1,5 @@
+//! SDF 烹饪设置是缓存身份的一部分；改变采样与输出约束必须使旧派生产物失效。
+
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_MESH_SDF_MAX_DIMENSION: u32 = 32;

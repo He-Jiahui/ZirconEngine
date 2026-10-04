@@ -17,12 +17,14 @@ use super::value_conversion::{
 };
 
 impl World {
+    /// 受检的按路径编辑入口，维护 World 派生状态与代数；逐帧动画请使用预编译写入器。
     pub fn set_property(
         &mut self,
         entity: EntityId,
         property_path: &ComponentPropertyPath,
         value: ScenePropertyValue,
     ) -> SceneResult<bool> {
+        // changed 仅控制此入口的检查缓存发布与代际补偿；下层 get_mut 的预标记不会随 Err 或 false 回滚。
         let generation = self.world_generation();
         let changed = self.set_property_impl(entity, property_path, value)?;
         if changed {
@@ -50,6 +52,7 @@ impl World {
         let raw_segments = property_path.property_segments();
         let mut segments = Vec::with_capacity(raw_segments.len());
         for segment in raw_segments {
+            // BUG: [CR-R02-runtime_world_property_binding-0007] 已有参数键 Speed 时写该路径会新增 speed，而读取按 BTreeMap 顺序匹配归一化键，仍返回旧 Speed 值；证据：animation 写入分支与 read.rs 参数查找。
             segments.push(normalized_identifier(segment));
         }
 

@@ -2,6 +2,7 @@ use crate::core::framework::scene::{EntityId, Mobility};
 
 use super::super::RenderLayerSet;
 
+/// 可见性规划中的一个稳定渲染实例，携带实体归属、移动性和层掩码。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VisibilityRenderableInput {
     pub entity: EntityId,

@@ -1,3 +1,4 @@
+// 确认旧平铺文件已移除，保护目录模块归属；只检查路径存在性，不调用事件运行时。
 use super::support::{retired_flat_module, src_root};
 
 #[test]

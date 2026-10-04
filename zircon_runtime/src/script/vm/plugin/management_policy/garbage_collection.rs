@@ -1,3 +1,4 @@
+//! 清单声明 GC 所有权与协作周期；协调器仅调度 Cooperative 槽，禁用模式不能同时声明周期。
 use serde::{Deserialize, Serialize};
 
 use super::{VmPluginManagementPolicyError, VmPluginManagementPolicyResult};

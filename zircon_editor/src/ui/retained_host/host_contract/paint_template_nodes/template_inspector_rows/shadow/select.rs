@@ -1,3 +1,5 @@
+//! Cast Shadows 行把布尔原值显示为 On/Off 选择字段；字段与标签分列，下拉符不在此处建立菜单。
+
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 use crate::ui::retained_host::host_contract::paint_template_nodes::template_inspector_row_geometry::{

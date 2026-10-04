@@ -1,3 +1,5 @@
+//! 内存态副作用台账约束激活、就绪、关闭和恢复相位；每次迁移校验已记录的真实副作用集合，再供持久存储写盘。
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -205,6 +207,7 @@ impl ProjectSessionEffectLedger {
         }
     }
 
+    // 反序列化后检查可达相位及副作用库存；文件格式合法仍不意味着可安全继续激活或关闭。
     pub(super) fn validate_persisted_state(&self) -> Result<(), String> {
         let valid = match self.phase {
             ProjectSessionEffectLedgerPhase::Activating => {

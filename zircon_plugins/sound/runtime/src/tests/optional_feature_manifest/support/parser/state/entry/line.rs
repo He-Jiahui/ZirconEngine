@@ -1,3 +1,4 @@
+// 先判定表头并完成状态切换，再把普通行交给当前区段；避免跨表字段污染。
 use super::super::super::section::OptionalFeatureSection;
 use super::super::{section_line, transition, OptionalFeatureParserState};
 

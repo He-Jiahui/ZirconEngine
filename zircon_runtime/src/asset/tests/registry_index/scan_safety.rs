@@ -1,3 +1,5 @@
+//! 元数据扫描必须在进入目录前拒绝链接或 reparse point，避免越过项目资产根目录。
+
 use crate::asset::registry::{AssetRegistryError, AssetRegistryIndex};
 use crate::asset::{AssetKind, AssetUuid};
 
@@ -17,6 +19,7 @@ fn metadata_scan_rejects_link_or_reparse_directory_before_following_it() {
         vec![],
     );
     let linked = assets.join("linked");
+    // TODO: [CR-ASSET-TEST-PIPE-0001] 确认 Windows 无建链权限时该安全断言的验收约定；PermissionDenied 使测试提前返回而未覆盖拒绝路径。下一步在可建链 CI 强制执行并记录跳过原因。
     if !create_directory_link(&outside, &linked) {
         let _ = std::fs::remove_dir_all(project);
         let _ = std::fs::remove_dir_all(outside);

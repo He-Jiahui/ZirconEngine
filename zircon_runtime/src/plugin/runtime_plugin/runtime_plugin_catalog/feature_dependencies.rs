@@ -14,6 +14,7 @@ use super::project_manifest::complete_project_manifest as complete_catalog_proje
 use super::{RuntimePluginCatalog, RuntimePluginFeatureDependencyReport};
 
 impl RuntimePluginCatalog {
+    /// 返回本代编译项目计划中的冻结依赖结果，供选择和扩展投影复用同一判断。
     pub fn feature_dependency_report(
         &self,
         manifest: &ProjectPluginManifest,

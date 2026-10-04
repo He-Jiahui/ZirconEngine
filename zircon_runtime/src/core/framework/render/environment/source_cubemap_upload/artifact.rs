@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 /// One RGBA16F cubemap mip, packed face-major with WGPU-aligned rows.
+/// 上传构建器把 CPU texel 编为只读载荷；提交端依据层级、面尺寸、行距与字节写入纹理子资源。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceCubemapUploadMip {
     mip_level: u32,
@@ -37,6 +38,7 @@ impl SourceCubemapUploadMip {
 }
 
 /// Immutable upload payload built before the render submission path consumes an environment.
+/// 分离源 mip、反射 PMREM 与单级漫反射 IEM，供环境上传阶段按纹理用途提交。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceCubemapUploadArtifact {
     source_mips: Vec<SourceCubemapUploadMip>,

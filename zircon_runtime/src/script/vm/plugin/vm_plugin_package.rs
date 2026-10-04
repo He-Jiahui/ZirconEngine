@@ -1,3 +1,4 @@
+//! 统一包模型同时容纳字节码与 zr_vm 项目源；发现阶段可暂留空字节码，管理器选择装载时才物化载荷。
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 

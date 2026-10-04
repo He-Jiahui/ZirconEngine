@@ -1,3 +1,4 @@
+//! 集中提供 UI 资产编辑测试的文档样本、会话命令和运行时类型，保证不同场景共用相同的预览与撤销前提。
 pub(super) use crate::ui::asset_editor::{
     UiAssetEditorCommand, UiAssetEditorDocumentReplayBundle, UiAssetEditorDocumentReplayCommand,
     UiAssetEditorExternalEffect, UiAssetEditorInverseTreeEdit, UiAssetEditorMode,

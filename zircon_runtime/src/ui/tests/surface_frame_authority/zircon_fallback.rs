@@ -1,3 +1,5 @@
+//! SizeBox 的比例语义由 Zircon 安排；即使从 Taffy 路由回退，后续绘制与指针仍消费最终安排帧。
+
 use super::*;
 
 #[test]

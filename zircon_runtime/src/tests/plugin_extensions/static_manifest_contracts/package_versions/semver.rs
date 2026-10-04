@@ -1,3 +1,4 @@
+//! 静态包版本约束为三个可表示的无前导零数字段；此策略比通用语义版本语法窄，不解析预发布或构建后缀。
 use std::path::Path;
 
 pub(super) fn assert_semver_core(

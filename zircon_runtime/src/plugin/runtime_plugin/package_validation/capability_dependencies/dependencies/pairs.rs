@@ -1,3 +1,4 @@
+/// 唯一性属于提供包与能力的组合；同一个提供包可以通过不同声明提供不同能力。
 pub(super) fn validate_runtime_plugin_package_dependency_pair(
     dependency_id: &str,
     capability: &str,

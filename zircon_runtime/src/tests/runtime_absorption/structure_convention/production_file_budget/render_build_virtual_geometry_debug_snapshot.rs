@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0042] 虚拟几何调试快照的页、节点和执行投影 超出当前结构预算；需核对职责边界和预算来源，区分新增责任与历史门槛过时。
 #[test]
 fn runtime_15_render_vg_debug_snapshot_is_child_owner_split() {
     let parent = read_runtime_src(

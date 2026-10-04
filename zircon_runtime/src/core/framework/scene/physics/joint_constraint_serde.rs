@@ -20,6 +20,7 @@ pub(super) fn joint_drives_are_default(drives: &[PhysicsJointDrive; 3]) -> bool 
         .all(|drive| *drive == PhysicsJointDrive::default())
 }
 
+// 持久化时用命名轴稀疏映射；回读同时接纳旧的三槽数组表示。
 pub(super) fn serialize_axis_limits<S>(
     limits: &[Option<[Real; 2]>; 3],
     serializer: S,
@@ -81,6 +82,7 @@ impl<'de> Visitor<'de> for AxisLimitsVisitor {
         while let Some(key) = map.next_key::<String>()? {
             let index = axis_limit_index(&key)
                 .ok_or_else(|| de::Error::unknown_field(&key, &AXIS_LIMIT_KEYS))?;
+            // BUG: [CR-FRAMEWORK-SCENE-0003] 首次键值为 null 时槽位仍为 None，同轴第二次出现会绕过重复键拒绝。
             if limits[index].is_some() {
                 return Err(de::Error::duplicate_field(AXIS_LIMIT_KEYS[index]));
             }

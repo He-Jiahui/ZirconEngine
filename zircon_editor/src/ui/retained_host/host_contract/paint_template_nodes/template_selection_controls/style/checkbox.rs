@@ -1,3 +1,5 @@
+//! 复选框的填充、边框和文字从同一个 Checkbox 状态选择器获取，优先级由选择器定义。
+
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::style_selector::WorkbenchSelectionControlKind as SelectionStyleKind;
 use super::selector::selection_style;

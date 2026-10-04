@@ -3,6 +3,7 @@ use crate::ui::template_runtime::WORKBENCH_WINDOW_DOCUMENT_ID;
 use crate::ui::workbench::snapshot::StatusTaskProgressSnapshot;
 
 impl RetainedEditorHost {
+    // 状态先写 Runtime 快照；当前工作台模板可局部提交时只投影该变化，其他页面回退到全局展示刷新。
     pub(in crate::ui::retained_host::app) fn set_status_line(
         &mut self,
         message: impl Into<String>,

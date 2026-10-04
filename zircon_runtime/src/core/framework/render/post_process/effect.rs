@@ -61,6 +61,8 @@ impl fmt::Display for PostProcessEffectKind {
     }
 }
 
+/// 图编译前的效果声明：资源名和显式前序关系交给验证器检查，而非交给执行器临时推断。
+/// 启用状态来自相机生效设置；声明的输出必须与实际通道写入保持一致。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PostProcessEffectSettings {
     pub kind: PostProcessEffectKind,

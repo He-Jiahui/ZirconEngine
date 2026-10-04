@@ -1,3 +1,4 @@
+//! 节点快照供编辑命令、场景导入和检查视图使用；守卫缺省组件的投影语义及直接读取路径。
 fn section_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
     source
         .split(start)

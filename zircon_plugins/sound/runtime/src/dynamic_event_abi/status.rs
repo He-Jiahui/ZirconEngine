@@ -1,3 +1,4 @@
+//! 回调返回的诊断仍属于提供方；宿主在下次 ABI 调用前限额复制，长度/空指针检查不负责证明原生内存可读。
 use zircon_runtime_interface::{
     ZrByteSlice, ZrStatusCode, ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1,
 };

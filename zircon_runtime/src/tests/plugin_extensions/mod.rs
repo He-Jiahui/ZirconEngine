@@ -1,3 +1,4 @@
+//! 插件整合回归入口；元数据、扩展登记、目录选择、导出模板和桥生命周期各有明确测试所有者，静态清单约束由独立子树检查。
 mod asset_importer_install;
 mod builtin_catalog_features;
 mod dynamic_components;

@@ -1,3 +1,5 @@
+//! 对话框颜色与可用状态的统一出口；所有子painter消费同一投影token和宿主palette。
+
 mod colors;
 mod palette;
 mod severity;

@@ -1,3 +1,4 @@
+//! 以类型化编辑器快照核对 When 布尔组合、场景/选区/播放态和无界面上下文的判定边界，确保互斥交互域不会被宽松匹配。
 use crate::core::asset::AssetWriteAccess;
 use crate::core::commands::{CommandEvalCtx, DocumentKind, PlayModePredicate, WhenClause};
 use crate::core::editor_message::{PlayStateKind, SceneModeId};

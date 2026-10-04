@@ -1,3 +1,4 @@
+//! UI 资产 Pane 按预览、设计器、检查器等分面移交宿主；节点先转移所有权，避免与字段补充路径重复复制。
 mod actions;
 mod collections;
 mod designer_tools;

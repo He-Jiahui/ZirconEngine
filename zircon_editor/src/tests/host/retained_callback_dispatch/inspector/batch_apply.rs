@@ -1,3 +1,4 @@
+// 比较检查器模板批量应用与直接批量派发，约束两个入口产生相同编辑结果。
 use super::super::support::*;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 

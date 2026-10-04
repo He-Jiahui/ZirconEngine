@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::asset::pack::ZrPackDocumentManifest;
 
+/// 描述 delta 应用写入 staging 的结果；只有 `delta_apply_verified` 为真才可进入 promotion receipt。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ZrPackDeltaInstallReport {
     pub base_pack: PathBuf,

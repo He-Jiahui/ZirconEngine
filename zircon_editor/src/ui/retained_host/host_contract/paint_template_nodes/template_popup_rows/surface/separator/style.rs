@@ -1,3 +1,5 @@
+//! 分隔线的宿主语义色快照；透明背景与无边框由上层popup容器提供。
+
 use super::super::super::super::super::paint_theme::current_host_palette;
 
 pub(super) struct PopupSeparatorStyle {

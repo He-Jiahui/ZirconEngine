@@ -1,3 +1,4 @@
+//! 插件面板缓存只复用同一文档、尺寸和插件值代次的宿主投影；诊断文本变化也必须使旧结果失效。
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::windows::workbench_host_window::ModulePluginStatusViewData;

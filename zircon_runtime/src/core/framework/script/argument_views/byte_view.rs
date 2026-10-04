@@ -1,11 +1,13 @@
 use super::super::ScriptHostError;
 
+/// 可按需读取的 guest 字节源；长度和逐字节访问都可能失败。
 pub trait ScriptHostByteSource {
     fn len(&self) -> Result<usize, ScriptHostError>;
 
     fn byte_at(&self, index: usize) -> Result<u8, ScriptHostError>;
 }
 
+/// host 调用栈内的零拷贝字节视图，可来自已拥有切片或 guest 源。
 #[derive(Clone, Copy)]
 pub enum ScriptHostByteView<'call> {
     Slice(&'call [u8]),
@@ -29,6 +31,7 @@ impl ScriptHostByteView<'_> {
         }
     }
 
+    /// 仅在业务接口确实需要拥有字节时物化，并传播 guest 访问失败。
     pub fn copy_to_vec_at_business_boundary(&self) -> Result<Vec<u8>, ScriptHostError> {
         let length = self.len()?;
         let mut bytes = Vec::with_capacity(length);

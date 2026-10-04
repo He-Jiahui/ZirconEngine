@@ -1,9 +1,12 @@
+// 专用入口在有效 plot 上调用此层，静态表面、网格和零轴按层级占位；刻度值来自已投影的 SampleGridGeneration。
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::SampleGridGeometry;
 use super::metrics::{SampleGridMetrics, GRID_DASH_GAP, GRID_DASH_LENGTH};
 use super::palette::SampleGridPalette;
 
+/// 只负责画布静态命令；调用方先完成身份及 plot 可画检查，传入已解析的单帧 metrics/palette。
+/// x/y 刻度必须与生成数据的范围一致，文字与采样点在后续层叠加。
 pub(super) fn push_sample_grid_surface(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

@@ -51,6 +51,7 @@ impl NetCertificateRoot {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// HTTP 和 WebSocket 的传输安全要求；默认值面向开发场景，生产调用应明确选择 TLS 与信任根策略。
 pub struct NetSecurityPolicy {
     pub tls_required: bool,
     pub certificate_pinning: bool,

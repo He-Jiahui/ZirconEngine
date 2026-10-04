@@ -71,6 +71,7 @@ struct BvhNode {
     content: BvhNodeContent,
 }
 
+/// 一次构建后供所有体素复用，分别支持最近表面距离与正 X 射线交点查询。
 pub(super) struct TriangleBvh {
     triangles: Vec<Triangle>,
     triangle_order: Vec<usize>,
@@ -80,6 +81,7 @@ pub(super) struct TriangleBvh {
 }
 
 impl TriangleBvh {
+    /// 在体素计算前拒绝无效源网格；退化面被过滤，若全部退化则报错而非生成空体积。
     pub(super) fn build(
         vertices: &[MeshVertex],
         indices: &[u32],

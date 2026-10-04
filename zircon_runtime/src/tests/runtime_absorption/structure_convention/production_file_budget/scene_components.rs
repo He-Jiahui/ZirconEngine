@@ -1,5 +1,6 @@
 use super::*;
 
+// BUG: [CR-RUNTIME-TESTS-STRUCT-0101] 此守卫经运行时源码定位器读取场景组件旧入口，当前文件不存在，精确测试复现文件读取 panic；核对迁移后的真实 owner 并修订守卫。
 #[test]
 fn runtime_15_scene_components_light_postprocess_are_child_owners() {
     let parent = read_runtime_src("scene/components/scene.rs");

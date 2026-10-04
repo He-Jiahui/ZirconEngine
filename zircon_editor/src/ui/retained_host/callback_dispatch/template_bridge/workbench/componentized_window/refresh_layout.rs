@@ -19,6 +19,7 @@ pub(super) fn recompute(
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    // 弹层尺寸来自宿主测量结果；固定约束后必须让模板表面重新布局。
     pub(crate) fn set_fixed_control_extent(
         &mut self,
         control_id: &str,

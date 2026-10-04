@@ -9,6 +9,7 @@ use crate::input::{
     InputBinding, InputButton, InputConfig, InputEvent, InputFrameSnapshot, INPUT_MODULE_NAME,
 };
 
+// 动作表经过输入管理器帧快照到求值器，验证组合键、上下文、已消费输入与重绑定的公共契约。
 #[test]
 fn action_map_resolves_chords_and_reports_just_activated() {
     let shift = InputButton::Key("Shift".to_string());
@@ -350,6 +351,7 @@ fn input_config_builds_action_evaluator_from_serialized_action_map() {
     assert!(!disabled_state.just_activated("gameplay.confirm"));
 }
 
+// BUG: [CR-INPUT-0003] 此测试仅注册输入模块，未注册其平台依赖，激活会先因缺失依赖失败；证据：module/descriptor.rs 的平台依赖与 CoreRuntime 完整模块图校验。
 #[test]
 fn input_action_manager_resolves_from_runtime_module_descriptor() {
     let activate = InputButton::Key("Enter".to_string());

@@ -1,3 +1,4 @@
+// 核对构建导出面板正文采用共享紧凑间距令牌。
 #[test]
 fn build_export_body_uses_shared_dense_spacing() {
     let template = std::fs::read_to_string(

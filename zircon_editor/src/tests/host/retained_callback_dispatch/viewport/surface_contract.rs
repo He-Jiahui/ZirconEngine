@@ -1,3 +1,4 @@
+// 读取视口表面源码并构造指针路由，约束场景和游戏视口的所有权及共享派发器。
 fn source(relative: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))

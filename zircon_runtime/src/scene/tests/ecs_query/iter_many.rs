@@ -1,3 +1,4 @@
+//! SystemState 为查询注入本次运行的变更窗口；多实体访问须保留请求顺序和重复项并跳过不匹配者。
 use super::*;
 
 #[test]
@@ -15,6 +16,7 @@ fn system_query_iter_many_mut_preserves_order_duplicates_and_run_window_filters(
     let baseline = system.run(&mut world, |mut query| {
         let mut iter = query.iter_many_mut(&requested);
         let mut seen = Vec::new();
+        // 重复目标可顺序写入；fetch_next 的返回项借用迭代器，须先释放本项才能再取下一项。
         while let Some(health) = iter.fetch_next() {
             seen.push(health.0);
             health.0 += 1;

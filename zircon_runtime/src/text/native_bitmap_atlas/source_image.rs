@@ -1,3 +1,6 @@
+//! 把 Swash 位图放置与文字运行边界转换成图集分配来源。
+//! 裁剪后的字形不能继续复用完整图集槽；像素格式决定覆盖率/颜色语义，子像素文字另需已知背景。
+
 use std::sync::Arc;
 
 use glyphon::SwashContent;
@@ -28,6 +31,8 @@ pub(super) struct NativeBitmapAtlasClippedSource {
     pub(super) was_clipped: bool,
 }
 
+/// 由帧构造路径在取得缓存或工作线程像素后调用；输入字节应是完整紧密位图。
+/// 若被运行边界裁剪，则生成独立紧凑像素且撤销持久光栅键，以免后续从完整槽绘制被裁掉的内容。
 pub(super) fn native_bitmap_atlas_source_from_image(
     image: NativeBitmapGlyphImage,
     clipped_rect: GlyphAtlasScreenRect,
@@ -69,6 +74,8 @@ pub(super) fn native_bitmap_atlas_source_from_image(
     })
 }
 
+/// 提交上传前核验所有来源的字体世代；混入任一旧来源就不能写入当前图集。
+/// 上游异步池筛选结果仍需此帧级检查，因为计划与实际渲染提交之间可发生字体失效。
 pub(super) fn glyph_atlas_bitmap_face_validity_for_epoch(
     source_face_epochs: impl IntoIterator<Item = u64>,
     current_face_epoch: u64,
@@ -145,6 +152,7 @@ pub(super) fn native_bitmap_atlas_screen_rect(
     )
 }
 
+// TODO: [CR-TEXT-RASTER-0004] 确认运行边界为小数像素时裁剪取整与屏幕矩形、UV 是否保持同一像素覆盖范围；目前对偏移和宽高分别 round，测试只覆盖整数边界，需构造小数 bounds 的渲染样本。
 fn native_bitmap_atlas_crop_from_clip(
     screen_rect: GlyphAtlasScreenRect,
     clipped_rect: GlyphAtlasScreenRect,

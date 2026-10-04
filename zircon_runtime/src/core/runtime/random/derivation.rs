@@ -9,6 +9,7 @@ use super::RandomStream;
 // 证据：RandomServiceCheckpoint 保存生成器 ID 和已登记流状态，但没有派生模式 ID。
 const RANDOM_DERIVATION_DOMAIN: &[u8] = b"zircon.random.stream.v1";
 
+// 仅未登记键走派生路径；检查点中的已登记流直接恢复进度，其余键仍由算法、种子代际及完整稳定键决定。
 pub(super) fn derive_stream(
     algorithm: RandomAlgorithmId,
     master_seed: u64,
@@ -32,6 +33,7 @@ pub(super) fn derive_stream(
     RandomStream::from_seed(algorithm, seed, sequence)
 }
 
+// 用 presence 字节区分 world-only 与 entity 流，再纳入实体和系统用途键，避免不同所有者共享派生输入。
 fn append_stream_key(hasher: &mut blake3::Hasher, key: RandomStreamKey) {
     let world = key.world();
     hasher.update(&world.id().to_le_bytes());

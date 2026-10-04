@@ -1,3 +1,6 @@
+//! 通过根网络服务抓取当前 chunk 尝试，校验 range、长度与内容哈希后提交完成进度。
+//! 网络 I/O 在状态锁之外；续传必须已有恰好匹配的前缀，失败保留前缀并选择下一镜像。
+
 use zircon_runtime::core::framework::net::{
     NetDownloadAttemptDescriptor, NetDownloadId, NetError, NetHttpMethod, NetHttpRequestDescriptor,
     NetHttpResponseDescriptor, NetManager, NetRequestId, NetSecurityPolicy,
@@ -99,6 +102,7 @@ fn fetch_attempt_via_net(
     );
     request.timeout_ms = CONTENT_DOWNLOAD_HTTP_TIMEOUT_MS;
     request.max_retry_attempts = CONTENT_DOWNLOAD_HTTP_RETRY_ATTEMPTS;
+    // TODO: [CR-PLUGIN-NET-0013] 生产下载固定使用开发安全策略；确认来源信任、TLS/pin 与项目配置的注入边界。
     request.security = NetSecurityPolicy::development();
     if let Some((range_start, range_end)) = attempt_range_bounds(attempt)? {
         request = request.with_byte_range(range_start, range_end);

@@ -1,3 +1,4 @@
+// 从界面绑定调用动画派发器，约束时间线、轨道、图状态和播放命令转换成带类型的宿主事件。
 use zircon_runtime::core::framework::animation::AnimationTrackPath;
 
 use crate::ui::binding::{

@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+/// 日志写入和配置的共享错误分类；磁盘写失败也可由服务以回执报告而不抹去内存记录。
 pub enum EditorLogError {
     #[error("editor log entry capacity must be greater than zero")]
     InvalidEntryCapacity,

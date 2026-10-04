@@ -4,6 +4,8 @@ use super::{
     RenderHybridGiDebugView, RenderHybridGiMode, RenderHybridGiProfile, RenderHybridGiQuality,
 };
 
+/// 一帧对 Hybrid GI 的请求配置，供运行时 provider 决定实际能力与预算。
+/// 这里只传设置和调试意图；资源可用性与回退由提交阶段解析。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct RenderHybridGiExtract {

@@ -1,3 +1,4 @@
+// 目标模式进入功能模块签名，避免运行时和编辑器目标被混同。
 pub(in super::super) fn runtime_target_mode_from_plugin_toml(
     value: String,
 ) -> zircon_runtime::core::framework::platform::RuntimeTargetMode {

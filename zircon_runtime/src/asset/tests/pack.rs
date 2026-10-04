@@ -1,3 +1,4 @@
+//! 打包测试共用可解析的二进制外壳与清单夹具，以隔离写入、读取、差量和修剪契约。
 use std::{
     fs,
     path::PathBuf,
@@ -85,6 +86,7 @@ fn malformed_pack_bytes_with_assets(assets: Vec<ZrPackAssetEntry>) -> Vec<u8> {
     malformed_pack_bytes(pack_document_manifest_with_assets(assets))
 }
 
+// 清单负例先经过格式入口和结构校验；零填充载荷只供这些先行错误使用，不代表合法内容哈希。
 fn malformed_pack_bytes(manifest: ZrPackDocumentManifest) -> Vec<u8> {
     let payload = payload_bytes_for_chunks(&manifest.pack.chunks);
     let manifest_bytes = serde_json::to_vec(&manifest).unwrap();

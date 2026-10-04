@@ -4,6 +4,7 @@ use super::probe_scene_data::HybridGiResolveProbeSceneData;
 use super::trace_region_scene_data::HybridGiResolveTraceRegionSceneData;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 一帧的解析侧快照；仅纳入当前追踪的探针和排程区域，缺失条目由访问器交给回退路径处理。
 pub struct HybridGiResolveRuntime {
     pub(super) probe_scene_data: BTreeMap<u32, HybridGiResolveProbeSceneData>,
     pub(super) trace_region_scene_data: BTreeMap<u32, HybridGiResolveTraceRegionSceneData>,

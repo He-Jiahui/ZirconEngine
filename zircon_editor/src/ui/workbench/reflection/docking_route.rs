@@ -1,3 +1,4 @@
+//! 停靠路由以当前活动实例为对象；同描述符的多个实例必须保持独立身份。
 use crate::ui::binding::{DockCommand, EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::EditorActivityReflection;
@@ -9,6 +10,7 @@ use zircon_runtime_interface::ui::{
 use super::name_mapping::binding_view_id;
 use super::route_registration::register_binding_route;
 
+/// 登记当前实例的聚焦或分离路由；不能用类型描述符替代实例目标。
 pub(super) fn register_docking_route(
     service: &mut EditorUiControlService,
     activity: &EditorActivityReflection,
@@ -32,6 +34,7 @@ pub(super) fn register_docking_route(
     Some(register_binding_route(service, registration_binding))
 }
 
+/// 把反射动作收敛到实例级停靠命令，默认浮窗身份由该实例派生。
 fn default_dock_command(
     activity: &EditorActivityReflection,
     action_id: &str,

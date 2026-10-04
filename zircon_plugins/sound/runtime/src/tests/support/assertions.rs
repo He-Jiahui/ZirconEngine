@@ -1,3 +1,4 @@
+// 浮点样本统一使用固定容差，供曲线采样和声学处理用例比较可观察输出。
 pub(in crate::tests) fn assert_sample_near(actual: f32, expected: f32) {
     assert!(
         (actual - expected).abs() < 0.0001,

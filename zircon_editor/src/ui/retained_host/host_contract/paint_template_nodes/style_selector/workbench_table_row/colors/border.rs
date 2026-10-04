@@ -1,3 +1,6 @@
+//! 表格选中轮廓与焦点/拖放轮廓分开；拖动或拖放目标在已选中时仍显示焦点角色。
+//! 边线宽度随实际轮廓存在与否输出，避免绘制端收到无色边宽。
+
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 use super::super::super::workbench_row_selection::selected_row_outline_color;

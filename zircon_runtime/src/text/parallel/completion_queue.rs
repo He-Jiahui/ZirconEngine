@@ -2,6 +2,8 @@
 
 use std::sync::{Mutex, MutexGuard};
 
+/// 栅格 worker 发布完成结果前预留的共享字节预算；帧消费或断连后释放。
+/// 关闭仅拒绝新的预留，不替代队列里现有结果的释放责任。
 pub(super) struct CompletionByteBudget {
     max_bytes: usize,
     state: Mutex<CompletionByteBudgetState>,

@@ -1,3 +1,4 @@
+// 报告用例提交一份有效事件，之后按处理器展开为多个结果；重复执行用于核对队列已排空。
 use super::super::super::super::*;
 
 use super::ids::{EVENT_ID, PAYLOAD_SCHEMA};

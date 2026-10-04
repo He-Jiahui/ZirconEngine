@@ -1,3 +1,4 @@
+//! 保存 HRTF 块间尾音，切换配置或设备格式时由服务层清空；调用方须用相同的声道布局续接。
 #[derive(Clone, Debug, Default)]
 pub(crate) struct SoundHrtfRenderState {
     history: Vec<f32>,

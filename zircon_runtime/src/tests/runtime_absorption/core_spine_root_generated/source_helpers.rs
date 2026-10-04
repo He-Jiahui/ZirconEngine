@@ -1,3 +1,4 @@
+//! 核心脊柱、根公开面和生成模板的结构清单需与审计证据同步。向相邻守卫提供源码读取、路径枚举或断言工具。
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};

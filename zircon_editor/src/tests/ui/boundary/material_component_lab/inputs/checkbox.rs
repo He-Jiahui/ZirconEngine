@@ -1,3 +1,5 @@
+//! 验证复选框的勾选、混合、错误及禁用状态元数据。
+
 use std::fs;
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;

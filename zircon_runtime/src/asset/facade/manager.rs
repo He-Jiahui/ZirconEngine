@@ -20,6 +20,7 @@ fn asset_error_message(message: impl Into<String>) -> CoreError {
 }
 
 impl ProjectAssetManager {
+    /// 需要立即读取资产时使用：先按 locator 验证注册记录，再确保实际类型的载荷已驻留。
     pub fn load<TAsset: Asset>(&self, locator: &AssetUri) -> Result<Handle<TAsset>, CoreError> {
         let record = self
             .resource_manager()
@@ -39,6 +40,8 @@ impl ProjectAssetManager {
         Ok(Handle::new(record.id))
     }
 
+    // BUG: [CR-ASSET-PIPELINE-0002] 仅凭共享 marker 的 kind 就构造类型化句柄；同 kind 的其他载荷可返回无法按 TAsset 读取的句柄。
+    /// 只做元数据查找，不触发驻留；调用方应再用 load_state 或读取结果确认载荷可用。
     pub fn handle<TAsset: Asset>(&self, locator: &AssetUri) -> Result<Handle<TAsset>, CoreError> {
         let record = self
             .resource_manager()
@@ -75,6 +78,7 @@ impl ProjectAssetManager {
         self.load_states(handle).dependency_load_state
     }
 
+    /// 从同一 readiness generation 观察本体、直接依赖和递归依赖，避免三次独立查询跨代。
     pub fn load_states<TAsset: Asset>(&self, handle: Handle<TAsset>) -> AssetLoadStates {
         let generation = self.resource_manager().readiness_generation();
         self.load_states_from_generation(handle, &generation)

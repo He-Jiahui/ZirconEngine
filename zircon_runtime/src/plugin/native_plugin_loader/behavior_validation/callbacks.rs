@@ -6,6 +6,8 @@ use super::diagnostics::{
 };
 use super::schema::has_manifest_text;
 
+/// 汇总行为可用性约束：有状态行为必须可保存和恢复，无状态行为无需这两项回调。
+/// 缺少卸载或只有状态功能时保留降级诊断，供报告与生命周期调用方分别处理。
 pub(super) fn validate_callbacks(
     diagnostics: &mut Vec<ValidationDiagnostic>,
     plugin_id: &str,
@@ -42,6 +44,7 @@ pub(super) fn validate_callbacks(
         )));
     }
 
+    // BUG: [CR-PLUGIN-NATIVE-0001] 非空命令清单会遮蔽缺失的命令回调，使其余字段正常的行为被报告为 Clean；实际命令调用只能返回 missing callback；证据：报告构造与命令分发链。
     if !behavior.has_invoke_command() && !has_manifest_text(behavior.command_manifest.as_deref()) {
         diagnostics.push(degraded_diagnostic(format!(
             "native plugin {plugin_id} {} behavior callback invoke_command is missing",

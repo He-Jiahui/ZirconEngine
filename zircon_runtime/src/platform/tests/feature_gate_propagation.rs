@@ -1,6 +1,7 @@
 use super::super::*;
 
 #[test]
+// 这些断言验证 feature selection 在窗口、输入和游戏手柄能力链路中保持逐项传播。
 fn platform_window_gate_propagates_to_window_owned_capabilities() {
     let mut features = PlatformFeatureSelection::bevy_default_platform();
     features.platform_window = false;

@@ -1,3 +1,4 @@
+// 通过临时项目文件变更核对资源监视、冲突检测、另存副本和无效源恢复路径。
 use std::fs;
 
 use crate::ui::host::module::EDITOR_MANAGER_NAME;

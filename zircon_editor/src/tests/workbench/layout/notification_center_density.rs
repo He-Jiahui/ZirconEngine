@@ -1,3 +1,4 @@
+//! 通知弹层尺寸消费共享density定义，避免私有像素边界。
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
 const NOTIFICATION_CENTER_ASSET: &str = include_str!(
@@ -5,6 +6,7 @@ const NOTIFICATION_CENTER_ASSET: &str = include_str!(
 );
 
 #[test]
+/// 消费端引用和主题端定义同时成立；此处不创建通知或验证消息生命周期。
 fn notification_center_uses_shared_density_constraints_for_its_popup_surface() {
     for token in [
         "$editor.density.notification_panel.min_width",

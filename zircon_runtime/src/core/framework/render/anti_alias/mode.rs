@@ -1,3 +1,5 @@
+/// 相机请求的抗锯齿策略；具体执行模式须结合设备能力和历史资源解析。
+/// MSAA 改变场景图采样数，TAA 则占用时间重建阶段，二者不能按同一终端效果处理。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AntiAliasMode {
     Off,

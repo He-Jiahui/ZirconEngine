@@ -1,3 +1,4 @@
+//! 为线程所有权回归提供词法识别，追踪标准库线程入口、导入别名和可识别接收者；字符串、注释及测试模块不能伪造生产线程入口。
 pub(super) fn has_bare_thread_owner(source: &str) -> bool {
     let spawn_word = ["sp", "awn"].concat();
     let scope_word = ["sc", "ope"].concat();
@@ -305,6 +306,7 @@ fn parse_thread_import_items(
     }
 }
 
+// BUG: [CR-EDITOR-PROJECT-0002] 通配导入未登记线程入口，后续裸函数或构造器创建会被所有权守卫漏过；证据：同一扫描器的单项导入样本为真，两个通配样本为假。
 fn register_thread_import_item(
     item: &[String],
     spawn_name: &str,

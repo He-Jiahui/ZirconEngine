@@ -1,3 +1,5 @@
+//! 发现并缓存解析 Material 原型资产，统一路径、子节点、主题选择器及事件夹具。
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,

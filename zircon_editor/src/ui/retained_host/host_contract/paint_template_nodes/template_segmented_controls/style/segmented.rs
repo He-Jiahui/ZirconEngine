@@ -1,3 +1,5 @@
+//! 分段组视觉状态从集中选择器获取；测试用默认主题常量只作断言基线。
+
 use super::super::super::super::data::TemplatePaneNodeData;
 #[cfg(test)]
 use super::super::super::style_selector::WORKBENCH_SEGMENT_IDLE_BACKGROUND;
@@ -68,6 +70,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segment
     segmented_control_style(node).group_label
 }
 
+/// 集中选择器的 SegmentedControl 家族入口；普通与选中状态不能在局部模块另算。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn segmented_control_style(
     node: &TemplatePaneNodeData,
 ) -> WorkbenchSegmentedControlStyle {

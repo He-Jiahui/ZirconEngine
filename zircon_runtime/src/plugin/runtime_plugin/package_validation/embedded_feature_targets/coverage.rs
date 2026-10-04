@@ -1,6 +1,7 @@
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::PluginPackageManifest;
 
+/// 将特性模块声明的目标限制在承载包支持范围内；平台支持列表与运行目标模式是不同契约。
 pub(super) fn validate_runtime_plugin_package_feature_target_coverage(
     field_name: &str,
     feature_id: &str,

@@ -1,5 +1,6 @@
 use super::*;
 
+/// MarkdownInlineV1 仅接纳粗体、斜体与行内代码标记；未配对标记保留字面内容，不承诺块级 Markdown 语义。
 pub(super) fn parse_markdown(
     markup: &str,
     budget: RichParseBudget,

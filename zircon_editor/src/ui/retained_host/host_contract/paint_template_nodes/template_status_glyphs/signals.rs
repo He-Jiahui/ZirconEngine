@@ -1,3 +1,5 @@
+//! ready/diagnostic 颜色已经由共享状态选择器解析，此层统一呈现为圆点标记。
+
 mod base;
 
 use super::geometry::has_paintable_status_glyph_extent;

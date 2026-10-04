@@ -1,3 +1,6 @@
+//! 文件拖拽路径的文本化 Runtime 通知；文本只用于同步事件调用。
+//! 非 UTF-8 文件名经过 lossy 转换，消费端不得假定能无损还原原始路径。
+
 use std::path::PathBuf;
 
 use winit::event_loop::ActiveEventLoop;

@@ -1,3 +1,4 @@
+//! 核对 UI 资产预览从有效文档编译并保持最近一次成功结果；模式、预设、尺寸和撤销重做应更新对应投影。
 use super::support::*;
 use crate::ui::{asset_editor::UiAssetPreviewHost, template::EditorTemplateRuntimeService};
 

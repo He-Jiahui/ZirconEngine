@@ -1,3 +1,5 @@
+//! MUI 与编辑器文本别名共享表面编辑所有权，但各自的值属性、只读约束和多行行为须按描述符映射。
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,

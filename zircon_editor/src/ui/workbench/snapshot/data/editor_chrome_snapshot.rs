@@ -14,6 +14,7 @@ use super::{
 };
 
 #[derive(Clone, Debug)]
+/// 编辑数据与本轮layout/registry联接后的UI快照；model、命令评估及壳重算共同消费。
 pub struct EditorChromeSnapshot {
     pub focused_document_kind: Option<DocumentKind>,
     pub workbench: WorkbenchSnapshot,

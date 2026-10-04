@@ -3,6 +3,7 @@ use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor};
 use super::deadline::{DeadlineReader, ProcessingDeadline};
 use super::BoundedJsonError;
 
+// 类型化解码前按节点数与 deadline 预检 JSON；业务项数量由解码后的策略判定。
 pub(super) fn preflight_json_graph(
     bytes: &[u8],
     max_items: usize,

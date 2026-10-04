@@ -1,3 +1,4 @@
+/// 天空盒模式的稳定上传编号；更改判别值会改变 GPU 与烘焙键的协议。
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SkyboxMode {

@@ -1,3 +1,5 @@
+//! 测试管理器贯通 V2 资产、UiInputManager、窗口适配和公开帧；每次输入后重建脏表面，批次保留前序成功结果。
+
 use crate::asset::assets::ui_v2_asset_references;
 use crate::core::framework::render::{
     FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderOverlayExtract,
@@ -32,6 +34,7 @@ use zircon_runtime_interface::ZrRuntimeEventV1;
 use super::runtime_ui_fixture::RuntimeUiFixture;
 use super::runtime_ui_manager_error::RuntimeUiManagerError;
 
+/// 只在 cfg(test) 的 UI 夹具中持有输入管理器和表面，复现资产到公开帧的集成顺序；不参与产品启动。
 pub(crate) struct RuntimeUiManager {
     viewport_size: UVec2,
     fixture_cache: UiV2PrototypeStoreFileCache,
@@ -55,6 +58,7 @@ impl RuntimeUiManager {
         }
     }
 
+    /// 成功加载才替换当前表面；新的节点集合同时重置输入管理器，防止沿用旧处理器或计时器。
     pub(crate) fn load_builtin_fixture(
         &mut self,
         fixture: RuntimeUiFixture,
@@ -134,6 +138,7 @@ impl RuntimeUiManager {
             .register(node_id, kind, handler);
     }
 
+    /// 供旧指针路由接口的夹具使用；需要活动指针表或计时器语义时应调用统一 dispatch_input_event。
     pub(crate) fn dispatch_pointer_event(
         &mut self,
         event: UiPointerEvent,
@@ -214,6 +219,7 @@ impl RuntimeUiManager {
         Ok(result)
     }
 
+    /// 逐项重建使同一批次的后续指针命中能看到前项窗口尺寸；不是整批回滚事务。
     pub(crate) fn dispatch_window_input_pump_batch(
         &mut self,
         batch: UiWindowInputPumpBatch,
@@ -242,6 +248,7 @@ impl RuntimeUiManager {
         super::window_event::dispatch_runtime_event_batch(self, context, events)
     }
 
+    /// 为断言生成包含当前 UI 提交的公开帧；空场景只是让夹具无需启动完整渲染宿主。
     pub(crate) fn build_frame(&self) -> PublicRuntimeFrame {
         let extract = RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(0),
@@ -319,6 +326,7 @@ fn sanitized_viewport_axis(value: f32) -> u32 {
     }
 }
 
+// 首个失败立即上报原索引，此前成功事件的状态和重建已生效；调用方不可把它理解为原子批次。
 fn dispatch_manager_batch<T>(
     manager: &mut RuntimeUiManager,
     events: impl IntoIterator<Item = T>,

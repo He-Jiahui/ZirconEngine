@@ -1,3 +1,4 @@
+//! 运行时死代码抑制扫描的共享入口；生产树扫描与领域定点断言共用路径和词法约束。
 mod guard_layout;
 mod production_scan;
 mod runtime_owned;

@@ -1,3 +1,4 @@
+//! 从 surface 重建核对通知弹层的行内容、锚点和关闭时的绘制静默契约。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     design_tokens::EditorTypographyTokens,

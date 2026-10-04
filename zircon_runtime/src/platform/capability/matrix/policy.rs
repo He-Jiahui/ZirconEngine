@@ -4,6 +4,8 @@ use super::super::backends::EventLoopPolicy;
 use super::PlatformCapabilityMatrix;
 use crate::platform::PlatformTarget;
 
+// 事件循环策略的优先级是 server/headless > mobile > editor host > game；
+// explicit 接口只允许覆盖最后三类，避免调用方把无窗口拓扑伪装成物理循环。
 impl PlatformCapabilityMatrix {
     pub(super) fn event_loop_policy(
         self,

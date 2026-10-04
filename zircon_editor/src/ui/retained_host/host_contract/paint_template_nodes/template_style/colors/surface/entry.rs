@@ -8,6 +8,9 @@ use super::interaction::interaction_surface_color;
 use super::severity::severity_surface_color;
 use super::variants::variant_surface_color;
 
+// BUG: [CR-EDITOR-PAINT-CONTROLSTYLE-0001] 设置更新宿主主题后，禁用、严重级别、交互及变体回退仍读固定 PALETTE；
+// 同帧文字与 typed 颜色读取当前快照，通用表面/边框会混用新旧主题。证据：settings_window_actions 的主题同步与 surface 命令消费。
+/// 供通用表面按校验、交互、显式样式与变体优先级选择填充；透明声明在活跃交互时仍可显示反馈。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn surface_color(
     node: &TemplatePaneNodeData,
 ) -> [u8; 4] {

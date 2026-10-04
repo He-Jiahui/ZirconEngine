@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// shader 资产的可选固定功能状态；未声明项保留默认解析路径，导入资产不直接创建 GPU 管线。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderRenderStateDescriptor {
     #[serde(default, skip_serializing_if = "Option::is_none")]

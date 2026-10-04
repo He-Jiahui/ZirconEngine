@@ -1,3 +1,5 @@
+//! 组标题和各段标题的文字出口；几何由 segmented_control_geometry 提供，状态颜色由集中选择器决定。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_segmented_control_geometry::{
@@ -9,6 +11,7 @@ use super::style::{segment_text_color, segmented_group_label_color};
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+/// 组标题在主体之上独立输出；与主体使用原始组框，可保留分段行的上方标签。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_segmented_group_label(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -39,6 +42,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     ));
 }
 
+/// 按选项文字与当前选择状态输出标签；几何只允许落在该段内部。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_segment_label(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

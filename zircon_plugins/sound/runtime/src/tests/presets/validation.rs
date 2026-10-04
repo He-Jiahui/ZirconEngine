@@ -1,3 +1,4 @@
+// 经公共预设应用入口拒绝未知定位符，核对 InvalidLocator 错误。
 use zircon_runtime::core::framework::sound::{SoundError, SoundMixerGraphManager};
 
 use super::super::DefaultSoundManager;

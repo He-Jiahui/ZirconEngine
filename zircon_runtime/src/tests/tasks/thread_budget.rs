@@ -1,3 +1,4 @@
+//! 线程预算须与各任务域及实际创建的工作线程一致；小主机允许最小域配额超出可用并行度，报告必须如实反映。
 use crate::core::{TaskPoolOptions, TaskPoolThreadAssignmentPolicy, TaskPools};
 
 #[test]

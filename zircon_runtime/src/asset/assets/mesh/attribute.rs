@@ -1,3 +1,5 @@
+//! 属性数组承载导入后的顶点通道；MeshAsset 校验各通道的格式与顶点数量后，图形上传层才可按通道名建立顶点布局。
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

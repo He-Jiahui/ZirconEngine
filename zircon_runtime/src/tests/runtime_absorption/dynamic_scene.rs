@@ -1,3 +1,4 @@
+//! 动态场景会话、补丁预览和资产重载路径需保持现有只读与所有权约束。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "dynamic_scene/asset_reload_selection_status.rs"]
 mod asset_reload_selection_status;
 #[path = "dynamic_scene/patch_preview_api.rs"]

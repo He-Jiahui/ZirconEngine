@@ -1,3 +1,4 @@
+//! 姿态混合输入拒绝原因；上层须在关节数、权重或掩码不一致时停止合成。
 use std::error::Error;
 use std::fmt;
 

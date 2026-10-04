@@ -14,6 +14,7 @@ impl TaskGraphScopeRegistration {
     }
 }
 
+// 最后一个 registration 所有者释放时注销 graph 中的弱 scope 记录；graph 已销毁则无需重建其状态。
 impl Drop for TaskGraphScopeRegistration {
     fn drop(&mut self) {
         if let Some(graph) = self.graph.upgrade() {

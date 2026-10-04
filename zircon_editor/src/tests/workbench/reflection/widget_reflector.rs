@@ -1,3 +1,4 @@
+//! widget reflector基于一个快照投影树行与选择详情，无效选择保留已有选择。
 use crate::ui::workbench::reflection::{
     WorkbenchWidgetReflectorError, WorkbenchWidgetReflectorModel,
 };
@@ -11,6 +12,7 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
+/// 树层级、生命周期、dirty与focus分别来自原始快照，选中详情保留属性来源和解析值。
 fn workbench_reflection_widget_reflector_projects_tree_rows_and_selected_node_details() {
     let snapshot = reflector_snapshot();
     let mut model = WorkbenchWidgetReflectorModel::new(snapshot);
@@ -42,6 +44,7 @@ fn workbench_reflection_widget_reflector_projects_tree_rows_and_selected_node_de
 }
 
 #[test]
+/// 选择节点不存在时先拒绝再保持旧selection，避免失败请求破坏当前调试上下文。
 fn workbench_reflection_widget_reflector_rejects_missing_selection_without_losing_current_selection(
 ) {
     let snapshot = reflector_snapshot();
@@ -60,6 +63,7 @@ fn workbench_reflection_widget_reflector_rejects_missing_selection_without_losin
     assert_eq!(model.selected().unwrap().node.display_name, "Root");
 }
 
+/// 给两项reflector测试构造完整父子关系和同一tree身份，隔离运行时反射采集。
 fn reflector_snapshot() -> UiReflectorSnapshot {
     let mut root = UiReflectorNode::new(
         UiNodeId::new(1),
@@ -104,6 +108,7 @@ fn reflector_snapshot() -> UiReflectorSnapshot {
     snapshot
 }
 
+/// 仅配置合成快照的可见及启用状态；lifecycle、focus和dirty由fixture分别表达。
 fn visible_enabled_flags() -> UiStateFlags {
     UiStateFlags {
         visible: true,

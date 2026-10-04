@@ -1,3 +1,5 @@
+//! 覆盖世界存档中的物理配置、动画资源句柄和播放状态，防止恢复组件时只保留节点外观而丢失运行配置。
+
 use std::collections::BTreeMap;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -161,6 +163,7 @@ fn world_project_roundtrip_preserves_physics_and_animation_components() {
         .set_animation_state_machine_player(entity, Some(animation_state_machine_player.clone()))
         .unwrap();
 
+    // 这里跨越真实文件存档边界，不启动物理或动画驱动；断言针对持久数据和恢复后的节点投影。
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()

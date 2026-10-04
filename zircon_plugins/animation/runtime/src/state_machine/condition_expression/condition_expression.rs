@@ -1,3 +1,4 @@
+//! 作者条件树的数据契约，支持比较、全满足、任一满足及取反后交由编译器验证深度。
 use zircon_runtime::core::framework::animation::AnimationTransitionConditionAsset;
 
 #[derive(Clone, Debug, PartialEq)]

@@ -11,6 +11,8 @@ use super::{
     state::SegmentedRenderState,
 };
 
+/// 分段与标签页的角色色及绘制度量；以缓存的深色令牌为基线，节点覆盖在每次提取时解析。
+/// 焦点、按压和选中各保留独立的角色条件，修改优先级须同时审查标签页与分段组调用。
 #[derive(Clone, Copy, Debug)]
 pub(super) struct SegmentedVisual {
     pub(super) background: UiRgbaColor,

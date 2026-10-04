@@ -1,3 +1,6 @@
+//! 按序列号接收/重组数据报，生成 ACK 与 payload；ordered 路径在缺序时暂存完成数据。
+//! 重复抑制依赖有限接收窗口；该 manager 未含 peer 身份，调用者必须按会话隔离实例。
+
 use zircon_runtime::core::framework::net::{
     ReliableDatagramAck, ReliableDatagramPacket, ReliableDatagramReceiveReport,
     ReliableDatagramReceiveStatus,
@@ -15,6 +18,7 @@ impl NetReliableUdpRuntimeManager {
             .state
             .lock()
             .expect("net reliable UDP state mutex poisoned");
+        // BUG: [CR-PLUGIN-NET-0019] 完成窗口内重复包没有 ACK；首次 ACK 丢失且序号未淘汰时，重发可耗尽上限并断开。
         if state.completed_inbound_sequences.contains(&packet.sequence) {
             return ReliableDatagramReceiveReport::new(
                 packet.sequence,

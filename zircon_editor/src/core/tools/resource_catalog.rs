@@ -1,3 +1,5 @@
+//! 在工具调度前核验资源种类已注册且作用域/通道符合贡献声明；插件代次撤销同时移除其种类，内建命名空间由服务保留。
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -340,6 +342,7 @@ impl ToolResourceCatalog {
         Ok(())
     }
 
+    // 在资源申请准入前验证整个集合；集合结构合法不代表其种类已注册，必须经过当前代次的目录。
     pub(crate) fn validate(
         &self,
         resources: &ToolResourceSet,

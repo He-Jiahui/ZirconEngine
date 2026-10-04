@@ -3,6 +3,8 @@ use unicode_segmentation::UnicodeSegmentation;
 use super::super::render::ScreenSpaceUiTextBatch;
 use super::super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 
+/// 优先沿用布局阶段字距以保持 native/SDF 和视觉替换的行宽一致；复杂簇按源区间分配。
+/// 无法证明映射完整时回退塑形自然字距，避免将布局增量分配给错误字形。
 pub(in crate::graphics::scene::scene_renderer::ui) fn resolved_horizontal_shaped_glyph_advances(
     text: &ScreenSpaceUiTextBatch,
 ) -> Vec<f32> {

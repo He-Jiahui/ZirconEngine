@@ -1,3 +1,6 @@
+//! 组织 RPC 的 channel、dispatch、握手、配额、注册和会话状态；公开独立内存 manager 构造器。
+//! 调用方负责从真实连接导入控制/调用消息并发布响应，当前 feature factory 未取得根 NetManager。
+
 mod channel;
 mod dispatch;
 mod handshake;

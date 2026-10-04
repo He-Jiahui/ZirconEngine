@@ -18,6 +18,7 @@ use super::{
 };
 
 impl EditorState {
+    /// 宿主编辑事件的事务入口；先结束gizmo预览，变更Edit world时须处于编辑模式。
     pub fn apply_intent(
         &mut self,
         intent: EditorIntent,
@@ -196,6 +197,7 @@ impl EditorState {
         self.execute_scene_commands(label, [command], MergeMode::Disable)
     }
 
+    /// 普通命令批次不能叠加到gizmo预览；capture与执行应在同一受管编辑状态中完成。
     pub(crate) fn execute_scene_commands(
         &mut self,
         label: &str,
@@ -209,6 +211,7 @@ impl EditorState {
         self.execute_prepared_scene_commands(label, commands, merge_mode)
     }
 
+    /// 将已预览的变换作为单条历史提交；失败交由上层恢复预览基线。
     pub(crate) fn execute_gizmo_scene_command(
         &mut self,
         label: &str,
@@ -301,6 +304,7 @@ impl EditorState {
             .ok_or_else(no_project_open)
     }
 
+    /// 在权威world读边界捕获可撤销命令；返回值保留无项目与world访问失败的区别。
     pub(crate) fn capture_scene_command<R>(
         &self,
         capture: impl FnOnce(
@@ -320,6 +324,7 @@ impl EditorState {
         self.bind_transaction_context_for(world_domain)
     }
 
+    /// 按WorldDomain绑定选择到事务上下文，防止Edit与Play选择交叉污染历史。
     pub(crate) fn bind_transaction_context_for(
         &self,
         world_domain: crate::core::play::WorldDomain,
@@ -409,6 +414,7 @@ impl EditorState {
     }
 }
 
+/// 多选批量操作仅对选中根建命令，选中后代已随祖先删除或重挂。
 fn top_level_node_ids(scene: &Scene, node_ids: &[NodeId]) -> Vec<NodeId> {
     let selected = node_ids.iter().copied().collect::<BTreeSet<_>>();
     node_ids

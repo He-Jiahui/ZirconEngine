@@ -1,3 +1,4 @@
+// 通过编译期源文件证据约束资产边界：编辑器持有项目访问与变更流，资源类型使用规范接口。
 #[test]
 fn editor_asset_boundary_lives_in_editor_crate() {
     let app_source = include_str!("../../../ui/retained_host/app.rs");

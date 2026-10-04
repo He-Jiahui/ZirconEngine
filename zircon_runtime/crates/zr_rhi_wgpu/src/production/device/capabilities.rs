@@ -1,3 +1,4 @@
+//! 能力快照来自已创建的设备、适配器和协商配置，只公布当前中立实现真正支持的路径。
 use zr_rhi::{
     RenderAdapterClass, RenderAdapterInfo, RenderBackendCaps, RenderDeviceProfile, RenderOperation,
     RenderOperationSupport,

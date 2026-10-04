@@ -11,6 +11,8 @@ use zircon_runtime_interface::ui::{
 use super::super::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult};
 use super::UiSurfaceInputState;
 
+/// 一个活动拖拽操作的保留状态，供延迟事件验证归属以及目标伪状态同步。
+/// 原始状态方法不检查节点有效性或更新捕获/样式；完整交互应经 surface effect 事务。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiSurfaceDragDropState {
     pub session_id: UiDragSessionId,
@@ -24,6 +26,8 @@ pub struct UiSurfaceDragDropState {
 }
 
 impl UiSurfaceInputState {
+    /// 开启独占的拖拽操作；异步宿主应提供可区分连续操作的 session_id。
+    /// 省略 session_id 时以 pointer ID 作为默认标识，后续 None 只验证 pointer 归属。
     pub fn begin_drag_drop(
         &mut self,
         source: UiNodeId,

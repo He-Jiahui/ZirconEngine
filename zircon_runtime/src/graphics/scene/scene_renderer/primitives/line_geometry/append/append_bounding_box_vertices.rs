@@ -2,6 +2,7 @@ use crate::core::math::{Mat4, Vec3, Vec4};
 
 use crate::graphics::scene::scene_renderer::primitives::LineVertex;
 
+/// 将模型局部包围盒投到实例世界空间，供选中高亮描边；调用方负责选择实体和资源驻留。
 pub(crate) fn append_bounding_box_vertices(
     vertices: &mut Vec<LineVertex>,
     min: Vec3,

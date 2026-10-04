@@ -1,3 +1,4 @@
+//! 验证接口层事件与字段名称是编译器诊断的单一契约，非法路由和动作名在发布前拒绝。
 use std::collections::BTreeSet;
 
 use zircon_runtime_interface::ui::{

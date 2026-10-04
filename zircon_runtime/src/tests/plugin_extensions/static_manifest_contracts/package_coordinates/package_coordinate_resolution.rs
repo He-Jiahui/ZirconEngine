@@ -1,3 +1,4 @@
+//! 任一坐标字段出现即按完整坐标解析最终身份；否则保留已有包标识符，具体字段形状由坐标回归检查。
 use std::path::Path;
 
 use super::super::non_empty_string_value;

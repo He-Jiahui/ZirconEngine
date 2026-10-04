@@ -1,3 +1,5 @@
+//! 共享资产与输入上下文用于比较归一化、平台及 ABI 窗口路径，确保最终到达同一已载入表面。
+
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,

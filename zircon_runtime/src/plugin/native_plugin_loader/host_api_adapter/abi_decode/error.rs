@@ -10,6 +10,7 @@ use super::super::super::registration_manifest::{
 
 use super::system::MAX_NATIVE_SYSTEM_ACCESS_ENTRIES;
 
+// 解码错误留在适配器内部；构造 scope 与 C ABI 回调分别把它映射为字符串或状态码。
 pub(in super::super) type AbiDecodeResult<T> = Result<T, AbiDecodeError>;
 pub(in super::super) type NativeHostApiAdapterResult<T> = Result<T, NativeHostApiAdapterError>;
 
@@ -120,6 +121,7 @@ impl std::error::Error for AbiDecodeError {
 }
 
 #[derive(Debug)]
+/// 区分 ABI 字段错误、宿主授权错误和注册表错误，便于入口边界选择对外诊断。
 pub(in super::super) enum NativeHostApiAdapterError {
     InvalidPluginModuleOwner {
         source: RuntimeExtensionRegistryError,

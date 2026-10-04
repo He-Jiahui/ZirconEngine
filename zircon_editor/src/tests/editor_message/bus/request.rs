@@ -1,3 +1,4 @@
+//! 核对定向请求的订阅者校验、交付记录与回调锁边界；处理器移除目标后须再次验证，避免返回过期成功。
 use crate::core::editor_message::{
     EditorMessageBus, EditorMessageBusError, EditorMessageRequest, EditorMessageResponse,
     EditorRequestHandler, EditorSubscriberId, SharedEditorMessageBus,

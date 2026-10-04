@@ -1,3 +1,5 @@
+//! 检查 shader 复合包的 sidecar、源子资产、导入路径与依赖重定向在项目扫描后保持可消费。
+
 use super::*;
 
 #[test]
@@ -217,6 +219,7 @@ fn fs_main() -> @location(0) vec4f {
 }
 
 #[test]
+// 复合 shader 的作者路径是 sidecar，运行时引用却是逻辑 URI；持久化不能把二者混成新身份。
 fn compound_shader_persisted_reference_uses_zmeta_source_without_changing_uuid() {
     let root = unique_temp_project_root("compound_shader_persisted_reference");
     let paths = ProjectPaths::from_root(&root).unwrap();
@@ -406,6 +409,7 @@ fn shader_common_value() -> f32 {
 }
 
 #[test]
+// 同名模块会让 shader 依赖解析歧义；项目扫描必须在后到资源记录上暴露冲突诊断。
 fn project_manager_reports_duplicate_shader_import_path_conflicts() {
     let root = unique_temp_project_root("project_manager_shader_import_path_conflict");
     let paths = ProjectPaths::from_root(&root).unwrap();

@@ -1,3 +1,5 @@
+//! 分段控件和页签共用的密度与局部几何边界；绘制域决定状态，几何域只投影可用框。
+
 mod metrics;
 mod segmented;
 mod tabs;

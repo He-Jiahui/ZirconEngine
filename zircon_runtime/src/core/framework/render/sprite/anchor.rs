@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::math::Vec2;
 
+/// 精灵局部四边形的归一化锚点；顶点构建以左下为原点，Y 向上，场景变换随后生效。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RenderSpriteAnchor {
     pub normalized: Vec2,

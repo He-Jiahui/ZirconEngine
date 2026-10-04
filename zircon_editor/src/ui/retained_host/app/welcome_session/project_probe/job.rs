@@ -30,6 +30,7 @@ impl EditorJob for WelcomeProjectProbeJob {
 }
 
 impl WelcomeProjectProbeJob {
+    // 后台探测先验证新建路径再验证已有项目；两步间检查取消，避免旧表单输入继续占用项目权限检查。
     pub(super) fn run_with<V, P>(
         &self,
         context: &JobContext,

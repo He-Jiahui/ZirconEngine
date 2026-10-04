@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 节点图的可达性和节点 ID 规范。
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::metadata::{is_lower_snake_case_identifier, string_metadata_offender};

@@ -1,3 +1,4 @@
+//! 可读标签不能代替内建 feature 的规范身份；反序列化可保留文本，但投影到运行时资产时必须校验配对。
 use crate::graphics::{RendererDataDocument, RendererDataDocumentError};
 
 #[test]

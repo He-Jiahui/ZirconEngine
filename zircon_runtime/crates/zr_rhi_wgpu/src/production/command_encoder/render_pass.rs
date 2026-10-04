@@ -1,3 +1,4 @@
+//! 渲染通道只从本代资源表解析附件及状态；整段录制共享一个提交票据和诊断范围。
 use zr_rhi::{
     CommandListCommand, DiagnosticPassQueryScope, PipelineKind, RenderPassColorAttachmentDesc,
     RenderPassColorLoadOp, RenderPassDepthLoadOp, RenderPassDepthStencilAttachmentDesc,

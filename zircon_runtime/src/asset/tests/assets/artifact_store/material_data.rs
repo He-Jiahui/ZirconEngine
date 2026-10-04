@@ -1,3 +1,5 @@
+//! 验证材质覆盖值和动态数据经过 ArtifactCacheAsset 与压缩块往返后仍可供运行时材质描述符和数据消费端使用。
+
 use super::*;
 
 #[test]

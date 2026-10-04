@@ -1,3 +1,5 @@
+//! 验证切换按钮的互斥、多选及禁用状态。
+
 use std::fs;
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;

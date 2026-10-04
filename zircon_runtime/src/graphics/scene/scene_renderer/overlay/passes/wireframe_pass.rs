@@ -3,6 +3,7 @@ use crate::core::framework::render::DisplayMode;
 use crate::graphics::scene::scene_renderer::overlay::begin_line_pass_for_region;
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 
+/// 显示模式控制的网格边线层；纯着色模式不消费已准备的线框缓冲。
 pub(crate) struct WireframePass;
 
 impl WireframePass {

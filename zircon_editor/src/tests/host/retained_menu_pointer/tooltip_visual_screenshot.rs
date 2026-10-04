@@ -1,3 +1,4 @@
+// 核对提示浮层的紧凑默认样式、声明图标及文本区域的像素契约。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

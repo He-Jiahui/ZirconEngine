@@ -1,6 +1,7 @@
 use crate::core::framework::scene::ScenePropertyValue;
 use zircon_runtime_interface::reflect::{ReflectError, ReflectedValue};
 
+/// 把场景属性 API 的值交给反射/远程编辑边界；仅支持双方共有且可验证的值域，失败必须回传类型错误。
 pub fn reflected_from_scene_value(
     value: ScenePropertyValue,
 ) -> Result<ReflectedValue, ReflectError> {

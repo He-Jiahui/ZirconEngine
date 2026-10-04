@@ -6,6 +6,8 @@ use super::super::{
 };
 
 impl LayoutManager {
+    /// 将命中形状转换为目标声明；当前不校验源身份、停靠许可或树路径是否仍有效。
+    // TODO: [CR-EDITOR-WORKBENCH-0003] 明确此预备接口的接入意图及载荷校验owner；现有生产tab拖放走独立解析链。
     pub fn resolve_drop(&self, payload: DragPayload, target: HitTarget) -> DropTarget {
         match target {
             HitTarget::Drawer(slot) => DropTarget::Host(ViewHost::Drawer(slot)),

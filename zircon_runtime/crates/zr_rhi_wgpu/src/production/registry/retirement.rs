@@ -1,3 +1,4 @@
+//! 资源销毁先使句柄失效，原生对象引用和描述符预算估算保留至已登记的末次使用票据全部终结。
 use zr_rhi::{
     GpuMemoryClass, GpuMemorySnapshot, RhiError, SubmissionTicket, TransientAllocatorStats,
 };
@@ -30,6 +31,7 @@ impl WgpuResourceRegistry {
             self.memory_budget.transient_texture_bytes(),
         )
     }
+    // 无在途使用时直接丢弃原生对象；否则交由票据终态驱动的回收队列持有。
     pub(super) fn retire_native(
         &mut self,
         resource: WgpuRetiredResource,
@@ -91,6 +93,7 @@ impl WgpuResourceRegistry {
         }
     }
 
+    // 预算仍包含等待票据终态的退休资源；这里统计后端估算值，不观测驱动物理显存的回收时点。
     pub(crate) fn memory_snapshot(&self) -> GpuMemorySnapshot {
         let active_buffer_bytes = self
             .buffers

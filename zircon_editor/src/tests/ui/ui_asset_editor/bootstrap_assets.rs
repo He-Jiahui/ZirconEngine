@@ -1,3 +1,5 @@
+//! 验证V2 启动资产加载编译、导入水合和编辑器壳投影的会话契约。
+
 use super::support::{UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_TOML, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_TOML};
 use crate::ui::asset_editor::{
     UiAssetEditorCommand, UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession,

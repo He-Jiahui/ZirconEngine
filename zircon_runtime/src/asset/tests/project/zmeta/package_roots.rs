@@ -1,3 +1,5 @@
+//! 守护包根先注册再扫描的调用次序，使 package URI 与项目 URI 同时可解析且互不混淆。
+
 use super::*;
 
 #[test]
@@ -30,6 +32,7 @@ fn project_manager_scans_package_asset_roots_as_package_uris() {
     let package_manifest = PluginPackageManifest::new("navigation", "Navigation")
         .with_package_identity("com", "zircon", "navigation");
     let mut manager = ProjectManager::open(&root).unwrap();
+    // 包根必须在扫描前进入项目管理器，扫描才能把包内源映射到 package URI。
     manager
         .register_package_asset_roots(
             package_manifest.package_id(),

@@ -4,6 +4,8 @@ use super::super::super::super::{
     RuntimeSessionSlotImportPreviewReport,
 };
 
+// 同档案复制的共同预检：确认档案有效、目标新 ID 空闲以及显式源 ID 存在。
+// 返回采用规范化替换元数据的摘要；不复制场景、不写入档案，也不保留可供稍后提交的计划。
 pub(in crate::scene::dynamic_scene::session) fn preview_copy_slot_with_metadata(
     archive: &RuntimeSessionArchive,
     source_slot_id: &str,

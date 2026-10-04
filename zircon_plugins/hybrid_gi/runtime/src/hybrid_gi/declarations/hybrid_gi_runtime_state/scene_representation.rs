@@ -12,6 +12,7 @@ impl HybridGiRuntimeState {
         &mut self.scene_representation
     }
 
+    /// 任一场景预算启用后，计划入口跳过旧探针载荷，解析投影同时读取场景屏幕探针。
     pub(in crate::hybrid_gi) fn scene_representation_owns_runtime(&self) -> bool {
         let settings = self.scene_representation.settings();
         settings.trace_budget() > 0 || settings.card_budget() > 0 || settings.voxel_budget() > 0

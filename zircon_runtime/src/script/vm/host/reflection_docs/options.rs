@@ -1,3 +1,4 @@
+/// 文档生成时选择标题、能力和空章节输出；标题层级由渲染器钳制到 1..=6。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScriptHostInterfaceMarkdownOptions {
     pub title: String,

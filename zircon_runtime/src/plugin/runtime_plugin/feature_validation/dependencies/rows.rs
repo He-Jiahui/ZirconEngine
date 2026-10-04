@@ -6,6 +6,7 @@ use self::primary::FeaturePrimaryDependencyRows;
 use super::super::projection::RuntimePluginFeatureValidationProjection;
 use super::row;
 
+// 行检查会累积诊断；必须遍历整个依赖集合后，再裁定主依赖的整体数量。
 pub(super) fn validate_runtime_plugin_feature_dependency_rows(
     feature: &PluginFeatureBundleManifest,
     projection: &RuntimePluginFeatureValidationProjection<'_, '_>,

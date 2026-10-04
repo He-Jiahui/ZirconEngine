@@ -1,6 +1,7 @@
 use toml::Value;
 use zircon_runtime_interface::ui::{style::UiRgbaColor, tree::UiTemplateNodeMetadata};
 
+/// 专用 painter 分流依据；仅解释模板组件及别名，不表示标签页的文档或导航所有权。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum SegmentedControlKind {
     SegmentedControl,
@@ -19,6 +20,8 @@ pub(super) fn is_segmented_or_tab(metadata: &UiTemplateNodeMetadata) -> bool {
     control_kind(metadata).is_some()
 }
 
+/// 将作者选项投影为当前 painter 使用的文字键；字符串或表对象的首个展示字段共同用于匹配 value。
+/// 调用方据此绘制均分区域，不在这里派发选择事件或建立每项的保留节点。
 pub(super) fn segmented_options(metadata: &UiTemplateNodeMetadata) -> Vec<String> {
     metadata
         .attributes
@@ -128,6 +131,7 @@ fn value_as_f32(value: &Value) -> Option<f32> {
     value.is_finite().then_some(value)
 }
 
+/// 约定绝对行高优先于比例行高，避免把像素值再次乘字号；未提供有效覆盖时保持令牌回退。
 pub(super) fn line_height(
     metadata: &UiTemplateNodeMetadata,
     absolute_key: &str,

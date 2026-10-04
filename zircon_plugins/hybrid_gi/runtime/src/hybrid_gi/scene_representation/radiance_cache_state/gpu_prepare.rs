@@ -34,6 +34,7 @@ impl HybridGiRadianceCacheState {
             .collect()
     }
 
+    // 滚动后仍在同一世界位置的格点更新代际，但由 reuse_committed_radiance 指示 GPU 保留原槽辐照。
     pub(in crate::hybrid_gi::scene_representation) fn gpu_updates(
         &self,
     ) -> Vec<HybridGiPrepareRadianceCacheUpdate> {

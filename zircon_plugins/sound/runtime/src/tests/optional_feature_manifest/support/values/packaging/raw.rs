@@ -1,3 +1,4 @@
+// 导出默认策略按运行时枚举比较，未知静态策略不能默认为已有模式。
 pub(in super::super) fn packaging_strategy_from_plugin_toml(
     value: String,
 ) -> zircon_runtime::core::framework::project::ExportPackagingStrategy {

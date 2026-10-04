@@ -1,3 +1,4 @@
+// ABI 回调的失败详情应进入执行报告，供宿主识别具体处理器失败原因。
 use super::super::*;
 
 use super::support::{failing_abi_callback, register_abi_event_and_handler};

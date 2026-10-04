@@ -1,6 +1,7 @@
 use crate::project::RelPath;
 use crate::resource::AssetUuid;
 
+/// Persistent project-asset identity with a movable path hint and optional subasset path.
 /// 持久化项目资产引用：GUID 是注册表解析的权威身份，path_hint 只供候选定位及迁移修复，
 /// sub 与注册项中的子资产标签精确匹配。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

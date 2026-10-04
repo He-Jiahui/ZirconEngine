@@ -1,3 +1,5 @@
+//! 在组标题之后构建主体、分隔线、选中层和标签；将稳定的选项数映射到相等的段宽。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_segmented_control_geometry::{
@@ -10,6 +12,7 @@ use super::divider::push_segment_divider;
 use super::selected::push_selected_segment;
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
+/// 入口已经确认有非空选项；先绘组标题，主体按同一 option_count 均分，命令层级为表面、分隔、选中、文字。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_segmented_control(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

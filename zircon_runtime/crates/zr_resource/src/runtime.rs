@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ResourceId, ResourceKind, ResourceLocator};
 
+/// 统一的运行时资源身份与状态读取契约，不暴露具体载荷；调用端需要内容时转向管理器的类型化读取。
 pub trait Resource: Send + Sync {
     fn id(&self) -> ResourceId;
     fn kind(&self) -> ResourceKind;
@@ -10,6 +11,7 @@ pub trait Resource: Send + Sync {
     fn runtime_state(&self) -> RuntimeResourceState;
 }
 
+/// 描述运行时载荷的驻留/加载状态；目录 Ready 只表示内容可加载，可能仍处于 Unloaded。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RuntimeResourceState {
     #[default]
@@ -20,6 +22,7 @@ pub enum RuntimeResourceState {
     Reloading,
 }
 
+/// 某次查询返回的运行时信息值；它不持有管理器锁或租约，之后的发布不会自动更新此值。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceRuntimeInfo {
     pub id: ResourceId,

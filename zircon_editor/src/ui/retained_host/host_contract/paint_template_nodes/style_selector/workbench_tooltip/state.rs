@@ -1,3 +1,5 @@
+//! 状态配方为 Tooltip 的气泡、文字、图标、箭头和阴影提供一致视觉通道；声明色在外层选择器按状态应用。
+
 use super::model::WorkbenchTooltipStyle;
 use super::palette::{tooltip_normal_style_from_palette, tooltip_palette, WorkbenchTooltipPalette};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;

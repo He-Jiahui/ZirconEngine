@@ -7,6 +7,7 @@ use super::{
     work_deadline::PreferenceWorkDeadline,
 };
 
+/// Versioned manager contract consumed by runtime clients and host adapters.
 /// 平台管理端提供的首选项契约；宿主后端原语只允许持有工作权限的 IO 执行者调用。
 /// 写入先建立可见代际，再由票据报告持久化终态；调用方不能把提交成功当作落盘。
 pub trait PreferenceStorage: Send + Sync + 'static {

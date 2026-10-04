@@ -20,10 +20,12 @@ impl Default for PluginMaturity {
 }
 
 impl PluginMaturity {
+    /// 为要求真实提供者的配置标识不可用状态；当前可用性投影另行处理各分类。
     pub const fn is_unavailable_for_required_profile(self) -> bool {
         matches!(self, Self::Externalized | Self::Stub | Self::Deprecated)
     }
 
+    /// 用于配置候选的成熟度门槛；投影调用前还需应用特殊不可用状态规则。
     pub fn meets_minimum(self, minimum: Self) -> bool {
         maturity_rank(self) >= maturity_rank(minimum)
     }

@@ -1,4 +1,5 @@
 //! Static contracts for React/MUI Zircon Hub top header chrome.
+//! 检查顶栏的账户、引擎和窗口动作都经共享组件与 Tauri 权限边界。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,8 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 顶栏给用户一个统一的品牌、引擎、账户与窗口动作入口。
+// BUG: [CR-HUBTESTB-0010] 顶栏现消费账户控制器且窗口动作经调度器，旧的本地账户和固定禁用断言必失败；证据：topbar_owns_brand_engine_status_user_and_window_control_regions 读取 TopBar.tsx。
 #[test]
 fn topbar_owns_brand_engine_status_user_and_window_control_regions() {
     let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
@@ -89,6 +93,7 @@ fn topbar_owns_brand_engine_status_user_and_window_control_regions() {
     );
 }
 
+// 帮助和设置导航应经共享动作处理器而非页内状态跳转。
 #[test]
 fn topbar_routes_engine_user_settings_and_help_regions_through_shared_actions() {
     let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
@@ -129,6 +134,7 @@ fn topbar_routes_engine_user_settings_and_help_regions_through_shared_actions() 
     );
 }
 
+// 状态徽标和图标按钮承担顶栏重复视觉与可访问名称。
 #[test]
 fn status_badge_and_icon_button_own_reusable_header_chrome() {
     let status_badge = read_crate_file("web/src/components/data/StatusBadge.tsx");
@@ -176,6 +182,7 @@ fn status_badge_and_icon_button_own_reusable_header_chrome() {
     );
 }
 
+// 品牌资源与无后端状态的文案由集中数据层提供。
 #[test]
 fn brand_asset_and_fallback_header_state_stay_centralized() {
     let data = read_crate_file("web/src/data/hubData.ts");
@@ -214,6 +221,7 @@ fn brand_asset_and_fallback_header_state_stay_centralized() {
     );
 }
 
+// 退出能力取决于账户授权阶段，需跟随真实账户控制器。
 #[test]
 fn user_menu_keeps_local_v1_sign_out_reserved_and_disabled() {
     let user_menu = read_crate_file("web/src/components/overlays/UserMenuPopover.tsx");
@@ -278,6 +286,7 @@ fn user_menu_keeps_local_v1_sign_out_reserved_and_disabled() {
     );
 }
 
+// 无边框窗口控件须通过受权 Tauri API 调用并传递失败回调。
 #[test]
 fn frameless_window_controls_call_tauri_current_window_actions() {
     let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
@@ -322,6 +331,7 @@ fn frameless_window_controls_call_tauri_current_window_actions() {
     );
 }
 
+// 文档记录顶栏共享组件与权限边界。
 #[test]
 fn shell_header_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -356,6 +366,7 @@ fn shell_header_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检顶栏测试读取当前窗口与前端状态源。
 #[test]
 fn shell_header_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_shell_header_contract.rs");

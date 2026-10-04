@@ -1,3 +1,4 @@
+// 图更新应尽量复用已安装轨道和发送路径；需要改变拓扑时才触发子树重建。
 use kira::backend::mock::MockBackend;
 use zircon_runtime::core::framework::sound::{SoundTrackDescriptor, SoundTrackId};
 

@@ -1,3 +1,4 @@
+//! 当前活动窗口的菜单偏好及默认窗口模板只读投影。
 use zircon_runtime_interface::math::UVec2;
 
 use crate::scene::viewport::SceneViewportChromeSettings;
@@ -13,6 +14,7 @@ use crate::ui::workbench::view::{
 use crate::ui::workbench::window_registry::MenuOverflowMode;
 
 #[test]
+/// 验证偏好来自活动窗口而非全局常量，供菜单呈现选择溢出方式。
 fn chrome_builder_reads_active_window_menu_overflow_preference() {
     let mut layout = WorkbenchLayout::default();
     layout
@@ -27,6 +29,7 @@ fn chrome_builder_reads_active_window_menu_overflow_preference() {
 }
 
 #[test]
+/// 核对默认工作窗口描述符模板能跨chrome边界保留，实际模板加载由宿主另行完成。
 fn chrome_builder_carries_default_workbench_window_template() {
     let layout = WorkbenchLayout::default();
     let descriptors = vec![ViewDescriptor::new(
@@ -56,6 +59,7 @@ fn chrome_builder_carries_default_workbench_window_template() {
     );
 }
 
+/// 给菜单和模板投影提供无项目数据，避免场景状态影响壳层断言。
 fn empty_editor_data() -> EditorDataSnapshot {
     EditorDataSnapshot {
         scene_entries: Default::default(),

@@ -1,3 +1,4 @@
+//! 验证通用 V2 与产品 ZUI 加载入口的不同根形约束，图与重复节点错误应在表面构建前报告。
 use super::*;
 use zircon_runtime_interface::ui::v2::{
     UiV2ComponentDefinition, UiV2Repeat, UiV2RepeatValidationError,

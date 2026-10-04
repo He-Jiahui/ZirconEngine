@@ -5,6 +5,7 @@ use crate::ui::workbench::view::ViewInstanceId;
 use super::{ActivityDrawerSlot, ActivityWindowId, MainPageId, WorkspaceTarget};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 布局命令的结构或数值拒绝原因；返回错误不保证布局未变，失败后状态取决于具体命令的修改边界。
 pub enum LayoutCommandError {
     MissingWorkspacePath {
         workspace: WorkspaceTarget,

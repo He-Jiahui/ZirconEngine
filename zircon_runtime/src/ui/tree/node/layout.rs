@@ -1,6 +1,8 @@
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
 use zircon_runtime_interface::ui::tree::{UiTree, UiTreeError};
 
+/// 宿主手动改变影响布局的节点字段后使用的失效入口；同时记录增量源节点并影响绘制和命中。
+/// 沿父链传播到依赖边界，调用树应保持父链无环；直接写 dirty 位不能替代源节点登记。
 pub trait UiRuntimeTreeLayoutExt {
     fn mark_layout_dirty(&mut self, node_id: UiNodeId) -> Result<(), UiTreeError>;
 }

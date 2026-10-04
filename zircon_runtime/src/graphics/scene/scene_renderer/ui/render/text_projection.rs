@@ -1,4 +1,5 @@
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 字形裁剪空间变换，由 SDF 顶点和装饰几何共同消费；非有限矩阵回退恒等以保护绘制。
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiTextClipTransform {
     rows: [[f32; 4]; 4],
 }

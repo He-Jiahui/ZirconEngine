@@ -1,3 +1,4 @@
+// 根据新表头选择保留、提交或关闭当前功能；顺序与固定 TOML 的嵌套记录一致。
 use super::super::super::section::OptionalFeatureSection;
 use super::super::{flush, OptionalFeatureParserState};
 

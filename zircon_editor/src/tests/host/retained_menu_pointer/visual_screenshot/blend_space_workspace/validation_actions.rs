@@ -1,3 +1,4 @@
+// 核对诊断筛选控件的唯一动作路由及行可见性与选择同步。
 use super::*;
 
 use crate::ui::binding::EditorUiBindingPayload;

@@ -5,6 +5,8 @@ use super::{
     NetWebSocketFrame, NetWebSocketListenerDescriptor,
 };
 
+/// Runtime 通过服务句柄访问的网络能力边界；UDP/TCP 句柄由本管理器创建并关闭，HTTP/WebSocket 由可选后端提供。
+/// poll 与 drain 方法只取本次可用数据；调用方需保留句柄并持续驱动读取与事件消费。
 pub trait NetManager: Send + Sync {
     fn backend_name(&self) -> String;
     fn runtime_mode(&self) -> NetRuntimeMode;

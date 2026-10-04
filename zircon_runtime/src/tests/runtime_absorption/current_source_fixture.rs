@@ -1,3 +1,4 @@
+//! 归档的实现输出记录是运行时结构守卫共享的只读证据。以结果断言检查当前接口或源码快照对应的边界。
 pub(crate) const RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT: &str = include_str!(
     "../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
 );

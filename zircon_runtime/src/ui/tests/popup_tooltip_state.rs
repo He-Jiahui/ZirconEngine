@@ -1,3 +1,4 @@
+//! 通过分发回复入口核对弹窗栈、提示状态与主机请求的同步契约；这里不经过默认输入路由。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     dispatch::{

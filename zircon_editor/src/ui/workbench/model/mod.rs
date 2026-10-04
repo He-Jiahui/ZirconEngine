@@ -36,6 +36,7 @@ pub use tool_window_stack_model::ToolWindowStackModel;
 pub use workbench_view_model::WorkbenchViewModel;
 
 #[cfg(test)]
+/// 测试简化构造仍走宿主评估投影，防止菜单测试另造命令可用性规则。
 fn host_command_eval_ctx_for_test(
     chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
     play_mode: crate::core::play::PlayModeKind,

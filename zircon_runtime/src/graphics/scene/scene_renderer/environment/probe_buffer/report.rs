@@ -3,6 +3,7 @@ use crate::core::resource::ResourceId;
 use super::upload::{ReflectionProbeAssetError, ReflectionProbeAssetRejection};
 
 #[derive(Clone, Copy)]
+/// 已编入本帧上传、尚未确认提交的槽位身份；prepare_epoch 防止旧作业提交覆盖新分配。
 pub(super) struct PendingReflectionProbeUpload {
     pub(super) cubemap: ResourceId,
     pub(super) revision: u64,
@@ -11,6 +12,7 @@ pub(super) struct PendingReflectionProbeUpload {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 探针准备阶段的选择、装载和预定上传统计；计数表示已安排工作，不表示 GPU 已完成。
 pub(in crate::graphics::scene::scene_renderer) struct ReflectionProbeUploadReport {
     pub(in crate::graphics::scene::scene_renderer) extracted_probe_count: usize,
     pub(in crate::graphics::scene::scene_renderer) camera_layer_candidate_count: usize,

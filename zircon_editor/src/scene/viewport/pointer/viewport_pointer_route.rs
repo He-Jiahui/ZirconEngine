@@ -1,3 +1,5 @@
+//! 编辑器路由与 Runtime 目标一一映射，owner 与轴身份从统一排序后返回，再由宿主校验实际操作权限。
+
 use crate::scene::viewport::GizmoAxis;
 use zircon_runtime::core::framework::picking::{HitTarget, PickingAxis};
 

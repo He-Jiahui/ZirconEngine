@@ -1,3 +1,4 @@
+//! 直接并行库调用只由核心任务原语拥有，生产扫描负责报告越界引用。以结果断言检查当前接口或源码快照对应的边界。
 use super::support::{classify_rayon_reference, collect_rayon_references, rust_source_files};
 
 #[test]

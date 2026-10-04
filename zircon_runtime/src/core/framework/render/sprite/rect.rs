@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::math::Vec2;
 
+/// 图像布局使用的源矩形；无自定义绘制尺寸时，其跨度也决定精灵本地尺寸。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RenderSpriteRect {
     pub min: Vec2,

@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 
 use crate::core::math::Real;
 
+/// 键盘平移速度按世界单位/秒、旋转速度按弧度/秒解释；拖拽速度按视口最短边和当前缩放折算。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PanCameraSettings {
     pub pan_speed: Real,

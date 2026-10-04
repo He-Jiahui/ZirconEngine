@@ -1,3 +1,4 @@
+//! 完整后处理产品场景把速度、SSR、景深、曝光、LUT 与终止输出串在同一图中；测试统计和帧信号共同验证消费链。
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;

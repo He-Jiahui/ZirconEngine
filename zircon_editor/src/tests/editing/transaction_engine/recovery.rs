@@ -1,3 +1,4 @@
+//! 以应用、逆转和选区恢复的注入失败核对事务回滚边界；失败时历史游标、上下文和命令释放必须保持可解释状态。
 use std::sync::atomic::Ordering;
 
 use crate::core::editing::engine::{EditCommandError, EditorTransactionEngine, HistoryContextId};

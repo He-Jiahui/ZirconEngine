@@ -4,6 +4,7 @@ use super::super::super::{
 };
 use super::super::mesh::RenderMeshSnapshot;
 
+/// 轻量视口包中的相机、网格和基础灯光；不包含正式帧的粒子、VG 与高级 sideband。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderSceneGeometryExtract {
     pub camera: ViewportCameraSnapshot,

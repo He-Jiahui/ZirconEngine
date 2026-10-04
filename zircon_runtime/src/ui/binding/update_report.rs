@@ -1,3 +1,6 @@
+//! 属性事务、组件默认行为和辅助技术动作共同使用的报告构造边界。
+//! 调用者先决定是否应用、前后值及脏域；这里保留来源与目标区分，不执行写入或触发刷新。
+
 use zircon_runtime_interface::ui::{
     binding::{
         UiBindingSource, UiBindingSourceKind, UiBindingTarget, UiBindingUpdate,

@@ -1,3 +1,4 @@
+//! Retained UI 输入、journal 重放与反射刷新共用语义事件；可合并移动不能跨越按下/释放屏障。
 use super::super::*;
 use crate::core::editor_event::EditorViewportEvent;
 use crate::core::editor_message::{EditorUiDeltaBarrierKind, EditorUiDeltaEntry};

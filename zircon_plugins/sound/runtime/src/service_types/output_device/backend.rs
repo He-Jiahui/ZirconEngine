@@ -1,3 +1,4 @@
+//! 编辑器通过此状态区分被禁用、启动失败和已准备但尚未启动的后端；状态描述不等于正在发声。
 use zircon_runtime::core::framework::sound::{SoundBackendState, SoundBackendStatus};
 
 use super::super::DefaultSoundManager;

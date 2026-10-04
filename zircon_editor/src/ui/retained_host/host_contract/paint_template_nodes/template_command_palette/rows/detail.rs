@@ -1,3 +1,5 @@
+//! 候选辅助列的单行绘制入口；description 可能是快捷键或说明，不能在此当作可执行命令解析。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

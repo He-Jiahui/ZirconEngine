@@ -1,3 +1,5 @@
+//! 状态专用 glyph 不决定身份或布局，仅把已解析的 icon/signal 语义落到资产或简单圆点。
+
 mod geometry;
 mod icon_glyphs;
 mod signals;

@@ -1,3 +1,6 @@
+//! ECS First 阶段发布 net manager 事件并同步诊断到 Core；Last 阶段保留出站命令收集的调度锚点。
+//! 系统通过服务句柄访问 manager，插件登记时无需提前创建 socket。
+
 use zircon_runtime::core::framework::net::NetDiagnostics;
 use zircon_runtime::core::manager::{net_manager_handle, resolve_manager_service};
 use zircon_runtime::core::{CoreError, CoreHandle};
@@ -58,6 +61,7 @@ fn run_net_poll_ingress(context: RuntimeSceneSystemContext<'_>) -> Result<(), Co
         return Ok(());
     };
     let diagnostics = net.diagnostics();
+    // BUG: [CR-PLUGIN-NET-0003] 每帧都传 0，滚动诊断历史失去实际帧坐标。
     record_net_diagnostics(context.core, 0, &diagnostics);
     let events = net.drain_events(NET_POLL_INGRESS_EVENT_BUDGET);
     if events.is_empty() {
@@ -72,6 +76,7 @@ fn run_net_poll_ingress(context: RuntimeSceneSystemContext<'_>) -> Result<(), Co
     Ok(())
 }
 
+// Last 阶段暂作稳定调度锚点，供后续帧命令收集路径接入；当前 manager 方法直接提交 worker。
 fn run_net_flush_egress(_context: RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> {
     Ok(())
 }

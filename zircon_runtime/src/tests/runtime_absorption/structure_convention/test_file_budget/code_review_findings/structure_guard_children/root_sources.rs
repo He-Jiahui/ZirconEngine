@@ -1,3 +1,4 @@
+//! 为审查目录结构读取或聚合父子源码，保留路径与文本的配对关系供上层检查；聚合结果只描述被列入清单的文件。
 use super::*;
 
 pub(super) fn structure_guard_child_sources() -> Vec<(&'static str, String)> {

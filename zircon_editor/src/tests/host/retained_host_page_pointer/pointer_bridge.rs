@@ -1,3 +1,4 @@
+// 从宿主页面原生回执进入指针桥，约束关闭权限、陈旧回执和重复投影。
 use crate::ui::retained_host::host_page_pointer::{HostPagePointerBridge, HostPagePointerRoute};
 
 use super::support::sample_host_page_layout;

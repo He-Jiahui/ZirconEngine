@@ -100,6 +100,7 @@ impl AiBlackboardEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Schema 约束键名、值类型和必填性；运行时在注册和每次代理输入校验时使用它。
 pub struct AiBlackboardKeyDescriptor {
     pub key: String,
     pub value_type: String,
@@ -113,6 +114,7 @@ impl AiBlackboardKeyDescriptor {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 代理黑板的共享布局；树的观察者需要它把键绑定到稳定槽位，注册后才可在 tick 中引用。
 pub struct AiBlackboardSchemaDescriptor {
     pub id: String,
     pub display_name: String,

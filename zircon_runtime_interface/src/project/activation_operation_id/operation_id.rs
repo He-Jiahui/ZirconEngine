@@ -5,6 +5,7 @@ use super::{
     ProjectActivationOperationIdError, ProjectActivationOperationSequence, ProjectLaunchInstanceId,
 };
 
+/// Versioned-launch identity that binds an origin instance, its monotonic sequence, and a nonce.
 /// 跨启动请求与恢复记录传递的操作身份，由来源进程、单调序号和 nonce 共同确定。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct ProjectActivationOperationId {

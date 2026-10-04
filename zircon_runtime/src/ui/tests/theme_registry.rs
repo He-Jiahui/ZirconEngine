@@ -1,3 +1,4 @@
+//! 验证主题令牌与角色颜色解析，直接颜色不经角色替换且主题更新改变指纹。
 use crate::ui::theme::UiThemeRegistry;
 use zircon_runtime_interface::ui::style::{
     UiRgbaColor, UiStyleColor, UiThemeDocument, UiThemeTokenRef,

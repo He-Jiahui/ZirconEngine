@@ -7,6 +7,7 @@ pub enum UiInvalidationDiagnosticSeverity {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 失效分类发现异常时保留阶段与源路径，供报告消费者呈现而不改变已判定的阶段集合。
 pub struct UiInvalidationDiagnostic {
     pub code: String,
     pub severity: UiInvalidationDiagnosticSeverity,

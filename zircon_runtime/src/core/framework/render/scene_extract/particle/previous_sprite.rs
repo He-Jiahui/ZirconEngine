@@ -6,6 +6,7 @@ use super::{
     RenderParticleSpriteSnapshot,
 };
 
+/// 成功提交的上一帧粒子状态，用复合身份与当前帧配对以构造运动向量。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RenderParticlePreviousSpriteSnapshot {
     pub entity: EntityId,
@@ -32,6 +33,7 @@ impl RenderParticlePreviousSpriteSnapshot {
         }
     }
 
+    /// 供提交成功后的历史更新调用，连同该帧相机基向量保存可复现的旧公告板。
     pub fn from_current_with_billboard_basis(
         sprite: &RenderParticleSpriteSnapshot,
         right: Vec3,

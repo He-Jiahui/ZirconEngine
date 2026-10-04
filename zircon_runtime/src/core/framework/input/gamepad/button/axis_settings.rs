@@ -34,6 +34,7 @@ impl GamepadButtonAxisSettings {
         }
     }
 
+    /// 无效输入或变化未达到阈值时返回 None；管理器据此保留上次幅值和按钮状态。
     pub fn process_value(self, raw_value: f32, previous_value: Option<f32>) -> Option<f32> {
         if !raw_value.is_finite() {
             return None;

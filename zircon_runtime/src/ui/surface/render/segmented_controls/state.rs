@@ -7,6 +7,8 @@ use zircon_runtime_interface::ui::{
 
 use super::{super::painter_state::UiRenderPainterStateSource, metadata::bool_attribute};
 
+/// 分段组/标签页共享 Tab painter 优先级；active 表示语义选中，surface_hot 独立保留指针活动。
+/// 组内哪个 option 被选中仍由内容层将文字键与 value 对比，不能从整个控件的视觉状态推导。
 #[derive(Clone, Copy)]
 pub(super) struct SegmentedRenderState {
     family: UiPainterFamily,

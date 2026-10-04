@@ -1,3 +1,4 @@
+// 从浮窗共享路由切换焦点，约束全局焦点、局部活动标签和关闭后的回退选择。
 use super::super::support::*;
 use crate::core::editor_event::{
     LayoutCommand as EventLayoutCommand, ViewInstanceId as EventViewInstanceId,

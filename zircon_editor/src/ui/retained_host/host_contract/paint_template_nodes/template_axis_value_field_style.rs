@@ -1,3 +1,5 @@
+//! 变换轴输入外观的共享样式入口；surface/text 分别消费背景、轮廓、文字选择结果，保证同一状态优先级。
+
 mod background;
 mod border;
 mod colors;

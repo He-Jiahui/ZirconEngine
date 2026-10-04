@@ -1,5 +1,6 @@
 use super::{assert_contains_all, assert_contains_all_exact, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0044] 帧提取中的几何阶段输入与批处理类型的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_frame_extract_geometry_is_child_owner() {
     let root = read_runtime_src("core/framework/render/frame_extract.rs");

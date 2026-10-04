@@ -1,3 +1,5 @@
+//! 宿主向界面交付的菜单快照：分组只承担层级，叶项携带规范操作身份与动作；界面触发后仍应进入统一命令分派重新校验。
+
 use crate::core::editor_event::MenuAction;
 use crate::core::editor_operation::EditorOperationPath;
 
@@ -12,6 +14,7 @@ pub struct MenuModel {
     pub items: Vec<MenuItemModel>,
 }
 
+/// 菜单展示与动作之间的投影边界；分组通常没有可执行操作，禁用状态来自生成时上下文。
 #[derive(Clone, Debug, PartialEq)]
 pub struct MenuItemModel {
     pub label: String,

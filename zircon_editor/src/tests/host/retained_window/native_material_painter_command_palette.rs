@@ -1,3 +1,4 @@
+// 核对命令面板开启时的行与搜索绘制及关闭时的绘制消耗。
 use std::rc::Rc;
 
 use crate::ui::retained_host::primitives::{ModelRc, VecModel};

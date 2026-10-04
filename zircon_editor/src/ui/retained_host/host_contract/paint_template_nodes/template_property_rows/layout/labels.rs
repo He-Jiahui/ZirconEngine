@@ -1,3 +1,5 @@
+//! 标签宽度按属性类别的偏好值分配，同时保留整行比例给值区；短行不靠扩大文字框来维持可读性。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::identity::is_component_property_row;
 use super::metrics::property_row_metrics;

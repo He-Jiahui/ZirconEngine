@@ -17,6 +17,7 @@ use super::super::super::{
 use super::collapsed_constraints::collapsed_region_constraints;
 use super::presence::{tool_region_extent, tool_region_has_tabs, tool_region_is_expanded};
 
+/// 聚合一个壳侧区的工具slots；空区退出占位，折叠区仅保留chrome，展开区使用代表内容与尺寸偏好。
 pub(crate) fn build_tool_region_state(
     model: &WorkbenchViewModel,
     layout: &WorkbenchLayout,
@@ -39,6 +40,7 @@ pub(crate) fn build_tool_region_state(
         token_region_preferred,
     );
 
+    // 无可见内容时不能让descriptor默认值继续挤占中心空间。
     if !has_tabs {
         return RegionState {
             visible: false,
@@ -47,6 +49,7 @@ pub(crate) fn build_tool_region_state(
         };
     }
 
+    // 窄窗口策略只改变本轮几何，不回写用户持久化的drawer mode。
     if !expanded || force_collapsed {
         return RegionState {
             visible: true,

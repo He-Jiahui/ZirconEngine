@@ -1,3 +1,4 @@
+// 经停机图编辑与快照入口核对同一目标发送被覆盖后仅保留一项及新增益，不安装 Kira 路由。
 use super::super::super::super::*;
 
 #[test]

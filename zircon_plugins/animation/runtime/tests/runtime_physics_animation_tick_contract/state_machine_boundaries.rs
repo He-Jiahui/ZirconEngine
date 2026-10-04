@@ -1,3 +1,4 @@
+//! 图状态事件与姿态共享求值，以及非法转换持续时间切换边界的集成契约。
 use super::*;
 use zircon_runtime::scene::AnimationStateTransitionRuntime;
 

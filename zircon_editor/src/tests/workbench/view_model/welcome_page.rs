@@ -1,3 +1,4 @@
+//! Welcome会话材料通过chrome进入独占页面模型，保留欢迎文案并隐藏抽屉。
 use crate::core::project::RecentProjectValidation;
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::workbench::layout::{MainHostPageLayout, MainPageId, WorkbenchLayout};
@@ -16,6 +17,7 @@ use crate::ui::workbench::view::{
 use zircon_runtime_interface::math::UVec2;
 
 #[test]
+/// 直接构造Welcome快照验证页面、内容kind及breadcrumb；按钮可用提示不等于已创建或打开项目。
 fn welcome_startup_projects_into_exclusive_page_model() {
     let descriptors = vec![ViewDescriptor::new(
         ViewDescriptorId::new("editor.welcome"),

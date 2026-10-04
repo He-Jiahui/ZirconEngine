@@ -26,6 +26,7 @@ pub enum RenderVirtualGeometryExecutionState {
     Missing,
 }
 
+/// 把绘制提交映回源实例、页与驻留状态，供调试快照解释重复绘制和退化路径。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderVirtualGeometryExecutionSegment {
     pub original_index: u32,
@@ -57,6 +58,7 @@ impl RenderVirtualGeometryExecutionSegment {
     }
 }
 
+/// 图形运行时选择的簇记录；固定字布局用于调试读回而非持久化资产格式。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderVirtualGeometrySelectedCluster {
     pub instance_index: Option<u32>,
@@ -225,6 +227,7 @@ pub struct RenderVirtualGeometryVisBufferMark {
     pub color_rgba: [u8; 4],
 }
 
+/// 64 位可视缓冲调试条目；编码后不含完整 entity，解码方只能恢复位域内的身份。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderVirtualGeometryVisBuffer64Entry {
     pub entry_index: u32,
@@ -252,6 +255,8 @@ impl RenderVirtualGeometryVisBuffer64Entry {
     const LOD_SHIFT: u64 = Self::INSTANCE_SHIFT + Self::INSTANCE_BITS;
     const STATE_SHIFT: u64 = Self::LOD_SHIFT + Self::LOD_BITS;
 
+    // TODO: [CR-RENDER-MISC-0002] 核实簇、页、实例和 LOD 分配上界；此处直接截断为 20/20/16/6 位，超界 ID 会别名化。
+    /// 调用方须保证各 ID 落在位域内；结果作为读回流中的压缩身份。
     pub fn packed_value_for(
         instance_index: Option<u32>,
         cluster_id: u32,

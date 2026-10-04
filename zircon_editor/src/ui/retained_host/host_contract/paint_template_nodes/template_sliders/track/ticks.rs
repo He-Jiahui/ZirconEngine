@@ -1,9 +1,12 @@
+//! 刻度数量先由声明值限制，再按实际轨道宽度重限；避免极端值产生过多 quad。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchSliderStyle;
 use super::super::super::template_slider_geometry::workbench_slider_metrics;
 use zircon_runtime_interface::ui::surface::ui_slider_tick_count_for_track;
 
+/// 接收声明刻度上限后再按像素列数限流；轨道很窄时不画无意义的一刻度。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_ticks(
     commands: &mut Vec<HostPaintCommand>,
     track_rect: &FrameRect,

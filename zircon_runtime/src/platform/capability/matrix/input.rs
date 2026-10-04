@@ -8,6 +8,8 @@ use super::super::status::CapabilityStatus;
 use super::PlatformCapabilityMatrix;
 use crate::platform::PlatformTarget;
 
+// 物理事件查询先排除 server/headless 再检查 gate；通用输入来源先检查 gate，
+// 然后允许 server/headless 的 SyntheticOnly，状态目录本身不执行输入注入。
 impl PlatformCapabilityMatrix {
     pub(super) fn mouse_wheel_backend(
         self,

@@ -1,3 +1,5 @@
+//! 从当前宿主主题取得弹出行角色色；选中或按压的低强调表面与危险操作正文保持不同语义。
+
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{

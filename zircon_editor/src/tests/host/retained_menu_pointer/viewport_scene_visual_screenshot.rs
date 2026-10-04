@@ -1,3 +1,4 @@
+// 核对宽窄视口下场景扶手立柱仍可见的绘制回归契约。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

@@ -1,3 +1,4 @@
+//! 用位图累计有效唯一序列、重复与畸形记录；缺失需由上层将计数与预期输出对照。
 const WORD_BITS: usize = u64::BITS as usize;
 
 #[derive(Clone, Copy)]

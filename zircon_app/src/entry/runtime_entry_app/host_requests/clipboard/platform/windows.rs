@@ -1,3 +1,6 @@
+//! 目标窗口线程上执行 Win32 Unicode 剪贴板事务。
+//! 打开、锁定和全局内存拥有权由局部 guard 收束；只有完成移交后剪贴板才拥有写入内存。
+
 use std::{mem::size_of, ptr};
 
 use windows_sys::Win32::Foundation::{
@@ -15,6 +18,7 @@ use winit::window::Window;
 use zircon_runtime_interface::ui::dispatch::UiClipboardTransferFailure;
 use zircon_runtime_interface::ZR_RUNTIME_CLIPBOARD_TEXT_MAX_ENCODED_BYTES_V1;
 
+/// 仅在有目标 Win32 窗口时读 Unicode 文本；将平台内存限制为 ABI 可接收的字节预算。
 pub(super) fn read_text(window: Option<&dyn Window>) -> Result<String, UiClipboardTransferFailure> {
     let _clipboard = ClipboardGuard::open(clipboard_owner(window)?)?;
     // SAFETY: the clipboard is open on this event-loop thread and the returned handle remains
@@ -53,6 +57,7 @@ pub(super) fn read_text(window: Option<&dyn Window>) -> Result<String, UiClipboa
     Ok(text)
 }
 
+/// 以当前窗口 HWND 打开剪贴板，成功移交全局内存后才报告完成。
 pub(super) fn write_text(
     window: Option<&dyn Window>,
     text: &str,
@@ -67,6 +72,7 @@ pub(super) fn write_text(
         .checked_mul(size_of::<u16>())
         .ok_or(UiClipboardTransferFailure::PayloadTooLarge)?;
     let _clipboard = ClipboardGuard::open(clipboard_owner(window)?)?;
+    // BUG: [CR-APP-ENTRY-0012] 清空剪贴板后 GlobalAlloc、GlobalLock 或 SetClipboardData 仍可能失败；调用方收到失败回执但旧内容已丢失；证据：本函数清空在可失败写入操作之前。
     // SAFETY: the clipboard is open and EmptyClipboard has no pointer preconditions.
     if unsafe { EmptyClipboard() } == 0 {
         return Err(last_clipboard_failure());

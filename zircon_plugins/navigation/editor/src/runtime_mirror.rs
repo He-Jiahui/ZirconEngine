@@ -57,6 +57,7 @@ pub enum NavigationPieMirrorError {
 }
 
 #[derive(Clone, Debug, Default)]
+/// PIE 镜像同时核对会话、投递序号与网格拥有者代次，拒绝旧帧覆盖当前视图。
 pub struct NavigationPieMirror {
     play_session_id: Option<u64>,
     frame: Option<NavigationPieFrame>,

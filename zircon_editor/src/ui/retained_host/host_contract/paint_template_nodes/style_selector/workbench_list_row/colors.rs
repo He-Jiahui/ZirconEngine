@@ -1,3 +1,6 @@
+//! 列表行正文按已标记状态在主文字与次文字之间选择；勾选标记的装饰色另由 checked 决定，节点声明色只覆盖各自通道。
+//! 禁用或加载优先使用禁用文字角色；声明色透明度为零时退回当前主题角色。
+
 use super::palette::{workbench_list_row_palette, WorkbenchListRowPalette};
 use super::state::is_unavailable_list_row_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;

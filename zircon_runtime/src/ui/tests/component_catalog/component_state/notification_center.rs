@@ -1,3 +1,5 @@
+//! 通知行的选择会消费未读状态，目录刷新则需清理失效的选中项；禁用行不能被激活。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventError, UiComponentEventKind, UiComponentKeyboardAction,
@@ -58,6 +60,8 @@ fn notification_center_selects_notification_and_marks_it_read() {
 }
 
 #[test]
+// TODO: [CR-W12-UI-CATALOG-0007] 此处只有平铺通知，未覆盖已有问题 CR-R02-runtime_wave5_component_state_contracts-0003 的嵌套索引碰撞。
+// 补 [[a,b],c] 后依次发送 Last、Activate，核对选中 c 且仅 c 变为已读。
 fn notification_center_keyboard_navigation_focuses_and_activates_rows() {
     let registry = UiComponentDescriptorRegistry::material_editor_foundation();
     let notification_center = registry

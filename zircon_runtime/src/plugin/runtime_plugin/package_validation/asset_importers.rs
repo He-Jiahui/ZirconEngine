@@ -1,3 +1,4 @@
+//! 包清单中的导入器先形成注册报告诊断，再由注册阶段纳入扩展表；这里检查声明身份，不替代导入器注册表对来源扩展名的校验。
 mod identity;
 mod required_capabilities;
 mod row;

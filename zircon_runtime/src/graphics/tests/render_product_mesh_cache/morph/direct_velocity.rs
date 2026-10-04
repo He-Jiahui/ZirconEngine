@@ -1,3 +1,4 @@
+//! 连续两帧仅改变 morph 权重，观察 GPU 源绘制与 scene-velocity 回读；忽略测试复用同一捕获流程导出人工证据。
 use super::*;
 
 const DIRECT_MORPH_VELOCITY_PNG_STATUS: &str =

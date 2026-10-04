@@ -13,6 +13,7 @@ use super::{
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// 活动窗口自己的内容与抽屉布局；各窗口独立维护选择和尺寸覆盖。
 pub struct ActivityWindowLayout {
     pub window_id: ActivityWindowId,
     pub descriptor_id: ViewDescriptorId,
@@ -25,6 +26,7 @@ pub struct ActivityWindowLayout {
 }
 
 impl ActivityWindowLayout {
+    /// 激活一个抽屉前清同区域兄弟的选择；保留其成员以便后续恢复。
     pub(crate) fn collapse_drawer_region_siblings(
         &mut self,
         active_slot: ActivityDrawerSlot,

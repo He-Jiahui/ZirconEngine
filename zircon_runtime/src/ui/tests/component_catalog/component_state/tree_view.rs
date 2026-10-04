@@ -1,3 +1,5 @@
+//! 树的展开、范围选择和重命名属于保留编辑状态；默认种子与受控值须保持不同所有权。
+
 use std::collections::BTreeMap;
 
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
@@ -330,6 +332,7 @@ fn tree_view_f2_begins_rename_escape_cancels() {
 }
 
 #[test]
+// 改名归约只发布结果并结束编辑会话；本用例未消费结果去修改或持久化源节点标签。
 fn tree_view_commit_rename_records_semantic_payload() {
     let registry = UiComponentDescriptorRegistry::material_editor_foundation();
     let tree = registry

@@ -1,3 +1,4 @@
+//! 直接测试 OBJ 解码边界；导入器和资源管理器的包装错误由各自测试负责。
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -97,5 +98,6 @@ fn obj_face_parser_does_not_collect_a_second_token_buffer() {
     let source = include_str!("../../formats/obj/decode_obj_file.rs");
 
     assert!(!source.contains("let tokens: Vec<_> = parts.collect()"));
+    // BUG: [CR-ASSET-COOK-0001] 此断言把‘不收集第二份面顶点缓冲区’的约束误绑到旧链式迭代写法；当前解码器直接消费 parts，仍满足约束，故结构测试必败。
     assert!(source.contains(".into_iter().chain(parts)"));
 }

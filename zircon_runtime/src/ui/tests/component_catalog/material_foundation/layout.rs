@@ -1,3 +1,5 @@
+//! 布局目录区分通用容器、编辑器布局和动画入口；宿主能力限制防止不适用的节点暴露到运行时。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentDescriptorKind, UiComponentEventKind, UiComponentLayoutRole,

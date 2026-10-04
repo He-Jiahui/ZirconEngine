@@ -26,6 +26,8 @@ impl UiWindowPixelPosition {
     }
 }
 
+/// Logical and physical window metrics share one DTO so DPI changes can mark
+/// layout metrics dirty without implying input-state mutation.
 /// 同时携带布局使用的逻辑尺寸和呈现使用的物理尺寸，供窗口事件更新布局与栅格尺度。
 /// DPI 切换时缩放因子与尺寸可能由不同事件先后送达；消费者不能要求三者立即一致。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]

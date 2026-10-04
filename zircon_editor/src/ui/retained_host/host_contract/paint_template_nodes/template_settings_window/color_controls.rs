@@ -1,3 +1,5 @@
+//! 颜色设置的 swatch 与 RGBA 弹层消费同一份设置条目快照；棋盘格提供透明度背景，数值操作由输入链完成。
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
@@ -70,6 +72,7 @@ pub(super) fn push_color_swatch(
     ));
 }
 
+// 行号来自窗口投影，打开颜色编辑器后仍重新检查有效行与 schema，避免集合刷新把弹层指向另一类型设置。
 #[allow(clippy::too_many_arguments)]
 pub(super) fn push_color_popup(
     commands: &mut Vec<HostPaintCommand>,
@@ -187,6 +190,7 @@ fn push_color_channel(
     }
 }
 
+// 仅作为半透明色样的底层提示，与颜色填充的相对层级不可交换；不表达实际颜色值。
 pub(super) fn push_alpha_checkerboard(
     commands: &mut Vec<HostPaintCommand>,
     rect: &FrameRect,

@@ -1,3 +1,4 @@
+//! 音乐与音效预设同时声明主轨限幅与子轨修整，供高级图编辑展示；当前 Kira M1 编译会拒绝效果链。
 use zircon_runtime::core::framework::sound::{
     SoundEffectDescriptor, SoundEffectId, SoundEffectKind, SoundGainEffect, SoundLimiterEffect,
     SoundMixerGraph, SoundTrackDescriptor, SoundTrackId,

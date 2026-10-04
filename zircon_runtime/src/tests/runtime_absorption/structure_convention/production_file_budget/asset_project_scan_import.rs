@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0029] 项目扫描与资源导入的职责拆分的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_asset_project_scan_import_sources_are_child_owner() {
     let parent = read_runtime_src("asset/project/manager/scan_and_import.rs");

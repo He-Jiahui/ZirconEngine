@@ -1,3 +1,6 @@
+//! ZrPack 的 manifest、chunk 去重、delta、读写和安装事务统一从此模块导出。
+//! reader/writer 负责 pack 格式与内容；安装子模块负责 installed、backup 和 journal 的事务发布。
+
 mod dedup;
 mod delta;
 mod install;

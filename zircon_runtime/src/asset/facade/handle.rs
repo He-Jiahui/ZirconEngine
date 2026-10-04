@@ -9,6 +9,7 @@ use crate::core::resource::{
     ResourceHandle, ResourceId, ResourceKind, ResourceMarker, UntypedResourceHandle,
 };
 
+/// 仅保存资源身份的类型化引用，不固定项目代次或载荷驻留；使用前通过当前 manager 查询状态。
 pub struct Handle<TAsset: Asset> {
     id: ResourceId,
     asset: PhantomData<TAsset>,

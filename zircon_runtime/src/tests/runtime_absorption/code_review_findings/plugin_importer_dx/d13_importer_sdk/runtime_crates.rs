@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 pub(super) const IMPORTER_RUNTIME_CRATES: &[(&str, &str, &str)] = &[
     (
         "asset_importers/audio",

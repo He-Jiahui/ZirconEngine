@@ -1,3 +1,4 @@
+// 核对组件展示类别切换时投影控件集合与可见状态同步。
 use super::support::showcase_binding;
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostProjection, RetainedUiHostValue,

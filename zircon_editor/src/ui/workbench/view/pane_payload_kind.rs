@@ -1,3 +1,4 @@
+//! pane内容投影类别；宿主按类别准备载荷，事件路由和模板资源另由对应字段选择。
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

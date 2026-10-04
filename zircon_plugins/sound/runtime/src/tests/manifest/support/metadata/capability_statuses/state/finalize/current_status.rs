@@ -1,3 +1,4 @@
+// 仅有 capability 的行会进入比较结果；调用方的固定清单保证该字段存在且状态可解析。
 use super::super::storage::CapabilityStatusParserState;
 use super::{manifest, required};
 

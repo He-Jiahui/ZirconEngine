@@ -1,3 +1,4 @@
+/// 两类渲染工件 loader 共用的 IO 紧急度；只影响显式 dispatch 的排序，不触发加载。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RenderArtifactIoPriority(u8);
 

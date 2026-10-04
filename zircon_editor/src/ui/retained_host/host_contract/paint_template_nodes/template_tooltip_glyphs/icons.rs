@@ -1,3 +1,6 @@
+//! 工作台 tooltip 的 icon_name 是显示 info 标记的开关，此层始终使用内置 info 资源。
+//! 图标放在内容预留区，不按任意 icon_name 加载自定义图像。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;

@@ -1,3 +1,5 @@
+//! 根层级及受保护场景行的锁标识；是否出现由 actions 的行语义判定决定。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;

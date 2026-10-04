@@ -1,3 +1,4 @@
+// 从控制台快照构造模板正文，约束空状态、日志分级、过滤与长列表物化窗口。
 use std::collections::BTreeMap;
 use std::sync::Arc;
 

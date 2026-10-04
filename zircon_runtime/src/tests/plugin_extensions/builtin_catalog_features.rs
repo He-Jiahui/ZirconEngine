@@ -1,3 +1,4 @@
+//! 内置目录的能力声明不自动启用依赖或提供具体实现；可用性报告必须保留目标限制及缺少提供者的状态。
 use crate::core::framework::project::{
     ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
 };

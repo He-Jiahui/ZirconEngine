@@ -1,3 +1,4 @@
+//! 每帧 GC 截止以宿主墙钟为准，后端报告仅作遥测；连续切片必须在剩余预算耗尽时停止。
 use std::time::{Duration, Instant};
 
 #[derive(Debug)]

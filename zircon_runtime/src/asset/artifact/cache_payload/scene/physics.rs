@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::asset::AssetReference;
 
+// 场景物理组件的缓存镜像由实体转换路径使用；它保留显式质量属性等
+// 运行时构建刚体所需的声明数据，而不在反序列化阶段创建物理对象。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) struct ArtifactCacheSceneRigidBodyAsset {
     body_type: crate::asset::SceneRigidBodyTypeAsset,

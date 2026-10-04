@@ -1,3 +1,5 @@
+//! 物理组件是场景持久化 DTO；World I/O 负责将刚体、碰撞体、关节引用映射到物理运行时，资产层不创建模拟对象。
+
 use crate::asset::AssetReference;
 use crate::core::framework::scene::physics::{
     PhysicsCcdMode, PhysicsJointConstraintMetadata, PhysicsMassProperties, PhysicsMaterialMetadata,

@@ -8,6 +8,8 @@ use crate::graphics::types::GraphicsError;
 use super::super::PostProcessLutTextureResource;
 use super::ResourceStreamer;
 
+/// 辐照度体积借用 LUT 上传资源的设备纹理；外部只拿稳定的 Arc 视图与描述符，
+/// 具体上传仍参与 ResourceStreamer 的帧事务。
 #[derive(Clone)]
 pub(crate) struct IrradianceVolumeTextureBinding {
     resource: Arc<PostProcessLutTextureResource>,

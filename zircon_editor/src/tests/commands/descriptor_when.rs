@@ -1,3 +1,4 @@
+//! 从注册表的菜单与命令面板调用入口核对同一描述符的 When 判定：能力元数据与显式条件必须合取，序列化后仍保持相同的可用性边界。
 use crate::core::asset::AssetWriteAccess;
 use crate::core::commands::{
     CommandEvalCtx, EditorCommandDescriptor, EditorCommandMenuPath, EditorCommandRegistry,

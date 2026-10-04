@@ -1,3 +1,5 @@
+//! 后处理 GPU 执行层：初始化资源归构造入口，帧参数经上传事务进入各个图节点。
+//! 局部中间目标和终端物理视口使用不同坐标空间，区域选择由各效果入口负责。
 mod construct;
 pub(in crate::graphics::scene::scene_renderer::post_process) mod depth_sampling_mode;
 mod execute_bloom;

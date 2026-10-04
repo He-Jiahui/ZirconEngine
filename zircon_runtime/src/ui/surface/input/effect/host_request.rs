@@ -3,6 +3,8 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
 };
 
+/// 仅将已成功应用的 effect 投影成宿主能力请求。
+/// 请求先积累在派发结果中，原子 effect 组失败会统一清空，宿主不得先执行中途结果。
 pub(super) fn host_request_for_effect(
     effect_index: usize,
     effect: &UiDispatchEffect,

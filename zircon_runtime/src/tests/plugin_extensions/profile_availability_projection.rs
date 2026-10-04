@@ -1,3 +1,4 @@
+//! 可用性投影消费显式运行时配置与具体登记；源码守卫约束选择构造和代际记录路径，运行结果由报告测试另行验证。
 use std::collections::HashSet;
 use std::time::Instant;
 

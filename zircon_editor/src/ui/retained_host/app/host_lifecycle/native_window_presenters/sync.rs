@@ -11,6 +11,7 @@ use super::callbacks::wire_native_window_presenter_callbacks;
 use super::presentation::apply_native_window_presenter_presentation;
 
 impl RetainedEditorHost {
+    // 每次主窗投影提交后按同一代际同步浮窗；创建时装配回调，随后写入与主窗一致的 pane 数据。
     pub(in crate::ui::retained_host::app::host_lifecycle) fn sync_native_window_presenters(
         &mut self,
         model: &WorkbenchViewModel,

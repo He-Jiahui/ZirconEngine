@@ -1,3 +1,5 @@
+//! 验证工作台状态与项目资产工作区的模块归属。
+
 #[test]
 fn editor_state_declaration_moves_under_ui_workbench_state() {
     let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");

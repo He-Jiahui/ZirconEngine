@@ -1,3 +1,6 @@
+//! 网格通道测试从 glTF accessor 穿过导入器到 Mesh 子资产，并检查材质 UV 选择
+//! 最终仍由渲染 readiness 按受支持的通道数裁决。
+
 use super::*;
 
 #[test]
@@ -30,6 +33,8 @@ fn importer_preserves_gltf_skinning_channels_on_mesh_subasset() {
             let primitive = mesh.to_model_primitive().unwrap();
             assert_eq!(primitive.vertices.len(), 3);
             assert_eq!(primitive.indices, vec![0, 1, 2]);
+            // TODO: [CR-ASSET-TEST-GLTF-0003] 确认这里是否要验证启用 VG 后的 joint 槽保护；
+            // 本测试使用默认导入设置，而该设置关闭 VG，故当前断言无法区分保护逻辑是否失效。
             assert!(
                 primitive.virtual_geometry.is_none(),
                 "skinned glTF primitives should not consume joint slots as automatic VG ordinals"
@@ -158,6 +163,7 @@ fn importer_preserves_gltf_texcoord_1_on_mesh_subasset() {
     let _ = fs::remove_dir_all(root);
 }
 
+// 导入期保留源材质选择的 TEXCOORD_2；渲染准备期再报告不支持该通道，避免静默改用 UV0。
 #[test]
 fn importer_preserves_unsupported_gltf_texcoord_for_readiness_rejection() {
     let root = unique_temp_project_root("unsupported_uv_channel_model_import");

@@ -1,3 +1,5 @@
+//! 常规滑块右侧值框同时输出表面和显示值；实例 value_text 可覆盖默认归一化数值。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchSliderStyle;
@@ -5,6 +7,7 @@ use super::super::super::template_slider_geometry::{slider_value_label, workbenc
 use super::super::layers::inner_text_order;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+/// 消费几何域已决定显示的值框；显式 value_text 用于显示，轨道位置仍由 value_percent 决定。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_value(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

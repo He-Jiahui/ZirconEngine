@@ -1,3 +1,4 @@
+//! 混合 GI 插件的运行时边界：注册共享 provider，按相机历史键持有状态，并在帧准备与提交后交换侧带。
 mod gpu_completion;
 mod prepare_input;
 mod prepare_output;

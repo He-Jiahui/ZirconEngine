@@ -7,6 +7,8 @@ use crate::ui::{surface::build_arranged_tree, text::UiTextMeasureCache};
 
 use super::extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache;
 
+/// 独立工具与测试入口：使用树中已有布局缓存构造安排结果，不执行布局计算；
+/// 业务运行时应经 UiSurface 的保留缓存入口提取，以带上组件状态和本轮字体会话。
 /// Standalone tree extraction owns one short-lived session for the complete operation.
 /// Product surfaces use their retained `UiTextMeasureCache` through the owner-aware entrypoint.
 pub fn extract_ui_render_tree(tree: &UiTree) -> UiRenderExtract {

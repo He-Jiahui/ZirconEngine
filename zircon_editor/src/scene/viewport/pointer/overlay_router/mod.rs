@@ -1,3 +1,5 @@
+//! 路由器把布局同步、表面维护、事件分发和可见空间产品采用分开，所有路径共用一份最终解析状态。
+
 mod build_dispatcher;
 mod frame_from_points;
 mod rebuild_surface;

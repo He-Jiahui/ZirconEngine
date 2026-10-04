@@ -6,6 +6,7 @@ use super::{ActivityWindowId, MainPageId};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// 主页面标签与内容owner的关联：普通页引用活动窗口，独占页引用具体视图实例。
 pub enum MainHostPageLayout {
     WorkbenchPage {
         id: MainPageId,

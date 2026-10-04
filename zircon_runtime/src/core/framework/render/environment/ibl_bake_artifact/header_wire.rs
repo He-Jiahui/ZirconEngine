@@ -1,5 +1,6 @@
 use super::{IblBakeKey, IBL_BAKE_ARTIFACT_HEADER_SIZE};
 
+/// 按工件头部协议固定顺序写入 key 字段；读取端必须使用同一顺序和小端编码。
 pub(super) fn write_ibl_bake_key(
     bytes: &mut [u8; IBL_BAKE_ARTIFACT_HEADER_SIZE],
     cursor: &mut usize,

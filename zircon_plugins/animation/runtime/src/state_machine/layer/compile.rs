@@ -1,3 +1,4 @@
+//! 从同一框架状态机编译产物降下层权重、掩码和混合模式，保持层顺序与主机一致。
 use zircon_runtime::core::framework::animation::compiler::state_machine::{
     compile_animation_state_machine, AnimationCompiledStateMachineLayer,
 };

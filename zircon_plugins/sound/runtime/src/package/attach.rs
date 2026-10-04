@@ -1,3 +1,4 @@
+//! 包清单合并跨模块依赖、选项、事件目录和组件，使编辑器与导出器读取同一套 Sound 声明。
 use zircon_runtime::plugin::PluginPackageManifest;
 
 use crate::components::sound_component_descriptors;

@@ -14,6 +14,7 @@ use crate::core::editor_message::retention::{
 };
 
 #[derive(Clone, Debug)]
+/// 可共享载荷的投递表示；本地序号和保留字节估算只服务收件箱排序与预算，不属于序列化消息身份。
 pub struct EditorMessageDelivery {
     payload: Arc<EditorMessageDeliveryPayload>,
     sequence: u64,
@@ -91,6 +92,7 @@ impl EditorMessageDelivery {
         }
     }
 
+    // 最新态替换时仅场景选择需要连续修订合并；重新构造投递以更新合并后的保留预算估算。
     pub(in crate::core::editor_message) fn coalesce_latest_from(self, previous: &Self) -> Self {
         let composes_scene_inspection = matches!(
             (self.message().payload(), previous.message().payload()),
@@ -115,6 +117,7 @@ impl EditorMessageDelivery {
     }
 }
 
+// 相等与编码比较的是协议、主题和事实；不同本地序号可表示相等消息，解码不恢复投递排序。
 impl PartialEq for EditorMessageDelivery {
     fn eq(&self, other: &Self) -> bool {
         self.payload == other.payload
@@ -145,6 +148,7 @@ impl<'de> Deserialize<'de> for EditorMessageDelivery {
     }
 }
 
+// 收件箱使用的逻辑保留量估算，覆盖载荷及其拥有的数据；不是分配器的精确峰值或共享载荷去重计量。
 fn estimate_retained_bytes(topic: &EditorTopic, message: &EditorMessage) -> usize {
     let payload_bytes = match message.payload() {
         EditorMessagePayload::Document(_) | EditorMessagePayload::Focus(_) => 0,
@@ -342,6 +346,7 @@ fn estimate_tool_resources(resources: &crate::core::tools::ToolResourceSet) -> u
         .fold(0usize, usize::saturating_add)
 }
 
+// 自定义 JSON 的估算采用显式待访队列，避免输入嵌套深度直接增长此处的调用栈。
 fn estimate_json_bytes(root: &serde_json::Value) -> usize {
     let mut retained_bytes = 0usize;
     let mut pending = vec![root];

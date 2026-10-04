@@ -1,3 +1,6 @@
+//! 运行时场景只持有世界组件、中立检查和直接帧提取入口；
+//! 编辑器创作状态、预览适配器与旧调度阶段不能回流为 Runtime 的数据所有者。
+
 #[test]
 fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutover() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

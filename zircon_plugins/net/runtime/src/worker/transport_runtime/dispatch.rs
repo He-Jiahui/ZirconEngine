@@ -1,3 +1,6 @@
+//! 专用线程按顺序执行 manager egress 命令并返回一次性结果；Shutdown 后统计并退出。
+//! 此处是 socket 状态唯一写入者，调用方超时不会阻止已经排队的命令运行。
+
 use std::sync::atomic::AtomicU64;
 use std::sync::{mpsc, Arc};
 

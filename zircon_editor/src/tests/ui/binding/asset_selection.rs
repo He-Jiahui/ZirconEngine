@@ -1,3 +1,5 @@
+//! 从绑定解析和事件分派入口验证场景选择、资产打开、模型导入和拖放迁移命令往返绑定编码。
+
 use crate::ui::binding::{
     AssetCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, SelectionCommand,
 };

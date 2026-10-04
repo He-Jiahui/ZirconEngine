@@ -1,4 +1,5 @@
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+/// 一次有界诊断泵的消费回执；has_more 提示宿主后续帧继续排空。
 pub(crate) struct RuntimeTaskDiagnosticProjectionReport {
     observation_count: usize,
     gap_record_count: usize,

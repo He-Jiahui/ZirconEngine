@@ -1,3 +1,4 @@
+// 核对工作台标题字体及混合空间资源的自适应组件结构。
 use super::support::*;
 use super::*;
 

@@ -1,3 +1,4 @@
+//! 外层实时时钟推进只产生世界消费的时间预算；注入时钟、策略事务和重基不应隐式创建世界派生时钟。
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 

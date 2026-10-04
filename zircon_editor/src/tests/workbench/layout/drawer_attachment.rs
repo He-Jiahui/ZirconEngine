@@ -1,3 +1,4 @@
+//! 抽屉重排、相对插入与重复活动字段的规范化契约。
 use crate::ui::workbench::layout::{
     ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, LayoutManager, TabInsertionAnchor,
     TabInsertionSide, WorkbenchLayout,
@@ -5,6 +6,7 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
 #[test]
+/// 再次附着同一实例应重排而非重复标签，兼容拖回同抽屉的调用意图。
 fn attach_view_to_same_drawer_reorders_it_to_the_end_and_keeps_it_active() {
     let manager = LayoutManager::default();
     let mut layout = WorkbenchLayout::default();
@@ -52,6 +54,7 @@ fn attach_view_to_same_drawer_reorders_it_to_the_end_and_keeps_it_active() {
 }
 
 #[test]
+/// 按实例锚点插入并统一抽屉活动项，让标签顺序与可见内容保持一致。
 fn attach_view_to_drawer_inserts_before_anchor_and_keeps_it_active() {
     let manager = LayoutManager::default();
     let mut layout = WorkbenchLayout::default();
@@ -103,6 +106,7 @@ fn attach_view_to_drawer_inserts_before_anchor_and_keeps_it_active() {
 }
 
 #[test]
+/// 故意制造两个活动字段分歧，再用成功布局命令触发规范化；tab_stack是选择依据。
 fn drawer_selection_is_normalized_to_one_active_item_after_layout_commands() {
     let manager = LayoutManager::default();
     let mut layout = WorkbenchLayout::default();

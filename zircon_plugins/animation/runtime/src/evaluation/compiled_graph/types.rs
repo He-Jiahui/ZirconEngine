@@ -1,3 +1,4 @@
+//! 稠密图节点、参数槽及剪辑贡献的只读契约；输出携带播放速度、混合模式和骨架掩码。
 use std::sync::Arc;
 
 use zircon_runtime::asset::AssetReference;
@@ -61,6 +62,7 @@ pub(super) enum CompiledGraphNode {
 }
 
 #[derive(Clone, Debug)]
+/// 编译时固定节点、参数默认值和骨架掩码，后续源资产变更不修改此对象。
 pub struct CompiledAnimationGraph {
     pub(super) parameters: Box<[CompiledParameter]>,
     pub(super) nodes: Box<[CompiledGraphNode]>,
@@ -79,6 +81,7 @@ impl CompiledAnimationGraph {
 }
 
 #[derive(Clone, Debug)]
+/// 一条剪辑贡献的播放与混合约束；空掩码视图表示未限定目标。
 pub struct CompiledGraphClipInstance {
     pub(super) clip: AssetReference,
     pub(super) playback_speed: Real,
@@ -119,6 +122,7 @@ impl CompiledGraphClipInstance {
 }
 
 #[derive(Clone, Debug, Default)]
+/// 所有消费者共享的求值快照；剪辑加载、事件准入和姿态合成由帧管线负责。
 pub struct CompiledAnimationGraphEvaluation {
     pub(super) clips: Vec<CompiledGraphClipInstance>,
 }

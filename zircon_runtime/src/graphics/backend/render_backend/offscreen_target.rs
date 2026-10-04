@@ -1,3 +1,4 @@
+//! 离屏目标绑定一个尺寸周期内场景、后处理及历史复用的原生资源；调整尺寸需整体重建。
 use crate::core::math::UVec2;
 use crate::graphics::resource_identity::SampledTextureIdentity;
 

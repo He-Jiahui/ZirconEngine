@@ -37,6 +37,7 @@ pub struct TaskGraphScopeCensus {
 }
 
 impl TaskGraphScopeCensus {
+    /// 静止只看 queued 与 running；submitted 和终态计数保留历史，不会阻止 scope 关闭完成。
     pub const fn is_quiescent(&self) -> bool {
         self.queued == 0 && self.running == 0
     }

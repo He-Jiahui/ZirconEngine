@@ -1,3 +1,5 @@
+//! 默认 popup 行为只在 Surface 属性事务内切换已确认控件的 open 值，再生成绑定/组件事件回执。
+//! 运行时 popup 栈、焦点恢复和宿主动作分别由对应所有者同步，不能仅生成 OpenPopup/ClosePopup 报告代替属性提交。
 use zircon_runtime_interface::ui::{
     binding::{UiBindingUpdateReport, UiEventKind},
     component::{UiComponentEvent, UiValue},
@@ -270,6 +272,7 @@ impl UiSurface {
         })
     }
 
+    /// 菜单激活与 Escape 分别带关闭原因，后者遵守禁用 Escape 的作者契约；只选择最近可关闭的 popup。
     fn default_popup_ancestor_close_from_parent(
         &self,
         mut current: Option<UiNodeId>,
@@ -311,6 +314,7 @@ impl UiSurface {
         Ok(None)
     }
 
+    /// 由主指针释放路由调用，从 popup 栈顶向下选择；位于弹层内部或栈顶禁止外部关闭时停止穿透。
     fn default_popup_outside_close(
         &self,
         route: &UiPointerRoute,

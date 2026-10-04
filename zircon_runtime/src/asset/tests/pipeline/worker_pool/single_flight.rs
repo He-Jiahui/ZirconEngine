@@ -1,3 +1,5 @@
+//! 相同请求共享一个生产者及不可变 payload；唯一任务容量、live waiter 容量和完成缓存分别计费。
+
 use super::*;
 
 #[test]
@@ -29,6 +31,7 @@ fn worker_pool_bounded_queue_rejects_overflow_with_explicit_error() {
     receive_completion(&ticket);
 }
 
+// 取消仅结束 ticket 语义；队列中的闭包仍占执行器容量，直到 worker 真正取走它。
 #[test]
 fn cancelled_queued_work_keeps_admission_charged_until_its_closure_exits() {
     let io_pool = single_worker_io_pool();
@@ -114,6 +117,7 @@ fn concurrent_requests_for_same_asset_share_one_immutable_payload_owner() {
     assert_eq!(pool.diagnostics().completion_entries, 1);
 }
 
+// 结果已由完成缓存持有后，后续读取不再是等待中的观察者，不应扣减 live waiter 配额。
 #[test]
 fn completed_cache_reads_do_not_consume_live_waiter_budget() {
     let pool = AssetWorkerPool::new(
@@ -223,6 +227,7 @@ fn duplicate_waiter_budget_remains_hard_at_one_one_thousand_and_one_hundred_thou
     }
 }
 
+// 此源码结构护栏防止重新引入无界完成通道和 payload 深拷贝；行为断言由本模块其他测试覆盖。
 #[test]
 fn worker_pool_source_uses_shared_ticket_results_not_a_completion_channel() {
     let worker_pool_sources = [

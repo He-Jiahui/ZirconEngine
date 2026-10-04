@@ -1,3 +1,4 @@
+//! 状态回归经核心运行时推进排队转换，核对初始化、同值转换策略、钩子次序及仅保留最新事件的观察契约。
 use std::any::type_name;
 use std::sync::{Arc, Mutex};
 

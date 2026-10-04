@@ -1,3 +1,4 @@
+// Shader 仅覆盖调用方设置的相机 ViewRect；外部区域和未请求清除的 attachment 保留原值。
 pub(super) const SCENE_REGION_CLEAR_SHADER: &str = r#"
 struct SceneClearColor {
     color: vec4<f32>,

@@ -1,3 +1,4 @@
+//! 约束类型化错误审查的模块挂载、委托入口与既有检查保留；读取当前源码后按文本验证，不能替代被检查模块的行为测试。
 use super::super::super::super::*;
 
 #[path = "native_plugin_loader/budgets.rs"]

@@ -1,3 +1,4 @@
+//! 状态机编译产物的公共导出层；帧实例缓存依赖该布局与资产修订保持一致。
 mod animation_state_machine_compile_error;
 mod compile;
 mod compiled_animation_state_machine;

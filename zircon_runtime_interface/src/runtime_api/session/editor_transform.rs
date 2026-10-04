@@ -91,6 +91,7 @@ pub struct ZrRuntimeEditorTransformWriteV1 {
 }
 
 impl ZrRuntimeEditorTransformWriteV1 {
+    // EXEMPT(GEN-Q7): editor transform write construction mirrors the fixed runtime ABI fields.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         entity: u64,
@@ -126,6 +127,7 @@ impl ZrRuntimeEditorTransformWriteV1 {
         self.target.transform()
     }
 
+    /// ABI 事件入口在状态机前检查 phase 与序号约束；连续交互的期望步进还要由 runtime 会话状态核对。
     pub fn validate_editor_transform_write(self) -> bool {
         let Some(phase) = self.phase() else {
             return false;

@@ -1,5 +1,6 @@
 use super::super::super::{RuntimeSessionArchive, RuntimeSessionArchiveError};
 
+// 空标签也先校验档案，避免用“无命中”掩盖不受支持的归档内容。
 pub(in crate::scene::dynamic_scene::session) fn latest_updated_slot_id_with_tag(
     archive: &RuntimeSessionArchive,
     tag: &str,

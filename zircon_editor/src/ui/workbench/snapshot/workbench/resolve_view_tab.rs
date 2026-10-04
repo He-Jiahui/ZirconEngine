@@ -7,6 +7,7 @@ use super::{
     ViewTabSnapshot,
 };
 
+/// 按layout实例ID联接当前registry；两级引用缺失时保留位置并显式投影占位诊断。
 pub(crate) fn resolve_view_tab(
     instance_id: &ViewInstanceId,
     instances: &HashMap<ViewInstanceId, ViewInstance>,

@@ -1,3 +1,4 @@
+// 核对展示页集合子节点及控件标志的状态投影。
 use super::support::apply_showcase_binding;
 use crate::ui::template_runtime::{EditorUiHostRuntime, UiComponentShowcaseDemoEventInput};
 

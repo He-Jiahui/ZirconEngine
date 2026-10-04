@@ -1,3 +1,4 @@
+//! 资产检查器各类明细在此统一编排，供节点补充路径按固定顺序发布宿主行。
 use crate::ui::asset_editor;
 
 use super::binding::binding_detail_rows;

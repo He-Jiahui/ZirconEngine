@@ -1,3 +1,4 @@
+//! 原型索引保持组件倒排表有序且唯一，使查询匹配与访问冲突判定避免每次重排或构造详情列表。
 use super::*;
 
 #[test]
@@ -66,6 +67,7 @@ fn archetype_index_matching_reuses_sorted_component_index_without_per_query_reso
             && !archetype_text.contains("fn all_archetype_ids"),
         "matching_archetypes should avoid a candidate clone/retain helper after direct projection"
     );
+    // BUG: [CR-SCENE-TEST-QRY-0002] 归一化现按 HASH_DEDUP_COMPONENT_THRESHOLD 分支，旧 len()>1 锚点不存在，此守卫必失败。
     assert!(
         signature_text.contains("fn normalize_components(mut components: Vec<ComponentId>)")
             && signature_text.contains("if components.len() > 1")

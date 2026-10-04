@@ -1,3 +1,4 @@
+//! 系统贡献真正进入世界阶段计划与冲突图，再运行以核对资源、约束顺序和事件消费；只存在声明不足以证明注册完成。
 use crate::plugin::{PluginEventManifest, RuntimeExtensionRegistry};
 use std::sync::{Arc, Mutex};
 

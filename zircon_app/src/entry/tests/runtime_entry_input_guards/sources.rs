@@ -1,3 +1,6 @@
+//! 输入 ABI 与宿主事件职责测试使用的编译时源码快照。
+//! 拼接顺序供源级断言使用，不代表实际执行顺序。
+
 use std::path::{Path, PathBuf};
 
 pub(super) fn runtime_app_source() -> &'static str {

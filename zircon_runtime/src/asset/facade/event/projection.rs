@@ -5,6 +5,7 @@ use crate::core::resource::{
 };
 
 impl<TAsset: Asset> AssetEvent<TAsset> {
+    // BUG: [CR-ASSET-PIPELINE-0003] 事件只按 ResourceKind 过滤；共享 marker 的不同资产类型会收到彼此的事件与无法读取的类型化句柄。
     pub fn from_resource_event(event: ResourceEvent) -> Option<Self> {
         (event.resource_kind == TAsset::Marker::KIND).then(|| {
             let handle = Handle::new(event.id);

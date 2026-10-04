@@ -2,6 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use crate::scene::ecs::{ChangeTick, ChangeTickWindow, ComponentMutationRecorder, ComponentTicks};
 
+/// 查询返回的只读值及其变更窗口；is_added/is_changed 只针对取得它的那次查询运行。
 #[derive(Clone, Copy, Debug)]
 pub struct Ref<'world, T> {
     value: &'world T,
@@ -9,6 +10,8 @@ pub struct Ref<'world, T> {
     window: ChangeTickWindow,
 }
 
+/// 查询返回的延迟变更标记；取到包装器本身不算修改，取得可变引用或显式 set_changed 才记录。
+/// 追踪版本还把一次组件修改通知给 World 的变更投影。
 #[derive(Debug)]
 pub struct Mut<'world, T> {
     value: &'world mut T,

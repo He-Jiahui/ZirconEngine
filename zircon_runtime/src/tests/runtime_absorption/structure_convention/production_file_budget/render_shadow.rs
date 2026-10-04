@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0077] 阴影视图投影与帧计划责任的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_shadow_plan_view_projection_is_child_owner() {
     let shadow_mod = read_runtime_src("graphics/scene/scene_renderer/shadow/mod.rs");

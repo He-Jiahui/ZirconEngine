@@ -7,6 +7,8 @@ use super::super::super::backends::{
 use super::super::super::status::CapabilityStatus;
 use super::super::PlatformCapabilityMatrix;
 
+// 显示器枚举、窗口事件、生命周期和尺寸都要求窗口宿主；浏览器与 headless
+// 分支显式返回未实现/不可用，调用方可据此阻止物理窗口路径。
 impl PlatformCapabilityMatrix {
     pub(in crate::platform::capability::matrix) fn monitor_inventory_backend(
         self,

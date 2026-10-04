@@ -1,3 +1,5 @@
+//! dropdown 链先接管控件表面、标签和箭头；外部调用方还会使用偏移后外框作为弹出层锚点。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_dropdown_metrics::workbench_dropdown_metrics;
@@ -9,6 +11,7 @@ use super::surface::push_dropdown_surface;
 use super::text::{dropdown_label, push_dropdown_label};
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
+/// 返回 true 表示下拉节点已由专用链消费，即使因 clip/尺寸没有本体命令；外部仍可能按同一锚点绘制弹出行。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dropdown_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

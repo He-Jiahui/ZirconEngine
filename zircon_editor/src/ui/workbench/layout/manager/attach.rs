@@ -7,6 +7,7 @@ use super::super::{
 };
 
 impl LayoutManager {
+    /// 将实例附着到目标布局；注册/许可、旧位置移除和失败事务由调用边界协调。
     pub(crate) fn attach_instance(
         &self,
         layout: &mut WorkbenchLayout,

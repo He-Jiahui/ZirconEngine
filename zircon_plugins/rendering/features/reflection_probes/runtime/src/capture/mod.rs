@@ -1,3 +1,4 @@
+//! 探针捕获的请求、框架执行、cubemap 朝向与结果消费边界；源发布由编辑器/资产管理器负责。
 mod consume;
 mod execute;
 mod face_view;

@@ -1,3 +1,5 @@
+//! 选中项颜色受禁用和加载优先级约束；热态查询供 Focused 分支恢复同时存在的悬停、展开或拖放反馈。
+
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

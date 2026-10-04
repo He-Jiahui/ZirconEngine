@@ -8,6 +8,7 @@ use crate::core::framework::render::material::readiness_report::{
 use crate::core::resource::ResourceId;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// 单个材质的诊断与准备状态快照；由 readiness report 构造，供管理 API 展示而非驱动绘制。
 pub struct RenderMaterialManagementSnapshot {
     pub summary: RenderMaterialReadinessSummary,
     #[serde(default)]

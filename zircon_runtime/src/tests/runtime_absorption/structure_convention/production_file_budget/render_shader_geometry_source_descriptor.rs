@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0071] 几何来源描述符的后端中性契约的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_render_shader_geometry_source_descriptor_contract_is_complete() {
     let geometry_source = read_runtime_src("core/framework/render/shader/geometry_source.rs");

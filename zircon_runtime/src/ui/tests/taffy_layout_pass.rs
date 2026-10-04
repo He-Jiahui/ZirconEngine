@@ -1,3 +1,5 @@
+//! 这些夹具共用布局树和后端选择查询，区分 Taffy 原生安排与 Zircon 有因回退的可观察契约。
+
 use crate::ui::{layout::compute_layout_tree, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
@@ -44,6 +46,7 @@ fn fixed_node(id: u64, width: Option<f32>, height: Option<f32>) -> UiTreeNode {
     node(id).with_constraints(constraints)
 }
 
+// 专门构造后端不能等价表达的优先级竞争，其他夹具维持零优先级以隔离路由条件。
 fn priority_stretch_node(id: u64, width_priority: i32) -> UiTreeNode {
     let mut constraints = BoxConstraints::default();
     constraints.width = AxisConstraint {
@@ -141,6 +144,7 @@ fn assert_zircon_owned_route(
     );
 }
 
+// 回退仍须核对请求家族和最终后端；只匹配原因文本会漏掉错误的后端选择。
 fn assert_fallback_route_reason(
     report: &zircon_runtime_interface::ui::layout::UiLayoutEngineSelectionReport,
     node_id: u64,

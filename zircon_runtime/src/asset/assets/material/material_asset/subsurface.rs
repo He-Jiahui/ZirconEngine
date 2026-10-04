@@ -1,3 +1,5 @@
+//! 次表面参数把作者材质映射到 GPU profile 索引；渲染调用方需要先确认启用该模型及 profile 范围，再使用索引。
+
 use crate::core::framework::render::{RenderMaterialLightingModel, SubsurfaceProfileData};
 use crate::core::math::Vec3;
 

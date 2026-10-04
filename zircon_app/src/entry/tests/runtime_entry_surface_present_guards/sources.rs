@@ -1,3 +1,6 @@
+//! native 表面和显式 CPU 呈现边界测试使用的编译时源码快照。
+//! 拼接顺序供源级断言使用，不代表实际执行顺序。
+
 use std::path::{Path, PathBuf};
 
 pub(super) fn entry_root() -> PathBuf {

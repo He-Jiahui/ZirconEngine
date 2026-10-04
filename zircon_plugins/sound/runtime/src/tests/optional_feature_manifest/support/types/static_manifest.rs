@@ -1,3 +1,4 @@
+// 静态与运行时共用的测试签名，只覆盖身份、能力、默认策略、依赖和模块等字段。
 use super::{OptionalFeatureDependencySignature, OptionalFeatureModuleSignature};
 
 #[derive(Debug, PartialEq, Eq)]

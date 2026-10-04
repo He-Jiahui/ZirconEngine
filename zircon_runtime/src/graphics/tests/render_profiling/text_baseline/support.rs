@@ -1,3 +1,4 @@
+//! 文本性能基线的共享断言；每个测量帧须有一份 span/counter，导出目录基于 CARGO_TARGET_DIR 并校验 D/E/F 盘，管理归属由外层流程保证。
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::PathBuf,

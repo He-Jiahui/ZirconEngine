@@ -1,3 +1,5 @@
+//! 提示、弹层和通知目录把开放状态、定位、模态及过渡字段集中声明，供编写检查与 overlay/toast 状态消费。关闭、确认和超时仍需输入链或宿主事件驱动。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

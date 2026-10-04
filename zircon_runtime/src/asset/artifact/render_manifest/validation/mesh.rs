@@ -6,6 +6,7 @@ use super::super::{
 };
 use super::RenderArtifactManifestError;
 
+// 清单入库及读取都会执行此检查；在 GPU 上传前拒绝 LOD 布局、字节范围和驻留级别不一致。
 pub(super) fn validate_mesh_layout(
     manifest: &RenderArtifactManifest,
     layout: &RenderArtifactMeshLayout,

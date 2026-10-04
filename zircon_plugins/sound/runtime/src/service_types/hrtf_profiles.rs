@@ -1,3 +1,4 @@
+//! HRTF 资料可按稳定 ID 替换；替换或删除会清空卷积历史，避免旧核尾音继续作用于新资料。
 use zircon_runtime::core::framework::sound::{SoundError, SoundHrtfProfileDescriptor};
 
 use crate::descriptor_validation::hrtf::validate_hrtf_profile_descriptor;

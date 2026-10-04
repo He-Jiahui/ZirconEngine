@@ -1,5 +1,7 @@
 use super::SkyboxMode;
 
+/// 天空辐射源的烘焙缓存键，供场景提取、工件选择和运行时复水共用。
+/// 展示强度与旋转在采样时施加，不属于改变源纹理的烘焙身份。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct IblBakeKey {
     pub source_kind: u32,

@@ -1,5 +1,6 @@
 use crate::core::framework::scene::EntityId;
 
+/// 主视图选中的虚拟几何 cluster；身份、LOD 与页驻留状态传给绘制段规划。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct VisibilityVirtualGeometryCluster {
     pub entity: EntityId,

@@ -13,6 +13,8 @@ const DEFAULT_ROW_EXTENT: f64 = 24.0;
 const DEFAULT_VIEWPORT_COUNT: i64 = 20;
 
 impl UiSurface {
+    /// 由表格指针路由的滚轮分支调用；捕获期间不滚动，窗口未变化时不生成事务/事件。
+    /// 仅推进模型窗口及其别名，不移动物理行或请求资源；作者通过可见范围回执承接数据更新。
     pub(super) fn apply_default_table_virtual_scroll(
         &mut self,
         route: &UiPointerRoute,
@@ -82,6 +84,9 @@ impl UiSurface {
 
         let visible_end = next_start.saturating_add(viewport_count).min(total_count);
         let overscan = table_overscan(metadata);
+        // BUG: [CR-UI-SURFACE-0009] 有符号减法的 saturating_sub 不会把负值钳到零；
+        // 起点 1、overscan 2 会发布 requested_start=-1，并把不存在的负行计入 requested_count。
+        // 窗口提交不再次归一化，需在此限制请求起点并覆盖滚动接近首行的回归。
         let requested_start = next_start.saturating_sub(overscan);
         let requested_end = visible_end.saturating_add(overscan).min(total_count);
         Ok(Some(UiVirtualWindowState {

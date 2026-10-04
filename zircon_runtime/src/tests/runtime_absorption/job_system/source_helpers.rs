@@ -1,3 +1,4 @@
+//! 任务系统的执行模型、并行来源与文档门禁保持同一口径。向相邻守卫提供源码读取、路径枚举或断言工具。
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};

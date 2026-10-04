@@ -1,3 +1,6 @@
+//! 公开连接、恢复与断开诊断快照，供重发上限及模拟丢失阈值改变恢复状态。
+//! 状态变化本身不会触发 socket 重连或向根 NetManager 发布事件。
+
 use zircon_runtime::core::framework::net::{
     ReliableDatagramRecoveryReport, ReliableDatagramRecoveryState,
 };

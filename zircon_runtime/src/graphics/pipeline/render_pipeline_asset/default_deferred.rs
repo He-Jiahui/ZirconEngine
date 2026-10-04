@@ -6,6 +6,7 @@ use crate::graphics::pipeline::declarations::{
 };
 
 impl RenderPipelineAsset {
+    /// 构造默认 deferred Core3D 管线，包含深度、阴影、AO、延迟光照和后处理链。
     pub fn default_deferred() -> Self {
         Self {
             handle: Self::DEFAULT_DEFERRED_HANDLE,

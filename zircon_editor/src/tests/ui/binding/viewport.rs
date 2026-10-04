@@ -1,3 +1,5 @@
+//! 从绑定解析和事件分派入口验证视口尺寸、工具栏设置、投影和吸附命令往返绑定编码。
+
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
     DisplayMode, GridMode, PivotMode, ProjectionMode, TransformHandleKind, TransformSpace,

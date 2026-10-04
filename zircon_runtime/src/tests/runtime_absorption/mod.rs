@@ -1,3 +1,4 @@
+//! 此模块统一挂载运行时吸收测试，子模块各自拥有具体断言。集中挂载下级测试；所有行为断言留在被挂载模块。
 mod asset_pipeline;
 mod asset_surface;
 mod asset_worker_policy;

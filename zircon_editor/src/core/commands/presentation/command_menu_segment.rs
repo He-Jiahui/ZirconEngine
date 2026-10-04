@@ -1,3 +1,5 @@
+//! 菜单段把可合并的稳定身份与可翻译标签分离；同一分组的匹配依赖ID，显示语言变化不应改变命令路径。
+
 use serde::{Deserialize, Serialize};
 
 use crate::core::i18n::EditorLocalizationKey;

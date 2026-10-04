@@ -5,6 +5,7 @@ use crate::scene::world::{SceneError, SceneResult, World};
 use super::compiled_scene_camera_light_fields::CompiledLightProperty;
 use super::property_path::CompiledScenePropertyWriter;
 
+// 编译后的灯光字段直接写 ECS 组件；动画轨道在导入期解析字段，运行期仅在绑定仍有效时调用。
 impl World {
     pub(super) fn write_compiled_light_property(
         &mut self,
@@ -68,6 +69,7 @@ impl World {
                 light.color = next;
                 true
             }
+            // BUG: [CR-R02-runtime_world_property_binding-0002] 重复写同一灯光强度时返回 false，但下方 get_mut 已推进 World 代际；证据：typed_api 的预标记路径与 compiled_binding 重复写测试的代际断言冲突。
             CompiledLightProperty::DirectionalIntensity => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
                 let Some(light) = self.get_mut::<DirectionalLight>(target.entity()) else {

@@ -1,5 +1,7 @@
 use crate::core::framework::render::{RenderPhaseSortComponents, RenderQueueValue};
 
+/// 将场景提取的相机、层级和深度排序意图带到 Mesh pass 命令阶段。
+/// 同深度项依靠稳定 tie breaker 保持确定顺序。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct MeshCommandSortInput {
     pub(crate) depth: f32,

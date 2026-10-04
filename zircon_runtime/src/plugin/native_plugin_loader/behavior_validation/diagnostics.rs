@@ -1,3 +1,6 @@
+//! 健康等级按诊断严重程度合成，避免命令/状态/schema 各自生成互相冲突的健康结论。
+//! 对外只投影文本和最终等级，内部严重程度不依赖诊断文本搜索。
+
 use crate::plugin::PluginModuleKind;
 
 use super::report::NativePluginBehaviorHealth;

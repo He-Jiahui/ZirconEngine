@@ -1,3 +1,5 @@
+//! 持久化源路径到自动保存文档身份的映射；恢复发现阶段验证该映射，避免目录名碰撞导致静默重新绑定。
+
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};

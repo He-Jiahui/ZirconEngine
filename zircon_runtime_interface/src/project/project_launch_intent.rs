@@ -23,6 +23,7 @@ pub enum ProjectLaunchProfile {
     Recovery,
 }
 
+/// The product surface that originated a launch operation.
 /// 可序列化的请求来源记录，不构成 Hub 身份认证或项目准入授权。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -121,6 +122,7 @@ impl ProjectLaunchIntent {
         &self.target
     }
 
+    /// Keeps the initiating operation and policy when an input has become an existing root.
     /// 创建成功后可沿用原操作标识转为打开请求；调用方须传入实际创建的项目根。
     pub fn retarget_open_existing_project(
         &self,

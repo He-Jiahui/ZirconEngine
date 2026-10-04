@@ -1,3 +1,5 @@
+//! 候选 UI 层级与 Runtime 拾取类别优先级对应；表面只做粗筛，最终命中排序仍经过共享拾取管线。
+
 use crate::scene::viewport::pointer::constants::{
     GIZMO_PRIORITY, HANDLE_PRIORITY, RENDERABLE_PRIORITY,
 };

@@ -1,3 +1,4 @@
+//! 场景模块新目录必须存在，旧独立包必须退役；旧平面入口可缺失，其空文本仅供否定旧转发断言。
 #[test]
 fn scene_module_registration_is_absorbed_into_runtime_scene_surface() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

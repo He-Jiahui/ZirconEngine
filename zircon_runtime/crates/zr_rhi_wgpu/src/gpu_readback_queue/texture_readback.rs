@@ -1,3 +1,6 @@
+//! 纹理到 staging 的布局契约及 CPU 解包；复制行按原生对齐填充，交付数据移除填充。
+//! 布局描述字节排列，不自动做格式或颜色语义转换；通用颜色路径依赖调用者的纹理前提。
+
 use super::ticket::ReadbackError;
 
 const R32_UINT_BYTES_PER_TEXEL: u32 = size_of::<u32>() as u32;

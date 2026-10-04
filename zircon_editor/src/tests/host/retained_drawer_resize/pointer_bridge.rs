@@ -1,3 +1,4 @@
+// 从统一外壳指针桥处理拖动和尺寸调整，约束捕获持续、取消及稳定几何复用。
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::drawer_resize::HostResizeTargetGroup;
 use crate::ui::retained_host::shell_pointer::{HostShellPointerBridge, HostShellPointerRoute};

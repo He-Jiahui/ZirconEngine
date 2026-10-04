@@ -2,6 +2,7 @@ use super::*;
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::retained_host::PaneSurfaceHostContext;
 
+// 资产控件事件必须带回触发它的窗口上下文，后续分发才会命中主窗或浮窗的正确 pane。
 pub(super) fn wire_asset_control_callbacks(
     pane_surface_host: &PaneSurfaceHostContext,
     ui: &UiHostWindow,

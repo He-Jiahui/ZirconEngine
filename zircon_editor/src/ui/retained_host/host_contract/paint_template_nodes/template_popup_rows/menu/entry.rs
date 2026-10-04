@@ -1,3 +1,6 @@
+//! 菜单绘制先提交弹层底面，再按共享布局决定每行位置；分隔项不提交文字或动作装饰。
+//! 行与clip无交集时无需借用项数据或构造文字；视觉顺序不代表菜单动作执行顺序。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_popup_row_adornments::{
@@ -27,6 +30,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_me
     push_popup_background(commands, node, rect, clip, order, opacity);
     let row_metrics = workbench_popup_row_metrics();
 
+    // TODO: [CR-EDITOR-PAINT-OVERLAY-0012] 菜单和选项入口仍为每个索引计算几何后才剔除屏外行；
+    // 确认正式集合有数量上限或分页合同。若允许大型动态集合，应像通知中心一样先求可见索引范围。
     for row in 0..row_count {
         let Some(row_rect) = menu_item_row_frame(node, rect, row_count, row) else {
             continue;

@@ -4,6 +4,7 @@ use crate::scene::SystemStage;
 use super::VmCallbackHandle;
 
 /// Schedule stage supported by VM system dispatchers.
+/// 阶段可显式转换为运行时 `SystemStage`；VM 注册表自身按本枚举分组活动贡献。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum VmSystemStage {
     /// Fixed-step simulation stage.
@@ -48,6 +49,7 @@ impl VmSystemStage {
 }
 
 /// Active VM system contribution published to the scheduler dispatcher.
+/// 记录只描述已发布贡献；实际回调仍通过 `VmCallbackHandle` 解析。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VmSystemRegistration {
     /// Package-local stable system identifier.
@@ -59,6 +61,7 @@ pub struct VmSystemRegistration {
 }
 
 /// VM behavior-node contribution consumed by the AI plugin adapter.
+/// 节点适配器使用稳定 id 建目录，并在执行时解析 callback。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VmBehaviorNodeRegistration {
     /// Stable catalog identifier.
@@ -70,6 +73,7 @@ pub struct VmBehaviorNodeRegistration {
 }
 
 /// VM RPC-handler contribution consumed by the networking plugin adapter.
+/// payload schema 与 callback 一起构成网络层可验证的入口描述。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VmRpcHandlerRegistration {
     /// Stable RPC identifier.
@@ -81,6 +85,8 @@ pub struct VmRpcHandlerRegistration {
 }
 
 /// VM editor-operation contribution consumed by the editor adapter.
+/// 记录三段 operation 标识与回调；注册表按标识保存贡献，管理器提供活动快照查询。
+// TODO: [CR-VM-HOST-EDITOR-CONSUMER-0001] 当前仅证实注册表快照和管理器查询，未定位编辑器执行消费者；下一步沿编辑器操作入口确认匹配、能力校验及回调分发接入。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VmEditorOperationRegistration {
     /// Three-segment operation identifier (`Domain.Group.Action`).

@@ -1,3 +1,4 @@
+// 核对原生窗口呈现器的子窗口创建、更新、隐藏和代际去重。
 use std::cell::Cell;
 use std::rc::Rc;
 

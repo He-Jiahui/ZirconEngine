@@ -1,3 +1,6 @@
+//! 提示身份与级别的解析边界；已知 Workbench id 优先，其他 Workbench alert 使用声明级别。
+//! 不从消息正文猜测严重性，防止普通描述中的 error 等词改变反馈语义。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::style_selector::WorkbenchAlertTone as AlertTone;
 

@@ -1,3 +1,5 @@
+//! 验证Material 样例中可分派节点与反馈路由的对应关系。
+
 use super::*;
 
 #[test]

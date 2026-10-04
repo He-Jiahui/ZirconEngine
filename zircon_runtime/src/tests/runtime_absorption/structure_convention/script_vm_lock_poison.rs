@@ -4,6 +4,7 @@ use super::{assert_contains_all_exact, runtime_src_path};
 const READ_UNWRAP_CALL: &str = concat!(".read().", "unwrap()");
 const WRITE_UNWRAP_CALL: &str = concat!(".write().", "unwrap()");
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0138] 脚本虚拟机后端选择器的锁中毒策略的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_covers_manager_selector(
 ) {

@@ -1,3 +1,4 @@
+// 经公共声管理器核对已提交待分发事件的排空结果，重复排空应返回空集合。
 use super::super::super::*;
 
 use super::support::{impact_invocation, register_impact_event};

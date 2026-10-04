@@ -16,6 +16,7 @@ impl Default for NetRuntimeMode {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// RPC 会话握手的控制消息；Hello、挑战、登录、欢迎和 Join 必须按服务端状态机顺序解释。
 pub enum NetControlMessage {
     Hello {
         protocol_version: u32,
@@ -52,6 +53,7 @@ pub enum NetSessionHandshakeState {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 运行时会话快照；connection 可在握手或本地场景缺席，state 才是后续 RPC 可用性的依据。
 pub struct NetSessionInfo {
     pub session: NetSessionId,
     pub connection: Option<NetConnectionId>,

@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证编辑器 ZUI 原色和固定尺寸债务的冻结清单。
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;

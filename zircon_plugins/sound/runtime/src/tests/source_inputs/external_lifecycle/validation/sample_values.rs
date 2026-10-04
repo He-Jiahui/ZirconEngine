@@ -1,3 +1,4 @@
+// 经外部采样块提交入口拒绝非有限样本，核对输入样本的数值边界。
 use super::super::super::super::*;
 
 #[test]

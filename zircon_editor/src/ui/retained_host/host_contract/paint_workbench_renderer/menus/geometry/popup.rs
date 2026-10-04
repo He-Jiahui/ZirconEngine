@@ -11,6 +11,7 @@ pub(in crate::ui::retained_host::host_contract) fn menu_popup_height(item_count:
     menu_popup_content_height(item_count)
 }
 
+// 根菜单绘制框按宿主可见壳尺寸约束宽高，并在锚点下方不足时改放上方；输入路径另行计算对应框。
 pub(in crate::ui::retained_host::host_contract) fn constrained_menu_popup_frame(
     presentation: &HostWindowPresentationData,
     menu_frame: &FrameRect,

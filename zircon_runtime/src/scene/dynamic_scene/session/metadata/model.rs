@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+/// 槽位随档案持久化的来源、展示、时间和标签信息；Level 还原只映射项目与展示字段。
+/// 标签在档案入口规范化，时间戳缺失在最新/最旧排序中按零处理。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RuntimeSessionMetadata {
     #[serde(default)]

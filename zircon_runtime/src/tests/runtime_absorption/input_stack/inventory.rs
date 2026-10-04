@@ -1,3 +1,4 @@
+//! 输入动作、手柄、宿主请求与公共契约保持由运行时输入栈拥有。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "inventory/behavior_anchors.rs"]
 mod behavior_anchors;
 #[path = "inventory/cursor_host_requests.rs"]

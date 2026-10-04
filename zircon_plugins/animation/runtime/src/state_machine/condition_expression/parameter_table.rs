@@ -1,3 +1,4 @@
+//! 把条件引用的参数名去重为稠密槽，供条件程序和状态机参数投影一致索引。
 use std::collections::BTreeMap;
 
 use super::ConditionExpressionCompileError;

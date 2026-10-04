@@ -1,3 +1,5 @@
+//! 槽位属于父子边而非节点自身：父容器决定槽位类别，子声明只补充该类别能消费的定位规则。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -15,6 +17,8 @@ use super::parse::{
 
 const RESPONSIVE_BREAKPOINTS: &[&str] = &["xs", "sm", "md", "lg", "xl"];
 
+/// 树构建插入子节点时调用；显式槽位布局优先，缺省 Grid 才采用组件的响应式初始属性。
+/// 初始断点值用于首次建树，视口确定后由布局预处理按当前宽度重算隐式 Grid。
 pub(super) fn infer_slot_contract(
     asset_id: &str,
     path: &str,
@@ -84,6 +88,7 @@ fn infer_slot_kind(parent_container: UiContainerKind) -> UiSlotKind {
         .unwrap_or(UiSlotKind::Free)
 }
 
+// 仅在声明了定位字段时创建 Canvas 放置策略，保留未声明节点的普通布局行为。
 fn parse_canvas_placement(
     asset_id: &str,
     layout: &toml::map::Map<String, Value>,

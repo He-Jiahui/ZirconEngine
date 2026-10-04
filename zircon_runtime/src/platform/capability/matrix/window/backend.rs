@@ -5,6 +5,8 @@ use super::super::super::backends::WindowBackend;
 use super::super::super::status::CapabilityStatus;
 use super::super::PlatformCapabilityMatrix;
 
+// window_backend 是窗口能力的根判定：先处理 ServerRuntime/Headless，再处理
+// platform-window 总开关，最后按桌面、移动、浏览器目标选择 winit、canvas 或 headless。
 impl PlatformCapabilityMatrix {
     pub(in crate::platform::capability::matrix) fn window_backend(
         self,

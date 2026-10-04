@@ -1,3 +1,4 @@
+/// 阴影图集规划可申请的离散尺寸；分配器可因容量压力逐级降档。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ShadowResolutionTier {
     T128,
@@ -74,6 +75,8 @@ impl Default for ShadowPcfQuality {
     }
 }
 
+/// 从场景光源抽取到阴影图集规划与 GPU 光源打包的共同偏好。
+/// `resolution_preference` 是申请值；实际尺寸取决于当前帧图集分配结果。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LightShadowSettings {
     pub casts_shadow: bool,

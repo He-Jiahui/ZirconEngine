@@ -1,3 +1,4 @@
+//! 运行时图编译失败契约；框架源诊断与目标绑定失败分别反馈给图缓存消费者。
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 

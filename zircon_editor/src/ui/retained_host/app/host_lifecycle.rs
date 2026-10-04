@@ -1,3 +1,4 @@
+//! 宿主生命周期把模板事件副作用、失效事务、重算、原生窗口同步和启动装配接到同一帧循环。
 mod dispatch_effects;
 mod invalidation_bridge;
 mod native_window_presenters;

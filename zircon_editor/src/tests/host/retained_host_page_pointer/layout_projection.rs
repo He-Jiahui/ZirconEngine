@@ -1,3 +1,4 @@
+// 从宿主页面布局生成回执投影，约束页面身份保持类型化而不携带几何。
 use crate::tests::editor_event::support::EventRuntimeHarness;
 use crate::ui::retained_host::host_page_pointer::build_host_page_pointer_layout;
 use crate::ui::workbench::layout::MainPageId;

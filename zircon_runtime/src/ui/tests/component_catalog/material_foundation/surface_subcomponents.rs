@@ -1,3 +1,5 @@
+//! 折叠面板、对话框与抽屉子组件依赖父容器插槽；描述符必须保留该组合边界。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{UiComponentEventKind, UiRenderCapability, UiValue};
 

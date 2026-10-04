@@ -1,3 +1,6 @@
+//! 一个 glTF Mesh 中的多个 primitive 可以使用不同材质；根、Mesh 和 Scene
+//! 三层引用与依赖都必须指向各自的带标签子资产。
+
 use super::*;
 
 #[test]

@@ -5,6 +5,7 @@ use crate::text::{InlineObjectRef, LinkRef, OpenTypeFeature};
 
 use super::{CompiledRichText, RichTableCellProjectionIndex, RichTextDependency};
 
+/// 为编译产物缓存的驻留与淘汰提供近似计费；共享语义文本只计一次，此值不承诺精确堆占用。
 pub(super) fn calculate_estimated_bytes(compiled: &CompiledRichText) -> usize {
     let run_metadata_bytes = compiled
         .parsed

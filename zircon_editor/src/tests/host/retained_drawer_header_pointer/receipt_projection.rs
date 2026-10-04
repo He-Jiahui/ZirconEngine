@@ -1,3 +1,4 @@
+// 从抽屉标题帧生成回执投影，约束区域顺序与类型化目标身份。
 use crate::ui::retained_host::drawer_header_pointer::build_host_drawer_header_pointer_layout;
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::layout::ActivityDrawerSlot;

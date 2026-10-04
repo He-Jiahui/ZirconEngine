@@ -1,5 +1,6 @@
 use super::cull_input::RenderVirtualGeometryCullInputSnapshot;
 
+/// 剔除分派的相机、预算和历史视图输入快照；GPU 字布局与读回解码共用契约。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
     pub cull_input: RenderVirtualGeometryCullInputSnapshot,
@@ -104,6 +105,7 @@ impl RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot {
     }
 }
 
+/// 可见实例送入根工作表的起始范围，供剔除分派与调试复现共享。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
     pub instance_index: u32,
@@ -147,6 +149,7 @@ impl RenderVirtualGeometryNodeAndClusterCullInstanceSeed {
     }
 }
 
+/// 实例工作项是 GPU 剔除链的记录；调试读回按固定字数解码此结构。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem {
     pub instance_index: u32,
@@ -197,6 +200,7 @@ impl RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem {
             page_count: words[6],
             cluster_budget: words[7],
             page_budget: words[8],
+            // BUG: [CR-RENDER-MISC-0001] 四种记录解码把非哨兵 forced_mip 直接窄化为 u8；例如 256 被接受为 0，使畸形读回伪装成有效 LOD。
             forced_mip: (words[9] != Self::NONE_SENTINEL).then_some(words[9] as u8),
         })
     }
@@ -470,6 +474,7 @@ impl RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot {
     }
 }
 
+/// 一次剔除启动的完整工作表证据；头部实例数须与随后编码的 seed 数一致。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot {
     pub global_state: RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot,

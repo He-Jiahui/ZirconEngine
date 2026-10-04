@@ -1,3 +1,4 @@
+//! 区域及声源发送共用静态脉冲响应叠加，调用方负责提供可用响应和有声道的块；该路径尚未接入 Kira 回调。
 use zircon_runtime::core::framework::sound::SoundRayTracingConvolutionStatus;
 
 pub(super) fn add_convolution_send(

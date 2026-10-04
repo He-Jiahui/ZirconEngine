@@ -1,3 +1,5 @@
+//! 给两种项目资产管理入口注册同一测试导入器集合，确保样例比较的是导入和运行时加载链，而非注册差异。
+
 use super::*;
 
 pub(super) fn project_manager_with_sample_importers(root: &Path) -> ProjectManager {
@@ -23,6 +25,7 @@ pub(super) fn project_asset_manager_with_sample_importers() -> ProjectAssetManag
     manager
 }
 
+// 测试专用 DDS 入口只建立容器资产；运行时的上传能力仍由消费者单独判定。
 fn dds_container_importer() -> FunctionAssetImporter {
     FunctionAssetImporter::new(
         AssetImporterDescriptor::new(

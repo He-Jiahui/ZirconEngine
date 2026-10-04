@@ -1,3 +1,4 @@
+//! 模板 Pane 先投影文档、计算布局并绑定动作，再发布宿主节点；任一步失败都清除旧动作以免继续触发过期绑定。
 use std::sync::OnceLock;
 
 use crate::ui::layouts::common::model_rc;

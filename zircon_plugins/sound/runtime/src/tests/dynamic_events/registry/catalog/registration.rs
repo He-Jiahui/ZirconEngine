@@ -1,3 +1,4 @@
+// 经公共声管理器注册事件，再核对目录中保留的事件描述符。
 use super::super::super::*;
 
 use super::support::register_impact_event;

@@ -1,3 +1,5 @@
+//! 按钮表面域输出基础表面、Material 状态覆盖和选中页签指示；内容域随后在更高层追加。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::material_state_layer::push_state_layer_commands;
 use super::super::render_commands::HostPaintCommand;
@@ -12,6 +14,7 @@ mod style;
 
 use style::button_surface_command_style;
 
+/// 接收已经偏移且可见的按钮外框；基础表面、状态层和指示条均沿用同一裁剪与透明度。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_button_surface(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

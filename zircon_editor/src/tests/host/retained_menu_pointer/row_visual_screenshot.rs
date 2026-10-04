@@ -1,3 +1,4 @@
+// 核对列表、树和表格行的状态及动作在原生绘制中的可见差异。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

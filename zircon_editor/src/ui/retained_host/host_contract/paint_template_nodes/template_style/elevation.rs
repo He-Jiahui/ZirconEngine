@@ -1,3 +1,5 @@
+//! 通用表面的阴影资格与布局分开；禁用控件不提升，阴影仅偏移表面而不扩大交互区域。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::state::is_button_disabled;
 

@@ -1,3 +1,4 @@
+//! 素材上下文接口负责在编译后收集着色器与材质契约诊断。
 use crate::asset::{AssetReference, MaterialAsset, ShaderAsset};
 use crate::core::framework::render::RenderFrameExtract;
 use crate::graphics::pipeline::declarations::{
@@ -5,12 +6,15 @@ use crate::graphics::pipeline::declarations::{
     RendererFeatureAsset, RendererFeatureContractDiagnostic,
 };
 
+// TODO: [CR-GRAPHICS-RUNTIME-0002] 确认素材上下文诊断由哪个产品入口消费；当前第一方仅导出此接口，未见展示诊断的调用方。
+/// 编译期素材查找接口供作者工具检查特性引用的着色器和材质。
 pub trait RenderPipelineAssetContext {
     fn load_shader_asset(&self, reference: &AssetReference) -> Option<ShaderAsset>;
     fn load_material_asset(&self, reference: &AssetReference) -> Option<MaterialAsset>;
 }
 
 impl RenderPipelineAsset {
+    /// 返回图与素材契约诊断；调用方负责展示非致命诊断。
     pub fn compile_with_asset_context(
         &self,
         extract: &RenderFrameExtract,

@@ -4,6 +4,7 @@ use crate::graphics::backend::RenderBackend;
 use crate::graphics::types::{GraphicsError, ViewportFrame};
 use crate::rhi::SubmissionPollReceipt;
 
+/// 显式阻塞读取离屏结果的产品入口；等待期间经同一 poll 回调维护提交完成观察。
 pub(crate) fn finish_viewport_frame(
     backend: &RenderBackend,
     texture: &wgpu::Texture,

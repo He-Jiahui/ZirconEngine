@@ -6,6 +6,7 @@ use super::super::duplicate_identity::DuplicateIdentity;
 use super::super::duplicate_occurrence::DuplicateOccurrence;
 use super::index_identity;
 
+/// 同类贡献在包内共享身份域；不同贡献类型即使文本相同也不会彼此触发重复诊断。
 pub(super) fn index_contribution_identities<'a>(
     manifest: &'a PluginPackageManifest,
     seen: &mut HashSet<DuplicateIdentity<'a>>,

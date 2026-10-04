@@ -1,3 +1,5 @@
+//! 销毁实体应使用当前原型签名和位置，仅修复受交换删除影响的行；这里固定该调用成本边界。
+
 #[test]
 fn world_despawn_uses_known_archetype_location_without_full_rebuild() {
     let hierarchy = include_str!("../../world/hierarchy.rs");

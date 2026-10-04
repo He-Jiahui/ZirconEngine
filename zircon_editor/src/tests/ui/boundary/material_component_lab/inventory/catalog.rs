@@ -1,3 +1,5 @@
+//! 验证Material 原型按功能域归档，并在实验室可见分区中各出现一次。
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,

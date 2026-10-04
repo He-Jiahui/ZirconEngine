@@ -1,3 +1,5 @@
+//! 记录运行态样式和树构建的性能回归守卫；该守卫读取生产源码文本。
+// TODO: [CR-UI-TEST-0002] 确认源码字符串守卫能否覆盖等价的逐子节点复制形式；当前仅排除固定拼写，下一步改用语法或行为证据。
 #[test]
 fn runtime_style_traversal_does_not_clone_each_nodes_children() {
     let source = include_str!("../../v2/style.rs");

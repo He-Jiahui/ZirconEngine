@@ -6,6 +6,7 @@ use crate::core::resource::{ResourceHandle, TextureMarker};
 
 use super::PlanarUpdateMode;
 
+/// 场景侧探针约束与可选捕获目标；没有目标时相机循环跳过，层掩码限定反射相机可见内容。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PlanarReflectionProbeData {
     pub probe_id: u64,

@@ -1,3 +1,4 @@
+//! World::query 创建持久查询状态；子模块覆盖直接查询、系统运行窗口、缓存路径和读写别名约束。
 use crate::scene::components::{Name, RenderLayerMask};
 use crate::scene::ecs::{
     ArchetypeId, Changed, Component, Mut, QueryEntityError, QuerySingleError, QueryState, Ref,

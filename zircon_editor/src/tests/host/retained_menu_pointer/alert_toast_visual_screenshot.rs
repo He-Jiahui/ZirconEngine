@@ -1,3 +1,4 @@
+// 以绘制后像素核对提示组件的色调、文本、操作与禁用态，并输出视觉证据。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

@@ -1,3 +1,4 @@
+//! 管理器同步图预览接口从作者图展开剪辑贡献；帧管线生产求值另由编译图承担。
 use std::collections::{HashMap, HashSet};
 
 use zircon_runtime::core::framework::animation::{AnimationGraphAsset, AnimationGraphNodeAsset};

@@ -59,6 +59,7 @@ impl PlatformDriver {
         self.application_lifecycle.publish_running(operation)
     }
 
+    // 只有 active/preparing/retiring 三类 lease 均清零后才发布 Suspended；返回退休回执本身不会清除登记。
     pub(crate) fn publish_application_suspended(
         &self,
         operation: ApplicationLifecycleOperation,

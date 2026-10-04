@@ -1,3 +1,4 @@
+/// deferred GBuffer 与光照 pass 的资源归属；局部探针和 lightmap 绑定在执行前注入。
 pub(crate) struct DeferredSceneResources {
     pub(in crate::graphics::scene::scene_renderer::deferred) deferred_lighting_profile:
         crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile,

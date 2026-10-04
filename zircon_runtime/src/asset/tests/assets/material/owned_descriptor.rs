@@ -1,3 +1,5 @@
+//! 渲染队列、阴影和时域控制由材质资产投影到标准描述符；不能误作 shader 自定义属性继续传递。
+
 use super::*;
 
 #[test]
@@ -104,6 +106,7 @@ custom_gain = 2.0
     assert!(!encoded.contains("receive_shadows"));
 }
 
+// BUG: [CR-ASSET-TEST-MESH-0003] 夹具把 alpha_mode 写成字符串而非带 mode 字段的表；解析回退 Opaque，未覆盖 Blend 场景。
 #[test]
 fn material_owned_separate_translucency_marks_only_the_material_descriptor() {
     let material = MaterialAsset::from_toml_str(

@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::scene::EntityId;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 记录本次场景应用的源/目标实体关系；未列出的 ID 被视为场景外引用，写入时保持原值。
 pub struct EntityRemap {
     mappings: BTreeMap<EntityId, EntityId>,
 }

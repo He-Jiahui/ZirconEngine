@@ -1,3 +1,4 @@
+//! 汇集作者资产加载、导入展开和运行时表面投影的公共夹具；子测试从同一文档快照验证三个阶段的契约。
 use toml::Value;
 
 use crate::ui::template::{
@@ -167,6 +168,7 @@ event = "Click"
 route = "Toolbar.Open"
 "##;
 
+// 此平铺夹具未声明递归夹具中的 Toolbar/Open 绑定；迁移测试核对树结构与导入控件身份。
 const FLAT_LAYOUT_ASSET_TOML: &str = r##"
 [asset]
 kind = "layout"

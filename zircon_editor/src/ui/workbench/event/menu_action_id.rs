@@ -3,6 +3,7 @@ use crate::core::play::PlayKind;
 
 use super::node_kind_id::{node_kind_action_id, node_kind_id};
 
+// 载荷中的领域动作身份，独立于可本地化文案和控件路径；解码器与宿主回调按此还原动作。
 pub(super) fn menu_action_id(action: &MenuAction) -> String {
     match action {
         MenuAction::OpenProject => "workbench.project.open".to_string(),
@@ -37,6 +38,7 @@ pub(super) fn menu_action_id(action: &MenuAction) -> String {
     }
 }
 
+// 绑定路径中的控件身份，用于反射和界面关联；它与动作载荷共同组成被测试固定的原生绑定文本。
 pub(super) fn menu_action_control_id(action: &MenuAction) -> String {
     match action {
         MenuAction::OpenProject => "OpenProject".to_string(),

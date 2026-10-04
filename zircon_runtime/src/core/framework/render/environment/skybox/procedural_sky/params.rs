@@ -4,6 +4,7 @@ use super::PROCEDURAL_SKY_DEFAULT_SUN_ANGULAR_RADIUS_RADIANS;
 
 pub const PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION: u64 = 1;
 
+/// 程序化天空提取交给天空绘制与 IBL 烘焙的输入；太阳有效值由共享解析器归一化。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ProceduralSkyParams {
     pub horizon_color: Vec4,
@@ -19,6 +20,7 @@ pub struct ProceduralSkyParams {
 }
 
 impl ProceduralSkyParams {
+    /// 创建默认渐变源；显示强度与旋转由采样路径处理，不改变源内容身份。
     pub fn default_gradient() -> Self {
         Self {
             horizon_color: Vec4::new(0.16, 0.19, 0.24, 1.0),

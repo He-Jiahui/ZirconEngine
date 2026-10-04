@@ -1,3 +1,6 @@
+//! App 入口编排与所有权边界测试使用的编译时源码快照。
+//! 拼接顺序供源级断言使用，不代表实际执行顺序。
+
 use std::path::{Path, PathBuf};
 
 pub(super) fn runtime_event_loop_policy_source() -> String {

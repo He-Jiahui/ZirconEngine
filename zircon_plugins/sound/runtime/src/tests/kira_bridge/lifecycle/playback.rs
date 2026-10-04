@@ -1,3 +1,4 @@
+// 在已激活 MockBackend 的 KiraEngine 中核对播放控制调用成功及停止后句柄移除，不观察硬件音频输出。
 use kira::backend::mock::MockBackend;
 use zircon_runtime::core::framework::sound::{SoundPlaybackId, SoundTrackId};
 

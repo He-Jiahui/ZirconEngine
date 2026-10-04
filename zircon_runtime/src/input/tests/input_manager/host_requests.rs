@@ -1,5 +1,6 @@
 use super::*;
 
+// 运行时生成的震动和光标请求由宿主排空；帧快照只呈现本帧新请求。
 #[test]
 fn gamepad_rumble_requests_are_frame_local_and_drainable() {
     let input = DefaultInputManager::default();

@@ -4,6 +4,7 @@ use crate::ui::workbench::snapshot::ViewContentKind;
 use super::super::active_tab::active_document_tab;
 use super::super::{ShellFrame, WorkbenchChromeMetrics};
 
+/// 供viewport绘制和命中的logical内容区；文档标题与Scene/Game工具条不属于渲染视口。
 pub(super) fn build_viewport_content_frame(
     model: &WorkbenchViewModel,
     document_frame: ShellFrame,

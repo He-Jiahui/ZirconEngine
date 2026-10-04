@@ -2,6 +2,8 @@ use crate::text::TextRange;
 
 use super::LogicalVirtualFragmentRole;
 
+/// 检查逻辑显示字素与源回执、外部对象及生成字符角色能否组成同一候选序列。
+/// 生成字符须使用零宽源锚点并携带归属；调用方在一次整形和双向重排前先拒绝不一致输入。
 pub(super) fn logical_virtual_sequence_input_is_valid(
     text: &str,
     logical_ranges: &[TextRange],

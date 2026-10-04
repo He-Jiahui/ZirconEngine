@@ -71,6 +71,7 @@ impl ArtifactCacheSceneMeshLodLevelAsset {
     }
 }
 
+// 网格实例的资源引用和 LOD 声明随场景实体持久化；实际资源解析留给场景加载链。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) struct ArtifactCacheSceneMeshInstanceAsset {
     model: AssetReference,
@@ -135,6 +136,7 @@ impl ArtifactCacheSceneMeshInstanceAsset {
     }
 }
 
+// 相机目标与管线选择是场景持久状态；缓存读回只恢复声明，不在此处占有渲染设备。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) struct ArtifactCacheSceneCameraAsset {
     #[serde(default)]

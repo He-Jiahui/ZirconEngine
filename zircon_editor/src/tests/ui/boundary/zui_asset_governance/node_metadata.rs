@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 节点属性名和资源路径的可移植性。
+
 use super::metadata::{attribute_key_offenders, resource_path_string_offenders};
 use super::support::{collect_zui_files, editor_asset_root, runtime_asset_root};
 

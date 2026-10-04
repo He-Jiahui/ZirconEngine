@@ -14,6 +14,7 @@ struct CapacityGroup {
     queue: VecDeque<u64>,
 }
 
+// 共享桥容量按组维护活动集合与等待队列；代理取消或离开时须释放队列位置。
 impl BridgeCapacityRuntime {
     pub(super) fn try_acquire(
         &mut self,

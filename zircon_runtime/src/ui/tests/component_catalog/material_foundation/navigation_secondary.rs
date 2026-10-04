@@ -1,3 +1,5 @@
+//! 次级导航控件复用菜单列表与步进器语义；默认选项和焦点字段必须可由组件状态层查询。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{UiComponentEventKind, UiValue};
 

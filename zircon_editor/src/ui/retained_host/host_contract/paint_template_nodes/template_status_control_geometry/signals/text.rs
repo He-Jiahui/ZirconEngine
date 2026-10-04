@@ -1,3 +1,5 @@
+//! 信号文字相对已经定位的标记安排，而不是重新按整个状态栏起点定位；显式内容间距优先。
+
 use super::super::super::style_selector::WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT;
 use super::super::metrics::status_line_height;
 use super::constants::status_signal_metrics;

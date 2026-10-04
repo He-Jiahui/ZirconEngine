@@ -1,3 +1,4 @@
+//! 包根路径声明先做字段、相对性和路径段检查；诊断进入注册报告，实际文件访问仍需独立的包边界验证。
 mod field;
 mod relative;
 mod segments;

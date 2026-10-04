@@ -1,3 +1,5 @@
+//! 为刷新状态机提供显式屏障、失败序列与准入探针，避免依赖真实目录扫描时序。
+//! 虚拟根只标识服务键；文件系统行为由真实文件预算与发现夹具测试承担。
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::SyncSender;
 use std::sync::{Arc, Barrier, Condvar, Mutex};
@@ -30,6 +32,7 @@ pub(super) fn root(label: &str) -> NativePluginDiscoveryRoot {
     test_native_plugin_discovery_root(format!("C:/native-plugin-tests/{label}"))
 }
 
+// 有限轮询仅用于测试等待工作退休；生产同步投影使用票据的条件变量与自身期限。
 pub(super) fn wait_for_terminal(ticket: &NativePluginDiscoveryRefreshTicket) {
     for _ in 0..100 {
         if ticket.is_complete() {
@@ -40,6 +43,7 @@ pub(super) fn wait_for_terminal(ticket: &NativePluginDiscoveryRefreshTicket) {
     panic!("refresh ticket did not reach a terminal state");
 }
 
+// 首代际等待取消，后续代际正常发布，用于把取代与合并状态放到可观测窗口内。
 pub(super) struct BlockingCollector {
     started: SyncSender<u64>,
 }
@@ -69,6 +73,7 @@ impl NativePluginDiscoveryTestCollector for BlockingCollector {
     }
 }
 
+// 第二次工作固定失败，供最后成功快照保留契约使用；它不模拟具体文件解析器。
 pub(super) struct SequenceCollector {
     calls: Mutex<u64>,
 }
@@ -208,6 +213,7 @@ pub(super) enum AdmissionProbeKind {
     ScratchBytes,
 }
 
+// 每个资源探针把形成计数放在准入之后；计数超过预期即说明失败发生得过晚。
 pub(super) struct AdmissionProbeCollector {
     kind: AdmissionProbeKind,
     materialized_units: AtomicUsize,

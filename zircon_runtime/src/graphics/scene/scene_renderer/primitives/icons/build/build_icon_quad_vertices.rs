@@ -5,6 +5,7 @@ use crate::graphics::scene::scene_renderer::primitives::IconVertex;
 
 use super::super::size::icon_world_size;
 
+/// 沿当前相机 right/up 构造面向视口的贴图图标；仅在图标 atlas 有可用绑定时由 gizmo 准备阶段调用。
 pub(crate) fn build_icon_quad_vertices(
     icon: &OverlayBillboardIcon,
     right: Vec3,

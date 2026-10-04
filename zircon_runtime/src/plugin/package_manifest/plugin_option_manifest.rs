@@ -1,6 +1,8 @@
+//! 包提供的配置选项声明；扩展注册表负责校验值类型、默认值与枚举约束。
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 默认值保持清单文本形式；注册时才按 value_type 解析，枚举值必须包含默认值。
 pub struct PluginOptionManifest {
     pub key: String,
     pub display_name: String,
@@ -29,6 +31,7 @@ impl PluginOptionManifest {
         }
     }
 
+    /// 声明 enum 选项的可选值；直接构造和 TOML 解析不承担去重与成员校验。
     pub fn with_enum_values<I, S>(mut self, values: I) -> Self
     where
         I: IntoIterator<Item = S>,

@@ -36,6 +36,7 @@ pub enum RigidBodyType {
         write = "super::reflection::rigid_body::write_mass_density"
     )
 )]
+/// 场景中的刚体配置与初始状态；物理后端在 World 步进时将它同步为求解器状态。
 pub struct RigidBodyComponent {
     #[zr_reflect(
         value_type_path = "Enum",

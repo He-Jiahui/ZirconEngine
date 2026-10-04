@@ -1,3 +1,4 @@
+// 从布局预设与重置事件投影宿主效果，约束活动预设名称的设定和清除。
 use crate::core::editor_event::{EditorEvent, EditorEventEffect, LayoutCommand, MenuAction};
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 

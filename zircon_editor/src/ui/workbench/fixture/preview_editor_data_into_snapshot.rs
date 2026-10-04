@@ -9,6 +9,7 @@ use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use super::PreviewEditorData;
 
 impl PreviewEditorData {
+    /// 将预览输入适配为工作台快照；未提供的资产、任务和诊断领域采用空基线。
     pub(crate) fn into_snapshot(self) -> EditorDataSnapshot {
         let console_output = ConsoleOutputSnapshot::from(self.status_line.clone());
         let selected = self

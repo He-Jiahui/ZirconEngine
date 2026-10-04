@@ -1,3 +1,4 @@
+//! 覆盖排版方向、对齐、裁剪和纵排旋转向 SDF 几何的投影契约。
 use super::*;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiShapedGlyph;
 use crate::text::ShapedGlyphRotation;

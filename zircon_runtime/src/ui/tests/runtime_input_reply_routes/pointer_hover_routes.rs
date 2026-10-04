@@ -1,3 +1,5 @@
+//! 悬停进入和离开使用直接命中路由；组件事件与逐步诊断应反映同一目标切换。
+
 use super::*;
 
 #[test]
@@ -101,6 +103,7 @@ fn unified_pointer_hover_enter_leave_report_direct_route_steps_and_component_eve
     assert!(surface.focus.hovered.is_empty());
 }
 
+// route_target 记录当前命中；切换或离开时 handler 可来自最后一个离开事件，因此允许与命中目标不同。
 fn assert_direct_hover_step(
     result: &UiInputDispatchResult,
     route_target: Option<UiNodeId>,

@@ -4,6 +4,7 @@ use crate::scene::{SceneError, SceneResult};
 
 use super::errors::property_type_error;
 
+// 普通属性编辑与编译绑定共享数值准入规则，拒绝不匹配类型及非有限浮点值。
 pub(in crate::scene::world::property_access) fn expect_bool(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,
@@ -65,6 +66,7 @@ pub(in crate::scene::world::property_access) fn expect_u32(
     property_path: &ComponentPropertyPath,
 ) -> SceneResult<u32> {
     match value {
+        // BUG: [CR-R02-runtime_world_property_binding-0004] 宽整数超出 u32 时静默截断；Unsigned(4294967296) 成功得到 0 并可写入渲染/碰撞掩码。证据：本分支及两个领域调用入口均未检查上界。
         ScenePropertyValue::Unsigned(value) => Ok(value as u32),
         ScenePropertyValue::Integer(value) if value >= 0 => Ok(value as u32),
         _ => Err(SceneError::PropertyTypeMismatch {

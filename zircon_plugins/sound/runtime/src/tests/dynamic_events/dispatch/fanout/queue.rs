@@ -1,3 +1,4 @@
+// 分发消耗待投递队列；再次读取不能重复触发已经交付的事件。
 use super::super::super::*;
 
 use super::support::fanout_fixture;

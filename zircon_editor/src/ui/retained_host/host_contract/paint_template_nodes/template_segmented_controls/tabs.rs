@@ -1,3 +1,5 @@
+//! 页签在局部偏移后安排背景、选中下划线与文字；未相交时返回给上层已接管但无命令。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_node_labels::template_node_label;
@@ -8,6 +10,7 @@ use super::style::{tab_style, tab_text_color};
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+/// 已被组件家族确认为页签后调用；相交才能出命令，选中时强调线位于底部而标签仍由共享文字来源决定。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_workbench_tab(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

@@ -1,3 +1,5 @@
+//! 目录值类型是外部事件的边界；类型不符时保留原值并交付验证错误供 UI 展示。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentState, UiValidationLevel, UiValue, UiValueKind,

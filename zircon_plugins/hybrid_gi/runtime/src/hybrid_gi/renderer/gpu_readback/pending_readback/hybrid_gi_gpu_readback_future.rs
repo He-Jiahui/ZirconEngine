@@ -38,6 +38,7 @@ pub(in crate::hybrid_gi::renderer) struct HybridGiGpuReadbackFuture {
     pub(super) probe_trace_indirect_args: Option<WordReadback>,
 }
 
+// 完成状态也包括映射失败；收齐本帧所有结果后，由 try_collect 消费并传播错误。
 impl HybridGiGpuReadbackFuture {
     pub(in crate::hybrid_gi::renderer) fn is_ready(&self) -> bool {
         self.cache.is_ready()
@@ -71,6 +72,7 @@ impl HybridGiGpuReadbackFuture {
 }
 
 impl HybridGiGpuPendingReadback {
+    // 此处仅登记回读请求；调用者在帧提交回调中才把 future 放入实例队列。
     pub(in crate::hybrid_gi::renderer) fn enqueue(
         self,
         context: &mut RuntimePrepareCollectorContext<'_>,
@@ -193,6 +195,7 @@ fn request_word_range(
     word_offset: usize,
     word_count: usize,
 ) -> Result<WordReadback, GraphicsError> {
+    // 零逻辑字仍请求一个物理占位字；保留原 word_count，让解码阶段忽略占位内容。
     let byte_offset = word_offset as u64 * std::mem::size_of::<u32>() as u64;
     let byte_len = word_count.max(1) as u64 * std::mem::size_of::<u32>() as u64;
     Ok(WordReadback {

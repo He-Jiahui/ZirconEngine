@@ -1,3 +1,5 @@
+//! 缓存解析编辑器和运行时生产 ZUI；区分组件文档与视图文档，供治理测试遍历。
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};

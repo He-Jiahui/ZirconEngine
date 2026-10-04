@@ -1,3 +1,4 @@
+//! 同一渲染契约的项目与插件 shader 案例；稳定 locator 用于预热清单，实时记录必须 Ready 且带非零 revision 才参加验证。
 use crate::asset::AssetUri;
 use crate::core::framework::render::ShaderPassType;
 use crate::core::resource::{ResourceId, ResourceKind, ResourceRecord, ResourceState};

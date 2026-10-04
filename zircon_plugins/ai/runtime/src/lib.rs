@@ -1,5 +1,5 @@
 pub mod behavior_tree;
-/// Dense, schema-compiled blackboard storage and slot contracts.
+/// 按 schema 编译的黑板槽位与稠密存储，对外提供稳定的槽位契约。
 pub mod blackboard;
 mod capability;
 mod manager;

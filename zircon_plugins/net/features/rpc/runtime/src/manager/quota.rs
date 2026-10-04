@@ -1,3 +1,6 @@
+//! 对每个 RPC+来源 session 计数并按 session 限制每秒 payload 字节，供 dispatch 准入使用。
+//! 配额只覆盖此 manager 的调用，不覆盖根 transport 或其他 feature 的流量。
+
 use std::time::Instant;
 
 use zircon_runtime::core::framework::net::{NetSessionId, RpcInvocationDescriptor};

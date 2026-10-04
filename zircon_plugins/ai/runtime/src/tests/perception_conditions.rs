@@ -8,6 +8,7 @@ use zircon_runtime::core::math::Vec3;
 
 use crate::DefaultAiManager;
 
+// 当前请求中的感知快照优先于已存快照，条件结果决定选择器是否转向目标分支。
 #[test]
 fn ai_manager_decorator_gates_tree_with_current_perception_stimulus() {
     let manager = DefaultAiManager::default();

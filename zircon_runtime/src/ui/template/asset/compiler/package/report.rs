@@ -4,6 +4,7 @@ use zircon_runtime_interface::ui::template::{
     UiCompiledAssetPackageValidationReport, UiInvalidationReport, UiLocalizationReport,
 };
 
+// 报告停在编译生命周期；它描述宿主需检查的策略、依赖及失效，不代表绑定已经被加载、执行或应用。
 pub(super) fn build_package_validation_report(
     profile: UiCompiledAssetPackageProfile,
     header: UiCompiledAssetHeader,
@@ -26,6 +27,7 @@ pub(super) fn build_package_validation_report(
     }
 }
 
+// profile 此处只影响报告分区和上层动作策略，未按分区标签直接裁剪或扩充模板载荷。
 fn profile_sections(
     profile: UiCompiledAssetPackageProfile,
 ) -> (

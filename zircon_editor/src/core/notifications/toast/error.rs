@@ -1,3 +1,4 @@
+//! 区分短时提示内容、有效期、重复身份及容量拒绝，供宿主决定是否重试；失效提示不可借错误恢复继续占用中心容量。
 use std::fmt::{Display, Formatter};
 
 use crate::core::notifications::{NotificationId, NotificationIdentityError};

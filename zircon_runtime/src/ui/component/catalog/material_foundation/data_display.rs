@@ -1,3 +1,5 @@
+//! 集合、树和表格目录声明数据字段、选择状态与窗口化要求，供编写器检查和归约器更新。虚拟列表族同时要求宿主与渲染端的虚拟化能力，数据装载仍由 data_source 的拥有者负责。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

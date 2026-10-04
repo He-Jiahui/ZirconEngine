@@ -36,6 +36,7 @@ pub(super) fn replace_world_snapshots(
     world: WorldHandle,
     snapshots: Vec<AiPerceptionSnapshot>,
 ) -> Result<(), AiManagerError> {
+    // 先验证整批快照，再替换该 world 的旧数据，避免无效输入清空已发布状态。
     for snapshot in &snapshots {
         validate_perception_snapshot(snapshot.agent, snapshot)?;
     }

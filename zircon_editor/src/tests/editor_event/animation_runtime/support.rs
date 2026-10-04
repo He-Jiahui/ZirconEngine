@@ -14,6 +14,7 @@ use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
 
 use crate::tests::editor_event::support::EventRuntimeHarness;
 
+/// 先通过真实项目目录索引动画资产，再返回规范 locator；调用方随后走编辑器打开事件。
 pub(super) fn open_indexed_animation_asset(
     harness: &mut EventRuntimeHarness,
     prefix: &str,
@@ -99,6 +100,7 @@ pub(super) fn write_state_machine_asset(path: &Path) {
     fs::write(path, asset.to_bytes().unwrap()).unwrap();
 }
 
+/// 为条件编辑用例准备已有过渡，避免把隐式创建误当作合法修改。
 pub(super) fn write_state_machine_asset_with_transition(path: &Path) {
     let graph_reference = zircon_runtime::asset::AssetReference::from_locator(
         AssetUri::parse("res://animation/hero.graph.zranim").unwrap(),

@@ -2,6 +2,7 @@ use crate::graphics::shader::{
     ShaderBindingResourceType, ShaderTextureSampleType, ShaderTextureViewDimension,
 };
 
+// 把 Naga 反射出的资源归入布局比较使用的窄类型；无法表达的类型必须保持 Unsupported。
 pub(super) fn shader_binding_resource_type(
     module: &naga::Module,
     global: &naga::GlobalVariable,

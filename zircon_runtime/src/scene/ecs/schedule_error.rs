@@ -2,6 +2,7 @@ use thiserror::Error;
 
 use crate::scene::ecs::SystemParamError;
 
+/// 系统注册与日程重编译的可恢复错误；调用方收到错误后原有执行计划仍应可用。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum ScheduleError {
     #[error("system id cannot be empty")]

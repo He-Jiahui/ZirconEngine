@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 设计stack中的组件角色；组件ID用于核验组件发现契约，不是视图实例ID。
 pub enum FyroxPanelComponentRole {
     AssetGrid,
     AssetList,
@@ -60,6 +61,7 @@ impl FyroxPanelComponentRole {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// panel意图支持的交互清单；真正事件路由由宿主独立注册。
 pub enum FyroxPanelInteraction {
     AssetPreview,
     ContextMenu,
@@ -78,6 +80,7 @@ pub enum FyroxPanelInteraction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 默认panel的结构与交互意图，供设计stack和参考契约读取。
 pub struct FyroxPanelPreset {
     pub view_id: String,
     pub title: String,

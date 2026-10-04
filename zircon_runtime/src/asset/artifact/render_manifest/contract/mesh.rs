@@ -120,6 +120,7 @@ impl RenderArtifactMeshLodLayout {
     }
 }
 
+/// 描述按 LOD 分块的网格上传布局；bootstrap 边界决定初次可见所需的驻留集合。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderArtifactMeshLayout {
     platform_format: Arc<str>,
@@ -201,6 +202,7 @@ impl RenderArtifactMeshLayout {
     }
 }
 
+/// 消费端的顶点/索引字节范围视图；仅在清单验证与 block 解码后用于构造上传计划。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderArtifactMeshLodUploadLayout {
     lod: u16,

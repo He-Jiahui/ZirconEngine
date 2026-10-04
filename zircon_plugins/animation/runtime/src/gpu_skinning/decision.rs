@@ -1,3 +1,4 @@
+//! GPU 就绪与关节上限的独立判断契约；当前仅由插件契约测试调用，生产渲染回退另有实现。
 use zircon_runtime::core::framework::animation::AnimationGpuSkinningReadiness;
 
 use super::MAX_SKIN_JOINTS;

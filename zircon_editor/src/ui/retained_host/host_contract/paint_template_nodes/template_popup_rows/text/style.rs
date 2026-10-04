@@ -1,3 +1,5 @@
+//! popup标题与快捷键共用字体及绘制风格；各自颜色由行状态提供，几何由调用方负责。
+
 use super::super::metrics::WorkbenchPopupRowMetrics;
 use super::popup_row_text_style;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;

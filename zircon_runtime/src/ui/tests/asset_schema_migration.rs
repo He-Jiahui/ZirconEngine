@@ -1,3 +1,4 @@
+//! 验证迁移器为旧版树与扁平表提供结构化步骤报告，未来版本仍明确拒绝。
 use crate::ui::template::{UiAssetLoader, UiAssetSchemaMigrator};
 use zircon_runtime_interface::ui::template::{
     UiAssetError, UiAssetMigrationStep, UiAssetSchemaSourceKind,

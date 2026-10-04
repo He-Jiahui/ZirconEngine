@@ -1,3 +1,4 @@
+//! Hybrid GI 统计把本帧准备和 GPU 回读分开呈现，避免将尚未完成的探针工作报告为已生效。
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::submission_record_update::SubmissionRecordUpdate;

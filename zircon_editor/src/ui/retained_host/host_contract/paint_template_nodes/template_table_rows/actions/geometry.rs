@@ -1,3 +1,5 @@
+//! 操作列位于行最右侧并与单元格共用内容偏移；槽与图标尺寸分开，使标准图标有统一边距。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::cells::table_content_offset;
 use super::metrics::table_action_metrics;

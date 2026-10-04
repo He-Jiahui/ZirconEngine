@@ -1,5 +1,6 @@
 use super::super::super::super::data::TemplatePaneNodeData;
 
+/// 消费转换层的 0..1 进度快照；不是原始百分数解析器，非法值显示为空进度。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn progress_percent(
     node: &TemplatePaneNodeData,
 ) -> f32 {

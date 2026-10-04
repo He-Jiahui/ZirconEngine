@@ -1,3 +1,4 @@
+//! 文档投影与运行时资产回写共用名称约束，拒绝空白和首尾填充，避免身份不稳定。
 use crate::graphics::{
     BuiltinRenderFeature, RenderPassStage, RendererAsset, RendererDataDocument,
     RendererDataDocumentError, RendererFeatureAsset,

@@ -11,6 +11,7 @@ use super::super::project_builtin_surface;
 use super::super::{binding_for_control, project_builtin_surface_with_runtime};
 use super::error::BuiltinInspectorSurfaceTemplateBridgeError;
 
+// 检查器控件的事件绑定取自已投影的模板，编辑操作由外层分发器解释。
 pub(crate) struct BuiltinInspectorSurfaceTemplateBridge {
     bindings_by_id: HashMap<String, EditorUiBinding>,
     host_projection: RetainedUiHostProjection,

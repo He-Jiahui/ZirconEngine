@@ -32,6 +32,8 @@ pub(super) fn window_metadata(context: &UiWindowInputContext) -> UiWindowEventMe
     .synthetic(context.metadata.synthetic)
 }
 
+// resize 只有物理尺寸；沿用上下文的有效 DPI 才能与表面布局的逻辑尺寸保持一致。
+// 宿主应随缩放事件更新上下文，否则只能采用未提供 DPI 时的 1:1 回退。
 pub(super) fn window_metrics_from_physical_size(
     size: PhysicalSize<u32>,
     prior_metrics: Option<UiWindowMetrics>,

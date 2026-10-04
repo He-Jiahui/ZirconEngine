@@ -2,6 +2,8 @@ use crate::core::framework::render::{
     FroxelGridQuality, RenderFrameExtract, ShaderQualityTier, VolumetricFogSettings,
 };
 
+/// 优先采用帧提取时确定的高级光照设置；仅缺失时按选中相机位置和体积层重新求值，
+/// 供帧历史准备阶段确定体积雾是否需要历史资源。
 pub(crate) fn resolved_volumetric_fog_settings(
     extract: &RenderFrameExtract,
 ) -> Result<VolumetricFogSettings, String> {
@@ -20,6 +22,7 @@ pub(crate) fn resolved_volumetric_fog_settings(
         .map_err(|error| format!("volumetric fog volume evaluation failed: {error:?}"))
 }
 
+/// 只有画质支持历史且本帧体积雾允许时间累积时才请求历史纹理。
 pub(crate) fn volumetric_history_quality(
     extract: &RenderFrameExtract,
     shader_quality: ShaderQualityTier,

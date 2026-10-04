@@ -1,3 +1,5 @@
+//! 从绑定解析和事件分派入口验证检查器批处理与草稿命令把字段及操作参数解析为类型化载荷。
+
 use crate::core::editor_event::InspectorFieldChange;
 use crate::ui::binding::{
     DraftCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,

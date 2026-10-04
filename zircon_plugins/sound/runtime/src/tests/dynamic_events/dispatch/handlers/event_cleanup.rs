@@ -1,3 +1,4 @@
+// 注销已排队事件后，其处理器目录应为空且不能再产生投递，保护事件卸载后的清理边界。
 use super::support::{register_ambient_event, register_ambient_handler, submit_ambient_event};
 
 use super::super::super::*;

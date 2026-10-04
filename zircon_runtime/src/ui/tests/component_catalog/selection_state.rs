@@ -1,3 +1,5 @@
+//! 目录中的选择与保留状态模式需要覆盖展示、引用和集合组件，避免事件入口存在而编辑状态不可查询。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::UiComponentEventKind;
 

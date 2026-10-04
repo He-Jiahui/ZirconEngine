@@ -3,6 +3,7 @@ use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::super::super::{LogicalRegionPreferredExtents, ShellRegionId};
 
+/// 全局抽屉显隐与stack内容共同决定壳区域是否占位。
 pub(super) fn tool_region_has_tabs(
     model: &WorkbenchViewModel,
     slots: &[ActivityDrawerSlot],
@@ -17,6 +18,7 @@ pub(super) fn tool_region_has_tabs(
         })
 }
 
+/// 同侧只要一个可见stack展开即可保留内容区；折叠状态不靠tab active推断。
 pub(super) fn tool_region_is_expanded(
     model: &WorkbenchViewModel,
     slots: &[ActivityDrawerSlot],
@@ -32,6 +34,7 @@ pub(super) fn tool_region_is_expanded(
         })
 }
 
+/// 拖动临时值优先于持久化，再回退主题令牌；此边界收到的查询均为logical单位。
 pub(super) fn tool_region_extent(
     model: &WorkbenchViewModel,
     region: ShellRegionId,
@@ -46,6 +49,7 @@ pub(super) fn tool_region_extent(
         .unwrap_or(0.0)
 }
 
+/// 同壳侧的多个可见drawer共享主轴，取最大保存偏好以容纳各slot。
 fn persisted_tool_region_extent(
     model: &WorkbenchViewModel,
     slots: &[ActivityDrawerSlot],

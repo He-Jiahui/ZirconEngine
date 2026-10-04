@@ -1,3 +1,4 @@
+// 核对能力、设备描述符和输出状态投影；started 由夹具直接标记，不代表已启动音频流。
 use zircon_runtime::core::framework::audio::AudioChannelLayout;
 use zircon_runtime::core::framework::sound::SoundOutputDeviceState;
 

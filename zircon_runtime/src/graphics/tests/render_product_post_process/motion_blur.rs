@@ -1,3 +1,4 @@
+//! 有无 motion blur 的两帧粒子对照；先建立速度历史，再检查 tile、邻域归约、合成与最终像素均被使用。
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;

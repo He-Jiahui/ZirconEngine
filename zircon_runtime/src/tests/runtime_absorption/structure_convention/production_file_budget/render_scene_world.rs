@@ -1,5 +1,6 @@
 use super::{assert_contains_all, assert_contains_all_exact, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0070] 场景渲染帧的可见性输入归属的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_scene_world_render_visibility_input_is_child_owner() {
     let parent = read_runtime_src("scene/world/render.rs");

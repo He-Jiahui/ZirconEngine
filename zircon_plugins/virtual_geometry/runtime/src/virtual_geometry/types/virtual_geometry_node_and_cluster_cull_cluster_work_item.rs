@@ -13,6 +13,7 @@ impl VirtualGeometryNodeAndClusterCullClusterWorkItem {
     pub(crate) const GPU_WORD_COUNT: usize = 9;
     const NONE_SENTINEL: u32 = u32::MAX;
 
+    /// 按 GPU 工作项布局编码簇任务，实体 ID 拆为低、高两个 u32 字。
     pub(crate) fn packed_words(&self) -> [u32; Self::GPU_WORD_COUNT] {
         [
             self.instance_index,

@@ -1,3 +1,5 @@
+//! 材质就绪诊断把 shader 导入和纹理槽验证结果归并到管理视图；它报告可操作原因，不负责生成或修复依赖资产。
+
 use crate::asset::{ShaderAsset, ShaderRuntimeSourceKind};
 use crate::core::framework::render::{
     RenderMaterialDiagnosticSource, RenderMaterialReadinessDiagnostic,

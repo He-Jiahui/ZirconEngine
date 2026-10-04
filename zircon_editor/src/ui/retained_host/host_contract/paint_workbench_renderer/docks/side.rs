@@ -11,6 +11,7 @@ use super::super::super::paint_template_nodes::draw_template_nodes;
 use super::{palette::current_dock_chrome_palette, pane, panel_header, rail};
 use frames::side_dock_frames;
 
+// 侧栏投影先确定 rail 与 panel 的相对位置，再分别绘制导航、页眉和 pane，以同一交互快照保持一致。
 pub(in crate::ui::retained_host::host_contract) fn draw_side_dock(
     frame: &mut HostRgbaFrame,
     dock: &HostSideDockSurfaceData,

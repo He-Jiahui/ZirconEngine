@@ -1,3 +1,6 @@
+//! 枚举控件与浮层复用输入侧的下拉几何，确保每个选项的可见位置和命中区域相同。
+//! 传入的是实际 option 值文本；选择/取消状态来自外部投影，这里不写回设置。
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
@@ -60,6 +63,7 @@ pub(super) fn push_enum_control(
     );
 }
 
+// 调用方只在已打开的枚举编辑状态使用对应行；布局可能因滚动/刷新改变，弹层几何每帧重新求得。
 #[allow(clippy::too_many_arguments)]
 pub(super) fn push_enum_popup(
     commands: &mut Vec<HostPaintCommand>,

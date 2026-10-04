@@ -1,3 +1,5 @@
+//! 删除准备只在候选 ProjectManager 上更新注册表、资源与 catalog；Runtime 管线在代际门控下提交源文件/sidecar 事务后才发布候选。
+
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;

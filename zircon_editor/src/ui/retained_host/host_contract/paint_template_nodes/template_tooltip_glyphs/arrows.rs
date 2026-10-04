@@ -1,3 +1,5 @@
+//! tooltip 箭头用同一资源的外缘与内层填色叠加；须完全位于 tooltip 容器内才提交。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;

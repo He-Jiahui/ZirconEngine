@@ -4,6 +4,7 @@ use crate::core::resource::ResourceLocator;
 use crate::scene::world::{SceneProjectError, World};
 
 #[derive(Debug, Default)]
+/// 场景资源与 World 之间的项目边界；加载、实例化和保存均委托 World 的受检持久化入口。
 pub struct SceneAssetSerializer;
 
 impl SceneAssetSerializer {

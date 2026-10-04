@@ -1,3 +1,4 @@
+//! 验证集合控件的本地工具类在编译后赋予列表、表格、分页等节点预期样式。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;

@@ -1,3 +1,4 @@
+//! 按当前视图收缩描述符时必须同步维护通道与资源依赖，避免后处理或插件门控留下悬空图边。
 use std::{cell::OnceCell, collections::HashSet};
 
 use crate::core::framework::render::{

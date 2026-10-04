@@ -1,3 +1,5 @@
+//! 键盘动作测试按控件族分组，固定语义动作进入组件归约器后的焦点、选择和文本所有权边界。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventKind, UiComponentKeyboardAction, UiComponentState, UiValue,

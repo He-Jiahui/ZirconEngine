@@ -7,6 +7,8 @@ use crate::graphics::scene::render_scene::{RenderSceneGeneration, RenderSceneRea
 
 use super::{GpuSceneJournalConsumer, GpuSceneJournalConsumerError, GpuSceneJournalResidentWrite};
 
+/// 设备恢复时的全量重投影计划：沿用已接受的 world/generation 和句柄槽位，
+/// 只重建设备侧数据；调用方必须把 staging 成功与实际提交分开。
 #[derive(Debug)]
 pub(crate) struct GpuSceneJournalReprojectionPlan<'scene> {
     world: RenderWorldSnapshotHandle,

@@ -1,3 +1,4 @@
+// 旧渲染器状态投影辅助模块；目前没有生产调用方，测试专用读取器也未连入旧的大型测试源。
 mod read_gpu_readback_hardware_rasterization_record_count;
 mod read_gpu_readback_hardware_rasterization_source;
 mod read_gpu_readback_selected_cluster_count;

@@ -1,3 +1,5 @@
+//! 场景 gizmo 的拾取几何投影为点、段和环候选，owner 路由保留场景实体身份；阈值仅扩大交互容差。
+
 use crate::scene::viewport::OverlayPickShape;
 
 use crate::scene::viewport::pointer::constants::{GIZMO_PICK_THRESHOLD_PX, GIZMO_PRIORITY};

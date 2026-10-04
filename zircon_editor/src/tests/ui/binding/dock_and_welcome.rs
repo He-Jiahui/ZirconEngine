@@ -1,3 +1,5 @@
+//! 从绑定解析和事件分派入口验证停靠布局、活动栏与欢迎页命令保留原生绑定 ID 和类型化参数。
+
 use crate::ui::binding::{
     DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, WelcomeCommand,
 };

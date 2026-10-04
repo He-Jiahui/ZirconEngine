@@ -10,6 +10,7 @@ impl HybridGiResolveRuntime {
         ]
     }
 
+    /// 用 1/256 精度保留可超过 1 的解析支持权重；缺项仍由访问器返回 None。
     pub fn pack_resolve_weight_q8(weight: f32) -> u16 {
         (weight.clamp(0.0, u16::MAX as f32 / 256.0) * 256.0).round() as u16
     }

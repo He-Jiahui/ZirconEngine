@@ -1,3 +1,4 @@
+//! 把迁移选择转为是否变更来源、备份、重新预检或取消启动的明确策略，供宿主在激活前完成迁移决策。
 /// One explicit operator choice for a manifest that requires schema migration.
 ///
 /// These values describe an admission policy only. Project copy, backup, and conversion remain

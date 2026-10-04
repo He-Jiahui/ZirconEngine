@@ -42,6 +42,7 @@ pub(super) fn take_ticket_id(state: &mut LaneState) -> u64 {
     id
 }
 
+// 只有队首可运行时才预占泵槽；先在状态锁内置位，调用者随后在锁外向调度器投递，避免重复启动。
 pub(super) fn mark_pump_needed(state: &mut LaneState) -> bool {
     if state.pump_active || !front_is_runnable(state) {
         false

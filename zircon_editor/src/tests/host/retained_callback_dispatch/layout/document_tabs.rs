@@ -1,3 +1,4 @@
+// 由文档标签模板绑定触发激活和关闭，约束布局命令指向正确视图实例。
 use super::super::support::*;
 use crate::core::editor_event::{
     LayoutCommand as EventLayoutCommand, ViewInstanceId as EventViewInstanceId,

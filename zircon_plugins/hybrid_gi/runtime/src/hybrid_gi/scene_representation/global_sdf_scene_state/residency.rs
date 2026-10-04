@@ -42,6 +42,7 @@ impl HybridGiGlobalSdfSceneState {
             })
     }
 
+    // GPU 完成只可提交仍驻留且代际匹配的脏页；淘汰或重脏后的旧完成不能使页可采样。
     pub(in crate::hybrid_gi) fn commit_pages(
         &mut self,
         completions: &[HybridGiGlobalSdfPageBuildRequest],

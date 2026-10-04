@@ -1,3 +1,4 @@
+// 在窄宽度和缩放下重算工作台布局，约束抽屉折叠、文档保留空间与批量投影次数。
 use super::super::support::*;
 use crate::ui::workbench::autolayout::{minimum_document_width_fraction, WorkbenchChromeMetrics};
 use crate::ui::workbench::fixture::default_preview_fixture;

@@ -1,3 +1,4 @@
+//! sink worker 的无锁计数快照：入队、丢弃、批量输出、耐久化错误和关闭状态由同一实例汇总。
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
@@ -85,6 +86,7 @@ impl SinkMetrics {
             .fetch_add(1, Ordering::Relaxed);
     }
 
+    // flush_batches 计批量输出尝试；所有配置输出的 write/flush 成功才累计 written，后续 sync_data 成败另记 output_errors。
     pub(super) fn record_batch(&self, records: usize, bytes: usize, output_succeeded: bool) {
         self.flush_batches.fetch_add(1, Ordering::Relaxed);
         if !output_succeeded {

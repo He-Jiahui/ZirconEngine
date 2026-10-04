@@ -48,6 +48,7 @@ impl Default for NavigationRuntimePlugin {
     }
 }
 
+// 注册表把导航 tick 排在 AI 行为之后；只有镜像读者存在时才生成并发送调试帧。
 impl RuntimePlugin for NavigationRuntimePlugin {
     fn descriptor(&self) -> &RuntimePluginDescriptor {
         &self.descriptor

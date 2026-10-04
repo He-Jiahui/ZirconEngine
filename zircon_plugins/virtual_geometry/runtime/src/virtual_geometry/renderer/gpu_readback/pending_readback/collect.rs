@@ -14,6 +14,7 @@ pub(crate) struct VirtualGeometryGpuReadbackFuture {
 }
 
 impl VirtualGeometryGpuPendingReadback {
+// 页表和完成记录必须在同一帧登记读回，并在两者都就绪后一次性解码。
     pub(in crate::virtual_geometry::renderer) fn enqueue(
         self,
         context: &mut RuntimePrepareCollectorContext<'_>,

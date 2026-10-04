@@ -23,6 +23,7 @@ pub enum PointerAction {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 单次输入动作与当时的视口局部位置绑定；同帧输入顺序会影响按下、释放与拖拽状态。
 pub struct PointerInput {
     pub location: PointerLocation,
     pub action: PointerAction,

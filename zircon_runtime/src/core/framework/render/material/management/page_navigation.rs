@@ -68,6 +68,7 @@ impl RenderMaterialManagementPageInfo {
         })
     }
 
+    /// 只对正数页长提供翻页请求；无限页或零页长不能推导下一个偏移。
     pub fn next_page_request(&self) -> Option<RenderMaterialManagementPageRequest> {
         let limit = positive_page_limit(self.limit)?;
         self.has_next_page.then(|| {

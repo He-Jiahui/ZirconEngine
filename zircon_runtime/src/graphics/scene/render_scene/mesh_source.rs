@@ -76,6 +76,8 @@ impl RenderSceneMeshLod {
     }
 }
 
+/// 持久场景保存与相机无关的基准几何和 LOD 候选，供各视口分别选择。
+/// 构造 RenderScenePrimitive 时会排序阈值并同步重排对应包围盒；调用方不得自行假定输入顺序。
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct RenderSceneMeshSource {
     base: RenderSceneMeshSourceLevel,
@@ -101,6 +103,8 @@ impl RenderSceneMeshSource {
         &self.lods
     }
 
+    // TODO: [CR-GRAPHICS-SCENERES-0002] 确认本选择器是否仍是生产视口 LOD 契约；当前全仓调用仅在 mesh_source 测试，需追踪 RenderScene 到绘制提取的 LOD 选择入口。
+    /// 根据单个视口距离选择已规范化的 LOD；非有限或负距离回退基准几何。
     pub(crate) fn select_for_distance(&self, distance: Real) -> RenderSceneMeshSelection<'_> {
         if !distance.is_finite() || distance < 0.0 {
             return RenderSceneMeshSelection::base(&self.base);

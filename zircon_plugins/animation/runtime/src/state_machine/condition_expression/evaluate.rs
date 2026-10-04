@@ -1,3 +1,4 @@
+//! 状态机用稠密参数表求条件程序；缺失参数和非有限值按不匹配处理。
 use zircon_runtime::core::framework::animation::AnimationConditionOperatorAsset;
 use zircon_runtime::core::framework::animation::AnimationParameterValue;
 use zircon_runtime::core::math::Real;

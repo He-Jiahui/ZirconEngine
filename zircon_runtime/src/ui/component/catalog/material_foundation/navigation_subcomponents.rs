@@ -1,3 +1,5 @@
+//! 导航子构件把父组件的动作、页码、步骤和标签拆成独立编写槽及字段。父级或宿主消费这些事件，目录中的相同名称使组合模板可被一致检查。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

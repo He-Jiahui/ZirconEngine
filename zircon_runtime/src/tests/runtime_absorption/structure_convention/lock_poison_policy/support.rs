@@ -1,3 +1,4 @@
+//! 统一锁中毒守卫的源码视图和路径解析；文本禁令仅覆盖生产视图中可识别的直接解包调用。
 pub(super) use super::super::rust_source_view::{production_code_view, production_section};
 use super::super::{repo_path as parent_repo_path, runtime_src_path as parent_runtime_src_path};
 

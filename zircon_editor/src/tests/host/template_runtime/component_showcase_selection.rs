@@ -1,3 +1,4 @@
+// 核对展示页下拉选项元数据及搜索选择查询的保留状态。
 use super::support::showcase_binding;
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostValue, UiComponentShowcaseDemoEventInput,

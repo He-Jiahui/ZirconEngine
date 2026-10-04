@@ -8,6 +8,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) enum Chart
     Gauge,
 }
 
+/// 分类结果由 MUI X 总入口消费；角色不匹配时必须留给后续组件或通用表面。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chart_kind(
     component_role: &str,
     role: &str,

@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0028] 模型导入的材质子资源投影的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_gltf_labeled_material_subassets_are_child_owner() {
     let parent = read_runtime_src("asset/importer/ingest/gltf_labeled_subassets.rs");

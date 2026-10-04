@@ -90,6 +90,7 @@ impl NavigationOperationCommandFactory {
     }
 }
 
+// 编辑器操作经工厂转成可记录的编辑命令，实际烘焙由运行时网关执行。
 impl OperationCommandFactory for NavigationOperationCommandFactory {
     fn create(
         &self,

@@ -1,3 +1,6 @@
+//! 下拉选项借用投影行，布局由共享template_popup_layout结合bounds确定。
+//! DropdownPopup使用已投影弹层矩形，普通Dropdown由控件矩形向周围可用区域展开；只有可见行提交文字与标记。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_popup_row_adornments::{

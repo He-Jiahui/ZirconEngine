@@ -61,6 +61,8 @@ pub(super) fn assert_text_excludes_authoring_tokens(label: &str, text: &str, tok
     }
 }
 
+// TODO: [CR-SCENE-TEST-CONTRACT-0002] 确认源码边界检查是否允许仅在注释或字面量中提及编辑器词汇；
+// 当前原文子串匹配无法区分声明与说明，需补对照用例并明确策略。
 pub(super) fn first_authoring_token<'a>(text: &str, tokens: &'a [&str]) -> Option<&'a str> {
     tokens.iter().copied().find(|token| text.contains(token))
 }

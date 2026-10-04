@@ -1,3 +1,4 @@
+//! 资产子系统的契约测试入口；各子模块覆盖从源文件到运行时句柄的不同边界。
 mod artifact;
 mod assets;
 mod facade;

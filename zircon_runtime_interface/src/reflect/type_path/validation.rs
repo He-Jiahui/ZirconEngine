@@ -1,3 +1,4 @@
+//! ReflectTypePath 构造与 wire 反序列化共用此校验：Rust 路径使用 ::，VM 路径使用 .，插件键另遵循小写 ASCII 语法。
 use super::super::ReflectError;
 
 pub const MAX_REFLECT_TYPE_PATH_BYTES: usize = 512;

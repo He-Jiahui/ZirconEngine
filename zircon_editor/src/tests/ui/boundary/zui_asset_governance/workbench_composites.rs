@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证工作台复合控件的槽、标题和行密度。
+
 use std::{collections::BTreeSet, fs};
 
 use toml::Value;

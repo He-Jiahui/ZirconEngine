@@ -1,3 +1,6 @@
+//! 竖直 chrome 分隔线可由面板边缘或列间隙定位；调用方必须提供包含目标线的裁剪域。
+//! 当前单像素线吸附到网格，不能假设请求坐标一定保留分数 DPI 位置。
+
 use super::super::super::super::super::data::FrameRect;
 use super::super::super::super::super::paint_geometry::intersect;
 use super::super::super::super::render_commands::HostPaintCommand;

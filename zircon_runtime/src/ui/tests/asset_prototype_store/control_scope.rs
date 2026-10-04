@@ -1,3 +1,4 @@
+//! 验证原型实例的控件作用域与作者树编译保持一致，避免复用导致跨实例绑定。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler, UiPrototypeStoreBuilder};
 use zircon_runtime_interface::ui::template::{UiBindingExpression, UiTemplateNode};
 

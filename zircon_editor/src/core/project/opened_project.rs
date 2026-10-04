@@ -1,3 +1,4 @@
+//! 将已打开的运行时项目、清单摘要及选定物理身份作为同一结果交接；调用端可继续消费项目所有者，但不能从显示路径重建操作身份。
 use std::path::Path;
 
 use zircon_runtime::asset::project::{ProjectManager, ResolvedProjectPath};

@@ -1,3 +1,4 @@
+//! 核对历史路由按文档、播放实例和世界域分区，跨域历史不得误入默认全局栈。
 use std::collections::BTreeSet;
 
 use crate::core::editing::engine::{resolve_history_context, EditCommandError, HistoryContextId};

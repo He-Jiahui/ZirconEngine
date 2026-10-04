@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 默认抽屉归属和交互意图；布局构造器解释这些声明，运行时命令仍需许可校验。
 pub struct JetBrainsShellPreset {
     pub drawers: Vec<JetBrainsDrawerPreset>,
     pub tab_behavior: JetBrainsTabBehavior,
@@ -38,6 +39,7 @@ impl JetBrainsShellPreset {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 某语义抽屉的初始视图和保存意图；visible_views是描述符清单。
 pub struct JetBrainsDrawerPreset {
     pub slot: ActivityDrawerSlot,
     pub label: String,
@@ -76,6 +78,7 @@ impl JetBrainsDrawerPreset {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 标签交互设计要求，实际callback和停靠命令应共同落实。
 pub struct JetBrainsTabBehavior {
     pub reorder_tabs: bool,
     pub activate_on_drop: bool,
@@ -95,6 +98,7 @@ impl Default for JetBrainsTabBehavior {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 分离与恢复的设计要求；原生窗口和持久化由宿主生命周期处理。
 pub struct JetBrainsFloatingWindowBehavior {
     pub detach_to_native_window: bool,
     pub attach_to_original_drawer: bool,

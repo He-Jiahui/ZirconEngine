@@ -1,3 +1,4 @@
+//! 剪辑评估缓存、资产修订失效、诊断及无字符串目标解析的生产契约。
 use zircon_plugin_animation_runtime::{
     AnimationAssetRevision, AnimationClipEvaluator, AnimationEvaluationError,
     AnimationTransformChannel, DefaultAnimationManager,

@@ -1,3 +1,4 @@
+//! 安装导入贡献后才打开项目；夹具通过真实项目资源管理器导入数据并检查元信息，同时区分清单声明校验与实际导入器安装。
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};

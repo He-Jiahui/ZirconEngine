@@ -1,3 +1,4 @@
+// 核对本地主题重复覆盖清理和逐项重构行为。
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
 

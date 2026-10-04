@@ -1,3 +1,5 @@
+//! 把 Vampire 示例作为产品内容契约：清单、场景、脚本、插件与导入结果必须共同支持可玩的第三人称场景。
+
 use std::path::Path;
 
 use super::vampire_root;
@@ -598,6 +600,7 @@ fn vampire_example_manifest_scene_and_scripts_are_importable() {
         "vampire should not route gameplay through the project fallback backend"
     );
 
+    // 先读作者内容，再经项目扫描验证相同资源能进入运行时；两条路径分别约束内容与导入器。
     let mut project = ProjectManager::open(&root).unwrap();
     project
         .register_first_wave_plugin_fixture_importers_for_test()

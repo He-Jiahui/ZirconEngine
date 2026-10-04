@@ -1,3 +1,4 @@
+// 提供展示页事件绑定测试的适配调用与成功结果断言。
 use zircon_runtime_interface::ui::component::{UiComponentAdapterResult, UiValue};
 
 pub(super) use super::super::support::showcase_binding;

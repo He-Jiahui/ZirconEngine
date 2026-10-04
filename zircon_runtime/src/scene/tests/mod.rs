@@ -1,3 +1,5 @@
+//! 以真实世界行为和源码边界断言共同守护场景服务；锁恢复测试只保证服务仍可访问，不承诺中途写入会回滚。
+
 mod asset_scene;
 mod authoring_boundary;
 mod component_structure;
@@ -91,6 +93,7 @@ fn level_manager_registry_locks_do_not_cross_world_work() {
     let apply_index = normalized
         .find("driver.apply_world_runtime_extensions(&mutworld)?;")
         .expect("level creation applies runtime extensions");
+    // BUG: [CR-SCENE-TEST-0001] 生命周期拆分后，此处仍匹配旧的局部句柄发布形式，并要求旧排序调用出现三次；当前发布使用已准备关卡的句柄，由有序注册表直接返回快照，故查找先失败。证据：level_manager_lifecycle 的准备与发布路径。
     let insert_index = normalized
         .find("self.lock_levels().insert(handle,level.clone());")
         .expect("level creation publishes the completed level");

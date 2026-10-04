@@ -1,3 +1,5 @@
+//! 把文档绑定冲突、写入器状态和耐久日志故障转换成宿主可定位的协调错误；错误保留文档与事务身份。
+
 use std::path::PathBuf;
 
 use thiserror::Error;

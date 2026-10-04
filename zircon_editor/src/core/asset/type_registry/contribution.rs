@@ -1,3 +1,4 @@
+//! 插件先声明可序列化的类型贡献，再由目录物化为完整定义；补充已有类型与定义新类型使用同一贡献格式，完整性和冲突由物化端校验。
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::resource::ResourceKind;
 

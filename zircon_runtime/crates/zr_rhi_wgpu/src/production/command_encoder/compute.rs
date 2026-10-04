@@ -1,3 +1,4 @@
+//! 复制与无显式通道的计算命令在提交期验证句柄和用途，避免录制阶段持有原生对象。
 use zr_rhi::{BufferHandle, BufferUsage, PipelineKind, RenderQueueClass, RhiError};
 
 use crate::indirect_validation::{validate_indirect_arguments, IndirectArgumentKind};

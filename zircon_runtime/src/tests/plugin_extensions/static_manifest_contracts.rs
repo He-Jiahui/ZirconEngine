@@ -1,3 +1,4 @@
+//! 静态插件包清单的领域回归入口；共享读取与遍历只服务清单契约，包声明、模块布局和实际运行登记分别验证。
 mod asset_importers;
 mod capabilities;
 mod components;

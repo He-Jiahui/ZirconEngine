@@ -1,3 +1,4 @@
+// 通过源文本约束原始场景持久化接口保持 crate 内可见，不扩大管理器公开表面。
 #[test]
 fn editor_manager_keeps_raw_scene_persistence_inside_the_editor_crate() {
     let source = include_str!("../../ui/host/editor_manager_project.rs");

@@ -2,6 +2,7 @@ use crate::core::math::UVec2;
 
 use super::super::texture_extent::texture_extent;
 
+/// 供 SSR 重投影读取的持久纹理；由历史需求和相机目标尺寸共同管理生命周期。
 pub(super) struct ScreenSpaceReflectionHistory {
     texture: wgpu::Texture,
     view: wgpu::TextureView,

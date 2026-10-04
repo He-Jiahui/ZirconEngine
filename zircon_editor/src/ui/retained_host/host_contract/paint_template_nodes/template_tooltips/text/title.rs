@@ -1,3 +1,5 @@
+//! 标题命令消费与布局相同的借用文本，载荷持有副本以脱离节点快照生命周期。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::layout::frame_is_within;

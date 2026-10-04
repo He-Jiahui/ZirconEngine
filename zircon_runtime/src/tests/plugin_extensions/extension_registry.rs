@@ -1,3 +1,4 @@
+//! 测试贡献从登记报告进入模块和世界后能到达实际消费端；带标记失败的渲染执行器用于证明提交链，空提供者只满足登记夹具。
 use crate::asset::{
     AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, FunctionAssetImporter,
     ImportedAsset,

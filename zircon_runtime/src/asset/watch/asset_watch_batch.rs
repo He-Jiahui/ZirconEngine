@@ -13,6 +13,7 @@ pub struct AssetWatchBatchDiagnostics {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 一次监听刷新请求；requires_reconciliation 优先于局部 changes，表示增量事件不再可信。
 pub struct AssetWatchBatch {
     pub changes: Vec<AssetChange>,
     pub requires_reconciliation: bool,

@@ -1,3 +1,4 @@
+//! 通过编辑器结构审计入口核对模块树形状、超大测试文件和旧视觉样式路径的收敛，防止目录回退。
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::OnceLock;

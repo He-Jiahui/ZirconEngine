@@ -1,3 +1,4 @@
+// 核对键盘、输入法、滚轮和触屏事件的运行时平台输入翻译。
 use winit::dpi::PhysicalPosition;
 use winit::event::{
     ButtonSource, ElementState, FingerId, Ime, KeyEvent, MouseScrollDelta, PointerKind,

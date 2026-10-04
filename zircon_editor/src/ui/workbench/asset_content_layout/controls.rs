@@ -1,3 +1,4 @@
+//! 资产模板控件的稳定命名与行号协议；生成、分类和命中需共同维护。
 pub(crate) const ACTIVITY_CONTENT_PANEL_CONTROL_ID: &str = "AssetsActivityContentPanel";
 pub(crate) const ACTIVITY_CONTENT_EMPTY_CONTROL_ID: &str = "AssetsActivityContentEmptyText";
 pub(crate) const ACTIVITY_CONTENT_FOLDER_PREFIX: &str = "AssetsActivityContentFolder";
@@ -26,6 +27,7 @@ pub(crate) enum ActivityAssetReferenceListKind {
     UsedBy,
 }
 
+/// 把来源树根与动态控件编号转为零基行身份；未知或零号动态行不接受。
 pub(crate) fn browser_source_tree_row_index(control_id: &str) -> Option<usize> {
     if control_id == BROWSER_SOURCE_TREE_ROOT_CONTROL_ID {
         return Some(0);
@@ -36,6 +38,7 @@ pub(crate) fn browser_source_tree_row_index(control_id: &str) -> Option<usize> {
     row_number.parse::<usize>().ok()?.checked_sub(1)
 }
 
+/// 引用/被引用列表的各文本子控件归并到同一个零基行。
 pub(crate) fn browser_reference_row_index(
     control_id: &str,
 ) -> Option<(BrowserAssetReferenceListKind, usize)> {
@@ -72,6 +75,7 @@ pub(crate) fn browser_reference_row_index(
     None
 }
 
+/// 活动区引用列表沿与生成端一致的一基控件编号还原行身份。
 pub(crate) fn activity_reference_row_index(
     control_id: &str,
 ) -> Option<(ActivityAssetReferenceListKind, usize)> {

@@ -1,3 +1,5 @@
+//! chip 接管入口在相交区域内绘制表面、标签和可选箭头；true 表示归属，空输出仍不交给通用回退。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
@@ -9,6 +11,7 @@ use super::style::chip_glyph_color;
 use super::surface::push_chip_surface;
 use super::text::push_chip_label;
 
+/// secondary 专用链通过返回值决定是否继续；已归属但退化或不可见时返回 true，防止后续控件或回退层误绘。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chip_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

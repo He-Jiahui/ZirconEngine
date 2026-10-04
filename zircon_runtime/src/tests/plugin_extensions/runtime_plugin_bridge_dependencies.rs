@@ -1,3 +1,4 @@
+//! 桥接口依赖在目录与项目目标选择中校验；强依赖阻止提供者卸载，弱依赖通过缺失或禁用结果反映生命周期。
 use std::sync::Arc;
 
 use crate::core::framework::bridge::{BridgeError, BridgeOwnerTransitionMode, PluginInterface};

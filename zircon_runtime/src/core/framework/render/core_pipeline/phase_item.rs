@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use super::{RenderPhase, RenderPhaseQueueOrderingKey, RenderPhaseSortKey};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// 队列项回指同次提取中的网格或精灵数组；索引不能跨帧或跨快照复用。
 pub enum RenderPhaseMeshSource {
     MeshIndex(usize),
     SpriteIndex(usize),

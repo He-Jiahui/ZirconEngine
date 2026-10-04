@@ -1,3 +1,4 @@
+//! 验证 Badge 的零内容与缺失内容在本地样式契约中分开投影到槽位状态。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;

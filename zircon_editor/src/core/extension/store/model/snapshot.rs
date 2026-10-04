@@ -22,6 +22,7 @@ use crate::scene::modes::SceneModeRegistration;
 use super::{CapabilitySet, ContributionSource, ContributionTicket};
 
 #[derive(Clone)]
+/// 快照条目保留票据、来源和能力门槛；可见性过滤不改变登记归属。
 pub(super) struct IndexedContribution<T> {
     ticket: ContributionTicket,
     source: ContributionSource,
@@ -54,6 +55,7 @@ impl<T> IndexedContribution<T> {
 pub(super) type IndexedMap<K, V> = Arc<BTreeMap<K, IndexedContribution<V>>>;
 
 #[derive(Clone, Default)]
+/// UI 可跨刷新边界持有的只读贡献视图；写方新代际不修改旧视图。
 pub struct ContributionSnapshot {
     pub(super) generation: u64,
     pub(super) views: IndexedMap<String, ViewDescriptor>,
@@ -197,6 +199,7 @@ impl ContributionSnapshot {
     ///
     /// Host materialization uses this before revoking a ticket so it can remove the exact
     /// descriptor set without maintaining a second owner-to-view registry.
+    /// 归属查询忽略能力过滤；票据撤销清理必须看到所有已登记视图。
     pub fn views_for_ticket(
         &self,
         ticket: ContributionTicket,

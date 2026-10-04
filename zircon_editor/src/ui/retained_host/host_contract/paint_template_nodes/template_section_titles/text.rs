@@ -1,3 +1,5 @@
+//! 标题文字消费节点标签解析器和 runtime 字体度量；粗体通过第二条轻微平移的文本载荷增强视觉重量。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_node_labels::template_node_label;
@@ -6,6 +8,8 @@ use super::style::{section_text_color, section_title_metrics, WorkbenchSectionTi
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+/// 图标是否实际绘出决定文字起点，不能只根据节点声称的图标身份占位。
+/// 限制文字矩形必须完全处于标题内，短标题宁可省略内容也不向相邻 section 泄漏。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_section_label(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

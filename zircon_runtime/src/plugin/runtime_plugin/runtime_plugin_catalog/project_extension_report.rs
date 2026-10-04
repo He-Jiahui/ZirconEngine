@@ -13,6 +13,7 @@ use feature_diagnostics::append_feature_dependency_diagnostics;
 use feature_merge::merge_selected_feature_extensions;
 use runtime_merge::merge_selected_runtime_extensions;
 
+// 基础选择发生致命错误时直接返回空的已冻结扩展表，避免部分注册泄露给调用方。
 pub(super) fn runtime_extension_report_for_project(
     registrations: &[RuntimePluginRegistrationReport],
     feature_registrations: &[RuntimePluginFeatureRegistrationReport],

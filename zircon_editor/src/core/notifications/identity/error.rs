@@ -1,3 +1,4 @@
+//! 在通知和来源身份进入中心前区分无效名称与字节超限，避免构造错误混入重复发布或容量诊断。
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug, PartialEq, Eq)]

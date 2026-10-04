@@ -1,3 +1,4 @@
+// 以活动界面调试快照构造诊断窗格，约束载荷优先使用当前快照而非陈旧摘要。
 use super::support::{
     active_ui_debug_snapshot_fixture, chrome_fixture, pane_body_spec, runtime_diagnostics_fixture,
 };

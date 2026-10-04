@@ -1,3 +1,5 @@
+/// 要求清单中的 UI 描述符由当前包承载，避免资源绑定与声明所有者分离。
+/// 这里只检查包身份；资源路径及组件字段仍需经过注册表校验。
 pub(super) fn validate_runtime_plugin_package_ui_component_owner(
     ui_component_id: &str,
     ui_component_plugin_id: &str,

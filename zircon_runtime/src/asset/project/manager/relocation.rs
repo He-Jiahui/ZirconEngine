@@ -1,3 +1,5 @@
+//! 重定位准备保留资产 UUID 与引用身份，计算新 URI、资源依赖和 sidecar/注册表写入；Runtime 管线负责代际校验及最终发布。
+
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io;

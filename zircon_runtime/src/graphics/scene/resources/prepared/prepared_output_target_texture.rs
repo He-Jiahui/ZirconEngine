@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use super::super::OutputTargetTextureResource;
 
+/// 在 streamer 缓存中持有输出目标的资源修订和一份缓存所有权；
+/// 图导入与写回读取同一 Arc，不能在帧中途各自重新解析纹理。
 pub(in crate::graphics::scene::resources) struct PreparedOutputTargetTexture {
     pub(in crate::graphics::scene::resources) revision: u64,
     pub(in crate::graphics::scene::resources) resource: Arc<OutputTargetTextureResource>,

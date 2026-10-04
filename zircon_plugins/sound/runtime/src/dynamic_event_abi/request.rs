@@ -1,3 +1,4 @@
+//! 请求中的字节切片借用本次交付记录；外部回调只能在同步调用期读取，不得保存指针。
 use zircon_runtime::core::framework::sound::SoundDynamicEventDelivery;
 use zircon_runtime_interface::{
     ZrByteSlice, ZrPluginEventCallbackRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,

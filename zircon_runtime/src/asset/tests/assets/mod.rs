@@ -1,3 +1,5 @@
+//! 汇集资产线格式、导入、缓存与项目扫描测试；子模块按资产族组织，共享夹具仅用于构造输入。
+
 mod animation;
 mod artifact_store;
 mod authoring;

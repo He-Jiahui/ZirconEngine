@@ -1,3 +1,5 @@
+//! 用首批渲染资产家族验证项目扫描会发布可寻址的二进制 artifact，而非只更新内存资源记录。
+
 use std::fs;
 use std::path::Path;
 

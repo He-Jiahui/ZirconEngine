@@ -5,6 +5,8 @@ use zircon_runtime_interface::ui::dispatch::{
 
 use crate::ui::surface::{UiSurface, UiSurfaceMutationDomains, UiSurfaceMutationSnapshot};
 
+/// 一次 reply 中 effect 的回滚边界；复合 effect 或可能部分失败的单 effect 才捕获写域。
+/// 单一普通 effect 走轻量路径，要求其校验发生在有副作用之前。
 pub(super) struct UiInputTransaction {
     atomic: bool,
     effect_count: usize,
@@ -36,6 +38,7 @@ impl UiInputTransaction {
         self.atomic
     }
 
+    /// 恢复本地状态，并把整组 effect 记为拒绝；宿主请求与组件事件不得泄漏半次提交。
     pub(super) fn abort(
         self,
         surface: &mut UiSurface,
@@ -90,6 +93,8 @@ impl UiInputTransaction {
     }
 }
 
+/// 从 effect 类型推断事务写集；新增有副作用的 effect 分支须更新此清单。
+/// 即使 effect 本身只读，成功后仍可能排空延迟焦点/IME 状态，所以 input 域需保存。
 #[derive(Clone, Copy, Default)]
 struct UiInputWriteSet {
     tree: bool,

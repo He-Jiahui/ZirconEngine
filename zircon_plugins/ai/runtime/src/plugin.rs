@@ -38,6 +38,7 @@ const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
 const NATIVE_ABI_VERSION_V3: u32 = 3;
 
 #[derive(Clone, Debug)]
+/// 保留与模块描述符和扩展注册共用的管理器实例，避免服务状态分叉。
 pub struct AiRuntimePlugin {
     descriptor: RuntimePluginDescriptor,
     manager: Arc<DefaultAiManager>,
@@ -77,6 +78,7 @@ impl RuntimePlugin for AiRuntimePlugin {
         &self.descriptor
     }
 
+    // 分发清单在静态声明上追加感知组件、事件和可选外部接口依赖。
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
         for component in ai_perception_component_descriptors() {

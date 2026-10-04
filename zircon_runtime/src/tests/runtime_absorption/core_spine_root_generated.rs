@@ -1,3 +1,4 @@
+//! 核心脊柱、根公开面和生成模板的结构清单需与审计证据同步。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "core_spine_root_generated/generated_behavior.rs"]
 mod generated_behavior;
 #[path = "core_spine_root_generated/inventory.rs"]

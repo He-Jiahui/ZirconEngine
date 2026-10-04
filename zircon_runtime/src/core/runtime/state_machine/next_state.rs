@@ -1,5 +1,6 @@
 use super::StateSpec;
 
+/// Queued transition for a runtime-wide state machine.
 /// 一个类型状态机的待提交请求；`Pending` 允许同值转移，
 /// `PendingIfNeq` 在提交时按当前值抑制同值事件。
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -21,6 +22,7 @@ impl<T: StateSpec> NextState<T> {
     }
 
     pub fn set_if_neq(&mut self, state: T) {
+        // 既有显式 Pending 允许同值事件；重复设置同一值不能把这项请求降为 PendingIfNeq。
         if !matches!(self, Self::Pending(existing) if existing == &state) {
             *self = Self::PendingIfNeq(state);
         }

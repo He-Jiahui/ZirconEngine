@@ -1,3 +1,4 @@
+//! 系统纹理和上传批次在启动时一起准备，只有代际所有者提交成功才对外发布资源视图。
 use std::sync::Arc;
 
 use crate::core::framework::render::{EnvironmentBrdfLutFormat, CANONICAL_ENVIRONMENT_PBR_RECIPE};

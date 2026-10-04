@@ -45,6 +45,7 @@ impl Default for VirtualGeometryRuntimePlugin {
     }
 }
 
+// 宿主通过 RuntimePlugin trait 注册渲染 feature、五个 pass executor、prepare collector 与状态 provider。
 impl zircon_runtime::plugin::RuntimePlugin for VirtualGeometryRuntimePlugin {
     fn descriptor(&self) -> &zircon_runtime::plugin::RuntimePluginDescriptor {
         &self.descriptor

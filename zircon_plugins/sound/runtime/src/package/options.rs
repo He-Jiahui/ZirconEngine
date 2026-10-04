@@ -1,3 +1,4 @@
+//! 这些键是项目包的可配置契约；实际运行值需经配置注入，不能仅凭清单声明认为已生效。
 use zircon_runtime::plugin::PluginOptionManifest;
 
 pub fn sound_options() -> Vec<PluginOptionManifest> {

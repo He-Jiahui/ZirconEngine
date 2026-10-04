@@ -9,6 +9,7 @@ pub struct UiSurfacePointerPositionState {
 }
 
 impl UiSurfaceInputState {
+    /// 保留可见光标的最近位置供窗口失焦/离开时合成取消事件；触屏接触点不代表光标。
     pub fn record_pointer_position(&mut self, source: UiPointerSource, point: UiPoint) {
         if source.is_touch_like() {
             return;

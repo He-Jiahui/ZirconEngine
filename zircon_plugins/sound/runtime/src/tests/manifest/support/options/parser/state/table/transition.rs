@@ -1,3 +1,4 @@
+// 静态选项记录在新表或其他数组表出现时提交，防止可选功能子表字段污染顶层选项。
 use super::super::storage::OptionManifestParserState;
 
 impl OptionManifestParserState {

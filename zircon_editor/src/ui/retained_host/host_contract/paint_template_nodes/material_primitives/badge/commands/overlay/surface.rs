@@ -5,6 +5,7 @@ use super::super::super::style::{
     badge_overlay_background_color, badge_overlay_border_color, badge_overlay_border_width,
 };
 
+// 覆盖层在根文字之后绘制状态底面；圆点和数字共享颜色来源，按形态选圆角。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_badge_overlay_surface(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

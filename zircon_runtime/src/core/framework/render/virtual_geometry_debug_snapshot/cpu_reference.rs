@@ -58,6 +58,7 @@ pub struct RenderVirtualGeometryCpuReferenceMipClusterMapEntry {
     pub cluster_ids: Vec<u32>,
 }
 
+/// CPU 参考遍历的逐实例证据，用来对照 GPU 选择、LOD 和驻留结果；本身不驱动流送。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderVirtualGeometryCpuReferenceInstance {
     pub instance_index: u32,

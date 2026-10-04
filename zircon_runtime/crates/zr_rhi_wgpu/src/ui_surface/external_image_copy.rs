@@ -1,3 +1,4 @@
+//! 外部产品图像在共享设备内复制并取得真实票据，界面可据此采样稳定代际的纹理。
 use zr_rhi::{RenderDevice, RenderQueueClass, RhiError, SubmissionTicket};
 
 use super::{WgpuUiExternalImage, WgpuUiSurfaceContext};
@@ -16,6 +17,7 @@ pub struct WgpuUiExternalImageCopyTarget {
 }
 
 impl WgpuUiExternalImageCopyTarget {
+    /// 调用者须提供同设备、可复制且格式和尺寸兼容的源，并将这次编码纳入交给完成方法的票据。
     pub fn encode_copy(&self, encoder: &mut wgpu::CommandEncoder, source: &wgpu::Texture) {
         encoder.copy_texture_to_texture(
             source.as_image_copy(),
@@ -28,6 +30,7 @@ impl WgpuUiExternalImageCopyTarget {
         );
     }
 
+    // TODO: [CR-RHI-WGPU-0003] 现有场景调用传入包含复制的同场景票据，但此入口仅检查设备与代际；确认公开接口是否需强制录制关联，并检查独立调用及错误票据用例。
     pub fn complete(
         self,
         submission: SubmissionTicket,

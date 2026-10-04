@@ -1,3 +1,4 @@
+// 读取详情滚动表面源码并核对路由，约束滚动权威留在 Rust 且不建立镜像命中表面。
 fn source(relative: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))

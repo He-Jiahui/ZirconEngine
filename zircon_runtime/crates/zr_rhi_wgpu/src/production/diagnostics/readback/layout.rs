@@ -1,3 +1,4 @@
+//! 暂存布局保留原生复制所需行填充，向上层投递时恢复紧凑的中立字节序列。
 use zr_rhi::TextureCopyRegion;
 
 const TEXTURE_ROW_ALIGNMENT: u64 = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as u64;

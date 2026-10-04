@@ -1,3 +1,5 @@
+//! 验证仓库内宿主窗口模板文件可加载并实例化。
+
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use std::path::PathBuf;
 

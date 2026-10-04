@@ -6,6 +6,7 @@ use super::super::empty_state::empty_state_for_tab;
 use super::super::pane_tab::is_closeable_content_kind;
 use super::workspace_tabs::workspace_tabs;
 
+/// 独占页面投影单标签，普通页面保留每个文档leaf的路径和选择态。
 pub(crate) fn document_tabs_for_page(
     page: &MainPageSnapshot,
     chrome: &EditorChromeSnapshot,

@@ -29,6 +29,8 @@ pub struct AnimationBlendSpace2DAsset {
     pub samples: Vec<AnimationBlendSpace2DSampleAsset>,
 }
 
+/// 状态机各播放源的作者表达；直接资源引用由依赖提取登记，
+/// 参数槽位及混合空间坐标留待共享编译器验证后供运行时求值。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AnimationStateKindAsset {

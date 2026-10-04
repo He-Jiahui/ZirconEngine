@@ -1,5 +1,7 @@
 use crate::text::font::{FallbackCacheRequestProfile, FontDatabase};
 
+/// 为本次字体后备解析开启请求级锁统计；返回的开关必须在同一请求结束时传回 finish。
+/// 即使解析返回错误，也先取走统计状态，避免线程上的下一请求继承前次画像。
 pub(super) fn begin(database: &FontDatabase) -> bool {
     let enabled = profile_metrics_enabled();
     if enabled {

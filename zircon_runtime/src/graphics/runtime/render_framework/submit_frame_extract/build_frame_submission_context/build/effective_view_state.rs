@@ -1,3 +1,4 @@
+//! 从视口记录解析真正使用的管线、后处理及历史条件，防止提取端与提交端各自决策。
 use crate::core::framework::render::{
     AntiAliasFallbackReport, AoSourceSettings, FrameHistoryInvalidationReason, PostProcessExtract,
     PostProcessPassGraph, PostProcessStackDescriptor, RenderBloomSettings,

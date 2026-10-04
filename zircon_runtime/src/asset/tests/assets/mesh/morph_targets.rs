@@ -1,3 +1,5 @@
+//! 场景渲染在蒙皮前按权重投影形变；这些测试区分资产结构校验与仅对激活目标进行的格式校验。
+
 use std::collections::BTreeMap;
 
 use crate::asset::{

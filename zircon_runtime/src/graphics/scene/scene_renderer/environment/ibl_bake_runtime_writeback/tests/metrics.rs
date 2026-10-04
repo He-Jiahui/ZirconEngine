@@ -32,6 +32,7 @@ pub(super) struct IrradianceCubeDirectionalStats {
     pub(super) reference_dynamic_range: f32,
 }
 
+/// 分开报告平均亮度与归一化方向误差，供写回测试区分整体强度偏差和方向性丢失。
 pub(super) fn irradiance_cube_directional_stats(
     computed: &SourceCubemapIrradianceCube,
     reference: &SourceCubemapIrradianceCube,
@@ -100,6 +101,7 @@ pub(super) struct SeamLumaStats {
     pub(super) max: f32,
 }
 
+/// 跨 cube 面比较邻接 texel；常规 mip 排除角点，以隔离面接缝而非三面交点误差。
 pub(super) fn pmrem_seam_luma_stats(
     cubemap: &SourceCubemapMipChain,
     mip_level: u32,

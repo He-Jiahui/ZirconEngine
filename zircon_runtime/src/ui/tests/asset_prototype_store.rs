@@ -1,3 +1,4 @@
+//! 验证原型存储在扁平节点句柄下解析导入和组件引用，同时与递归作者树编译结果一致。
 use crate::ui::template::{
     UiAssetLoader, UiDocumentCompiler, UiPrototypeStoreBuilder, UiPrototypeStoreFileCache,
     UiTemplateSurfaceBuilder,

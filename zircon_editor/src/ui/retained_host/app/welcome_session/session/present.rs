@@ -1,6 +1,7 @@
 use super::super::super::*;
 
 impl RetainedEditorHost {
+    // 欢迎页可在项目仍打开时展示；仅无项目时切换会话模式，并刷新最近项目和后台探测。
     pub(in crate::ui::retained_host::app) fn present_welcome_surface(
         &mut self,
         status_message: impl Into<String>,

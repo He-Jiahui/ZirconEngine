@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。以结果断言检查当前接口或源码快照对应的边界。
 use super::*;
 
 const OLD_PIXEL_SCROLL_SCALE_NAME: &str = concat!("LEGACY_", "PIXEL_SCROLL_SCALE");

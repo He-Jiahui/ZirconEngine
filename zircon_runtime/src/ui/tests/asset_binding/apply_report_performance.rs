@@ -1,3 +1,5 @@
+//! 隔离受忽略的发布性能门槛，对照权威应用回执与从逐项状态重建回执的成本。
+// 计时样本按两种路径交替先后收集；普通测试不运行此门槛，发布验证需显式选择被忽略的测试。
 use std::{hint::black_box, time::Instant};
 
 use zircon_runtime_interface::ui::binding::{

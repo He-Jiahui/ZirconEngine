@@ -1,3 +1,5 @@
+//! 验证Slint 到保留式 Material 编辑器的导出映射、主题和迁移边界。
+
 use std::{fs, path::PathBuf};
 
 use toml::Value;

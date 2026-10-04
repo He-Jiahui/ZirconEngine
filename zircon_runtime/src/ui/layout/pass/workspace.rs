@@ -1,3 +1,5 @@
+//! 把测量和递归安排的临时存储留在运行时，重复布局清空长度而保留容量。
+
 use std::cell::RefCell;
 
 use zircon_runtime_interface::ui::{
@@ -26,6 +28,7 @@ pub(crate) struct UiContainerMeasureScratch {
 }
 
 #[derive(Clone, Debug, Default)]
+/// 每层递归安排独占一个 scratch；不能让子节点复用仍被父层持有的 children 或行缓存。
 pub(crate) struct UiArrangeChildScratch {
     pub children: Vec<UiNodeId>,
     pub linear: UiLinearArrangeScratch,
@@ -67,12 +70,14 @@ pub(super) fn take_taffy_arrange_scratch() -> UiTaffyArrangeScratch {
     TAFFY_ARRANGE_SCRATCH_POOL.with(|pool| pool.borrow_mut().pop().unwrap_or_default())
 }
 
+/// 后端安排结束（包括失败）必须归还；线程局部池避免跨线程共享可变后端树。
 pub(super) fn recycle_taffy_arrange_scratch(mut scratch: UiTaffyArrangeScratch) {
     scratch.clear_transient_lengths();
     TAFFY_ARRANGE_SCRATCH_POOL.with(|pool| pool.borrow_mut().push(scratch));
 }
 
 #[derive(Debug, Default)]
+/// 与槽位索引同寿命的测量工作区，热帧重用旧容量；这些缓冲不代表已发布的布局结果。
 pub(crate) struct UiLayoutPassWorkspace {
     pub post_order: Vec<UiMeasurePostOrderEntry>,
     pub child_desired: Vec<(UiNodeId, DesiredSize)>,

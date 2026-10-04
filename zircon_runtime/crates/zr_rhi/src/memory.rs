@@ -107,6 +107,7 @@ pub struct GpuMemorySnapshot {
 }
 
 impl GpuMemorySnapshot {
+    /// 返回活跃 buffer/texture 的物理字节总量；CPU 上传负载由 pending_upload_bytes 单独计量。
     pub const fn active_resource_bytes(self) -> u64 {
         self.active_buffer_bytes
             .saturating_add(self.active_texture_bytes)

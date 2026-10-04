@@ -2,6 +2,7 @@ use crate::ui::workbench::snapshot::MainPageSnapshot;
 
 use super::super::document_workspace_model::DocumentWorkspaceModel;
 
+/// 保持活动页面的Workbench/Exclusive内容边界，供宿主选择正确渲染路径。
 pub(super) fn build_document_workspace(active_page: MainPageSnapshot) -> DocumentWorkspaceModel {
     match active_page {
         MainPageSnapshot::Workbench {

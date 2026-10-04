@@ -1,3 +1,4 @@
+//! 资源管理器的 ID 索引与 locator 索引必须在注册、更新、重命名和删除后指向同一记录。
 use crate::core::resource::{ResourceManager, ResourceRecord};
 
 use crate::asset::{AssetId, AssetKind, AssetUri};

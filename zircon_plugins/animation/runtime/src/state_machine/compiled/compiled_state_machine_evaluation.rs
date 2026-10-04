@@ -1,3 +1,4 @@
+//! 单次状态机求值的只读结果；根或子实例取活动状态、图、剪辑、转换与待消耗触发器。
 use std::sync::Arc;
 
 use zircon_runtime::asset::AssetReference;

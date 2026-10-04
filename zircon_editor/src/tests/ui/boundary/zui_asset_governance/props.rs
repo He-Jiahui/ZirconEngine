@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 属性名与检查器可序列化取值。
+
 use std::collections::BTreeMap;
 
 use toml::Value;

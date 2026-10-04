@@ -1,3 +1,6 @@
+//! 区分共享状态锁策略：事件、计数与诊断路径可取回中毒锁中的现存状态，可失败操作返回带资源名的类型化错误。
+//! 现存状态可能是 panic 前留下的部分更新；取回锁不证明状态有效，也不构成安全继续传输的保证。
+
 use std::sync::{Mutex, MutexGuard};
 
 use zircon_runtime::core::framework::net::NetError;

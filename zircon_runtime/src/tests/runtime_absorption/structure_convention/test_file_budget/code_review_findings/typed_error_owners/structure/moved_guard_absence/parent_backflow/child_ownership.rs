@@ -1,3 +1,4 @@
+//! 检查类型化错误审查迁出的守卫仍由子文件承担，避免父模块重新吸收细节；检查针对文本位置与清单保留，不执行被检查的业务。
 use super::super::super::super::super::super::*;
 use super::super::super::TYPED_ERROR_CHILD_OWNER_LINE_BUDGET;
 use super::super::*;

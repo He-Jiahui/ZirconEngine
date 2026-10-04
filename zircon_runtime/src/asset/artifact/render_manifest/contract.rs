@@ -15,6 +15,7 @@ pub use mesh::{
 
 pub const RENDER_ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 3;
 
+/// 内容寻址的块身份；cook、存储及 block loader 以它共享同一份编码载荷。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RenderArtifactContentId([u8; 32]);
 
@@ -54,6 +55,8 @@ pub enum RenderSubresourceId {
     MeshClusterPage { lod: u16, page: u32 },
 }
 
+/// 连接离线 cook 与运行时加载的单块契约：大小、编码、平台格式、驻留级别及依赖。
+/// 构造后仍需由完整清单验证，不能把任意描述符直接视为可上传数据。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderArtifactBlockDescriptor {
     subresource: RenderSubresourceId,
@@ -342,6 +345,8 @@ impl RenderArtifactLayout {
     }
 }
 
+/// 一个资源修订在目标平台上的渲染载荷目录；语义驻留执行器先加载它，
+/// 再依 bootstrap/streamable 块规划 IO 与 GPU 上传。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderArtifactManifest {
     schema_version: u32,

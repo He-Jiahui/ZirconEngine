@@ -1,3 +1,5 @@
+//! 离线查询以 UUID 为身份权威，同时支持路径、类型、标签与反向依赖；派生索引承担热点查询。
+
 use std::collections::BTreeSet;
 
 use crate::asset::registry::{
@@ -81,6 +83,7 @@ fn registry_exposes_all_six_offline_query_signatures() {
     );
 }
 
+// 此处是热点查询的源码护栏，防止把反向依赖与身份解析退回逐条扫描。
 #[test]
 fn registry_hot_identity_and_reverse_queries_use_derived_indexes() {
     let index_source = include_str!("../../registry/asset_registry_index.rs");
@@ -99,6 +102,7 @@ fn registry_hot_identity_and_reverse_queries_use_derived_indexes() {
     assert!(!targeted_source.contains("entries_by_uuid\n            .values()"));
 }
 
+// 路径只能提示已知 UUID 的位置迁移，不能让占用同一路径的另一资产冒充缺失身份。
 #[test]
 fn registry_reference_resolution_never_substitutes_an_occupied_path_for_a_missing_uuid() {
     let registered_uuid = AssetUuid::new();

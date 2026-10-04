@@ -1,7 +1,9 @@
 use super::duplicate_occurrence::{DuplicateOccurrence, EmbeddedFeatureKind};
 use super::{RuntimePluginPackageValidationMetrics, RuntimePluginPackageValidationProjection};
 
+// 重复查询的行号必须来自建立此投影的原清单，且保持数组顺序；查询本身不会校验行号对应的声明。
 impl RuntimePluginPackageValidationProjection<'_> {
+    /// 当前投影的操作计数；测试入口另外填入实际构建次数和内嵌特性视图次数。
     pub(in crate::plugin::runtime_plugin) fn metrics(
         &self,
     ) -> RuntimePluginPackageValidationMetrics {
@@ -240,11 +242,13 @@ impl RuntimePluginPackageValidationProjection<'_> {
         })
     }
 
+    /// 能力状态的声明归属查询，范围是包及其可选特性；不代表特性已注册或能力已可用。
     pub(in crate::plugin::runtime_plugin) fn owns_capability(&self, capability: &str) -> bool {
         self.probe();
         self.owned_capabilities.contains(capability)
     }
 
+    /// 按清单顺序保留运行时模块行，供核对需要稳定顺序的声明；成员判断另用集合视图。
     pub(in crate::plugin::runtime_plugin) fn runtime_module_names(
         &self,
     ) -> impl Iterator<Item = &str> + '_ {
@@ -256,12 +260,14 @@ impl RuntimePluginPackageValidationProjection<'_> {
         self.runtime_module_name_membership.contains(module_name)
     }
 
+    /// 注册核对按清单顺序报告缺少的导出；重复声明仍保留，以维持逐声明诊断。
     pub(in crate::plugin::runtime_plugin) fn provided_interface_ids(
         &self,
     ) -> impl Iterator<Item = &str> + '_ {
         self.provided_interface_ids.iter().copied()
     }
 
+    /// 按依赖及其接口数组的顺序核对导入，不把不同依赖中的同名接口在有序视图里折叠。
     pub(in crate::plugin::runtime_plugin) fn dependency_interface_ids(
         &self,
     ) -> impl Iterator<Item = &str> + '_ {
@@ -284,6 +290,7 @@ impl RuntimePluginPackageValidationProjection<'_> {
         self.dependency_interface_membership.contains(interface_id)
     }
 
+    /// 系统锚点归属运行时模块；注册核对必须同时匹配模块名称和锚点名称。
     pub(in crate::plugin::runtime_plugin) fn runtime_system_anchors(
         &self,
     ) -> impl Iterator<Item = (&str, &str)> + '_ {

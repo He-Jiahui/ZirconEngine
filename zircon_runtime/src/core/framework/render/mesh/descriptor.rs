@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{RenderMeshBounds, RenderMeshKind, RenderMeshTopology};
 
+/// 资产侧提供给检查、预览和资源准备的网格摘要；包围盒与计数不代表 GPU 缓冲已就绪。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RenderMeshDescriptor {
     pub topology: RenderMeshTopology,

@@ -1,3 +1,4 @@
+//! 作者状态种类和直接资产引用的序列化往返契约。
 use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::animation::{
     AnimationBlendSpace1DAsset, AnimationBlendSpace1DSampleAsset, AnimationBlendSpace2DAsset,

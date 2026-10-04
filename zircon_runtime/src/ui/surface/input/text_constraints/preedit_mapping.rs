@@ -34,6 +34,9 @@ impl TextInputBoundaryMap {
         }
     }
 
+    // TODO: [CR-UI-SURFACE-0006] 确认平台 preedit 范围是否保证落在 UTF-8 标量边界；
+    // 较早的非法字节偏移无法被 record 命中，会阻住后面合法范围的映射，需补混合合法/非法端点用例。
+    /// 调用方按源字节顺序提供经过过滤后的对应位置，记录所请求的少量边界。
     pub(super) fn record(&mut self, input_offset: usize, output_offset: usize) {
         if self
             .requested

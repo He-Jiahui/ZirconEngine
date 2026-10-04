@@ -1,3 +1,5 @@
+//! 按钮内容域统一管理图标、文字和测量，使表面绘制只持有外框与交互样式。
+
 mod entry;
 mod glyph;
 mod layout;

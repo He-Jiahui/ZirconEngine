@@ -1,3 +1,6 @@
+//! 汇总分配、暂存前上传计划和可见绘制的独立工作量，供帧驱动及诊断使用。
+//! 这些计数描述 CPU 计划，不表示 GPU 已完成；有上传工作但没有可见绘制是合法状态。
+
 use super::super::page_shadow::GlyphAtlasBitmapPageShadowReport;
 use super::super::{GlyphAtlasBitmapAllocationFailureReason, GlyphAtlasUploadMode};
 use super::plan::GlyphAtlasBitmapRenderSubmissionPlan;

@@ -1,3 +1,5 @@
+//! 命令面板、对话框和通知组件共享反馈层描述符，但焦点能力、动作事件与插槽由各自宿主消费。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventKind, UiHostCapability, UiValue,

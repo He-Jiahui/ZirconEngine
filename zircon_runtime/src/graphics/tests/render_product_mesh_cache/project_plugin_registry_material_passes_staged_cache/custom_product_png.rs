@@ -1,3 +1,4 @@
+//! 自定义着色模型产品帧导出；先沿注册与预热链获得 shader，再把 GPU 结果保存为人工审阅证据。
 use std::fs;
 use std::sync::Arc;
 

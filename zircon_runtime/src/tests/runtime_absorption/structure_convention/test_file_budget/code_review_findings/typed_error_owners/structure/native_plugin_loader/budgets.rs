@@ -1,3 +1,4 @@
+//! 检查类型化错误审查清单内源码的行数预算；注释和空行参与计数，未列入清单的文件仍需由递归预算守卫覆盖。
 use super::super::super::super::super::*;
 use super::*;
 

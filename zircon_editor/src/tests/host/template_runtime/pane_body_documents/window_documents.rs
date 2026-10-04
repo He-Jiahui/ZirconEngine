@@ -1,3 +1,4 @@
+// 核对内置活动窗口注册及材质演示文档的基础组件投影。
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use crate::ui::template_runtime::EditorUiHostRuntime;

@@ -1,6 +1,9 @@
+//! DDS 容器回归测试先核对头部与资产描述符的一致性，再区分布局支持和设备压缩能力；拒绝的字节不可进入上传计划。
+
 use super::container_fixtures::*;
 use crate::asset::{AssetUri, TextureAsset, TextureUploadSupport};
 
+// 资产记录的 mip 数若与容器声明不同，后续按描述符切分会读错范围。
 #[test]
 fn texture_upload_readiness_rejects_dds_header_mip_mismatches() {
     let support = TextureUploadSupport {
@@ -41,6 +44,7 @@ fn texture_upload_readiness_rejects_dds_header_mip_mismatches() {
     );
 }
 
+// 层数和 cubemap 面数同时来自资产元数据与 DDS 头；两者冲突时不应形成可上传计划。
 #[test]
 fn texture_upload_readiness_rejects_dds_header_layer_mismatches() {
     let support = TextureUploadSupport {
@@ -89,6 +93,7 @@ fn texture_upload_readiness_rejects_dds_header_layer_mismatches() {
         1,
         2,
     );
+    // BUG: [CR-ASSET-TEST-TEXTURE-0003] 合法双层 DDS 形成两个完整子资源并返回 Ready，unsupported_reason 为 None，旧数组拒绝断言必失败；证据：upload_support/dds.rs:106-150、compressed.rs:14-24,85-114。
     assert_eq!(
         valid_dx10_array
             .upload_readiness(support)
@@ -97,6 +102,7 @@ fn texture_upload_readiness_rejects_dds_header_layer_mismatches() {
     );
 }
 
+// DDS 主头的容量、像素格式与 mip/cubemap 标志必须自洽，否则再匹配 FourCC 也不能信任数据边界。
 #[test]
 fn texture_upload_readiness_rejects_dds_main_header_structural_mismatches() {
     let support = TextureUploadSupport {
@@ -207,6 +213,7 @@ fn texture_upload_readiness_rejects_dds_main_header_structural_mismatches() {
     );
 }
 
+// DX10 扩展头与传统 caps 同时描述维度和面数；两套声明冲突时拒绝，避免错误地解释数组层。
 #[test]
 fn texture_upload_readiness_rejects_dds_dx10_structural_header_mismatches() {
     let support = TextureUploadSupport {
@@ -273,6 +280,7 @@ fn texture_upload_readiness_rejects_dds_dx10_structural_header_mismatches() {
     );
 }
 
+// 不能仅信导入器记录的格式 token：原始 FourCC/DXGI 必须与描述符一致。
 #[test]
 fn texture_upload_readiness_rejects_dds_descriptor_header_format_mismatches() {
     let support = TextureUploadSupport {

@@ -1,3 +1,4 @@
+//! 在创建任何事务产物前，统一检查 live、暂存、备份、退休文件与 owner 命名空间，防止恢复清理误伤其他路径。
 //! Immutable WAL intent construction and durable first-frame publication.
 
 use std::collections::BTreeSet;
@@ -13,6 +14,7 @@ use super::super::PreparedFileWrite;
 use super::frame_codec::encode_frame;
 use crate::io::{atomic_write_new, sync_parent_directory};
 
+// 此预检不创建文件；引擎先用同一计划确认路径隔离，再获取 owner 锁并持久化不可变意图。
 pub(in crate::io::transaction) fn plan_intent(
     directory: &Path,
     tag: &str,

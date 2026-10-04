@@ -1,3 +1,4 @@
+//! 文本布局测试共享 surface 与首个文本命令的夹具；子模块分别覆盖对齐、方向、编辑、溢出和换行。
 use crate::ui::surface::UiSurface;
 use crate::ui::text::measure_text_size;
 use zircon_runtime_interface::ui::{

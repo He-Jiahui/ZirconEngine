@@ -7,6 +7,7 @@ use zircon_runtime::core::framework::navigation::{
 use zircon_runtime::core::math::{Real, Vec3};
 use zircon_runtime::scene::World;
 
+// 从当前世界组件与端点变换重建链接，再按代理类型筛选并展开桥的车道。
 pub(crate) fn collect_off_mesh_connections(
     world: &World,
     agent_type: &str,

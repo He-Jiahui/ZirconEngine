@@ -14,6 +14,7 @@ pub struct SoundClipInfo {
     pub duration_seconds: f32,
 }
 
+/// 一次性 clip 播放的请求设置；时间范围和输出轨道在运行时接纳时验证。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundPlaybackSettings {
     pub gain: f32,
@@ -151,6 +152,8 @@ pub struct SoundSourceStatus {
     pub output_track: SoundTrackId,
 }
 
+// TODO: [CR-FRAMEWORK-SOUND-0001] 明确谁消费完成动作并执行 ECS 变更；当前声音插件仅把动作写入 finished 事件。
+/// 完成事件携带的后续实体处理意图；声音插件只报告该值，不直接变更场景实体。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SoundPlaybackCompletionAction {
     None,
@@ -165,6 +168,7 @@ pub enum SoundPlaybackFinishReason {
     MissingClip,
 }
 
+/// 一次性播放的终止报告；上层通过 drain_finished_playbacks 取走，按 reason 与 completion_action 收尾。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SoundPlaybackFinished {
     pub playback: super::SoundPlaybackId,

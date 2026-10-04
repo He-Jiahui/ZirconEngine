@@ -1,3 +1,5 @@
+//! 模板构树与 v2 文档构面是同一 Canvas 边放置契约的两种入口；下游布局应收到相同的拉伸锚点，而不是回退到子节点默认位置。
+
 use super::template::compiled_instance_from_toml;
 use crate::ui::template::UiTemplateTreeBuilder;
 use crate::ui::v2::{UiV2AssetLoader, UiV2DocumentCompiler, UiV2SurfaceBuilder};

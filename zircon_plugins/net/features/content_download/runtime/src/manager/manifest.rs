@@ -1,3 +1,6 @@
+//! 验证下载清单的 chunk ID、URL、长度、范围及总长度后入队；无效输入直接返回 Failed，不污染管理态。
+//! 清单是后续尝试/续传的基准，已入队下载按其 chunk 顺序恢复位图。
+
 use std::collections::HashSet;
 
 use zircon_runtime::core::framework::net::{
@@ -7,6 +10,7 @@ use zircon_runtime::core::framework::net::{
 use super::NetContentDownloadRuntimeManager;
 
 impl NetContentDownloadRuntimeManager {
+    /// 验证清单后建立内存下载进度；同一 ID 再入队会替换清单，恢复数据需与新版本重新绑定。
     pub fn queue_manifest(&self, manifest: NetDownloadManifest) -> NetDownloadProgress {
         let Some(total_bytes) = manifest
             .chunks
@@ -27,6 +31,7 @@ impl NetContentDownloadRuntimeManager {
         let progress =
             NetDownloadProgress::new(manifest.download, NetDownloadStatus::Queued, total_bytes);
         let mut state = self.state();
+        // TODO: [CR-PLUGIN-NET-0009] 同一下载 ID 替换清单时未清理旧 attempts/prefix/bitmap；确认 ID 复用与清单版本合同。
         state.manifests.insert(manifest.download, manifest.clone());
         state.progress.insert(manifest.download, progress.clone());
         progress

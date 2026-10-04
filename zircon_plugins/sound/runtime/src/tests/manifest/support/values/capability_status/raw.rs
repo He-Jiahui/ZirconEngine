@@ -1,3 +1,4 @@
+// 与运行时 CapabilityStatus 枚举保持同一值域；未知静态状态不能被静默映射。
 pub(super) fn capability_status_from_plugin_toml(
     value: &str,
 ) -> zircon_runtime::plugin::CapabilityStatus {

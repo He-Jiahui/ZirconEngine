@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 /// Aggregate, bounded-cost telemetry for dynamic scene hot reload.
+/// 汇总热重载观测：事件、调度与预算越界计数累计历史，队列深度及驻留字节描述当前状态，max_* 保留峰值；快照不能替代预算准入检查。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DynamicSceneAssetReloadDiagnostics {
     pub events_drained: u64,

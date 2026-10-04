@@ -15,6 +15,7 @@ use super::ui_style_resolver::UiStyleResolver;
 use super::value_normalizer::compose_tokens;
 
 impl UiDocumentCompiler {
+    // 缓存命中也要检查当前文档与注册契约；结果复用不会免除宿主对合法输入和描述符集合的责任。
     pub(super) fn validate_compiler_preconditions(
         &self,
         document: &UiAssetDocument,
@@ -25,11 +26,13 @@ impl UiDocumentCompiler {
         validate_asset_bindings(document, self.component_registry())
     }
 
+    /// 编译宿主已加载并注册导入的布局或 widget；返回展开树、绑定程序和资源报告，运行时安装仍由构建层完成。
     pub fn compile(&self, document: &UiAssetDocument) -> Result<UiCompiledDocument, UiAssetError> {
         self.validate_compiler_preconditions(document)?;
         self.compile_validated(document)
     }
 
+    // 仅供已完成当前前置检查的入口复用；缓存未命中和打包都从此处进入，避免重复扫描同一文档。
     pub(super) fn compile_validated(
         &self,
         document: &UiAssetDocument,
@@ -61,6 +64,7 @@ impl UiDocumentCompiler {
                 detail: "asset expansion produced no root nodes".to_string(),
             })?;
 
+        // 组件局部控件名已映射为实例身份；在绑定端点生成前拒绝最终重名，保证树与引用共有唯一控制目标。
         validate_unique_control_ids(&root, &document.asset.id)?;
 
         let mut instance = UiTemplateInstance::new(root);
@@ -81,6 +85,7 @@ impl UiDocumentCompiler {
         })
     }
 
+    /// 用宿主提供的缓存复用完整编译结果；导入或注册表改变会进入新键，未命中报告只解释相对上次快照的变化。
     pub fn compile_with_cache(
         &self,
         document: &UiAssetDocument,

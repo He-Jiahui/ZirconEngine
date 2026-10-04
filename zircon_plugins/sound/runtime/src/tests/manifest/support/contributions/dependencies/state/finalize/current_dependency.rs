@@ -1,3 +1,4 @@
+// 有身份字段的静态行才纳入比较；必填字段缺失时应使测试失败，防止不完整声明被接受。
 use super::super::storage::DependencyParserState;
 use super::required;
 

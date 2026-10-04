@@ -1,3 +1,6 @@
+//! 固定帧槽承载异步读回，预算约束请求负载；槽位实际分配容量可高于负载字节数。
+//! 准备、请求、编码、调用方提交、映射、所有者轮询后收集，构成一帧的完整生命期。
+
 use std::ops::Range;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
@@ -19,6 +22,7 @@ pub struct ReadbackPollStats {
     pub slot_reuse_rejection_count: u32,
 }
 
+/// 不拥有队列提交权限；同一时刻只有一个准备/编码中的帧，旧帧仍可处于映射中。
 pub struct GpuReadbackQueue {
     device: wgpu::Device,
     budget: DiagnosticReadbackBudget,
@@ -56,6 +60,7 @@ impl GpuReadbackQueue {
         }
     }
 
+    /// 占用帧编号对应的槽；忙槽拒绝本帧诊断，不阻塞等待，也不覆盖旧请求。
     pub fn prepare_frame(&mut self, frame_index: u64) -> Result<ReadbackPollStats, ReadbackError> {
         let mut stats = ReadbackPollStats {
             in_flight_count: self.in_flight_count(),
@@ -94,6 +99,8 @@ impl GpuReadbackQueue {
         Ok(stats)
     }
 
+    /// 帧封存前登记缓冲区；调用方保证同设备、可复制源用途和真实范围有效。
+    /// 返回票据只证明预算准入；复制与映射成功由回调另行报告。
     pub fn request_readback_external(
         &mut self,
         name: impl Into<String>,
@@ -122,6 +129,9 @@ impl GpuReadbackQueue {
         Ok(ticket)
     }
 
+    // TODO: [CR-RHI-WGPU-0002] 确认颜色读回应在准入时验证格式、用途与范围；当前仅按尺寸构造布局，错误纹理会进入原生验证。对照整数单像素路径与纹理读回测试补齐契约。
+    /// 提供同设备、单采样二维四字节颜色纹理的基级有效范围，并具备可复制源用途。
+    /// 输出只移除行填充，不做 BGRA 重排、颜色空间或预乘 alpha 转换。
     pub fn request_texture_rgba(
         &mut self,
         name: impl Into<String>,
@@ -185,6 +195,7 @@ impl GpuReadbackQueue {
         Ok(ticket)
     }
 
+    /// 每个准备帧调用一次，封存请求并写入调用方编码器；字节数不代表已提交或完成。
     pub fn encode_copies(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
@@ -276,6 +287,7 @@ impl GpuReadbackQueue {
         Ok(used_bytes)
     }
 
+    /// 该帧编码器提交后调用；开始映射后须完成收集并解除映射，槽位才可复用。
     pub fn begin_map(&mut self, frame_index: u64) -> Result<(), ReadbackError> {
         let active = self.active_frame.ok_or(ReadbackError::FrameNotActive {
             requested: frame_index,
@@ -316,6 +328,7 @@ impl GpuReadbackQueue {
         Ok(())
     }
 
+    /// 唯一完成所有者轮询设备后调用；映射字节只在回调执行期间借用有效。
     pub(crate) fn collect_completed_after_device_poll(&mut self) -> ReadbackPollStats {
         let mut stats = ReadbackPollStats::default();
         for slot_index in 0..READBACK_FRAME_SLOTS {
@@ -343,6 +356,7 @@ impl GpuReadbackQueue {
         }
     }
 
+    /// 未编码时释放预算；已编码时只终止交付，仍待映射完成才回收槽位。
     pub fn cancel(&mut self, ticket: ReadbackTicket) -> bool {
         let mut cancelled = false;
         let mut retained = Vec::with_capacity(self.pending.len());
@@ -380,6 +394,7 @@ impl GpuReadbackQueue {
         cancelled
     }
 
+    /// 放弃准备方仍持有的帧，且须丢弃相应未提交编码器；不能撤销已提交的 GPU 工作。
     pub fn abort_frame(&mut self, frame_index: u64) {
         let Some(active) = self.active_frame else {
             return;

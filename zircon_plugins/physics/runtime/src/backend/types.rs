@@ -1,3 +1,5 @@
+//! 整理 provider 创建描述符、可复制刚体命令和事件缓冲区；ConstraintDesc 从物理约束模块重导出。
+
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::{
     physics::{
@@ -14,6 +16,7 @@ use super::{
 
 pub use crate::constraint::ConstraintDesc;
 
+/// 将场景刚体、collider、world 与当前 provider 创建的 shape handle 组合成一次创建输入。
 #[derive(Clone, Debug, PartialEq)]
 pub struct BodyDesc {
     pub world: WorldHandle,
@@ -22,6 +25,7 @@ pub struct BodyDesc {
     pub collider: PhysicsColliderSyncState,
 }
 
+// from_sync 只检查 body/collider 的 entity 一致性；有限值、shape 及 provider 约束在 create_body 路径检查。
 impl BodyDesc {
     pub fn from_sync(
         world: WorldHandle,
@@ -44,6 +48,7 @@ impl BodyDesc {
     }
 }
 
+/// 传给 PhysicsBackend 的刚体操作值；manager 队列会检查有限数值，直接 trait 调用仍须由后端合同覆盖。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BodyCommand {
     SetLinearVelocity {
@@ -95,6 +100,7 @@ impl BodyCommand {
     }
 }
 
+/// 接收 drain_events 追加内容的接触与触发事件集合。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PhysicsEventBuffer {
     pub contacts: Vec<PhysicsContactEvent>,

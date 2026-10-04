@@ -1,3 +1,5 @@
+//! 搜索控件内部的图标与文字共用位置合同；输入矩形已是面板内的搜索区域，避免重复加入面板原点。
+
 use super::super::super::super::data::FrameRect;
 use super::common::{centered_offset, symmetric_extent};
 use super::metrics::command_palette_metrics;

@@ -7,6 +7,7 @@ pub const LOG_MODULE_NAME: &str = "LogModule";
 pub const LOG_DIAGNOSTICS_MODULE_NAME: &str = "LogDiagnosticsModule";
 
 #[derive(Clone, Copy, Debug, Default)]
+/// 基础 Kernel 声明由内建模块组无条件加入；LogDiagnosticsModule 则只在诊断配置要求时按需加入。
 pub struct LogModule;
 
 impl EngineModule for LogModule {

@@ -1,3 +1,4 @@
+//! 插件声明把运行模块、组件、选项和事件目录汇入包清单；动态库入口通过同一 ABI 身份向宿主注册。
 use crate::capability::{RUNTIME_CAPABILITIES, SOUND_RUNTIME_CAPABILITY};
 use crate::components::sound_component_descriptors;
 use crate::package::attach::attach_sound_manifest_contributions;
@@ -17,6 +18,7 @@ const SOUND_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
 const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
 const NATIVE_ABI_VERSION_V3: u32 = 3;
 
+/// 提供基础 Sound 运行能力的插件声明；包清单与运行扩展注册由同一实例生成。
 #[derive(Clone, Debug)]
 pub struct SoundRuntimePlugin {
     descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,

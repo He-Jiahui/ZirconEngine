@@ -1,3 +1,5 @@
+//! 着色器资产就绪性测试连接导入产物、材质契约和项目管理视图；报告应在管线编译前提供可诊断的使用前提。
+
 use crate::asset::{
     AssetReference, AssetUri, ShaderAsset, ShaderAssetManagementRecord,
     ShaderAssetManagementRecordSet, ShaderAssetReadinessSummary, ShaderDependencyAsset,
@@ -11,6 +13,7 @@ use crate::core::framework::render::{
 };
 use crate::core::resource::{ResourceId, ResourceKind};
 
+// 项目管理会批量投影着色器记录；这组结构守卫防止摘要与入口解析重新引入逐记录的重复工作。
 #[test]
 fn shader_management_summary_and_stage_parsing_avoid_repeated_hot_path_work() {
     let readiness = include_str!("../../assets/shader/readiness.rs");
@@ -21,6 +24,7 @@ fn shader_management_summary_and_stage_parsing_avoid_repeated_hot_path_work() {
     assert!(!entry_point.contains("to_ascii_lowercase"));
 }
 
+// 原始 WGSL 和已转译 WGSL 均可供运行时使用；仅保留 GLSL 源文档的资产仍需导入阶段生成 WGSL。
 #[test]
 fn shader_readiness_reports_runtime_source_kinds() {
     let mut emitted = base_shader("res://shaders/emitted.shader");
@@ -68,6 +72,7 @@ fn shader_readiness_reports_runtime_source_kinds() {
         .contains("does not provide emitted WGSL"));
 }
 
+// kind 决定资产是材质片段、源码 include，还是独立执行入口；旧式完整 pass 的兼容路径也属于就绪契约。
 #[test]
 fn shader_readiness_enforces_explicit_kind_contracts() {
     let module = base_shader("res://shaders/module.wgsl");
@@ -145,6 +150,7 @@ fn shader_readiness_enforces_explicit_kind_contracts() {
     assert_eq!(fullscreen_summary.kind_diagnostic_count, 0);
 }
 
+// .zshader v2 只承载带明确 kind 的作者文档；原始 module 由导入器管理，不能从该文档入口创建。
 #[test]
 fn zshader_v2_parses_kind_specific_shader_documents() {
     let surface = ZShaderDocumentV2::from_toml_str(
@@ -250,6 +256,7 @@ version = 2
     );
 }
 
+// 领域字段必须留在对应 kind：材质属性、资源绑定与管线布局不能被错误域悄悄接受。
 #[test]
 fn zshader_v2_rejects_fields_outside_kind_contracts() {
     let surface_pipeline_layout = ZShaderDocumentV2::from_toml_str(
@@ -378,6 +385,7 @@ stage = "vertex"
     );
 }
 
+// 只有重定向到资源 URI 的 import 才进入依赖图；源码内 import 保留为诊断行，不阻断资产就绪。
 #[test]
 fn shader_readiness_reports_import_rows_without_blocking_source_only_imports() {
     let mut shader = base_shader("res://shaders/imports.shader");
@@ -481,6 +489,7 @@ fn shader_readiness_reports_shader_def_diagnostics() {
         .contains("duplicated"));
 }
 
+// 管理视图在资产尚不可用时仍需展示校验错误和布局上下文，以便定位导入与绑定阶段的问题。
 #[test]
 fn shader_readiness_copies_validation_diagnostics_and_pipeline_context() {
     let mut shader = base_shader("res://shaders/diagnostics.shader");
@@ -625,6 +634,7 @@ fn shader_asset_management_record_wraps_id_summary_and_report() {
     assert_eq!(record.report, report);
 }
 
+// ProjectAssetManager 发布的记录集应按资源 ID 稳定排序，并从同一批详细报告汇总问题计数。
 #[test]
 fn shader_asset_management_record_set_sorts_and_summarizes_records() {
     let ready_shader = base_shader("res://shaders/ready-record.shader");
@@ -703,6 +713,7 @@ fn shader_asset_management_record_set_sorts_and_summarizes_records() {
     assert_eq!(summary.push_constant_range_count, 1);
 }
 
+// 各测试从可直接运行的 Module/WGSL 基线出发，只改变被检验的单一契约维度。
 fn base_shader(uri: &str) -> ShaderAsset {
     ShaderAsset {
         uri: locator(uri),

@@ -1,3 +1,5 @@
+//! 按钮源身份决定触摸生命周期或鼠标按钮事件；坐标仍是窗口物理位置。
+
 use winit::dpi::PhysicalPosition;
 use winit::event::{ButtonSource, ElementState};
 use winit::event_loop::ActiveEventLoop;

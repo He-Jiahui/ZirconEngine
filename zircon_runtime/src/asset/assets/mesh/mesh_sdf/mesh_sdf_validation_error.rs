@@ -1,3 +1,5 @@
+//! SDF 校验错误界定可拒绝的派生产物；导入与复用路径不能把损坏的体数据当作正常网格附件。
+
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

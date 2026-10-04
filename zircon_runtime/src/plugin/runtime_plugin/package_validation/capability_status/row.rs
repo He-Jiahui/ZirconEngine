@@ -13,6 +13,7 @@ use self::{
     targets::validate_runtime_plugin_package_capability_status_row_targets,
 };
 
+/// 同一状态行的身份、目标范围、参考路径和备注分别积累诊断，避免一项无效掩盖其他问题。
 pub(super) fn validate_runtime_plugin_package_capability_status_row(
     package_manifest: &PluginPackageManifest,
     status: &CapabilityStatusManifest,

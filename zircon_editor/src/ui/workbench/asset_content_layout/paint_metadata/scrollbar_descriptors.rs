@@ -1,3 +1,4 @@
+//! 同一资产代次的滚动域声明；视口与extent需和产生该声明的metadata一起解释。
 use super::{AssetContentGeometry, AssetContentPaintMetadata, AssetContentRect};
 use crate::ui::workbench::asset_content_layout::AssetContentSurface;
 
@@ -10,12 +11,14 @@ pub(crate) enum AssetContentScrollbarKind {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 活动树使用宿主体区，其余视口为pane局部框；绘制时再转换坐标。
 pub(crate) enum AssetContentScrollbarViewport {
     ActivityTree,
     Local(AssetContentRect),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 滚动长度的单位契约；像素、树行与引用行不能混用。
 pub(crate) enum AssetContentScrollbarExtent {
     Pixels(f32),
     TreeRows(usize),
@@ -32,6 +35,7 @@ const EMPTY_DESCRIPTOR: AssetContentScrollbarDescriptor = AssetContentScrollbarD
 };
 
 #[derive(Clone, Debug)]
+/// 最多四个语义滚动域的固定容量；新增滚动域时需同步调整容量与所有消费者。
 pub(super) struct AssetContentScrollbarDescriptors {
     entries: [AssetContentScrollbarDescriptor; 4],
     len: usize,
@@ -62,6 +66,7 @@ impl AssetContentScrollbarDescriptor {
     }
 }
 
+/// 发布存在的滚动域；活动树视口由宿主提供，其他域必须具有代次几何。
 pub(super) fn build_scrollbar_descriptors(
     surface: AssetContentSurface,
     geometry: &AssetContentGeometry,

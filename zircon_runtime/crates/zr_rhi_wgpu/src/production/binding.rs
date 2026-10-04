@@ -1,3 +1,4 @@
+//! 绑定转换只接受上层已验证的类型子集；句柄在本代资源表解析后才交给原生绑定组。
 use zr_rhi::{BindGroupEntryResource, RhiError};
 
 use super::registry::WgpuResourceRegistry;

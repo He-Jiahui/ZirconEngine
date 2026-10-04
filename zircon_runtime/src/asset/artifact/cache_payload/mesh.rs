@@ -7,6 +7,8 @@ use crate::asset::{
     MeshSkinAsset, VirtualGeometryAsset,
 };
 
+// ArtifactStore 的 bincode 边界使用此表示保存网格属性与索引；
+// 读回后交还普通 MeshAsset，避免编辑侧 serde 形状成为库工件协议。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) struct ArtifactCacheMeshAsset {
     uri: AssetUri,

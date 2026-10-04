@@ -1,3 +1,4 @@
+//! 目标绑定冲突和容量错误契约；编译器须停止创建依赖该目标表的剪辑。
 use std::error::Error;
 use std::fmt;
 

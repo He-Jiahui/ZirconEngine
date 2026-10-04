@@ -1,3 +1,4 @@
+//! 核对界面模块吸收后的根入口、模块注册与旧转发退役；源码读取只检查结构。
 #[test]
 fn ui_module_registration_is_absorbed_into_runtime_ui_surface() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

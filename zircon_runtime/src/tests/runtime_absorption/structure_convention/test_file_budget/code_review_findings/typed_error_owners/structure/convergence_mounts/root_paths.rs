@@ -1,3 +1,4 @@
+//! 为类型化错误审查集中声明路径、子模块与锚点清单；消费者把这些值用于源码检查，清单中的名称不证明对应行为已执行。
 pub(super) const TYPED_ERROR_STRUCTURE_CONVERGENCE_MOUNTS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts.rs";
 pub(super) const TYPED_ERROR_CONVERGENCE_MOUNTS_TOP_LEVEL_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/top_level.rs";
 pub(super) const TYPED_ERROR_CONVERGENCE_MOUNTS_ASSET_PARENTS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/asset_parents.rs";

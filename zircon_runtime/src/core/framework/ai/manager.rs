@@ -6,6 +6,8 @@ use super::{
     AiPerceptionSnapshot, AiRuntimeSnapshot,
 };
 
+/// AI 插件向 Runtime 注册的服务边界：先注册树和黑板布局，再写入感知/黑板并驱动代理 tick。
+/// 快照供编辑器只读镜像消费；实现负责以 world 与 entity 隔离代理状态。
 pub trait AiManager: Send + Sync {
     fn register_behavior_tree(
         &self,

@@ -1,3 +1,4 @@
+//! 图验证检查轨道引用、效果和无环路由；运行时支持范围另由编译器判定，验证成功不保证可播放。
 //! Validates graph references and routing before track construction.
 
 use std::collections::HashSet;

@@ -1,3 +1,6 @@
+//! 同步 facade 接受 TCP 连接后完成服务器 WS 握手，再创建读写对象并发布给根 manager。
+//! 轮询超时仅围住 TCP accept，握手阶段另需明确等待/取消上限。
+
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -60,6 +63,7 @@ impl WebSocketRuntimeListener for TungsteniteWebSocketListener {
             Ok(Err(error)) => return Err(NetError::Io(error.to_string())),
             Err(_) => return Ok(None),
         };
+        // TODO: [CR-PLUGIN-NET-0015] TCP accept 有 poll_timeout，握手却无 deadline；慢客户端可使同步调用无限等待。
         let websocket = match runtime.block_on(tokio_tungstenite::accept_hdr_async(
             stream,
             ListenerPolicyCallback {

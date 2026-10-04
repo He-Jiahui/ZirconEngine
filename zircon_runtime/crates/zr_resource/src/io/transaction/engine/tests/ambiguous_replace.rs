@@ -14,6 +14,7 @@ impl super::super::super::recovery::RecoveryPolicy for AcceptAll {
     }
 }
 
+// 故障停在替换目标后、提交完成前；删除目标模拟恢复时只能从备份还原旧代际。
 #[test]
 fn active_missing_existing_target_recovery_restores_valid_backup() {
     let output_root = std::env::var_os("CARGO_TARGET_DIR")

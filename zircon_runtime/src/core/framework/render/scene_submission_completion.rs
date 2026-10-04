@@ -1,6 +1,7 @@
 use thiserror::Error;
 use zr_rhi::{DeviceGeneration, DeviceId, SubmissionPollReceipt, SubmissionTicket};
 
+/// 后端轮询观察到的场景提交终态；成功录制或取得票据本身不等于 Completed。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum RenderSceneSubmissionCompletionStatus {
     #[default]

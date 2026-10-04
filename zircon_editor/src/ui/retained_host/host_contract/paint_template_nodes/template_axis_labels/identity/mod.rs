@@ -1,3 +1,5 @@
+//! 轴标签首先要求 Label/Icon/SvgIcon 语义角色，再消费变换控件 ID；普通标签及值字段继续后续分派。
+
 mod control_ids;
 mod roles;
 

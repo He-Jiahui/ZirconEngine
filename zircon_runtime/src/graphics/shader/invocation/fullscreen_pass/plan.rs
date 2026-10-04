@@ -7,6 +7,8 @@ use super::parameter_encoding::fullscreen_parameter_words;
 use super::pipeline_cache_key::FullscreenPipelineCacheKey;
 use super::shader_ref::FullscreenShaderRef;
 
+/// 已验证的全屏绘制计划；render feature 使用其资源合同，提交阶段使用稳定参数 ABI。
+/// parameters 以名称排序，每项占一个 16 字节槽位，调用方可复用写入缓冲。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FullscreenPassPlan {
     pub shader: FullscreenShaderRef,
@@ -41,6 +43,7 @@ impl FullscreenPassPlan {
         bytes
     }
 
+    /// 提交路径复用已有 Vec 容量；调用方须按同一计划的 parameter_byte_len 配置 GPU 参数缓冲。
     pub(crate) fn write_parameter_bytes(&self, bytes: &mut Vec<u8>) {
         let byte_len = self.parameters.len().saturating_mul(16);
         bytes.clear();

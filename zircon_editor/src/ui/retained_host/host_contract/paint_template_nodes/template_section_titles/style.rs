@@ -1,3 +1,5 @@
+//! 标题表面与文字读当前帧主题和密度；显式 label_color 优先于默认语义，但禁用仍使用不可用色。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::paint_theme::{
     current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,

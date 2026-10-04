@@ -1,3 +1,6 @@
+//! 把当前宿主控件密度投影为面板内部的尺寸合同；搜索区域、候选行和文本使用同一份指标。
+//! from_host 入口允许测试独立验证映射，生产入口从本次宿主主题取得指标。
+
 use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 const ROW_DETAIL_LEFT_RATIO: f32 = 0.72;

@@ -17,6 +17,7 @@ use crate::core::plugin::{EditorPlugin, EditorPluginDescriptor};
 use zircon_runtime_interface::resource::ResourceKind;
 
 #[derive(Clone, Debug)]
+/// SDK 最小视图插件示例；展示本地化命令、菜单项和视图如何共享操作路径。
 pub struct ExampleWindowEditorPlugin {
     descriptor: EditorPluginDescriptor,
 }
@@ -71,6 +72,7 @@ impl EditorPlugin for ExampleWindowEditorPlugin {
 }
 
 #[derive(Clone, Debug)]
+/// SDK 资产扩展示例；资产类型、导入器、检查器定制和模板需要在同一登记边界内构成可用贡献。
 pub struct ExampleAssetInspectorPlugin {
     descriptor: EditorPluginDescriptor,
 }

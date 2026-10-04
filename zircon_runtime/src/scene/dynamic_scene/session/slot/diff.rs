@@ -5,6 +5,7 @@ use super::super::{RuntimeSessionArchiveError, RuntimeSessionSlotDiffReport};
 use super::RuntimeSessionSlot;
 
 impl RuntimeSessionSlot {
+    /// 将目标 World 捕获为动态场景后作整体比较；调用方据 matches 判断快照等价性。
     pub fn diff_world(
         &self,
         world: &World,
@@ -20,6 +21,7 @@ impl RuntimeSessionSlot {
         })
     }
 
+    /// 只比较 Level 的 World 快照与槽位场景；显示名和项目元数据不计入 matches。
     pub fn diff_level(
         &self,
         level: &LevelSystem,

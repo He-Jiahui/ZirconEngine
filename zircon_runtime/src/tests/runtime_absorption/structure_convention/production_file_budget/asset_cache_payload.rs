@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0027] 资源缓存的界面文档与材质线格式归属的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_asset_artifact_cache_ui_documents_are_child_owner() {
     let parent = read_runtime_src("asset/artifact/cache_payload.rs");

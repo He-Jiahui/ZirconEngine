@@ -1,5 +1,7 @@
 use crate::core::math::Transform;
 
+/// 以变换内容生成跨帧比较用指纹，供网格和阴影缓存发现姿态变化。
+/// 它不是递增代数，也不能替代几何或材质资源的修订。
 pub fn render_mesh_transform_revision(transform: &Transform) -> u64 {
     let mut revision = FNV_OFFSET_BASIS;
     for lane in transform.translation.to_array() {

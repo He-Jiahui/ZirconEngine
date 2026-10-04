@@ -8,6 +8,7 @@ use crate::core::math::{Vec2, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, TextureMarker};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 场景精灵的持久化配置；图集裁剪和材质选择由渲染提取解释，创建节点时只需填入资源句柄与局部绘制参数。
 pub struct Sprite2dComponent {
     pub image: ResourceHandle<TextureMarker>,
     pub material: Option<ResourceHandle<MaterialMarker>>,

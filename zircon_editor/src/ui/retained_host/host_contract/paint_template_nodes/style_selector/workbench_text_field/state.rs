@@ -1,3 +1,5 @@
+//! 文本框使用共享 TextField 状态族与宿主可见焦点契约；加载和禁用统一限制后续颜色覆盖。
+
 use super::super::resolved_state_for_node;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};

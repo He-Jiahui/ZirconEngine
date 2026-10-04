@@ -1,3 +1,6 @@
+//! 状态条选择器共享的节点语义查询；持久选择、热态和主动图标含义分别用于 Focused 配方。
+//! 零透明度的原始声明色视为未提供覆盖；此约定仅适用于使用该辅助函数的颜色通道。
+
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;

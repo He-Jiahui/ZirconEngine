@@ -1,3 +1,6 @@
+//! 右侧操作以从右往左的索引布置，按钮槽与图标尺寸分开以维持统一可视边距。
+//! 调用者须确认整个槽落在行内；几何函数允许在窄行返回行外区域。
+
 use super::super::super::data::FrameRect;
 use super::metrics::tree_metrics;
 

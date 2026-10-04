@@ -1,3 +1,6 @@
+//! 把组件声明编译成按名称排序、含稠密索引的复制表，供导出或运行时消费者稳定枚举。
+//! 索引只对同一份编译结果稳定；描述符变化后需要重编并验证对端 schema。
+
 use zircon_runtime::core::framework::net::{
     SyncAuthority, SyncComponentDescriptor, SyncFieldDescriptor, SyncReplicationStrategy,
 };

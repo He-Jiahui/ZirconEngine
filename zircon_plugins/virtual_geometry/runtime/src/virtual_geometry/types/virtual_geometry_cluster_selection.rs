@@ -16,6 +16,7 @@ mod overlay_lookup;
 use overlay_lookup::OverlayClusterLookup;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 同时保留可见簇身份与提交片段身份，供选簇输出、光栅提交和调试标记投影。
 pub(crate) struct VirtualGeometryClusterSelection {
     pub(crate) submission_index: u32,
     pub(crate) instance_index: Option<u32>,

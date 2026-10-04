@@ -1,3 +1,4 @@
+// 核对展示页完整组件动作绑定集合的状态更新。
 use std::collections::BTreeMap;
 
 use zircon_runtime_interface::ui::component::UiValue;

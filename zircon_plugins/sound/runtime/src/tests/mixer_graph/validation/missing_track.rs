@@ -1,3 +1,4 @@
+// 播放入口在调用 Kira 播放前拒绝不存在的输出轨道；本用例只核对该前置错误。
 use super::super::super::*;
 
 #[test]

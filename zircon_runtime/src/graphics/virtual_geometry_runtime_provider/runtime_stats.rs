@@ -1,4 +1,5 @@
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// provider 更新后的页驻留与请求快照；框架只在成功提交后投影到可查询的视口统计。
 pub struct VirtualGeometryRuntimeStats {
     page_table_entry_count: usize,
     resident_page_count: usize,

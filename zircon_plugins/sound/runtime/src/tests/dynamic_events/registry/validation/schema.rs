@@ -1,3 +1,4 @@
+// 事件提交必须遵循注册目录的负载模式，拒绝不匹配的调用后不应入队。
 use super::support::{marker_invocation, register_marker_event};
 
 use super::super::super::*;

@@ -1,3 +1,4 @@
+//! 把缩略图服务身份或占位色板纳入类型定义，供后台预览生成与工作区投影共享；此描述不拥有渲染资源或预览任务生命周期。
 use serde::{Deserialize, Serialize};
 
 use crate::core::editor_operation::EditorOperationPath;

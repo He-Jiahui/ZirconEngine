@@ -1,3 +1,4 @@
+//! 条件表达式的作者数据、编译和求值边界；状态机只接收已编译程序。
 mod compile;
 mod compiled_condition_expression;
 mod condition_expression;

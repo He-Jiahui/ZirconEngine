@@ -81,6 +81,7 @@ impl RenderViewFamilyPipeline {
         )
     }
 
+    // TODO: [CR-RENDER-VIEW-0001] 确认生产提交链何时验收延迟样本并校验 scope；当前此入口只有测试调用，无法证明旧视口决策会被拒绝。
     /// Resolves a view family from the runtime owner's immutable dynamic-resolution decision.
     ///
     /// The graphics runtime must validate that `decision.scope()` belongs to the current

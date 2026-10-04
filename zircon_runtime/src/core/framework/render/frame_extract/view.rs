@@ -9,6 +9,8 @@ use super::super::{
 };
 use super::camera_target_size_from_descriptor;
 
+/// 一代场景对应的相机列表与当前提交相机视图。
+/// 场景生产端提供列表，渲染循环为每个相机派生只含当前描述符的视图。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderViewExtract {
     pub camera: ViewportCameraSnapshot,
@@ -55,12 +57,16 @@ impl RenderViewExtract {
         self
     }
 
+    // TODO: [CR-FRAME-0001] 明确空相机列表契约：提交循环会返回错误，但直接读取目标或层的 API 会 panic；应统一失败方式。
+    /// 安装场景相机序列；直接调用选中目标或层查询的路径要求列表非空。
     pub fn with_cameras(mut self, cameras: Vec<CameraRenderDescriptor>) -> Self {
         self.cameras = cameras;
         self.refresh_spatial_view_family_pipeline();
         self
     }
 
+    /// 为一次相机提交切换当前视图，同时保持它与视口目标尺寸一致。
+    /// 多相机循环应从源视图派生，不应把上一次提交视图继续当作源。
     pub fn select_camera_descriptor(&mut self, mut descriptor: CameraRenderDescriptor) {
         descriptor.apply_target_size(
             self.target_size
@@ -149,6 +155,7 @@ impl RenderViewExtract {
         }
     }
 
+    /// 视口绑定或尺寸变化后同步选中相机和渲染分辨率；应在图分配前调用。
     pub fn apply_target_size(&mut self, target_size: UVec2) {
         self.target_size = Some(target_size);
         self.sync_selected_descriptor_camera_payload();

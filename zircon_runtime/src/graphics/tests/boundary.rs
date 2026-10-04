@@ -1,3 +1,4 @@
+//! 根导出与已吸收旧接口的源码边界测试；直接读源文本，检查仓库结构契约，不检查帧输出。
 #[test]
 fn graphics_runtime_surface_no_longer_depends_on_legacy_scene_crate() {
     let manifest = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"));

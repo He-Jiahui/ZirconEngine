@@ -11,6 +11,7 @@ use super::prepare_visible_clusters::prepare_visible_clusters;
 use super::resident_pages::resident_pages;
 
 impl VirtualGeometryRuntimeState {
+    /// 汇集可见簇、驻留页、上传请求和槽位规划；provider 在 ingest_plan 后调用。
     pub(crate) fn build_prepare_frame_with_segments(
         &self,
         visible_clusters: &[VisibilityVirtualGeometryCluster],

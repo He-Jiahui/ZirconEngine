@@ -66,6 +66,7 @@ impl BehaviorIntegrationHost for ChangingFallbackHost {
     }
 }
 
+// 记录集成任务与中止的先后顺序，供巡逻转追逐场景验证抢占生命周期。
 impl BehaviorIntegrationHost for RecordingIntegrationHost {
     fn move_to(&mut self, context: &BehaviorIntegrationTaskContext<'_>) -> IntegrationTaskResult {
         self.steps.push(format!("move:{}", context.node_id));

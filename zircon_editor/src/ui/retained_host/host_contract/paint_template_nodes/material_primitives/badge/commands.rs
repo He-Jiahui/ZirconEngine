@@ -1,3 +1,4 @@
+// 命令按根表面、根文字和覆盖层分组；sequencing 模块决定层级及组件接管语义。
 mod overlay;
 mod root_label;
 mod root_surface;

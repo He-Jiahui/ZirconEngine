@@ -1,3 +1,4 @@
+//! 将距离、锥形、遮挡及多普勒预览合成为单源投影；关闭空间混合时保留原始增益与居中声像。
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::sound::{

@@ -19,6 +19,7 @@ use super::value_normalizer::{
 };
 
 impl UiDocumentCompiler {
+    // 组件内部节点使用定义资产的参数、token 和控件域；调用点填写的子节点仍按调用方文档与控件域展开。
     pub(super) fn expand_component_instance(
         &self,
         document: &UiAssetDocument,
@@ -60,6 +61,7 @@ impl UiDocumentCompiler {
             &component_binding_params,
             &document.asset.id,
         )?;
+        // 插槽占位节点会被填充内容取代，先保留它的父容器尺寸约束；填写方的挂载覆写随后具有更高优先级。
         let slot_placeholder_attributes =
             component_slot_placeholder_attributes(component, &component_tokens, &component_params);
         let mut fills = BTreeMap::new();
@@ -80,6 +82,7 @@ impl UiDocumentCompiler {
             fills
                 .entry(mount_name)
                 .or_insert_with(Vec::new)
+                // TODO: [CR-UI-TEMPLATE-COMP-0001] 确认导入组件同名 token 时挂载与实例覆写应使用哪个域；子节点已用 caller_tokens 展开，但这里用导入合成域；下一步补同名 token 的挂载/覆写回归并对照原型路径。
                 .extend(apply_child_mount(expanded, child, tokens, params));
         }
 
@@ -112,6 +115,7 @@ impl UiDocumentCompiler {
     }
 }
 
+/// 把父调用点的布局/命名插槽约束附到已经展开的子根；可接收空或多个根，挂载属性属于父容器而非子节点自身样式。
 pub(super) fn apply_child_mount(
     nodes: Vec<UiTemplateNode>,
     child: &UiChildMount,
@@ -133,6 +137,7 @@ pub(super) fn apply_child_mount(
         .collect()
 }
 
+// 默认值先形成实例参数环境，调用点覆写随后生效；结果还需转换成 schema 规定的绑定参数类型。
 fn resolve_component_params(
     component: &UiComponentDefinition,
     provided: &BTreeMap<String, Value>,
@@ -151,6 +156,7 @@ fn resolve_component_params(
     resolved
 }
 
+// 调用点只覆写组件暴露的根；内部绑定保留原来源，附加绑定归调用资产，根别名变化也要重定向内部控件引用。
 fn decorate_component_root(
     root: &mut UiTemplateNode,
     instance_node: &UiNodeDefinition,
@@ -226,6 +232,7 @@ fn collect_slot_placeholder_attributes(
     }
 }
 
+// 槽位本身提供基础父布局约束；已展开子节点自带的挂载约束覆盖基础值，不能丢掉两者的嵌套表内容。
 fn apply_slot_placeholder_attributes(
     nodes: &mut [UiTemplateNode],
     placeholder_attributes: &BTreeMap<String, Value>,
@@ -247,6 +254,7 @@ fn merge_instance_props_override(
     merge_value_maps(target, &props);
 }
 
+// 只传播显式给出的交互契约，缺省调用点继承组件根已有设置，避免覆盖定义中的可访问性与导航行为。
 fn apply_instance_contract_overrides(root: &mut UiTemplateNode, instance_node: &UiNodeDefinition) {
     if let Some(focus) = &instance_node.focus {
         root.focus = focus.clone();
@@ -284,6 +292,7 @@ fn merge_instance_layout_override(
     merge_value_maps(target, &inline);
 }
 
+// 接纳规则检查调用方填写的组件身份；先拒绝未知、过量或缺失槽，再展开内部节点，以便把错误定位到调用边界。
 fn validate_slot_mounts(
     component_name: &str,
     component: &UiComponentDefinition,

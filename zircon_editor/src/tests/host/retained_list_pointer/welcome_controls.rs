@@ -1,3 +1,4 @@
+// 读取欢迎页控件模板源码，约束通用 Rust 回调与 TOML 定义共同组成控件契约。
 fn source(relative: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))

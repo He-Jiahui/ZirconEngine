@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// 一个图像同时服务五种材质槽，并在不同槽覆盖 UV 选择和变换，供材质与纹理变体测试交叉核对。
 pub(in super::super) fn write_texture_transform_triangle_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("texture_transform_triangle.bin");
     let gltf_path = root.join("texture_transform_triangle.gltf");
@@ -176,6 +177,7 @@ pub(in super::super) fn write_texture_transform_triangle_gltf(root: &Path) -> Pa
     gltf_path
 }
 
+/// 同一 Mesh 的两个原语分别绑定 Material0/Material1，检验各层子资产依赖不会合并材质身份。
 pub(in super::super) fn write_two_primitive_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("two_primitives.bin");
     let gltf_path = root.join("two_primitives.gltf");

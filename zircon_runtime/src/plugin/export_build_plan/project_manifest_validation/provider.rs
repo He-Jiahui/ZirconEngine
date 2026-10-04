@@ -1,9 +1,11 @@
+//! 外部特征 provider 必须指向合规包标识；清理阶段撤销无效覆盖，避免生成错误引用。
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::ProjectPluginManifest;
 
 use super::identity::{project_plugin_package_id_is_valid, validate_project_plugin_package_id};
 use super::ProjectPluginManifestValidationProjection;
 
+/// 外部特征显式 provider 覆盖必须是合法包名；required 行的错误会阻止错误绑定进入产物。
 pub(in crate::plugin::export_build_plan) fn project_feature_provider_package_id_diagnostics(
     manifest: &ProjectPluginManifest,
     projection: &ProjectPluginManifestValidationProjection,
@@ -35,6 +37,7 @@ pub(in crate::plugin::export_build_plan) fn project_feature_provider_package_id_
     (diagnostics, fatal_diagnostics)
 }
 
+/// 仅从生成视图清除不合规 provider 覆盖；原始清单的诊断仍应先进入计划报告。
 pub(in crate::plugin::export_build_plan) fn sanitize_invalid_project_provider_package_overrides(
     manifest: &mut ProjectPluginManifest,
     target: RuntimeTargetMode,

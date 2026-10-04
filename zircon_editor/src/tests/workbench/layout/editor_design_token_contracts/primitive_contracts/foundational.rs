@@ -1,6 +1,8 @@
+//! 反馈、选择和文字基础原语的共享主题与根节点行高契约。
 use super::super::support::assert_tokenized_assets;
 use toml::Value;
 
+/// 用crate资产根嵌入基础原语，避免更深测试目录改变相对路径含义。
 macro_rules! workbench_asset {
     ($path:literal) => {
         include_str!(concat!(
@@ -12,6 +14,7 @@ macro_rules! workbench_asset {
 }
 
 #[test]
+/// 共同固定语义色、状态色和文字度量来源，适用于被列举的真实基础资产。
 fn feedback_selection_and_label_primitives_share_editor_tokens() {
     assert_tokenized_assets(&[
         (
@@ -264,6 +267,7 @@ fn feedback_selection_and_label_primitives_share_editor_tokens() {
 }
 
 #[test]
+/// 解析根节点确认可渲染Label直接消费行高比例，单纯导入主题不构成赋值。
 fn label_primitives_assign_the_shared_line_height_on_their_root_node() {
     for (asset_name, asset) in [
         (

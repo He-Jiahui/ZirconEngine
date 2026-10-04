@@ -3,6 +3,7 @@ use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use super::super::pane_empty_state_model::PaneEmptyStateModel;
 use super::action_factory::{create_scene_action, open_project_action, open_scene_action};
 
+/// 给尚未打开项目或无场景节点的pane提供恢复命令，实际操作由宿主执行。
 pub(super) fn scene_empty_state(chrome: &EditorChromeSnapshot) -> Option<PaneEmptyStateModel> {
     if !chrome.project_open {
         Some(PaneEmptyStateModel {

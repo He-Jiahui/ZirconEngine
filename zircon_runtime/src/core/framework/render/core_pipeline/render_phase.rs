@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// 图形提交的阶段分类；多个阶段可共享优先级，实际绘制仍按阶段区分。
 pub enum RenderPhase {
     Opaque2d,
     AlphaMask2d,

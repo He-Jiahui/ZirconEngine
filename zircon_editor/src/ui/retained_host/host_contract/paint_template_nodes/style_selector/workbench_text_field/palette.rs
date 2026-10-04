@@ -1,3 +1,6 @@
+//! 当前宿主主题的输入框角色投影；普通、悬停与焦点保持凹入表面，交互反馈主要由独立边线表达。
+//! 测试常量只是默认主题基准；运行时选择器读取当前宿主主题。
+
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{

@@ -1,5 +1,6 @@
 use super::super::ScreenSpaceUiTextPrepareReport;
 
+/// 汇报 UI 文字 DTO 物化成本，与实际图集驻留分开计量，便于定位重复投影。
 pub(super) fn record_dto_residency_profile(report: &ScreenSpaceUiTextPrepareReport) {
     crate::profile_counter!(
         "runtime",

@@ -5,6 +5,8 @@ use super::super::status::CapabilityStatus;
 use super::PlatformCapabilityMatrix;
 use crate::platform::PlatformTarget;
 
+// 游戏手柄的设备、事件和震动能力共用 input-gamepad 及宿主拓扑前置条件；
+// 先检查 input-gamepad，再拒绝 server/headless；桌面与浏览器分别检查 gilrs 或浏览器开关。
 impl PlatformCapabilityMatrix {
     pub(super) fn gamepad_backend(
         self,

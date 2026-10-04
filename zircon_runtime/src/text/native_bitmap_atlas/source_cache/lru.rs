@@ -1,3 +1,6 @@
+//! 保持像素缓存按使用顺序驱逐，并在索引链不一致时从现存条目重建。
+//! 重建是异常路径的防御；正常触摸/插入必须与主缓存映射同步，避免引用失效条目。
+
 use std::collections::HashMap;
 
 use crate::text::atlas::GlyphRasterKey;
@@ -13,6 +16,8 @@ pub(super) struct NativeBitmapAtlasSourceCacheEntry {
 }
 
 #[derive(Debug, Default)]
+/// 仅保存顺序索引，不拥有像素；条目映射是重建时的权威集合。
+/// 被驱逐的键还须由外层通知图集持久槽，单独改变链表不足以完成资源失效。
 pub(super) struct NativeBitmapAtlasSourceLru {
     head: Option<GlyphRasterKey>,
     tail: Option<GlyphRasterKey>,

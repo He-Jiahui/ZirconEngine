@@ -1,3 +1,4 @@
+//! 同步跨 ABI 调用在锁外执行并核对两层状态和 ABI 版本；诊断由受限字节切片转成人可读错误。
 use zircon_runtime::core::framework::sound::SoundDynamicEventDelivery;
 use zircon_runtime_interface::{
     ZrPluginEventCallbackFnV1, ZrPluginEventCallbackResultV1, ZIRCON_RUNTIME_ABI_VERSION_V1,

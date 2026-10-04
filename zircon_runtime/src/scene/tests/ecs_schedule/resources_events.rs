@@ -1,3 +1,5 @@
+//! 资源、事件与延迟命令的调用时序决定帧可见性；休眠订阅由调用方显式连接后才获得读者资格。
+
 use super::*;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -150,6 +152,7 @@ fn event_store_registered_channel_accepts_writes_before_reader_registered() {
     assert_eq!(store.drain::<Spawned>(), vec![Spawned("after-reader")]);
 }
 
+// 供插件激活路径调用的 connect 才取得读者租约；休眠期间通道可接收写入，读者不会回看旧事件。
 #[test]
 fn dormant_subscription_connects_on_plugin_activate() {
     #[derive(Debug, PartialEq, Eq)]

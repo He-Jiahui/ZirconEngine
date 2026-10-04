@@ -1,3 +1,4 @@
+//! 验证布局类工具规则覆盖容器、网格、堆栈、折叠和门户的节点属性。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;

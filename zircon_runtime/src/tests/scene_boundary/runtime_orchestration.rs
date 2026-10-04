@@ -1,3 +1,4 @@
+//! 核对场景编排吸收后的入口文件和根导出形态；具体驱动与关卡系统运行由所属模块测试验证。
 #[test]
 fn scene_runtime_orchestration_and_level_system_are_absorbed_into_runtime_scene_surface() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

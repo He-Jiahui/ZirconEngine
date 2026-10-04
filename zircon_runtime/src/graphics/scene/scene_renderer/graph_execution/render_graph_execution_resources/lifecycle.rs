@@ -1,3 +1,6 @@
+//! 管理一帧图资源从物化、录制到提交或中止后的归还。
+//! 归还前先撤销本帧访问绑定；已提交资源须等 submission ticket 完成才可复用。
+
 use crate::render_graph::CompiledRenderGraph;
 use crate::rhi::{RenderDeviceProfile, SubmissionTicket};
 
@@ -24,6 +27,7 @@ impl RenderGraphExecutionResources {
         )
     }
 
+    /// 仅供未提交命令的中止路径立即归还 backing；正常提交应使用带票据的退役入口。
     pub(in crate::graphics::scene::scene_renderer) fn release_transient_backings_into_pool(
         &mut self,
         pool: &mut TransientResourcePool,

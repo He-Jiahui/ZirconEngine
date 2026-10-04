@@ -1,3 +1,4 @@
+// 构造软件测试设备基线，允许调用方故意传入不一致元数据；不代表枚举到的主机硬件。
 use super::super::super::super::*;
 
 pub(super) fn software_test_descriptor(

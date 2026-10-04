@@ -7,6 +7,7 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq)]
+/// 框架命令协议的声明；当前生产提交路径直接调用框架接口，尚未通过此枚举分发。
 pub enum RenderCommand {
     SubmitFrameExtract {
         viewport: RenderViewportHandle,
@@ -22,6 +23,7 @@ pub enum RenderCommand {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 框架查询协议的声明；当前帧捕获仍由视口句柄接口直接调用，尚未通过此枚举分发。
 pub enum RenderQuery {
     Stats,
     CaptureFrame(RenderViewportHandle),

@@ -1,3 +1,4 @@
+//! 默认 3D 图的屏幕 UI 顺序守卫；UI 应位于 overlay/debug 之后，主表面输出还需终止 present pass。
 use crate::core::framework::render::{
     FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderSceneGeometryExtract,
     RenderSceneSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
@@ -21,6 +22,7 @@ fn assert_screen_space_ui_is_terminal(pipeline: RenderPipelineAsset) {
     assert_stage_before(&compiled, RenderPassStage::Overlay, RenderPassStage::Ui);
     assert_stage_before(&compiled, RenderPassStage::Debug, RenderPassStage::Ui);
     assert_pass_before(&compiled, "overlay-gizmo", "runtime-ui");
+    // BUG: [CR-GRAPHICS-TESTPROV-0002] 主表面图会在 runtime-ui 之后追加 surface-present；断言最后一项是 runtime-ui 与图构建契约冲突，两个默认管线测试均会失败。证据：terminal_surface_pass.rs 与 core_contracts.rs。
     assert_eq!(
         compiled
             .graph()

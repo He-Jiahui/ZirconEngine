@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::component::{
     UiValue, UiValueKind,
 };
 
+/// 插件清单中的 UI 组件声明；登记时只校验身份与 .zui 引用，安装到 UI 目录时再投影为宿主组件描述符。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiComponentDescriptor {
     pub component_id: String,
@@ -26,6 +27,8 @@ impl UiComponentDescriptor {
         }
     }
 
+    /// 保留插件身份和文档 URI 为必填 prop，并为编辑器 palette/默认节点建立可选择入口。
+    // TODO: [CR-PLUGIN-BOUNDARY-0003] Editor 与 Runtime 在宿主集合中按 AND 解释；runtime_basic 不含 Editor，需确认插件组件在独立 Runtime 中不可选是否符合预期。
     pub fn to_runtime_component_descriptor(&self) -> RuntimeUiComponentDescriptor {
         RuntimeUiComponentDescriptor::new(
             self.component_id.clone(),
@@ -49,6 +52,7 @@ impl UiComponentDescriptor {
         ))
     }
 
+    // 编辑器名称只取组件 ID 的末段；完整 ID 仍用于注册冲突检测和节点模板身份。
     fn display_name(&self) -> String {
         self.component_id
             .rsplit('.')

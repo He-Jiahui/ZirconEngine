@@ -4,6 +4,8 @@ use crate::asset::{
 
 use super::LoadedNativePlugin;
 
+// 资产导入器只认识命令宿主和统一结果；此适配层把已加载插件的运行时命令接入导入管线，
+// 并保留原始状态码与诊断，供导入任务决定失败、拒绝或未知 ABI 状态。
 impl NativeAssetImportCommandHost for LoadedNativePlugin {
     fn command_host_id(&self) -> &str {
         &self.plugin_id

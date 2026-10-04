@@ -1,3 +1,4 @@
+//! 表面绑定在操作锁下改变视口呈现能力，新尺寸会触发历史释放和图重建。
 use crate::core::framework::render::{
     RenderFrameworkError, RenderViewportHandle, RenderViewportSurfaceDescriptor,
 };

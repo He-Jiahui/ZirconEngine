@@ -1,3 +1,5 @@
+//! 源语言标记随 shader 文档进入导入与运行时源选择；默认语言属于持久化兼容契约，不应由文件扩展名隐式覆盖。
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

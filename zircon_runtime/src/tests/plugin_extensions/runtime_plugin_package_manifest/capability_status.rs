@@ -1,3 +1,5 @@
+//! 这些用例都经 `RuntimePluginRegistrationReport::from_native_package_manifest` 进入包清单校验，断言能力状态的身份、目标和参考元数据诊断。
+
 use super::*;
 
 #[test]

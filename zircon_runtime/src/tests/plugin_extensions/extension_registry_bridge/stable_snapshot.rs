@@ -1,3 +1,4 @@
+//! 并发回归核对代际窗口中的载荷、清理后的析构及回调异常恢复；源码等待点检查与显式计时样本分别记录，计时样本须实际执行后才形成证据。
 use super::*;
 
 use std::panic::{catch_unwind, AssertUnwindSafe};

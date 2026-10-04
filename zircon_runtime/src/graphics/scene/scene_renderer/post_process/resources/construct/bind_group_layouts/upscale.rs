@@ -1,3 +1,4 @@
+/// 空间放大阶段绑定逻辑源/目标尺寸，不以可能对齐扩展的物理纹理尺寸推导采样坐标。
 pub(crate) fn upscale(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-upscale-bind-group-layout"),

@@ -1,3 +1,4 @@
+//! 核对编辑上下文只暴露同一事务引擎实例，且空事务提交不制造历史记录，避免调用方观察到虚假的可撤销操作。
 use std::ptr;
 
 use crate::core::context::EditorContextBuilder;

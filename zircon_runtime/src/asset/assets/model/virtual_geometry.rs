@@ -1,3 +1,5 @@
+//! 虚拟几何元数据随模型/网格派生产物传给资源流；页与 cluster 的索引语义由烹饪和驻留加载共同约束。
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

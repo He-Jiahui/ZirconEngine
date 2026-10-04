@@ -1,6 +1,10 @@
+//! 描述指数退避和确定性 jitter 的重连时间表，预期由连接生命周期管理者统一消费。
+//! 目前只有 transport 测试调用，worker/manager 没有按此策略自动重连。
+
 use std::time::Duration;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// TODO: [CR-PLUGIN-NET-0007] 重连策略没有生产调用者；确定由 transport/session 哪一层持有重试状态与取消条件。
 pub(crate) struct ReconnectPolicy {
     pub(crate) base_delay: Duration,
     pub(crate) max_delay: Duration,

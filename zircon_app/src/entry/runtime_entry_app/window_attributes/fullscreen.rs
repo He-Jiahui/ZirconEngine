@@ -1,3 +1,6 @@
+//! 启动时的全屏选择与缺失显示器/视频模式的降级。
+//! 独占需要具体 monitor 与 mode；无边框保留 Winit 对 Current 的解释。
+
 use winit::monitor::Fullscreen;
 use zircon_runtime::core::framework::window::{
     WindowMode, WindowMonitorSelection, WindowVideoModeSelection,
@@ -6,6 +9,7 @@ use zircon_runtime::core::framework::window::{
 use super::monitor::{selected_monitor, WindowMonitorContext};
 use super::video_mode::selected_video_mode;
 
+/// 将启动全屏意图映射为 Winit 模式，独占条件不足时保留无边框可创建路径。
 pub(super) fn runtime_window_fullscreen(
     mode: WindowMode,
     monitor_context: &WindowMonitorContext,

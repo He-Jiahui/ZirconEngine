@@ -1,3 +1,4 @@
+//! 插件公开面、原生装载命名空间与生命周期回退保持分离。以结果断言检查当前接口或源码快照对应的边界。
 use std::collections::BTreeSet;
 use std::path::Path;
 

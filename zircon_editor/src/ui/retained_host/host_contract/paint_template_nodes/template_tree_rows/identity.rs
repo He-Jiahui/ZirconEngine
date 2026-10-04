@@ -1,3 +1,5 @@
+//! 把共享组件家族识别投影到树行绘制，防止场景 ID 与显式 role 各自建立不同识别规则。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
     is_component_family, TemplateComponentFamily,

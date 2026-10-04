@@ -1,3 +1,4 @@
+//! 为 PERF-MVP-434 构造固定容量、批量和作用域规则矩阵，供 case runner 观察真实 DiagnosticLogState。
 use std::path::PathBuf;
 use std::time::Duration;
 

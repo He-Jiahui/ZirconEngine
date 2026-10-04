@@ -1,3 +1,5 @@
+//! 验证反射模型跟踪源码选择与样式状态，并限制多选为同级节点。
+
 use crate::ui::asset_editor::{
     UiAssetEditorMode, UiAssetEditorReflectionModel, UiAssetEditorRoute, UiDesignerSelectionModel,
     UiMatchedStyleRuleReflection, UiStyleInspectorReflectionModel,

@@ -241,6 +241,7 @@ fn dispatch_pmrem(backend: &RenderBackend, source_texels: &[[f32; 4]]) -> wgpu::
     output
 }
 
+// CPU 基准先量化到 GPU 源纹理的半精度，防止把输入精度差异误算成 PMREM 算法误差。
 fn rgba16f_quantized_direction_source() -> Vec<[f32; 4]> {
     let mut source =
         vec![[0.0; 4]; source_cubemap_sample_count(SOURCE_FACE_SIZE, SOURCE_MIP_COUNT)];

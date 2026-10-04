@@ -1,3 +1,5 @@
+//! 水平 chrome 分隔线消费面板指定的边；当前将单像素线吸附到像素网格，父裁剪决定最终可见范围。
+
 use super::super::super::super::super::data::FrameRect;
 use super::super::super::super::super::paint_geometry::intersect;
 use super::super::super::super::render_commands::HostPaintCommand;

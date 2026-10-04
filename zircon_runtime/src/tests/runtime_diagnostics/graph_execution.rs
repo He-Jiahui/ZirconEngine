@@ -1,3 +1,4 @@
+//! 校验模拟统计的图执行阶段和资源池维护指标，经共享断言约束值及标签。
 use crate::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 use super::support::{

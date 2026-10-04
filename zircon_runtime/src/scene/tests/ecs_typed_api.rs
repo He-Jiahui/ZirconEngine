@@ -1,3 +1,5 @@
+//! World 类型化 ECS 测试共享夹具；子模块核对组件、资源、Bundle 和持久化状态的共同边界。
+
 use serde_json::json;
 use std::path::{Path, PathBuf};
 

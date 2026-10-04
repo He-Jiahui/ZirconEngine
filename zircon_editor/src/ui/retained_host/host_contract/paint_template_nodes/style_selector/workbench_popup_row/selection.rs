@@ -1,9 +1,13 @@
+//! 为调用端投影的弹出行状态选择背景、轮廓和三种文字通道；特殊选项如何标记由各调用端决定。
+//! 可用行中持久标记优先于热态背景；危险色只作用正文及装饰，不改变禁用优先级。
+
 use super::super::workbench_row_selection::selected_row_outline_color;
 use super::model::{WorkbenchPopupRowState, WorkbenchPopupRowStyle};
 use super::palette::workbench_popup_row_palette;
 use super::state::{is_hot, is_unavailable};
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
+/// 接收调用端已投影的行状态快照，生成弹出行视觉配方；不读取原节点或修改选择。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_popup_row_style(
     row: WorkbenchPopupRowState,
 ) -> WorkbenchPopupRowStyle {

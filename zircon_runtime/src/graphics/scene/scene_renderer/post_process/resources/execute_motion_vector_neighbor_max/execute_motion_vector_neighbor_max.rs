@@ -5,6 +5,8 @@ use super::super::super::scene_post_process_resources::ScenePostProcessResources
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 
 impl ScenePostProcessResources {
+    /// 把粗粒度速度邻域信息铺回后续效果采样的目标，为运动模糊提供保守速度支撑。
+    /// 仅在图计划要求重建速度时绘制；停用时写黑色中性结果，输入必须来自先行 tile 阶段。
     pub(crate) fn execute_motion_vector_neighbor_max(
         &self,
         device: &wgpu::Device,

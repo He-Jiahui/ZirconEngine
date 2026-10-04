@@ -1,3 +1,5 @@
+//! 禁用与加载共用不可用视觉配方，上层在此状态停止声明色、命令角色和亮度覆盖。
+
 use super::super::metrics::workbench_button_border_width;
 use super::super::model::WorkbenchButtonStyle;
 use super::super::palette::workbench_button_palette;

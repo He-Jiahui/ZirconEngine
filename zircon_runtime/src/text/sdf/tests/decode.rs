@@ -1,3 +1,5 @@
+//! 用 CPU 参考样本锁定 MSDF 中位数、MTSDF alpha 真距离和覆盖率边界，保护运行时 shader 与烘焙模式的契约。
+
 use super::*;
 
 #[test]

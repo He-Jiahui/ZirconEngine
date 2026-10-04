@@ -1,3 +1,5 @@
+//! 用同一组最小模型、材质、着色器和压缩纹理，贯通项目扫描、运行时加载与渲染资源读取；各子模块共享这组跨层契约。
+
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};

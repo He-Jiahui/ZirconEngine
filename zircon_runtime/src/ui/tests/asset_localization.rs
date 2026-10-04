@@ -1,3 +1,4 @@
+//! 验证本地化依赖从作者文档进入包清单，并由选定语言的表目录报告缺失项。
 use crate::ui::template::{
     collect_document_localization_report, compiled_asset_package_manifest_from_artifact_bytes,
     localization_table_keys_from_toml_str, validate_localization_report_against_catalog,
@@ -218,6 +219,7 @@ stop = "Stop"
     assert!(keys.contains("menu.stop"));
 }
 
+// BUG: [CR-UI-TEST-0007] 该源码文本守卫仍查找旧有序映射与单步查找拼写，当前目录已使用哈希映射及两段查找，两个正向断言必然失败；证据：本地化目录源码。
 #[test]
 fn localization_catalog_lookup_borrows_locale_and_table_keys() {
     let source = include_str!("../template/asset/localization/resolve.rs");

@@ -1,3 +1,5 @@
+//! 文件式网格加载使用此 OBJ 解码器；它不负责项目导入事务、材质和子资产。
+
 mod decode_obj_file;
 mod error;
 mod obj_vertex_key;

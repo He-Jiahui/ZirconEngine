@@ -52,6 +52,7 @@ pub fn source_cubemap_evaluate_irradiance_sh9(
     ]
 }
 
+/// 按 cubemap texel 的立体角投影九项球谐，再应用漫反射余弦核的带宽系数。
 pub(super) fn source_cubemap_irradiance_sh9_from_texels(
     texels: &[[Real; 4]],
     face_size: u32,

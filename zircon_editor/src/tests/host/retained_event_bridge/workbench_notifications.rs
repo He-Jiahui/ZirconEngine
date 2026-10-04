@@ -1,3 +1,4 @@
+// 从保存和导入记录生成类型化提示，约束宿主通知队列承载正确动作结果。
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent, EditorEventEffect, MenuAction};
 use crate::core::notifications::ToastSeverity;
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};

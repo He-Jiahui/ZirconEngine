@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
+    /// 只消费仍待处理的页完成项；先核对替换页槽位，再按预算和可淘汰约束更新状态。
     pub(crate) fn complete_gpu_uploads_with_replacements(
         &mut self,
         assignments: impl IntoIterator<Item = (u32, u32)>,

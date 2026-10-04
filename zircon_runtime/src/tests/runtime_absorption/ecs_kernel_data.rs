@@ -1,3 +1,4 @@
+//! 实体组件存储与标识能力吸收后，核心拥有者和文档锚点需一致。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "ecs_kernel_data/component_storage.rs"]
 mod component_storage;
 #[path = "ecs_kernel_data/docs.rs"]

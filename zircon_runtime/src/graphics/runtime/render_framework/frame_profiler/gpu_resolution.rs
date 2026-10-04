@@ -1,3 +1,4 @@
+//! GPU 查询在提交票据完成后才归入帧分析，未返回的时间戳保持待定状态。
 use std::sync::Arc;
 
 use crate::core::framework::render::{

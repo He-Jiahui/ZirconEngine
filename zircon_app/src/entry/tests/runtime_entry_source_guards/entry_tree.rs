@@ -1,5 +1,9 @@
+//! 验证 entry 职责目录及运行时模块编排边界。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::sources::entry_root;
 
+// BUG: [CR-APP-ENTRY-0005] 目录守卫仍要求已不存在的 surface_present/fallback.rs，导致当前树检查失败；证据：实际 leaf 为 reference_cpu.rs，外部原始快照中该测试已复现失败。
 #[test]
 fn entry_subsystem_is_split_into_builtin_modules_run_modes_and_runtime_app_tree() {
     let root = entry_root();

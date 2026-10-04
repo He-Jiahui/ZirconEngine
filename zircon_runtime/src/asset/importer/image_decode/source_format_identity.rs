@@ -1,5 +1,7 @@
 use image::ImageFormat;
 
+// IBL 缓存键使用固定协议值，不依赖 image crate 枚举判别值；
+// 新增解码格式应显式分配新值，未知格式交由调用者拒绝。
 pub(super) fn stable_source_format_identity(format: ImageFormat) -> Option<u32> {
     Some(match format {
         ImageFormat::Png => 1,

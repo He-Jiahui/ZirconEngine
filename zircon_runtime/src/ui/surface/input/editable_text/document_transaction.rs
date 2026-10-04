@@ -5,6 +5,8 @@ use super::property_transaction::{
     UiEditableTextPropertyTransactionReceipt,
 };
 
+/// 同时准备 surface 属性投影与文档存储编辑，避免任一准备失败留下半次提交。
+/// 提交先执行仍可能拒绝的属性事务，成功后消费已准备且不会再失败的文档编辑。
 #[must_use = "a prepared editable document transaction must be committed or explicitly discarded"]
 pub(in crate::ui) struct PreparedUiEditableTextDocumentTransaction<'surface, 'documents> {
     properties: PreparedUiEditableTextPropertyTransaction<'surface>,

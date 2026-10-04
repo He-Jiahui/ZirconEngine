@@ -6,6 +6,7 @@ use zircon_runtime::core::{
 use super::RuntimeTaskDiagnosticProjectionReport;
 use crate::core::logging::{EditorLogError, EditorLogService, LogEntry, LogSeverity, LogSource};
 
+/// 运行时任务诊断到编辑器日志的有界游标桥；每次 UI tick 从上次成功位置继续。
 pub(crate) struct RuntimeTaskDiagnosticLogBridge {
     source: TaskDiagnosticSource,
     cursor: TaskDiagnosticCursor,
@@ -17,6 +18,7 @@ impl RuntimeTaskDiagnosticLogBridge {
         Self { source, cursor }
     }
 
+    /// 缺口先记 Warning，再投影观测；每条成功写入后才推进游标，便于失败后重试。
     pub(crate) fn pump(
         &mut self,
         logs: &EditorLogService,

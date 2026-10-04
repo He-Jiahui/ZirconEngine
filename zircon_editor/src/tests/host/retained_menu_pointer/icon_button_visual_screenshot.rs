@@ -1,3 +1,4 @@
+// 核对图标按钮的上下文尺寸和按下位移是否体现在像素快照中。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

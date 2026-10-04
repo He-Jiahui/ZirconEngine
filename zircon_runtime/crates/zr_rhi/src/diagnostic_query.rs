@@ -407,6 +407,7 @@ pub fn aggregate_diagnostic_query_results(
     timestamp_bytes: &[u8],
     pipeline_statistics_bytes: &[u8],
 ) -> Result<Vec<DiagnosticPassResult>, DiagnosticQueryDecodeError> {
+    // 先核对整块 resolve 字节数，再按计划中的 dense pass id 聚合，避免后端回调把物理查询索引泄露给上层。
     validate_byte_len(
         timestamp_bytes,
         plan.timestamp_query_count() as usize,

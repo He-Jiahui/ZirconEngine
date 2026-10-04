@@ -1,3 +1,5 @@
+//! 轨道底色、范围填充和可选刻度的序列适配层；刻度数量还会依可用像素宽度限流。
+
 use super::super::super::layers::tick_order;
 use super::super::super::track::{push_slider_ticks, push_slider_track};
 use crate::ui::retained_host::host_contract::data::FrameRect;

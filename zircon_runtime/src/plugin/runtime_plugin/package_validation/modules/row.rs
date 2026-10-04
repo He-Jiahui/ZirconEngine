@@ -13,6 +13,7 @@ use self::{
     target_modes::validate_runtime_plugin_package_module_target_modes,
 };
 
+// 同一行的身份、能力、系统锚点与目标模式都应给出诊断；前一项失败不阻止其他约束审查。
 pub(super) fn validate_runtime_plugin_package_module_row<'a>(
     package_id: &str,
     package_supported_targets: &'a [RuntimeTargetMode],

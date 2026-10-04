@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 组件内部 control ID 的唯一性。
+
 use std::collections::BTreeMap;
 
 use super::metadata::{is_control_id_identifier, string_token_metadata_offender};

@@ -1,3 +1,4 @@
+//! 为主循环尚未消费的任务事件设置条数、字节和年龄边界；最低预算必须容纳缺口记录，否则无法向消费者说明已丢失的生命周期。
 use std::time::Duration;
 
 use super::gap::JOB_EVENT_JOURNAL_GAP_RETAINED_BYTES;

@@ -42,6 +42,7 @@ pub(crate) use workbench::{
     WORKBENCH_SETTINGS_WINDOW_CONTROL_ID, WORKBENCH_TOAST_CONTROL_ID,
 };
 
+// 启动时只加载宿主、浮窗、工具栏和面板所需的内建文档，供各桥共享同一模板运行时。
 pub(crate) fn load_startup_builtin_template_runtime(
 ) -> Result<EditorUiHostRuntime, EditorUiHostRuntimeError> {
     projection_support::load_builtin_runtime_for_documents(&[

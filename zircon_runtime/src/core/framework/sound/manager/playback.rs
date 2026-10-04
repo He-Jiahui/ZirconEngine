@@ -3,7 +3,9 @@ use super::super::{
     SoundPlaybackSettings, SoundPlaybackStatus,
 };
 
+/// 管理资产 clip 的一次性播放句柄；持续声源和场景空间信息走 SoundSourceManager。
 pub trait SoundPlaybackManager {
+    /// 通过当前打开项目解析声音资产；clip ID 是播放资源身份，不是场景实体身份。
     fn load_clip(&self, locator: &str) -> Result<SoundClipId, SoundError>;
     fn clip_info(&self, clip: SoundClipId) -> Result<SoundClipInfo, SoundError>;
     fn play_clip(

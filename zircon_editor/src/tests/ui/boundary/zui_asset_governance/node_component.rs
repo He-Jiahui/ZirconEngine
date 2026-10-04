@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 节点组件对描述符或导入组件的解析。
+
 use std::collections::BTreeSet;
 
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;

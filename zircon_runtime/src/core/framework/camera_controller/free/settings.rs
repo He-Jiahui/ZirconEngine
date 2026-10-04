@@ -3,6 +3,7 @@ use std::f32::consts::FRAC_PI_2;
 use crate::core::math::Real;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 自由相机手感参数由控制器解释；速度按秒积分，俯仰边界使用弧度，滚轮倍率跨帧保留。
 pub struct FreeCameraSettings {
     pub sensitivity: Real,
     pub walk_speed: Real,

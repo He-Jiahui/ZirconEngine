@@ -1,3 +1,5 @@
+//! 图标前景优先表达不可用和危险状态，活动态取强调色；静态态再接纳声明图标色或按钮语义色。
+
 use super::super::model::WorkbenchIconButtonContext;
 use super::super::palette::{workbench_icon_button_palette, WorkbenchIconButtonPalette};
 use super::super::state::{icon_button_node_uses_active_glyph, is_unavailable_icon_button_state};

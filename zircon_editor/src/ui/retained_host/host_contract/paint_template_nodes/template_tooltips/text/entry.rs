@@ -1,3 +1,5 @@
+//! 标题与正文共享气泡可用宽度；文字超出自己的行槽位时省略，裁剪保留外层浮层边界。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::layers::body_order;

@@ -1,3 +1,4 @@
+//! 核对图、时间线和 ZUI 扩展描述符的注册、能力门槛与 schema 版本约束，防止重复节点或非 ZUI 文档进入编辑器入口。
 use crate::core::asset::{AssetCreationTemplateDescriptor, AssetTypeContribution, AssetTypeId};
 use crate::core::commands::EditorCommandDescriptor;
 use crate::core::editor_authoring_extension::{

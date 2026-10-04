@@ -1,3 +1,4 @@
+//! 通过已提交的场景命令核对日志载荷具有版本和可重放元数据，保持编辑命令与持久化格式的契约一致。
 use serde_json::json;
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, LevelSystem, Scene};

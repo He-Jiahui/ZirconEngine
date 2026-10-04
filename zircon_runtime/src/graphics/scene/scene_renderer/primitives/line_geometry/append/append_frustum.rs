@@ -2,6 +2,7 @@ use crate::core::math::{Transform, Vec3, Vec4};
 
 use crate::graphics::scene::scene_renderer::primitives::LineVertex;
 
+/// 将相机视锥辅助形状投到世界空间；只供 scene gizmo 的线框路径，不参与真实相机裁剪。
 pub(crate) fn append_frustum(
     vertices: &mut Vec<LineVertex>,
     transform: Transform,

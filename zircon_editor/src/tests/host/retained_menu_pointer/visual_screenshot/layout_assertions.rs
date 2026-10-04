@@ -1,3 +1,4 @@
+// 断言资源抽屉在指定窗口宽度下保留文档区域的最小比例。
 use crate::ui::retained_host::UiHostWindow;
 use crate::ui::workbench::autolayout::{minimum_document_width_fraction, WorkbenchChromeMetrics};
 

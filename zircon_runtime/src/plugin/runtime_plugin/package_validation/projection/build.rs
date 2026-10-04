@@ -18,6 +18,8 @@ use self::interfaces::index_interfaces;
 use self::modules::index_package_modules;
 
 impl<'a> RuntimePluginPackageValidationProjection<'a> {
+    /// 包注册报告在校验开始时构建一次，随后把同一视图传给各校验分支和注册结果核对。
+    /// 原清单尚未通过校验也能建立索引，以便各分支继续收集独立错误。
     pub(in crate::plugin::runtime_plugin) fn build(
         package_manifest: &'a PluginPackageManifest,
     ) -> Self {
@@ -161,6 +163,7 @@ impl<'a> RuntimePluginPackageValidationProjection<'a> {
         );
         debug_assert_eq!(identity_rows_indexed, identity_row_capacity);
 
+        // 能力状态的归属契约涵盖包声明和可选特性声明；这里不判定可选特性是否已启用。
         let owned_capabilities = package_manifest
             .capabilities
             .iter()
@@ -219,6 +222,7 @@ impl<'a> RuntimePluginPackageValidationProjection<'a> {
     }
 }
 
+// 容量口径必须与全部身份写入分支同步；构建结束的断言用于发现新增字段遗漏计数。
 fn package_identity_row_capacity(package_manifest: &PluginPackageManifest) -> usize {
     let mut rows = package_manifest
         .capabilities
@@ -279,6 +283,7 @@ fn package_identity_row_capacity(package_manifest: &PluginPackageManifest) -> us
     rows
 }
 
+/// 只标记同域身份的后续出现行，使调用端按原数组顺序产生一次一条的重复诊断。
 pub(super) fn index_identity<'a>(
     seen: &mut HashSet<DuplicateIdentity<'a>>,
     duplicates: &mut HashSet<DuplicateOccurrence>,

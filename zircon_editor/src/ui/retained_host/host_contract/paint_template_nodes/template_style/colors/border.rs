@@ -1,3 +1,5 @@
+//! 通用边框承担校验与键盘焦点提示；资源预览和内容面板保留中性边框以避免选择高亮重复。
+
 use super::super::state::{button_interaction_state, is_button_disabled};
 use super::super::surface_roles::{
     is_asset_preview_surface, is_asset_thumbnail_card_surface,

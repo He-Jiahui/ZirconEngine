@@ -9,6 +9,7 @@ pub struct RenderMaterialManagementPageRequest {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 针对筛选后全集的分页元数据；limit 为 None 表示不截断，total_count 不受当前页大小影响。
 pub struct RenderMaterialManagementPageInfo {
     #[serde(default)]
     pub offset: usize,

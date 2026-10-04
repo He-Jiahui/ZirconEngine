@@ -21,6 +21,7 @@ impl ProductPlatformClass {
         }
     }
 
+    /// 导出目标在装配前须落入角色允许的平台族；该准入不代表具体后端可用。
     pub const fn accepts(self, target: PlatformTarget) -> bool {
         match self {
             Self::Desktop => target.is_desktop(),

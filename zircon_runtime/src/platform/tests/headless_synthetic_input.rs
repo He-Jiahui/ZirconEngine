@@ -1,5 +1,6 @@
 use super::super::*;
 
+// 辅助函数只检查报告包含预期诊断行；下方样本验证启用 gate 的 headless 合成输入目录。
 fn assert_diagnostic_line(report: &PlatformCapabilityReport, expected: &str) {
     let lines = report.diagnostic_lines();
 

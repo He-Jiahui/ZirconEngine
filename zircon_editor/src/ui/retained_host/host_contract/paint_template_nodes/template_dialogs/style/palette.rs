@@ -1,3 +1,5 @@
+//! 对话框的宿主颜色角色快照；普通、严重性和不可用状态共用一份主题来源。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_palette, HostMaterialPalette,
 };

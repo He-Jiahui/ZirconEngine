@@ -12,6 +12,7 @@ use super::observer_abort::{
     DISABLE_ABORTS, SWITCH_ABORTS,
 };
 
+// 注册阶段不绑定黑板；首次 tick 必须在执行前拒绝缺失或未知观察键。
 #[test]
 fn observer_binding_rejects_missing_and_unknown_schema_keys() {
     for (key, expected_missing) in [(None, true), (Some("missing"), false)] {

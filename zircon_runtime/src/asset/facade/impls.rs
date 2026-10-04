@@ -18,6 +18,7 @@ use crate::core::resource::{
     TextureMarker, TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
 };
 
+// 每个资产类型都绑定一个 ResourceMarker；manager 以 marker 的 kind 路由记录，LABEL 仅用于错误与诊断文本。
 macro_rules! impl_asset {
     ($asset:ty, $marker:ty, $label:literal) => {
         impl Asset for $asset {

@@ -10,6 +10,7 @@ use super::super::{
     RenderArtifactBlockDescriptor, RenderArtifactIoPriority, RenderArtifactStoreLimits,
 };
 
+/// 限制一个项目代次的去重条目、票据、保留内存和解码块大小。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderArtifactBlockLoaderLimits {
     max_entries: usize,
@@ -20,6 +21,7 @@ pub struct RenderArtifactBlockLoaderLimits {
     store_limits: RenderArtifactStoreLimits,
 }
 
+/// 请求一个已由清单描述的块；优先级和截止时间参与待派发排序，票据负责观察结果。
 #[derive(Clone, Debug)]
 pub struct RenderArtifactBlockRequest {
     descriptor: RenderArtifactBlockDescriptor,
@@ -57,6 +59,7 @@ impl RenderArtifactBlockRequest {
     }
 }
 
+/// 每轮显式 IO 派发的任务数和编码字节预算；由语义驻留维护循环提供。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderArtifactBlockIoDispatchBudget {
     max_tasks: usize,

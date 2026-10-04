@@ -1,3 +1,4 @@
+// 创建外部声源时拒绝空白句柄，核对声源描述符的输入身份约束。
 use super::super::super::super::*;
 
 #[test]

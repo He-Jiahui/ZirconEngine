@@ -1,3 +1,4 @@
+// 以编辑器管理器和临时动画资源为入口，约束序列及状态机编辑会话的恢复、保存与脏状态清除。
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};

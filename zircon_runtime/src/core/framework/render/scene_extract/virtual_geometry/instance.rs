@@ -4,6 +4,7 @@ use crate::core::resource::ResourceId;
 
 use super::super::mesh::render_mesh_stable_instance_key;
 
+/// 将 cooked 簇和页的局部区间映射到场景实体与稳定绘制实例。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderVirtualGeometryInstance {
     pub entity: EntityId,
@@ -38,6 +39,7 @@ impl Default for RenderVirtualGeometryInstance {
 
 impl RenderVirtualGeometryInstance {
     /// Preserves authored extracts produced before virtual geometry carried the render key.
+    /// 历史提取缺少显式键时以实体首 primitive 兼容可见性和绘制索引。
     pub fn stable_instance_key_or_legacy(&self) -> u64 {
         if self.stable_instance_key == 0 {
             render_mesh_stable_instance_key(self.entity, 0)

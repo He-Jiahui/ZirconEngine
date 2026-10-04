@@ -8,6 +8,7 @@ use zircon_runtime::scene::World;
 
 use crate::manager::agent_motion::rotate_toward_movement;
 
+// 写回模式决定位置所有权：控制器模式只发布期望速度，不把 Crowd 坐标写入场景变换。
 pub(super) fn write_agent_state(
     world: &mut World,
     entity: u64,

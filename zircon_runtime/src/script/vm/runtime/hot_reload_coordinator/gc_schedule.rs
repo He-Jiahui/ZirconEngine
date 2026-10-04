@@ -1,3 +1,4 @@
+//! 协作 GC 调度只索引下一次到期帧；加载、重载、卸载替换槽位时重建条目，避免每帧扫描全部实例。
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use super::super::super::handles::PluginSlotId;

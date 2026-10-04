@@ -17,6 +17,7 @@ impl AiBehaviorTickLod {
         }
     }
 
+    // 用实体 ID 错开半速与四分之一速更新，避免所有 agent 在同一帧集中执行。
     pub fn should_tick(self, frame: u64, entity: u64) -> bool {
         let divisor = match self {
             Self::Full => 1,

@@ -1,6 +1,7 @@
 use super::super::*;
 
 #[test]
+// 此测试检查三种运行模式的诊断 token；策略默认值与显式 headless 回退由下方独立测试检查。
 fn runtime_target_mode_diagnostic_tokens_stay_stable() {
     let cases = [
         (

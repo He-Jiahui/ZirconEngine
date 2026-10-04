@@ -13,6 +13,7 @@ pub(super) struct NativeWindowPanePayloads {
 }
 
 impl RetainedEditorHost {
+    // 只为模型中可见的浮窗内容准备昂贵 pane 数据，其他种类交由默认空载荷保持同一展示接口。
     pub(super) fn prepare_native_window_pane_payloads(
         &mut self,
         model: &WorkbenchViewModel,

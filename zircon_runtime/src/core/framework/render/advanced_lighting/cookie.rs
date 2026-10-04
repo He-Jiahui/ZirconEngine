@@ -10,6 +10,7 @@ pub enum CookieWrapMode {
     Repeat,
 }
 
+/// 描述不同灯型如何投影采样 cookie；图形层依据灯光类型打包贴图索引和投影参数。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CookieProjection {
     Directional {
@@ -21,6 +22,7 @@ pub enum CookieProjection {
     PointOctahedral,
 }
 
+/// 场景提取传给光源打包器的 cookie 引用；light_id 必须对应同一帧的灯光快照，纹理驻留由图形层决定。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LightCookieData {
     pub light_id: u64,

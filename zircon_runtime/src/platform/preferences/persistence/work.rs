@@ -11,6 +11,7 @@ use crate::platform::preferences::PreferenceStorageBackend;
 use super::MAX_PREFERENCE_FAILURE_DETAIL_BYTES;
 
 /// Capability issued only inside the persistence worker.
+/// 该零大小令牌由本模块构造并随每次 primitive 调用传入，阻止服务线程直接触碰宿主后端。
 ///
 /// ```compile_fail
 /// use zircon_runtime::platform::preferences::PreferenceBackendWorkAuthority;
@@ -63,6 +64,7 @@ pub(super) fn perform_remove(
 pub(super) fn perform_flush(
     backend: &Arc<dyn PreferenceStorageBackend>,
 ) -> Result<(), PreferencePersistenceFailureProjection> {
+    // flush 由全局 fence 调用，建立此前 lane 工作已提交到后端的顺序边界。
     backend
         .flush(&PreferenceBackendWorkAuthority::new())
         .map_err(project_backend_error)
@@ -73,6 +75,7 @@ pub(super) fn read_bounded(
     max_value_bytes: usize,
     backend: &'static str,
 ) -> Result<Arc<[u8]>, PreferencePersistenceFailureProjection> {
+    // 只读取 max+1 字节即可判定超限，避免恶意或损坏后端把任意大值读入内存。
     let max_plus_one = max_value_bytes.checked_add(1).ok_or_else(|| {
         projection(
             PreferenceStorageErrorKind::CapacityExceeded,
@@ -107,6 +110,7 @@ pub(super) fn read_bounded(
 pub(super) fn project_backend_error(
     error: PreferenceStorageError,
 ) -> PreferencePersistenceFailureProjection {
+    // 保留后端的 kind、operation、名称和截断后的 detail，供 overlay/ticket 对外报告。
     projection(
         error.kind(),
         error.operation(),
@@ -118,6 +122,7 @@ pub(super) fn project_backend_error(
 pub(super) fn lane_failure(
     projection: &PreferencePersistenceFailureProjection,
 ) -> BoundedKeyedIoFailure {
+    // lane 只携带稳定代码；完整错误细节留在同代 overlay projection 中。
     let code = match projection.kind() {
         PreferenceStorageErrorKind::Unavailable => "preference_backend_unavailable",
         PreferenceStorageErrorKind::Denied => "preference_backend_denied",
@@ -143,6 +148,7 @@ fn projection(
 }
 
 fn truncate_utf8_detail(value: &str, max_bytes: usize) -> String {
+    // 截断点回退到 UTF-8 边界，保证失败详情可安全展示且受固定字节上限约束。
     if value.len() <= max_bytes {
         return value.to_owned();
     }

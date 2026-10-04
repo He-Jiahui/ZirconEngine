@@ -1,3 +1,5 @@
+//! 验证缓存清单的原始大小预算在读取块之前生效；被删去的块目录使错误顺序成为可观察契约。
+
 use std::fs;
 
 use crate::asset::project::ProjectPaths;

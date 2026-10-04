@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 布局字段、裁剪和数值边界。
+
 use std::collections::BTreeMap;
 
 use toml::Value;

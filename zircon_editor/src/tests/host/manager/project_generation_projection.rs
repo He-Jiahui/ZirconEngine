@@ -1,3 +1,4 @@
+// 通过管理器的项目与布局命令核对代际隔离、查询热路径和欢迎页缓存投影。
 use std::fs;
 
 use crate::ui::host::module::EDITOR_MANAGER_NAME;

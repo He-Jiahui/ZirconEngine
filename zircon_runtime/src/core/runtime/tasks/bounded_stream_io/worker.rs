@@ -54,6 +54,7 @@ impl ReaderStartGate {
     }
 }
 
+// gate 放行后才开始读取；阻塞 Read 不能被取消标志抢断，panic 与所有返回路径由终态守卫回收活跃计数。
 pub(super) fn run_reader(
     mut input: BoundedStreamIoReader,
     state: Arc<CaptureState>,

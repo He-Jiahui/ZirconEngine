@@ -1,3 +1,4 @@
+// 核对双宿主投影的布局属性和路由对齐及材质事件状态。
 use std::collections::BTreeSet;
 
 use super::support::*;

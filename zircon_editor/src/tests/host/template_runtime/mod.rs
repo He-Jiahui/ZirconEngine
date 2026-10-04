@@ -1,3 +1,4 @@
+// 汇集模板运行时的资源、宿主、面板、路由和共享表面测试。
 mod asset_surface;
 mod build_export_visual_contract;
 mod component_showcase_category;

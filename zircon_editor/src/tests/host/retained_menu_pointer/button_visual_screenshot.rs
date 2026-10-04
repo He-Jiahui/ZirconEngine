@@ -1,3 +1,4 @@
+// 核对按钮的文字、图标、按下、禁用和标签状态在原生绘制中的可见差异。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

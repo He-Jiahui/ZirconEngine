@@ -26,6 +26,7 @@ pub type ReflectResourcePreflightTransfer =
     ) -> Result<(), zircon_runtime_interface::reflect::ReflectError>;
 
 #[derive(Clone, Copy)]
+/// 反射资源的 World 访问能力表；预检转移回调用于场景暂存，调用者不得假定所有资源都可持久化克隆。
 pub struct ReflectResource {
     pub estimate_stage_clone_bytes: Option<
         fn(&crate::scene::World) -> Result<usize, zircon_runtime_interface::reflect::ReflectError>,

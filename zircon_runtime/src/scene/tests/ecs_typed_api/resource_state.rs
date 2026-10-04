@@ -1,3 +1,5 @@
+//! World 资源按具体类型注册和替换；读写与清理追踪器的顺序决定 Added/Changed 时间窗。
+
 use super::*;
 
 #[test]

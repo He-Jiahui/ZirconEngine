@@ -1,3 +1,5 @@
+//! 信号点与文字共享视觉偏移；诊断信号采用更紧的左边距，最终点位还要受节点边界约束。
+
 use super::super::super::style_selector::{
     WorkbenchStatusSignalKind as StatusSignalKind, WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT,
 };

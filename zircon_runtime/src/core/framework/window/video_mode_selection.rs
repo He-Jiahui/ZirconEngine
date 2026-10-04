@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::math::UVec2;
 
+/// 启动时请求的独占全屏模式，尺寸与可选色深/刷新率供 App 匹配后端可用模式。
+/// 这是偏好而非已生效模式；无匹配时由全屏属性转换决定回退。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WindowVideoMode {
     pub physical_size: UVec2,
@@ -30,6 +32,7 @@ impl WindowVideoMode {
     }
 }
 
+/// `Current` 使用选中显示器的当前模式，`Specific` 要求按请求条件查找模式。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WindowVideoModeSelection {
     #[default]

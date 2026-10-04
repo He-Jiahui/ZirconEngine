@@ -1,3 +1,4 @@
+//! 从完整 surface 重建核对工作台容器的几何、主题令牌与状态投影；源码断言另行守护模块职责。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     design_tokens::{EditorDesignTokens, EditorTypographyTokens},

@@ -1,3 +1,4 @@
+//! 核对视口编辑态直接投影运行时检查与反射产物，使组件字段和灯光信息以运行时权威描述进入编辑器。
 use serde_json::json;
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::scene::components::NodeKind;

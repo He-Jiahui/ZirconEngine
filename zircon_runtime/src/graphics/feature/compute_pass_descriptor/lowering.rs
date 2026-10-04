@@ -1,3 +1,4 @@
+//! 计算通道降为图通道时保留绑定读写及间接派发依赖，排序不能只依赖 executor 注册次序。
 use crate::graphics::feature::{
     RenderFeaturePassDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceDescriptor,
     RenderFeatureResourceKind, RenderFeatureResourceWriteMode,

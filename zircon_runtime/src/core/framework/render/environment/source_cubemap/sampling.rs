@@ -5,6 +5,8 @@ use crate::core::math::Real;
 
 use super::{source_cubemap_face_mip_offset, source_cubemap_mip_size};
 
+/// 为 PMREM 预滤提供跨 mip 的连续源辐射采样，并沿六面投影修正边界邻居。
+/// 源数据必须满足 `SourceCubemapMipChain` 的完整 face-major 布局约束。
 pub(super) fn sample_source_cubemap_trilinear(
     texels: &[[Real; 4]],
     face_size: u32,

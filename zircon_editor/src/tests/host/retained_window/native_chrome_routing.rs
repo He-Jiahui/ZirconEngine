@@ -1,3 +1,4 @@
+// 核对活动轨点击与抽屉头部区域重叠时的命中优先级。
 use std::cell::RefCell;
 use std::rc::Rc;
 

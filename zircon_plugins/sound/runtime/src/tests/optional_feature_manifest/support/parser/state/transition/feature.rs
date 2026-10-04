@@ -1,3 +1,4 @@
+// 新功能开始前完成旧功能，防止相邻功能的依赖和模块互相串入。
 use super::super::super::section::OptionalFeatureSection;
 use super::super::{flush, OptionalFeatureParserState};
 

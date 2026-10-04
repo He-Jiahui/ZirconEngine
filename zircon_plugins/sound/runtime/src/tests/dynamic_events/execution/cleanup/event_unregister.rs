@@ -1,3 +1,4 @@
+// 注销事件应清理其执行器；重建事件与处理器后再次执行须报告 SkippedMissingExecutor。
 use super::super::super::*;
 
 use super::support::{

@@ -1,3 +1,5 @@
+//! 为具体选择控件映射共享状态族；热态、不可用和焦点边线判断分开，避免勾选或普通悬停借用键盘焦点环。
+
 use super::model::WorkbenchSelectionControlKind;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};

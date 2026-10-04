@@ -1,3 +1,5 @@
+//! 按命令、事件、生命周期与 socket 实现拆分 net worker；根 manager 只经 NetWorker facade 请求 I/O。
+
 mod egress;
 mod ingress;
 mod net_worker;

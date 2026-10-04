@@ -1,3 +1,4 @@
+//! 动态组件实例与模式登记分别拥有；缺失模式保护实例，编辑写入受属性声明约束，卸载前检查实体仍持有的插件组件。
 use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::scene::{components::NodeKind, SceneError, World};

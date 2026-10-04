@@ -1,3 +1,5 @@
+//! 标准资源标签与嵌套阴影标签使用不同列起点，随后共用文字命令入口；退化行不扩张到字段列。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_inspector_row_geometry::{

@@ -68,6 +68,7 @@ pub(super) fn physical_allocation_ids_by_resource(
     resource_lifetimes: &[RenderGraphResourceLifetime],
     transient_allocation_plan: &CompiledRenderGraphTransientAllocationPlan,
 ) -> HashMap<RenderGraphResource, RenderGraphPhysicalAllocationId> {
+    // 别名复用 parent 的瞬态 allocation ID；未进入瞬态分配计划的外部/持久资源在此不生成 ID。
     let allocation_ids_by_resource = transient_allocation_plan
         .allocations
         .iter()

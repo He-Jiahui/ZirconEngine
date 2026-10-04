@@ -2,6 +2,7 @@ use std::any::type_name;
 use std::fmt;
 use std::marker::PhantomData;
 
+/// 可保留多帧的消息类型；自定义堆负载须报告实际保留字节，以维持 MessageRetention 的预算语义。
 pub trait Message: 'static + Send + Sync {
     /// Returns the retention budget charged by this message instance.
     ///
@@ -12,6 +13,7 @@ pub trait Message: 'static + Send + Sync {
     }
 }
 
+/// 单一 Messages<T> 通道递增分配的序号；用于游标与丢失计数，不是跨 World 身份。
 #[derive(PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MessageId<T>
 where

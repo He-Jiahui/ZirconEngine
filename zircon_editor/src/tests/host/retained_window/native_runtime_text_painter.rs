@@ -1,3 +1,4 @@
+// 核对运行时可编辑文本的光标与装饰命令能由宿主画笔绘出。
 use crate::ui::retained_host::paint_runtime_render_commands_for_test;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,

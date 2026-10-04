@@ -1,3 +1,4 @@
+//! 从快照和分发回复两侧核对 disclosure 的 open 别名，确保运行时组件值投影到展开状态。
 use super::*;
 
 #[test]

@@ -1,3 +1,5 @@
+//! 在系统进入 ECS 注册前验证显式访问的稳定 ID 和宿主授权，供桥接回放与 ABI V4 注册共用。
+
 use std::collections::BTreeSet;
 
 use crate::scene::ecs::SceneSystemThreadAffinity;
@@ -7,6 +9,7 @@ use super::{
     NativeSystemAccessPlan, NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY,
 };
 
+/// 当前插件的一次注册授权快照：已知 ID 来自包或注册表，其他插件的 ID 还须具备对应读写能力。
 pub(in crate::plugin::native_plugin_loader) struct NativeSystemAccessAuthority {
     plugin_id: String,
     known_component_ids: BTreeSet<String>,
@@ -29,6 +32,7 @@ impl NativeSystemAccessAuthority {
         }
     }
 
+    /// 在构造调度闭包前检查工作线程能力、稳定 ID 存在性和跨插件访问授权。
     pub(in crate::plugin::native_plugin_loader) fn authorize(
         &self,
         plan: &NativeSystemAccessPlan,
@@ -69,6 +73,7 @@ impl NativeSystemAccessAuthority {
         Ok(())
     }
 
+    // 点号边界限定插件命名空间，防止相似前缀被误认为同一所有者。
     fn owns(&self, stable_id: &str) -> bool {
         stable_id == self.plugin_id
             || stable_id

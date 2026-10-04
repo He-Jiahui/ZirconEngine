@@ -1,3 +1,6 @@
+//! 资源与阴影选择行共用字段、前导图标和下拉符几何；所有尺寸以当前宿主密度和实际行框为界。
+//! 调用者仍需检查退化字段是否可绘，并为文字和图标保留各自空间。
+
 use super::super::super::data::FrameRect;
 use super::metrics::inspector_row_metrics;
 

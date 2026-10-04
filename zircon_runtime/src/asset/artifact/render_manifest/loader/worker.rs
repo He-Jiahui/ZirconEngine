@@ -30,6 +30,7 @@ pub(super) struct RenderArtifactBlockLoaderMetrics {
     pub(super) decode_worker_wall_ns: AtomicU64,
 }
 
+// 读取编码块后按 codec 决定直接完成或交给独立解码任务；两阶段均尊重 scope 取消。
 pub(super) fn run_io_task(
     loader: Weak<RenderArtifactBlockLoaderInner>,
     entry: Arc<RenderArtifactBlockEntry>,

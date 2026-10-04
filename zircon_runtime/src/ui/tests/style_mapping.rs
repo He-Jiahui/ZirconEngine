@@ -1,3 +1,4 @@
+//! 验证 UI 布局样式到 Taffy 的字段映射，避免弹性、网格和溢出语义在布局边界丢失。
 use crate::ui::layout::taffy_style_from_ui_layout_style;
 use taffy::style::{
     AlignItems, AlignSelf, Dimension, Display, FlexDirection, FlexWrap, JustifyContent,

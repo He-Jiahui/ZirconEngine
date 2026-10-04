@@ -1,3 +1,5 @@
+//! 弹窗 open 属性建立焦点作用域；分层关闭应把焦点交给仍有效的顶层或原触发节点。
+
 use super::*;
 
 mod control_anchored;

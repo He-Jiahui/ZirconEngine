@@ -1,3 +1,4 @@
+//! 视口呈现设置跨EditorData与chrome的完整传递契约。
 use zircon_runtime_interface::math::UVec2;
 
 use crate::scene::modes::SceneModeActivation;
@@ -12,6 +13,7 @@ use crate::ui::workbench::snapshot::{
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 
 #[test]
+/// 自定义每个设置字段以检测投影遗漏；此断言不触发GPU或场景渲染。
 fn chrome_builder_carries_scene_viewport_settings_into_snapshot() {
     let settings = SceneViewportChromeSettings {
         mode: SceneModeActivation::Transform(TransformHandleKind::Scale),

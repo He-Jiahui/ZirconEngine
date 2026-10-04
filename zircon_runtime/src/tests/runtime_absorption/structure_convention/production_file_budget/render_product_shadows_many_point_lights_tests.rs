@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0065] 多点光源阴影的网格和捕获一致性的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_render_product_shadows_many_point_lights_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/tests/render_product_shadows.rs");

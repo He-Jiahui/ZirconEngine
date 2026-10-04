@@ -1,3 +1,5 @@
+//! 焦点、文本及无障碍激活分别选择焦点或所有者默认路径；结果需留下与实际阶段一致的诊断步骤。
+
 use super::*;
 
 #[test]
@@ -273,6 +275,7 @@ fn unified_text_and_ime_dispatch_report_focus_route_steps_and_focused_input_log(
     );
     assert!(surface.focus.focused_inputs[0].accepted);
 
+    // 本夹具直接指定已建立的 IME owner，聚焦验证提交路由和文本同步。
     surface.input.input_method_owner = Some(UiNodeId::new(2));
     let ime = surface
         .dispatch_input_event(

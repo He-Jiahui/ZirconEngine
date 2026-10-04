@@ -1,3 +1,4 @@
+//! 声明贡献带来源所有者进入扩展目录；撤销所有者须移除相应贡献，同时保持其他来源。
 use crate::asset::AssetImporterDescriptor;
 use crate::core::framework::render::{
     GBufferChannelMask, GeometrySourceBindingKind, GeometrySourceBindingRequirement,

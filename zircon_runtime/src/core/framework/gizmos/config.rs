@@ -74,6 +74,8 @@ impl Default for GizmoLineConfig {
     }
 }
 
+// TODO: [CR-FRAMEWORK-RESIDUAL-0003] 确定 group、line.width、depth_bias、render_layer 与 screen_scale_policy 的生效阶段；当前提取链只读取 enabled 和 color_policy，证据：gizmos/extract.rs。
+/// 命令集合或保留式实例的绘制策略；当前提取链仅兑现启用状态与颜色策略。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GizmoConfig {
     pub group: GizmoConfigGroupId,

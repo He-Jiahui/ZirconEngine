@@ -1,3 +1,4 @@
+//! 桥接调用回归核对缺失、禁用及代际翻转；固定守卫持有已解析提供者，弱入口随表代际重连。
 use super::*;
 
 use std::sync::atomic::{AtomicUsize, Ordering};

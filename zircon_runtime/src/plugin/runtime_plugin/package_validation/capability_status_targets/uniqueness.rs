@@ -1,5 +1,6 @@
 use crate::core::framework::platform::RuntimeTargetMode;
 
+/// 三种封闭目标模式以位集合表达同一状态内的重复，不改变调用方按声明顺序积累诊断的行为。
 pub(super) fn validate_runtime_plugin_package_capability_status_target_uniqueness(
     capability: &str,
     target_mode: RuntimeTargetMode,

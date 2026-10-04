@@ -4,6 +4,7 @@ use super::super::super::{
 use super::SourceCubemapEnvironment;
 
 impl SourceCubemapEnvironment {
+    /// 替换可选 IEM 时检查上传身份并清除旧编码及工件来源，防止下一帧复用失效数据。
     pub fn with_irradiance_cube(mut self, irradiance_cube: SourceCubemapIrradianceCube) -> Self {
         let upload_key = self.texture_upload_key();
         self.irradiance_cube = Some(irradiance_cube);

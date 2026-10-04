@@ -7,6 +7,7 @@ impl ProjectPluginManifest {
         self.selections.is_empty()
     }
 
+    /// 按插件 id 原位替换或追加完整声明，保留清单顺序供编辑器和导出计划稳定显示。
     pub fn set_enabled(&mut self, selection: ProjectPluginSelection) {
         if let Some(existing) = self
             .selections
@@ -40,6 +41,7 @@ impl ProjectPluginManifest {
         });
     }
 
+    /// 提供当前目标的可参与项；最终是否能注册仍交给插件目录和解析器裁决。
     pub fn enabled_for_target(
         &self,
         target: RuntimeTargetMode,

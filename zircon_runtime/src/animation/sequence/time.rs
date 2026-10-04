@@ -1,5 +1,6 @@
 use crate::core::math::Real;
 
+// 插件逐帧应用已编译序列前先统一循环和越界时间；异常时长退回初始采样点。
 pub(super) fn resolve_sequence_sample_time(
     duration_seconds: Real,
     time_seconds: Real,

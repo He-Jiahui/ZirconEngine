@@ -1,3 +1,4 @@
+// 核对宿主画笔执行运行时渲染命令并解析 SVG 图像资源。
 use super::support::*;
 
 #[test]

@@ -19,6 +19,7 @@ impl VersionedSchema for DynamicScene {
     }
 }
 
+// 每一步只接受上一版本的载荷；读入口沿此链升级，写入口始终发布当前版本。
 static DYNAMIC_SCENE_MIGRATIONS: MigrationChain<DynamicScene> = MigrationChain::new(&[
     MigrationStep::new(0, migrate_dynamic_scene_v0_to_v1),
     MigrationStep::new(1, migrate_dynamic_scene_v1_to_v2),

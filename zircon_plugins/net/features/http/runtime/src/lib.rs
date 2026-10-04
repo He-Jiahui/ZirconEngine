@@ -1,3 +1,6 @@
+//! 公开 HTTP feature 注册入口与可注入后端，供根 net manager 激活真实 socket HTTP。
+//! 独立测试构造器会创建单独 manager，生产 factory 将后端安装到已注册根服务。
+
 mod backend;
 mod capability;
 mod feature;

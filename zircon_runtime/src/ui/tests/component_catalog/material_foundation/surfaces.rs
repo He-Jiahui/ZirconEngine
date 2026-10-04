@@ -1,3 +1,5 @@
+//! 表面类组件提供容器默认样式和内容插槽；目录须区分可渲染外壳与编辑器特有属性。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{UiComponentEventKind, UiHostCapability, UiValue};
 

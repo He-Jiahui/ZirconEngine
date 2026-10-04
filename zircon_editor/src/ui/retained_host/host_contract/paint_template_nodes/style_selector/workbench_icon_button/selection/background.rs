@@ -1,3 +1,5 @@
+//! 工具栏图标的静态状态保持无背景，面板图标可使用声明表面；选中与指针反馈优先取主题状态色。
+
 use super::super::model::WorkbenchIconButtonContext;
 use super::super::palette::{workbench_icon_button_palette, WorkbenchIconButtonPalette};
 use super::super::state::{

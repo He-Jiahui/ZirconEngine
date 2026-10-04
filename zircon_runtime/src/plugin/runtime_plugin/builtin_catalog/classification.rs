@@ -7,6 +7,7 @@ use super::language::{classify_language_descriptor, is_language_descriptor};
 use super::render_classification::{classify_render_descriptor, is_render_descriptor};
 use super::IdentifiedBuiltinCatalogDescriptorBuilder;
 
+// 未命中专用分类器的包仍保留基础描述，并显式标为部分实现。
 pub(super) fn classify_descriptor(
     (package_id, descriptor): IdentifiedBuiltinCatalogDescriptorBuilder,
 ) -> IdentifiedBuiltinCatalogDescriptorBuilder {

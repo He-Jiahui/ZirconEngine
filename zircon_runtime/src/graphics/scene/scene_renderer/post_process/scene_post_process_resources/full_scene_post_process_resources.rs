@@ -7,6 +7,8 @@ use crate::graphics::scene::scene_renderer::temporal::taa::taa_resolve_bind_grou
 use crate::graphics::shader::FullscreenPassParameterBindings;
 use crate::graphics::scene::scene_renderer::post_process::resources::post_process_pass_parameter_buffers::PostProcessPassParameterBuffers;
 
+/// 完整场景后处理的设备资源集合，在初始化时确定布局、管线、占位视图和帧参数槽。
+/// 帧执行复用本集合并提交参数上传；启动配置选择精简输出模式时不得通过该完整资源契约执行效果图。
 pub(crate) struct FullScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer::post_process) post_process_pass_parameter_buffers:
         PostProcessPassParameterBuffers,

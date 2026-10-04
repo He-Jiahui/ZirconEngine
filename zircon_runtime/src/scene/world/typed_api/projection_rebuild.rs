@@ -28,6 +28,8 @@ fn stage_values<T>(
 }
 
 impl World {
+    // 从持久化节点重建 ECS 投影；加载或 World 替换后，查询存储必须与节点源记录一致。
+    // 当前输入来自通用存储的组件快照；快照跨越重建的所有权切换，不重新建立持久化节点容器所有者。
     pub(super) fn rebuild_component_storage_projection(&mut self) {
         let persistent_entity_core = self.persistent_entity_core_component_snapshot();
         let persistent_scene_render = self.persistent_scene_render_component_snapshot();

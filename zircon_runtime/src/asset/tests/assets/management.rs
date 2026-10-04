@@ -1,3 +1,5 @@
+//! 验证资产管理概览以各资产族已计算的 summary 和失败行聚合；这里故意构造空 records 配非空 summary，以隔离聚合契约。
+
 use crate::asset::{
     AssetManagementFamilyIssueBucket, AssetManagementFamilyKind, AssetManagementFamilyStatus,
     AssetManagementRecordSets, MaterialAssetManagementRecordSet,

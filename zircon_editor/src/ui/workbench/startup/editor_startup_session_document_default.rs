@@ -1,3 +1,4 @@
+//! 默认会话只提供chooser和创建草稿；位置校验尚未完成，不能把默认草稿视为可执行创建请求。
 use super::editor_session_mode::EditorSessionMode;
 use super::editor_startup_session_document::EditorStartupSessionDocument;
 use crate::core::project::NewProjectDraft;

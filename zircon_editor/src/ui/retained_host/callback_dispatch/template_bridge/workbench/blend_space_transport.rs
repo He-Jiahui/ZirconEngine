@@ -61,6 +61,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
+    // 播放控件维护模板预览时钟与按钮状态，调用者不应把它当作运行时动画会话。
     pub(super) fn apply_blend_space_transport_action(
         &mut self,
         action_id: &str,

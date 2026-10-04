@@ -5,12 +5,15 @@ use zircon_runtime_interface::ui::layout::{
 use super::{compute_virtual_list_window, fixed_extent_virtual_list_step_extent};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 滚轮更新和重新安排共用的状态方案，使可见范围失效与实际偏移钳制使用同一套几何。
 pub(crate) struct UiScrollVirtualizationPlan {
     pub scroll_state: UiScrollState,
     pub virtual_window: Option<UiVirtualListWindow>,
     pub visible_range_changed: bool,
 }
 
+/// 固定高度或宽度列表的窗口投影；item_extent 与 gap 合成步长，child_count 应使用逻辑行数。
+/// 调用方应先按内容范围钳制偏移，未启用虚拟化时返回 None。
 pub fn virtual_window_for_scrollable_box(
     config: UiScrollableBoxConfig,
     offset: f32,
@@ -28,6 +31,7 @@ pub fn virtual_window_for_scrollable_box(
     ))
 }
 
+/// 先准备新状态再由树或安排阶段提交；范围变化标志供表面判断是否需要重绑物理槽位。
 pub(crate) fn plan_scrollable_virtual_window(
     config: UiScrollableBoxConfig,
     previous_state: UiScrollState,

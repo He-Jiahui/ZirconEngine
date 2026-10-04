@@ -6,6 +6,8 @@ use super::{
     RenderPassBufferUploadRecorder, RenderPassBufferUploadSink, RenderPassGpuExecutionContext,
 };
 
+/// 将本 pass 的颜色、深度、相机朝向和上传能力借给粒子 GPU 绘制回调。
+/// 回调只可在本次录制中使用这些借用，上传被收集后随整帧提交。
 pub struct ParticleGpuTransparentDrawContext<'a, 'b> {
     pub device: &'a wgpu::Device,
     pub buffer_uploads: &'b mut dyn RenderPassBufferUploadSink,

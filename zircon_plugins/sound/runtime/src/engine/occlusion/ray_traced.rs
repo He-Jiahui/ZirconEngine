@@ -1,3 +1,4 @@
+//! 当多个射线响应覆盖同一声源时，选择约束最具体且采样射线更多的结果供空间投影使用。
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::sound::{

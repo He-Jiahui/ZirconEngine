@@ -12,6 +12,7 @@ use super::super::workbench::{
 use super::{EditorChromeSnapshot, EditorDataSnapshot};
 
 impl EditorChromeSnapshot {
+    /// 本轮data联接layout与registry；缺失view保持tab位置并投影明确占位诊断。
     pub fn build(
         data: EditorDataSnapshot,
         layout: &WorkbenchLayout,
@@ -37,6 +38,7 @@ impl EditorChromeSnapshot {
             .and_then(|instance| descriptors_by_id.get(&instance.descriptor_id))
             .and_then(|descriptor| descriptor.document_kind.clone());
 
+        // TODO: [CR-EDITOR-WORKBENCH-0006] 业务快照携bridge诊断矩阵，但此chrome投影没有字段；确认应向诊断pane发布，还是由独立只读入口消费。
         Self {
             focused_document_kind,
             workbench: WorkbenchSnapshot {
@@ -81,6 +83,7 @@ fn active_menu_overflow_mode(
         .unwrap_or_default()
 }
 
+/// 仅当前活动activity window的抽屉进入chrome，不混入其它窗口状态。
 fn build_drawers(
     layout: &WorkbenchLayout,
     instances: &HashMap<ViewInstanceId, ViewInstance>,
@@ -119,6 +122,7 @@ fn build_drawers(
         .collect()
 }
 
+/// 保持Workbench/Exclusive页面身份与顺序，缺失工作区使用空document树。
 fn build_main_pages(
     layout: &WorkbenchLayout,
     instances: &HashMap<ViewInstanceId, ViewInstance>,
@@ -165,6 +169,7 @@ fn build_main_pages(
         .collect()
 }
 
+/// activity window的模板来自其descriptor，缺注册声明时保留无模板回退。
 fn activity_window_template(
     layout: &WorkbenchLayout,
     descriptors: &HashMap<ViewDescriptorId, ViewDescriptor>,
@@ -177,6 +182,7 @@ fn activity_window_template(
         .and_then(|descriptor| descriptor.activity_window_template.clone())
 }
 
+/// 浮层保留稳定ID、文档树与请求位置；实际frame由autolayout限制。
 fn build_floating_windows(
     layout: &WorkbenchLayout,
     instances: &HashMap<ViewInstanceId, ViewInstance>,

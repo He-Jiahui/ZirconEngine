@@ -1,4 +1,5 @@
 //! Static contracts for Cloud local-delivery and reserved-service boundaries.
+//! 固定 Cloud 页本地交付流程与远程预留能力的边界，使预留服务数量不混入可执行的打包或安装输出。
 
 use std::{fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path))
@@ -24,6 +26,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path))
@@ -49,6 +52,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+/// 把远程预留项的禁用状态和本地输出入口分别约束，避免服务统计让用户误以为已接通远程能力。
 #[test]
 fn cloud_reserved_services_are_disabled_dto_entries_not_local_package_or_install_slots() {
     let cloud = read_crate_file("web/src/pages/CloudPage.tsx");
@@ -100,6 +104,7 @@ fn cloud_reserved_services_are_disabled_dto_entries_not_local_package_or_install
     );
 }
 
+/// 要求两份 UI 交接文档共同说明本地工作流与预留服务的区分，保持维护者对统计口径的理解一致。
 #[test]
 fn cloud_local_delivery_docs_record_reserved_service_split() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");

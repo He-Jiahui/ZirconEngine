@@ -1,3 +1,4 @@
+//! 选项声明与实际登记均需校验，枚举候选集和默认成员关系必须在报告与清单往返中保持。
 use crate::plugin::{
     PluginOptionManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,

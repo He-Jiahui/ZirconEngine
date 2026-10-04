@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::surface::UiSurface;
 
+// 数值载荷优先于二维偏移；只有二维形式需要按目标容器轴选择分量，无效或非有限值不能写入树。
 pub(super) fn scroll_to_offset(
     surface: &UiSurface,
     target: UiNodeId,

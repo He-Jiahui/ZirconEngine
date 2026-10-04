@@ -1,3 +1,5 @@
+//! 展开状态只选择配套的打包箭头图标；树结构的展开交互由宿主事件链负责。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;

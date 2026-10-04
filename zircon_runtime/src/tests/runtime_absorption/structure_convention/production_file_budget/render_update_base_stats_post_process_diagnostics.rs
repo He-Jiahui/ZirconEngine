@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0092] 后处理效果栈与粒子速度诊断的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_render_update_base_stats_post_process_diagnostics_is_child_owner() {
     let parent = read_runtime_src(

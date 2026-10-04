@@ -13,6 +13,8 @@ use super::{
     UiSurfaceInputState, UiSurfaceInvalidationState,
 };
 
+/// 属性绑定或输入 effect 事务声明的写入域，决定失败时需要恢复哪些 surface 状态。
+/// 新 effect 增加状态写入时须同时扩充写集；这不是完整 surface 或已发布帧的副本。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiSurfaceMutationDomains {
     pub(crate) tree: bool,
@@ -34,6 +36,8 @@ impl UiSurfaceMutationDomains {
     }
 }
 
+/// 提交前保存选定的可变域，供事务失败恢复；不得跨布局重建或帧发布复用。
+/// 树域同时携带样式、失效记录和脏节点，防止值回滚后留下新的派生重建请求。
 #[derive(Default)]
 pub(crate) struct UiSurfaceMutationSnapshot {
     tree: Option<UiTreeMutationSnapshot>,
@@ -56,6 +60,7 @@ impl UiSurfaceMutationSnapshot {
                 .component_states
                 .then(|| surface.component_states.clone()),
             navigation: domains.navigation.then(|| surface.navigation.clone()),
+            // 编辑或焦点变化会使异步剪贴板响应过期，回滚时其资格也必须一起恢复。
             clipboard_transfers: (domains.tree || domains.focus || domains.input)
                 .then(|| surface.clipboard_transfers.snapshot()),
         }

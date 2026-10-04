@@ -1,3 +1,4 @@
+/// 校验复杂度的操作证据；行数和成员查询次数用于回归线性扫描，不是耗时或全目录统计。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(in crate::plugin::runtime_plugin) struct RuntimePluginPackageValidationMetrics {
     pub projection_builds: usize,
@@ -7,6 +8,7 @@ pub(in crate::plugin::runtime_plugin) struct RuntimePluginPackageValidationMetri
     pub membership_probes: usize,
 }
 
+// 观察窗口按测试线程隔离；整包校验测试先清零，再统计共享投影和内嵌视图的实际构建次数。
 #[cfg(test)]
 std::thread_local! {
     static OBSERVED_PACKAGE_PROJECTION_BUILDS: std::cell::Cell<usize> = const {

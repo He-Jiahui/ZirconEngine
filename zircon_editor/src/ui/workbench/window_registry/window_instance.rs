@@ -8,6 +8,7 @@ use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 use super::{DrawerDockPosition, MenuOverflowMode, WindowKind};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 派生窗口能力及抽屉成员；选择和列表必须与注册表实例归属保持一致。
 pub struct WindowInstance {
     pub window_id: ActivityWindowId,
     pub descriptor_id: ViewDescriptorId,
@@ -44,6 +45,7 @@ impl WindowInstance {
         self
     }
 
+    /// 普通窗口拒绝抽屉；具抽屉能力窗口和分离抽屉浮窗可接受登记。
     pub fn drawer_capable(&self) -> bool {
         matches!(
             self.kind,

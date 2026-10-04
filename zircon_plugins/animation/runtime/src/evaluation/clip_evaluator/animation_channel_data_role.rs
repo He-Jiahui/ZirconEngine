@@ -1,3 +1,4 @@
+//! 通道校验错误中的数据位置标识；资产作者可据此区分键值与切线问题。
 use std::fmt;
 
 /// Location of channel data inside an animation key.

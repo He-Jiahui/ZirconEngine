@@ -1,3 +1,4 @@
+//! 验证资产监视事件按模板、主题和资源类型生成不同的缓存失效与表面损伤计划。
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::{AssetReference, AssetUri};
 use crate::ui::surface::UiSurface;

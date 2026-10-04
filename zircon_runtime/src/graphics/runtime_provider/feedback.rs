@@ -1,3 +1,4 @@
+//! provider 反馈将 GPU 完成与可见性计划带回下一次准备，缺席值表示本帧无新信息。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct RuntimeProviderFeedback<G, V> {
     gpu_completion: Option<G>,

@@ -1,4 +1,5 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 已分配槽的探针输入；来源掩码与 Q8 动态权重随 RGB8 一起传给 GPU 准备阶段。
 pub struct HybridGiPrepareProbe {
     pub probe_id: u32,
     pub slot: u32,

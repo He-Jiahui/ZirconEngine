@@ -1,3 +1,5 @@
+//! 验证运行时 HUD 与对话框资产可作为共享预览会话打开。
+
 use super::support::{
     open_v2_preview_session, UI_ASSET_EDITOR_RUNTIME_DIALOG_ZUI, UI_ASSET_EDITOR_RUNTIME_HUD_ZUI,
     UI_ASSET_EDITOR_RUNTIME_INVENTORY_ZUI, UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_ZUI,

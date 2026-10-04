@@ -5,6 +5,8 @@ use super::state::GlyphAtlasBitmapRendererDrawPass;
 
 const GLYPH_ATLAS_MIN_INSTANCE_BUFFER_CAPACITY_BYTES: u64 = 4 * 1024;
 
+/// 将当前帧的字形实例加入统一缓冲上传批次；内容不变时保留已有 GPU 缓冲。
+/// 返回的容量供驻留预算统计，绘制范围由本帧命令限制，空批次不会主动缩容。
 pub(super) fn glyph_atlas_bitmap_renderer_write_instance_buffer(
     device: &wgpu::Device,
     draw_pass: &mut GlyphAtlasBitmapRendererDrawPass,
@@ -54,6 +56,7 @@ pub(super) fn glyph_atlas_bitmap_renderer_write_instance_buffer(
                 0,
                 instance_bytes,
             ));
+            // 哈希表示已排入本帧上传批次；若帧未提交，父级上传事务会要求下帧全量重放。
             draw_pass.instance_buffer_payload_hash = Some(payload_hash);
         }
     }

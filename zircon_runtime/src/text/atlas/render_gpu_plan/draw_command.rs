@@ -1,3 +1,6 @@
+//! 把保持绘制顺序的相邻批次转换为无独立顶点缓冲区的实例绘制命令。
+//! 每个实例由着色器展开成六个顶点，实例范围必须指向同一 GPU 绘制计划的数组。
+
 use super::pipeline::GlyphAtlasGpuPipelineKey;
 use crate::text::atlas::render_batch::GlyphAtlasDrawBatchKey;
 use crate::text::atlas::render_contract::GlyphAtlasRenderContract;
@@ -18,6 +21,8 @@ pub(crate) enum GlyphAtlasGpuPrimitiveTopology {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 后端依次执行的绘制描述；管线契约与页层来自同一批次键。
+/// 命令不能跨批次重排，因为覆盖率、颜色和子像素背景合成依赖原来的绘制顺序。
 pub(crate) struct GlyphAtlasGpuDrawCommand {
     pub(crate) key: GlyphAtlasDrawBatchKey,
     pub(crate) pipeline_key: GlyphAtlasGpuPipelineKey,

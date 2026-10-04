@@ -1,3 +1,4 @@
+// 核对展示页基础绑定将事件值写入保留状态与事件日志。
 use zircon_runtime_interface::ui::component::{
     UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata, UiValue,
 };

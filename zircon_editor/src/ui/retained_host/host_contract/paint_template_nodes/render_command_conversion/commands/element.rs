@@ -8,6 +8,7 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
 
 use super::brush_payload::push_brush_paint_commands;
 
+/// 先排除无效可见区域，再把三类绘制负载落到宿主命令；空负载仍保留分组边界。
 pub(super) fn push_runtime_paint_element(
     output: &mut Vec<HostPaintCommand>,
     command: &UiRenderCommand,

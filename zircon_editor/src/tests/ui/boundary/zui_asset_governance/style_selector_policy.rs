@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证工作台主题选择器与已编写 class 来源的关系。
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::support::{collect_zui_document_files, editor_asset_root, load_zui_document};

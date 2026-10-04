@@ -1,3 +1,4 @@
+//! 目录补全缺省选择时保留显式禁用、声明顺序与提供者约束；生成可用性和合并贡献必须消费同一选择。
 use std::sync::{Arc, Barrier};
 
 use crate::core::framework::project::{

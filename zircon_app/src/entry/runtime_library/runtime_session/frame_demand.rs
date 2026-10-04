@@ -1,3 +1,6 @@
+//! 把 Runtime 动态 ABI 的帧需求转换为宿主事件循环能消费的调度建议。
+//! 无效版本或互相矛盾的字段必须在进入事件循环前被拒绝。
+
 use std::time::Duration;
 
 use zircon_runtime_interface::{
@@ -10,6 +13,7 @@ use super::super::RuntimeLibraryError;
 pub(crate) const MAX_HOST_RUNTIME_FRAME_DELAY: Duration = Duration::from_secs(60);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 由一次 tick 返回给宿主的下一帧需求；After 值受宿主最长等待约束。
 pub(crate) enum RuntimeFrameDemand {
     Idle,
     Immediate,

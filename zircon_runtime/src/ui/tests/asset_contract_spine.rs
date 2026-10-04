@@ -1,3 +1,4 @@
+//! 验证作者节点的无障碍、输入和可见性字段穿过编译阶段时保留原契约。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use zircon_runtime_interface::ui::{
     accessibility::UiA11yRole, navigation::UiTabIndex, picking::UiPickMode,

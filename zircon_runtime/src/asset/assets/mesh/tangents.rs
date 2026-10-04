@@ -1,3 +1,5 @@
+//! 切线生成采用 MikkTSpace 兼容约定，供法线贴图与形变上传共用；调用前需要有效位置、UV、法线和三角形拓扑。
+
 use std::collections::HashMap;
 
 use crate::core::framework::render::RenderMeshTopology;

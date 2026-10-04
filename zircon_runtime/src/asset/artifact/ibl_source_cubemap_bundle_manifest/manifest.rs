@@ -17,6 +17,7 @@ const IBL_SOURCE_CUBEMAP_BUNDLE_WIRE_PLATFORM: u32 = 1;
 const IBL_SOURCE_CUBEMAP_BUNDLE_MANIFEST_BODY_SIZE: usize =
     IBL_SOURCE_CUBEMAP_BUNDLE_MANIFEST_SIZE - blake3::OUT_LEN;
 
+// 导入器从源图像元数据提取的身份，参与热缓存命中；尺寸相同但格式不同不能复用。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct IblSourceImageIdentity {
     width: u32,
@@ -46,6 +47,8 @@ impl IblSourceImageIdentity {
     }
 }
 
+// 源立方图与资产派生块的共同提交凭据；请求身份、版本和双份摘要
+// 由 staging 的读写路径使用，防止把不同发布代的文件拼成一个环境。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct IblSourceCubemapBundleManifest {
     source_image: IblSourceImageIdentity,

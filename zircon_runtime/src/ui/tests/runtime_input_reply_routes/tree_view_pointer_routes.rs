@@ -1,3 +1,5 @@
+//! 树视图夹具将层级、选择和虚拟窗口放在同一保留状态，供子测试核对拖拽重排和范围事件。
+
 use super::*;
 use std::collections::BTreeMap;
 
@@ -187,6 +189,7 @@ component_role = "tree-item"
     surface
 }
 
+// 层级关系保存在 owner 的 nodes/items 模型中；TreeItem 命中节点按展开顺序平铺在 owner 下。
 fn tree_view_virtualized_reparent_surface(material: bool) -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new(
         "runtime.ui.input.reply_route.tree_view.virtualized_reparent",

@@ -1,3 +1,5 @@
+//! 下拉框的热态把拖放反馈并入指针反馈；展开身份单独保留，供表面和箭头选择使用。
+
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

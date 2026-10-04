@@ -1,3 +1,4 @@
+// 核对输入、搜索及步进字段在焦点和禁用状态下的原生绘制结果。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

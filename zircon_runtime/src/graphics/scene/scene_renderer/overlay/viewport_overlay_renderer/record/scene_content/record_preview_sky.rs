@@ -3,6 +3,7 @@ use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
 
 impl ViewportOverlayRenderer {
+    /// 直接场景和环境捕获的天空入口；使用清理附件策略，调用方需提供独占的当前场景目标。
     pub(crate) fn record_preview_sky(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
@@ -25,6 +26,7 @@ impl ViewportOverlayRenderer {
         );
     }
 
+    /// 编译图入口复用天空资源，附件加载策略和区域由图传入，避免隐式清除共享目标。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn record_preview_sky_with_attachment_ops(
         &mut self,

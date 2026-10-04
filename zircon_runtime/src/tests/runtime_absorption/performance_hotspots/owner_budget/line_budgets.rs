@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。保存同组守卫使用的局部数据或辅助变换。
 #[path = "line_budgets/artifact_render_diagnostics.rs"]
 mod artifact_render_diagnostics;
 #[path = "line_budgets/hotspot_inventory.rs"]

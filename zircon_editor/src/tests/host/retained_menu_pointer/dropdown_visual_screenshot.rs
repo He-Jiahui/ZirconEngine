@@ -1,3 +1,4 @@
+// 核对下拉控件的值、占位文本、弹层、焦点和禁用态的原生绘制结果。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

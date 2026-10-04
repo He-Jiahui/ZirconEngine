@@ -1,3 +1,5 @@
+//! 有限正尺寸是列表行绘制前置条件；尾部装饰需要独立空间门槛，窄行保留可显示的主体。
+
 use super::super::super::data::FrameRect;
 use super::super::template_row_metrics::workbench_row_metrics;
 

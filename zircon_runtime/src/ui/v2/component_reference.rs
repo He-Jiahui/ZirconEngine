@@ -1,5 +1,8 @@
+//! 导入加载、原型仓库验证和组件展开共用引用语法，避免各阶段对资源片段作不同解释。
+
 use zircon_runtime_interface::ui::{template::parse_component_reference, v2::UiV2AssetError};
 
+/// 导入整份资源时允许搜索其中的组件；具名导入仅开放指定组件，字符串借用原始声明。
 pub(crate) enum UiV2WidgetImportReference<'a> {
     WholeAsset(&'a str),
     Component {
@@ -8,6 +11,7 @@ pub(crate) enum UiV2WidgetImportReference<'a> {
     },
 }
 
+/// 为共享引用解析失败补上声明资源的身份，使导入链诊断指向发出引用的文档。
 pub(crate) fn parse_v2_component_reference<'a>(
     owner_asset_id: &str,
     reference: &'a str,

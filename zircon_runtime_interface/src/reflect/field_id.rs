@@ -10,12 +10,16 @@ use super::ReflectFieldIdParseError;
 
 const REFLECT_FIELD_ID_NAMESPACE: &str = "zircon-reflect-field-id";
 
+/// Stable 128-bit identity for one reflected field, independent of its current name and slot.
 /// 字段的稳定 128 位身份；目录按此身份定位当期槽位，名称只用于显示与旧数据导入。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
 #[serde(transparent)]
 pub struct ReflectFieldId(Uuid);
 
 impl ReflectFieldId {
+    /// Generates the initial ID from codegen-owned stable keys.
+    ///
+    /// Renames must retain both keys; current field and display names are not identity inputs.
     /// 从类型与字段的身份键生成确定性 ID；改名时须保留这两个键以维持旧引用。
     pub fn from_stable_keys(owner_key: &str, field_key: &str) -> Self {
         Self(stable_uuid_from_components(

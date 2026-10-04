@@ -4,6 +4,7 @@ use std::time::Duration;
 use super::{ClockDomainMarker, ClockDomainStamp, Fixed, FixedStepPlan, MonotonicReal, Virtual};
 
 /// Read-only clock observation shared by the engine-owned clock domains.
+/// 按时钟域区分的只读观测值；外层 Runtime 推进真实时间，World 再派生虚拟时间与固定步，调用方不可混用其 delta。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Time<T: ClockDomainMarker = MonotonicReal> {
     context: T,
@@ -73,6 +74,7 @@ impl<T: ClockDomainMarker> Time<T> {
             .set_source_generation(source_generation);
     }
 
+    // 时钟权威推进后才发布新的帧索引；单独读旧快照不能代表下一帧状态。
     pub(crate) fn advance_by(&mut self, delta: Duration) {
         self.delta = delta;
         self.elapsed = self.elapsed.saturating_add(delta);

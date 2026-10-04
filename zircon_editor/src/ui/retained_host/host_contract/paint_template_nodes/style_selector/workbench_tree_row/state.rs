@@ -1,3 +1,5 @@
+//! 树行将可见焦点或拖放目标映射到轮廓通道，悬停和按压映射到表面通道；不可用状态优先。
+
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn uses_focus_outline(

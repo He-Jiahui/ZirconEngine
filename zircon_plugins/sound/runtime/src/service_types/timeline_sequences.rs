@@ -1,3 +1,4 @@
+//! 时间序列的调度、推进和查询统一经状态锁进入调度器；调用者负责按帧提供有限且非负的时间增量。
 use zircon_runtime::core::framework::sound::{
     SoundError, SoundTimelineSequence, SoundTimelineSequenceAdvance, SoundTimelineSequenceId,
 };

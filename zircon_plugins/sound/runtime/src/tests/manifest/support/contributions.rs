@@ -1,3 +1,4 @@
+// 静态清单贡献的测试投影边界；依赖、事件目录和 runtime 模块分别与 package_manifest 对照。
 mod dependencies;
 mod entry;
 mod event_catalogs;

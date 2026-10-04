@@ -1,3 +1,4 @@
+//! terminal schema 扩展为 present external texture 写入附加物理资源约束。
 use crate::render_graph::{
     RenderGraphAttachmentOps, RenderGraphExternalResourceBinding, RenderGraphResourceUsageFlags,
     RenderResourceSchema,

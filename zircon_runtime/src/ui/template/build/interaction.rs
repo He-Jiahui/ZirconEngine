@@ -1,8 +1,12 @@
+//! 由模板的事件声明和显式输入元数据决定初始交互能力，供命中测试、焦点导航和事件分发消费。
+
 use zircon_runtime_interface::ui::binding::UiEventKind;
 use zircon_runtime_interface::ui::event_ui::UiStateFlags;
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 use zircon_runtime_interface::ui::tree::UiInputPolicy;
 
+/// 只推断初始能力和输入策略；状态变化仍由 surface 管理。
+/// 任意显式输入元数据会关闭组件名称兜底，各能力仍可由绑定独立声明。
 pub(super) fn infer_interaction(node: &UiTemplateNode) -> (UiStateFlags, UiInputPolicy) {
     let binding_capabilities = binding_capabilities(node);
     let explicit_interactive = bool_attr(node, "input_interactive");
@@ -46,6 +50,7 @@ pub(super) fn infer_interaction(node: &UiTemplateNode) -> (UiStateFlags, UiInput
     )
 }
 
+// 多条绑定分别声明的能力须合并，避免最后一条事件覆盖此前的输入需求。
 #[derive(Default)]
 struct InferredInputCapabilities {
     receives_input: bool,
@@ -70,6 +75,7 @@ fn binding_capabilities(node: &UiTemplateNode) -> InferredInputCapabilities {
         )
 }
 
+// 声明滚动或拖放不能自动授予点击与焦点能力；尺寸通知也不应使装饰节点进入输入路由。
 fn capabilities_for_event(event: UiEventKind) -> InferredInputCapabilities {
     match event {
         UiEventKind::Click

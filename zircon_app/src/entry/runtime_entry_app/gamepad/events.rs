@@ -1,3 +1,6 @@
+//! Gilrs 事件到动态 Runtime 的同步提交。
+//! 名称字节借用仅覆盖一次调用；设备编号属于当前 Gilrs 会话，不能作为持久硬件身份。
+
 use gilrs::{Axis, Button};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZIRCON_RUNTIME_ABI_VERSION_V1,
@@ -8,6 +11,7 @@ use zircon_runtime_interface::{
 use super::codes::{axis_code, button_code};
 use crate::entry::runtime_library::{RuntimeLibraryError, RuntimeSession};
 
+/// 同步发送连接清单；名称只在调用期间有效，接收端必须在返回前读取或复制。
 pub(super) fn send_connection(
     session: &RuntimeSession,
     viewport: ZrRuntimeViewportHandle,
@@ -58,6 +62,8 @@ pub(super) fn send_button(
     session.handle_event(event)
 }
 
+// TODO: [CR-APP-ENTRY-0014] 确认原始按钮固定 pressed 码与 UI 导航的消费约定；当前接收端仅按 state 决定导航，需在其外来改动稳定后验证零值与释放不会重复激活。
+/// 保留模拟按钮原始值；App 不自行计算阈值，接收端按协议解释。
 pub(super) fn send_raw_button(
     session: &RuntimeSession,
     viewport: ZrRuntimeViewportHandle,

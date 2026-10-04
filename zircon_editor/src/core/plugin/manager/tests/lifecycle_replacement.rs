@@ -143,6 +143,7 @@ fn replacing_a_package_retries_failed_disabled_cleanup_before_activation() {
 }
 
 #[test]
+// 单周期替换的基本契约：旧实例 Disabled/Unloaded 完成后才启用新实例并发送 HotReloaded。
 fn replacing_an_active_package_retires_the_old_instance_before_hot_reload() {
     let package_id = "plugin.lifecycle.replaced";
     let first_plugin = Arc::new(LifecyclePhasePlugin {
@@ -202,6 +203,7 @@ fn replacing_an_active_package_retires_the_old_instance_before_hot_reload() {
 }
 
 #[test]
+// BUG: [CR-EDITOR-SERVICES-0003] 此测试最后期待第二次 Disabled；首次退役已成功 Disabled、失败 Unloaded，重试会跳过 Disabled 而再次调用 Unloaded，断言与清理路径不符。
 fn replacement_retries_failed_unload_before_activating_candidate() {
     let package_id = "plugin.lifecycle.unload-failure";
     let first_plugin = Arc::new(FailOnceLifecyclePlugin {

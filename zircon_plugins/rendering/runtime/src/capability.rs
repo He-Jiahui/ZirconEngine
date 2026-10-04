@@ -1,3 +1,4 @@
+//! 渲染主包的 Rust 与原生声明共用身份、能力和目标域；原生投影仅包含主包模块声明。
 zircon_plugin_sdk::declare_plugin! {
     pub RENDERING_DECLARATION {
         id: PLUGIN_ID = "rendering",

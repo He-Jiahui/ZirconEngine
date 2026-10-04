@@ -1,3 +1,4 @@
+//! 资源基础层与高层运行时引用保持单向依赖和受限公开面。向相邻守卫提供源码读取、路径枚举或断言工具。
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::Path;
 

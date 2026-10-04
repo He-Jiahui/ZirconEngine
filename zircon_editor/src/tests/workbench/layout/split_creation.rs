@@ -1,3 +1,4 @@
+//! 内容workspace的split位置和原有标签保留契约。
 use crate::ui::workbench::layout::{
     DocumentNode, LayoutCommand, LayoutManager, MainHostPageLayout, MainPageId, SplitAxis,
     SplitPlacement, WorkbenchLayout, WorkspaceTarget,
@@ -5,6 +6,7 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
 #[test]
+/// 在目标leaf前插入split，验证新增与原leaf顺序及实例归属，供拖放分区意图使用。
 fn create_split_can_insert_before_target_tabs() {
     let manager = LayoutManager::default();
     let existing = ViewInstanceId::new("editor.scene#1");

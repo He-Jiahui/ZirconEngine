@@ -1,3 +1,5 @@
+//! 虚拟列表与数据网格共享可见窗口协议；MUI 别名和禁用虚拟化选项必须落到同一状态归约。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventKind, UiComponentLayoutRole, UiComponentState,
@@ -75,6 +77,8 @@ fn material_virtualized_descriptors_expose_mui_web_aliases() {
 }
 
 #[test]
+// TODO: [CR-W12-UI-CATALOG-0009] 此夹具从空状态只写驼峰输入，未验证已填入规范名默认值时的别名优先级。
+// 补规范名与驼峰名并存且冲突的状态，确认读取顺序和两套字段的同步写回契约。
 fn mui_virtual_range_reducer_accepts_react_window_aliases() {
     let registry = UiComponentDescriptorRegistry::material_editor_foundation();
     let descriptor = registry

@@ -32,6 +32,7 @@ pub(super) fn collect_resident_probes(runtime: &HybridGiRuntimeState) -> Vec<Hyb
         })
         .collect::<Vec<_>>();
 
+    // 场景探针与旧 GPU 槽按 probe_id 去重，避免同一探针在准备帧中占两个位置。
     if runtime.scene_representation_owns_runtime() {
         resident_probes.extend(
             runtime

@@ -1,3 +1,4 @@
+//! 作者掩码到运行时权重的导出边界；具体权重属于已编译骨架。
 mod asset;
 mod compile;
 mod error;

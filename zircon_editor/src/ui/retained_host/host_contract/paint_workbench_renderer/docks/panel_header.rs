@@ -7,6 +7,7 @@ use super::super::super::paint_primitives::{draw_rect, draw_separator_line};
 use super::super::super::paint_template_nodes::draw_template_nodes;
 use super::palette::current_dock_chrome_palette;
 
+// 底部、文档和侧栏共用此页眉入口；模板内容以停靠区原点定位，页眉框同时限定绘制范围。
 pub(in crate::ui::retained_host::host_contract) fn draw_panel_header(
     frame: &mut HostRgbaFrame,
     nodes: &ModelRc<TemplatePaneNodeData>,

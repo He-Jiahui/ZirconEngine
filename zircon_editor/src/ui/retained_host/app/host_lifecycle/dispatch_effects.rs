@@ -9,6 +9,7 @@ mod side_effects;
 mod status;
 
 impl RetainedEditorHost {
+    // 模板事件先提交定向失效，再执行保存、导入等副作用；后者可再次请求刷新。
     pub(in crate::ui::retained_host::app) fn apply_dispatch_effects(
         &mut self,
         mut effects: UiHostEventEffects,

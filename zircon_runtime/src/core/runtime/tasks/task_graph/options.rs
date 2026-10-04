@@ -4,6 +4,8 @@ use super::super::TaskPoolBuildError;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct EngineTaskGraphOptions {
+    /// Total physical worker budget distributed across the I/O,
+    /// asynchronous-compute, and compute domains.
     worker_threads: usize,
 }
 

@@ -1,3 +1,5 @@
+//! 警报仅在 Normal 接纳声明容器、边框和正文色；其他可用动态状态保留这些语义通道，但标记色可单独声明；禁用或加载忽略全部声明色。
+
 use super::super::super::template_style_color::resolved_style_color;
 use super::model::WorkbenchAlertStyle;
 use super::state::is_unavailable_alert_state;

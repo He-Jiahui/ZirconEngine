@@ -14,6 +14,7 @@ pub(super) struct BuiltinCatalogRow {
     pub target_modes: &'static [RuntimeTargetMode],
 }
 
+// 保持核心、资产、渲染和语言包的声明顺序；后续注册顺序以这些行作为输入。
 pub(super) fn builtin_catalog_rows() -> impl Iterator<Item = &'static BuiltinCatalogRow> {
     core_builtin_catalog_rows()
         .chain(asset_builtin_catalog_rows())

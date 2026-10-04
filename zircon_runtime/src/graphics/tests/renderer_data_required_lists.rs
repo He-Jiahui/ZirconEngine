@@ -1,3 +1,4 @@
+//! 阶段与特性列表必须在文档投影和运行时回写两个方向均非空，避免产生不可编译的 renderer。
 use crate::graphics::{
     BuiltinRenderFeature, RenderPassStage, RendererAsset, RendererDataDocument,
     RendererDataDocumentError, RendererFeatureAsset,

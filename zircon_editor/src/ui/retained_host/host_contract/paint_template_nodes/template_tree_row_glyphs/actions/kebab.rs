@@ -1,3 +1,5 @@
+//! 选中树行的更多操作图标；只表达已分配操作槽的视觉，不创建菜单或点击区域。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;

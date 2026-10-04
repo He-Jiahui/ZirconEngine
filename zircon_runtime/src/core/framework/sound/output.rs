@@ -41,6 +41,7 @@ pub struct SoundBackendCallbackBlock {
     pub block: SoundMixBlock,
 }
 
+/// 设备激活请求的格式契约；采样率、声道布局、块长和延迟一起交由后端验证。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundOutputDeviceDescriptor {
     pub id: SoundOutputDeviceId,

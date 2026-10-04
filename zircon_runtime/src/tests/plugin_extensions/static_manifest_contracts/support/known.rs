@@ -1,3 +1,4 @@
+//! 打包与目标字段的准入列表只用于静态清单约束；实际构建和后端选择仍由生产路径执行。
 use std::path::Path;
 
 use super::non_empty_string_array_values;

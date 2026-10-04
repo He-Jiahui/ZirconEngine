@@ -1,3 +1,5 @@
+//! 加载占位的静态视觉投影：提取器取消其通用内容后，用令牌/节点覆盖绘制单个占位表面。
+//! 当前不持有动画时钟或异步加载任务，真正内容的替换和生命周期由组件所有者管理。
 use std::sync::OnceLock;
 
 use toml::Value;
@@ -77,6 +79,7 @@ pub(super) fn skeleton_suppresses_owner_surface(metadata: Option<&UiTemplateNode
     metadata.is_some_and(is_skeleton)
 }
 
+/// 只对已确认的占位组件生成装饰命令；圆形变体取短边半径，并不重新把布局框改成正方形。
 pub(super) fn skeleton_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,

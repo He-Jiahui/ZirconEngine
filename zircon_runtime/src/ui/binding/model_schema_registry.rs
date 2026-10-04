@@ -45,6 +45,8 @@ struct RegisteredModelSchema {
     field_indices: BTreeMap<UiModelFieldId, usize>,
 }
 
+/// 绑定编译/上下文解析使用的静态 schema 目录；描述字段访问能力，不持有实际模型值。
+/// provider 绑定精确 schema 版本；同一版本的结构不可改写，版本可并存以支持既有绑定。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct UiModelSchemaRegistry {
     schemas: BTreeMap<UiModelSchemaKey, RegisteredModelSchema>,
@@ -99,6 +101,7 @@ impl UiModelSchemaRegistry {
         Ok(true)
     }
 
+    /// 先注册目标 schema 再注册 provider；重复身份只能复用相同内容，避免上下文解析随注册顺序漂移。
     pub fn register_provider(
         &mut self,
         provider: UiModelProviderSchema,
@@ -168,6 +171,7 @@ impl UiModelSchemaRegistry {
         Ok(&registered.schema.fields[*field_index])
     }
 
+    /// 合并继承、覆盖与清除后验证全部有效 provider，包括继承项；不能把父上下文当作已可信的缓存。
     pub fn resolve_model_context(
         &self,
         parent: Option<&UiResolvedModelContext>,

@@ -1,3 +1,5 @@
+//! 将同一次工具状态变化的事件串与单调版本绑定，交给服务层有序投递；版本耗尽由服务进入故障状态，不能环回后继续通知。
+
 use serde::{Deserialize, Serialize};
 
 use super::ToolLifecycleEvent;
@@ -27,6 +29,7 @@ impl ToolTransitionRevision {
     }
 }
 
+/// 一笔不可拆分的工具生命周期通知；事件顺序承载抢占、结束和晋升的因果关系，接收端应按版本处理。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ToolTransitionBatch {
     revision: ToolTransitionRevision,

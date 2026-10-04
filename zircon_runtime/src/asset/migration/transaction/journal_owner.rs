@@ -8,6 +8,7 @@ use crate::core::resource::io::ensure_parent_directories;
 
 use super::JOURNAL_DIRECTORY;
 
+/// 写事务前确认 journal 归属真实项目目录；与恢复路径的 existing_* 不同，此入口允许创建目录。
 pub(super) fn ensure_journal_directory(
     project_root: &Path,
 ) -> Result<PathBuf, AssetMigrationError> {

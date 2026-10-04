@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{ProjectEngineCompatibilityDisposition, ProjectEngineVersion};
 
+/// Immutable engine-version decision that an admission policy must consume before activation.
 /// 项目预检形成的版本判定快照；Editor 在激活前消费其兼容结论。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

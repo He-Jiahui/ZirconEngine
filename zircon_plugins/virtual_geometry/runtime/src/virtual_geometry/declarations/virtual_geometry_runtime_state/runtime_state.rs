@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::super::virtual_geometry_page_request::VirtualGeometryPageRequest;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 保存跨帧页预算、血缘、请求、热点和槽位所有权；provider 按 extract 生命周期更新。
 pub(crate) struct VirtualGeometryRuntimeState {
     pub(super) page_budget: usize,
     pub(super) page_sizes: BTreeMap<u32, u64>,

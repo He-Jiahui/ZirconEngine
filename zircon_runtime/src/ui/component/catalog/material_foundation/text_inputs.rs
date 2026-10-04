@@ -1,3 +1,5 @@
+//! 文本族工厂复用统一的校验和输入事件契约，并声明 TextInput 宿主能力。这里的占位文本和行数是新节点的编写默认值，实例内容与 IME 会话由输入链持有。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

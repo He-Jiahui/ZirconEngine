@@ -1,3 +1,4 @@
+//! 插件、特性与提供包选择的非法身份须进入诊断并阻止无效生成引用；是否致命由所选项的必需性决定。
 use crate::asset::{AssetUri, ProjectManifest};
 use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use crate::{

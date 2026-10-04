@@ -5,6 +5,7 @@ use thiserror::Error;
 const MAX_TOOLKIT_INSTANCE_ID_BYTES: usize = 256;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// UI 视图实例与工具包注册表共用的键；解析只约束非空和最大字节长度。
 pub struct ToolkitInstanceId(String);
 
 impl ToolkitInstanceId {

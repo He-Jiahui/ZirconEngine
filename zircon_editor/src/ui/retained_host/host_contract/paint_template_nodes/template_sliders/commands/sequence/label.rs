@@ -1,3 +1,5 @@
+//! 可选标题的序列适配层；只有布局解析出非空标题才占用标签车道。
+
 use super::super::super::text::push_slider_label;
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;

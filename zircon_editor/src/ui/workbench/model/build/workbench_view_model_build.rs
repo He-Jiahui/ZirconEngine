@@ -25,6 +25,7 @@ impl WorkbenchViewModel {
         Self::build_with_context(command_registry, chrome, &context)
     }
 
+    /// 无扩展来源的简化投影；需要当前keymap、语言或toolkit时调用完整构造入口。
     pub fn build_with_context(
         command_registry: &EditorCommandRegistry,
         chrome: &EditorChromeSnapshot,
@@ -101,6 +102,7 @@ impl WorkbenchViewModel {
         )
     }
 
+    /// 宿主发布边界的完整投影；chrome、能力集合、聚焦toolkit及命令评估应属于同一轮状态。
     pub fn build_with_contributions_and_context(
         command_registry: &EditorCommandRegistry,
         keymap: &EditorKeymap,

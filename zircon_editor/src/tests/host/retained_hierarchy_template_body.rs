@@ -1,3 +1,4 @@
+// 由层级窗格构造模板正文，约束混合槽位及载荷节点进入保留式转换。
 use std::collections::BTreeMap;
 
 use zircon_runtime_interface::math::UVec2;

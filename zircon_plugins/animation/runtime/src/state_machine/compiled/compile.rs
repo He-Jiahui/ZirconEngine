@@ -1,3 +1,4 @@
+//! 先经框架编译器校验作者状态机，再把状态、转换、触发器和层降为运行时稠密布局。
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -19,6 +20,7 @@ use super::{
 };
 
 /// Compiles source semantics once in the framework and lowers the accepted IR for evaluation.
+/// 编译主状态机布局；帧缓存需使用同源的主机与层联合编译入口保持修订一致。
 pub fn compile_animation_state_machine_runtime(
     source: &AnimationStateMachineAsset,
 ) -> Result<CompiledAnimationStateMachine, AnimationStateMachineCompileError> {

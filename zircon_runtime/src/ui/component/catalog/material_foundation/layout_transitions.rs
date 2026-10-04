@@ -1,3 +1,5 @@
+//! 过渡目录提供角色、进入状态、时间和缓动默认值，供支持这些角色的消费方解释。auto 字符串与数值毫秒字段各自保留目录约定，实际计时与挂载由运行时拥有者负责。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

@@ -1,5 +1,6 @@
 use super::*;
 
+// 从触摸和手柄输入到帧快照的整链测试，兼顾断开清理与模拟输入阈值。
 #[test]
 fn input_manager_tracks_touch_and_gamepad_state() {
     let input = DefaultInputManager::default();

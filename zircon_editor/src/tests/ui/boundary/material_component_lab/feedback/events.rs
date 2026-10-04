@@ -1,3 +1,5 @@
+//! 验证Material 样例事件 ID、路由、事件种类和内置绑定注册的一致性。
+
 use super::*;
 
 #[test]

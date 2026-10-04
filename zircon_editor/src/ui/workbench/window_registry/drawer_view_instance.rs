@@ -6,6 +6,7 @@ use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 use super::DrawerDockPosition;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 抽屉实例的派生归属记录；跨窗口迁移须同步窗口列表与实例索引。
 pub struct DrawerViewInstance {
     pub instance_id: ViewInstanceId,
     pub descriptor_id: ViewDescriptorId,

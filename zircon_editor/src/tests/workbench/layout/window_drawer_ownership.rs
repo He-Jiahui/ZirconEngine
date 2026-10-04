@@ -1,3 +1,4 @@
+//! 抽屉以活动窗口为owner；持久化和命令目标都必须维持该边界。
 use std::collections::BTreeMap;
 
 use crate::ui::workbench::autolayout::ShellFrame;
@@ -9,6 +10,7 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId};
 
 #[test]
+/// 默认壳在workbench活动窗口内生成所有语义抽屉，没有退役的根抽屉owner。
 fn default_workbench_layout_seeds_drawers_inside_workbench_activity_window() {
     let layout = WorkbenchLayout::default();
     let window_id = ActivityWindowId::new("window:workbench");
@@ -31,6 +33,7 @@ fn default_workbench_layout_seeds_drawers_inside_workbench_activity_window() {
 }
 
 #[test]
+/// 拒绝旧根抽屉协议，防止恢复材料绕开窗口owner。
 fn serialized_workbench_layout_rejects_retired_root_drawers() {
     let mut encoded = serde_json::to_value(WorkbenchLayout::default()).unwrap();
     let object = encoded.as_object_mut().expect("workbench layout object");
@@ -43,6 +46,7 @@ fn serialized_workbench_layout_rejects_retired_root_drawers() {
 }
 
 #[test]
+/// 窗口必要偏好与覆盖字段必须显式存在，缺省不能静默掩盖旧协议。
 fn serialized_workbench_layout_rejects_missing_activity_window_fields() {
     let encoded = serde_json::to_value(WorkbenchLayout::default()).unwrap();
 
@@ -58,6 +62,7 @@ fn serialized_workbench_layout_rejects_missing_activity_window_fields() {
 }
 
 #[test]
+/// 分别注入窗口、页和浮窗未知字段，固定嵌套协议的严格边界。
 fn serialized_workbench_layout_rejects_unknown_nested_fields() {
     let encoded = serde_json::to_value(WorkbenchLayout::default()).unwrap();
 
@@ -94,6 +99,7 @@ fn serialized_workbench_layout_rejects_unknown_nested_fields() {
 }
 
 #[test]
+/// 底部输出使用单一槽身份，旧左右底部别名不继续创造平行存储。
 fn activity_drawer_slot_rejects_retired_bottom_aliases() {
     assert_eq!(
         serde_json::from_str::<ActivityDrawerSlot>(r#""Bottom""#).unwrap(),
@@ -105,6 +111,7 @@ fn activity_drawer_slot_rejects_retired_bottom_aliases() {
 }
 
 #[test]
+/// 在默认活动页下尺寸与模式命令写入默认窗口自有抽屉。
 fn drawer_layout_commands_mutate_default_activity_window_drawers() {
     let manager = LayoutManager::default();
     let mut layout = WorkbenchLayout::default();
@@ -136,6 +143,7 @@ fn drawer_layout_commands_mutate_default_activity_window_drawers() {
 }
 
 #[test]
+/// 切换到另一个活动窗口后相同槽命令只影响它，原workbench抽屉保留自己的状态。
 fn drawer_layout_commands_mutate_active_activity_window_drawers() {
     let manager = LayoutManager::default();
     let mut layout = WorkbenchLayout::default();
@@ -188,6 +196,7 @@ fn drawer_layout_commands_mutate_active_activity_window_drawers() {
 }
 
 #[test]
+/// 打开、聚焦和关闭沿同一窗口抽屉维护标签及活动内容，不让重复选择字段分裂。
 fn drawer_attach_focus_and_close_commands_mutate_default_activity_window_drawers() {
     let manager = LayoutManager::default();
     let mut layout = WorkbenchLayout::default();

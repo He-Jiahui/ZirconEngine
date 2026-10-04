@@ -1,3 +1,4 @@
+//! 字体数据库的候选家族顺序；共享运行时另有打包字体兜底，系统字体仅按策略显式发现。
 use crate::text::FontFamilyName;
 
 const DEFAULT_RUNTIME_FONT_FAMILIES: [&str; 5] = [

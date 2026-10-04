@@ -121,6 +121,8 @@ pub struct AnimationStateTransitionAsset {
     pub conditions: Vec<AnimationTransitionConditionAsset>,
 }
 
+/// 状态、转移和分层引用的持久化定义；源编译阶段校验内部名称与条件，
+/// 插件运行时再解析外部图、片段和子状态机，建立播放缓存。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationStateMachineAsset {
     pub name: Option<String>,

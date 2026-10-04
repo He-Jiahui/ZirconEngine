@@ -1,3 +1,5 @@
+//! 用可阻塞收集替身观察提交与任务退休，验证同键合并、期限拒绝和根/输入隔离。
+//! 根准入不逐出已经发布的快照，因此不同输入模式也必须计入总额度。
 use std::sync::mpsc;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
@@ -40,6 +42,7 @@ fn refresh_submit_returns_before_the_collector_finishes() {
 }
 
 #[test]
+// 首代际持续阻塞到取消，确保两次后续提交重叠；相同后继代际证明合并没有形成重复任务链。
 fn pending_notifications_coalesce_to_one_successor_generation() {
     let (started_sender, started_receiver) = mpsc::sync_channel(2);
     let collector = Arc::new(BlockingCollector::new(started_sender));
@@ -139,6 +142,7 @@ fn bounded_root_admission_rejects_new_roots_without_evicting_a_snapshot() {
 }
 
 #[test]
+// 两工作线程与释放门控使输入键隔离可观察，防止先完成的任务掩盖错误的根级共享状态。
 fn same_root_distinct_inputs_are_isolated_for_admission_and_failure_projection() {
     let (started_sender, started_receiver) = mpsc::sync_channel(2);
     let release = Arc::new((Mutex::new(false), Condvar::new()));

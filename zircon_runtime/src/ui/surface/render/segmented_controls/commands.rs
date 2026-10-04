@@ -1,3 +1,5 @@
+//! 分段与标签页内容层的命令投影；每段装饰沿用宿主节点身份，局部几何不创建独立焦点或命中目标。
+//! 调用方负责分段框架及层次，文字布局由统一提取器完成。
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::UiFrame,

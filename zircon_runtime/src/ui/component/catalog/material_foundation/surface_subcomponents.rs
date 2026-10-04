@@ -1,3 +1,5 @@
+//! 折叠面板与对话框的子构件通过命名槽连接到组合模板；摘要、动作与正文分别声明交互或视觉字段。抽屉手势阈值作为编写属性交付，宿主按支持的输入契约消费。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

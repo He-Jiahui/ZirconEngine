@@ -14,6 +14,7 @@ pub(super) struct SetTextSelectionPayload {
     pub(super) focus: usize,
 }
 
+// 外部选择下标按当前快照文本夹到字素边界；后续提交仍需确认目标的真实可编辑状态。
 pub(super) fn set_text_selection_payload(
     request: &UiAccessibilityActionRequest,
     snapshot_node: &UiAccessibilityNode,

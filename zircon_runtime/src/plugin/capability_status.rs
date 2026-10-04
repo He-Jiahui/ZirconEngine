@@ -1,3 +1,5 @@
+//! 插件声明的能力覆盖状态，供包注册校验、目录与运行时能力视图共享。
+//! 状态行不证明已注册或已激活，使用方需结合注册报告判断。
 use serde::{Deserialize, Serialize};
 
 use crate::core::framework::platform::RuntimeTargetMode;
@@ -14,6 +16,8 @@ pub enum CapabilityStatus {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 包注册报告中某项能力的实现状态声明；能力视图只从实际注册报告接收它。
+/// 目标模式、参考资料和说明由包校验器检查，不代表插件已激活。
 pub struct CapabilityStatusManifest {
     pub capability: String,
     pub status: CapabilityStatus,
@@ -36,6 +40,9 @@ impl CapabilityStatusManifest {
         }
     }
 
+    // TODO: [CR-PLUGIN-BOUNDARY-0204] 确认能力视图聚合前是否必须按此列表筛选当前目标；
+    // 现有视图只保留能力与状态；下一步覆盖跨目标注册报告，明确这里是展示范围还是准入限制。
+    /// 限定该状态声明覆盖的运行目标；调用方仍须同时声明包及模块所支持的目标。
     pub fn with_target_modes(
         mut self,
         target_modes: impl IntoIterator<Item = RuntimeTargetMode>,

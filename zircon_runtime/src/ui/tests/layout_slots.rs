@@ -1,3 +1,5 @@
+//! 这些夹具从 UiSurface 布局进入 slot 索引，再比对安排、绘制和命中消费的同一几何；边上的属性由父容器解释，不能只检查子节点缓存。
+
 use crate::ui::surface::{hit_test_surface_frame, UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
@@ -16,6 +18,7 @@ mod flow_grid_masonry;
 mod linear_free;
 mod overlay_scroll;
 
+// BUG: [CR-UI-TEST-0601] 测试在 measure.rs 查找已迁出的测量入口和排序文本，当前首个肯定断言必失败；证据：measure/traversal.rs 持有入口。
 #[test]
 fn layout_measure_reuses_profile_flag_and_sorts_desired_payload_once() {
     let source = include_str!("../layout/pass/measure.rs");

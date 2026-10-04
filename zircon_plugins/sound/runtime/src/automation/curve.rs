@@ -1,3 +1,4 @@
+//! 采样与校验按中立关键帧契约运行，供时间序列推进和单次曲线采样复用。
 use zircon_runtime::core::framework::sound::{
     SoundAutomationCurve, SoundAutomationInterpolation, SoundAutomationKeyframe, SoundError,
 };

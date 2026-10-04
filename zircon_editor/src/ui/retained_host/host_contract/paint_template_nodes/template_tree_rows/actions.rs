@@ -1,3 +1,6 @@
+//! 为树行右侧保留标准图标按钮槽：可见性操作与选中后的更多操作或根层级锁标识。
+//! 入口必须已通过双操作槽的容纳检查；此处只产生视觉命令，不注册操作事件。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_row_metrics::{workbench_row_metrics, workbench_row_palette};

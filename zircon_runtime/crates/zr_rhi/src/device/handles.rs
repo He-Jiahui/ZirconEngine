@@ -250,6 +250,7 @@ impl RenderResourceHandleAllocator {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         Self::validate_slot(&state, identity, expected_kind)?;
+        // 回收前推进代际以拒绝旧句柄；代际耗尽的槽永久退休，避免绕回后重新匹配旧身份。
         let next_generation = {
             let slot_state = &mut state.slots[expected_kind.index()][identity.slot as usize];
             slot_state.occupied = false;

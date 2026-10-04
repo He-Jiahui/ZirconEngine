@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::NetRuntimeMode;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 管理器在查询时返回的计数快照，用于观测后端、连接与事件队列，不承诺与随后的收发操作原子一致。
 pub struct NetDiagnostics {
     pub backend_name: String,
     pub mode: NetRuntimeMode,

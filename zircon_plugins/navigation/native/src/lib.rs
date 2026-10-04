@@ -24,16 +24,19 @@ pub use tile_cache::{
 };
 
 pub fn native_backend_version() -> u32 {
+    // SAFETY: 无参数的版本入口只返回编译进本库的常量，不访问外部指针。
     unsafe { ffi::zr_nav_recast_bridge_version() }
 }
 
 pub fn native_runtime_modules_available() -> bool {
+    // SAFETY: 无参数的链接探测入口只查询本库模块状态，不访问外部指针。
     unsafe { ffi::zr_nav_recast_runtime_modules_smoke() == 1 }
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct RecastBackend;
 
+// 标准查询在 Detour 不支持时回退资产图；障碍查询先尝试 TileCache，空网格显式无路径。
 impl RecastBackend {
     pub fn find_path(
         &self,

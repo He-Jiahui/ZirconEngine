@@ -1,3 +1,4 @@
+//! 验证实验性控件族的本地工具类对时间线、标签与树项产生稳定样式。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;

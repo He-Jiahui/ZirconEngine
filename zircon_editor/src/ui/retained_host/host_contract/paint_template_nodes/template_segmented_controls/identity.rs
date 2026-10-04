@@ -1,3 +1,5 @@
+//! 共享组件家族是分段组与页签的归属来源；控制 ID 不再在本域单独猜测。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
     is_component_family, TemplateComponentFamily,

@@ -1,3 +1,4 @@
+// 从抽屉标题共享命中表面派发分组标签，约束未知表面或索引被拒绝。
 use crate::ui::retained_host::drawer_header_pointer::{
     HostDrawerHeaderPointerBridge, HostDrawerHeaderPointerRoute,
 };

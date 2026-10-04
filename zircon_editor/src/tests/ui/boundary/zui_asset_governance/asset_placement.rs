@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 组件目录与文件名到组件名的对应关系。
+
 use super::support::{
     collect_zui_files, editor_asset_root, is_component_directory_path, load_zui_document,
     pascal_case_file_stem, resource_locator_for_path, runtime_asset_root,

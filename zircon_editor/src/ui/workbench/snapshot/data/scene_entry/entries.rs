@@ -6,6 +6,7 @@ use zircon_runtime::scene::{NodeId, WorldInspectionArtifact, WorldInspectionHier
 
 /// Synthetic hierarchy input used by preview and test fixtures.
 #[derive(Clone, Debug)]
+/// fixture合成层级输入，不携带权威父关系或inspection代次。
 pub struct SceneEntry {
     pub id: NodeId,
     pub name: String,
@@ -14,6 +15,7 @@ pub struct SceneEntry {
 
 /// Immutable hierarchy rows plus the editor-owned selection overlay for one UI snapshot.
 #[derive(Clone, Debug)]
+/// runtime层级代次加editor选中覆盖；共享行分配不代表选中状态也相同。
 pub struct SceneEntries {
     entries: Arc<[WorldInspectionHierarchyRow]>,
     selected: Arc<BTreeSet<NodeId>>,
@@ -21,6 +23,7 @@ pub struct SceneEntries {
 }
 
 impl SceneEntries {
+    /// 预览/测试构造路径，inspection代次为空，不能当权威reflow输入。
     pub fn from_entries(
         entries: impl IntoIterator<Item = SceneEntry>,
         selected: impl IntoIterator<Item = NodeId>,
@@ -57,6 +60,7 @@ impl SceneEntries {
         }
     }
 
+    /// 正常authoring发布共享runtime层级分配并记录artifact代次。
     pub(crate) fn from_artifact(
         artifact: &WorldInspectionArtifact,
         selected: impl IntoIterator<Item = NodeId>,
@@ -68,6 +72,7 @@ impl SceneEntries {
         }
     }
 
+    /// 同代次展示过滤仅替换行；调用方须维护原generation与替换行一致。
     pub(crate) fn with_hierarchy_rows(
         &self,
         entries: impl Into<Arc<[WorldInspectionHierarchyRow]>>,

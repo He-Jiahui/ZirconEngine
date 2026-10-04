@@ -22,6 +22,7 @@ pub struct UiVirtualListItemIdentity {
     pub item_key: UiVirtualListItemKey,
 }
 
+/// 延迟输入需要校验 assignment_generation，避免复用物理行后把事件施加到另一个逻辑项。
 /// Current physical realization of a logical item.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct UiVirtualListNodeBinding {

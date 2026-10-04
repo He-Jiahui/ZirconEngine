@@ -14,6 +14,7 @@ use super::tool_window_stack_model::ToolWindowStackModel;
 use crate::core::commands::{EditorKeymap, MenuBarModel};
 
 #[derive(Clone, Debug)]
+/// 同一轮chrome、命令评估及注册环境的呈现投影；宿主布局和反射共用，实际操作仍经命令边界。
 pub struct WorkbenchViewModel {
     pub is_playing: bool,
     pub asset_creation_menu: Arc<AssetCreationMenuGeneration>,

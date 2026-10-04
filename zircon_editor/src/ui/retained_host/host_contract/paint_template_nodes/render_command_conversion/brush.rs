@@ -28,6 +28,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn brush_b
     }
 }
 
+/// 图像笔刷的资源地址从 Runtime 负载借用；后续图像加载必须保留这个资源身份。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn image_brush_resource(
     brush: &UiBrushPayload,
 ) -> Option<(&UiRenderResourceKey, Option<(f32, f32)>)> {

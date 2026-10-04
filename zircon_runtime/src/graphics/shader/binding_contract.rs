@@ -1,3 +1,4 @@
+// 反射结果与实际 WGPU 布局共用的阶段词汇；资源合同检查以此核对入口真正可见的绑定。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum ShaderBindingStage {
     Vertex,
@@ -11,6 +12,7 @@ pub(crate) enum ShaderBindingStage {
     ClosestHit,
 }
 
+// 一个绑定可以被多个入口阶段共享；此集合用于比较 WGSL 反射需求和 WGPU 布局许可。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ShaderBindingVisibility(u16);
 
@@ -50,6 +52,7 @@ pub(crate) enum ShaderTextureSampleType {
     Uint,
 }
 
+// 将 Naga 的资源类型与 WGPU 布局类型收敛到同一合同；Unsupported 应阻止不明类型被默许。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum ShaderBindingResourceType {
     UniformBuffer,

@@ -4,6 +4,7 @@ use super::super::first_non_empty;
 use super::geometry::avatar_text_frame;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+// 没有图像时用首个非空标签绘制文字；若无标签再退回图标或内置 glyph。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_avatar_text(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

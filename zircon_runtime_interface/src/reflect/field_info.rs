@@ -4,6 +4,7 @@ use super::{
     ReflectEditorHint, ReflectEnumOption, ReflectFieldId, ReflectNumericRange, ReflectedValue,
 };
 
+/// 稳定 ID 用于访问，name 用于诊断及显式旧名导入，display_name 与 documentation 供编辑器呈现。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ReflectFieldInfo {
     pub id: ReflectFieldId,

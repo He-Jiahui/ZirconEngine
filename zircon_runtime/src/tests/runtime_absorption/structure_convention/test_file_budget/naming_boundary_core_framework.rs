@@ -1,3 +1,4 @@
+//! 保护命名边界的子模块职责、检查入口与源码规模；这些约束读取检出文本，具体业务结果由被列出的行为测试另行验证。
 use super::*;
 
 const STATUS: &str = "runtime_15_core_framework_naming_camera_controller_guard_child_owner_split_static_passed_cargo_deferred";

@@ -8,6 +8,7 @@ pub enum CursorGrabMode {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 控制器提出的光标状态请求，由窗口宿主实际执行；focused_only 允许宿主在失焦时撤销抓取。
 pub struct CursorGrabIntent {
     pub mode: CursorGrabMode,
     pub visible: bool,
@@ -41,6 +42,7 @@ impl CursorGrabIntent {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 单次输入后的相机结果。changed 只表示变换变化；调用方即使收到 unchanged 也应处理独立的 cursor_grab 请求。
 pub struct CameraControllerOutput {
     pub transform: Transform,
     pub translation_delta: Vec3,

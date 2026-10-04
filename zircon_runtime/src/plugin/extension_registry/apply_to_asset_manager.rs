@@ -4,6 +4,7 @@ use crate::plugin::RuntimeExtensionRegistryError;
 use super::RuntimeExtensionRegistry;
 
 impl RuntimeExtensionRegistry {
+    /// 将本轮目录中的导入器安装到项目资源管理器；调用方须管理目标管理器的重复安装及卸载生命周期。
     pub fn apply_asset_importers_to_project_asset_manager(
         &mut self,
         manager: &ProjectAssetManager,

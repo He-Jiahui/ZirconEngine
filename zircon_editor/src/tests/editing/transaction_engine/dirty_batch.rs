@@ -1,3 +1,4 @@
+//! 核对历史脏集游标的初始重置、增量排序和跨引擎拒绝语义，确保保存标记变化只发布必要的视图更新。
 use crate::core::editing::engine::{
     EditCommandError, EditorTransactionEngine, HistoryContextId, HistoryDirtyBatchKind,
     HistorySaveMarkOutcome,

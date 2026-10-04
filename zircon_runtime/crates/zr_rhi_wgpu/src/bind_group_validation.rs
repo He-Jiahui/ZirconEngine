@@ -1,3 +1,6 @@
+//! 绑定组创建与命令提交共用描述符契约，避免主机镜像和原生编码器各自解释绑定含义。
+//! 资源查询必须来自当前设备的活跃注册表；验证本身不延长原生资源生命期。
+
 use std::collections::BTreeSet;
 
 use zr_rhi::{
@@ -11,6 +14,7 @@ use zr_rhi::{
 use super::resource_validation::{ensure_buffer_usage, ensure_texture_usage};
 use super::texture_view::texture_sample_type;
 
+/// 提供当前设备解析后的资源事实；调用方必须在验证期间保持注册表借用有效。
 pub(crate) trait BindGroupResourceLookup {
     fn layout_desc(&self, handle: BindGroupLayoutHandle) -> Result<&BindGroupLayoutDesc, RhiError>;
     fn buffer_desc(&self, handle: BufferHandle) -> Result<&BufferDesc, RhiError>;
@@ -19,6 +23,7 @@ pub(crate) trait BindGroupResourceLookup {
     fn sampler_desc(&self, handle: SamplerHandle) -> Result<&SamplerDesc, RhiError>;
 }
 
+/// 创建绑定组时验证布局与资源对应关系；主机镜像提交时还会再次检查已销毁资源。
 pub(crate) fn validate_bind_group_desc(
     resources: &impl BindGroupResourceLookup,
     desc: &BindGroupDesc,
@@ -138,6 +143,8 @@ pub(crate) fn validate_bind_group_desc(
     Ok(())
 }
 
+/// 命令绑定时使用实际设备限制验证偏移；偏移数组按布局的 binding 编号升序排列。
+/// 动态绑定需显式范围，使平移后的范围仍能独立于缓冲区总大小检查。
 pub(crate) fn validate_bind_group_dynamic_offsets(
     resources: &impl BindGroupResourceLookup,
     bind_group: zr_rhi::BindGroupHandle,

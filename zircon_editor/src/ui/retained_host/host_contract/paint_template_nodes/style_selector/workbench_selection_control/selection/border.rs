@@ -1,3 +1,5 @@
+//! 选择控件的边线通道；可见焦点或拖放目标边线优先于已勾选边线，普通悬停与按压不生成焦点环。
+
 use super::super::colors::declared_style_border;
 use super::super::model::WorkbenchSelectionControlKind;
 use super::super::palette::WorkbenchSelectionControlPalette;

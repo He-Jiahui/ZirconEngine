@@ -1,3 +1,5 @@
+//! 当前宿主主题的 Tooltip 角色投影；禁用状态降低阴影透明度，可见焦点使用焦点边线。
+
 use super::model::WorkbenchTooltipStyle;
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_palette, HostMaterialPalette,

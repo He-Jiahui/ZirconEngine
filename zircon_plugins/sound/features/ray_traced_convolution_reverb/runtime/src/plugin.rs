@@ -1,3 +1,4 @@
+//! 射线卷积功能包通过功能注册表声明物理射线依赖和供给模块；音频运算接入仍由基础 Sound 服务负责。
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{

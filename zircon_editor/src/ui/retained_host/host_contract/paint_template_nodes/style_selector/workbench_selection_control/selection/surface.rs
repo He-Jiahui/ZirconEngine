@@ -1,3 +1,6 @@
+//! 选择控件的表面通道；持久勾选与动态交互分开传入，Focused 开关仍保留同时悬停的表面反馈。
+//! 禁用和加载统一覆盖声明表面；已勾选配方不接受未勾选的声明表面覆盖。
+
 use super::super::colors::declared_style_background;
 use super::super::model::WorkbenchSelectionControlKind;
 use super::super::palette::WorkbenchSelectionControlPalette;

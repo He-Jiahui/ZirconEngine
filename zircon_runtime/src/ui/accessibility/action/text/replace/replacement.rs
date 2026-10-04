@@ -16,6 +16,8 @@ pub(super) struct SelectedTextReplacement {
     pub(super) constraint_receipt: Option<UiTextInputConstraintReceipt>,
 }
 
+// 在已验证的选择范围内先应用文本约束，随后以清洗后的字节长度生成文档编辑意图和光标位置。
+// 调用方必须先同步当前文档；此纯投影不提交属性，也不能跳过后续文本事务。
 pub(super) fn selected_text_replacement(
     snapshot_node: &UiAccessibilityNode,
     selected_range: UiTextRange,

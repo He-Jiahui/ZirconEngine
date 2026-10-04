@@ -12,6 +12,7 @@ use super::{
     EXECUTION_PUMP,
 };
 
+/// 插件回调的 panic 边界；宿主把崩溃转成带阶段信息的错误，再执行隔离与清理策略。
 pub(super) fn invoke_consumer_callback<T>(
     consumer_id: &str,
     phase: EditorRuntimeEventConsumerCallbackPhase,
@@ -32,6 +33,7 @@ pub(super) fn p95_duration(samples: &mut [Duration]) -> Duration {
     samples[index]
 }
 
+/// 泵占用执行状态，与同样检查该状态的会话切换和贡献退役互斥；普通注册另走自己的锁。
 pub(super) struct PumpExecutionGuard<'a> {
     execution_state: &'a AtomicU8,
 }
@@ -85,6 +87,7 @@ impl Drop for LifecycleExecutionGuard<'_> {
     }
 }
 
+/// 交付进入插件前核对会话、订阅、manifest 与序号；不可信运行时页不得直接执行。
 pub(super) fn validate_delivery(
     snapshot: &ActiveConsumerSnapshot,
     runtime_session_id: u64,

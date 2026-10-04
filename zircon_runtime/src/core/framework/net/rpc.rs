@@ -63,6 +63,7 @@ pub enum RpcPeerRole {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 注册阶段的 RPC 契约；方向、反射 schema、频率和字节上限在调用分发前共同裁决。
 pub struct RpcDescriptor {
     pub id: String,
     pub direction: RpcDirection,
@@ -116,6 +117,7 @@ impl RpcDescriptor {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 一次 RPC 调用的路由与载荷；会话、方向和可选超时随请求进入同步或排队分发路径。
 pub struct RpcInvocationDescriptor {
     pub request: Option<NetRequestId>,
     pub rpc_id: String,
@@ -172,6 +174,8 @@ impl RpcInvocationDescriptor {
 }
 
 /// Diagnostics-first result; real handler execution can be layered on accepted calls later.
+/// 上述英文描述对应早期仅诊断的阶段；当前处理器已由 Net RPC 插件运行时执行。
+/// RPC 分发状态既覆盖受理和排队，也覆盖处理器执行后的失败或超时；Queued 还不是最终结果。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RpcDispatchStatus {
     Accepted,
@@ -189,6 +193,7 @@ pub enum RpcDispatchStatus {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 分发后的可观察结果；调用方应先判断 status，再使用可选的处理器响应或诊断信息。
 pub struct RpcDispatchReport {
     pub rpc_id: String,
     pub request: Option<NetRequestId>,

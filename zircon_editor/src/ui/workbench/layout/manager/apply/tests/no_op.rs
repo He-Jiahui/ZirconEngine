@@ -1,3 +1,4 @@
+//! 命令幂等性与拒绝非法目标后的状态保持；此处覆盖的拒绝分支需返回错误且不改布局。
 use crate::ui::workbench::layout::{
     ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, LayoutCommand, LayoutCommandError,
     LayoutManager, MainPageId, SplitAxis, SplitPlacement, WorkbenchLayout, WorkspaceTarget,

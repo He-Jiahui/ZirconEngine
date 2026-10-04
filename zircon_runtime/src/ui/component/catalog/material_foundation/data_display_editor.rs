@@ -1,3 +1,5 @@
+//! 编辑器集合目录声明查询、树节点或资产项与交互槽；Editor 能力用于宿主准入。选择和引用事件表达面板意图，宿主适配器负责把它们连接到实际资产或场景操作。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

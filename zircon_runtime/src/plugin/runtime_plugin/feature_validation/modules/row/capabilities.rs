@@ -6,6 +6,8 @@ use super::super::super::shape::{
     validate_runtime_plugin_feature_field, validate_runtime_plugin_feature_namespace,
 };
 
+// 复用包模块的种类前缀等规则，但传入功能专属诊断与重复投影，
+// 让独立功能和包内嵌功能保持相同的模块能力约束。
 pub(super) fn validate_runtime_plugin_feature_module_capabilities(
     module: &PluginModuleManifest,
     module_index: usize,

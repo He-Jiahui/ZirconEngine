@@ -6,6 +6,7 @@ use crate::core::editor_message::EditorViewInvalidationMask;
 use super::{EditorMessagePayload, EditorMessageSchemaId, EditorViewDirtyMark};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 类型化编辑器事实及可选视图失效请求；消息不拥有完整文档或场景状态，消费者通过权威服务查询。
 pub struct EditorMessage {
     payload: EditorMessagePayload,
     dirty: Option<EditorViewDirtyMark>,

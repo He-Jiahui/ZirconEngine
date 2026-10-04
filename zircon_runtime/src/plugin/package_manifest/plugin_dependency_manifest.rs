@@ -1,6 +1,8 @@
+//! 表达包对其他插件、能力及桥接接口的声明依赖；目录投影据此构建必需接口闭包。
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// required 决定接口列表是否进入必需桥接闭包；能力约束由包校验链另行检查。
 pub struct PluginDependencyManifest {
     pub id: String,
     pub required: bool,
@@ -11,6 +13,7 @@ pub struct PluginDependencyManifest {
 }
 
 impl PluginDependencyManifest {
+    /// 构造依赖边，不检查目标是否已注册；目录合并时再判断提供者和接口。
     pub fn new(id: impl Into<String>, required: bool) -> Self {
         Self {
             id: id.into(),

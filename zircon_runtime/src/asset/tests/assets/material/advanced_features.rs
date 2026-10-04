@@ -1,3 +1,5 @@
+//! 高级 PBR 字段属于材质控制而非任意 shader 覆写；这里检查作者值如何进入渲染特性及传输队列。
+
 use super::*;
 use crate::core::framework::render::{
     StandardPbrMaterialFeatures, STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,

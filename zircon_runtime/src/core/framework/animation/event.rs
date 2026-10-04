@@ -4,6 +4,8 @@ use crate::core::framework::scene::EntityId;
 use crate::core::math::Real;
 use crate::core::resource::AssetReference;
 
+/// 运行时送入 World 事件通道的记录，保留实体、资源和目标上下文，
+/// 使上层可把片段时间与世界播放时间分别用于诊断和消费。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationEventRecord {
     pub entity: EntityId,

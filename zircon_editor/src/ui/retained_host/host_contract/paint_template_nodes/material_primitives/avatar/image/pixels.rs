@@ -5,6 +5,7 @@ use super::super::super::super::visual_assets::{
 use super::super::mask::{apply_rounded_alpha_mask, rounded_alpha_mask_radius};
 use super::cache::{cached_avatar_mask, store_avatar_mask, AvatarMaskCacheKey};
 
+// 根序列解析预览或媒体源，再按显示圆角取缓存遮罩；None 时改用文字或图标。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_image_pixels(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

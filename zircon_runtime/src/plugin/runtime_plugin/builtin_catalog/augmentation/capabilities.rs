@@ -1,5 +1,6 @@
 use super::super::BuiltinCatalogDescriptorBuilder;
 
+// 这里按包标识追加能力声明；完成状态由 classification 后续写入，能力存在本身不代表实现已完整。
 pub(super) fn attach_extra_capabilities(
     package_id: &str,
     descriptor: BuiltinCatalogDescriptorBuilder,

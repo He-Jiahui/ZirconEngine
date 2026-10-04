@@ -16,6 +16,7 @@ use super::ui_document_compiler::{CompilationArtifacts, UiDocumentCompiler};
 use super::value_normalizer::compose_tokens;
 
 impl UiDocumentCompiler {
+    // 同一入口处理本地组件、导入引用与槽替换；槽可以消失或展开成多个孩子，因此父层接收一组根而非单节点。
     pub(super) fn expand_node(
         &self,
         document: &UiAssetDocument,
@@ -66,6 +67,7 @@ impl UiDocumentCompiler {
                             asset_id: document.asset.id.clone(),
                             detail: format!("reference node {node_id} missing component_ref"),
                         })?;
+                // 注册键包含组件引用，定义资产提供组件与局部 token；caller 仍持有填写内容及其绑定控件域。
                 let imported = self.widget_imports.get(reference).ok_or_else(|| {
                     UiAssetError::UnknownImport {
                         reference: reference.to_string(),
@@ -101,6 +103,7 @@ impl UiDocumentCompiler {
         }
     }
 
+    // 描述符负责 native 节点的默认属性、类型和行为契约；组件调用点的附加属性由上层根覆写阶段再处理。
     fn expand_native_node(
         &self,
         document: &UiAssetDocument,

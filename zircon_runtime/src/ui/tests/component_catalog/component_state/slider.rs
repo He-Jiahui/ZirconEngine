@@ -1,3 +1,5 @@
+//! 范围滑块的实际值与百分比是同一状态的两种投影；任一写入都需维持双拇指顺序。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventKind, UiComponentState, UiValue,

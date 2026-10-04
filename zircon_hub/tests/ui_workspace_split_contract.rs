@@ -1,4 +1,5 @@
 //! Static contracts for React/MUI workspace main/sidebar split geometry.
+//! 约束主工作区与辅助侧栏的响应式分栏关系及支持面板归属。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 主内容和辅助侧栏在各工作区页面共享折叠断点。
 #[test]
 fn workspace_pages_share_main_sidebar_split_and_collapse_rule() {
     for (page, split_grid, content_snippet) in [
@@ -131,6 +134,8 @@ fn workspace_pages_share_main_sidebar_split_and_collapse_rule() {
     }
 }
 
+// 主任务与辅助面板可在页面或子组件内分开持有。
+// 页面主区和支持面板可位于不同组件；这里按真实页面与侧栏消费文件分别审查。
 #[test]
 fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
     for (page, main_source_path, support_source_path, main_panel, support_panels) in [
@@ -250,6 +255,7 @@ fn split_pages_keep_main_work_and_sidebar_support_panels_separate() {
     }
 }
 
+// 设置页两侧分组应维持明确的配置与状态信息层级。
 #[test]
 fn settings_section_keeps_explicit_left_and_right_split_groups() {
     let settings = read_crate_file("web/src/components/data/SettingsSection.tsx");
@@ -270,6 +276,7 @@ fn settings_section_keeps_explicit_left_and_right_split_groups() {
     );
 }
 
+// 文档记录分栏规则和页面覆盖范围。
 #[test]
 fn workspace_split_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -308,6 +315,7 @@ fn workspace_split_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检分栏契约仍观察现行工作区页面。
 #[test]
 fn workspace_split_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_workspace_split_contract.rs");

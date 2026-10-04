@@ -1,5 +1,6 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0019] 运行时配置与开发工具诊断的锁恢复的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_config_store_lock_poison_recovery_guard_covers_runtime_config_store() {
     let config_store = read_runtime_src("core/runtime/config_store.rs");

@@ -29,14 +29,17 @@ impl PlatformRuntimeCapabilityReport {
         }
     }
 
+    /// 返回未经过宿主观测的静态目录，适合离线规划和诊断展示。
     pub fn planning(&self) -> &PlatformCapabilityReport {
         &self.planning
     }
 
+    /// 返回生成本报告时捕获的宿主快照，供调用方核对 provider 与 generation。
     pub fn host(&self) -> &PlatformHostSnapshot {
         &self.host
     }
 
+    /// 将窗口目录项按 Windowing 要求投影为运行时状态。
     pub fn window_backend(&self) -> PlatformRuntimeCapabilityStatus<WindowBackend> {
         self.project(
             self.planning.window_backend,
@@ -79,6 +82,8 @@ impl PlatformRuntimeCapabilityReport {
         )
     }
 
+    // 先应用 enabled/feature/unavailable 结论，再检查宿主生命周期、provider 身份和
+    // observed_capabilities；只有 Ready 且观测满足 requirement 才能向 admission 放行。
     fn project<T>(
         &self,
         planning: CapabilityStatus<T>,

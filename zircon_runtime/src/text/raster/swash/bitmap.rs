@@ -1,3 +1,6 @@
+//! 校验并规范化 Swash 输出到文字系统共享的紧密位图契约。
+//! 灰度、子像素和颜色是不同采样语义；颜色统一为直通 alpha，避免后端混合再次乘 alpha。
+
 use crate::core::math::{UVec2, Vec2};
 use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
 
@@ -35,6 +38,8 @@ impl GlyphBitmapContent {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 可交给异步结果或图集来源的完整字形像素，bearing 相对基线而非屏幕绝对位置。
+/// 应经构造器取得以保证尺寸、通道和字节长度一致；后续改变这些公开字段时须保持同一契约。
 pub(crate) struct GlyphBitmap {
     pub(crate) size: UVec2,
     pub(crate) bearing: Vec2,
@@ -93,6 +98,8 @@ impl GlyphBitmap {
         )
     }
 
+    // 适配后端真实颜色来源的 alpha 约定；只有已预乘的输入才应反预乘。
+    // 转换在缓存或纹理上传之前完成，零 alpha 的 RGB 清零以免采样透明边缘泄漏颜色。
     pub(super) fn color_with_alpha_mode(
         size: UVec2,
         bearing: Vec2,

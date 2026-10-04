@@ -1,3 +1,4 @@
+// 核对展示页 authored 属性符合组件目录声明且投影保留运行时语义。
 use std::fs;
 
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;

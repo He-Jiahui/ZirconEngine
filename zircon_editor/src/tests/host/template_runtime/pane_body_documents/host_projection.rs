@@ -1,3 +1,4 @@
+// 核对面板正文投影携带运行时组件属性及绑定路由。
 use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiSize};
 
 use super::support::*;

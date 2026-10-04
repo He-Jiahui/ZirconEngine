@@ -6,6 +6,7 @@ const DEFAULT_MAX_ELAPSED: Duration = Duration::from_millis(4);
 const DEFAULT_SLOW_CALLBACK_THRESHOLD: Duration = Duration::from_millis(1);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// UI tick 的事件数、单订阅数和耗时软预算在每次交付前检查；单个插件回调无法被此预算抢占。
 pub struct EditorRuntimeEventPumpBudget {
     max_events: usize,
     max_events_per_consumer: usize,
@@ -123,6 +124,7 @@ impl EditorRuntimeEventBacklogObservation {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 本轮交付与积压快照；运行时 backlog 未全量采样时应按下界解释。
 pub struct EditorRuntimeEventPumpReport {
     applied: usize,
     drained: usize,

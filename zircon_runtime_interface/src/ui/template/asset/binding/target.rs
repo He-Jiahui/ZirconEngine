@@ -58,6 +58,7 @@ impl UiBindingMissingValuePolicy {
     }
 }
 
+/// 绑定赋值把源表达式与运行时拥有的目标表面配对；校验器先检查目标和值种类，分发器再写入。
 /// A serialized binding assignment from an expression to a runtime-owned target surface.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiBindingTargetAssignment {
@@ -135,6 +136,7 @@ pub enum UiBindingTargetKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 编译或静态校验用目标和值种类约束；它描述契约，不负责在运行时写值。
 pub struct UiBindingTargetSchema {
     pub target: UiBindingTarget,
     pub value_kind: UiValueKind,

@@ -1,3 +1,5 @@
+//! 菜单项事件经表面分发影响最近弹层；Escape、外点按下和嵌套层级由弹层所有者策略决定。
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::{hit_test_surface_frame, hit_test_surface_frame_with_query, UiSurface},

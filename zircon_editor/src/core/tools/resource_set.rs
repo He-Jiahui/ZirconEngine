@@ -1,3 +1,5 @@
+//! 将资源种类、作用域和通道组成仲裁键，再把多键声明为原子申请集合；集合规范化仅建立结构不变量，是否可用由当前资源目录与调度器判断。
+
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::dispatch::UiWindowId;
 
@@ -226,6 +228,7 @@ impl ToolScope {
     }
 }
 
+/// 唯一资源槽的规范身份；项目/文档/窗口/视口作用域隔离不同会话的持有关系。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct ToolResourceKey {
     kind: ToolResourceKindId,
@@ -364,6 +367,7 @@ impl std::fmt::Display for ToolResourceKeyError {
 impl std::error::Error for ToolResourceKeyError {}
 
 /// Immutable, nonempty, canonically sorted resources acquired as one scheduler lease.
+/// 原子资源申请：调用方应一次提交完整需求，不能把多资源逐个获取再自行拼成lease。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ToolResourceSet(Vec<ToolResourceKey>);
 

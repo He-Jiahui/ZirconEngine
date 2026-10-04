@@ -47,6 +47,7 @@ impl VmPluginInstance for PanicOnceExportInstance {
 
 #[test]
 fn panicked_export_restores_the_active_instance() {
+    // 回调 panic 经过 take/恢复保护后，槽位仍应可再次分发且代际不前进。
     let coordinator = HotReloadCoordinator::new();
     let host = test_host_context();
     let slot = coordinator

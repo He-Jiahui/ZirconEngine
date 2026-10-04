@@ -91,6 +91,7 @@ fn fit_text_style(
     let min_scale = (min_font_size / requested_font_size).min(1.0);
     let mut low = min_scale;
     let mut high = 1.0;
+    // 未找到满足宽度的候选时保留最小字号，避免搜索结果越过调用方指定的字号下限。
     let mut best = min_scale;
 
     for _ in 0..FIT_SEARCH_STEPS {

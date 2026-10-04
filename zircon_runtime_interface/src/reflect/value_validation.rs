@@ -17,6 +17,7 @@ enum PendingValue<'a> {
 }
 
 impl ReflectedValue {
+    /// 检查含嵌入 JSON 子树的完整值；字符串 UTF-8 字节（含映射键）也计入预算，同时拒绝非有限浮点。
     pub fn validate_with_budget(
         &self,
         budget: ReflectValueBudget,

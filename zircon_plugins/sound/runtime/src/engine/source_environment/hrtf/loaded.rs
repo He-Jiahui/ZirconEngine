@@ -1,3 +1,4 @@
+//! 已加载的 HRTF 配置使用独立历史键续接卷积，配置被替换时由服务层清空全部旧尾音。
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::sound::{

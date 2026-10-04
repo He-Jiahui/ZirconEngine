@@ -1,3 +1,4 @@
+// 核对共享表面的设计令牌解析、布局帧和保留投影快照一致性。
 use super::support::*;
 
 const OPEN_PROJECT_ICON: &str = "editor_pages/workbench/menu/open-project.svg";

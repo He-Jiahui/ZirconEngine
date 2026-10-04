@@ -1,3 +1,4 @@
+//! 批次把一帧的已准入请求合并到一次暂存复制，并在绑定票据前保留来源与偏移。
 use std::sync::mpsc::Receiver;
 
 use zr_rhi::{DiagnosticFrameKey, SubmissionTicket};

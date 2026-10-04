@@ -1,3 +1,5 @@
+//! 按钮样式解析按就近作用域、显式覆盖和状态层优先级工作；弱引用失效后必须回退到目录默认值。
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 

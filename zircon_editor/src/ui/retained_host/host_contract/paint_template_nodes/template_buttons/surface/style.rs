@@ -1,3 +1,5 @@
+//! 为表面命令形成最小样式快照；样式选择器负责状态，几何域负责限制圆角。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::style_selector::WorkbenchButtonKind;
 use super::super::geometry::button_radius;

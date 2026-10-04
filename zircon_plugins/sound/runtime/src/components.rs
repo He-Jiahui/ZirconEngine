@@ -1,3 +1,4 @@
+//! 场景组件类型在插件注册时公开给编辑器与序列化层；属性元数据描述作者可配置面，并不自动接入 Kira 播放。
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::core::framework::sound::{
     AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,

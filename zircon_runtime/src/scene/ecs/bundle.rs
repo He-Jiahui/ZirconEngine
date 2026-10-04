@@ -2,6 +2,8 @@ use crate::scene::SceneResult;
 
 use super::Component;
 
+/// 把一组组件交给 World 的插入事务；实现应先完成整组预检，再使任何结构变化对观察者可见。
+/// 直接插入与延迟命令均通过 stage_into 进入同一 BundleStaging 契约。
 pub trait Bundle: 'static + Send + Sync {
     fn stage_into<S>(self, staging: &mut S) -> SceneResult<()>
     where

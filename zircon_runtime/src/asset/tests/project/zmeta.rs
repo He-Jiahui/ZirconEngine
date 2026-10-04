@@ -1,3 +1,5 @@
+//! 用可控的复合资产和失败导入器，验证 zmeta 的身份、子资产与 shader 包元数据生命周期。
+
 use std::{fs, path::Path};
 
 use crate::asset::tests::project::unique_temp_project_root;
@@ -52,6 +54,7 @@ fn material_for_shader(shader_uri: &AssetUri) -> MaterialAsset {
     }
 }
 
+// 将失败与恢复置于同一个源和导入器身份下，供 sidecar 测试验证子资产 UUID 不因重试而变化。
 fn flaky_multi_asset_importer() -> FunctionAssetImporter {
     FunctionAssetImporter::new(
         AssetImporterDescriptor::new("test.multi.flaky", "test.multi", AssetKind::Data, 1)

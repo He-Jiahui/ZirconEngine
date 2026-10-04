@@ -1,3 +1,4 @@
+//! 运行时技术栈、清单和结构文档维持共同的基础门禁。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "tech_stack/behavior_anchors.rs"]
 mod behavior_anchors;
 #[path = "tech_stack/guard_anchors.rs"]

@@ -1,3 +1,6 @@
+//! 在未声明显式容器契约时，把模板组件语义接入共享布局执行器。
+//! 响应式属性在构树时仅提供初始值，surface 的布局阶段再按 viewport 解析。
+
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -5,8 +8,10 @@ use zircon_runtime_interface::ui::layout::{
     UiContainerKind, UiGridBoxConfig, UiLinearBoxConfig, UiMasonryBoxConfig,
 };
 
+// MUI 数字间距使用默认主题单位；字符串间距保留作者输入的像素量，不能统一乘此单位。
 const MUI_DEFAULT_SPACING_UNIT: f32 = 8.0;
 
+/// 仅作为显式 layout.container 缺省时的构树入口；默认配置不会解释该容器未提供的几何能力。
 pub(super) fn infer_container(
     component: &str,
     attributes: &BTreeMap<String, Value>,
@@ -51,6 +56,7 @@ fn mui_grid_config(attributes: &BTreeMap<String, Value>) -> UiGridBoxConfig {
     }
 }
 
+// 这里保存方向轴与间距；子节点次序仍由共享 slot 排序和布局执行器决定。
 fn mui_stack_container(attributes: &BTreeMap<String, Value>) -> UiContainerKind {
     let gap = responsive_f32_attribute(attributes, &["spacing"])
         .unwrap_or(0.0)
@@ -81,6 +87,8 @@ fn bool_attribute(attributes: &BTreeMap<String, Value>, name: &str) -> bool {
         .unwrap_or(false)
 }
 
+// 列数会直接驱动布局列缓冲和网格轨道分配，调用端需满足显式布局采用的离散值上限。
+// 此属性转换仅检查数值可转成无符号整数，没有执行显式布局的上限校验。
 fn responsive_usize_attribute(
     attributes: &BTreeMap<String, Value>,
     names: &[&str],
@@ -108,6 +116,7 @@ fn responsive_string_attribute(
         .and_then(value_as_string)
 }
 
+// 构树没有 viewport；表取最早提供的断点、数组取首项作为初始契约，保留原属性供布局阶段重新选择。
 fn responsive_base_value(value: Option<&Value>) -> Option<&Value> {
     match value? {
         Value::Table(values) => values

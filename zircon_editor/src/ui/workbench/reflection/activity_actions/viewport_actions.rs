@@ -1,3 +1,4 @@
+//! 画布仅公开指针、滚轮和尺寸交互；命令映射器拥有的其他模式动作没有在此清单发布。
 use zircon_runtime_interface::ui::{
     binding::UiEventKind, event_ui::UiActionDescriptor, event_ui::UiParameterDescriptor,
     event_ui::UiValueType,
@@ -5,6 +6,7 @@ use zircon_runtime_interface::ui::{
 
 pub(super) const VIEWPORT_ACTION_COUNT: usize = 9;
 
+/// 画布已发布动作清单；参数类型与注册时的默认命令保持同一事件契约。
 pub(super) fn viewport_actions() -> [UiActionDescriptor; VIEWPORT_ACTION_COUNT] {
     [
         UiActionDescriptor::new(

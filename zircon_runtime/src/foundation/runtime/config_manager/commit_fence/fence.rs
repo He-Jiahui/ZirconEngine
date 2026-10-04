@@ -1,3 +1,4 @@
+//! 配置路径 gate 与 epoch 约束最终提交；检查时已取消或已被新 epoch 替代的 worker 不执行提交闭包。
 use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -28,6 +29,7 @@ impl ConfigCommitFence {
         }))
     }
 
+    // gate 锁覆盖 epoch 检查与文件提交闭包，阻止新 epoch 交错；cancel 只设置原子标记，已通过检查的提交仍可能完成。
     pub(in crate::foundation::runtime) fn commit<T>(
         &self,
         commit: impl FnOnce() -> io::Result<T>,

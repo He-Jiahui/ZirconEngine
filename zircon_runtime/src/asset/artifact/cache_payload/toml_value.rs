@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 
 pub(super) type ArtifactCacheTomlTable = BTreeMap<String, ArtifactCacheTomlValue>;
 
+// 将 TOML 的表、日期和数值转为 bincode 可读的顺序格式；
+// 读回时重新解析日期，避免编辑文档的 serde 表示直接成为缓存协议。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) enum ArtifactCacheTomlValue {
     String(String),

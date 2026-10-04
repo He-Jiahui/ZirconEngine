@@ -1,3 +1,4 @@
+//! 核对高亮集合在跨网关前规范化实体 ID，并保持该契约由独立测试树覆盖而非生产模块内联样本。
 use zircon_runtime_interface::ZrRuntimeViewportHandle;
 
 use crate::core::gateway::EditorRuntimeHighlightSet;

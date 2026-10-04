@@ -1,3 +1,4 @@
+//! 剪辑和序列生产帧目标解析优先级的契约，确保稳定 ID 先于名称回退。
 use super::animation_assets::{
     sequence_asset_for_entity, single_hand_translation_clip, two_bone_skeleton,
 };

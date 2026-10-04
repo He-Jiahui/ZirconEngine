@@ -6,6 +6,7 @@ use super::super::style::alert_action_color;
 use super::close::push_alert_close_mark;
 use super::line::push_alert_action_line;
 
+// 仅在根节点声明操作时由命令序列调用；关闭动作和普通动作有不同视觉标记，交互仍由宿主负责。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_alert_action(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

@@ -7,6 +7,7 @@ use super::constants::{
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 烘焙与代理默认值共享的代理类型配置；改动其尺寸会改变生成网格与代理可通行性。
 pub struct NavigationAgentSettings {
     pub id: String,
     pub display_name: String,
@@ -44,6 +45,7 @@ impl Default for NavigationAgentSettings {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 区域 ID、默认代价和可行走性共同进入烘焙资产；查询过滤器可按请求覆盖代价。
 pub struct NavigationAreaSettings {
     pub id: NavAreaId,
     pub name: String,

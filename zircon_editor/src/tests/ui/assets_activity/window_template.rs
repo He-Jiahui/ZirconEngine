@@ -1,3 +1,5 @@
+//! 验证资源活动窗口经抽屉容器装载资源浏览器，插槽和绑定在编译后仍有效。
+
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::PathBuf;

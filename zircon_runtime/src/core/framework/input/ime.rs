@@ -13,6 +13,7 @@ impl ImeCursorRange {
     }
 }
 
+/// 当前输入法组合文本；空预编辑或提交事件会清除管理器保存的当前值。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImePreedit {
     pub value: String,
@@ -54,6 +55,7 @@ pub enum ImeEvent {
     DeleteSurrounding(ImeDeleteSurrounding),
 }
 
+/// 供宿主定位输入法候选窗的文本光标区域；运行时将矩形坐标和尺寸原样转交。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ImeCursorArea {
     pub x: f32,

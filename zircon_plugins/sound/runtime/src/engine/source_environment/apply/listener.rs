@@ -1,3 +1,4 @@
+//! 监听器投影优先采用已加载 HRTF；无可用配置时走预览轮廓，并避免对双耳结果再次施加普通声像。
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::sound::{

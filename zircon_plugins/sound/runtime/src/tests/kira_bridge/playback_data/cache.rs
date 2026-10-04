@@ -1,3 +1,4 @@
+// 直接构造 LoadedClip 并调用 static_sound_data，核对多个播放数据投影共享同一 Arc 帧存储。
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::sound::SoundPlaybackSettings;

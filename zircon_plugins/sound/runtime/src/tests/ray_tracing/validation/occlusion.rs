@@ -1,3 +1,4 @@
+// 经脉冲响应提交入口拒绝无效遮挡增益，核对描述符的数值边界。
 use super::super::super::*;
 use super::descriptor::valid_ray_traced_descriptor;
 

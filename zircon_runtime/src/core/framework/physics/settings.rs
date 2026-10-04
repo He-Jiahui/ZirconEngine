@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::PhysicsSimulationMode;
 
+/// 用于配置后端选择、时钟和碰撞层；插件可持久化设置并据此决定是否启用模拟。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PhysicsSettings {
     pub backend: String,
@@ -14,6 +15,7 @@ pub struct PhysicsSettings {
     pub solver_groups: Vec<String>,
 }
 
+// 基础默认值保持物理禁用；插件仅在明确拥有可用后端时覆盖后端名和模拟模式。
 impl Default for PhysicsSettings {
     fn default() -> Self {
         Self {

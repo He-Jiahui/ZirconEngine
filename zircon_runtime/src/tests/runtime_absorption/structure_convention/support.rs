@@ -1,3 +1,4 @@
+//! 为结构守卫定位运行时源码与仓库文档；读取失败会直接使消费它的测试失败。
 pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) {
     assert_contains_all_exact(label, source, required);
 }

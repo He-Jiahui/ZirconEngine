@@ -1,3 +1,5 @@
+//! 让编辑上下文、宿主和发现投影共用同一个命令目录所有者；锁作用于当前目录，克隆handle仍指向同一实例。
+
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::EditorCommandRegistry;
@@ -19,6 +21,7 @@ impl EditorCommandRegistryHandle {
         Self::new(EditorCommandRegistry::default_workbench())
     }
 
+    /// 取得目录同步访问权；持锁期间的调用是否会进入插件回调须由执行链审查，展示快照应在释放锁后消费。
     pub fn lock(&self) -> MutexGuard<'_, EditorCommandRegistry> {
         self.registry
             .lock()

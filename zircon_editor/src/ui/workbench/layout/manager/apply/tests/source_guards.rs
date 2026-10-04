@@ -1,3 +1,4 @@
+//! 生产布局命令的源码与owner规模守卫；注释也计入结构行数预算。
 #[test]
 fn production_layout_commands_do_not_assume_validated_drawers() {
     let source = include_str!("../../apply.rs");

@@ -1,3 +1,5 @@
+//! 把会话内DocumentId绑定到项目相对源的持久日志身份；同文档追加闸门先于写入器锁，保证材料化、读取与压缩互不交错。
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -128,6 +130,7 @@ impl DocumentJournalCoordinator {
     ///
     /// Production durable publication is intentionally unavailable until the transaction engine
     /// owns immutable capture at its commit linearization point.
+    /// 仅测试验证协调器写入归属；生产耐久发布仍须由事务引擎在提交线性化点捕获不可变记录。
     #[cfg(test)]
     pub(crate) fn append_for_test(
         &self,

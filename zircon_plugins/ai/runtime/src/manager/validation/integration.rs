@@ -16,6 +16,7 @@ pub(super) fn validate_integration_node_parameters(
     tree_id: &str,
     node: &AiBehaviorNodeDescriptor,
 ) -> Result<(), AiManagerError> {
+    // 显式 result 占位允许省略宿主参数；提供真实参数时仍校验动画与脚本输入。
     let has_placeholder_result = behavior_node_parameter(node, TASK_RESULT_PARAMETER_KEY).is_some();
     match node.implementation.as_str() {
         "move_to" => validate_move_to(tree_id, node, has_placeholder_result)?,

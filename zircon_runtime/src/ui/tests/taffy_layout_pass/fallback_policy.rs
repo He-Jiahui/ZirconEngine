@@ -1,3 +1,5 @@
+//! 后端回退依据不受支持的 slot、约束和容器值逐项给出原因；已支持的 Collapsed 排除路径仍应保持 Taffy 原生。
+
 use super::*;
 
 #[test]
@@ -178,6 +180,7 @@ fn taffy_layout_pass_reports_non_finite_container_config_fallback() {
     );
 }
 
+// TODO: [CR-UI-TEST-0603] 确认此测试名的“回退”是否为旧契约遗留；当前断言原生 Taffy 且无回退，需核对选择策略后更名。
 #[test]
 fn taffy_layout_pass_reports_collapsed_child_visibility_fallback() {
     let mut tree = tree_with_root(

@@ -1,3 +1,4 @@
+//! 预览节点连同运行时表面交给宿主绘制；预览面板只消费转换后的节点与当前资产快照。
 use crate::ui::asset_editor;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host as host_contract;

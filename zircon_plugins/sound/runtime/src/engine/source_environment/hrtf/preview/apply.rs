@@ -1,3 +1,4 @@
+//! 几何预览只处理当前块内的双耳延迟，块外样本按零补齐；需要连续尾音的路径应使用有历史状态的已加载 HRTF。
 use super::profile::HrtfPreviewProfile;
 
 use crate::engine::hrtf::clear_non_binaural_output_channels;

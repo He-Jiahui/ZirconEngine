@@ -1,3 +1,6 @@
+//! 从当前宿主主题取得滑块角色色；轨道与填充使用中性分隔角色，焦点 halo 使用低透明度焦点角色。
+//! 测试常量只表达默认主题基准，不替代运行时主题投影。
+
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{

@@ -1,3 +1,6 @@
+//! Winit 生命周期回调在宿主表面所有权与动态 Runtime 生命周期通知之间的协调层。
+//! native 表面只能在可创建回调准入后建立，失效时应先释放宿主资源。
+
 use winit::event_loop::ActiveEventLoop;
 use zircon_runtime_interface::{
     ZrRuntimeEventV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1,
@@ -23,6 +26,7 @@ impl RuntimeEntryApp {
         self.dispatch_runtime_event(event_loop, event);
     }
 
+    /// 只在 Winit 的表面准入回调执行；成功创建后先确认所有权，再提交初始输入探针。
     pub(in crate::entry::runtime_entry_app) fn handle_surface_availability(
         &mut self,
         event_loop: &dyn ActiveEventLoop,
@@ -41,6 +45,7 @@ impl RuntimeEntryApp {
         }
     }
 
+    /// 挂起时先处理宿主表面释放，再通知动态会话；任一失败均请求退出事件循环。
     pub(in crate::entry::runtime_entry_app) fn handle_application_suspended(
         &mut self,
         event_loop: &dyn ActiveEventLoop,
@@ -71,6 +76,7 @@ impl RuntimeEntryApp {
         }
     }
 
+    // TODO: [CR-APP-ENTRY-0004] 确认未使用的 exit/Exiting 路径是否仍需保留；锁定的 Winit 0.31.0-beta.2 没有退出 hook，当前 Drop 已尝试释放主窗口；下一步核对状态机设计去留与 run_app 返回后的所有权。
     pub(in crate::entry::runtime_entry_app) fn handle_application_exit(
         &mut self,
         event_loop: &dyn ActiveEventLoop,

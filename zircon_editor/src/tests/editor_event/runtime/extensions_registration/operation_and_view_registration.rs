@@ -1,3 +1,4 @@
+//! 命令与视图贡献跨 Registry、共享路由和菜单投影；能力条件及操作身份须保持一致。
 use super::super::*;
 use crate::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
 

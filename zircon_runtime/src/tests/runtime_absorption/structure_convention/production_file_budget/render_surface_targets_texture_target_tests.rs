@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0082] 渲染表面与纹理目标的图导入测试的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_surface_targets_texture_target_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/tests/surface_targets.rs");

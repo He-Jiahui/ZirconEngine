@@ -1,3 +1,6 @@
+//! 聚合可靠 UDP 会话内序号、在途队列、分片重组、完成窗口、顺序投递和恢复统计。
+//! 状态没有 peer key，复用同一 manager 处理多个远端会混淆 ACK 与顺序语义。
+
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
 use zircon_runtime::core::framework::net::{
@@ -8,6 +11,7 @@ use zircon_runtime::core::framework::net::{
 use super::assembly::InboundFragmentAssembly;
 
 #[derive(Debug)]
+// TODO: [CR-PLUGIN-NET-0021] receive_window 只限制已完成序号；未完成重组和 ordered 缺序 payload 没有容量/超时清理。
 pub(in crate::manager) struct NetReliableUdpRuntimeState {
     pub(in crate::manager) config: ReliableDatagramConfig,
     pub(in crate::manager) next_sequence: u64,

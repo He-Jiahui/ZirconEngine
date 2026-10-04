@@ -7,6 +7,7 @@ use super::super::super::super::culling::{
     orthographic_visible::orthographic_visible, perspective_visible::perspective_visible,
 };
 
+// 虚拟几何按世界空间 cluster 球体单独裁剪；与普通网格共用相机横纵边界规则。
 pub(in crate::graphics::visibility::planning::build_virtual_geometry_plan) fn cluster_visible(
     cluster: &RenderVirtualGeometryCluster,
     camera: &ViewportCameraSnapshot,

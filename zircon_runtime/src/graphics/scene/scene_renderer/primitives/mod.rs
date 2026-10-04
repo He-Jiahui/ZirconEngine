@@ -1,3 +1,5 @@
+//! 场景绘制的共享 GPU 顶点、统一参数与编辑器线条构建入口。
+//! overlay 消费网格、选中和 gizmo 几何；场景、环境捕获与阴影 pass 共用 SceneUniform 布局。
 mod buffers;
 mod fallback;
 mod grid;

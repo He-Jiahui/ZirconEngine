@@ -13,6 +13,8 @@ use zircon_runtime_interface::ui::{
 
 use super::UiSurface;
 
+// 将已验证来源的作者绑定投影为模板动作调用，不在这里执行动作；缺失、歧义或禁止发布统一返回 None。
+// 普通/编译绑定各用本身索引，属性优先读取运行时组件值；跨控件取值必须唯一，避免选中任意同名控件。
 impl UiSurface {
     pub(crate) fn template_action_for_binding(
         &self,
@@ -26,6 +28,9 @@ impl UiSurface {
         )
     }
 
+    /// 原始绑定入口先解析缺失策略，再合并具名覆盖；生产默认调用使用空覆盖集合。
+    // TODO: [CR-UI-SURFACE-0011] 核实覆盖是否应满足 required payload：编译入口先取覆盖再判断缺失，
+    // 原始入口却在覆盖合并前因缺失返回 None；当前生产调用为空，需补两条路径的非空覆盖契约测试。
     pub(crate) fn template_action_for_binding_with_overrides(
         &self,
         source_node_id: UiNodeId,
@@ -177,6 +182,8 @@ impl UiSurface {
         Some(UiTemplateActionInvocation::route(route, payload))
     }
 
+    /// 为无直接编译句柄的来源按模板节点编号约定查找，并复核事件与绑定名；失败应交回原始路径/上层处理。
+    /// 仅适用于保留树沿用编译节点编号加一的映射，不能把任意运行时 ID 当成模板索引。
     pub(crate) fn compiled_binding_handle_for_source(
         &self,
         node_id: UiNodeId,
@@ -205,6 +212,7 @@ impl UiSurface {
             })
     }
 
+    /// 仅以表达式前缀区分字面量与绑定表达式；动作投影只允许本节点或唯一控件属性，外部状态需事先投影。
     pub(crate) fn template_action_payload_value(
         &self,
         source_node_id: UiNodeId,

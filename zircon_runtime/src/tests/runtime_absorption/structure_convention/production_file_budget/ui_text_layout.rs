@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0120] 界面文本布局与双向文字视觉次序的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_ui_text_layout_engine_visual_order_is_child_owner() {
     let parent = read_runtime_src("ui/text/layout_engine.rs");

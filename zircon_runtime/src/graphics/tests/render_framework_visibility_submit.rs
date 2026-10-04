@@ -1,3 +1,4 @@
+//! 连续提交同一大静态场景，验证视口空间索引复用与主视锥预筛降低候选数。
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;

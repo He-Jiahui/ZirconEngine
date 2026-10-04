@@ -1,3 +1,6 @@
+//! 在专用线程中串行拥有 TCP/UDP socket，向同步 NetManager facade 提供有界命令/回执通道。
+//! 超时只停止调用方等待，不撤销已入队 I/O；Drop 尝试有序关闭。
+
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::{self, JoinHandle};
@@ -261,6 +264,7 @@ impl NetWorker {
             .store(true, Ordering::SeqCst);
     }
 
+    // TODO: [CR-PLUGIN-NET-0006] 两秒等待超时后命令仍可能执行；需定义重试、ID 和资源回收的确认语义。
     fn request<T>(&self, build: impl FnOnce(WorkerReply<T>) -> NetEgress) -> Result<T, NetError> {
         if self.is_shutdown() {
             return Err(NetError::Io("net worker is shut down".to_string()));

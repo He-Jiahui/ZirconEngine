@@ -1,6 +1,7 @@
 use crate::core::math::{Real, Vec3};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 控制器跨帧保留的姿态与速度状态；重建控制器会丢失滚轮速度倍率和摩擦衰减过程。
 pub struct FreeCameraState {
     pub enabled: bool,
     pub pitch: Real,

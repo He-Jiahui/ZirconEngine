@@ -4,6 +4,7 @@ pub(in crate::hybrid_gi::renderer::gpu_readback) fn read_buffer_u32s(
     bytes: &[u8],
     word_count: usize,
 ) -> Result<Vec<u32>, GraphicsError> {
+    // 零个逻辑字仍可能对应 GPU 的一个物理占位字，不能把占位内容解为有效数据。
     if word_count == 0 {
         return Ok(Vec::new());
     }

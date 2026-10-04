@@ -1,3 +1,5 @@
+//! 候选主标题的单行绘制入口；先判断行可见性，再把借用文本交给拥有内容的命令。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

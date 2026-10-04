@@ -1,3 +1,4 @@
+//! 验证包报告、清单和持久化信封来自同一编译快照，并按运行时或编辑器配置裁剪。
 use crate::ui::template::{
     compile_cache_key_from_compiler, compiled_asset_package_manifest_from_artifact_bytes,
     fingerprint_document, UiAssetLoader, UiDocumentCompiler, UiRuntimeCompiledAssetArtifact,
@@ -421,6 +422,7 @@ fn asset_package_manifest_writer_importer_preserves_resource_dependencies() {
     );
 }
 
+// 此用例只核对 profile 的保留/裁剪报告标签；这些断言不验证模板产物内容。
 #[test]
 fn asset_package_validation_profiles_report_runtime_and_editor_stripping() {
     let layout = package_layout();

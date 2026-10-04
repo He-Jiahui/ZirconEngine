@@ -1,3 +1,4 @@
+//! Windows 专用工作集读取通过 kernel32 伪句柄进入性能契约；非 Windows 由上层采样器返回 None。
 use std::ffi::c_void;
 
 type Handle = *mut c_void;

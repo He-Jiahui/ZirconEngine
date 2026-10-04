@@ -1,3 +1,4 @@
+//! 拾取回归共享固定相机与命中夹具，子模块沿射线、后端输出、悬停归约和指针事件链验证；这里的句柄编号只标识夹具。
 use crate::core::framework::picking::{
     hovered_hits_for_pointer, ray_from_viewport_point, run_picking_pipeline,
     sorted_hits_for_pointer, CameraRaySource, HitData, HitRecord, HitTarget, Pickable, PickingAxis,

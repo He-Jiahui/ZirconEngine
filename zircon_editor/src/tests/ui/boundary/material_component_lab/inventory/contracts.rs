@@ -1,3 +1,5 @@
+//! 验证Material 原型根卡片、变体条和状态条的结构契约。
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime_interface::ui::v2::UiV2AssetDocument;

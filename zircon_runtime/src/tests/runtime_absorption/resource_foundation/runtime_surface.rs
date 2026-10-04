@@ -1,3 +1,4 @@
+//! 资源基础层与高层运行时引用保持单向依赖和受限公开面。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_resource_foundation_keeps_editor_inspector_surface_internal() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

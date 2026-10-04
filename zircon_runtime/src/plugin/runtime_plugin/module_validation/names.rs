@@ -12,6 +12,8 @@ use self::{
     uniqueness::validate_runtime_plugin_module_name_uniqueness,
 };
 
+/// 模块名既是注册标识，也需表明所属清单和运行角色；包传包 ID，feature 传 feature ID。
+/// 去重结果由该清单的模块投影提供；此处不会验证 owner 本身有效，也不会改写名称。
 pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_module_name(
     manifest_label: &str,
     owner_label: &str,

@@ -1,3 +1,5 @@
+//! 表达工具服务停收、排空和终止的生命周期；请求准入只在Open，关闭汇总统计供宿主确认资源与队列已释放。
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

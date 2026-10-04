@@ -1,3 +1,4 @@
+//! UI资产编辑器的真实复合资产契约：外层panel拥有框，内部内容流和事件绑定保留语义。
 use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 use super::{
@@ -6,6 +7,7 @@ use super::{
 };
 
 #[test]
+/// 同时约束容器层级、相对槽、滚动输入、真实工具绑定与预览canvas；最后用V2加载器拒绝静态样本网格回归。
 fn ui_asset_editor_keeps_content_rows_unframed_inside_tokenized_panels() {
     let panel_rules = stylesheet_rule_sources(UI_ASSET_EDITOR_ASSET, ".ui-asset-panel");
     assert_eq!(

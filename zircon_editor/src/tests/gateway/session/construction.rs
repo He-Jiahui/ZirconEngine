@@ -1,3 +1,4 @@
+//! 核对会话网关建立时的 ABI 版本、句柄身份和能力快照；跨 ABI 借用世界访问须在调用运行时前拒绝。
 use std::sync::Arc;
 
 use zircon_runtime_interface::{GatewaySessionIdentity, ZrRuntimeSessionHandle};

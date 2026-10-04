@@ -1,8 +1,11 @@
+//! 宿主控件密度向轨道、滑块、刻度、左右值框和文字的集中投影；绘制组合由这些尺寸保持对齐。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, HostControlMetrics,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 滑块轨道、标题、值框、滑块和刻度的共同宿主尺度；各绘制模块消费当前主题快照。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchSliderMetrics
 {
     pub track_height: f32,

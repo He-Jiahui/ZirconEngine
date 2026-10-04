@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use super::super::{RenderArtifactBlockDescriptor, RenderArtifactManifest};
 
+/// cook 输出中对共享载荷的一段只读引用；发布器以描述符核对它与清单的对应关系。
 #[derive(Clone, Debug)]
 pub struct RenderArtifactCookedBlock {
     descriptor: RenderArtifactBlockDescriptor,
@@ -32,6 +33,7 @@ impl RenderArtifactCookedBlock {
     }
 }
 
+/// 同一 cook 的清单与编码块集合；应交给 publication 入口先发布块、后发布清单。
 #[derive(Clone, Debug)]
 pub struct RenderArtifactCookOutput {
     manifest: RenderArtifactManifest,

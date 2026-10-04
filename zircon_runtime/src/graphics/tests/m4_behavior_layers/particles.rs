@@ -1,3 +1,4 @@
+//! 用真实 WGPU 帧比较粒子开关的像素差，并用着色器源码守卫透明 alpha；两种证据覆盖各自边界。
 use super::super::plugin_render_feature_fixtures::particle_render_feature_descriptor;
 use super::RenderFixture;
 use crate::core::framework::render::{

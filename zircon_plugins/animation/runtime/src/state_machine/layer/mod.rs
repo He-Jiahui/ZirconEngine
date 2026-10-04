@@ -1,3 +1,4 @@
+//! 层编译和产物导出边界；掩码权重需与目标骨架行序相配。
 mod compile;
 mod compile_error;
 mod compiled_layer;

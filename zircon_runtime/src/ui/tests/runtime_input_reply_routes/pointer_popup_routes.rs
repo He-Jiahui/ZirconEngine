@@ -1,3 +1,5 @@
+//! 弹窗外侧命中仍应找到弹窗所有者执行关闭；不同控件外壳共用默认取消路径。
+
 use super::*;
 use zircon_runtime_interface::ui::widget::{UiWidgetBehavior, UiWidgetContract};
 

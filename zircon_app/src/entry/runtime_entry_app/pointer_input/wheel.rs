@@ -1,3 +1,5 @@
+//! 滚轮单位与滚量送入 Runtime；有宿主缓存位置时一并编码进 ABI，实际位置消费由会话实现决定。
+
 use winit::event::MouseScrollDelta;
 use winit::event_loop::ActiveEventLoop;
 use zircon_runtime_interface::{ZrRuntimeEventV1, ZIRCON_RUNTIME_ABI_VERSION_V1};
@@ -5,6 +7,7 @@ use zircon_runtime_interface::{ZrRuntimeEventV1, ZIRCON_RUNTIME_ABI_VERSION_V1};
 use super::super::{converters::mouse_wheel_delta, RuntimeEntryApp};
 
 impl RuntimeEntryApp {
+    // TODO: [CR-APP-ENTRY-0019] 确认滚轮显式位置的消费合同；当前动态会话仅解包滚量，UI 使用会话缓存 cursor，而独立 window adapter 消费 ABI 位置；下一步核验两处缓存不一致或合成事件时的命中语义。
     pub(in crate::entry::runtime_entry_app) fn handle_mouse_wheel(
         &mut self,
         event_loop: &dyn ActiveEventLoop,

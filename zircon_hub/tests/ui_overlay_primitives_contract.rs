@@ -1,4 +1,5 @@
 //! Static contracts for React/MUI Hub overlay primitives.
+//! 固定通用浮层包装器、业务弹出内容和外壳调用方的分工，保持锚点、关闭与动作提交契约一致。
 
 use std::{fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path))
@@ -24,6 +26,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path))
@@ -49,6 +52,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+/// 固定通用和业务浮层的公共出口，使外壳和页面从同一组件家族调用弹出内容。
 #[test]
 fn overlay_barrel_exports_dialog_menu_popover_and_business_popups() {
     let index = read_crate_file("web/src/components/overlays/index.ts");
@@ -67,6 +71,7 @@ fn overlay_barrel_exports_dialog_menu_popover_and_business_popups() {
     );
 }
 
+/// 核对通用浮层对锚点、可见性、关闭和动作回调的契约，业务调用方负责弹出内容与目标。
 #[test]
 fn dialog_menu_and_popover_wrap_material_overlay_primitives_with_hub_api() {
     let dialog = read_crate_file("web/src/components/overlays/HubDialog.tsx");
@@ -136,6 +141,8 @@ fn dialog_menu_and_popover_wrap_material_overlay_primitives_with_hub_api() {
     );
 }
 
+// BUG: [CR-HUBTESTA-0012] 引擎弹层已把选择逻辑交给共享投影器且加可访问标识，旧锚点和筛选片段检查失败；证据：SourceEnginePopover.tsx。
+/// 检查引擎弹层消费后端引擎和设置状态，并分别暴露选择与管理入口，避免弹层自行决定运行时引擎。
 #[test]
 fn source_engine_popover_composes_engine_rows_defaults_and_manage_action() {
     let source = read_crate_file("web/src/components/overlays/SourceEnginePopover.tsx");
@@ -171,6 +178,7 @@ fn source_engine_popover_composes_engine_rows_defaults_and_manage_action() {
     );
 }
 
+/// 核对用户菜单的资料展示、动作提交和禁用入口拦截，关闭顺序不应让预留动作看起来已执行。
 #[test]
 fn user_menu_popover_composes_profile_header_menu_actions_and_close() {
     let user = read_crate_file("web/src/components/overlays/UserMenuPopover.tsx");
@@ -206,6 +214,7 @@ fn user_menu_popover_composes_profile_header_menu_actions_and_close() {
     );
 }
 
+/// 检查顶栏拥有锚点状态、项目页面拥有业务开关与载荷，浮层包装器提供共享表面和关闭契约。
 #[test]
 fn shell_and_project_pages_consume_shared_overlay_components() {
     let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
@@ -262,6 +271,7 @@ fn shell_and_project_pages_consume_shared_overlay_components() {
     );
 }
 
+/// 要求文档记录浮层拥有者、调用页面和验证目标，保留关闭与动作链的维护入口。
 #[test]
 fn overlay_primitives_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -297,6 +307,7 @@ fn overlay_primitives_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn overlay_primitives_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_overlay_primitives_contract.rs");

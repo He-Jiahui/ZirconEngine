@@ -2,6 +2,7 @@ use super::super::super::super::merge;
 use super::super::super::super::*;
 
 impl RuntimeSessionArchive {
+    /// 预检冲突策略并借用来源槽位；提交前来源档案必须保持可借用，目标代际必须未变化。
     pub fn prepare_merge_archive<'incoming>(
         &self,
         incoming: &'incoming RuntimeSessionArchive,

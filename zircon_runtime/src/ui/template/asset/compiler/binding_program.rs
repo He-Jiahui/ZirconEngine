@@ -11,6 +11,8 @@ use zircon_runtime_interface::ui::template::{
     UiTemplateNode,
 };
 
+/// 在组件、控件作用域和样式均确定后生成绑定程序；节点顺序须与后续树构建的先序遍历一致。
+/// 代际取自整个已展开模板，句柄只适用于该版本；树发生改变后必须重新编译，不能继续沿用旧端点。
 pub(crate) fn compile_binding_program(
     root: &UiTemplateNode,
     asset_id: &str,
@@ -41,6 +43,7 @@ pub(crate) fn compile_binding_program(
     Ok(program)
 }
 
+// 同一程序集中分配节点、绑定和名字空间，避免事件执行阶段重新解释文本；这些稠密 ID 不跨程序复用。
 struct BindingProgramCompiler<'a> {
     generation: UiCompiledBindingGeneration,
     asset_id: &'a str,
@@ -70,6 +73,7 @@ impl<'a> BindingProgramCompiler<'a> {
         }
     }
 
+    // 同一展开节点可同时持有组件内部绑定和调用点附加绑定；逐绑定保留来源资产，供重载失效索引追踪真实所有者。
     fn compile_node(&mut self, node: &UiTemplateNode) -> Result<(), UiAssetError> {
         if !node.binding_source_asset_ids.is_empty()
             && node.binding_source_asset_ids.len() != node.bindings.len()
@@ -262,6 +266,7 @@ impl<'a> BindingProgramCompiler<'a> {
         Ok(())
     }
 
+    // 目标端点必须有可寻址名字；可选的路由和动作则遵循各自的 schema，不能用空属性代替无目标状态。
     fn required_property(
         &mut self,
         value: Option<&str>,
@@ -310,6 +315,7 @@ impl<'a> BindingProgramCompiler<'a> {
         })
     }
 
+    // 参数引用应已在实例展开时替换；这里拒绝残留参数，防止执行阶段误用另一个实例的参数域。
     fn compile_expression(
         &mut self,
         expression: UiBindingExpression,
@@ -369,6 +375,7 @@ impl<'a> BindingProgramCompiler<'a> {
         }
     }
 
+    // 动作载荷允许仅供预览的表达式：不支持的语法保留为不可用值，由载荷缺失策略处理；超预算表达式仍阻止发布。
     fn compile_action_payload_value(
         &mut self,
         value: &toml::Value,
@@ -416,6 +423,7 @@ impl<'a> BindingProgramCompiler<'a> {
     }
 }
 
+// 每类名字有独立表；重复文本复用表内身份，最终程序连同名字表一起交给运行时解析 ID。
 #[derive(Default)]
 struct StringInterner {
     by_value: BTreeMap<String, u32>,

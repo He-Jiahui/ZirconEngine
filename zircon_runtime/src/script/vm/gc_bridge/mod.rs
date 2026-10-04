@@ -1,3 +1,5 @@
+//! VM GC 桥接的公开句柄、根租约和预算类型。
+
 mod budget;
 mod host_handle;
 mod vm_object_ref;

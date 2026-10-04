@@ -1,3 +1,6 @@
+//! 阴影勾选框使用节点显式内容偏移或默认列间距，和嵌套标签保持分列。
+//! 布尔值和勾选外观由 shadow/check 决定，此模块只返回行内容纳下的矩形。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::inspector_row_metrics;
 

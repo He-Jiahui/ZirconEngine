@@ -1,3 +1,4 @@
+// 经管理器注册和插件管理入口核对最小宿主能力，约束可选子系统开关不拆除基础界面。
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,

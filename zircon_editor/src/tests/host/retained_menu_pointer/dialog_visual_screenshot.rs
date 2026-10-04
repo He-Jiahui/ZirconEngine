@@ -1,3 +1,4 @@
+// 核对对话框的表面、正文、动作、严重程度和禁用态的像素与几何约束。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

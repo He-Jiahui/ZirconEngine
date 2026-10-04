@@ -1,3 +1,4 @@
+//! 资产打开走真实目录与类型贡献；文件后缀不能替代索引身份决定工具包。
 use super::super::*;
 use crate::core::asset::{
     AssetToolkitDescriptor, AssetToolkitOpenRoute, AssetTypeContribution, AssetTypeId,

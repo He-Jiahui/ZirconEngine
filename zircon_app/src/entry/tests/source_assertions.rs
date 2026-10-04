@@ -1,3 +1,7 @@
+//! 入口架构守卫共用的源码顺序断言，以及第一方插件装配边界检查。
+//! 这些检查读取原始文本，不解析 Rust；生产注释不能用于满足所需代码锚点。
+
+/// 按源文本顺序查找锚点；调用方需自行限定检查范围并避免注释造成假匹配。
 pub(crate) fn assert_source_order(source: &str, needles: &[&str], message: &str) {
     let mut offset = 0;
     for needle in needles {
@@ -75,6 +79,7 @@ fn app_manifest_depends_on_first_party_catalog_instead_of_plugin_crate_fan_out()
     }
 }
 
+// TODO: [CR-APP-ENTRY-0011] 确认第一方 provider 守卫与当前外来 catalogue 调用改动；外部基线未找到旧精确委托文本，缺少最终迁移契约；下一步待 owner 稳定后重审。
 #[test]
 fn first_party_runtime_provider_collection_delegates_to_catalog() {
     let source = include_str!("../first_party_runtime_plugins.rs");

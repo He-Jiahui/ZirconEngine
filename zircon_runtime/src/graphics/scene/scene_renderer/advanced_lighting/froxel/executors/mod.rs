@@ -1,3 +1,6 @@
+//! 将体积雾的介质注入、光散射和视线积分注册为图执行器。
+//! 通道依赖和资源顺序由渲染特性描述符声明，这里校验被分派的通道身份与队列条件。
+
 use std::sync::Arc;
 
 use crate::graphics::scene::scene_renderer::graph_execution::{

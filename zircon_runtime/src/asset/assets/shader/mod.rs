@@ -1,3 +1,5 @@
+//! 着色器资产模块把导入模型、readiness 报告和 zshader 文档统一导出；消费者通过这些类型进入材质编译与运行时资源流。
+
 mod dependency;
 mod entry_point;
 mod language;

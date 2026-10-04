@@ -1,3 +1,6 @@
+//! 主机表面帧租约验证提交绑定、重配置失效和终态释放；原生窗口句柄只是契约夹具。
+//! 目标与默认视图由帧所有者释放，普通资源销毁入口不能提前释放它们。
+
 use crate::DeterministicRhiContractDevice;
 use zr_rhi::{
     CommandList, PresentMode, RenderClearColor, RenderDevice, RenderNativeSurfaceTarget,

@@ -1,3 +1,5 @@
+//! 为非正方形进度控件提供居中的正方形栅格目标；图像加载侧据最终尺寸选择源分辨率。
+
 use crate::ui::retained_host::host_contract::data::FrameRect;
 
 pub(super) fn circular_progress_rect(rect: &FrameRect) -> FrameRect {

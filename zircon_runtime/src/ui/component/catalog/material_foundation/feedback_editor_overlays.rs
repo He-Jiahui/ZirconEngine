@@ -1,3 +1,5 @@
+//! 编辑器浮层为命令查询、确认、通知和拖放预览定义状态与插槽。Editor/TextInput 要求参与宿主筛选；动作标识保留给宿主操作路由，归约器记录交互结果。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

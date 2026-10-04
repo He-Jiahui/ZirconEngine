@@ -1,3 +1,5 @@
+//! 提供不需加载字体或建立任务池的产物检查 API，当前集成测试用它核对烘焙输出；通过格式校验仍须由运行时核对当前字体 identity。
+
 //! Inspection of encoded offline font distance-field artifacts.
 
 use crate::text::sdf::{SdfMode, SdfOfflineArtifact};
@@ -5,6 +7,7 @@ use crate::text::sdf::{SdfMode, SdfOfflineArtifact};
 use super::{FontSdfBakeError, FontSdfBakeMode};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 解码后的身份与容量摘要；这是文件声明的身份，调用方尚未把它同正在使用的字体源比较。
 pub struct FontSdfArtifactInspection {
     pub asset_guid: String,
     pub face_index: u32,
@@ -20,6 +23,7 @@ pub struct FontSdfArtifactInspection {
     pub encoded_len: usize,
 }
 
+/// 可在没有字体源的工具环境调用；先由 runtime codec 校验文件完整性和几何，再返回摘要。适用某个字体仍需 validate_identity。
 pub fn inspect_font_sdf_artifact(
     bytes: &[u8],
 ) -> Result<FontSdfArtifactInspection, FontSdfBakeError> {
@@ -43,6 +47,7 @@ pub fn inspect_font_sdf_artifact(
     })
 }
 
+/// 把 runtime 解码后的模式重新映射为工具公开类型，让 CLI 无需依赖内部 shader 判别值。
 fn public_mode(mode: SdfMode) -> FontSdfBakeMode {
     match mode {
         SdfMode::Sdf => FontSdfBakeMode::Sdf,

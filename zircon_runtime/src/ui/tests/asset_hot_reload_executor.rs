@@ -1,3 +1,4 @@
+//! 验证热重载执行先准备替换表面再发布，失败时保留旧表面与缓存状态。
 use std::collections::BTreeMap;
 
 use crate::asset::watch::{AssetChange, AssetChangeKind};
@@ -124,6 +125,7 @@ fn executor_evicts_cache_applies_theme_and_marks_registered_surface_dirty() {
     let mut theme_registry = UiThemeRegistry::default();
     let next_theme = changed_theme_document();
 
+    // BUG: [CR-W12-UI-ASSET-0002] main.zui 的修改命中现存表面且触发模板重建，下面却未提供 rebuilder；准备阶段返回 RebuilderRequired，随后 unwrap 使缓存/主题断言不可达。
     let execution = plan
         .execute_runtime_reload(
             UiAssetHotReloadExecutor {
@@ -307,6 +309,7 @@ fn executor_invalidates_resource_resolver_cache_for_refreshed_resources() {
     );
     assert_eq!(invalidation.references_removed, 1);
     assert_eq!(resolver.cache_len(), 1);
+    // TODO: [CR-UI-TEST-0005] 确认重解析结果的预期身份；这里只比较连续两次解析自身，无法区分新结果与错误保留的旧结果，下一步改变注册记录后核对返回句柄。
     assert_eq!(resolver.resolve(&icon_ref), resolver.resolve(&icon_ref));
 }
 

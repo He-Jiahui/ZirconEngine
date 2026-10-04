@@ -1,3 +1,7 @@
+//! 跨输入族检查 ABI 事件、IME/光标宿主请求和 gamepad 原始值的正向接线。
+//! 负向依赖断言仅检查 ApplicationHandler 源码未直接导入 Runtime 输入实现类型。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::sources::{
     runtime_app_source, runtime_application_handler_source, runtime_converter_root_source,
     runtime_entry_app_path, runtime_event_translation_source, runtime_file_drag_drop_root_source,

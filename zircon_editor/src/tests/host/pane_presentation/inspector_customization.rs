@@ -1,3 +1,4 @@
+// 从检查器快照构造展示正文，约束自定义模板元数据穿过窗格投影。
 use super::support::{chrome_fixture, editor_data_with_drawer_fixture, pane_body_spec};
 
 use crate::ui::layouts::windows::workbench_host_window::{

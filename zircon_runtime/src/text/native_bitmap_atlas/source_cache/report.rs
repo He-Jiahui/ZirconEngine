@@ -1,6 +1,11 @@
+//! 记录文字像素缓存、异步光栅池与图集绑定的逐帧成本。
+//! 池状态快照与本帧事件计数分开，供 NativeBitmapAtlasPrepareReport 判断退化并进行性能诊断。
+
 use crate::text::parallel::raster_pool::TextRasterWorkerPoolDiagnostics;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 描述当前缓存容量/异步队列及本帧事件，不意味着图集纹理已有对应像素。
+/// 持久光栅键数只统计已绑定的活缓存条目，可能小于缓存中的源图数量。
 pub(crate) struct NativeBitmapAtlasSourceCacheFrameReport {
     pub(crate) capacity: usize,
     pub(crate) max_byte_count: usize,

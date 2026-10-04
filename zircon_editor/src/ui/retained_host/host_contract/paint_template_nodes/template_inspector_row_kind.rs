@@ -1,3 +1,5 @@
+//! Inspector 专用行识别与布尔展示值汇聚入口；specialized 绘制和事件路由共享控件身份，但绘制子类仍依赖标签约定。
+
 mod bool_values;
 mod classifier;
 mod constants;

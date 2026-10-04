@@ -32,12 +32,14 @@ impl FrameCommandEncoderSet {
         })
     }
 
+    /// 并行阶段入队前封闭串行前缀，使提交顺序仍与编译图拓扑一致。
     pub(crate) fn flush_serial_prefix(&mut self) {
         if let Some(encoder) = self.active_serial.take() {
             self.completed.push(encoder.finish());
         }
     }
 
+    /// 接收已按拓扑排序的并行命令缓冲；调用前须完成串行前缀。
     pub(crate) fn append_parallel_buffers(
         &mut self,
         command_buffers: impl IntoIterator<Item = wgpu::CommandBuffer>,

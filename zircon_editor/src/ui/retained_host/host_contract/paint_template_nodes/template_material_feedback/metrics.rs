@@ -1,7 +1,10 @@
+//! 将宿主密度指标投影为反馈控件尺寸约定；不确定环仅使用固定示意进度，当前不驱动动画。
+
 use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 const CIRCULAR_INDETERMINATE_PERCENT: f32 = 0.58;
 
+// 与线形/环形呈现共用的快照投影；半径的最终帧边界仍由绘制几何层限制。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct MaterialFeedbackMetrics {
     pub linear_radius_floor: f32,

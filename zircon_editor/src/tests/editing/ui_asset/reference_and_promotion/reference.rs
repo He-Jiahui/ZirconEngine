@@ -1,3 +1,4 @@
+//! 核对导入控件引用的创建、包裹、解包与重排可用性，避免画布操作脱离真实树结构或引用资产身份。
 use super::super::support::*;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::UiNodeDefinitionKind;

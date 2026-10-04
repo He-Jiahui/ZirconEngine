@@ -1,3 +1,6 @@
+//! 从当前宿主主题取得分段控件的角色色；容器表面、选中表面与焦点环分别表达不同交互含义。
+//! cfg(test) 常量只是默认主题的断言基准，实际绘制入口使用当前主题投影。
+
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{

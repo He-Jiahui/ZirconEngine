@@ -13,6 +13,7 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 项目原生登记关闭的代次凭据；宿主回滚仅在运行时关闭和此处均到终态后释放项目作用。
 pub(crate) struct ProjectPluginRegistrationCloseReceipt {
     retired_package_ids: Vec<String>,
     remaining_project_package_ids: Vec<String>,
@@ -57,6 +58,7 @@ impl EditorPluginManager {
     ///
     /// The candidate remains under the lifecycle mutation lock through discovery validation and
     /// publication, so panels never observe a catalog built from a stale project snapshot.
+    /// 只替换当前项目来源的登记；验证和目录发布位于同一生命周期互斥区，避免宿主读到旧项目贡献。
     pub(crate) fn publish_project_registration_reports(
         &self,
         reports: impl IntoIterator<Item = EditorPluginRegistrationReport>,
@@ -96,6 +98,7 @@ impl EditorPluginManager {
     }
 
     /// Clears native registrations from a project that has just been closed or rolled back.
+    /// 项目关闭或激活回滚时撤销项目来源并给出终态凭据；保留内置来源的目录条目。
     pub(crate) fn clear_project_registration_reports(
         &self,
     ) -> Result<ProjectPluginRegistrationCloseReceipt, EditorPluginDiscoveryError> {

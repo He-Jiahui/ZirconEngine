@@ -11,6 +11,7 @@ mod ui_asset;
 mod viewport;
 mod welcome;
 
+// 宿主启动和新浮窗安装时统一注册 pane 回调；事件由模板上下文转交 RetainedEditorHost，避免 UI 层持有业务状态。
 pub(super) fn wire_pane_surface_callbacks(
     ui: &UiHostWindow,
     host: &Rc<RefCell<RetainedEditorHost>>,

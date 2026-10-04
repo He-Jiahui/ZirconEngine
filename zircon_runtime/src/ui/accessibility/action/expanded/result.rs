@@ -10,6 +10,7 @@ use crate::ui::surface::{UiPropertyMutationReport, UiPropertyMutationStatus};
 
 use super::super::result::{append_binding_report_diagnostic, finish_handled, finish_unhandled};
 
+// 只有属性事务接受变更才发布 Toggle/Open/Close 组件事件；值不变仍可视作已处理，但不得伪报变更。
 pub(super) fn finish_expanded_mutation(
     target: UiNodeId,
     phase: &str,

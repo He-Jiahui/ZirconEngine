@@ -1,3 +1,4 @@
+// 核对滑块、步进和范围状态的轨道、焦点、按下及禁用绘制。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

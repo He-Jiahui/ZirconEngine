@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。保存同组守卫使用的局部数据或辅助变换。
 #[path = "ecs_extract_counters/asset_animation.rs"]
 mod asset_animation;
 #[path = "ecs_extract_counters/extract_cache.rs"]

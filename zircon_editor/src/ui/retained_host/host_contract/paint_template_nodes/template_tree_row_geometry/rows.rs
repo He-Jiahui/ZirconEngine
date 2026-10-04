@@ -1,3 +1,6 @@
+//! 显式缩进优先于树深度，展开符与对象图标随同移动；导线以层级级数构造。
+//! 返回区域未经祖先裁剪，commands 负责容纳检查，surface 负责导线命令的裁剪。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::tree_metrics;
 

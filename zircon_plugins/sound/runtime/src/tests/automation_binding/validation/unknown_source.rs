@@ -1,3 +1,4 @@
+// 先注册指向不存在声源的绑定，再核对应用阶段返回 UnknownSource。
 use super::super::super::*;
 
 #[test]

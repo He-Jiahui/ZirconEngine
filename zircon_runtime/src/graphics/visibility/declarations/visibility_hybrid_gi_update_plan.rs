@@ -1,3 +1,4 @@
+/// 可见性侧提交给 Hybrid GI provider 的探针需求和逐帧变化计划。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct VisibilityHybridGiUpdatePlan {
     pub resident_probe_ids: Vec<u32>,

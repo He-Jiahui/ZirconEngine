@@ -16,6 +16,7 @@ use super::super::super::viewport_toolbar_projection::attach_viewport_toolbar_su
 use super::payloads::NativeWindowPanePayloads;
 
 #[allow(clippy::too_many_arguments)]
+// 浮窗复用主窗展示投影，但附加自己的工具栏命中帧和原生窗口目标属性。
 pub(super) fn apply_native_window_presenter_presentation(
     ui: &UiHostWindow,
     target: &NativeFloatingWindowTarget,

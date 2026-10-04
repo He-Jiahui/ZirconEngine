@@ -1,3 +1,4 @@
+//! 对发布、请求和广播三个入口运行相同载荷矩阵，核对每个类型化消息族在传输后保持原始语义。
 use crate::core::editor_message::{
     EditorMessage, EditorMessageBus, EditorMessageProtocol, EditorMessageRequest,
     EditorMessageResponse, EditorRequestHandler,

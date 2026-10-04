@@ -1,3 +1,5 @@
+//! 这些错误跨 importer、网格构造和图形资源准备传递；它们区分坏作者数据与无法执行的派生操作，供上层给出可定位的失败。
+
 use std::fmt;
 
 use crate::core::framework::render::RenderMeshTopology;

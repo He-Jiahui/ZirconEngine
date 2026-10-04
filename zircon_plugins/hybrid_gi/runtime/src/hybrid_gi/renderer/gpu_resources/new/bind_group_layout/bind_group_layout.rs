@@ -1,3 +1,4 @@
+// TODO: [CR-HYBRID-GI-GPU-RESOURCES-0001] 本文件未被父模块声明且仅有八个绑定；核对并清理与有效九绑定布局的分叉。
 pub(in crate::hybrid_gi::renderer::gpu_resources::new) fn bind_group_layout(
     device: &wgpu::Device,
 ) -> wgpu::BindGroupLayout {

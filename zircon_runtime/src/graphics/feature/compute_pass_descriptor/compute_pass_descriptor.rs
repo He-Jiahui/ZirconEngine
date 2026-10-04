@@ -1,3 +1,4 @@
+//! 计算通道保存作者提供的着色器、绑定和资源物理约束，供图降级与编译校验共同使用。
 use std::collections::BTreeMap;
 
 use crate::graphics::feature::RenderResourceSchema;
@@ -9,6 +10,7 @@ use crate::render_graph::{
 
 use super::ComputeShaderSource;
 
+/// 计算通道的作者契约；进入图之前须明确着色器和资源 schema。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComputePassDescriptor {
     pub pass_name: String,

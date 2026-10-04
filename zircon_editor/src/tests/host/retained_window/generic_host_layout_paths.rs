@@ -1,3 +1,4 @@
+// 核对旧保留源码路径已退出编辑器树，当前界面资源和投影模块承担相应职责。
 use std::path::{Path, PathBuf};
 
 fn editor_root() -> &'static Path {

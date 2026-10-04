@@ -1,3 +1,5 @@
+//! 编译与资源导入动作共享视觉角色分类，按钮和图标按钮据同一身份选择特例样式；这里只识别外观，不派发命令。
+
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

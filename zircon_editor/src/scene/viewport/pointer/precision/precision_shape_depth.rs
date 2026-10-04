@@ -1,3 +1,5 @@
+//! 投影深度只作同类近似屏幕评分的次级排序，不能当世界射线交点距离或编辑域身份。
+
 use super::PrecisionShape;
 
 impl PrecisionShape {

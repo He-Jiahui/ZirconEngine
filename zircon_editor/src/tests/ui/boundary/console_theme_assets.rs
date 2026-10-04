@@ -1,3 +1,5 @@
+//! 验证控制台文本和筛选控件对主题 token 的引用。
+
 const CONSOLE_BODY_TEMPLATE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/assets/ui/editor/host/console_body.zui"

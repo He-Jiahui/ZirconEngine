@@ -4,6 +4,8 @@ use zircon_runtime_interface::ui::template::{
     UiCompiledBindingGeneration, UiCompiledBindingProgram,
 };
 
+/// 热重载发布回执，记录表面切换后的代际拒绝与组件状态迁移结果。
+/// 静止状态针对已替换表面的旧绑定句柄；这份记录不承担独立线程或异步任务的等待屏障。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UiBindingQuiescenceReceipt {
     pub tree_id: UiTreeId,
@@ -18,6 +20,7 @@ pub struct UiBindingQuiescenceReceipt {
     pub stale_handles_rejected: bool,
 }
 
+// 将绑定合法性检查放在预备阶段，所有目标表面准备成功后才允许统一发布；本对象不持有或修改旧程序。
 #[derive(Clone, Debug)]
 pub(crate) struct UiBindingReloadTransaction {
     tree_id: UiTreeId,
@@ -28,6 +31,7 @@ pub(crate) struct UiBindingReloadTransaction {
     retires_old_generation: bool,
 }
 
+/// 在任何表面被替换前终止预备的契约错误，使宿主继续保留上一份可用状态。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiBindingReloadPrepareError {
     #[error("existing binding program for {tree_id:?} is malformed")]
@@ -62,6 +66,7 @@ pub enum UiBindingReloadPrepareError {
 }
 
 impl UiBindingReloadTransaction {
+    // 代际改变不允许顺便改变根资产身份；同一代际也不能代表不同内容，否则已发出的句柄会误指向新绑定。
     pub(crate) fn prepare(
         tree_id: UiTreeId,
         previous: &UiCompiledBindingProgram,
@@ -115,6 +120,7 @@ impl UiBindingReloadTransaction {
         })
     }
 
+    // 仅由执行器在替代表面安装、旧表面释放后消费；迁移计数来自该次表面状态迁移，不在这里重新计算。
     pub(crate) fn publish(
         self,
         published: &UiCompiledBindingProgram,

@@ -12,6 +12,7 @@ pub(super) fn native_package_editor_crate(
     native_package_module_crate(package_manifest, PluginModuleKind::Editor)
 }
 
+// 每类模块只取清单中的首个 crate，其他同类模块不会覆写默认选择。
 fn native_package_module_crate(
     package_manifest: &PluginPackageManifest,
     kind: PluginModuleKind,

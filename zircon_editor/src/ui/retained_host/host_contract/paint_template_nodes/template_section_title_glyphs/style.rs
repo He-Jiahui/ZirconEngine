@@ -1,3 +1,5 @@
+//! 将宿主主题的次级文字色投影到内置图标；Transform 使用更低强调度，与标题文本独立。
+
 use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 use super::identity::SectionTitleIcon;
 

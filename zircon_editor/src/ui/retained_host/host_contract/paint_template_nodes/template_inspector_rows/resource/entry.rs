@@ -1,3 +1,5 @@
+//! 资源属性先画标签，再画 Material 单槽计数，最后画选择字段；该顺序保证数值与图标落在相同字段层。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_inspector_row_kind::InspectorResourceKind;

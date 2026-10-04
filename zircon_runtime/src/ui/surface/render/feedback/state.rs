@@ -15,6 +15,8 @@ pub(super) enum FeedbackKind {
     Toast,
 }
 
+/// 将共享状态投影到告警、提示或 toast 家族；保留指针活动作为独立条件，以免被焦点优先级遮蔽。
+/// 这里只决定视觉色，popup 所有权、定时关闭及交互门禁由输入层管理。
 #[derive(Clone, Copy)]
 pub(super) struct FeedbackRenderState {
     pub(super) family: UiPainterFamily,

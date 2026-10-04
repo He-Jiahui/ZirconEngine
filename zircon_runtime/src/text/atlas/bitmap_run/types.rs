@@ -1,3 +1,6 @@
+//! 位图路径的分配、上传与绘制交接描述。
+//! 一次字形出现与可复用光栅内容分开建模，使同一缓存槽能对应多个屏幕位置和颜色。
+
 use std::collections::BTreeSet;
 
 use crate::core::math::UVec2;
@@ -46,6 +49,8 @@ pub(crate) struct GlyphAtlasBitmapSlotInvalidation {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+/// 分配完成后的图集候选快照与后续工作清单；分配成功不等于纹理上传成功。
+/// 持有者需在实际提交后维护阴影及失败失效状态，不能仅凭缓存槽命中省略尚未确认的上传。
 pub(crate) struct GlyphAtlasBitmapRunPlan {
     pub(crate) atlas: GlyphAtlasSet,
     pub(crate) glyphs: Vec<GlyphAtlasBitmapGlyph>,

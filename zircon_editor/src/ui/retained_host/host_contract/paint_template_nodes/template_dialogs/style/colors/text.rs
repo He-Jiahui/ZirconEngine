@@ -1,3 +1,5 @@
+//! 标题和正文的语义颜色；破坏性或error标题可显示严重性色，正文维持易读的次级角色。
+
 use super::super::super::identity::DialogKind;
 use super::super::palette::dialog_palette;
 use super::super::severity::{severity, severity_mark_color, DialogSeverity};

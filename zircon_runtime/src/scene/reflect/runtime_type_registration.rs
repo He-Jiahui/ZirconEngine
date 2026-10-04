@@ -5,6 +5,7 @@ use zircon_runtime_interface::reflect::ReflectTypeRegistration;
 use super::{ReflectComponent, ReflectResource};
 
 #[derive(Clone)]
+/// 反射元数据与可选 World 适配器的一次注册单元；注册表校验后再向编辑器发布模式目录。
 pub struct RuntimeTypeRegistration {
     pub registration: ReflectTypeRegistration,
     pub component: Option<ReflectComponent>,

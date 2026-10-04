@@ -1,3 +1,6 @@
+//! 定义根 manager 与可选 HTTP feature 的后端协议，并保存监听器与路由管理态。
+//! 无后端时真实 socket 请求返回能力不可用；已注册本地路由仍可直接执行。
+
 use std::collections::HashMap;
 use std::fmt;
 use std::net::SocketAddr;
@@ -34,6 +37,8 @@ impl fmt::Debug for ManagedHttpRoute {
     }
 }
 
+/// HTTP feature 注入的 socket 实现；回调可重入 manager，调用方不能持有路由或监听器表锁。
+/// 返回的监听器 abort handle 用于关闭及登记失败回滚。
 pub trait HttpRuntimeBackend: Send + Sync + std::fmt::Debug {
     fn listen_http(
         &self,

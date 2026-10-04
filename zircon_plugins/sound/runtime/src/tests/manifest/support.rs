@@ -1,3 +1,4 @@
+//! 测试专用的静态清单投影入口；只接受仓内 sound/plugin.toml 的已知写法，供对照测试使用。
 mod contributions;
 mod metadata;
 mod options;

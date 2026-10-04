@@ -1,3 +1,4 @@
+//! 诊断纹理复制使用预先计算的行布局；暂存缓冲与场景包共享票据后才允许映射。
 use zr_rhi::{RhiError, TextureCopyRegion};
 
 use super::super::super::diagnostics::{

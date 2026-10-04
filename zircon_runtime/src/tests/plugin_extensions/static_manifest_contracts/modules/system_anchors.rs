@@ -1,3 +1,4 @@
+//! 按包名定位插件源码后检查注册入口与系统锚点的词法共现；递归读取包含测试及注释，结果不能单独证明该锚点实际注册。
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -7,6 +8,7 @@ use super::super::{
     plugins_workspace_root,
 };
 
+// TODO: [CR-RUNTIME-TESTS-PLUGIN-0001] 确认声明的系统锚点是否实际进入模块注册；缺少锚点与注册调用的对应证据；下一步核对登记表或阶段计划。
 #[test]
 fn declared_system_anchors_are_registered() {
     let crate_index = PluginCrateIndex::new();

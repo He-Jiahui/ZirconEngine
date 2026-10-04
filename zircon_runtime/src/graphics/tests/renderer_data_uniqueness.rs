@@ -1,3 +1,4 @@
+//! 阶段和 feature 身份在 TOML 与运行时资产两个入口都必须唯一，防止同名 pass 的图归属含糊。
 use crate::graphics::{
     BuiltinRenderFeature, RenderPassStage, RendererAsset, RendererDataDocument,
     RendererDataDocumentError, RendererFeatureAsset,

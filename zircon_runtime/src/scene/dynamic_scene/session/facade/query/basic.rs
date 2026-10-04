@@ -18,6 +18,7 @@ impl RuntimeSessionArchive {
         session_query::slot(self, slot_id)
     }
 
+    /// 以规范 ID 顺序读取当前代际的槽位；适合清单和稳定报告，不暴露内部密集行顺序。
     pub fn slots(&self) -> impl Iterator<Item = &RuntimeSessionSlot> {
         session_query::slots(self)
     }

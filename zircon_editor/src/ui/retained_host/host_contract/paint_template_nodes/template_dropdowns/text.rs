@@ -1,3 +1,5 @@
+//! 下拉标签取共享节点文字；空值时可用首个选项作占位，并为尾部箭头保留稳定文字空间。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchDropdownStyle;
@@ -7,6 +9,7 @@ use super::geometry::{frame_is_within, has_paintable_dropdown_extent};
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+/// 入口已传入占位样式及同帧指标；文字框必须完整装入下拉本体，并继续受 clip 限制。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dropdown_label(
     commands: &mut Vec<HostPaintCommand>,
     label: String,
@@ -45,6 +48,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dr
     ));
 }
 
+/// 共享标签优先；无文字时使用第一个选项作为占位，而非已选择索引的显示值。
 pub(super) fn dropdown_label(node: &TemplatePaneNodeData) -> (String, bool) {
     let label = template_node_label(node, None);
     if !label.trim().is_empty() {

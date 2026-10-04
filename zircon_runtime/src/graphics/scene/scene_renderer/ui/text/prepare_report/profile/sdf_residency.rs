@@ -1,5 +1,6 @@
 use super::super::ScreenSpaceUiTextPrepareReport;
 
+/// 观察 SDF 烘焙期间的字体资源驻留失败；供预算和 fallback 排查，不改变本帧回退策略。
 pub(super) fn record_sdf_residency_profile(report: &ScreenSpaceUiTextPrepareReport) {
     let bake = &report.sdf_renderer.bake;
     crate::profile_counter!(

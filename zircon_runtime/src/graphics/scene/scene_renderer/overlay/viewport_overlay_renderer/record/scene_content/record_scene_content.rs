@@ -6,6 +6,7 @@ use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::types::ViewportRenderFrame;
 
 impl ViewportOverlayRenderer {
+    /// 直接场景路径先初始化天空及附件，再回放网格内容；交互辅助层由后续独立阶段绘制。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn record_scene_content(
         &mut self,

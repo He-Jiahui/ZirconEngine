@@ -1,3 +1,6 @@
+//! 保存创建表单的草稿与最近一次提交字段，方便失败后仍保留用户输入。
+//! 草稿更新不创建目录；真正创建走后台编辑器准入和项目生命周期校验。
+
 use std::path::PathBuf;
 
 use crate::error::HubError;
@@ -8,6 +11,7 @@ use crate::tauri_app::action_request::{CreateProjectActionPayload, NewProjectDra
 use super::HubRuntimeSession;
 
 impl HubRuntimeSession {
+    /// 动作入口用于保存可不完整的表单输入并切到创建流程；保存失败会向调用方返回错误。
     pub(super) fn update_new_project_draft(
         &mut self,
         payload: NewProjectDraftActionPayload,
@@ -23,6 +27,7 @@ impl HubRuntimeSession {
         self.persist()
     }
 
+    /// 在后台创建校验之前保留此次提交字段；失败记录之后的保存负责持久化。
     pub(super) fn remember_create_project_payload(&mut self, payload: &CreateProjectActionPayload) {
         self.apply_new_project_draft_fields(
             payload.name.clone(),
@@ -32,6 +37,7 @@ impl HubRuntimeSession {
         );
     }
 
+    /// 只做草稿的有限规范化和注册表成员筛选；模板启用状态、绝对路径和引擎就绪由创建路径校验。
     fn apply_new_project_draft_fields(
         &mut self,
         name: String,

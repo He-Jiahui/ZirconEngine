@@ -9,6 +9,8 @@ use zircon_runtime_interface::ui::binding::UiEventBinding;
 use zircon_runtime_interface::ui::event_ui::{UiInvocationContext, UiInvocationError, UiRouteId};
 
 impl UiEventManager {
+    /// 注册可直接执行的处理器；重复 native binding 会令按绑定查询指向新路由，旧 route_id 仍可直接调用。
+    /// 需要稳定去重的宿主应先查询 route_id_for_binding；仅发布宿主动作时使用 register_binding_route。
     pub fn register_route<F>(&mut self, binding: UiEventBinding, handler: F) -> UiRouteId
     where
         F: Fn(UiInvocationContext) -> Result<Value, UiInvocationError> + Send + Sync + 'static,

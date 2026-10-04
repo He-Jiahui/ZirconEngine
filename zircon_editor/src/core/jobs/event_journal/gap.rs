@@ -1,3 +1,4 @@
+//! 日志保留预算淘汰生命周期边时，用缺口描述通知消费者重新同步权威状态；合并后的首尾序号是受影响范围，不代表范围内每条记录都被丢弃。
 use serde::{Deserialize, Serialize};
 
 pub(super) const JOB_EVENT_JOURNAL_GAP_RETAINED_BYTES: usize =

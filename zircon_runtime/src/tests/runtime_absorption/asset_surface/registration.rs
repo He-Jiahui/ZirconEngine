@@ -1,3 +1,4 @@
+//! 资产入口吸收后，注册、命名空间与查询边界保持由运行时资产模块拥有。以结果断言检查当前接口或源码快照对应的边界。
 use super::support::{read_runtime_file, runtime_root};
 
 #[test]

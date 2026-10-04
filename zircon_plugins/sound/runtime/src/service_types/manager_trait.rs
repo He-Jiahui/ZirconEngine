@@ -1,3 +1,4 @@
+//! 这里组合框架的各声音子接口；外部经注册的 SoundManager 调用，实际状态与后端操作由同目录服务实现承担。
 mod acoustics;
 mod automation_timeline;
 mod backend;

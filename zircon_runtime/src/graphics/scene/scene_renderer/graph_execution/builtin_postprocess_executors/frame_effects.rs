@@ -1,3 +1,6 @@
+//! 在录制时从同一份帧提取快照判断效果开关。
+//! 这些判定只决定本次是否编码；是否存在对应 pass 和资源仍由编译图负责。
+
 use crate::core::framework::render::{AntiAliasMode, RenderPostProcessEffectStackSettings};
 
 use super::super::RenderPassExecutionContext;

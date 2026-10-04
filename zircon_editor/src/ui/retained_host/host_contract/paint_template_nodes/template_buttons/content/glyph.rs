@@ -1,3 +1,5 @@
+//! 为内容编排提供语义选择、占位和资产入口；领先图标与尾随菜单箭头是两个不同布局角色。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_button_glyphs::{
@@ -8,6 +10,7 @@ use super::super::identity::{button_identity_contains, button_identity_values};
 use super::layout::content_centered_y;
 use super::metrics::{button_chevron_reserve, button_icon_gap, trailing_glyph_inset};
 
+/// 从节点的显示身份字段推断内置图标，优先危险操作，再菜单，再添加；显式资产名称由内容入口优先处理。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_glyph(
     node: &TemplatePaneNodeData,
 ) -> ButtonGlyph {
@@ -32,6 +35,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
     }
 }
 
+/// 为领先图标及其与标签的间距预留槽宽；有无标签由调用方一次确定。
 pub(super) fn button_glyph_width(
     node: &TemplatePaneNodeData,
     glyph: ButtonGlyph,
@@ -101,6 +105,7 @@ pub(super) fn push_content_glyph(
     push_button_glyph(commands, rect, clip, order, glyph, color, opacity);
 }
 
+/// 返回统一资产入口是否立即追加命令；false 允许内容入口使用内置语义图标，异步资源随后由宿主重绘。
 pub(super) fn push_content_asset_icon(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

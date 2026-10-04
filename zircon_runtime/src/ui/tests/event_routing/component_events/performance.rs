@@ -1,3 +1,5 @@
+//! 定量样本检查绑定索引、目标过滤及载荷移交的成本；行为正确性由同级组件事件测试限定。
+
 use std::{hint::black_box, time::Instant};
 
 use super::*;
@@ -625,6 +627,7 @@ fn sample_single_binding_event_payload_move(
     elapsed_us
 }
 
+// 采样轮次固定且非空；只负责与同一负载的对照分布比较，不处理无样本情况。
 fn nearest_rank_p95(samples: &[u128]) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();

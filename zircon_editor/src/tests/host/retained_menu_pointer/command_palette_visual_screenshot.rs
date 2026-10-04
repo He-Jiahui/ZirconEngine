@@ -1,3 +1,4 @@
+// 核对命令面板的搜索框、候选行、详情和空状态在原生绘制中的布局。
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 

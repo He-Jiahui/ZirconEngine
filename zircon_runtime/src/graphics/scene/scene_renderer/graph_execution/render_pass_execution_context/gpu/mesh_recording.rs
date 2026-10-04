@@ -1,3 +1,6 @@
+//! 把各阶段 mesh 命令流录制到图声明的附件，并按管线准入状态决定绘制。
+//! 资源访问先由 pass resolver 校验；不可用变体只记录回退统计，不复用上一个管线状态。
+
 use crate::graphics::pipeline::{PipelineAdmission, RenderPassStage};
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
@@ -18,6 +21,8 @@ const DEPTH_PREPASS_PIPELINE_CONSUMER: &str = "depth_prepass";
 const TAA_REACTIVE_PIPELINE_CONSUMER: &str = "taa_reactive_mask";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// 同一场景阶段可由普通、半分辨率、PBR 或折射切片提供命令；
+// 选择命令源必须与注册的 executor ID 及图资源附件保持一致。
 enum MeshStageCommandSource {
     Standard(RenderPassStage),
     HalfResolutionTransparent,

@@ -1,3 +1,4 @@
+//! 验证大量后台缩略图工作仍遵守并发和待运行预算，主循环泵送保持完整生命周期；计时记录描述泵阶段基线，不包含整个界面或渲染帧。
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex};

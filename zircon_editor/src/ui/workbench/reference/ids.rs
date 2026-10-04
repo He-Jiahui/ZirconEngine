@@ -1,6 +1,7 @@
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 固定参考控件身份；测试断言依赖这些ID与动态样本ID保持区分。
 pub struct EditorWorkbenchReferenceIds {
     pub root: UiNodeId,
     pub top_bar: UiNodeId,

@@ -9,6 +9,8 @@ use super::{
     AnimationTickReport, AnimationTickRequest, AnimationTrackPath,
 };
 
+/// Core 服务注册表暴露的动画能力边界；实现负责配置、参数和单次求值，
+/// 场景中的逐帧调度、资源缓存与 World 写入由调用方的运行时流水线协调。
 pub trait AnimationManager: Send + Sync {
     fn playback_settings(&self) -> AnimationPlaybackSettings;
     fn normalize_track_path(&self, path: &AnimationTrackPath) -> AnimationTrackPath;
@@ -35,6 +37,7 @@ pub trait AnimationManager: Send + Sync {
         current_state: Option<&str>,
         parameters: &AnimationParameterMap,
     ) -> AnimationStateMachineEvaluation;
+    /// 在调用方已取得骨架与片段后采样局部骨骼姿态；资源加载与姿态发布不属于此接口。
     fn sample_clip_pose(
         &self,
         skeleton: &AnimationSkeletonAsset,
@@ -42,6 +45,7 @@ pub trait AnimationManager: Send + Sync {
         time_seconds: Real,
         looping: bool,
     ) -> AnimationResult<AnimationPoseOutput>;
+    // TODO: [CR-ANIMATION-0001] 核实世界 tick/status 的服务职责：当前两套管理器实现沿用空默认值且无生产调用；接入前需确定真实帧状态来源。
     fn tick_world_contract(&self, request: AnimationTickRequest) -> AnimationTickReport {
         AnimationTickReport::new(request.world)
     }

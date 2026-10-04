@@ -1,3 +1,4 @@
+//! 注销目录事件会清理对应处理器、执行器和待发队列；同 ID 注册只更新目录描述，不撤销已有执行注册。
 use zircon_runtime::core::framework::sound::{
     SoundDynamicEventCatalog, SoundDynamicEventDescriptor, SoundDynamicEventHandlerDescriptor,
     SoundError,

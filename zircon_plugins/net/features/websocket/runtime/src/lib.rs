@@ -1,3 +1,6 @@
+//! 集中公开 WS feature 与 backend 注入入口，供宿主将真实握手/读写接到根 net manager。
+//! 无 feature 时根 manager 的 loopback 仍可用，真实网络连接返回能力缺失。
+
 mod backend;
 mod capability;
 mod feature;

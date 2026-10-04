@@ -1,3 +1,4 @@
+//! 盘点运行时和导出模板的外部调用入口，检查源码窗口中约定的异常隔离调用；这是静态结构证据。
 use std::path::{Path, PathBuf};
 
 use super::{runtime_src_path, rust_source_view::production_section};

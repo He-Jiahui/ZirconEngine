@@ -1,3 +1,4 @@
+//! 从编译图贡献分别产生姿态请求和剪辑事件范围；基础姿态归一混合后再应用相对绑定姿态的加法层。
 use std::collections::BTreeMap;
 
 use zircon_runtime::asset::{AssetId, ProjectAssetManager};
@@ -59,6 +60,7 @@ pub(super) fn resolve_graph_pose_requests(
     (poses, events)
 }
 
+// TODO: [CR-PLUGIN-ANIMATION-0004] 确认零权重剪辑是否仍应发送轨道事件；姿态采样会跳过零权重，事件采样却遍历全部贡献；下一步补充混合图事件契约测试。
 pub(super) fn sample_compiled_graph_clip_event_samples(
     asset_manager: &ProjectAssetManager,
     entity: EntityId,

@@ -35,5 +35,6 @@ fn nn_weight_upload_plan_keeps_model_offsets_and_blob() {
 
     assert_eq!(upload.resource_name, "nn.weights");
     assert_eq!(upload.offset_for_tensor(1), Some(NN_WEIGHT_ALIGNMENT));
+    // TODO: [CR-neural_runtime_tests-0001] 用可区分的非零权重样本校验 `upload.bytes` 内容；当前全零样本与长度断言不能确认 `from_model` 保留原始字节。
     assert_eq!(upload.bytes.len(), model.weights.len());
 }

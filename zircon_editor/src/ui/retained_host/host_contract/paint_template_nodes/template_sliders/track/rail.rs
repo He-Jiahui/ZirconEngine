@@ -1,9 +1,13 @@
+//! 轨道底色和从范围下限到当前值的填充共享归一化区间。
+
+// BUG: [CR-EDITOR-PAINT-FORMS-0008] 右端极窄填充被强制放大至 1 像素，x 仍按原始区间起点计算，结果可能超过轨道右边界。
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchSliderStyle;
 use super::super::super::template_slider_geometry::{slider_fill_span, workbench_slider_metrics};
 use super::super::layers::track_fill_order;
 
+/// 调用方传入已归一化主值和可选下限；底轨总绘制，正宽区间才追加填充。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_track(
     commands: &mut Vec<HostPaintCommand>,
     style: &WorkbenchSliderStyle,

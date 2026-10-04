@@ -1,3 +1,5 @@
+//! 表格夹具把列头、行身份和虚拟窗口建在同一表面，供子测试核对宽度、排序与选择状态的权威来源。
+
 use super::*;
 use std::collections::BTreeMap;
 use zircon_runtime_interface::ui::{

@@ -5,6 +5,7 @@ use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 use super::pane_empty_state_model::PaneEmptyStateModel;
 
 #[derive(Clone, Debug, PartialEq)]
+/// 标签的展示及命令定位信息；workspace和split路径定位宿主，instance_id定位具体视图。
 pub struct DocumentTabModel {
     pub workspace: WorkspaceTarget,
     pub workspace_path: Vec<usize>,

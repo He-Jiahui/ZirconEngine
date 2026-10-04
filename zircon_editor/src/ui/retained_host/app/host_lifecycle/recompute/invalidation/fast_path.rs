@@ -5,6 +5,7 @@ use zircon_runtime::diagnostic_log::{
 };
 
 impl RetainedEditorHost {
+    // TODO: [CR-EDITOR-APP-SHELL-0003] 核实此纯重绘分支是否仍可达；纯 PAINT_ONLY 不进入事务，无旧 dirty 标志时外层重算提前返回。
     pub(in crate::ui::retained_host::app::host_lifecycle::recompute::invalidation) fn complete_paint_only_recompute(
         &mut self,
         recompute_reasons: &HostInvalidationMask,

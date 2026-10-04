@@ -5,6 +5,7 @@ use crate::core::math::Real;
 
 use super::{PhysicsQueryFilter, PhysicsQueryMode};
 
+/// 面向已同步世界的射线查询；调用方须提供有限非零方向和正距离，无效输入视为空命中。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PhysicsRayCastQuery {
     pub world: WorldHandle,

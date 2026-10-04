@@ -11,6 +11,7 @@ use super::{
 };
 
 #[derive(Clone, Debug)]
+/// EditorState及runtime的业务只读投影；host补注册类型/Play信息后与layout绑定为chrome。
 pub struct EditorDataSnapshot {
     pub scene_entries: SceneEntries,
     pub inspector: Option<InspectorSnapshot>,

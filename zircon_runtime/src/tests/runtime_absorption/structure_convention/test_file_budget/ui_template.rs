@@ -1,10 +1,14 @@
+//! Runtime 结构门禁读取模板测试与文档以约束构树、交互、槽位和布局职责归属；读取目标必须跟随模板编译器边界迁移保持有效。
+
 use super::*;
 
+/// 测试框架执行目录迁移约束，根布局守卫另按文本查验入口；调用需要当前源码和迁移文档，而非编译产物。
 #[test]
 fn runtime_15_ui_template_tests_are_folder_backed() {
     let parent = read_runtime_src("ui/tests/template.rs");
     let interaction_bindings = read_runtime_src("ui/tests/template/interaction_bindings.rs");
     let layout_compute = read_runtime_src("ui/tests/template/layout_compute.rs");
+    // BUG: [CR-UI-TEST-0605] 此读取仍依赖已移除的旧模板加载子测试，当前会先因缺失文件失败；后续挂载与总数约束也需对齐编译器职责。
     let loader_instance_validation =
         read_runtime_src("ui/tests/template/loader_instance_validation.rs");
     let slot_contracts = read_runtime_src("ui/tests/template/slot_contracts.rs");
@@ -84,6 +88,7 @@ fn runtime_15_ui_template_tests_are_folder_backed() {
         &["fn template_surface_builder_computes_layout_from_template_contract_attributes"],
     );
 
+    // 总数用于证明迁移保留历史测试，不能据此判断编译器与运行时的语义覆盖是否完整。
     let child_test_total = [
         interaction_bindings.as_str(),
         layout_compute.as_str(),
@@ -129,6 +134,7 @@ fn runtime_15_ui_template_tests_are_folder_backed() {
         );
     }
 
+    // 多份文档共同描述同一职责迁移；任何边界调整须同时重核代码挂载和这些说明。
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -144,6 +150,7 @@ fn runtime_15_ui_template_tests_are_folder_backed() {
         ("module convention doc", module_doc.as_str()),
         ("UI architecture doc", ui_doc.as_str()),
     ] {
+        // BUG: [CR-UI-TEST-0610] 此循环仍要求父计划和总览复制已迁入编号归档的历史模板拆分锚点，多个 clean 文档缺针；需重核权威来源。
         assert_contains_all(
             label,
             source,

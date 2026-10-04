@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "naming_boundary/classifiers.rs"]
 mod classifiers;
 #[path = "naming_boundary/lexical_scan.rs"]

@@ -1,3 +1,5 @@
+//! 标题内部保留相同左侧间距给背景、图标和文字；布局不足时由命令入口放弃局部内容。
+
 use super::super::super::data::FrameRect;
 use super::super::template_section_title_glyphs::section_title_glyph_metrics;
 use super::style::section_title_metrics;

@@ -1,3 +1,5 @@
+//! toast 子命令组织边界；entry 为本组件统一分发底面、消息和尾部反馈。
+
 mod action;
 mod entry;
 mod icon;

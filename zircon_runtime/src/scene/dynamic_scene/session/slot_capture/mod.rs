@@ -1,3 +1,4 @@
+//! 普通捕获的内存预检边界；一次捕获同时生成待提交槽位和对外摘要，允许替换同名槽位。
 mod level;
 mod preview;
 mod world;

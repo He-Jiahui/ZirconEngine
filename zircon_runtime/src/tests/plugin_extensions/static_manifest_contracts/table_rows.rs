@@ -1,3 +1,4 @@
+//! 可选表数组区分未声明与类型错误；必需表数组在同一读取路径上额外要求已声明且非空。
 use std::path::Path;
 
 pub(super) fn required_table_array<'a>(

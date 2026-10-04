@@ -8,6 +8,7 @@ use crate::core::math::{Real, Transform};
 
 use super::PhysicsBodyType;
 
+/// 场景刚体投影到物理插件的世界空间状态；模拟结果按实体标识回写场景。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PhysicsBodySyncState {
     pub entity: EntityId,

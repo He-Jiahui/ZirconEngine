@@ -164,6 +164,7 @@ fn take() -> Option<DirectShapeProfileMetrics> {
     DIRECT_SHAPE_PROFILE_METRICS.with(|metrics| metrics.replace(None))
 }
 
+// TODO: [CR-TEXT-SHAPING-PROFILE-0001] begin 旧说明限定受管采集，但 Tracy 分支恒启用；缺少此分支契约测试，需确认常开意图并同步说明。
 fn profile_metrics_enabled() -> bool {
     #[cfg(feature = "profiling-tracy")]
     {

@@ -1,3 +1,4 @@
+// 核对滚动条轨道、滑块和裁剪行的像素分布及不同状态。
 use std::path::{Path, PathBuf};
 
 use crate::ui::retained_host::paint_scrollbar_component_for_test;

@@ -3,8 +3,10 @@ use crate::core::math::{clamp_viewport_size, Real, UVec2, Vec2, Vec3};
 use super::OrbitCameraAction;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 编辑器视口和动态 Runtime API 共用的导航输入；当前控制器读取动作和焦点状态。
 pub struct OrbitCameraInput {
     pub action: OrbitCameraAction,
+    // TODO: [CR-FRAMEWORK-CAMERA-0001] 确认视口尺寸是否应参与轨道拖拽归一化；两个调用端持续传入该值，但控制器目前未读取。
     pub viewport_size: UVec2,
     pub focus_active: bool,
 }

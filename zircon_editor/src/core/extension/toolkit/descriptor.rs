@@ -8,6 +8,7 @@ use crate::core::extension::DefaultWorkbenchPreset;
 use super::{ToolkitInstanceId, ToolkitLayout};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 注册表交给宿主的展示与布局契约；文档 ID 决定历史上下文，实例 ID 定位视图与注册项。
 pub struct DocumentToolkitDescriptor {
     document: DocumentId,
     instance: ToolkitInstanceId,
@@ -50,6 +51,7 @@ impl DocumentToolkitDescriptor {
         &self.layout
     }
 
+    /// 插件声明的预设先规范化再交给工作台；重复输入不生成重复入口。
     pub fn with_default_presets(
         mut self,
         presets: impl IntoIterator<Item = DefaultWorkbenchPreset>,

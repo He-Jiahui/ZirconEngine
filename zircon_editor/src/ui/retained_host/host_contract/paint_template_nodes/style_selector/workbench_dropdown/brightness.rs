@@ -1,3 +1,5 @@
+//! 下拉框配方在状态选色后接受有限亮度调整；不可用状态保留禁用对比度，alpha 与状态不变。
+
 use super::model::WorkbenchDropdownStyle;
 use super::state::is_unavailable_dropdown_state;
 

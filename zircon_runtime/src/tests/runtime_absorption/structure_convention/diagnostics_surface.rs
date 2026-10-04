@@ -1,5 +1,6 @@
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0001] 帧诊断接口与领域组合的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_diagnostics_use_frame_trait_without_world_wrapper() {
     let diagnostics_mod = read_runtime_src("core/runtime/diagnostics/mod.rs");

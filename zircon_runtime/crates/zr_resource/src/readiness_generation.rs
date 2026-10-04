@@ -1,3 +1,6 @@
+//! 管理器发布的不可变就绪视图，供资产依赖与渲染驻留判断复用；分片共享降低局部变化的复制成本。
+//! 发布身份只在本进程内有意义，用于缓存判断是否需重查；不应序列化或替代资源内容版本。
+
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::fmt;
@@ -38,6 +41,7 @@ pub struct ResourceReadinessRow {
 }
 
 impl ResourceReadinessRow {
+    /// 只有实际载荷类型匹配才报告 Loaded；元数据种类相同不能保证具体载荷类型相同。
     pub fn typed_load_state<TData: ResourceData>(&self) -> ResourceReadinessState {
         if self.load_state == ResourceReadinessState::Loaded
             && self.payload_type_id != Some(TypeId::of::<TData>())
@@ -183,6 +187,7 @@ impl ResourceReadinessGeneration {
         self.row(id).cloned().map(ResourceReadinessRowIdentity::new)
     }
 
+    /// 判断记录是否存在且种类匹配；不证明它已加载或依赖已就绪，使用者仍须读取行状态。
     pub fn contains_kind(&self, id: ResourceId, kind: ResourceKind) -> bool {
         self.row(id).is_some_and(|row| row.record.kind == kind)
     }

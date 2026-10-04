@@ -8,6 +8,7 @@ use crate::serialization::MigrateError;
 
 use super::{RetiredAssetRefMigrationBudget, RetiredAssetRefMigrationError, RetiredAssetReference};
 
+/// Rewrites only exact retired `{ uuid, url }` objects through the supplied resolver.
 /// 仅将精确的旧 `{ uuid, url }` 对象交给调用方解析器；形似对象保持原样。
 pub fn migrate_retired_asset_references_with<E>(
     value: Value,
@@ -20,6 +21,7 @@ pub fn migrate_retired_asset_references_with<E>(
     )
 }
 
+/// Rewrites exact retired references under caller-owned structural limits.
 /// 在调用方预算内遍历整份 JSON；预算不通过时解析器不会收到任何引用。
 pub fn migrate_retired_asset_references_with_budget<E>(
     value: Value,
@@ -29,6 +31,7 @@ pub fn migrate_retired_asset_references_with_budget<E>(
     migrate_value_with_budget(value, budget, &mut resolver)
 }
 
+/// Plan 11's context-free v0-to-v1 rule for `res://` project references.
 /// 旧版无上下文迁移入口：项目引用按 `res://` 生成路径提示，builtin 引用保留独立种类。
 pub fn migrate_retired_asset_references(value: Value) -> Result<Value, MigrateError> {
     migrate_retired_persisted_asset_references_with(value, |reference| {
@@ -50,6 +53,8 @@ pub fn migrate_retired_asset_references(value: Value) -> Result<Value, MigrateEr
     .map_err(flatten_default_error)
 }
 
+/// Rewrites project references to `Project(AssetRef)` and retired builtin references to
+/// the distinct `Builtin { locator }` authoring contract.
 /// 把旧项目引用交给解析器生成当前资产身份；builtin 引用转为独立的持久化种类。
 pub fn migrate_retired_persisted_asset_references_with<E>(
     value: Value,
@@ -62,6 +67,7 @@ pub fn migrate_retired_persisted_asset_references_with<E>(
     )
 }
 
+/// Rewrites project and builtin retired references under caller-owned structural limits.
 /// 以调用方预算迁移项目和 builtin 引用；解析器只处理项目引用。
 pub fn migrate_retired_persisted_asset_references_with_budget<E>(
     value: Value,
@@ -78,6 +84,10 @@ pub fn migrate_retired_persisted_asset_references_with_budget<E>(
     })
 }
 
+/// Rewrites one exact retired `{ uuid, url }` object without traversing its container.
+///
+/// Format owners use this primitive when a reference is flattened beside owner-specific
+/// fields that must not be interpreted by the generic recursive walker.
 /// 只迁移一个精确的旧引用，不遍历其所属容器；格式所有者用它处理与其他字段平铺的引用。
 pub fn migrate_retired_persisted_asset_reference_with<E>(
     value: Value,

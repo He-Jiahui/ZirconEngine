@@ -35,6 +35,7 @@ impl VirtualGeometryRuntimeState {
     }
 
     pub(crate) fn consume_feedback(&mut self, feedback: &VisibilityVirtualGeometryFeedback) {
+        // BUG: [CR-VIRTUAL-GEOMETRY-0002] provider 在无 GPU 完成时已刷新热点，此处再次刷新使同一帧冷却计数递减两次，页提前失去热点保护；见 provider.rs:98-110。
         self.refresh_hot_resident_pages(feedback);
         self.complete_pending_pages(
             feedback.requested_pages.iter().copied(),

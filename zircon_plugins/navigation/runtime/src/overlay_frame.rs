@@ -8,6 +8,7 @@ pub const NAVIGATION_OVERLAY_FRAME_EVENT_ID: &str = "navigation.events.overlay_f
 pub const NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA: &str = "navigation.events.overlay_frame.v1";
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// 帧同时携带网格拥有者代次与代理报告；编辑器据此丢弃晚到的旧网格快照。
 pub struct NavigationOverlayFrame {
     pub owner_generation: u64,
     pub nav_mesh: NavigationGizmoSnapshot,

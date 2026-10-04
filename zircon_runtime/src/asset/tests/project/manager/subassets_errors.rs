@@ -1,6 +1,9 @@
+//! 检查单一源导出的带标签子资产具有独立身份、artifact 和错误边界，并能跨重启恢复。
+
 use super::*;
 
 #[test]
+// 一个源的根记录和标签记录应共享所有权却各有稳定 UUID 与 artifact，重启后仍能按标签读取。
 fn project_manager_imports_labeled_subassets_as_separate_artifacts() {
     let root = unique_temp_project_root("project_manager_multi_asset_labels");
     let paths = ProjectPaths::from_root(&root).unwrap();

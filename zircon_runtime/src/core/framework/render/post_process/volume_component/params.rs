@@ -115,6 +115,8 @@ impl VolumeParamValue {
     }
 }
 
+/// 体积字段的默认值与插值策略，按注册顺序对应覆盖向量中的同一位置。
+/// 离散参数和布尔参数的切换阈值由各自策略决定，不能统一当作浮点线性混合。
 #[derive(Clone, Copy, Debug)]
 pub struct VolumeParamSchema {
     pub name: &'static str,

@@ -1,3 +1,4 @@
+//! 空间投影优先使用匹配的射线响应遮挡增益，缺少提供者结果时回退到固定预览增益。
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::sound::{

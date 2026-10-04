@@ -1,3 +1,4 @@
+//! 检查插件导入接口审查清单内源码的行数预算；注释和空行参与计数，未列入清单的文件仍需由递归预算守卫覆盖。
 use super::*;
 
 pub(super) fn assert_plugin_importer_d13_sdk_structure_assertions_children_line_budgets_are_current(

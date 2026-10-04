@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::resource::AssetReference;
 
+/// 全屏管线的编译身份：shader、片元入口、选项和源码哈希变化时必须重建。
+/// 每帧参数值通过 FullscreenPassPlan 上传，不应进入此缓存键。
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FullscreenPipelineCacheKey {
     pub shader: AssetReference,

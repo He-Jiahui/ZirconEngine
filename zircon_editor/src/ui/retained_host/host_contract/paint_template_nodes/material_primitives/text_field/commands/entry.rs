@@ -5,6 +5,7 @@ use super::super::identity::is_text_field_node;
 use super::super::variant::{text_field_variant, TextFieldVariant};
 use super::surface::{push_filled_field, push_outlined_field, push_standard_field};
 
+/// 返回值只表示表面已由 Material TextField 接管；调用方仍应走通用文本与输入焦点绘制。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_text_field_surface_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

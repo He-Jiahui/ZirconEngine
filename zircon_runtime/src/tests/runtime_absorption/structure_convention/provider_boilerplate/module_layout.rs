@@ -1,5 +1,6 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0123] 结构测试父模块的子职责挂载的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_provider_boilerplate_guard_child_owner_split() {
     let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");

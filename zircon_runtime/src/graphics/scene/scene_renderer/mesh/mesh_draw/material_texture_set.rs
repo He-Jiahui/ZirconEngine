@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use crate::graphics::scene::resources::{GpuTextureResource, OutputTargetTextureResource};
 
+/// 材质槽可绑定稳定 GPU 贴图或渲染输出目标，两者共享视图/采样器入口。
+/// 只有稳定贴图按视口各向异性设置准备采样器变体。
 #[derive(Clone)]
 pub(in crate::graphics::scene) enum MaterialTextureBinding {
     Texture {
@@ -60,6 +62,7 @@ impl MaterialTextureBinding {
         }
     }
 
+    /// 修改各向异性偏好后、创建引用 sampler 的绑定组前调用；set 会清掉旧 variant，单独修改偏好不会重建绑定组。
     pub(in crate::graphics::scene) fn prepare_sampler_variant(&mut self, device: &wgpu::Device) {
         if let Self::Texture {
             resource,

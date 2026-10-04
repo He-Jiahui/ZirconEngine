@@ -1,3 +1,6 @@
+//! 在消耗图集容量前验证位图来源的形状契约。
+//! 此入口只接受覆盖率或颜色位图，SDF 由专用路径处理；像素必须是无行间填充的紧密排列。
+
 use super::super::GlyphAtlasFormat;
 use super::failure::GlyphAtlasBitmapAllocationFailureReason;
 use super::types::GlyphAtlasBitmapSource;

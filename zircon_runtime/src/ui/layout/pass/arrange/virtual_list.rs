@@ -14,6 +14,8 @@ use crate::ui::layout::pass::{
     virtual_list_layout::UiMaterializedVirtualListLayout,
 };
 
+/// 仅在 owner 已启用固定步长虚拟化且拥有物化投影时调用，逻辑总数决定内容长度。
+/// 物理槽可为末端回填而落在可见窗口之外，仍按其逻辑索引安排并依赖裁剪隐藏。
 pub(super) fn arrange_materialized_virtual_list_children(
     tree: &mut UiTree,
     node_id: UiNodeId,

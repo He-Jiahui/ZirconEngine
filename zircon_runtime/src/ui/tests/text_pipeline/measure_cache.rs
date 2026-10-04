@@ -1,3 +1,4 @@
+//! 从请求、缓存和跨帧统计核对文本测量/排版复用边界；源字节、视口、写入模式和字体代际均影响缓存许可。
 use crate::core::{
     framework::text::TextLayoutError,
     runtime::tasks::{TaskPool, TaskPoolDescriptor},

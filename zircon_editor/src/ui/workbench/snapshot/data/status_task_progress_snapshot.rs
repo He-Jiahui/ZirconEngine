@@ -1,4 +1,5 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 状态条主要任务的只读进度；task_id保持身份，percent缺席表示不可确定。
 pub struct StatusTaskProgressSnapshot {
     pub task_id: String,
     pub label: String,
@@ -23,6 +24,7 @@ impl StatusTaskProgressSnapshot {
         self
     }
 
+    /// 接受host计算比例并限为0..100；完成状态不能从显示文案推断。
     pub fn with_percent(mut self, percent: impl Into<Option<u8>>) -> Self {
         self.percent = percent.into().map(|percent| percent.min(100));
         self
@@ -35,6 +37,7 @@ impl StatusTaskProgressSnapshot {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 状态条显示语气，不作为job完成或取消的权威事实。
 pub enum StatusTaskProgressTone {
     #[default]
     Info,

@@ -12,6 +12,7 @@ use super::{
     ToolkitInstanceId, ToolkitLayout, ToolkitSaveFailure,
 };
 
+// 可替换 hook 的测试工具包模拟宿主调用，供保存与生命周期用例观察释放时机。
 struct FixtureToolkit {
     descriptor: DocumentToolkitDescriptor,
     validate_references: Arc<dyn Fn() -> Result<(), ToolkitSaveFailure> + Send + Sync>,

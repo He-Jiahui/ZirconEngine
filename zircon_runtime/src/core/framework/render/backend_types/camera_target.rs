@@ -2,6 +2,7 @@ use super::super::RenderCameraTargetKind;
 use crate::core::math::UVec2;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 相机目标解析后的尺寸边界；区分表面、目标、视图和主渲染尺寸。
 pub struct RenderCameraTargetResolutionReport {
     pub target_kind: RenderCameraTargetKind,
     pub primary_target_size: UVec2,
@@ -59,6 +60,7 @@ impl RenderCameraTargetWritebackStatus {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 纹理目标在图执行后的回写结果；复制、转换与相机栈抑制须分别解释。
 pub struct RenderCameraTargetWritebackReport {
     pub target_kind: RenderCameraTargetKind,
     pub status: RenderCameraTargetWritebackStatus,
@@ -226,6 +228,7 @@ impl RenderCameraTargetGraphImportStatus {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 编图时的导入决策；直接导入与随后回写是互斥路径，不能仅凭目标类型判断已产出。
 pub struct RenderCameraTargetGraphImportReport {
     pub target_kind: RenderCameraTargetKind,
     pub status: RenderCameraTargetGraphImportStatus,

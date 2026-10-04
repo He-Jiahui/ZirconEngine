@@ -1,3 +1,4 @@
+//! 草稿动作复用现有控件绑定，注册默认值不代表最终写入目标。
 use crate::ui::binding::{
     inspector_field_control_id, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
 };
@@ -11,6 +12,7 @@ use zircon_runtime_interface::ui::{
 use super::name_mapping::binding_view_id;
 use super::route_registration::register_binding_route;
 
+/// 登记草稿输入路由；默认目标和值仅确立绑定形状，不能当作提交数据。
 pub(super) fn register_draft_route(
     service: &mut EditorUiControlService,
     activity: &EditorActivityReflection,

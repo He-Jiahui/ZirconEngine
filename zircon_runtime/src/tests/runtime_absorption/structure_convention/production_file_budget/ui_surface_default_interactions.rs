@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0112] 界面默认键盘动作与提示计时器的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_ui_surface_default_interactions_keyboard_timers_are_child_owners() {
     let parent = read_runtime_src("ui/surface/surface/default_interactions.rs");

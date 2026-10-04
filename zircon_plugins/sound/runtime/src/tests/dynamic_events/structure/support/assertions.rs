@@ -1,3 +1,5 @@
+// 结构守卫读取生产源文件；模块声明比较使用逐行完全相等，生产文件新增注释也会被视为额外行。
+// TODO: [CR-SOUND-TESTS-0002] 需确认纯模块声明文件是否允许文档注释；若允许，应只比较有效声明行。
 use std::path::Path;
 
 use super::source::read_source;

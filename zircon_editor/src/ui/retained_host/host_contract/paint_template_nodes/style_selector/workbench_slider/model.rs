@@ -1,5 +1,8 @@
+//! 滑块绘制配方分开提供轨道、拇指、数值框和文字；绘制端负责数值到几何位置的换算。
+
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
+/// 供轨道、拇指、数值框与文字绘制端共享的配方；不包含数值或几何求解。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchSliderStyle {
     pub track: [u8; 4],

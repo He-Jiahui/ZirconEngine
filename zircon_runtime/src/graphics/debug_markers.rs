@@ -1,3 +1,4 @@
+//! 共享的 GPU 捕获标记把提取、图通道和呈现放进同一诊断层级；调用方应沿用这些名称。
 use crate::graphics::pipeline::RenderPassStage;
 
 pub(crate) const RENDERDOC_MARKER_FRAME_EXTRACT: &str = "zircon::FrameExtract";

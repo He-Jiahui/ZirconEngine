@@ -1,3 +1,6 @@
+//! 向 Editor 扩展注册表声明网络视图、监听/路由操作及复制 schema 资产编辑入口。
+//! 这些是 authoring 描述符和能力门槛，执行需要相应宿主处理器。
+
 use zircon_editor::core::asset::{
     AssetCreationTemplateDescriptor, AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId,
     AssetTypePresentation, ThumbnailProviderDescriptor,
@@ -40,6 +43,8 @@ pub const NET_AUTHORING_SURFACES: &[EditorAuthoringSurface<'static>] = &[
     ),
 ];
 
+/// 在 Editor 插件登记阶段批量提交网络 authoring 描述符；登记本身不执行命令。
+/// 命令 ID、payload schema 与插件资产 URI 是宿主之间的稳定协议。
 pub fn register_net_authoring_workflows(
     registry: &mut EditorExtensionRegistry,
 ) -> Result<(), EditorExtensionRegistryError> {

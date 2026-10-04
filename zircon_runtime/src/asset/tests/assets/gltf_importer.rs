@@ -1,3 +1,6 @@
+//! glTF 导入的共享测试入口：同一生产回调经内置注册和插件夹具注册被调用，
+//! 子模块核对根模型、带标签的依赖图以及渲染与动画子资产的交付边界。
+
 use std::fs;
 
 use super::gltf_external_fixtures::{write_external_texture_gltf, write_missing_buffer_gltf};
@@ -51,6 +54,8 @@ fn entry_for_label<'a>(
     entry_for_locator(outcome, &locator)
 }
 
+// 仅显式启用 virtual_geometry 的测试使用此断言；烘焙结果属于 Mesh 子资产，
+// 根 Model 中的原语保持到该 Mesh 的轻量引用。
 fn assert_cooked_virtual_geometry(primitive: &ModelPrimitiveAsset, source_hint: &str) {
     let virtual_geometry = primitive
         .virtual_geometry
@@ -182,6 +187,7 @@ fn entry_for_locator<'a>(
         .unwrap_or_else(|| panic!("missing gltf subasset {locator}"))
 }
 
+// 与 gltf_labeled_subassets 的标签构造约定保持一致，测试由此检查调用方可稳定定位子资产。
 fn label_uri(root_uri: &AssetUri, label: &str) -> AssetUri {
     AssetUri::parse(&format!("{root_uri}#{label}")).unwrap()
 }

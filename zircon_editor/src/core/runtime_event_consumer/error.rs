@@ -32,6 +32,7 @@ impl std::fmt::Display for EditorRuntimeEventConsumerCallbackPhase {
 }
 
 #[derive(Debug, Error)]
+/// 消费者宿主的生命周期与交付失败边界；清理错误可随首错一起上报给协调器。
 pub enum EditorRuntimeEventConsumerError {
     #[error("runtime event consumer `{consumer_id}` is already registered")]
     DuplicateConsumer { consumer_id: String },

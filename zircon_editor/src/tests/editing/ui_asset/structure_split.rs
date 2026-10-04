@@ -1,3 +1,4 @@
+//! 从文件组织和函数归属核对 UI 资产编辑器的领域拆分，防止生命周期、主题和展示逻辑重新堆回会话根模块。
 #[test]
 fn ui_asset_editor_subsystem_is_grouped_by_domain_folders() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

@@ -1,3 +1,5 @@
+//! 为反射目录与地址路由测试提供受控元数据和虚拟适配器；实际组件副作用由相邻 World 测试核对。
+
 use std::collections::BTreeMap;
 
 use serde_json::json;

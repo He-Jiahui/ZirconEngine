@@ -3,6 +3,8 @@ use super::super::{NativePluginBehaviorCallReport, ZIRCON_NATIVE_PLUGIN_STATUS_E
 use super::callback::{NativePluginCallbackLeaseError, NativePluginLibraryGenerationOwner};
 
 #[derive(Clone)]
+/// 从已加载代次提取的行为视图，供主机在释放 live-host 锁后执行外部回调。
+/// 代次所有者仅被动固定动态库；真正调用前仍须取得回调租约。
 pub(in crate::plugin::native_plugin_loader) struct NativePluginBehaviorSnapshot {
     behavior: Option<NativePluginBehaviorCallbacks>,
     module_kind: &'static str,
@@ -10,6 +12,8 @@ pub(in crate::plugin::native_plugin_loader) struct NativePluginBehaviorSnapshot 
 }
 
 #[derive(Clone)]
+/// 编辑器注册期绑定已声明命令与其插件代次；命令执行器可以延后调用，
+/// 热重载和卸载期间由快照的回调租约拒绝进入已关闭的代次。
 pub struct NativePluginEditorCommandBinding {
     plugin_id: String,
     command_name: String,
@@ -117,6 +121,7 @@ impl NativePluginBehaviorSnapshot {
         self.invoke_measured(|| behavior.unload())
     }
 
+    // 所有行为入口在这里统一取得代次租约，避免持有主机注册表锁跨越插件代码。
     fn invoke_measured(
         &self,
         callback: impl FnOnce() -> NativePluginBehaviorCallReport,

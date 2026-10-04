@@ -1,3 +1,4 @@
+//! 核对节点和本地样式提升为外部资产时的草稿、命名与引用回写，确保编辑会话保留可恢复的来源关系。
 use super::super::support::*;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{UiNodeDefinitionKind, UiRootClassPolicy};

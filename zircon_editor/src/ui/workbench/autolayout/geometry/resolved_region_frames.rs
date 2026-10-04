@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use super::super::{ShellFrame, ShellRegionId};
 
+/// region solver的logical中间结果；供分隔器、视口和浮层计算共用，发布前统一物理缩放。
 pub(super) struct ResolvedRegionFrames {
     pub(super) center_band_frame: ShellFrame,
     pub(super) status_bar_frame: ShellFrame,

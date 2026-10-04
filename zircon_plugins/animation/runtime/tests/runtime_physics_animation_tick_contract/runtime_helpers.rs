@@ -1,3 +1,4 @@
+//! 组合真实物理、动画、场景及资产管理器的集成测试入口，供帧契约复用。
 use std::sync::Arc;
 
 use zircon_plugin_sdk::{TestRuntime, WeakBridge};

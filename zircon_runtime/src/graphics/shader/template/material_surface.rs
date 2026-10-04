@@ -400,6 +400,8 @@ pub(crate) struct StandardMaterialSurfaceSource {
     pub(crate) features: ShaderFeatureBits,
 }
 
+/// 从标准材质描述生成与模板组装器约定的 surface 入口和特征位。
+/// 法线贴图和高级材质选项会改变生成源码及绑定需求，调用方须用结果参与变体缓存身份。
 pub(crate) fn standard_material_surface_source(
     descriptor: &StandardMaterialDescriptor,
 ) -> StandardMaterialSurfaceSource {
@@ -409,6 +411,7 @@ pub(crate) fn standard_material_surface_source(
     )
 }
 
+/// 运行时已有特征位时复用同一 surface 合同；alpha cutoff 在生成前收敛为有效 WGSL 常量。
 pub(crate) fn standard_material_surface_source_for_features(
     features: ShaderFeatureBits,
     alpha_cutoff: f32,

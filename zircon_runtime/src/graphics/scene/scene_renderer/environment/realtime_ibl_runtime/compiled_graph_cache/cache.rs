@@ -37,6 +37,8 @@ pub(in crate::graphics) struct RealtimeIblCompiledGraphCacheStats {
     pub variant_count: usize,
 }
 
+/// 按布局、切片操作和 A/B 所属槽复用不可变编译图，避免天空内容变化触发同拓扑重编译。
+/// 请求布局变化会清空变体；有限 FIFO 容量来自调度器的最大拓扑预算。
 pub(in crate::graphics) struct RealtimeIblCompiledGraphCache {
     resource_layout: Option<RealtimeIblResourceLayout>,
     variants: HashMap<RealtimeIblGraphTopologyKey, RealtimeIblCompiledGraphVariant>,

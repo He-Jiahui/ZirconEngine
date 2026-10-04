@@ -16,6 +16,7 @@ use self::result::finish_adjust_value_mutation;
 mod adjustment;
 mod result;
 
+// 滑块步进委托表面 range 契约解析最小值、最大值和步长；无障碍层只提供方向与来源身份。
 pub(super) fn dispatch_adjust_value(
     surface: &mut UiSurface,
     request: &UiAccessibilityActionRequest,

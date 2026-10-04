@@ -1,3 +1,5 @@
+//! 验证资源依赖及诊断随编译和源码修改刷新，失败后清理过期视图。
+
 use crate::ui::asset_editor::UiAssetEditorCommand;
 use std::path::Path;
 use zircon_runtime::ui::template::UiResourcePathResolver;

@@ -1,3 +1,4 @@
+// 核对后端能力目录及 CPAL 设备目录的身份投影；夹具枚举主机设备，但不启动音频流。
 use crate::kira_bridge::KIRA_CPAL_BACKEND;
 
 use super::support::kira_catalog_fixture;

@@ -1,3 +1,6 @@
+//! 以文字光栅键持有可复用的 Swash 像素，同时维护其实际图集格式的反向绑定。
+//! 缓存、异步工作与字体世代属于文字状态；图集页槽属于渲染状态，二者失效必须双向传播。
+
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -39,6 +42,8 @@ impl NativeBitmapAtlasReadinessGeneration {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 通知上层哪些光栅依赖的可用性已改变。
+/// 近似命中会探测其他垂直子像素桶，故单键变化需展开所有四桶；字体整体失效以全量标记覆盖逐键记录。
 pub(crate) struct NativeBitmapAtlasReadinessChangeReceipt {
     generation: NativeBitmapAtlasReadinessGeneration,
     full_invalidation: bool,
@@ -83,6 +88,8 @@ pub(crate) struct NativeBitmapAtlasCachedGlyphImage {
 }
 
 #[derive(Debug)]
+/// 逐帧报告与跨帧像素缓存的共同持有者。
+/// 入口以文字请求键查找，异步结果可能选用不同的实际像素格式；与图集绑定后驱逐时必须同时失效对应的持久槽。
 pub(crate) struct NativeBitmapAtlasSourceCache {
     capacity: usize,
     max_byte_count: usize,
@@ -196,6 +203,8 @@ impl NativeBitmapAtlasSourceCache {
         self.readiness_generation
     }
 
+    // 消费当前帧累计的就绪变化；返回的世代可供调用者比较旧布局依赖。
+    // 读取后逐键/全量通知被清空，但世代本身继续单调递增。
     pub(crate) fn take_readiness_changes(&mut self) -> NativeBitmapAtlasReadinessChangeReceipt {
         NativeBitmapAtlasReadinessChangeReceipt {
             generation: self.readiness_generation(),
@@ -213,6 +222,8 @@ impl NativeBitmapAtlasSourceCache {
         self.discard_all_for_face_invalidation_with_worker_pool(None);
     }
 
+    // 字体重新装载后清除旧像素、相关工作和字体快照，并提升世代。
+    // 调用者还需使图集/重试状态失效；仅清空像素缓存不足以阻止旧槽或已完成的异步结果被复用。
     pub(crate) fn discard_all_for_face_invalidation_with_worker_pool(
         &mut self,
         worker_pool: Option<&TextRasterWorkerPool>,
@@ -263,6 +274,8 @@ impl NativeBitmapAtlasSourceCache {
         None
     }
 
+    // 只有确实存在缓存像素后才能绑定它在图集中的实际光栅键。
+    // 同一实际键改属另一请求时解除旧绑定，防止图集失效时反向删除错误的请求缓存。
     pub(crate) fn bind_persistent_raster_key(
         &mut self,
         cache_key: GlyphRasterKey,
@@ -509,6 +522,8 @@ impl NativeBitmapAtlasSourceCache {
     }
 }
 
+/// 以实际 Swash 内容选择图集格式，而非信任请求的预期格式。
+/// 颜色或子像素结果要使用匹配的采样语义；保留文字身份字段才能在缓存驱逐时关联真实图集槽。
 pub(super) fn native_bitmap_atlas_raster_key_for_content(
     request_key: GlyphRasterKey,
     content: SwashContent,

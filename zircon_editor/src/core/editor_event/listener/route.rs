@@ -8,6 +8,7 @@ use super::{EditorEventListenerDescriptor, EditorEventListenerFilter, EditorEven
 const MAX_EDITOR_EVENT_LISTENER_DELIVERY_PAGE_SIZE: usize = 256;
 
 #[derive(Clone, Debug)]
+// 一次控制配置的投递快照；只共享收件箱，筛选条件固定在取快照时，允许注册表锁外完成入队。
 pub(crate) struct EditorEventListenerRoute {
     filter: Option<EditorEventListenerFilter>,
     inbox: Arc<Mutex<EditorEventRetentionStore>>,
@@ -39,6 +40,7 @@ impl EditorEventListenerRoute {
 }
 
 #[derive(Clone, Debug)]
+// 查询句柄保留取得时的描述符和收件箱；配置已变化或监听器已注销时，句柄仍代表原来的在途状态。
 pub(crate) struct EditorEventListenerHandle {
     descriptor: EditorEventListenerDescriptor,
     inbox: Arc<Mutex<EditorEventRetentionStore>>,
@@ -74,6 +76,7 @@ impl EditorEventListenerHandle {
         }
     }
 
+    // 分页按收件箱投递游标推进，不能用全局事件序号代替；读取不确认，确认需要调用方处理完成后单独提交。
     pub(crate) fn delivery_records_page_after_cursor(
         &self,
         after_delivery_cursor: u64,

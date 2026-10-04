@@ -44,6 +44,7 @@ pub(super) fn finish_text_input_set_value_rejection(
     )
 }
 
+// 文本输入通过文档/属性联合提交；非文本控件则消费属性事务报告，事件和脱敏都在成功投影后处理。
 pub(super) fn finish_text_input_set_value(
     surface: &mut UiSurface,
     text_documents: Option<&mut UiTextDocumentSession>,

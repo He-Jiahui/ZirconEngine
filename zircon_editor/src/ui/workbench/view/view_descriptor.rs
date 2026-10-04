@@ -1,3 +1,5 @@
+//! 可注册的视图种类声明，串联pane模板、能力门槛、实例策略和默认布局位置。
+//! 声明与实例分开；注册不会创建pane。打开时只检查当前能力与实例策略并选择默认宿主，布局附着由后续宿主命令处理。
 use serde::{Deserialize, Serialize};
 
 use crate::core::commands::DocumentKind;
@@ -7,6 +9,7 @@ use crate::ui::workbench::autolayout::PaneConstraints;
 use super::{ActivityWindowTemplateSpec, DockPolicy, PaneTemplateSpec, ViewDescriptorId, ViewKind};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 公开字段与反序列化可绕过builder默认规范化；外部描述符须经注册与打开边界核验。
 pub struct ViewDescriptor {
     pub descriptor_id: ViewDescriptorId,
     pub kind: ViewKind,
@@ -30,6 +33,7 @@ pub struct ViewDescriptor {
 }
 
 impl ViewDescriptor {
+    /// 建立单实例、文档中心的描述符基线；调用方按目标宿主补齐窗口模板、能力和停靠约束。
     pub fn new(
         descriptor_id: ViewDescriptorId,
         kind: ViewKind,

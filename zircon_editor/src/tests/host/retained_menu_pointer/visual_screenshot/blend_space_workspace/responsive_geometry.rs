@@ -1,3 +1,4 @@
+// 核对混合空间在紧凑和宽窗口之间的几何适配。
 use super::support::*;
 use super::*;
 

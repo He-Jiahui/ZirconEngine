@@ -1,3 +1,6 @@
+//! 状态条文本胶囊的视觉入口；标签与数值使用独立角色，透明普通表面由绘制端过滤。
+//! Focused 分支继续区分持久选择与热态，焦点边线不替代这些表面含义。
+
 use super::super::resolved_state_for_node;
 use super::helpers::{
     declared_color, is_unavailable_status_state, status_node_is_hot, status_node_is_selected,
@@ -7,6 +10,7 @@ use super::palette::{workbench_status_control_palette, WorkbenchStatusControlPal
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
+/// 为状态条文本胶囊选择表面、边线和两种文字角色；不解析内容或更新状态。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_status_chip_style(
     node: &TemplatePaneNodeData,
 ) -> WorkbenchStatusChipStyle {

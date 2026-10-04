@@ -1,3 +1,4 @@
+//! 多相机产品测试的描述符夹具；统一裁剪层与 volume 层，隔离目标和堆栈顺序对像素的影响。
 use crate::core::framework::render::{
     CameraRenderDescriptor, CameraRenderType, RenderCameraClear, RenderCameraTarget,
     RenderLayerSet, RenderQualityProfile, RenderViewportRect, ViewportCameraSnapshot,

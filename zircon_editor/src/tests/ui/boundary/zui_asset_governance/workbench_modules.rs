@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证工作台模块按钮与画布的共享语义配色。
+
 use toml::Value;
 
 use super::support::{collect_zui_files, editor_asset_root, load_zui_document};

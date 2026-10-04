@@ -1,5 +1,6 @@
 use crate::core::project::{ProjectAuthorityError, ProjectProbe};
 
+// 输入无效或项目不存在属于预期禁用状态；权限、链接路径等异常必须显示给欢迎页操作者。
 pub(super) fn project_probe_projection(
     result: Result<ProjectProbe, ProjectAuthorityError>,
 ) -> (bool, Option<String>) {

@@ -2,6 +2,7 @@ use crate::core::math::UVec2;
 
 use super::super::texture_extent::texture_extent;
 
+/// 为 GI 时间累积保存照明和置信度元数据；两张纹理遵循相同的历史分辨率。
 pub(super) struct GlobalIlluminationHistory {
     lighting: wgpu::Texture,
     lighting_view: wgpu::TextureView,

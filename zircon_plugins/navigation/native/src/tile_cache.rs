@@ -98,6 +98,7 @@ impl std::fmt::Debug for RecastTileCache {
     }
 }
 
+// SAFETY: 原生 TileCache 只在可变借用下更新，句柄不跨实例复用，包装器不提供并发共享入口。
 unsafe impl Send for RecastTileCache {}
 
 impl RecastTileCache {
@@ -128,6 +129,7 @@ impl RecastTileCache {
             .map(detour_obstacle)
             .collect::<Vec<_>>();
         let mut result = ZrNavDetourTileCacheCreateResult::default();
+        // SAFETY: 顶点、索引、区域和障碍数组在同步创建期间存活，计数与数组长度对应，结果可写。
         unsafe {
             ffi::zr_nav_tile_cache_create_query(
                 vertices.as_ptr(),
@@ -164,6 +166,7 @@ impl RecastTileCache {
         self.flush_pending_requests_if_full().ok()?;
         let obstacle = detour_obstacle(obstacle);
         let mut result = ZrNavDetourTileCacheCommandResult::default();
+        // SAFETY: 缓存句柄有效，障碍值和可写结果在同步调用期间存活。
         unsafe {
             ffi::zr_nav_tile_cache_add_obstacle(self.handle.as_ptr(), &obstacle, &mut result);
         }
@@ -187,6 +190,7 @@ impl RecastTileCache {
         }
         self.flush_pending_requests_if_full()?;
         let mut result = ZrNavDetourTileCacheCommandResult::default();
+        // SAFETY: 已验证障碍句柄归属本缓存，缓存句柄与结果在同步调用期间有效。
         unsafe {
             ffi::zr_nav_tile_cache_remove_obstacle(
                 self.handle.as_ptr(),
@@ -204,6 +208,7 @@ impl RecastTileCache {
 
     pub fn update(&mut self) -> Result<(), &'static str> {
         let mut result = ZrNavDetourTileCacheCommandResult::default();
+        // SAFETY: 缓存句柄由本包装器持有，更新时独占访问且结果结构可写。
         unsafe {
             ffi::zr_nav_tile_cache_update(self.handle.as_ptr(), &mut result);
         }
@@ -226,6 +231,7 @@ impl RecastTileCache {
     ) -> NavPathResult {
         let mut result = ZrNavDetourPathResult::default();
         let filter = crate::detour::detour_query_filter(filter);
+        // SAFETY: 缓存句柄有效，起终点数组和过滤器在同步查询期间存活，结果可写。
         unsafe {
             ffi::zr_nav_tile_cache_find_path(
                 self.handle.as_ptr(),
@@ -242,6 +248,7 @@ impl RecastTileCache {
             _ => None,
         }
         .unwrap_or_else(NavPathResult::no_path);
+        // SAFETY: 转换已复制路径点，结果仍持有本次查询分配且只在此处释放一次。
         unsafe {
             ffi::zr_nav_detour_free_path_result(&mut result);
         }
@@ -267,6 +274,7 @@ fn next_tile_cache_id() -> u64 {
 
 impl Drop for RecastTileCache {
     fn drop(&mut self) {
+        // SAFETY: 缓存句柄由本包装器唯一持有，Drop 在最后一次使用后释放一次。
         unsafe {
             ffi::zr_nav_tile_cache_free_query(self.handle.as_ptr());
         }

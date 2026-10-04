@@ -1,3 +1,5 @@
+//! 平台 capability 的公共边界：导出稳定的后端 token、静态矩阵/报告，以及
+//! 依赖 PlatformHostSnapshot 的运行时状态投影；实现细节继续留在子模块内。
 mod backends;
 mod matrix;
 mod report;

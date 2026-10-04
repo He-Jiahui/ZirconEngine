@@ -1,3 +1,4 @@
+// 经模块注册取得内建窗口描述符，约束活动窗口、文档宿主、独占页面及诊断载荷的归属。
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,

@@ -1,3 +1,4 @@
+//! 统计输出调用是否来自命名 sink worker，并解析 record 序列；线程错误由上层性能断言判定。
 use std::io::{self, Write};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};

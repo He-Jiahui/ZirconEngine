@@ -1,3 +1,6 @@
+//! 定义 net 插件身份、可装载目标及 native v3 入口，供 SDK 声明和包分发链消费。
+//! 能力是准入与注册契约，具体传输服务由运行时模块的 manager/provider 提供。
+
 zircon_plugin_sdk::declare_plugin! {
     pub NET_DECLARATION {
         id: PLUGIN_ID = "net",

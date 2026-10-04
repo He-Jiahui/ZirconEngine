@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0104] 场景物理属性写入拆分的旧计划状态记录缺失；需核对当前属性写入分派与物理组件应用链，并重新登记迁移验收归属。
 #[test]
 fn runtime_15_scene_world_property_access_physics_writes_are_child_owner() {
     let parent = read_runtime_src("scene/world/property_access/write.rs");
@@ -180,6 +181,7 @@ fn runtime_15_scene_world_property_access_physics_writes_are_child_owner() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0103] 碰撞体形状属性条目的旧路径构造表达式未匹配；尚缺当前属性路径映射证据，需对照形状条目投影及编辑消费后修订断言。
 #[test]
 fn runtime_15_scene_world_property_access_physics_entries_are_child_owner() {
     let parent = read_runtime_src("scene/world/property_access/entries.rs");

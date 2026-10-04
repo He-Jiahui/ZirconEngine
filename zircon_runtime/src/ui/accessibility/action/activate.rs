@@ -14,6 +14,7 @@ use super::result::unsupported_role_action;
 mod fallback;
 mod result;
 
+// 优先复用键盘默认组件动作，保留按钮/菜单/复选控件自己的状态转换；仅未处理时发通用激活事件。
 pub(super) fn dispatch_activate(
     surface: &mut UiSurface,
     target: UiNodeId,

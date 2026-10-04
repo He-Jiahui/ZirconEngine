@@ -17,6 +17,7 @@ pub(super) struct ArtifactPayloadRanges {
     pub(super) total_size: usize,
 }
 
+/// 根据 descriptor 中的分段位依次布局 PMREM、SH9、IEM，供编码与切片读取共享偏移。
 pub(super) fn artifact_payload_ranges(
     descriptor: IblBakeArtifactDescriptor,
 ) -> ArtifactPayloadRanges {

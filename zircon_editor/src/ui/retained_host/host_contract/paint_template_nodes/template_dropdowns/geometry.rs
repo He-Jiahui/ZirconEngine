@@ -1,7 +1,10 @@
+//! 下拉框显示偏移与适配判定；保留 DPI 小数坐标，表面圆角由最终帧大小约束。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::template_dropdown_metrics::WorkbenchDropdownMetrics;
 use crate::ui::retained_host::host_contract::paint_geometry::corner_radius_for_frame;
 
+/// 在节点布局框上应用作者声明显示偏移；dropdown 专用链还把结果提供给弹出层定位。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdown_paint_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -46,6 +49,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_i
         && inner.y + inner.height <= outer.y + outer.height
 }
 
+/// 控制箭头是否能按宿主预定尺寸完整放下；文字仍保持预留空间以免内容位置随图标丢失而跳动。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdown_chevron_fits(
     rect: &FrameRect,
     metrics: &WorkbenchDropdownMetrics,

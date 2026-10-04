@@ -1,3 +1,5 @@
+//! 每个骨架修订持有目标表、绑定姿态和姿态池；每个剪辑修订持有该骨架上的稠密轨道。
+//! 剪辑缓存的目标槽不得跨骨架或骨架修订复用。
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::animation::AnimationPoseBone;

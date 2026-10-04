@@ -1,3 +1,5 @@
+//! zmesh 文档是磁盘网格输入；导入器将其转成 MeshAsset 并验证后才能进入注册表与渲染资源流。
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};

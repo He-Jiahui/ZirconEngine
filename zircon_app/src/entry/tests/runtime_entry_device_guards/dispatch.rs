@@ -1,3 +1,6 @@
+//! 锁定 Winit device hook 到 device dispatcher 再到 pointer device 的分工及次序，保证原始位移经 Runtime ABI 输入。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::{
     runtime_application_handler_source, runtime_device_events_dispatch_source,

@@ -9,6 +9,7 @@ use super::super::value_conversion::{
 };
 
 impl World {
+    // 网格属性编辑保持组件值和节点缓存一致；材质资源是否就绪留给渲染提取与资源流处理。
     pub(super) fn set_mesh_renderer_property(
         &mut self,
         entity: EntityId,
@@ -93,6 +94,7 @@ impl World {
                 });
             }
             [field, index] if field == "morphweights" => {
+                // TODO: [CR-R02-runtime_world_property_binding-0005] 待确认 morph 索引是否须受资源目标数或配置上限约束；此处仅解析 usize，现有测试只覆盖小索引，缺少维度契约；下一步核对资源与编辑器调用方，再验证越界拒绝。
                 let index =
                     index
                         .parse::<usize>()
@@ -102,6 +104,7 @@ impl World {
                         })?;
                 let next = expect_scalar(value, property_path)?;
                 let resized = if mesh.morph_weights.len() <= index {
+                    // BUG: [CR-R02-runtime_world_property_binding-0006] 路径索引为目标平台 usize::MAX 且数值合法时必 panic；开启溢出检查在加一处失败，关闭检查后长度变 0，随后最大索引赋值越界。证据：此扩容与下方赋值的完整路径。
                     mesh.morph_weights.resize(index + 1, 0.0);
                     true
                 } else {

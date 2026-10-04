@@ -1,3 +1,4 @@
+//! 全局历史键只追踪整体失效的结构变化；局部画面变化由速度、深度及各消费者处理。
 use crate::core::framework::render::{
     CorePipelineKind, ProjectionMode, RenderFrameExtract, ViewportCameraSnapshot,
 };

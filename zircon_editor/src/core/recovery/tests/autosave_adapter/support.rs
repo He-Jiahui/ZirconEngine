@@ -1,3 +1,5 @@
+//! 为后台保存测试提供可控作业闸门和计数快照源；测试借此验证单飞、取消和完成收据，不依赖真实计时器。
+
 use super::*;
 
 pub(super) fn wait_for_autosave_completion(

@@ -1,3 +1,4 @@
+//! 桥接基线分开验证布局、调用结果、源码查找路径及显式计时样本；源码顺序只约束当前形态，不能单独证明延迟或线程扩展性。
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 

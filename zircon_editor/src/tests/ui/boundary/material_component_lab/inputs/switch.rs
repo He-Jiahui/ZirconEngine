@@ -1,3 +1,5 @@
+//! 验证开关的开关态、尺寸、禁用及错误状态元数据。
+
 use std::fs;
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;

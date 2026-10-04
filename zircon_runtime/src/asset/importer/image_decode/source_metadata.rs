@@ -4,6 +4,7 @@ use super::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 热缓存探测所需的图像布局和格式身份，不包含像素缓冲。
 pub(crate) struct TextureSourceImageMetadata {
     width: u32,
     height: u32,
@@ -24,6 +25,8 @@ impl TextureSourceImageMetadata {
     }
 }
 
+// 环境图入口在昂贵的 HDR 像素解码前取得请求身份；格式须来自实际选用的 reader，
+// 以免扩展名与内容不一致时复用错误的 IBL artifact。
 pub(crate) fn decode_texture_source_image_metadata(
     context: &AssetImportContext,
 ) -> Result<TextureSourceImageMetadata, AssetImportError> {

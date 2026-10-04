@@ -1,3 +1,4 @@
+//! 通用特性遍历只提供行及诊断上下文，未声明或非数组会跳过；字段结构是否允许由独立模式与包种类测试检查。
 use std::path::Path;
 
 pub(super) fn for_each_feature_bundle(

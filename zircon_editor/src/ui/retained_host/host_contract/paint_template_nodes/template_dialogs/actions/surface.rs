@@ -1,3 +1,5 @@
+//! 动作底面的提交边界；按钮必须完整属于根对话框和clip，空间不足时不画部分按钮。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::{layout, metrics::dialog_metrics, style::DialogActionPaint};

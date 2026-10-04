@@ -1,3 +1,6 @@
+//! 将 net 模块、类型化事件与帧阶段系统交给 SDK 注册器，并描述 native dist 分发协议。
+//! 宿主通过运行时插件注册，feature 模块另行装配；包元数据与服务生命周期分属不同入口。
+
 use crate::capability::{
     NET_DECLARATION, NET_RUNTIME_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME,
 };

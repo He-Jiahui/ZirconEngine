@@ -1,3 +1,4 @@
+//! 模块描述符是运行时服务注册的公开承诺；这里核对声明与可实例化的 manager/driver 一致。
 use crate::asset::{
     module_descriptor, AssetIoDriver, ASSET_IO_DRIVER_NAME, ASSET_MANAGER_NAME,
     PROJECT_ASSET_MANAGER_NAME, RESOURCE_MANAGER_NAME,

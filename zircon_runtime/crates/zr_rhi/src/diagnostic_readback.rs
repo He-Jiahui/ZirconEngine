@@ -469,6 +469,7 @@ impl DiagnosticReadbackTracker {
         &mut self,
         submission: SubmissionTicket,
     ) -> Result<DiagnosticFrameKey, DiagnosticReadbackError> {
+        // 先核对 submission 的设备与代际，再移交 active 请求目录；身份不匹配时保留未绑定帧。
         self.validate_submission_identity(submission)?;
         let active = self
             .active_frame
@@ -509,6 +510,7 @@ impl DiagnosticReadbackTracker {
         request: DiagnosticReadbackRequestId,
         terminal: DiagnosticReadbackTerminal,
     ) -> Option<DiagnosticReadbackReceipt> {
+        // 从 pending 移除即完成幂等闸门，重复完成/取消不会生成第二张回执。
         let pending = self.pending.remove(&request)?;
         self.pending_bytes = self.pending_bytes.saturating_sub(pending.byte_len);
         if let Some(active) = self.active_frame.as_mut() {

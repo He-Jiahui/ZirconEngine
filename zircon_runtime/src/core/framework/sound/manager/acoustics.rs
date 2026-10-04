@@ -3,6 +3,7 @@ use super::super::{
     SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus,
 };
 
+/// 声学资源与空间卷积的运行时登记入口；HRTF 和脉冲响应身份在声源配置中引用。
 pub trait SoundAcousticsManager {
     fn set_impulse_response(
         &self,

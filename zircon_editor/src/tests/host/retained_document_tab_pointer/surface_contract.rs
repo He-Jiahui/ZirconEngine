@@ -1,3 +1,4 @@
+// 读取标签回执消费者源码，约束类型化身份随原生回执传递且不复制命中几何。
 fn source(relative: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))

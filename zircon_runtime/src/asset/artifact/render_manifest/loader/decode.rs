@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use super::contract::{RenderArtifactBlockFailure, RenderArtifactBlockFailureCode};
 
+// IO worker 已核对编码块身份；解码阶段再以描述符的预期长度限制展开，
+// 防止损坏或异常压缩载荷绕过驻留内存预算。
 pub(super) fn decode_zstd_block(
     encoded: &Arc<[u8]>,
     expected_bytes: u64,

@@ -3,6 +3,8 @@ use std::fmt;
 
 use crate::scene::ecs::{ArchetypeId, ComponentId, InternalEntity, StorageType};
 
+/// 编译查询时绑定的组件存储定位信息；表列与稀疏集合由不同字段定位。
+/// 仅应在对应 World 和原型布局仍有效时交给 typed fetch；结构变化后由查询缓存重建。
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct ComponentStorageLocation {
     pub(crate) component_id: ComponentId,

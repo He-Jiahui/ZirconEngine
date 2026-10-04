@@ -1,3 +1,5 @@
+//! 用受控线程交错检验预览状态写回只更新预览字段，并在资产身份或源摘要变化时拒绝旧结果。
+
 use std::fs;
 use std::sync::{Arc, Barrier};
 use std::thread;
@@ -18,6 +20,7 @@ fn asset_meta_preview_state_cas_preserves_independent_fields_written_after_previ
     initial.source_digest = "digest-v1".to_string();
     initial.save(&path).unwrap();
 
+    // 两道栅栏固定预览读取和外部作者写入的先后，验证写回会基于当前 sidecar 合并独立字段。
     let read_barrier = Arc::new(Barrier::new(2));
     let commit_barrier = Arc::new(Barrier::new(2));
     let preview_path = path.clone();

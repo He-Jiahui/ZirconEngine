@@ -1,3 +1,5 @@
+//! 未注册的 handle 仍是合法查询输入；状态查询应给出未加载结果，避免让调用者先做存在性探测。
+
 use crate::asset::{AssetLoadState, Assets, Handle, ProjectAssetManager, TextureAsset};
 use crate::core::resource::{ResourceId, ResourceManager};
 

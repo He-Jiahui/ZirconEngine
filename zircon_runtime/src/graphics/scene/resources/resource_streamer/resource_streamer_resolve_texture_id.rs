@@ -11,6 +11,8 @@ use super::ResourceStreamer;
 const DEFAULT_MATERIAL_TEXTURE_BINDING_REASON: &str =
     "default material texture binding supports only texture_2d<f32>";
 
+/// 材质纹理槽的解析结果同时保留维度、错误和回退原因；准备阶段用它决定是否发布候选，
+/// 管理诊断沿同一结果向作者解释为何显示默认纹理。
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::graphics::scene::resources) struct ResolvedTextureReference {
     pub(in crate::graphics::scene::resources) id: Option<ResourceId>,

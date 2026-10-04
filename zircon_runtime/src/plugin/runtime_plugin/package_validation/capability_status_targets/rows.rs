@@ -12,6 +12,7 @@ pub(super) fn validate_runtime_plugin_package_capability_status_target_rows(
     target_modes: &[RuntimeTargetMode],
     diagnostics: &mut Vec<String>,
 ) {
+    // 每项能力状态重新开始唯一性窗口，不把其他能力已经使用的目标视作重复。
     let mut seen = new_runtime_plugin_package_capability_status_target_row_state();
     for target_mode in target_modes.iter().copied() {
         validate_runtime_plugin_package_capability_status_target_row(

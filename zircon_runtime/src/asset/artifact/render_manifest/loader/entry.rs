@@ -8,6 +8,7 @@ use super::contract::{
     RenderArtifactBlockPoll, RenderArtifactDecodedBlock,
 };
 
+// 同一解码身份的请求合并为一个 IO/解码状态；各票据仍保有自己的取消与截止语义。
 pub(super) struct RenderArtifactBlockEntry {
     descriptor: RenderArtifactBlockDescriptor,
     retained_bytes: usize,

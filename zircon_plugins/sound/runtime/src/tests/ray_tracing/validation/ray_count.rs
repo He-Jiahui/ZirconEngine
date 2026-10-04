@@ -1,3 +1,4 @@
+// 经脉冲响应提交入口拒绝零射线数，核对采样记录的前置条件。
 use super::super::super::*;
 use super::descriptor::valid_ray_traced_descriptor;
 

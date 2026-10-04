@@ -4,6 +4,7 @@ use crate::ui::template::UiAssetError;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 稳定诊断类别覆盖公开部件、私有选择器、API 版本及绑定/焦点目标等契约违例。
 pub enum UiComponentContractDiagnosticCode {
     InvalidPublicPart,
     PrivateSelector,
@@ -27,6 +28,7 @@ impl UiComponentContractDiagnosticCode {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 组件契约错误同时携带源路径和可选目标身份，便于编辑器将拒绝结果定位回组件实例。
 pub struct UiComponentContractDiagnostic {
     pub code: UiComponentContractDiagnosticCode,
     pub message: String,

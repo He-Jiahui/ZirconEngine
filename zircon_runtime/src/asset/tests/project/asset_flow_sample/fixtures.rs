@@ -1,6 +1,9 @@
+//! 构造最小但互相关联的 glTF、shader、material 与 DDS 项目源，供端到端测试覆盖子资产、依赖和上传能力边界。
+
 use super::assertions::uri;
 use super::*;
 
+/// 单个三角形同时携带材质纹理、形变目标和场景节点，使一个源能触发多种带标签子资产。
 pub(super) fn write_minimal_textured_gltf(path: PathBuf) {
     write_text(
         path,
@@ -289,6 +292,7 @@ pub(super) fn write_sample_material(paths: &ProjectPaths) {
     crate::asset::tests::support::write_project_material(&material_path, &material);
 }
 
+/// 保留 BC1 容器输入，供加载测试区分资产可导入与设备是否支持压缩纹理上传。
 pub(super) fn write_bc1_texture(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();

@@ -29,6 +29,7 @@ impl RuntimeSessionArchivePrunePlan {
         &self.report
     }
 
+    /// 只在预览代际仍为当前代际时删除计划中的槽位；无删除时不增加修订号。
     pub fn commit(
         self,
         archive: &mut RuntimeSessionArchive,
@@ -177,6 +178,7 @@ fn preview_matching_slot_ids(
         });
     }
 
+    // 保护项优先于数量目标，实际保留数可超过 max_slots；这是手工存档保护的上限例外。
     let protected_slot_ids = policy
         .protected_slot_ids
         .iter()
@@ -232,6 +234,7 @@ fn preview_matching_slot_ids_after_upsert(
         });
     }
 
+    // 捕获链在调用前已将新槽位加入保护集，因此预览不会把刚捕获的快照选为淘汰对象。
     let mut kept_slot_ids = policy
         .protected_slot_ids
         .iter()

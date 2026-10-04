@@ -1,3 +1,4 @@
+//! 清单构造与往返保持运行时及编辑器贡献的公开元数据；桥方法能力集合的源码检查只约束插入形态。
 use crate::asset::AssetImporterDescriptor;
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};

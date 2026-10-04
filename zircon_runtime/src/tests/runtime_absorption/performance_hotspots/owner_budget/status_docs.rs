@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。对照源文件与文档的当前锚点，记录尚待运行验证的结构约束。
 use super::{assert_contains_all, sources::OwnerBudgetSources};
 
 pub(super) fn assert_performance_hotspot_status_docs(sources: &OwnerBudgetSources) {

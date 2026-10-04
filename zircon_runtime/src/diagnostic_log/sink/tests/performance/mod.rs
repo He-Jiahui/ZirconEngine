@@ -1,3 +1,4 @@
+//! 性能入口枚举日志速率、调用者数、作用域规则数和 sink 延迟的完整 54 组合。
 mod case;
 mod configuration;
 mod critical;

@@ -22,6 +22,7 @@ pub(super) fn process_request(request: AssetRequest) -> CpuAssetPayload {
     }
 }
 
+// 完成缓存按近似已分配字节数限制容量，故计入 Vec/String capacity 而非仅有效长度；饱和加法避免估算溢出。
 pub(super) fn payload_bytes(payload: &CpuAssetPayload) -> usize {
     let inline_bytes = std::mem::size_of_val(payload);
     inline_bytes.saturating_add(match payload {

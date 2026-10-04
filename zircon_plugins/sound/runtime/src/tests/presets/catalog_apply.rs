@@ -1,3 +1,4 @@
+// 经停机管理器发现并应用内建预设，核对快照中的轨道与发送声明，不执行音频输出。
 use zircon_runtime::core::framework::sound::{SoundMixerGraphManager, SoundTrackId};
 
 use super::super::DefaultSoundManager;

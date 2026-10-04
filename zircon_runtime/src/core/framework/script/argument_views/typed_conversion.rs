@@ -1,6 +1,7 @@
 use super::super::{ScriptHostError, ScriptHostTypeRef, ScriptHostValueKind};
 use super::value_ref::ScriptHostValueRef;
 
+/// 静态 Rust 参数适配器同时声明期望的 VM 类型与借用值转换规则。
 pub trait ScriptHostFromArgument: Sized {
     fn script_host_type_ref() -> ScriptHostTypeRef;
 
@@ -50,6 +51,7 @@ impl ScriptHostFromArgument for i64 {
     }
 }
 
+/// 浮点参数也接受整数输入；超出 f64 精确整数范围时按浮点规则舍入。
 impl ScriptHostFromArgument for f64 {
     fn script_host_type_ref() -> ScriptHostTypeRef {
         ScriptHostTypeRef::from_value_kind(ScriptHostValueKind::Float)

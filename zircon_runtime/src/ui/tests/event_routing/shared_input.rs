@@ -1,3 +1,5 @@
+//! 共享分发将键盘、文本、IME 和滚轮映射到各自路由；文本目标受焦点、输入法所有者及祖先状态约束。
+
 use super::*;
 
 #[test]
@@ -324,6 +326,7 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
         delete_surrounding.diagnostics.route_target,
         Some(UiNodeId::new(2))
     );
+    // BUG: [CR-UI-TEST-0401] 本例从空文本只提交“拼”，按字节扩展到字素边界删除后为空，此处却断言“draf”；证据：本函数前序提交及 state_transition::surrounding_delete_range。
     assert_eq!(editable_attr_string(&surface, "value"), "draf");
     assert!(!delete_surrounding
         .diagnostics

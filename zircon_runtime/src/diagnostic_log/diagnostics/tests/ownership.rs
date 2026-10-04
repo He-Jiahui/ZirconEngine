@@ -1,3 +1,4 @@
+//! 扫描进程日志顶层文件与核心诊断子树的禁用 token，约束快照桥接入口和依赖方向。
 #[test]
 fn diagnostic_log_snapshot_bridge_stays_single_owner() {
     let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

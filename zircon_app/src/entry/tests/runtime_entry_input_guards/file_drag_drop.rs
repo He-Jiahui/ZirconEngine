@@ -1,3 +1,6 @@
+//! 验证窗口事件交给拖拽叶模块，借用 UTF-8 路径文本构造 ABI 事件，并防止 ApplicationHandler 接管具体实现。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::{
     runtime_app_source, runtime_application_handler_source, runtime_entry_app_path,

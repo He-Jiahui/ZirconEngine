@@ -1,3 +1,6 @@
+//! 以已录制 pass、资源访问和 dispatch 对照编译后的环境遮蔽契约。
+//! 报告用于区分关闭、就绪、回退与契约失配，不以仅有图节点推断实际执行。
+
 use crate::core::framework::render::{
     PostProcessGraphResourceNames, RenderAmbientOcclusionExecutionFailureFlags,
     RenderAmbientOcclusionExecutionReport, RenderAmbientOcclusionExecutionStatus,
@@ -22,6 +25,7 @@ const SPATIAL_PIPELINE_FAMILY: &str = "ambient-occlusion.spatial-denoise";
 const UPSAMPLE_PIPELINE_FAMILY: &str = "ambient-occlusion.bilateral-upsample";
 
 #[derive(Clone, Debug)]
+/// 固定本帧 AO profile、输出生产者及代际，供本帧执行记录交叉核对。
 pub(super) struct AmbientOcclusionExecutionContract {
     enabled: bool,
     complete: bool,

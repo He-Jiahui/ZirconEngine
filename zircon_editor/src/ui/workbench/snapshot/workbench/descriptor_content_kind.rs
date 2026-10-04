@@ -2,6 +2,7 @@ use crate::ui::workbench::view::ViewDescriptorId;
 
 use super::ViewContentKind;
 
+/// 内建ID有专门布局类别；未知注册ID采用通用Placeholder类别，不等于实例缺失。
 pub(super) fn descriptor_content_kind(descriptor_id: &ViewDescriptorId) -> ViewContentKind {
     match descriptor_id.0.as_str() {
         "editor.welcome" => ViewContentKind::Welcome,

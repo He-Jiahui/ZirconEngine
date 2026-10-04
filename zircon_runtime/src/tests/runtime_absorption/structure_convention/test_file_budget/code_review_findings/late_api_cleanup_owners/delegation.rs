@@ -1,3 +1,4 @@
+//! 约束遗留接口清理的模块挂载、委托入口与既有检查保留；读取当前源码后按文本验证，不能替代被检查模块的行为测试。
 use super::*;
 
 #[test]
@@ -5,6 +6,7 @@ fn runtime_15_late_api_cleanup_structure_guard_is_folder_backed() {
     let parent = read_runtime_src(STRUCTURE_GUARD_OWNER);
     let root_paths = read_runtime_src(LATE_API_CLEANUP_ROOT_PATHS_CHILD);
     let child_inventory = read_runtime_src(LATE_API_CLEANUP_ROOT_CHILD_ROWS_CHILD);
+    // BUG: [CR-RUNTIME-TESTS-BUDGET-0001] 状态清单文件已移除，此处仍无条件读取；统一读取器遇到缺失文件即终止，多个同组结构守卫在进入断言前失败。
     let status_inventory = read_runtime_src(LATE_API_CLEANUP_ROOT_STATUSES_CHILD);
     let child_blob = folder_backed_child_source_blob();
 

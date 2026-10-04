@@ -1,3 +1,5 @@
+//! 验证UI 模块访问运行时服务的限定边界。
+
 use std::collections::BTreeSet;
 use std::path::Path;
 

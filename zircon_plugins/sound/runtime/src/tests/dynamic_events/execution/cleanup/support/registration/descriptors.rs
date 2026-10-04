@@ -1,3 +1,4 @@
+// 清理用例按同一夹具身份建立事件与处理器；构造函数之间保持事件、模式和插件引用一致。
 use super::super::super::super::super::*;
 
 use super::super::fixture::CleanupFixture;

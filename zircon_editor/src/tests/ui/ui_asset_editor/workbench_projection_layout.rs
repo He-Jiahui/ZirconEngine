@@ -1,3 +1,5 @@
+//! 验证工作台模板在最小宽高下仍保留可用面板和滚动区域。
+
 use crate::ui::asset_editor::{
     apply_ui_asset_editor_designer_tool_mode, ui_asset_editor_node_projection,
     ui_asset_editor_surface_for_test,

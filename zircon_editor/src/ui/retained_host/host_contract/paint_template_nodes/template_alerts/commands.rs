@@ -1,3 +1,6 @@
+//! 提示反馈的接管入口；false 表示交给其他 painter，true 表示该节点由本模块负责。
+//! 当前合同要求整个反馈面完整位于 clip 内；部分进入裁剪区也不会提交局部提示。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::identity::{workbench_alert_kind, WorkbenchAlertKind};
@@ -5,6 +8,8 @@ use super::inline::push_inline_alert;
 use super::layout::{frame_is_within, has_paintable_alert_extent, paint_rect};
 use super::toast::push_toast;
 
+/// 调用方传入已投影的节点矩形与允许绘制区域；返回 true 时应停止 fallback。
+/// 退化尺寸或不完整包含于 clip 的提示仍被接管，避免通用节点重新补画提示内容。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_alert_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

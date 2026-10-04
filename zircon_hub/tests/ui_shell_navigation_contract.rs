@@ -1,4 +1,5 @@
 //! Static contracts for React/MUI Hub shell navigation chrome.
+//! 检查导航 ID 从 Rust 动作解释到 React 侧栏和页面路由的闭环。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,8 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 导航 ID 与图标、选中状态及视口折叠共同决定侧栏可用性。
+// BUG: [CR-HUBTESTB-0011] 侧栏现按视口计算有效折叠且页面延迟装载，旧的折叠与路由断言必失败；证据：navigation_drawer_owns_page_list_selected_state_and_responsive_collapse 读取 NavigationDrawer.tsx。
 #[test]
 fn navigation_drawer_owns_page_list_selected_state_and_responsive_collapse() {
     let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
@@ -98,6 +102,7 @@ fn navigation_drawer_owns_page_list_selected_state_and_responsive_collapse() {
     );
 }
 
+// 侧栏底部状态和折叠控件承接引擎状态但不决定运行时引擎。
 #[test]
 fn navigation_drawer_keeps_status_panel_and_collapse_affordance_in_sidebar() {
     let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
@@ -136,6 +141,7 @@ fn navigation_drawer_keeps_status_panel_and_collapse_affordance_in_sidebar() {
     );
 }
 
+// HubWindow 把顶栏、侧栏和页面槽按固定顺序交给用户。
 #[test]
 fn hub_window_places_navigation_drawer_between_topbar_and_page_router() {
     let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
@@ -164,6 +170,7 @@ fn hub_window_places_navigation_drawer_between_topbar_and_page_router() {
     );
 }
 
+// Rust ID、Tauri 动作和前端导航项应描述同一页面集合。
 #[test]
 fn rust_navigation_ids_match_drawer_items_and_tauri_show_page_action() {
     let navigation = read_crate_file("src/state/navigation.rs");
@@ -227,6 +234,7 @@ fn rust_navigation_ids_match_drawer_items_and_tauri_show_page_action() {
     );
 }
 
+// 文档保存侧栏到路由动作的跨层说明。
 #[test]
 fn shell_navigation_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -257,6 +265,7 @@ fn shell_navigation_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检侧栏测试仍追踪真实 Tauri 与 React 入口。
 #[test]
 fn shell_navigation_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_shell_navigation_contract.rs");

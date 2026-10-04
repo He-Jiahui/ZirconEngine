@@ -1,3 +1,4 @@
+// 结构守卫约束宿主仅依赖 runtime 输入协议，避免把协议类型重新移入服务注册层。
 #[test]
 fn input_protocol_types_live_in_runtime_input_surface() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

@@ -1,3 +1,4 @@
+// 直接核对 static_sound_data 的切片、相对起点与帧数投影，不执行 Kira 播放或输出。
 use kira::sound::PlaybackPosition;
 use zircon_runtime::core::framework::sound::SoundPlaybackSettings;
 

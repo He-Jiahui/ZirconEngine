@@ -13,6 +13,7 @@ use super::manifest::compiled_asset_dependency_manifest_from_imports;
 use super::report::build_package_validation_report;
 
 impl UiDocumentCompiler {
+    /// 完成一次真实编译后返回包报告；返回 Ok 不代表所有动作获准，调用方还需检查动作策略诊断。
     pub fn validate_package(
         &self,
         document: &UiAssetDocument,
@@ -22,6 +23,7 @@ impl UiDocumentCompiler {
         Ok(report)
     }
 
+    /// 按宿主 profile 生成可序列化编译产物；profile 的策略结果仍保留在报告内，调用方决定是否允许交付。
     pub fn compile_package_artifact(
         &self,
         document: &UiAssetDocument,
@@ -33,6 +35,7 @@ impl UiDocumentCompiler {
         ))
     }
 
+    // 包身份、资源依赖和策略报告必须来自同一组文档/注册导入；先完成前置检查，再复用展开阶段和摘要结果。
     fn compile_package(
         &self,
         document: &UiAssetDocument,

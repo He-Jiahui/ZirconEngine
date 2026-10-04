@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。保存同组守卫使用的局部数据或辅助变换。
 use super::{assert_contains_all, sources::OwnerBudgetSources};
 
 pub(super) fn assert_performance_hotspots_parent_routes(sources: &OwnerBudgetSources) {

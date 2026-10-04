@@ -1,3 +1,5 @@
+//! 所有属性标签和值通过同一文字命令入口收紧正文裁剪并共享行密度，长内容仅在自己的字段内显示。
+
 use super::super::super::data::FrameRect;
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;

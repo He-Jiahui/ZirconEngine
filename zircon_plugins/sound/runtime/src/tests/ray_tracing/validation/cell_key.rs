@@ -1,3 +1,4 @@
+// 经脉冲响应提交入口拒绝空 cell_key，核对空间缓存身份的前置条件。
 use super::super::super::*;
 use super::descriptor::valid_ray_traced_descriptor;
 

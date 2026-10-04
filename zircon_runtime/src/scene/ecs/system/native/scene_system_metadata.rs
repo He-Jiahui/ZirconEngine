@@ -2,6 +2,7 @@ use crate::scene::ecs::{
     SceneSystemTickPolicy, SystemOrderingConstraint, SystemSetId, SystemStage,
 };
 
+/// 原生系统的执行位置承诺；WorkerSafe 还须满足无 World 借用的参数契约。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum SceneSystemThreadAffinity {
     #[default]
@@ -9,6 +10,8 @@ pub enum SceneSystemThreadAffinity {
     WorkerSafe,
 }
 
+/// 注册原生系统时交给调度器的阶段、顺序、集合、线程与时钟契约。
+/// 初始化参数后，注册表和阶段计划共同校验执行策略。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SceneSystemMetadata {
     id: String,

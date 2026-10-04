@@ -1,3 +1,5 @@
+//! 离线索引测试以真实 source 与 sidecar 组成磁盘夹具；扫描取 sidecar 的身份、标签和依赖。
+
 mod dependency_extractors;
 mod incremental;
 mod persistence;

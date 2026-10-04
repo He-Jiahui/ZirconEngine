@@ -1,5 +1,6 @@
 use super::{ChangeTick, ChangeTickWindow};
 
+/// 组件加入与最近可变访问的时钟快照；表存储和稀疏存储都会随组件迁移保留该语义。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ComponentTicks {
     added: ChangeTick,

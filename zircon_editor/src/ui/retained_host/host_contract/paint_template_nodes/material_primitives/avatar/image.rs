@@ -1,3 +1,4 @@
+// 图像路径分开源解析、圆角遮罩、缓存和命令生成；内容序列只消费最终像素或回退。
 mod cache;
 mod command;
 mod icon;

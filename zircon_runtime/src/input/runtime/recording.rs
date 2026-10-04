@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::core::framework::input::InputManager;
 use crate::input::{InputEvent, InputEventRecord, InputFrameSnapshot};
 
+/// 按帧持有原始输入记录；采集者可先检查完整性，再由游标把事件重放进任意 InputManager。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct InputRecording {
     frames: Vec<InputRecordingFrame>,
@@ -47,6 +48,7 @@ impl InputRecording {
         self.frames.is_empty()
     }
 
+    /// 返回管理器累计丢弃量的最大观测值；各帧保存累计状态，不能相加作为记录总丢弃数。
     pub fn discarded_record_count(&self) -> u64 {
         self.frames
             .iter()
@@ -64,6 +66,7 @@ impl InputRecording {
     }
 }
 
+/// 一帧事件批次及其完整性状态；采集模式由调用者指定帧编号，记录队列在每次采集后排空。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InputRecordingFrame {
     frame_index: u64,
@@ -90,6 +93,7 @@ impl InputRecordingFrame {
         }
     }
 
+    /// 用现有事件合成一帧；序号从一开始、时间戳为零，原始时序须通过带元数据的记录传入。
     pub fn from_events(frame_index: u64, events: impl IntoIterator<Item = InputEvent>) -> Self {
         let records = events
             .into_iter()
@@ -103,6 +107,7 @@ impl InputRecordingFrame {
         Self::new(frame_index, records)
     }
 
+    /// 排空管理器的记录队列并保存当时的丢弃状态；完整回放要求事先启用记录并在帧边界采集。
     pub fn capture_from_manager(frame_index: u64, input_manager: &dyn InputManager) -> Self {
         let (records, status) = input_manager.drain_event_records_with_status();
         Self {
@@ -146,6 +151,7 @@ const fn recording_enabled_by_default() -> bool {
     true
 }
 
+/// 借用不可变记录并按存储顺序推进；帧编号仅作标识，不等待时间戳或补齐缺失的帧编号。
 #[derive(Debug)]
 pub struct InputReplayCursor<'a> {
     recording: &'a InputRecording,
@@ -167,6 +173,7 @@ impl<'a> InputReplayCursor<'a> {
             .map(InputRecordingFrame::frame_index)
     }
 
+    /// 自行开启下一帧后投递记录；宿主已经开启帧时使用 submit_next_frame_events。
     pub fn replay_next_frame(
         &mut self,
         input_manager: &dyn InputManager,
@@ -174,6 +181,7 @@ impl<'a> InputReplayCursor<'a> {
         self.replay_next_frame_inner(input_manager, true)
     }
 
+    /// 向宿主已开启的帧追加下一批记录；调用方须自行清理上一帧边沿和推进其它帧服务。
     pub fn submit_next_frame_events(
         &mut self,
         input_manager: &dyn InputManager,
@@ -185,6 +193,7 @@ impl<'a> InputReplayCursor<'a> {
         self.next_frame >= self.recording.frames.len()
     }
 
+    // TODO: [CR-INPUT-0002] 确认不完整帧是否允许默认重放；当前游标不检查 recording_enabled 与丢弃数，缺少缺失事件的回放契约测试；下一步核对宿主调用。
     fn replay_next_frame_inner(
         &mut self,
         input_manager: &dyn InputManager,
@@ -206,6 +215,7 @@ impl<'a> InputReplayCursor<'a> {
     }
 }
 
+/// 一批事件投递后的即时输入快照；与源帧编号关联，完整性仍须在原记录上查询。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InputReplayFrameReport {
     pub frame_index: u64,

@@ -1,3 +1,4 @@
+// 注册报告必须实际贡献对应的运行时模块；清单相等本身不能证明扩展注册成功。
 use super::support::assert_feature_registration_module;
 
 #[test]

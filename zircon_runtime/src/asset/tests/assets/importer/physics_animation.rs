@@ -1,5 +1,7 @@
 ﻿use super::*;
 
+// 验证默认后缀路由把物理材质与动画序列交给对应解码器，结果类型与源资产保持一致。
+
 #[test]
 fn importer_decodes_physics_material_and_animation_sequence_assets() {
     let root = unique_temp_project_root("physics_animation_import");

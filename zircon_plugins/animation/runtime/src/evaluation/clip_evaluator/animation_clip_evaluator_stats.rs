@@ -1,3 +1,4 @@
+//! 累计编译、缓存命中和池失配计数，供运行时评估管线与回归测试观察成本。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct AnimationClipEvaluatorStats {
     pub skeleton_compile_count: u64,

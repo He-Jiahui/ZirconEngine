@@ -8,6 +8,8 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 use super::MeshDraw;
 
 impl MeshDraw {
+    /// 将资源化的 MeshDraw 投影为各 pass 共用的轻量批次身份。
+    /// 保留源序号、静态修订和 GPUScene span，供命令缓存、剔除与重放共享。
     pub(crate) fn mesh_pass_batch_ref(
         &self,
         _sort_key: u64,

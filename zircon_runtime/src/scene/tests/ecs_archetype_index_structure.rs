@@ -1,3 +1,4 @@
+//! 结构守卫锁定原型索引对行迁移和倒排匹配的所有权，供 World 查询计划复用列槽。
 #[test]
 fn archetype_index_owns_complete_row_transitions_without_a_metadata_move_facade() {
     let index = include_str!("../ecs/archetype/index.rs");
@@ -53,6 +54,7 @@ fn archetype_index_dense_access_accepts_precompiled_column_slots() {
             "missing compiled-slot method `{method}`"
         );
     }
+    // BUG: [CR-SCENE-TEST-QRY-0001] 索引现经 records.get(...) 委托列槽访问；旧字符串必使结构测试失败。证据：ecs/archetype/index.rs。
     assert!(source.contains("record.get_by_slot::<T>(column_slot, row)"));
     assert!(source.contains("record.get_mut_at_tick_by_slot::<T>(column_slot, row, tick)"));
 }

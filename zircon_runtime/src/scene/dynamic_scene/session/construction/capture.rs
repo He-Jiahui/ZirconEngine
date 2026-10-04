@@ -12,6 +12,7 @@ pub(in crate::scene::dynamic_scene::session) fn from_world(
     from_world_with_metadata(slot_id, world, RuntimeSessionMetadata::default())
 }
 
+// 只在完整档案构造成功后标记捕获完成，验证失败的候选不能留下成功标记。
 pub(in crate::scene::dynamic_scene::session) fn from_world_with_metadata(
     slot_id: impl Into<String>,
     world: &World,

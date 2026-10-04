@@ -1,4 +1,5 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// 动画字段在编译边界转换为固定分派类型；运行帧不再解析摄像机和灯光属性字符串。
 pub(super) enum CompiledCameraProperty {
     FovYRadians,
     ZNear,

@@ -1,3 +1,6 @@
+//! 固定 surface-present 和 native-target 的目录职责。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::sources::{
     entry_root, runtime_app_source, runtime_application_handler_source,
     runtime_surface_present_source, runtime_window_surface_source,

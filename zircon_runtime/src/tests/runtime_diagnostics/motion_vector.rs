@@ -1,3 +1,4 @@
+//! 注册模拟渲染服务后检查相机和网格运动矢量资格的诊断投影，不由此声明运动矢量图像已生成。
 use crate::core::CoreRuntime;
 use crate::runtime_diagnostics::collect_runtime_diagnostics;
 

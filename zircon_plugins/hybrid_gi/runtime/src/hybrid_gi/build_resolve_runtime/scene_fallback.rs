@@ -33,6 +33,7 @@ impl HybridGiRuntimeState {
         self.scene_representation().voxel_scene().scene_revision()
     }
 
+    // 场景颜色、质量与新鲜度分开估计；脏页和失效事件只降低后者的可信度。
     pub(super) fn scene_surface_cache_irradiance_fallback(
         &self,
         probe_id: u32,

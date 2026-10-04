@@ -1,3 +1,4 @@
+//! 以检查器批量改名、改父节点和变换调用核对原子提交：无效父节点须回滚整组编辑，字段快照来自运行时描述。
 use zircon_runtime_interface::math::{Transform, Vec3};
 
 use crate::core::editing::engine::EditCommandError;

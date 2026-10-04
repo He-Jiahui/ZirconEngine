@@ -11,6 +11,8 @@ use super::parse_obj_face_vertex::parse_obj_face_vertex;
 use super::parse_obj_scalar::parse_obj_scalar;
 use super::parsed_obj_vertex::ParsedObjVertex;
 
+/// 为后台网格请求读取文件路径并生成 CPU 网格；读取与语法错误交由加载层封装为失败载荷。
+/// 项目 OBJ 导入器另从输入快照解析材质和子资产。
 pub(crate) fn decode_obj_file(path: &str) -> ObjDecodeResult<CpuMeshPayload> {
     let source = fs::read_to_string(path).map_err(|source| ObjDecodeError::Read {
         path: path.to_string(),
@@ -62,6 +64,7 @@ pub(crate) fn decode_obj_file(path: &str) -> ObjDecodeResult<CpuMeshPayload> {
                     });
                 };
 
+                // 以位置、UV、法线的组合去重，保留纹理接缝和法线硬边对应的独立顶点。
                 let mut resolve_vertex = |token: &str| -> ObjDecodeResult<u32> {
                     let key =
                         parse_obj_face_vertex(token, positions.len(), uvs.len(), normals.len())
@@ -117,6 +120,7 @@ pub(crate) fn decode_obj_file(path: &str) -> ObjDecodeResult<CpuMeshPayload> {
         });
     }
 
+    // 缺失法线按已三角化的面累加，显式提供的法线保持原样；CPU 网格顶点在此之后统一构造。
     for triangle in indices.chunks_exact(3) {
         let a = triangle[0] as usize;
         let b = triangle[1] as usize;

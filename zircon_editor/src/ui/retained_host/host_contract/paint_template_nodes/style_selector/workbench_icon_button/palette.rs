@@ -1,3 +1,5 @@
+//! 把当前宿主主题映射为图标按钮的静态、交互、危险和导入命令色阶，保持三种上下文用色一致。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_palette, HostMaterialPalette,
 };

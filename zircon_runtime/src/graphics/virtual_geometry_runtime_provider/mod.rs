@@ -1,3 +1,4 @@
+//! 虚拟几何插件的提取、逐相机准备与提交后回读契约；内部状态由框架按相机历史键管理。
 mod extract_output;
 mod gpu_completion;
 mod prepare_input;

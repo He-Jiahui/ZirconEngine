@@ -13,6 +13,7 @@ impl SceneRenderer {
         self.backend.caps()
     }
 
+    /// 由产品调试入口显式开始捕获；捕获边界由 backend 持有，与 scene 图的帧提交分离。
     pub fn start_graphics_debugger_capture(&self) {
         self.backend.start_graphics_debugger_capture();
     }

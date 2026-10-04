@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 预设只给出模式和预算基线；自定义字段仍可覆盖非零预算。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RenderHybridGiProfile {

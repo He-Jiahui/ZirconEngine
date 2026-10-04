@@ -10,6 +10,7 @@ use super::dispatch::dispatch;
 use super::queue_params::queue_params;
 
 impl VirtualGeometryGpuResources {
+// 旧 uploader 将 prepare 快照编码为缓冲并返回待读回句柄；调用方须在命令提交后登记并收集两个读回。
     pub(in crate::virtual_geometry::renderer) fn execute_prepare(
         &self,
         device: &wgpu::Device,

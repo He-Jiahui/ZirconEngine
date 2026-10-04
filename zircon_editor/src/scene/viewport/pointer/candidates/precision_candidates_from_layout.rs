@@ -1,3 +1,5 @@
+//! 一次布局采用共享投影上下文构建候选，上限容量覆盖所有元素；不可投影元素被排除，类别和稳定顺序保持到最终解析。
+
 use crate::scene::viewport::pointer::{
     precision::PrecisionCandidate, viewport_pointer_layout::ViewportPointerLayout,
 };

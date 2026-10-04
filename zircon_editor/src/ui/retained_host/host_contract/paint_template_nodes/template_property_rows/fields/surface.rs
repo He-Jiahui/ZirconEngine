@@ -1,3 +1,5 @@
+//! 属性摘要的输入外观共用动态工作台 palette 和密度，调用者提供每组框及其边框语义。
+
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_row_metrics::workbench_row_palette;
 use super::super::layout::property_row_metrics;

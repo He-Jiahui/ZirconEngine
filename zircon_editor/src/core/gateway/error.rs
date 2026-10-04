@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
+/// 网关边界的失败分类；调用者可分辨旧会话、缺能力与运行时协议异常。
 pub enum GatewayError {
     #[error("runtime gateway generation exhausted")]
     GenerationExhausted,

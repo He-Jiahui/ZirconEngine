@@ -1,3 +1,6 @@
+//! 状态信号选择入口接收调用端已判定的种类；变体区分诊断严重程度着色与语义状态图标、正文配方。
+//! 指定信号变体优先于旧节点声明色；未指定变体保留声明色回退，不可用状态先统一使用禁用文字角色。
+
 use super::super::resolved_state_for_node;
 use super::helpers::{declared_color, is_unavailable_status_state};
 use super::model::{
@@ -8,6 +11,7 @@ use super::palette::{workbench_status_control_palette, WorkbenchStatusControlPal
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
+/// 使用调用端识别的信号种类及节点变体选择图标、文字配方。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_status_signal_style(
     node: &TemplatePaneNodeData,
     kind: WorkbenchStatusSignalKind,

@@ -7,6 +7,7 @@ use zircon_runtime_interface::ui::{
 use super::super::super::surface::UiSurface;
 use super::super::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult};
 
+/// 导航 effect 通过 surface 的路由/候选索引选择目标，再按键盘导航语义更新焦点可见性。
 pub(super) fn apply_navigation_effect(
     surface: &mut UiSurface,
     effect: &UiDispatchEffect,

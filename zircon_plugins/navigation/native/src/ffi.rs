@@ -323,6 +323,7 @@ impl Default for ZrNavRecastBakeResult {
     }
 }
 
+// 这些声明与 recast_bridge.h 的 C ABI 成对维护；调用方负责输入数组存活并释放动态分配的结果。
 extern "C" {
     pub(crate) fn zr_nav_recast_bridge_version() -> c_uint;
     pub(crate) fn zr_nav_recast_runtime_modules_smoke() -> c_uint;

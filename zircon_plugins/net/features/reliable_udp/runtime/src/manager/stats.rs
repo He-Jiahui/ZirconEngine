@@ -1,3 +1,6 @@
+//! 暴露可靠 UDP 的投递/重发/丢失统计并更新恢复阈值；pending_packets 是在途队列快照。
+//! 统计由本 manager 的显式 API 维护，不自动反映根 UDP socket 的真实收发。
+
 use zircon_runtime::core::framework::net::{ReliableDatagramPacket, ReliableDatagramStats};
 
 use super::NetReliableUdpRuntimeManager;

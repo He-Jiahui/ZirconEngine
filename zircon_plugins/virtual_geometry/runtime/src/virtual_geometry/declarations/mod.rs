@@ -1,3 +1,4 @@
+//! 定义页请求、依赖、驻留状态和统计快照；状态迁移由同级模块实现。
 mod virtual_geometry_page_request;
 mod virtual_geometry_runtime_snapshot;
 mod virtual_geometry_runtime_state;

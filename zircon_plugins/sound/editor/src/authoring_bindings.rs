@@ -1,3 +1,4 @@
+//! 这里为检查器注册受 Sound 作者能力保护的操作路径和载荷 schema；布局仍是插槽，实际提交取决于宿主命令处理器。
 use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_extension::{
     EditorExtensionRegistry, EditorExtensionRegistryError,

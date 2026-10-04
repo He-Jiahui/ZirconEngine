@@ -15,6 +15,7 @@ pub(super) const TICKET_CALLER_CANCELLED: u8 = 1;
 pub(super) const TICKET_EXPIRED: u8 = 2;
 pub(super) const TICKET_OWNER_CLOSED: u8 = 3;
 
+// 相同内容与解码参数可共享一次工作；票据自己的子资源描述仍用于返回上传语义。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(super) struct RenderArtifactDecodeKey {
     content_id: RenderArtifactContentId,
@@ -64,6 +65,7 @@ pub(super) struct RegistryTicket {
     pub(super) registration: Arc<TicketRegistration>,
 }
 
+// 票据、deadline 与 IO frontier 属于同一锁保护的登记状态，供 admission/dispatch/close 协同。
 pub(super) struct RenderArtifactBlockRegistry {
     pub(super) accepting: bool,
     pub(super) next_ticket_id: u64,

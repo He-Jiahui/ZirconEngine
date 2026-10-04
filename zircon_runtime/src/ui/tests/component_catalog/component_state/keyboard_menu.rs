@@ -1,3 +1,5 @@
+//! 菜单搜索与子菜单状态由公共事件流维护；过滤结果可以改变焦点，但不得暗中提交选择。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventKind, UiComponentKeyboardAction, UiComponentState, UiValue,
@@ -313,6 +315,7 @@ fn menu_hovered_submenu_option_waits_for_hover_ready_before_opening() {
 }
 
 #[test]
+// 首次取消只退出子菜单并保留根弹层，再次取消才关闭根弹层；两次动作走不同的消费分支。
 fn menu_keyboard_activate_and_cancel_cycle_submenu_focus_scope() {
     let registry = UiComponentDescriptorRegistry::material_editor_foundation();
     let menu = registry.descriptor("Menu").expect("Menu descriptor");

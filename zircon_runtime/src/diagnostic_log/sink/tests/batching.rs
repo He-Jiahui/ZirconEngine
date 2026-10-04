@@ -1,3 +1,4 @@
+//! 通过持续输入和字节阈值验证 worker 的时间/容量双重 flush 边界不会被后续记录推迟。
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};

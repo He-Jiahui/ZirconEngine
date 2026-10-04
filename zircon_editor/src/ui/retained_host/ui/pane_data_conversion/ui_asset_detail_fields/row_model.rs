@@ -1,3 +1,4 @@
+//! 明细节和行模型在字段提取与宿主节点生成之间传递身份、禁用状态和动作 ID。
 pub(super) struct UiAssetDetailFieldSection {
     pub(super) section_control_id: &'static str,
     pub(super) detail_id: &'static str,

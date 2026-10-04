@@ -1,7 +1,10 @@
+//! 根据 PhysicsSettings 和编译 feature 选择 runtime provider，并把选择结果投影为对外状态。
+
 use zircon_runtime::core::framework::physics::{
     PhysicsBackendState, PhysicsBackendStatus, PhysicsSettings, PhysicsSimulationMode,
 };
 
+/// 仅表示本 crate 是否编译了 Jolt feature，不表示原生 world 已创建或通过运行时资格检查。
 pub const JOLT_ENABLED: bool = cfg!(feature = "backend-jolt");
 
 const BUILTIN_BACKEND_NAME: &str = "builtin";
@@ -9,6 +12,7 @@ const JOLT_BACKEND_NAME: &str = "jolt";
 const UNCONFIGURED_BACKEND_NAME: &str = "unconfigured";
 const JOLT_BACKEND_AVAILABLE: bool = cfg!(feature = "backend-jolt");
 
+/// manager 用于分派当前 world 的 provider 状态。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum PhysicsRuntimeBackend {
     Disabled,
@@ -24,6 +28,7 @@ impl PhysicsRuntimeBackend {
     }
 }
 
+// 选择基于 settings 名称与 feature gate；这里不会创建 backend 或 native world。
 pub(crate) fn select_runtime_backend(settings: &PhysicsSettings) -> PhysicsRuntimeBackend {
     if settings.simulation_mode == PhysicsSimulationMode::Disabled {
         return PhysicsRuntimeBackend::Disabled;
@@ -56,6 +61,8 @@ pub(crate) fn default_simulation_mode() -> PhysicsSimulationMode {
     }
 }
 
+// TODO: [CR-PHYSICS-BACKEND-0008] 这里按 settings/feature 把 Jolt 选为 Ready；首次同步前且 manager 尚无已记录错误时，该状态表示可选/配置可用，并不证明 native world 已创建或通过资格检查。
+// 需确认 Ready 的阶段语义；manager/service.rs::backend_status 会在 last_backend_error 存在时覆写为 Unavailable。证据：manager/jolt_world.rs::synchronize_jolt_world、manager/service.rs::backend_status；关联 PH-P1-003。
 pub(crate) fn physics_backend_status(settings: &PhysicsSettings) -> PhysicsBackendStatus {
     let requested_backend = settings.backend.clone();
     let feature_gate = requested_backend

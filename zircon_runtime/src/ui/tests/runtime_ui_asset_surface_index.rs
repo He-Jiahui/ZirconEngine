@@ -1,3 +1,5 @@
+//! 内建 UI 资产加载后登记表面引用；模板热重载用反向索引定位受影响的已载入表面。
+
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::AssetUri;
 use crate::core::math::UVec2;

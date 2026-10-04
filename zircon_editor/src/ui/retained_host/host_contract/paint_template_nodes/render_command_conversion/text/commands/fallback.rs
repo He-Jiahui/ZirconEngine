@@ -8,6 +8,7 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
 
 use super::metrics::{resolved_font_size, resolved_line_height};
 
+/// 仅在 Runtime 未提供可用运行或簇数据时按宿主字体度量生成文本，避免覆盖已排版的结果。
 pub(super) fn push_fallback_text_command(
     output: &mut Vec<HostPaintCommand>,
     command: &UiRenderCommand,

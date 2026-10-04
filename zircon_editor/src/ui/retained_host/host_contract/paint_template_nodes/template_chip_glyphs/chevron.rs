@@ -1,3 +1,5 @@
+//! 仅在 chip 框能完整容纳且与 clip 相交时发送右箭头资产；文字槽用同一几何判定决定是否预留。
+
 use super::super::super::data::FrameRect;
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
@@ -6,6 +8,7 @@ use super::metrics::{chip_glyph_chevron_right, chip_glyph_chevron_size};
 
 const CHIP_CHEVRON_ICON: &str = "zircon_editor_shell/toolbar/chevron-right.svg";
 
+/// 调用方已确定 chip 有展开语义；本函数仍要求箭头完整装入框并与 clip 相交，资产可能异步暂缺。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chip_chevron(
     commands: &mut Vec<HostPaintCommand>,
     rect: &FrameRect,
@@ -31,6 +34,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     );
 }
 
+/// 标签布局调用此判定来决定右侧是否保留箭头槽；须与实际箭头矩形保持同源。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_can_paint_chevron(
     rect: &FrameRect,
 ) -> bool {

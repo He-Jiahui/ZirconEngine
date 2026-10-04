@@ -21,6 +21,7 @@ pub(super) fn finish_missing_scroll_to(
     )
 }
 
+// 用树返回的变更标记区分 Accepted/Unchanged；报告读取裁剪后的实际 offset，而非假定请求值已原样落库。
 pub(super) fn finish_scroll_to_mutation(
     surface: &UiSurface,
     target: UiNodeId,

@@ -1,3 +1,4 @@
+/// 粒子 GPU 完成帧的计数与间接绘制参数；提交端据此决定是否创建反馈事件。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderParticleGpuReadbackOutputs {
     pub alive_count: u32,

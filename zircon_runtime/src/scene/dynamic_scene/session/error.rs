@@ -3,6 +3,7 @@ use zircon_runtime_interface::serialization::CanonicalTextWriteError;
 
 use super::super::DynamicSceneError;
 
+/// 会话读写、验证和计划提交的统一失败面；调用方应区分格式错误、过期计划与路径写入冲突。
 #[derive(Debug, Error)]
 pub enum RuntimeSessionArchiveError {
     #[error("runtime session archive I/O failed: {0}")]

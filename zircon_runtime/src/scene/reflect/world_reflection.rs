@@ -11,6 +11,7 @@ use zircon_runtime_interface::reflect::{
 
 use super::validate_reflected_value;
 
+/// 编辑器、脚本和动态场景共享的反射门面；地址与字段 ID 先由模式目录解析，再由 World 适配器访问实时数据。
 pub struct WorldReflection;
 
 impl WorldReflection {

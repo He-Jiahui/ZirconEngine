@@ -18,6 +18,8 @@ struct OitGpuSettings {
     _padding: u32,
 }
 
+/// 在透明片元收集结束后按当前渲染区域合成 OIT 缓冲；
+/// 每像素槽位容量来自 `OitBufferPlan`，不能只用设置中的排序上限分配。
 pub(super) struct OitResolvePipeline {
     bind_group_layout: wgpu::BindGroupLayout,
     pipeline: wgpu::RenderPipeline,

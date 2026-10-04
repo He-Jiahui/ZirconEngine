@@ -1,3 +1,4 @@
+//! 从渲染提取核对词边界换行及竖排写入模式，观察 resolved layout 而非原始配置文本。
 use super::*;
 
 #[test]

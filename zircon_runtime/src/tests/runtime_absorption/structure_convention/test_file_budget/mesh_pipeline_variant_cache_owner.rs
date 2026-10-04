@@ -1,3 +1,4 @@
+//! 从源码和约定文档核对网格管线缓存职责的职责连接与检查入口；文本锚点只说明结构声明，设备执行、持久结果和性能须由专属验收提供。
 use super::*;
 
 const STATUS: &str = "render_plan08_non_base_mesh_variant_cache_owner_static_passed_cargo_deferred";

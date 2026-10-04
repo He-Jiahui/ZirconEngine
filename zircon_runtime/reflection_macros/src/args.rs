@@ -1,3 +1,5 @@
+//! 解析 derive 与属性宏的命名、类型和值类别等元数据；重复 capability 和 alias 保留为列表供描述符生成。
+
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
 use syn::{Expr, Ident, LitBool, LitStr, Path, Token};

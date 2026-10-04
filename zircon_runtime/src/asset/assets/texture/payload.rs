@@ -1,3 +1,5 @@
+//! 纹理 payload 区分原始像素与容器编码；上传规划根据表示和设备能力选择路径，不能仅凭扩展名推断可上传性。
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

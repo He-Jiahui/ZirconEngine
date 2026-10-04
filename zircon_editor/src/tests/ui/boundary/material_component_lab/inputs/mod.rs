@@ -1,3 +1,5 @@
+//! 汇集 Material 输入控件状态样例测试，并提供该组复用的断言辅助。
+
 use zircon_runtime_interface::ui::v2::UiV2NodeDefinition;
 
 mod checkbox;

@@ -11,6 +11,8 @@ use zircon_runtime_interface::ui::{
 
 use super::UiSurface;
 
+/// 保存宿主剪贴板请求的会话归属与编辑版本，供异步响应重新验证原控件。
+/// 一个 owner 只保留最新请求；克隆或反序列化 surface 不继承这些未完成的外部请求。
 #[derive(Default, Serialize, Deserialize)]
 pub(super) struct UiSurfaceClipboardTransferStore {
     #[serde(skip)]
@@ -120,6 +122,8 @@ impl UiSurfaceClipboardTransferStore {
         !self.pending.is_empty() && self.by_owner.contains_key(&owner)
     }
 
+    // 只需让仍然匹配的待处理响应失效；没有请求时不为每次编辑累积版本状态。
+    // 溢出后版本变为 None，后续发起请求失败关闭，避免旧响应重新获得有效版本。
     fn invalidate_owner(&mut self, owner: UiNodeId) {
         let Some(transfer_id) = self.by_owner.get(&owner) else {
             return;
@@ -143,6 +147,7 @@ impl UiSurfaceClipboardTransferStore {
         self.revisions.remove(&owner);
     }
 
+    /// 事务回滚必须保留原请求身份；与新 surface 的普通克隆语义不同。
     pub(crate) fn snapshot(&self) -> UiSurfaceClipboardTransferSnapshot {
         UiSurfaceClipboardTransferSnapshot {
             revisions: self.revisions.clone(),

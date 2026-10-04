@@ -7,6 +7,7 @@ pub(in crate::ui::surface::input) enum KeyboardClipboardAction {
     Paste,
 }
 
+/// 识别平台语义键与常见剪贴板快捷键，只产生请求意图；权限及异步版本由后续剪贴板入口校验。
 pub(in crate::ui::surface::input) fn keyboard_clipboard_action(
     keyboard: &UiKeyboardInputEvent,
 ) -> Option<KeyboardClipboardAction> {

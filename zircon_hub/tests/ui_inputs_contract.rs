@@ -1,4 +1,5 @@
 //! Static contracts for React + Material UI Hub input primitives.
+//! 约束输入组件出口、主题状态和页面消费关系，让表单与窗口命令共享同一套输入组件。
 
 use std::{fs, path::PathBuf};
 
@@ -10,6 +11,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path)).unwrap_or_else(|error| {
@@ -36,6 +38,7 @@ fn assert_not_contains_any(source_path: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+/// 固定输入家族的调用入口，页面和表单经同一组件出口复用包装器。
 #[test]
 fn input_components_are_reexported_from_the_react_barrel() {
     let index = read_crate_file("web/src/components/inputs/index.ts");
@@ -57,6 +60,7 @@ fn input_components_are_reexported_from_the_react_barrel() {
     );
 }
 
+/// 将按钮层级、危险态、提示及图标按钮状态留在包装器，页面仅提供意图与事件处理。
 #[test]
 fn button_wrappers_own_material_button_and_icon_button_chrome() {
     for (source_path, snippets) in [
@@ -98,6 +102,7 @@ fn button_wrappers_own_material_button_and_icon_button_chrome() {
     }
 }
 
+/// 检查文本、搜索、选择和组合输入对受控值及共享视觉密度的负责范围。
 #[test]
 fn text_select_and_combo_wrappers_own_material_form_primitives() {
     for (source_path, snippets) in [
@@ -161,6 +166,7 @@ fn text_select_and_combo_wrappers_own_material_form_primitives() {
     }
 }
 
+/// 固定布尔编辑、互斥切换与页签的共享状态语义，调用方通过回调掌管业务状态。
 #[test]
 fn binary_toggle_and_tab_wrappers_own_material_state_primitives() {
     for (source_path, snippets) in [
@@ -229,6 +235,7 @@ fn binary_toggle_and_tab_wrappers_own_material_state_primitives() {
     }
 }
 
+/// 核对主题和共享令牌共同定义输入密度与状态，防止单个页面脱离统一视觉约定。
 #[test]
 fn theme_and_tokens_define_shared_input_density_and_state() {
     let theme = read_crate_file("web/src/theme/muiTheme.ts");
@@ -264,6 +271,7 @@ fn theme_and_tokens_define_shared_input_density_and_state() {
     );
 }
 
+/// 检查业务页面和设置表单沿组件家族使用输入包装器，并限制直接导入底层输入原语。
 #[test]
 fn pages_compose_shared_input_components_instead_of_raw_material_inputs() {
     for (source_path, snippets) in [
@@ -362,6 +370,7 @@ fn pages_compose_shared_input_components_instead_of_raw_material_inputs() {
     }
 }
 
+/// 固定窗口控制、预留通知和弹窗命令使用共享输入及禁用语义，阻止演示控件回到业务页面。
 #[test]
 fn shell_and_dialog_surfaces_use_input_wrappers_for_commands() {
     for (source_path, snippets) in [
@@ -403,6 +412,7 @@ fn shell_and_dialog_surfaces_use_input_wrappers_for_commands() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn input_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_inputs_contract.rs");
@@ -424,6 +434,7 @@ fn input_contract_is_cut_over_to_react_sources() {
     }
 }
 
+/// 供页面组合守卫约束输入原语导入；当前输入契约是单行导入文本，结果不代表完整语法分析。
 fn assert_page_material_imports_do_not_include_input_primitives(source_path: &str, source: &str) {
     let forbidden_material_imports = [
         "Autocomplete",

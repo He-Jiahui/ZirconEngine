@@ -130,6 +130,7 @@ impl ScreenSpaceUiTextPaintProjectionReport {
     }
 }
 
+/// 只在命令需要文字时计量短生命周期 paint 投影；投影本身仍由 UI 命令契约统一生成。
 pub(super) fn project_transient_paint_elements(
     command: &UiRenderCommand,
     first_paint_order: u64,

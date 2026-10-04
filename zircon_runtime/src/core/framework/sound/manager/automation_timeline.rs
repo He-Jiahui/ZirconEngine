@@ -3,6 +3,7 @@ use super::super::{
     SoundParameterId, SoundTimelineSequence, SoundTimelineSequenceAdvance, SoundTimelineSequenceId,
 };
 
+/// 将时间线曲线绑定到活动混音对象；步进先采样再向目标应用参数值。
 pub trait SoundAutomationTimelineManager {
     fn set_parameter(&self, parameter: SoundParameterId, value: f32) -> Result<(), SoundError>;
     fn parameter_value(&self, parameter: &SoundParameterId) -> Result<f32, SoundError>;

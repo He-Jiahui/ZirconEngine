@@ -1,3 +1,6 @@
+//! 获准执行 Runtime 帧时，排空一批有界手柄事件并维护连接与效果状态。
+//! 预算耗尽保留后续帧需求，分发失败通过产品诊断退出。
+
 use gilrs::EventType;
 use winit::event_loop::ActiveEventLoop;
 
@@ -8,6 +11,8 @@ use super::super::RuntimeEntryApp;
 use super::events::{gamepad_id, send_axis, send_button, send_connection, send_raw_button};
 
 impl RuntimeEntryApp {
+    // TODO: [CR-APP-ENTRY-0013] 核对 DesktopApp 空闲时手柄队列的独立唤醒来源：Reactive 可进入无限 Wait，而本方法仅在获准 pump 时运行；需验证仅手柄输入能否恢复处理。
+    /// 由获准的 frame pump 调用；首轮公布连接清单，后续批次遵守事件与时间预算。
     pub(in crate::entry::runtime_entry_app) fn poll_gamepads(
         &mut self,
         event_loop: &dyn ActiveEventLoop,
@@ -112,6 +117,7 @@ impl RuntimeEntryApp {
         }
     }
 
+    /// 第一次轮询前补发已有连接；失败沿用普通事件流的产品终止策略。
     fn announce_connected_gamepads(&mut self, event_loop: &dyn ActiveEventLoop) -> bool {
         let session = &self.session;
         let viewport = self.viewport;

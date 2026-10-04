@@ -1,3 +1,5 @@
+//! 外壳区域由身份与交互态共同选填充；可用内容面板保持内凹底色，禁用或加载改用不可用表面；抽屉列不单独填充。
+
 use super::model::WorkbenchChromeKind;
 use super::palette::WorkbenchChromePalette;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;

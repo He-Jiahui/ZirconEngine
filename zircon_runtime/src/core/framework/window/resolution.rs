@@ -7,6 +7,9 @@ use super::constants::{
 };
 use super::validation::{valid_scale_factor, valid_window_axis};
 
+// BUG: [CR-FRAMEWORK-WINDOW-0002] 派生反序列化绕过 new/set 的尺寸和缩放校验，可构造零尺寸或零缩放并流入物理尺寸、逻辑尺寸计算；证据见本类型构造器与 App 窗口属性转换。
+/// 启动窗口的物理像素尺寸与 DPI 缩放意图；App 用物理尺寸创建表面，逻辑尺寸供调用者换算与诊断。
+/// 构造和修改入口会夹紧无效值；从配置读取时也必须保住相同不变式。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WindowResolution {
     physical_width: u32,
@@ -78,6 +81,7 @@ impl WindowResolution {
         self.scale_factor = valid_scale_factor(scale_factor);
     }
 
+    /// 设置启动配置的强制缩放，仅在调用方确实要覆盖后端 DPI 观测时使用。
     pub fn set_scale_factor_override(&mut self, scale_factor_override: Option<f32>) {
         self.scale_factor_override = scale_factor_override.map(valid_scale_factor);
     }

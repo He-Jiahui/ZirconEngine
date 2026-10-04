@@ -1,3 +1,5 @@
+//! 把项目资源索引与运行时资产句柄的检查分开，供端到端样例验证导入成功和依赖闭包均已就绪。
+
 use super::*;
 
 pub(super) fn assert_ready_record(manager: &ProjectManager, uri: &str, kind: AssetKind) {
@@ -26,6 +28,7 @@ pub(super) fn assert_dependencies(manager: &ProjectManager, from: &str, expected
     );
 }
 
+/// 同时检查句柄本身、直接依赖和递归依赖；端到端测试用它区分资源记录就绪与运行时可用。
 pub(super) fn assert_loaded_with_dependencies<TAsset: Asset>(
     manager: &ProjectAssetManager,
     uri_text: &str,
@@ -103,6 +106,7 @@ pub(super) fn load_texture(manager: &ProjectManager, uri_text: &str) -> TextureA
     }
 }
 
+/// 按 ResourceStreamer 测试入口的纹理绑定约定创建布局；仅供离屏管理投影验证。
 pub(super) fn texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-project-asset-flow-texture-layout"),

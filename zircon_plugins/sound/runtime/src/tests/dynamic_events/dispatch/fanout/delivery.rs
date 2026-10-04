@@ -1,3 +1,4 @@
+// 一个调用匹配多个处理器时，每份投递保留相同事件内容，不让后续处理器失去负载。
 use super::super::super::*;
 
 use super::support::fanout_fixture;

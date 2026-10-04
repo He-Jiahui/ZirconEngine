@@ -1,3 +1,4 @@
+// 两个独立 provider 的功能清单必须与宿主包清单一致，避免连接的功能实现声明不同的能力与模块。
 use super::support::sorted_runtime_optional_feature_signatures;
 
 #[test]

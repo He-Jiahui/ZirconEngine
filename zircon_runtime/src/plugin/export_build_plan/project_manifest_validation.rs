@@ -1,3 +1,4 @@
+//! 清单诊断与清理的唯一组合入口；from_project_manifest 在生成包、注册代码前先执行这些约束。
 mod crates;
 mod duplicates;
 mod identity;

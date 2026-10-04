@@ -31,6 +31,7 @@ pub(super) fn wire_welcome_recent_callbacks(
     });
 }
 
+// 欢迎页控件仅传递类型化事件；项目创建和最近项目动作在宿主会话层执行。
 pub(super) fn wire_welcome_control_callbacks(
     pane_surface_host: &PaneSurfaceHostContext,
     host: &Rc<RefCell<RetainedEditorHost>>,

@@ -1,3 +1,4 @@
+//! 扩展表冻结后使用稠密身份访问；新增导入贡献须失效旧代际，行为断言检查无重复建立及无名称重解析。
 use crate::asset::{AssetImporterDescriptor, AssetKind};
 use crate::builtin::RuntimePluginId;
 use crate::graphics::RenderFeatureDescriptor;

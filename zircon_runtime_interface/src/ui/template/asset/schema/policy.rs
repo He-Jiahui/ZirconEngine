@@ -18,6 +18,7 @@ impl UiAssetSchemaVersionPolicy {
         version > UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
     }
 
+    /// 迁移前先用含端点的支持窗口判定版本；未来版本与低于下限的版本均不能进入常规升级。
     pub const fn is_supported_source_schema(version: u32) -> bool {
         version >= UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION
             && version <= UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION

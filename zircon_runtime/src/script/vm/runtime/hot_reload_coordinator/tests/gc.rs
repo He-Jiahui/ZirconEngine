@@ -1,3 +1,4 @@
+// GC 测试对照后端遥测和宿主墙钟，保证低报耗时不会突破帧预算，并校验到期槽调度与重载后的刷新。
 use super::*;
 use std::sync::atomic::Ordering;
 

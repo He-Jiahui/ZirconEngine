@@ -1,3 +1,4 @@
+// 使用手动驱动的 Kira 捕获后端比较混音样本，核对发送路径、总音量和活跃图更新的输出。
 use std::sync::{Arc, Mutex};
 
 use kira::{
@@ -16,6 +17,7 @@ use crate::kira_bridge::KiraEngine;
 
 const TEST_SIGNAL_AMPLITUDE: f32 = 0.25;
 
+// 由夹具向 Kira 后端共享最后一块立体声输出，不启动系统音频设备。
 #[derive(Clone)]
 struct CaptureBackendSettings {
     sample_rate: u32,
@@ -31,6 +33,7 @@ impl Default for CaptureBackendSettings {
     }
 }
 
+// 手动推进渲染器的测试后端；测试线程负责调用 render，设备回调时序不在本组覆盖范围内。
 struct CaptureBackend {
     renderer: Option<Renderer>,
     samples: Arc<Mutex<Vec<f32>>>,
@@ -50,6 +53,7 @@ impl CaptureBackend {
     }
 }
 
+// 实现真实 Kira 后端契约以保留混音执行；固定双声道缓冲区只适用于本组立体声图。
 impl Backend for CaptureBackend {
     type Settings = CaptureBackendSettings;
     type Error = ();
@@ -225,6 +229,7 @@ fn stopped_playback_handle_does_not_block_structural_graph_sync_before_drain() {
     assert_eq!(engine.drain_finished_playbacks(), vec![playback]);
 }
 
+// 活跃播放时改变父轨道须明确拒绝，且拒绝后原图仍可发声；仅核对句柄存在不足以证明音频保留。
 #[test]
 fn active_parent_move_is_rejected_without_retiring_the_live_playback_track() {
     let captures = Arc::new(Mutex::new(Vec::new()));
@@ -287,6 +292,7 @@ fn chained_post_effect_send_contributes_to_every_downstream_target() {
     );
 }
 
+// 将发送、目标、父轨道和最终音量分别参数化，供输出对照区分各层增益的作用范围。
 fn render_post_effect_send(
     send_gain: f32,
     target_gain: f32,
@@ -337,6 +343,7 @@ fn capture_engine(captures: &Arc<Mutex<Vec<f32>>>) -> KiraEngine<CaptureBackend>
     engine
 }
 
+// 低幅恒定信号为发送路径保留混音余量；若发生最终限幅，增益比例断言就失去识别能力。
 fn constant_clip() -> StaticSoundData {
     StaticSoundData {
         sample_rate: 48_000,
@@ -354,6 +361,7 @@ fn looping_constant_clip() -> StaticSoundData {
     clip
 }
 
+// 先推进多个缓冲块等待控制渐变，再取左声道正峰值；该指标专用于恒定单声道夹具。
 fn render_stable_peak(
     engine: &mut KiraEngine<CaptureBackend>,
     captures: &Arc<Mutex<Vec<f32>>>,
@@ -372,6 +380,7 @@ fn render_stable_peak(
         .fold(0.0_f32, f32::max)
 }
 
+// 共用源轨道、辅助轨道和父总线拓扑，故意让辅助轨道继承父总线，以识别发送绕过总线的回归。
 fn send_graph(
     target_gain: f32,
     parent_gain: f32,

@@ -56,6 +56,8 @@ fn native_live_host_reuses_installed_bridge_bindings_for_loaded_manifest_scopes(
         .expect("installed bindings should build native bridge call scope");
     let api = scope.api();
     let payload = b"ping";
+    // SAFETY: 每次调用的 handle 与函数表取自同一存活 scope；payload 为局部测试字节串
+    // 或 null 加零长度，输出为空 ABI 缓冲，宿主入口验证槽位和回调租约。
     let status = unsafe {
         (api.bridge.call.unwrap())(
             scope.handle(),
@@ -177,6 +179,8 @@ fn native_live_host_binding_authority_keeps_callback_and_owner_in_one_generation
     let scope = host
         .runtime_bridge_call_scope_from_installed_bindings("physics", &lifecycle)
         .expect("installed authority should retain its own generation");
+    // SAFETY: 每次调用的 handle 与函数表取自同一存活 scope；payload 为局部测试字节串
+    // 或 null 加零长度，输出为空 ABI 缓冲，宿主入口验证槽位和回调租约。
     let status = unsafe {
         (scope.api().bridge.call.unwrap())(
             scope.handle(),
@@ -435,6 +439,8 @@ fn native_live_host_auto_installs_discovered_bridge_bindings_from_load_report() 
         .expect("discovered bindings should be available through installed binding scope");
     let api = scope.api();
     let payload = b"ping";
+    // SAFETY: 每次调用的 handle 与函数表取自同一存活 scope；payload 为局部测试字节串
+    // 或 null 加零长度，输出为空 ABI 缓冲，宿主入口验证槽位和回调租约。
     let status = unsafe {
         (api.bridge.call.unwrap())(
             scope.handle(),
@@ -497,6 +503,8 @@ fn native_live_host_rebuilds_bridge_scope_from_reloaded_manifest_and_installed_b
         .expect("reloaded manifest should rebuild descriptors from installed bindings");
     let api = scope.api();
     let payload = b"ping";
+    // SAFETY: 每次调用的 handle 与函数表取自同一存活 scope；payload 为局部测试字节串
+    // 或 null 加零长度，输出为空 ABI 缓冲，宿主入口验证槽位和回调租约。
     let status = unsafe {
         (api.bridge.call.unwrap())(
             scope.handle(),
@@ -571,6 +579,8 @@ fn native_live_host_reloads_bridge_lifecycle_and_installed_binding_scope() {
     );
     let api = reload.bridge_call_scope.api();
     let payload = b"ping";
+    // SAFETY: 每次调用的 handle 与函数表取自同一存活 scope；payload 为局部测试字节串
+    // 或 null 加零长度，输出为空 ABI 缓冲，宿主入口验证槽位和回调租约。
     let status = unsafe {
         (api.bridge.call.unwrap())(
             reload.bridge_call_scope.handle(),

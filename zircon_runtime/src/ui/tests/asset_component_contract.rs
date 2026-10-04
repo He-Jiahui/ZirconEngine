@@ -1,3 +1,4 @@
+//! 验证导入组件公开部件与版本边界；私有节点不可借选择器或绑定越过导入契约。
 use crate::ui::template::{component_contract_diagnostic, UiAssetLoader, UiDocumentCompiler};
 use zircon_runtime_interface::ui::template::{
     UiComponentApiVersion, UiComponentContractDiagnosticCode, UiSelector, UiSelectorToken,
@@ -383,6 +384,8 @@ control_id = "SecretLabel"
 "##;
 
 #[test]
+// TODO: [CR-W12-UI-CATALOG-0001] 此夹具显式声明 API 1.2 和公开 label，尚未验证缺省契约的封闭边界。
+// 补不含 contract 的组件夹具，核对缺省版本、空公开部件和外部选择器的拒绝结果。
 fn component_contract_defaults_to_closed_public_surface_and_api_version() {
     let document = UiAssetLoader::load_toml_str(PUBLIC_CARD_WIDGET).unwrap();
     let card = document.components.get("Card").unwrap();
@@ -641,6 +644,8 @@ fn component_contract_rejects_private_focus_targets_inside_component_contract() 
 }
 
 #[test]
+// TODO: [CR-W12-UI-CATALOG-0002] 当前仅检查源码字面量，无法证明重复引用只建一次静态契约和隐私索引。
+// 补重复引用的可观测构建计数，并核对各实例的 API 版本要求仍分别校验。
 fn component_contract_reuses_import_validation_and_privacy_index_per_reference() {
     let source = include_str!("../template/asset/component_contract/validation.rs");
     let privacy_validation = source

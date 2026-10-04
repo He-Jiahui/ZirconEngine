@@ -4,6 +4,7 @@ use super::super::feature_report::RuntimePluginFeatureBlock;
 use super::FeatureStatus;
 
 impl FeatureStatus {
+    // 已解锁能力会从成员集合移除；在形成公开诊断前才压缩原顺序列表。
     pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn into_block(
         mut self,
         selection: &ProjectPluginFeatureSelection,

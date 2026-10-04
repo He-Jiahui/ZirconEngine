@@ -2,6 +2,7 @@ use std::hash::Hash;
 
 use super::EmbeddedFeatureKind;
 
+/// 散列键中的变体区分语义域，嵌套行号限定局部作用域；文本借用原清单以免复制身份字符串。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(super) enum DuplicateIdentity<'a> {
     PackageCapability(&'a str),

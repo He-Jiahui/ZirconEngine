@@ -1,3 +1,4 @@
+//! 验证像素吸附只影响渲染提取，作者、组件原型及命中几何仍保留连续坐标。
 use super::*;
 use zircon_runtime_interface::ui::layout::{UiFrame, UiPixelSnappingPolicy};
 use zircon_runtime_interface::ui::v2::UiV2CompiledDocument;

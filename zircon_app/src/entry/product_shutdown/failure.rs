@@ -83,6 +83,7 @@ impl Display for ProductFailureRecord {
 }
 
 /// Immutable terminal snapshot of the bounded failure ledger.
+/// 关停消费端读取首条作为最早观察到的主因，抑制计数揭示容量耗尽。
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(crate) struct ProductFailureReport {
     records: Vec<ProductFailureRecord>,

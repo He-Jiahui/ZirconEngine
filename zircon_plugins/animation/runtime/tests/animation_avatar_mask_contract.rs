@@ -1,3 +1,4 @@
+//! 头像掩码子树继承与边界权重在编译骨架上的契约回归。
 use zircon_plugin_animation_runtime::{AvatarMaskAsset, MaskWeights, SkeletonTargetTable};
 use zircon_runtime::core::framework::animation::{
     AnimationSkeletonAsset, AnimationSkeletonBoneAsset,

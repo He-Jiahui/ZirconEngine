@@ -4,6 +4,7 @@ use crate::core::framework::text::TextGlyph;
 use crate::text::{ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine};
 
 #[derive(Clone, Debug)]
+/// 指向布局阶段不可变字形产物的单行切片；渲染侧不重新塑形，以保持字距和字体代际一致。
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiGlyphArtifactLine {
     pub(in crate::graphics::scene::scene_renderer::ui) artifact: Arc<ResolvedTextGlyphArtifact>,
     pub(in crate::graphics::scene::scene_renderer::ui) line_index: usize,

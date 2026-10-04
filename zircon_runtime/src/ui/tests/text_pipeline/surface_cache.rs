@@ -1,3 +1,4 @@
+//! 对照独立提取与持久 surface，核对文本 session、缓存帧及字体集合代际的所有权。
 use super::fixtures::{fixed_constraints, repeated_text_metadata, text_layout_command_count};
 use crate::ui::{
     layout::compute_layout_tree,

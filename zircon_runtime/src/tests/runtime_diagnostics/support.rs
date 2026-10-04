@@ -1,3 +1,4 @@
+//! 模拟渲染服务仅实现本组诊断需要的统计和失败路径；调用者注册并激活模块后读取快照，共享断言同时验证指标值、单位和标签。
 use std::sync::Arc;
 
 use crate::core::framework::render::{

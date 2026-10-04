@@ -1,9 +1,13 @@
+//! 复杂组件事件仍通过通用状态入口交付；窗口边界与世界空间参数必须在状态进入渲染前收敛。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventError, UiComponentState, UiValue,
 };
 
 #[test]
+// TODO: [CR-W12-UI-CATALOG-0003] 当前正 overscan 夹具从 10 开始，未触及起点小于 overscan 或空列表的预取边界。
+// 补 start=0、overscan=2 及空列表夹具，验证请求起点非负；生产路径已有 CR-UI-COMP-0005。
 fn virtual_list_visible_range_is_clamped_to_retained_total_count() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
     let descriptor = registry.descriptor("VirtualList").unwrap();
@@ -176,6 +180,8 @@ fn world_space_surface_updates_transform_and_surface_metadata() {
 }
 
 #[test]
+// TODO: [CR-W12-UI-CATALOG-0004] 此处只验证零尺度和零尺寸被拒绝，未覆盖 typed 世界事件携带 NaN 或无穷值。
+// 核对位置、旋转、尺度、尺寸的有限性及失败后状态；生产路径已有 CR-UI-COMP-0006。
 fn world_space_surface_rejects_non_positive_scale_and_size() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
     let descriptor = registry.descriptor("WorldSpaceSurface").unwrap();

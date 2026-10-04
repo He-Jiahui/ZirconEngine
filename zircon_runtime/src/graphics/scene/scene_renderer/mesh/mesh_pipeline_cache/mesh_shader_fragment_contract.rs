@@ -17,6 +17,8 @@ impl MeshShaderFragmentTargetRequirement {
     }
 }
 
+/// 将目标位置与数值类型固定为片段输出契约，阻止材质 WGSL 错配附件。
+/// 先按目标集构造，再用反射验证对应片段入口。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(super) struct MeshShaderFragmentOutputContract {
     targets: Vec<MeshShaderFragmentTargetRequirement>,

@@ -13,6 +13,8 @@ use super::{
     SystemParam, SystemStage, WorldlessSystemParam,
 };
 
+// BUG: [CR-SCENE-ECS-0003] 反序列化直接填充 systems，绕过 register_system 的唯一 ID 校验；重复 ID 会使日程按 ID 解析目标时产生歧义。
+/// 场景日程中的系统注册表；内建描述可序列化，原生与运行时系统仅在当前进程持有。
 #[derive(Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct SceneSystemRegistry {
@@ -42,6 +44,7 @@ impl SceneSystemRegistry {
         registry
     }
 
+    /// 验证并注册内建系统描述；经 Schedule 调用时还会重编译拓扑，失败后撤销这次注册。
     pub fn register_system(
         &mut self,
         descriptor: SceneSystemDescriptor,

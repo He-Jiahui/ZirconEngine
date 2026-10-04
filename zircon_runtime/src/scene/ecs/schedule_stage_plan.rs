@@ -21,6 +21,8 @@ pub(crate) struct SceneScheduleStagePlan {
 }
 
 impl SceneScheduleStagePlan {
+    // BUG: [CR-SCENE-ECS-0002] 反序列化 Schedule 可带重复 stage；此处逐项编入同一阶段桶，WorldDriver 又逐项执行，导致系统重复运行。
+    /// 将当前注册表编成阶段内拓扑顺序、命令 barrier 和冲突图；WorldDriver 只读此快照执行。
     pub(crate) fn from_registry(
         stages: &[SystemStage],
         registry: &SceneSystemRegistry,
@@ -390,6 +392,7 @@ fn resolve_reference(
 ) -> Result<Vec<usize>, ScheduleError> {
     match reference {
         SystemRef::System(target_id) => {
+            // 尚未注册的目标暂不建立边；后续系统注册会触发重新编译，支持插件按任意顺序加载。
             let Some(target_stage) = all_nodes.stages_by_id.get(target_id.as_str()).copied() else {
                 return Ok(Vec::new());
             };

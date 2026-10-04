@@ -5,6 +5,7 @@ use crate::core::math::Real;
 
 use super::{ComponentPropertyPath, EntityId};
 
+/// 世界属性读取、动画采样和编辑器检查共用的值域，不代表组件存储本身。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ScenePropertyValue {

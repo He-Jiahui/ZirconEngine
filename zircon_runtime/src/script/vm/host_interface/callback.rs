@@ -7,6 +7,7 @@ use super::super::{CapabilitySet, PluginSlotId};
 /// `module` and `function` are registration-time slots. `generation` is refreshed
 /// when the owning package is hot reloaded, while the symbolic target remains in
 /// the registry for re-resolution.
+/// 重新解析由 VM registry 完成，调用方不能把旧 generation 当作永久有效。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct VmCallbackHandle {
     /// Stable owner slot allocated by the VM plugin coordinator.
@@ -32,6 +33,7 @@ pub struct VmInterfaceCaller {
 
 impl VmInterfaceCaller {
     /// Creates an authenticated caller from coordinator-owned package state.
+    /// 保存注册调用携带的槽位、代际与能力集；构造器本身不认证身份，后续由注册表校验。
     pub fn new(slot: PluginSlotId, generation: u32, capabilities: CapabilitySet) -> Self {
         Self {
             slot,

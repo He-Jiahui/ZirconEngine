@@ -1,3 +1,4 @@
+//! 汇集项目创建、预检、身份和场景来源回归，共享夹具根随实际测试二进制解析，避免不同构建目录之间复用相同临时来源。
 mod boundary;
 mod directory_transaction;
 mod preflight;

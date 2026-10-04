@@ -1,3 +1,5 @@
+//! 并行执行器的源码守卫记录固定短批次、任务依赖链和串行回退的调度边界。
+
 fn section_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
     source
         .split(start)

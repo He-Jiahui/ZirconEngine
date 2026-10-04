@@ -1,3 +1,5 @@
+//! 从当前宿主主题取列表行角色色；已标记行表面保持低强调，装饰标记使用强调色，焦点边线独立。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_palette, HostMaterialPalette,
 };

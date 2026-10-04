@@ -1,3 +1,5 @@
+//! 验证选择器和自动补全的弹层、单选、多选及禁用状态。
+
 use std::fs;
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;

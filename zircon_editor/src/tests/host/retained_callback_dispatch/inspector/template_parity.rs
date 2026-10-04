@@ -1,3 +1,4 @@
+// 比较检查器模板控件与直接绑定派发，约束名称编辑及删除动作的宿主语义一致。
 use super::super::support::*;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 

@@ -1,3 +1,4 @@
+//! 插件生命周期统一投影到核心模块生命周期；子模块用记录夹具验证调用次序，并核对原生清单与模块顺序。
 #[path = "runtime_plugin_lifecycle/lifecycle_fixtures.rs"]
 mod lifecycle_fixtures;
 use lifecycle_fixtures::*;

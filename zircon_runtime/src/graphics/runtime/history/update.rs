@@ -1,3 +1,4 @@
+//! 只有成功提交的帧能推进历史元数据，失败帧不得让后续消费者误用未完成资源。
 use crate::graphics::visibility::VisibilityStaticIndex;
 use crate::graphics::{FrameHistoryBinding, VisibilityHistorySnapshot};
 use std::sync::Arc;

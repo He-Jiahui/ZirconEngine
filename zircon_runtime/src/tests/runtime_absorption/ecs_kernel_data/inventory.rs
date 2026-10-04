@@ -1,3 +1,4 @@
+//! 实体组件存储与标识能力吸收后，核心拥有者和文档锚点需一致。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 use std::path::Path;
 
 use super::{docs, guard_coverage, identity_storage, runtime_flow, support::assert_files_exist};

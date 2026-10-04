@@ -1,3 +1,4 @@
+//! 帧调度执行链与行为锚点保持由调度模块和文档共同约束。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 pub(super) const EXPECTED_RUNTIME_03_SOURCE_FILES: &[&str] = &[
     "src/dynamic_api/session/state.rs",
     "src/dynamic_api/session/profile.rs",

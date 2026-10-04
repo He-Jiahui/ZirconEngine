@@ -1,3 +1,5 @@
+//! 验证文本输入和自适应文本域的变体、辅助信息与错误状态。
+
 use std::fs;
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;

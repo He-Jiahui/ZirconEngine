@@ -1,3 +1,4 @@
+//! 按 Runtime 子系统汇集锁中毒恢复的源码守卫；具体检查保留在独立子模块。
 #[path = "lock_poison_policy/asset_render_input.rs"]
 mod asset_render_input;
 #[path = "lock_poison_policy/core_runtime.rs"]

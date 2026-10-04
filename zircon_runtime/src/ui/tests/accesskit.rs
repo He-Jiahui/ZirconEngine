@@ -1,3 +1,4 @@
+//! 在中立可访问性 DTO 与 AccessKit 边界核对角色、动作、文本偏移和请求回译；仅在特性开启时编译。
 use accesskit::{
     Action, ActionData, ActionRequest, Node, NodeId, Point, Rect, Role, TextPosition,
     TextSelection, Toggled,

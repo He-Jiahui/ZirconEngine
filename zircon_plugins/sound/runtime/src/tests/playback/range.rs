@@ -1,3 +1,4 @@
+// 直接核对绝对资源帧与 Kira 切片相对时间的双向换算；不创建播放句柄或声源。
 use crate::service_types::{
     absolute_position_from_kira_slice, kira_slice_position_for_absolute_frame,
 };

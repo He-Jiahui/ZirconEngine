@@ -1,6 +1,8 @@
 use super::super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use crate::graphics::types::ViewportRenderRegion;
 
+/// 在局部 DisplayMapping 区域同时输出显示映射颜色与 GI 辅助结果。
+/// 绑定组与 pipeline 须对应两附件格式；物理输出偏移由后续输出传输负责。
 pub(super) fn record_pass(
     resources: &ScenePostProcessResources,
     encoder: &mut wgpu::CommandEncoder,

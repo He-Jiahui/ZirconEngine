@@ -6,6 +6,8 @@ use zircon_runtime_interface::ui::{
 
 use super::surface::UiSurface;
 
+/// 为默认交互和文本编辑汇合节点及祖先的禁用权限；祖先缺失时拒绝交互。
+/// 调用者仍需检查各自的可见性、输入策略和只读约束，这里只回答 disabled。
 pub(crate) fn ui_surface_effective_disabled(
     surface: &UiSurface,
     node_id: UiNodeId,

@@ -39,6 +39,7 @@ pub(crate) fn raycast(asset: &NavMeshAsset, query: &NavRaycastQuery) -> Option<N
     detour_query.raycast(query)
 }
 
+// Rust 包装器拥有原生查询；仅 Crowd 创建成功时通过 into_raw 转交所有权，其他路径由 Drop 释放。
 pub(crate) struct DetourQuery {
     handle: NonNull<c_void>,
 }
@@ -59,6 +60,7 @@ impl DetourQuery {
         let area_costs = detour_area_costs(asset);
         let off_mesh_links = detour_off_mesh_links(asset);
         let mut result = ZrNavDetourQueryCreateResult::default();
+        // SAFETY: 所有输入数组在同步调用期间存活，元素数与传入计数一致，结果结构可写。
         unsafe {
             ffi::zr_nav_detour_create_query(
                 vertices.as_ptr(),
@@ -94,6 +96,7 @@ impl DetourQuery {
     fn find_path(&self, query: &NavPathQuery, filter: &NavQueryFilter) -> Option<NavPathResult> {
         let mut result = ZrNavDetourPathResult::default();
         let filter = detour_query_filter(filter);
+        // SAFETY: 查询句柄由本包装器持有，起终点数组和过滤器在调用期间存活，结果可写。
         unsafe {
             ffi::zr_nav_detour_find_path(
                 self.handle.as_ptr(),
@@ -109,6 +112,7 @@ impl DetourQuery {
             ZR_NAV_DETOUR_NO_PATH => Some(NavPathResult::no_path()),
             _ => None,
         };
+        // SAFETY: 转换已复制路径点，结果仍持有本次查询的原生分配且仅释放一次。
         unsafe {
             ffi::zr_nav_detour_free_path_result(&mut result);
         }
@@ -117,6 +121,7 @@ impl DetourQuery {
 
     fn sample_position(&self, query: &NavSampleQuery) -> Option<Option<NavSampleHit>> {
         let mut result = ZrNavDetourSampleResult::default();
+        // SAFETY: 查询句柄有效，位置和范围三坐标在同步调用期间存活，结果可写。
         unsafe {
             ffi::zr_nav_detour_sample_position(
                 self.handle.as_ptr(),
@@ -137,6 +142,7 @@ impl DetourQuery {
 
     fn raycast(&self, query: &NavRaycastQuery) -> Option<NavRaycastResult> {
         let mut result = ZrNavDetourRaycastResult::default();
+        // SAFETY: 查询句柄有效，起终点三坐标在同步调用期间存活，结果可写。
         unsafe {
             ffi::zr_nav_detour_raycast(
                 self.handle.as_ptr(),
@@ -165,6 +171,7 @@ pub(crate) fn detour_query_filter(filter: &NavQueryFilter) -> ZrNavDetourQueryFi
 
 impl Drop for DetourQuery {
     fn drop(&mut self) {
+        // SAFETY: 句柄由本包装器唯一持有，Drop 在最后一次使用后释放一次。
         unsafe {
             ffi::zr_nav_detour_free_query(self.handle.as_ptr());
         }

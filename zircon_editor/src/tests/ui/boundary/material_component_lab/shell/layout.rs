@@ -1,3 +1,5 @@
+//! 验证Material 实验室外壳的标题、内容和导航区域布局。
+
 use std::fs;
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;

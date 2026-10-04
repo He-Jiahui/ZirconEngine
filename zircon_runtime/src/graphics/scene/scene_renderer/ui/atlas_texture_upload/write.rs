@@ -5,6 +5,7 @@ use zr_rhi::TextureCopyRegion;
 use crate::text::atlas::GlyphAtlasUploadCommand;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 将文本图集的页面与 CPU staging 偏移固定为 RHI 上传契约；偏移按整页行跨度计算。
 pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasTextureUploadWrite {
     pub(in crate::graphics::scene::scene_renderer::ui) origin_x: u32,
     pub(in crate::graphics::scene::scene_renderer::ui) origin_y: u32,
@@ -43,6 +44,7 @@ pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_texture_upload
     )
 }
 
+/// 计算带行跨度的 staging 借用范围；边界无效时由帧构建器取消整批上传，避免部分页面提前生效。
 pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_texture_upload_source_range(
     write: GlyphAtlasTextureUploadWrite,
     upload_byte_len: usize,

@@ -1,3 +1,4 @@
+//! 状态机转换的时间推进与可中断候选选择；退出门槛使用当前叶状态的归一播放进度。
 use std::sync::Arc;
 
 use zircon_runtime::asset::ProjectAssetManager;

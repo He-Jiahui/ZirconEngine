@@ -1,3 +1,4 @@
+//! 为插件导入接口审查读取或聚合父子源码，保留路径与文本的配对关系供上层检查；聚合结果只描述被列入清单的文件。
 use super::super::super::super::*;
 
 pub(super) fn plugin_importer_dx_sources() -> Vec<(&'static str, String)> {

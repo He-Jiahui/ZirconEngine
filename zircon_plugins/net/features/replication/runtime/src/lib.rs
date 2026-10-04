@@ -1,3 +1,6 @@
+//! 集中公开复制 feature、snapshot/delta manager、编译表和默认插值延迟。
+//! 公开算法入口由宿主连接到 ECS 世界、会话和传输后才构成产品同步通路。
+
 mod capability;
 mod feature;
 mod manager;

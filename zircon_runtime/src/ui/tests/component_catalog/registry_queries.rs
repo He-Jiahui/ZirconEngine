@@ -1,3 +1,5 @@
+//! 宿主能力过滤与调色板排序用于决定可插入节点；目录版本只随实际描述符集合变化。
+
 use super::*;
 
 #[test]
@@ -41,6 +43,8 @@ fn runtime_component_registry_filters_by_host_capabilities_and_reports_missing()
 }
 
 #[test]
+// TODO: [CR-W12-UI-CATALOG-0005] 这里比较三键，生产排序还在 component_id 前比较 display_name。
+// 补类别和 sort_key 相同、展示名与 ID 次序相反的描述符，核对完整四键顺序。
 fn runtime_component_registry_builds_descriptor_palette_views() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
     let entries = registry.palette_entries_for_host(&UiHostCapabilitySet::editor_authoring());

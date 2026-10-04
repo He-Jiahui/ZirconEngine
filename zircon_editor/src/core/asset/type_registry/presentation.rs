@@ -1,3 +1,4 @@
+//! 保存类型目录的展示元数据，供物化端检查完整性并供工作区统一投影；构造本身不证明字段有效，使用前仍需经过目录校验。
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -1,3 +1,4 @@
+//! 组件贡献先验证身份、模式和资源路径，再比较登记报告与扩展目录的消费结果；清单覆盖不能隐藏非法声明。
 use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::plugin::{
     PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,

@@ -1,3 +1,5 @@
+//! 单选框的填充、边框和选中点颜色从同一个 Radio 状态选择器获取。
+
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::style_selector::WorkbenchSelectionControlKind as SelectionStyleKind;
 use super::selector::selection_style;

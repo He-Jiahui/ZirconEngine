@@ -1,3 +1,6 @@
+//! Tooltip 普通声明外壳只覆盖 Normal；箭头默认跟随表面，显式 value_color 可单独指定箭头色。
+//! 正文与图标声明色可在可用的动态状态保留；不可用状态优先使用禁用配方，不接受这些覆盖。
+
 use super::super::super::template_style_color::resolved_style_color;
 use super::model::WorkbenchTooltipStyle;
 use super::state::is_unavailable_tooltip_state;

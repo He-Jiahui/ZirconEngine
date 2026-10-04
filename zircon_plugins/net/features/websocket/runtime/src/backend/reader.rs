@@ -1,3 +1,6 @@
+//! 独立任务把网络 message 放入连接入站队列，同时向根 manager 发布帧/状态事件。
+//! 队列出队由业务显式 poll，scene 系统只发布事件；读取任务的终止决定 socket 读半部生命周期。
+
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
@@ -46,6 +49,7 @@ async fn read_websocket_frames(
     }
 }
 
+// reader 将帧交给业务 pull 队列，另把通知送入 scene 事件流；二者没有统一容量约束。
 async fn read_stream<S>(
     connection: NetConnectionId,
     mut stream: SplitStream<WebSocketStream<S>>,
@@ -63,6 +67,7 @@ async fn read_stream<S>(
                 let mut queue = inbound
                     .lock()
                     .expect("net WebSocket inbound mutex poisoned");
+                // TODO: [CR-PLUGIN-NET-0010] 入站帧和事件队列均无容量/字节上限；需明确慢消费者的背压和断开策略。
                 queue.push_back(frame);
                 let queued_frames = queue.len();
                 drop(queue);

@@ -1,3 +1,4 @@
+// 输出配置入口应拒绝已退役 software-null 后端，返回 BackendUnavailable；本用例不启动设备。
 use super::super::*;
 
 #[test]

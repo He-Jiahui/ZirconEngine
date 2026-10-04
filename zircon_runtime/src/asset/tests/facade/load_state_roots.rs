@@ -1,3 +1,5 @@
+//! readiness 是只读观察：记录 Ready、运行时 payload 驻留与具体 Rust 类型必须分别判定，查询不得顺带恢复资源。
+
 use super::*;
 
 #[test]
@@ -52,6 +54,7 @@ fn asset_load_state_maps_resource_state_runtime_state_and_payload_residency() {
     assert_eq!(textures.get(reloading_handle).unwrap().width, 1);
 }
 
+// 同一 kind 可承载不同资产类型；Ready 记录和 marker 匹配仍不足以证明 typed get 可以取得 payload。
 #[test]
 fn asset_load_state_requires_typed_payload_not_just_matching_record_kind() {
     let manager = ResourceManager::new();
@@ -78,6 +81,7 @@ fn asset_load_state_requires_typed_payload_not_just_matching_record_kind() {
     assert_eq!(textures.load_state(handle), AssetLoadState::NotLoaded);
 }
 
+// 查询缺失或被卸载的根资源时，只读取同一代际快照，不应调用 ProjectAssetManager 的按需恢复路径。
 #[test]
 fn load_states_for_missing_wrong_kind_and_non_resident_roots_do_not_restore_payloads() {
     let manager = ProjectAssetManager::default();

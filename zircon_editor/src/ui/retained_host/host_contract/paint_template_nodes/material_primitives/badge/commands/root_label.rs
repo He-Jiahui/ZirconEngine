@@ -5,6 +5,7 @@ use super::super::labels::badge_root_label;
 use super::super::style::badge_root_text_color;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+// 根标签属于被标记宿主的内容，与外侧计数层分别取不同文本字段和排版框。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_badge_root_label(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

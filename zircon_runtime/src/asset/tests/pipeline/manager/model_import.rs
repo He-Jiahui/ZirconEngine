@@ -1,3 +1,5 @@
+//! 模型导入测试跨越 authored TOML、插件 importer、生成的 mesh 子资产引用与运行时模型 payload。
+
 use super::*;
 use crate::core::math::{Vec2, Vec3};
 

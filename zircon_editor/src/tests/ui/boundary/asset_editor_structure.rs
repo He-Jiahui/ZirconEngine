@@ -1,3 +1,5 @@
+//! 验证资产编辑器文件夹归属和旧扁平路径切断。
+
 use super::support::collect_rust_files;
 
 #[test]

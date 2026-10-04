@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use super::super::{PluginSlotId, VmError, VmPluginPackage, VmPluginSlotRecord};
 
+/// 宿主脚本入口通过此门面请求插件装载、热重载和卸载；实际状态由管理器与协调器持有，门面不能绕过槽位生命周期。
 pub trait VmPluginSlotLifecycle: Send + Sync {
     fn load_package(
         &self,

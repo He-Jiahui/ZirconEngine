@@ -13,6 +13,8 @@ use super::{
 };
 
 #[derive(Default)]
+/// 仅为当前纹理目标所属的平面探针生成持久粗糙度 mip 链；
+/// 目标不属于本帧探针或尚未拥有设备世代时拒绝执行。
 pub(super) struct PlanarReflectionFilterExecutor {
     pipeline: Mutex<RenderPassDeviceEpochCache<(), PlanarReflectionFilterPipeline>>,
 }

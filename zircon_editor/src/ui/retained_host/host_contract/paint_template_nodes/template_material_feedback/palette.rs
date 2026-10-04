@@ -1,3 +1,5 @@
+//! 反馈颜色来自当前帧的宿主主题快照；进度轨道、禁用状态和遮罩各消费独立语义槽位。
+
 use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

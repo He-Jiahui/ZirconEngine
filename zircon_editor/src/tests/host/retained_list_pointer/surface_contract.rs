@@ -1,3 +1,4 @@
+// 读取列表桥和表面源码，约束直接算术路由及通用窗格宿主上下文。
 fn source(relative: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))

@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::dispatch::{
 use super::super::surface::UiSurface;
 use super::{route_policy::annotate_route_policy, route_steps::annotate_result_route_steps};
 
+/// 将菜单 typeahead 缓冲区到期通知转成语义事件；计时与替换由输入管理器拥有。
 pub(super) fn dispatch_typeahead_timer_input(
     surface: &mut UiSurface,
     typeahead: UiTypeaheadTimerInputEvent,

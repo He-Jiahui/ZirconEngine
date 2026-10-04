@@ -1,3 +1,4 @@
+// 核对工具栏指针桥使用共享命中测试并跳过未变布局的重建。
 use crate::ui::retained_host::viewport_toolbar_pointer::{
     build_viewport_toolbar_pointer_layout, ViewportToolbarPointerBridge,
     ViewportToolbarPointerRoute,

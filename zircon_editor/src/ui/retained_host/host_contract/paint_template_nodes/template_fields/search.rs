@@ -1,3 +1,5 @@
+//! 搜索字段识别、文本缩进和清除动作几何；识别来自组件声明或多个绑定/动作身份，实际图标由子模块输出。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::workbench_field_metrics;
 use crate::ui::retained_host::host_contract::search_field_clear_action_frame;
@@ -9,6 +11,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use glyph:
     push_search_field_clear_glyph, push_search_field_glyph,
 };
 
+/// 可以由组件 role 或控制、绑定、动作 ID 识别搜索；此判定同时控制字号/缩进、占位与清除动作。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_search_field(
     node: &TemplatePaneNodeData,
 ) -> bool {
@@ -63,6 +66,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_
     is_search_field(node) && node.has_clear_action && !node.value_text.trim().is_empty()
 }
 
+/// 复用共享交互动作框，让可点击区域和所绘 SVG 使用同一几何；文字在该框左侧预留空间。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_field_clear_action_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

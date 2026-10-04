@@ -1,3 +1,5 @@
+//! 提供含菜单栏和状态栏挂载槽的宿主窗口模板，供绑定解析与仓库模板测试使用。
+
 pub(super) const EDITOR_HOST_WINDOW_ASSET_TOML: &str = r##"
 [asset]
 kind = "layout"

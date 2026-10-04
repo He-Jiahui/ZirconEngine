@@ -5,6 +5,7 @@ use crate::core::resource::{MaterialMarker, MeshMarker, ModelMarker, ResourceHan
 
 use super::super::super::{MaterialPropertyOverrideBlock, RenderMaterialAlphaMode};
 
+/// 单个网格图元的资源绑定，供场景变更投影器重建渲染图元。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderComponentMeshPrimitiveBinding {
     mesh: ResourceHandle<MeshMarker>,
@@ -28,6 +29,7 @@ impl RenderComponentMeshPrimitiveBinding {
     }
 }
 
+/// 组件投影携带的 LOD 资源层级；渲染端按观察距离选择，而非在场景侧固定。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderComponentMeshLodLevel {
     min_distance: Real,
@@ -75,6 +77,8 @@ impl RenderComponentMeshLodLevel {
     }
 }
 
+/// 场景网格组件的资源与作者排序状态快照，供增量投影重建图元。
+/// 集合持有共享切片，使跨帧变更包的复制不需要重建每个绑定。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderComponentMeshPayload {
     model: ResourceHandle<ModelMarker>,

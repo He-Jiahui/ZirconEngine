@@ -1,3 +1,4 @@
+//! 框架状态机源诊断和运行时稠密编译失败的统一错误边界。
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 

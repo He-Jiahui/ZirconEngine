@@ -1,3 +1,4 @@
+// 为保留式事件桥测试提供可复用宿主状态和事件夹具。
 use crate::core::editor_event::{
     EditorAssetEvent, EditorEvent, EditorEventEffect, EditorEventId, EditorEventRecord,
     EditorEventResult, EditorEventSequence, EditorEventSource, EditorEventUndoPolicy,

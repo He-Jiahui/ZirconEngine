@@ -1,6 +1,10 @@
+//! 核对产品 EventLoopPolicy 到 cadence/ControlFlow 的映射和计数点。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::{entry_root, runtime_event_loop_policy_source};
 
+// BUG: [CR-APP-ENTRY-0006] 该守卫要求 Wait 后紧跟逗号，当前 cadence 通过 unwrap_or 调用使用 Wait，导致现有策略检查失败；证据：clean frame_cadence.rs 与外部基线失败。
 #[test]
 fn runtime_entry_maps_platform_event_loop_policy_to_winit_control_flow() {
     let event_loop_policy_root_source =

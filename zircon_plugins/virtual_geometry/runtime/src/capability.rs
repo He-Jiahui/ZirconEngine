@@ -1,3 +1,4 @@
+// 运行时能力与 native registration manifest 共同约束宿主扩展接入；仅声明能力不会自行执行渲染。
 zircon_plugin_sdk::declare_plugin! {
     pub VIRTUAL_GEOMETRY_DECLARATION {
         id: PLUGIN_ID = "virtual_geometry",

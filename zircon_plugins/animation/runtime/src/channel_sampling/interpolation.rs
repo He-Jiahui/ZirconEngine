@@ -1,3 +1,4 @@
+//! 原始通道的 Hermite 支持供管理器同步采样调用；缺失切线按零解释，生产帧的输入校验属于编译评估链。
 //! Hermite interpolation helpers for authored animation channels.
 
 use zircon_runtime::core::framework::animation::{

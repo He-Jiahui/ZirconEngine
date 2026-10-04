@@ -1,3 +1,4 @@
+//! 区域影响取当前最强区域，组合其低通、卷积发送和区域增益；多个区域不在这里叠加处理。
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::sound::{

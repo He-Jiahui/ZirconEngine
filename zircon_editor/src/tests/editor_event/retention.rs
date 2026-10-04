@@ -1,3 +1,4 @@
+//! 留存测试把 journal、listener inbox 和投递游标分开核验；全局预算不能吞掉独立类别的有序记录。
 use std::time::Duration;
 
 use serde_json::json;

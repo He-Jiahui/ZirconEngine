@@ -29,6 +29,7 @@ pub struct ScenePatchPreviewResource {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 对指定目标世界编译出的应用预览；实体映射和资源状态只在该目标的当前代际成立。
 pub struct ScenePatchPreviewReport {
     pub component_type_count: usize,
     pub existing_component_type_count: usize,
@@ -67,6 +68,7 @@ impl ScenePatchPreviewReport {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 用于编辑/导入调用链的场景补丁外壳；构造本身不校验载荷，预览或应用时才对目标世界编译。
 pub struct ScenePatch {
     pub scene: DynamicScene,
 }
@@ -80,6 +82,7 @@ impl ScenePatch {
         DynamicScene::from_world(world).map(Self::from_scene)
     }
 
+    /// 在不写入目标世界的前提下解析映射与模式；正式应用仍需执行适配器预检，预览成功并非提交保证。
     pub fn preview_apply(
         &self,
         world: &World,
@@ -87,6 +90,7 @@ impl ScenePatch {
         self.scene.preview_spawn_into(world)
     }
 
+    /// 将快照事务性写入当前目标世界，并返回所有源实体到已发布实体的映射。
     pub fn apply(&self, world: &mut World) -> Result<EntityRemap, DynamicSceneError> {
         self.scene.spawn_into(world)
     }

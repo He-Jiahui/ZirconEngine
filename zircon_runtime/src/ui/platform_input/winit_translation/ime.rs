@@ -5,6 +5,8 @@ use zircon_runtime_interface::ui::window::{
 
 use super::window::input_event;
 
+// 组合会话交给文本输入 owner；保留平台给出的 UTF-8 字节范围，避免按字符序号重解释光标。
+// Enabled 是宿主能力状态；Disabled 必须作为 Cancel 路由，以结束表面上尚未提交的组合。
 pub(super) fn translate_ime_event(
     context: UiWindowInputContext,
     event: &Ime,

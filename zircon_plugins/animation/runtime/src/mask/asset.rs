@@ -1,3 +1,4 @@
+//! 作者编写的头像掩码 TOML 声明；编辑器视图仅投影规则，运行时权重仍须与目标骨架编译。
 use serde::{Deserialize, Serialize};
 use zircon_runtime::core::framework::animation::AnimationAvatarMask;
 use zircon_runtime::core::math::Real;
@@ -32,6 +33,7 @@ impl AvatarMaskAsset {
         })
     }
 
+    /// 为作者界面提供规则摘要；边界渐变和继承展开仍需在具体骨架上编译。
     pub fn editor_view(&self) -> AnimationAvatarMask {
         AnimationAvatarMask {
             id: self.id.clone(),

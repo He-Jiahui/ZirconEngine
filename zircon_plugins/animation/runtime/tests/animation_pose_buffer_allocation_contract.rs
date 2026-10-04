@@ -1,3 +1,4 @@
+//! 池化姿态混合与最终姿态复制的稳态分配预算契约。
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 

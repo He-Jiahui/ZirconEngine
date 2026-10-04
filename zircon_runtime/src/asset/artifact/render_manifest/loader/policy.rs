@@ -6,6 +6,7 @@ use super::contract::{
 
 const ENTRY_METADATA_BYTES: usize = 256;
 
+// Admission 在创建条目前预留编码、解码及元数据空间，避免异步任务启动后突破预算。
 pub(super) fn quote_retained_bytes(
     descriptor: &RenderArtifactBlockDescriptor,
     limits: RenderArtifactBlockLoaderLimits,

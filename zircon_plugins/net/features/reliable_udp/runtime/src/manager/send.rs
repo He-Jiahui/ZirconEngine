@@ -1,3 +1,6 @@
+//! 按 MTU 将单条 payload 拆成共享序列号的分片，并把它们加入待 ACK 队列。
+//! 返回的 packets 只是待发送数据，调用者必须接入 UDP socket 和重发 tick。
+
 use zircon_runtime::core::framework::net::{
     ReliableDatagramPacket, ReliableDatagramSendReport, ReliableDatagramSendStatus,
 };

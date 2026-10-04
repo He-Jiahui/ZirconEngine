@@ -1,3 +1,4 @@
+//! 纹理复制由中立布局验证和原生对齐规则共同约束，跨域复制仍跟随设备提交顺序。
 use zr_rhi::{BufferHandle, BufferUsage, RhiError, TextureCopyRegion, TextureHandle, TextureUsage};
 
 use crate::resource_validation::{ensure_buffer_usage, ensure_texture_usage};

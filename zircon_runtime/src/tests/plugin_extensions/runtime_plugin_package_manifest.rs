@@ -1,3 +1,4 @@
+//! 包清单声明与实际导出在同一登记报告中校验，覆盖声明不能隐藏非法字段；原生清单投影和链接插件导出使用各自准入路径。
 use std::sync::Arc;
 
 use crate::asset::AssetImporterDescriptor;

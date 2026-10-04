@@ -1,4 +1,5 @@
 //! Static contracts for Zircon Hub documentation ownership and handoff.
+//! 把 Hub 文档的实现归属、测试矩阵和验收交接作为维护契约，防止实现迁移后文档失去可追溯入口。
 
 use std::{fs, path::PathBuf};
 
@@ -9,12 +10,14 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     fs::read_to_string(repo_dir().join(path))
         .map(|source| source.replace("\r\n", "\n"))
         .unwrap_or_else(|error| panic!("failed to read {path}: {error}"))
 }
 
+/// 本轮文档交接契约的固定拥有者集合；新增文档是否进入门槛需要连同实现归属重新审查。
 const HUB_DOCS: &[&str] = &[
     "docs/zircon_hub/index.md",
     "docs/zircon_hub/ui/responsive-component-system.md",
@@ -24,6 +27,7 @@ const HUB_DOCS: &[&str] = &[
     "docs/zircon_hub/pages/settings-status.md",
 ];
 
+/// 将固定文档集合的机器可读归属头与刷新来源作为交接门槛；标题词存在不等于文档语义已经核验。
 #[test]
 fn hub_docs_keep_machine_readable_headers_and_refresh_sources() {
     for path in HUB_DOCS {
@@ -49,6 +53,7 @@ fn hub_docs_keep_machine_readable_headers_and_refresh_sources() {
     }
 }
 
+/// 检查状态、项目、页面及设置文档的当前职责和验收入口，并阻止已移除的拥有者继续出现在流程说明中。
 #[test]
 fn hub_docs_record_current_contract_matrix_and_acceptance_handoff() {
     let index = read_repo_file("docs/zircon_hub/index.md");

@@ -1,4 +1,4 @@
-//! ECS-facing perception components, budgeted scanning, stimulus aging, and event adapters.
+//! 感知模块连接 ECS 组件、配对预算扫描、刺激过期处理以及动画和声音事件适配。
 
 mod adapter;
 mod components;

@@ -1,3 +1,4 @@
+// 核对资源抽屉滚动后内容区域重绘而工具区域保持稳定的布局与像素契约。
 use super::*;
 use std::cell::RefCell;
 use std::rc::Rc;

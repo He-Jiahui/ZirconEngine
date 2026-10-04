@@ -1,3 +1,5 @@
+//! 可选虚拟几何派生数据的导入烘焙与诊断导出；基础网格仍由模型原语单独保留。
+
 mod binary_dump;
 mod bvh_graph_dump;
 mod cook;

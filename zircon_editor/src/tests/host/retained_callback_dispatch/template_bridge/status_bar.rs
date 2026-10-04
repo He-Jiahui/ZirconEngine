@@ -1,3 +1,4 @@
+// 从工作台状态栏模板桥同步状态，约束任务进度、语义色、宽度分级及空闲收缩。
 use super::support::*;
 use crate::core::commands::EditorCommandRegistry;
 use crate::scene::viewport::GridMode;

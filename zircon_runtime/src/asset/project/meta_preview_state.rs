@@ -1,3 +1,5 @@
+//! 缩略图状态采用 sidecar 上的比较并设置：预览任务只在 UUID、URI 与源摘要仍匹配时写回，防止覆盖后续导入代。
+
 use std::io;
 use std::path::Path;
 

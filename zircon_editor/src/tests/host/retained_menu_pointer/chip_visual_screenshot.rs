@@ -1,3 +1,4 @@
+// 核对芯片的胶囊形态、箭头、选中、焦点、按下及禁用状态的像素契约。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

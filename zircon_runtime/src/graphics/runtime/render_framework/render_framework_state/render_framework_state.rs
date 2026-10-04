@@ -1,3 +1,4 @@
+//! 这里是框架锁保护的可变所有者，汇集视口、图缓存、渲染器和诊断产品。
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 

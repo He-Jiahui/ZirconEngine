@@ -7,6 +7,7 @@ use super::super::super::surface::UiSurface;
 use super::super::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult};
 use super::node::require_node;
 
+/// effect 阶段验证组件目标，实际事件作为派发结果交回宿主消费。
 pub(super) fn apply_component_event_effect(
     surface: &UiSurface,
     effect: &UiDispatchEffect,
@@ -14,6 +15,8 @@ pub(super) fn apply_component_event_effect(
     match effect {
         UiDispatchEffect::EmitComponentEvent { target, policy, .. } => {
             require_node(surface, *target)?;
+            // TODO: [CR-UI-SURFACE-0003] 确认 Queue/Coalesce 是否应影响事件投递；
+            // 三种策略目前都返回同一结果，报告也始终 delivered=true；缺少非 Immediate 调用与顺序测试。
             match policy {
                 UiComponentEmissionPolicy::Immediate
                 | UiComponentEmissionPolicy::Queue

@@ -4,6 +4,8 @@ use super::{
     IBL_BAKE_ARTIFACT_HEADER_SIZE, IBL_BAKE_ARTIFACT_PAYLOAD_CHECKSUM_SIZE,
 };
 
+/// `.zribl` 的头、校验和与载荷边界；资产存储和运行时缓存都通过它恢复工件。
+/// `decode` 验证字节完整性，调用方随后还须按请求与生产者检查 descriptor。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IblBakeArtifactBlob {
     header: IblBakeArtifactHeader,

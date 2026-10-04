@@ -1,3 +1,4 @@
+// 汇集能力声明、CPAL 设备枚举和输出状态夹具，供目录用例读取；不创建 Kira 播放后端。
 use zircon_runtime::core::framework::sound::{SoundBackendCapability, SoundOutputDeviceInfo};
 
 use crate::kira_bridge::{available_backends, available_devices};

@@ -17,6 +17,7 @@ mod world_handle;
 pub type EntityId = u64;
 pub type NodeId = EntityId;
 
+/// 场景资产异步保存的终态；同一路径的新代请求可取代尚未开始的旧请求。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SceneArtifactTerminal {
     Succeeded,
@@ -33,6 +34,7 @@ pub enum SceneArtifactWaitResult {
     ObserverTimedOut,
 }
 
+/// 保存请求的只读观察句柄。调用者可按代次识别被取代的任务，观察超时不会取消写入。
 pub trait SceneArtifactTicket: Send + Sync + fmt::Debug + 'static {
     fn generation(&self) -> u64;
     fn terminal(&self) -> Option<SceneArtifactTerminal>;
@@ -51,6 +53,8 @@ pub use resource::SceneResource;
 pub use system_stage::SystemStage;
 pub use world_handle::WorldHandle;
 
+/// 向宿主暴露关卡句柄与资产 I/O；实现负责绑定当前项目代次并保持场景世界所有权。
+/// 保存返回票据后仍须观察终态，不能把请求被接纳视为文件已落盘。
 pub trait LevelManager: Send + Sync {
     fn create_default_level_handle(&self) -> Result<WorldHandle, LevelManagerError>;
     fn level_exists(&self, handle: WorldHandle) -> bool;

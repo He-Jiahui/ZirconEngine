@@ -1,3 +1,5 @@
+//! 验证资源、主题、绑定和布局工作台模板都能编译并在会话中打开。
+
 use super::support::{
     hydrate_bootstrap_imports, open_design_session, register_bootstrap_imports,
     UI_ASSET_EDITOR_ASSET_BROWSER_TOML, UI_ASSET_EDITOR_BINDING_BROWSER_TOML,

@@ -1,3 +1,4 @@
+// 按组件化工作台分隔条帧解析尺寸调整目标，约束区域外点不产生路由。
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::drawer_resize::{
     resolve_host_resize_target_group_with_workbench_layout_frames, HostResizeTargetGroup,

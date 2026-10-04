@@ -77,6 +77,7 @@ impl ResolvedProductHostConfig {
         self.editor_runtime_sandbox_enabled
     }
 
+    /// 为启动诊断提供每项已采纳值的来源；不能反推出未采纳请求的完整历史。
     pub const fn provenance(&self) -> &ProductHostConfigProvenance {
         &self.provenance
     }

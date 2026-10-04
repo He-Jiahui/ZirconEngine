@@ -1,3 +1,6 @@
+//! 从当前宿主主题投影表格行表面、分隔线、动作与文字角色；表头/表尾外壳保持凹入基面。
+//! 测试常量只固定默认主题基准，运行时选择器仍取当前主题。
+
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{

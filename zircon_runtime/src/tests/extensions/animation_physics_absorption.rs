@@ -1,3 +1,4 @@
+//! 区分物理插件拥有具体行为与动画插件包装运行时模块的两条归属链；这里核对清单、框架边界和注册源码，不启动后端。
 #[test]
 fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

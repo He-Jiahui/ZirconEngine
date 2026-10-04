@@ -1,3 +1,6 @@
+//! 在窗口创建或尺寸变化后，把有效原生窗口 target 交给动态 Runtime。
+//! 只有显式选择的 CPU 诊断路径可绕开原生绑定；attempted 状态服务异常清理。
+
 use winit::window::Window;
 use zircon_runtime::diagnostic_log::write_log;
 use zircon_runtime_interface::{
@@ -11,6 +14,7 @@ use super::super::{
 use crate::entry::runtime_library::RuntimeLibraryError;
 
 impl RuntimeEntryApp {
+    /// 在 resize 后重新使用当前主窗口；无窗口时保持无表面会话。
     pub(in crate::entry::runtime_entry_app) fn bind_current_window_surface(
         &mut self,
     ) -> Result<bool, RuntimeLibraryError> {
@@ -20,6 +24,7 @@ impl RuntimeEntryApp {
         self.bind_window_surface(window.as_ref())
     }
 
+    /// 要求完整原生呈现能力后绑定目标；显式 CPU 诊断模式返回未绑定。
     pub(in crate::entry::runtime_entry_app) fn bind_window_surface(
         &mut self,
         window: &dyn Window,

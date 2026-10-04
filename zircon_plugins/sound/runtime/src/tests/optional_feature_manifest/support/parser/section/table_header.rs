@@ -1,3 +1,4 @@
+// 非可选功能表会退出本次范围；静态扫描器只识别固定清单使用的表头语法。
 use super::kind::OptionalFeatureSection;
 
 impl OptionalFeatureSection {

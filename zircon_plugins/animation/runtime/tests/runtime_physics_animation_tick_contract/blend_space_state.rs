@@ -1,3 +1,4 @@
+//! 生产帧的混合空间、直接剪辑和嵌套状态机姿态连续性契约。
 use super::state_machine_interruption::{assert_hand_translation, spawn_state_machine_player, uri};
 use super::*;
 use zircon_runtime::core::framework::animation::{

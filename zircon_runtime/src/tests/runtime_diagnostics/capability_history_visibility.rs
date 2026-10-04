@@ -1,3 +1,4 @@
+//! 校验模拟快照中能力、历史与可见性指标的值和标签；调用入口是本组诊断整合测试。
 use crate::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 use super::support::{assert_render_bool_series, assert_render_count_series};

@@ -1,3 +1,5 @@
+//! 窗口泵把生命周期、尺寸和指针事件接入同一管理器；共享夹具保留弹窗及提示以检查清理规则。
+
 use crate::ui::{dispatch::UiInputManager, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,

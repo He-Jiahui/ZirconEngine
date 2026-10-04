@@ -1,3 +1,6 @@
+//! 为图规划器提供内联 WGSL 模板，并按算子选择和填充源码。
+//! 此模块不创建 pipeline，也不提交 dispatch。
+
 use crate::NnOpCode;
 
 const GEMM_SHADER: &str = r#"
@@ -130,6 +133,7 @@ fn cs_main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 }
 "#;
 
+// BUG: [CR-neural_gpu_support-0001] [1,1,1,1] 输入配 kernel=[1,1]、top pad=1 会让 planner 接受 [1,1,2,1]；WGSL 的 count==0 分支提前返回不写输出，若提交执行，该槽依赖目标缓冲原值或初始化。
 const POOL2D_SHADER: &str = r#"
 struct PoolParams {
     input_shape: vec4<u32>,

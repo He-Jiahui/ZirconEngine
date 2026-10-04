@@ -1,3 +1,4 @@
+//! 剪辑采样的有类型失败边界；帧管线把它转为实体级诊断并跳过该姿态。
 use std::error::Error;
 use std::fmt;
 

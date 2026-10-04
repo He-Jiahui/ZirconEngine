@@ -25,6 +25,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
     module_descriptor_with_manager(None)
 }
 
+/// 将同一管理器实例注册为具体服务与 `dyn AiManager` 接口服务，供运行时按名称解析。
 pub fn module_descriptor_with_manager(manager: Option<Arc<DefaultAiManager>>) -> ModuleDescriptor {
     let default_manager = manager.clone();
     ModuleDescriptor::new(

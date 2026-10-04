@@ -1,6 +1,7 @@
 use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
+    /// 按指定槽位晋升页：清除请求、释放旧槽位并移除该槽位原有页。
     pub(in crate::virtual_geometry) fn promote_to_resident_in_slot(
         &mut self,
         page_id: u32,

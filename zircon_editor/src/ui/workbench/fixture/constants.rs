@@ -1,3 +1,4 @@
+//! 编译期内嵌的工作台预览样本；布局、视图和编辑数据需作为同一夹具版本维护。
 pub(super) const DEFAULT_LAYOUT_JSON: &str =
     include_str!("../../../../fixtures/workbench/default-layout.json");
 pub(super) const DEFAULT_DESCRIPTORS_JSON: &str =

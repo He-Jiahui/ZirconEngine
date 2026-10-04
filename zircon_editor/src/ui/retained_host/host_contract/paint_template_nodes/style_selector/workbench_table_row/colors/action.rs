@@ -1,3 +1,5 @@
+//! 表格动作图标维持低强调文字角色；不可用行改用禁用文字角色。
+
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 use super::super::palette::workbench_table_row_palette;

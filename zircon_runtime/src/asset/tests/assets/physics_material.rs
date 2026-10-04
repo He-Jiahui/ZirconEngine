@@ -1,3 +1,5 @@
+//! 验证物理材质文档往返保留摩擦与恢复系数的组合规则，供场景碰撞体引用时使用。
+
 use crate::core::framework::scene::physics::PhysicsCombineRule;
 
 use crate::asset::tests::support::sample_physics_material_asset;

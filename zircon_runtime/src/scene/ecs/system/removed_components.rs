@@ -6,6 +6,7 @@ use crate::scene::ecs::{
 };
 use crate::scene::{EntityId, World};
 
+/// 为每个系统保留独立移除事件游标；World 的保留窗口结束后可由 dropped_count 发现漏读。
 pub struct RemovedComponentsParam<T>(PhantomData<fn() -> T>);
 
 pub struct RemovedComponents<'world, T>
@@ -55,6 +56,7 @@ where
         Ok(RemovedComponentReader::default())
     }
 
+    // TODO: [CR-SCENE-ECS-0004] 核实与同一 tuple 中可变 World 参数共存时，从原始 World 指针建立共享引用的别名安全前提；SystemParam 契约尚未写明。
     unsafe fn get_param<'world>(
         world: *mut World,
         state: &'world mut Self::State,

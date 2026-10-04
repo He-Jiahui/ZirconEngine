@@ -1,4 +1,5 @@
 //! Static contracts for the React/MUI Hub shell window and page slot layout.
+//! 检查 Tauri 窗口配置、页面视口和原生窗口动作的所有权。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// Tauri 配置决定主窗尺寸、前端资源和可调用能力。
 #[test]
 fn tauri_config_owns_fixed_hub_window_size_and_web_dist_boundary() {
     let config = read_crate_file("tauri.conf.json");
@@ -88,6 +91,7 @@ fn tauri_config_owns_fixed_hub_window_size_and_web_dist_boundary() {
     );
 }
 
+// 主题 token 是窗口密度和壳层尺寸的共同来源。
 #[test]
 fn tokens_centralize_window_density_and_shell_dimensions() {
     let tokens = read_crate_file("web/src/theme/tokens.ts");
@@ -118,6 +122,8 @@ fn tokens_centralize_window_density_and_shell_dimensions() {
     );
 }
 
+// HubWindow 拥有视口与页面槽，业务页无需管理外层尺寸。
+// BUG: [CR-HUBTESTB-0013] 窗口控件现经失败回调调度器调用，旧的壳层参数片段断言必失败；证据：hub_window_owns_viewport_shell_slots_and_page_router_without_page_sizing_leaks 读取 HubWindow.tsx。
 #[test]
 fn hub_window_owns_viewport_shell_slots_and_page_router_without_page_sizing_leaks() {
     let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
@@ -173,6 +179,7 @@ fn hub_window_owns_viewport_shell_slots_and_page_router_without_page_sizing_leak
     );
 }
 
+// 顶栏窗口按钮经当前窗口 API 执行并向应用反馈错误。
 #[test]
 fn topbar_window_controls_are_bound_to_tauri_current_window_api() {
     let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
@@ -195,6 +202,7 @@ fn topbar_window_controls_are_bound_to_tauri_current_window_api() {
     );
 }
 
+// Rust 入口应启动 Tauri 宿主并加载当前 Web 资源。
 #[test]
 fn rust_launcher_enters_tauri_app_without_old_compiled_ui_module() {
     let main_rs = read_crate_file("src/main.rs");
@@ -221,6 +229,7 @@ fn rust_launcher_enters_tauri_app_without_old_compiled_ui_module() {
     );
 }
 
+// 文档记录窗口、主题和运行入口的所有权。
 #[test]
 fn shell_window_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -252,6 +261,7 @@ fn shell_window_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检只以现行原生启动及前端源为契约对象。
 #[test]
 fn shell_window_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_shell_window_contract.rs");

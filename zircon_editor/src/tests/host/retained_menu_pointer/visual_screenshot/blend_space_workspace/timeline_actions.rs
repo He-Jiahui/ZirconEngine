@@ -1,3 +1,4 @@
+// 核对预览时间线采用共享类型化画布并保留动作入口。
 use super::support::*;
 use super::*;
 

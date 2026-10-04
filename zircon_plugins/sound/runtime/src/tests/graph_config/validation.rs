@@ -1,3 +1,4 @@
+// 经停机管理器核对整图配置的声源与绑定校验，以及成功提交后的声源替换和 ID 游标。
 use zircon_runtime::core::framework::sound::{
     SoundAutomationBinding, SoundAutomationBindingId, SoundAutomationTarget, SoundMixerGraph,
     SoundMixerGraphManager, SoundParameterId, SoundSourceDescriptor, SoundSourceId,

@@ -1,3 +1,5 @@
+//! 单选组选择由表面指针或键盘分发产生，同时必须维护组值、兄弟状态及无障碍动作投影。
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,

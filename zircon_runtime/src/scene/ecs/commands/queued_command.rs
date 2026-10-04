@@ -8,6 +8,7 @@ use super::{
     ErasedCommand, ErasedQueuedStructuralCommand,
 };
 
+/// arena 中尚未消费的命令句柄；位置与同类型 vtable 一起移动，apply、stage 或 discard 只能发生一次。
 pub(super) struct InlineCommand {
     arena: InlineCommandArenaLocation,
     block_index: usize,
@@ -93,6 +94,7 @@ impl InlineCommand {
             InlineCommandArenaLocation::Queue => arena,
             InlineCommandArenaLocation::Worker(index) => &mut worker_arenas[index].arena,
         };
+        // SAFETY: InlineCommandArena 在对齐槽位写入已初始化的命令并创建同类型 vtable；CommandQueue 先标记 Consumed，arena 在本次提交结束前有效。
         unsafe {
             (self.apply)(arena.payload_ptr(self.block_index, self.offset), world);
         }
@@ -108,6 +110,7 @@ impl InlineCommand {
             InlineCommandArenaLocation::Queue => arena,
             InlineCommandArenaLocation::Worker(index) => &worker_arenas[index].arena,
         };
+        // SAFETY: 元数据回调只借读对齐且已初始化的结构命令；arena 块和该命令的类型绑定在提交期间保持不变。
         Some(unsafe {
             (structural.metadata)(arena.payload_ptr_const(self.block_index, self.offset))
         })
@@ -127,6 +130,7 @@ impl InlineCommand {
             InlineCommandArenaLocation::Queue => arena,
             InlineCommandArenaLocation::Worker(index) => &mut worker_arenas[index].arena,
         };
+        // SAFETY: 结构命令从对齐且已初始化的同类型 arena 槽位移出交给批事务，队列此前已把该条目标记 Consumed。
         unsafe {
             (structural.stage)(
                 arena.payload_ptr(self.block_index, self.offset),
@@ -145,6 +149,7 @@ impl InlineCommand {
             InlineCommandArenaLocation::Queue => arena,
             InlineCommandArenaLocation::Worker(index) => &mut worker_arenas[index].arena,
         };
+        // SAFETY: 仅未消费的 inline 命令会进入 discard；其对齐槽位仍持有已初始化的原类型负载。
         unsafe {
             (self.drop_payload)(arena.payload_ptr(self.block_index, self.offset));
         }

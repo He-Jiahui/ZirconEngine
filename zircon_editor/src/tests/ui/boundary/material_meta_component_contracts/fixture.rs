@@ -1,3 +1,5 @@
+//! 提供 M2 角色 token 与有状态组件的预期清单，供组件输出契约测试复用。
+
 use std::{path::PathBuf, sync::OnceLock};
 
 use toml::Value;

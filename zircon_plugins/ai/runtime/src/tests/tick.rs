@@ -9,6 +9,7 @@ use zircon_runtime::core::math::Vec3;
 
 use crate::DefaultAiManager;
 
+// 从 AiManager trait 入口检查 Running、Succeeded、Failed 报告的对外语义。
 #[test]
 fn node_semantics_matrix() {
     let manager = DefaultAiManager::default();

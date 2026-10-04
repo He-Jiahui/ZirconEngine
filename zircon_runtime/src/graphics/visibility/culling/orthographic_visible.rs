@@ -1,6 +1,7 @@
 use crate::core::framework::render::ViewportCameraSnapshot;
 use crate::core::math::{Real, Vec3};
 
+// 调用前须由视图剔除器完成近远平面检查；此处只判断正交视锥的横纵边界。
 pub(crate) fn orthographic_visible(
     view_position: Vec3,
     radius: Real,

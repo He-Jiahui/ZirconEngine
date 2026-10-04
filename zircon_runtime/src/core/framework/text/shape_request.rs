@@ -1,5 +1,8 @@
 use super::{TextDirection, TextFontRequest, TextOpenTypeFeature, TextWritingMode};
 
+/// 一次文本形状计算的借用输入；语言、方向、OpenType 特性与字体选择共同决定结果。
+///
+/// 调用方应在调用期间保持文本和特性切片有效；服务返回拥有型字形结果。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TextShapeRequest<'a> {
     pub text: &'a str,

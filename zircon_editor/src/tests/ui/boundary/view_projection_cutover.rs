@@ -1,3 +1,5 @@
+//! 验证视图 DTO、文件缓存与 UI 投影所有权的迁移边界。
+
 use super::support::collect_rust_files;
 
 fn retained_host_import_blocks(source: &str) -> Vec<String> {

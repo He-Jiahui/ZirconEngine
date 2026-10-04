@@ -1,3 +1,6 @@
+//! 动态 Runtime 的光标宿主请求在 Winit 窗口上的应用。
+//! 平台不支持首选抓取模式时尝试相邻模式，缺失或非法位置只警告并跳过。
+
 use winit::dpi::LogicalPosition;
 use winit::window::{CursorGrabMode, Window};
 use zircon_runtime::diagnostic_log::write_warn;

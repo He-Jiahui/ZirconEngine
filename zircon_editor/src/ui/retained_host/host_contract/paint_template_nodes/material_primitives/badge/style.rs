@@ -1,3 +1,4 @@
+// 根表面和计数层使用不同颜色规则；样式汇总只暴露各自绘制命令所需令牌。
 mod overlay;
 mod root;
 mod tokens;

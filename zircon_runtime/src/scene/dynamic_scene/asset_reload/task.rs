@@ -7,6 +7,7 @@ use crate::{
 };
 
 #[derive(Debug)]
+/// 把资产事件版本固定到异步准备任务，收集结果时还须对照最新修订以丢弃过期工作。
 pub struct DynamicSceneAssetReloadTask {
     pub(super) event: AssetEvent<SceneAsset>,
     pub(super) task: DynamicSceneSpawnTask,
@@ -50,6 +51,7 @@ impl DynamicSceneAssetReloadTask {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 外部可观察的工作任务状态副本；创建后不随后台任务进度自动更新。
 pub struct DynamicSceneAssetReloadPendingTaskSnapshot {
     event: AssetEvent<SceneAsset>,
     descriptor: TaskDescriptor,

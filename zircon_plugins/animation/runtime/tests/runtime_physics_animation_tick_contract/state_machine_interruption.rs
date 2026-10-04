@@ -1,3 +1,4 @@
+//! 物理姿态目标、模拟权重、状态转换及一次性触发器在真实帧中的契约。
 use super::*;
 use zircon_runtime::scene::AnimationStateTransitionRuntime;
 

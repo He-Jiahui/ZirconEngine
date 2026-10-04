@@ -1,3 +1,4 @@
+// 为抽屉标题回执测试构造一致的分组帧和宿主状态。
 use crate::ui::retained_host::drawer_header_pointer::{
     HostDrawerHeaderPointerItem, HostDrawerHeaderPointerLayout, HostDrawerHeaderPointerSurface,
 };

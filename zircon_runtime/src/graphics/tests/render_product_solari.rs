@@ -1,3 +1,4 @@
+//! Solari 质量门槛测试依次覆盖未请求、缺 provider、实验关闭、provider 不可用及后端能力缺失。
 use crate::core::framework::render::{
     RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderFramework,
     RenderFrameworkError, RenderQualityProfile, RenderViewportDescriptor,

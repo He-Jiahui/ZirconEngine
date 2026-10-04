@@ -1,3 +1,4 @@
+//! 描述符到实例及宿主的注册表契约；借用元数据回归与默认忽略的release性能门禁分开。
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -6,11 +7,13 @@ use crate::ui::workbench::view::{
     ViewDescriptor, ViewDescriptorId, ViewHost, ViewKind, ViewRegistry, WorkbenchSlot,
 };
 
+// 下列规模仅服务显式release性能对照；不是生产注册表容量或功能上限。
 const DESCRIPTOR_BENCH_CAPABILITY_COUNT: usize = 256;
 const DESCRIPTOR_BENCH_SAMPLE_COUNT: usize = 11;
 const DESCRIPTOR_BENCH_ITERATIONS: usize = 2_000;
 
 #[test]
+/// 描述符的multi-instance策略决定复用或新实例，不能靠显示名判断单例。
 fn view_registry_reuses_single_instance_and_allows_multi_instance() {
     let mut registry = ViewRegistry::default();
     registry
@@ -50,6 +53,7 @@ fn view_registry_reuses_single_instance_and_allows_multi_instance() {
 }
 
 #[test]
+/// 每种语义槽只有一个规范宿主形态，避免新增并行槽别名或根抽屉。
 fn workbench_slots_materialize_their_single_canonical_view_hosts() {
     let mut registry = ViewRegistry::default();
     let cases = [
@@ -94,6 +98,7 @@ fn workbench_slots_materialize_their_single_canonical_view_hosts() {
 }
 
 #[test]
+/// 源码前缀守卫配合实际单例打开、移除及恢复，约束元数据借用优化同时保持结果身份。
 fn view_registry_open_and_restore_borrow_descriptor_metadata() {
     let open_source = include_str!("../../../ui/workbench/view/view_registry_open_descriptor.rs");
     let open_lookup = open_source
@@ -133,6 +138,7 @@ fn view_registry_open_and_restore_borrow_descriptor_metadata() {
 
 #[test]
 #[ignore = "managed release benchmark"]
+/// 显式受管理release性能基准比较预热单例重复打开的两路径P95；默认忽略，普通测试不能当作性能门禁通过。
 fn view_registry_borrowed_descriptor_open_benchmark() {
     let (mut registry, descriptor_id) = descriptor_benchmark_registry();
     registry.open_descriptor(descriptor_id.clone()).unwrap();
@@ -164,6 +170,7 @@ fn view_registry_borrowed_descriptor_open_benchmark() {
     );
 }
 
+/// 用大量capability元数据放大退休clone路径的成本；两测量路径复用同一预热注册表。
 fn descriptor_benchmark_registry() -> (ViewRegistry, ViewDescriptorId) {
     let descriptor_id = ViewDescriptorId::new("editor.descriptor_benchmark");
     let capabilities = (0..DESCRIPTOR_BENCH_CAPABILITY_COUNT)
@@ -184,6 +191,7 @@ fn descriptor_benchmark_registry() -> (ViewRegistry, ViewDescriptorId) {
     (registry, descriptor_id)
 }
 
+/// 只给性能对照调用保留的克隆元数据路径，不能作为生产打开入口。
 fn measure_retired_open(registry: &mut ViewRegistry, descriptor_id: &ViewDescriptorId) -> u128 {
     let started = Instant::now();
     for _ in 0..DESCRIPTOR_BENCH_ITERATIONS {
@@ -196,6 +204,7 @@ fn measure_retired_open(registry: &mut ViewRegistry, descriptor_id: &ViewDescrip
     started.elapsed().as_nanos()
 }
 
+/// 衡量实际借用元数据的重复单例打开，样本计时包括descriptor ID参数准备。
 fn measure_borrowed_open(registry: &mut ViewRegistry, descriptor_id: &ViewDescriptorId) -> u128 {
     let started = Instant::now();
     for _ in 0..DESCRIPTOR_BENCH_ITERATIONS {

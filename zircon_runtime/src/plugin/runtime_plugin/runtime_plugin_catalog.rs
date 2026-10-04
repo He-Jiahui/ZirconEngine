@@ -72,6 +72,7 @@ pub use registration::{
 };
 pub use snapshot::RuntimePluginCatalogSnapshot;
 
+/// 保存同一代的注册行和派生投影；项目计划缓存只为该代及目标提供复用。
 #[derive(Debug, Default)]
 pub struct RuntimePluginCatalog {
     registrations: Vec<RuntimePluginRegistrationReport>,

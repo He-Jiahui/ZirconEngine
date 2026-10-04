@@ -1,7 +1,10 @@
+//! 拖动事件把调用方提供的增量解释为步数；普通与大步拖动共用当前值、动态范围和类型归一入口，保持数值事件的约束一致。
+
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventError, UiComponentState, UiValueKind,
 };
 
+// 上层先验证 DragDelta/LargeDragDelta 支持；属性必须声明为数值，动态状态设置优先于描述符默认及 schema 边界。
 pub(super) fn apply_numeric_drag(
     state: &mut UiComponentState,
     descriptor: &UiComponentDescriptor,

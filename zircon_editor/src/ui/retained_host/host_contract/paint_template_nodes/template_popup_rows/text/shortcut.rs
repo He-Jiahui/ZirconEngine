@@ -1,3 +1,6 @@
+//! 菜单快捷键的单行绘制入口；仅菜单entry会传入明确存在的快捷键列。
+//! 列位置由共享文字布局测量，不能在本层重新推断label宽度。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

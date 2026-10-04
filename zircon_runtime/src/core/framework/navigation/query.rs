@@ -81,6 +81,7 @@ where
 }
 
 impl NavQueryFilter {
+    /// 仅接受有限正成本，非法区域或成本会保留原过滤器；可用于同一网格上的代理差异化寻路。
     pub fn with_area_cost(mut self, area: NavAreaId, cost: Real) -> Self {
         if let Some(slot) = self.area_costs.get_mut(area as usize) {
             if cost.is_finite() && cost > 0.0 {
@@ -117,6 +118,7 @@ pub const fn nav_area_flag(area: NavAreaId) -> u16 {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 脚本与代理提交的路径请求；nav_mesh 为 None 时管理器取默认已加载网格，area_mask 限制可走区域。
 pub struct NavPathQuery {
     pub nav_mesh: Option<NavMeshHandle>,
     pub start: [Real; 3],
@@ -155,6 +157,7 @@ pub struct NavPathPoint {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 把可达、部分可达和无路可走与后端错误分离；调用方须先检查 status 再消费路径点。
 pub struct NavPathResult {
     pub status: NavPathStatus,
     pub points: Vec<NavPathPoint>,
@@ -174,6 +177,7 @@ impl NavPathResult {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 将空间点投向指定网格；无匹配位置使用 Ok(None)，资源或后端失败使用 Err。
 pub struct NavSampleQuery {
     pub nav_mesh: Option<NavMeshHandle>,
     pub position: [Real; 3],

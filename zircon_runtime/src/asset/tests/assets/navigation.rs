@@ -1,3 +1,5 @@
+//! 验证导航网格持久化版本边界：当前格式可往返，旧版离网格连接迁移为当前字段，未知版本返回有类型的错误。
+
 use serde::Serialize;
 
 use crate::core::framework::navigation::{

@@ -7,6 +7,7 @@ use super::EditorLogError;
 pub struct LogJump(LogJumpTarget);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// Activity UI 只从类型化目标执行资源或脚本跳转，不从日志正文推断动作。
 pub enum LogJumpTarget {
     Asset(Arc<str>),
     ScriptLocation {

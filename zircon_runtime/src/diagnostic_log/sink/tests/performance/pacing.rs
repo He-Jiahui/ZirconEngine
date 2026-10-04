@@ -1,3 +1,4 @@
+//! 将每秒目标速率离散到固定 bucket，并用递进等待把压力事件对齐到同一秒窗口。
 use std::time::{Duration, Instant};
 
 pub(super) const LOAD_WINDOW: Duration = Duration::from_secs(1);

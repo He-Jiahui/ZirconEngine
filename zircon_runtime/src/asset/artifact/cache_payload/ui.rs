@@ -5,6 +5,7 @@ use crate::asset::{
     UiV2ViewAsset, UiWidgetAsset,
 };
 
+// 旧版 UI 文档以 TOML 文本跨过库工件边界；读回时必须经各资产解析器验证。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) struct ArtifactCacheUiAssetDocument {
     document_toml: String,
@@ -50,6 +51,7 @@ impl ArtifactCacheUiAssetDocument {
     }
 }
 
+// ZUI v2 使用独立解析契约，避免将其文档误按旧版 layout/widget/style 恢复。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) struct ArtifactCacheUiV2AssetDocument {
     document_toml: String,

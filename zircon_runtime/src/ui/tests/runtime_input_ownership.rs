@@ -1,3 +1,5 @@
+//! 焦点、捕获、IME、拖拽和瞬态 UI 各有所有者；子测试检查拒绝回滚及诊断路径，并用源码守卫约束热路径分配。
+
 use std::sync::Arc;
 
 use crate::ui::{
@@ -78,6 +80,7 @@ fn input_hot_paths_avoid_eager_capture_trace_and_effect_index_allocations() {
     );
 }
 
+// 此处绕过生产校验构造已捕获状态，同时写入两套捕获视图；仅用于拒绝与生命周期测试。
 fn capture_pointer_for_test(surface: &mut UiSurface, pointer_id: UiPointerId, owner: UiNodeId) {
     surface.focus.captured = Some(owner);
     surface.input.set_pointer_capture_for_id(pointer_id, owner);

@@ -1,3 +1,6 @@
+//! 将 RPC hello wire frame 映射到控制消息，并推进 Hello、Login、NetSpeed、Join 会话状态。
+//! 当前 challenge_response 与公开配置 nonce 直接比较，只适于协议状态校验；接入真实连接前必须另定身份认证与重放防护。
+
 use zircon_runtime::core::framework::net::{
     NetControlMessage, NetError, NetSessionControlReport, NetSessionHandshakePolicy,
     NetSessionHandshakeState, NetSessionId,

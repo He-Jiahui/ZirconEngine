@@ -1,5 +1,6 @@
 use super::super::*;
 
+// 用 Android 与 Wasm 的静态目录样本检查窗口、输入和游戏手柄字段及选定未实现原因。
 #[test]
 fn mobile_and_browser_capabilities_are_explicit() {
     let mobile = PlatformCapabilityMatrix::new(PlatformFeatureSelection::bevy_default_platform())

@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 
 use crate::scene::ecs::{SceneSystemDescriptor, SceneSystemTickPolicy, SystemStage};
 
+/// 编译后的原生/运行时执行节点及其后续命令 barrier；它们与内建步骤共同组成阶段执行序列。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScheduledSceneStep {
     Native {
@@ -73,6 +74,7 @@ impl ScheduledSceneStep {
         }
     }
 
+    /// 合并两个已按阶段顺序编好的步骤源，供执行和构建摘要使用；调用方必须维持各输入自身有序。
     pub(crate) fn iter_sorted_for_stage<'a>(
         stage: SystemStage,
         internal_systems: &'a [SceneSystemDescriptor],

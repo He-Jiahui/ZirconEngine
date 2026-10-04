@@ -1,5 +1,7 @@
 use super::{PostProcessChainSlot, PostProcessEffectKind, PostProcessEffectSettings};
 
+/// 单个已规划后处理通道的依赖契约；验证器据此检查资源供给和前序效果。
+/// `planned_chain_executor_id` 标识计划执行器，运行时仍须从已校验图选择实际执行路径。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PostProcessPassNode {
     pub name: String,

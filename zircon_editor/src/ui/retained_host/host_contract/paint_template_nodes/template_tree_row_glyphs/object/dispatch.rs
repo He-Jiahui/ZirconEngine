@@ -1,3 +1,6 @@
+//! 对象图标优先使用节点显式资源名，其次使用兼容的场景对象种类；不可用态统一染色。
+//! 普通对象保留资源自身颜色，避免把多色场景图标当作单色操作图标。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;

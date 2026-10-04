@@ -1,3 +1,4 @@
+//! 校验模拟快照的遮挡、光照、相机目标、捕获和历史失效诊断；这些确定值来自夹具服务。
 use crate::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 use super::support::{assert_render_bool_series, assert_render_count_series};

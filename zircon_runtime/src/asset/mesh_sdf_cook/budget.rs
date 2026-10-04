@@ -25,6 +25,7 @@ impl Default for MeshSdfCookBudget {
 }
 
 impl MeshSdfCookBudget {
+    /// 在单个导入事务内预留全部原语成本；失败不改变累计量，调用方可只跳过超预算的 SDF。
     pub fn reserve(
         &mut self,
         voxel_count: u64,

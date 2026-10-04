@@ -1,3 +1,4 @@
+//! 条件编译容量或深度越界的拒绝类型，避免运行帧递归消费失控表达式。
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 

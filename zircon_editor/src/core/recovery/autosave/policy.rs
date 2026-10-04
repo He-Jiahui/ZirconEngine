@@ -1,3 +1,5 @@
+//! 把设置中的自动保存间隔与脏状态转成可排程策略；策略本身不执行写盘，调度器和作业适配器负责准入。
+
 use std::time::Duration;
 
 use super::{AutosaveDocumentId, AutosaveError};

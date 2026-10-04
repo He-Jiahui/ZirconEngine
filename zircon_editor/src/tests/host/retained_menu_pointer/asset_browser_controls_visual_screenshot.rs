@@ -1,3 +1,4 @@
+// 以绘制后像素核对资产浏览工具栏、筛选标签、页签及搜索状态分布，并输出视觉证据。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

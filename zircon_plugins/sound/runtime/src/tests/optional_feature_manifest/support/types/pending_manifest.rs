@@ -1,3 +1,4 @@
+// 扫描中的功能及子表暂存值；最终由表切换逻辑归并为可比较的静态签名。
 use super::{OptionalFeatureDependencySignature, OptionalFeatureModuleSignature};
 
 #[derive(Default)]

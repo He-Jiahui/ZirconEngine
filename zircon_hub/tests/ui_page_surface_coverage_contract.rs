@@ -1,4 +1,5 @@
 //! Static contracts that real Hub pages are covered by React/MUI surfaces.
+//! 以真实页面源码约束主路由、项目页面和反馈入口之间的组合关系；测试本身只证明源码形态。
 
 use std::{fs, path::PathBuf};
 
@@ -6,6 +7,7 @@ fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -40,6 +42,8 @@ fn page_source(name: &str) -> String {
     read_crate_file(&format!("web/src/pages/{name}.tsx"))
 }
 
+// 以导航表和壳层页面槽为入口，要求主页面 ID 都有可到达的组件。
+// BUG: [CR-HUBTESTB-0001] 页面路由已改延迟装载而测试仍断言旧的直接导入和映射，当前首个路由断言必失败；证据：react_window_routes_every_primary_page_surface 读取 HubWindow.tsx。
 #[test]
 fn react_window_routes_every_primary_page_surface() {
     let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
@@ -90,6 +94,7 @@ fn react_window_routes_every_primary_page_surface() {
     );
 }
 
+// 确保真实项目总览不把视觉参考控件状态作为用户页面内容。
 #[test]
 fn projects_dashboard_does_not_render_visual_button_state_reference_strip() {
     let dashboard = page_source("ProjectsDashboard");
@@ -108,6 +113,7 @@ fn projects_dashboard_does_not_render_visual_button_state_reference_strip() {
     );
 }
 
+// 项目总览、浏览器、详情及新建弹窗构成同一项目操作链。
 #[test]
 fn project_surfaces_cover_dashboard_browser_detail_and_new_project_dialog() {
     let dashboard = page_source("ProjectsDashboard");
@@ -225,6 +231,7 @@ fn project_surfaces_cover_dashboard_browser_detail_and_new_project_dialog() {
     );
 }
 
+// 检查工作流页面从共享状态投影出运行、空态和恢复入口。
 #[test]
 fn workspace_pages_cover_editor_build_catalog_cloud_team_and_settings_states() {
     let settings_section = read_crate_file("web/src/components/data/SettingsSection.tsx");
@@ -402,6 +409,7 @@ fn workspace_pages_cover_editor_build_catalog_cloud_team_and_settings_states() {
     );
 }
 
+// 工作区占位页只能引导到有草稿的设置页进行保存。
 #[test]
 fn workspace_fallback_routes_to_settings_instead_of_saving_without_draft() {
     let workspace = page_source("WorkspacePage");
@@ -432,6 +440,7 @@ fn workspace_fallback_routes_to_settings_instead_of_saving_without_draft() {
     );
 }
 
+// 反馈组件接收应用任务状态，并与菜单和空态形成统一入口。
 #[test]
 fn feedback_popups_and_state_surfaces_cover_menu_empty_loading_and_error_cases() {
     let app = read_crate_file(&["web/src", "App.tsx"].join("/"));
@@ -574,6 +583,7 @@ fn feedback_popups_and_state_surfaces_cover_menu_empty_loading_and_error_cases()
     );
 }
 
+// 页面只组合共享控件，避免在每页复制底层输入和数据外壳。
 #[test]
 fn pages_stay_composition_surfaces_instead_of_redeclaring_low_level_controls() {
     let pages = [
@@ -622,6 +632,7 @@ fn pages_stay_composition_surfaces_instead_of_redeclaring_low_level_controls() {
     }
 }
 
+// 本文件自检审查目标仍是现行 React 页面及壳层资源。
 #[test]
 fn page_surface_contract_is_cut_over_to_react_sources() {
     let source = read_crate_file("tests/ui_page_surface_coverage_contract.rs");

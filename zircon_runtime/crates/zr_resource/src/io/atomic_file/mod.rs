@@ -1,3 +1,6 @@
+//! 单文件发布边界：先将完整字节写入同目录暂存，再由持有暂存的对象决定是否发布。
+//! 配置与场景保存依赖该边界避免半份文件；需要多文件一致性时使用持久化事务模块。
+
 mod directory;
 mod pathing;
 mod platform;
@@ -77,6 +80,8 @@ pub fn atomic_write_with_fault(
 
 pub type PendingAtomicWrite = transaction::PendingAtomicWrite;
 
+/// 创建并持有未发布的完整文件；调用端完成校验后提交，放弃暂存不会主动替换目标。
+/// 这只准备单个文件，多个暂存对象逐个提交不能提供跨文件的一致恢复。
 pub fn stage_atomic_write(path: &Path, bytes: &[u8]) -> io::Result<PendingAtomicWrite> {
     transaction::stage_atomic_write(path, bytes)
 }

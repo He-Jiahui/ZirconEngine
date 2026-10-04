@@ -1,3 +1,5 @@
+//! 本模块聚合 Material 家族的描述符断言，共享助手核对公共模式和默认值供各族复用。
+
 use std::{collections::BTreeSet, fs, path::Path};
 
 use crate::ui::component::UiComponentDescriptorRegistry;

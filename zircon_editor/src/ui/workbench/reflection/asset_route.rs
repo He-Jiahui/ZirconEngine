@@ -1,3 +1,4 @@
+//! 资产动作的反射路由接到既有导入命令入口，实际导入由事件命令链执行。
 use crate::ui::binding::{AssetCommand, EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::EditorActivityReflection;
@@ -9,6 +10,7 @@ use zircon_runtime_interface::ui::{
 use super::name_mapping::binding_view_id;
 use super::route_registration::register_binding_route;
 
+/// 为模型导入声明登记绑定，保持反射动作与宿主控件使用同一命令入口。
 pub(super) fn register_asset_route(
     service: &mut EditorUiControlService,
     activity: &EditorActivityReflection,

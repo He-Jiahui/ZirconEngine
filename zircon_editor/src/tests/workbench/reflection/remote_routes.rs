@@ -1,3 +1,4 @@
+//! 反射动作必须先注册执行路由，再发布带可调用地址的快照；本用例仅查询地址。
 use crate::ui::control::EditorUiControlService;
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -8,6 +9,7 @@ use crate::ui::EditorUiReflectionAdapter;
 use zircon_runtime_interface::ui::event_ui::{UiControlRequest, UiControlResponse, UiNodePath};
 
 #[test]
+/// 验证Scene、Inspector和Assets动作具备route与远程许可标记；没有发出调用请求，执行错误处理不在该断言范围。
 fn workbench_reflection_routes_mark_activity_actions_as_remotely_callable() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();

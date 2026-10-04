@@ -22,8 +22,8 @@ impl ProjectManifestMigrationDecision {
         }
     }
 
-    /// A legacy receipt cannot enter activation until its selected action has produced a fresh
-    /// preflight receipt for the resulting project state.
+    /// A receipt produced from a supported older manifest format cannot enter activation until
+    /// its selected action has produced a fresh preflight receipt for the resulting project state.
     pub const fn blocks_activation(self) -> bool {
         matches!(self, Self::RequiresExplicitDecision { .. })
     }

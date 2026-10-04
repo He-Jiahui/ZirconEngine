@@ -1,3 +1,4 @@
+// 经停机轨道编辑入口核对图校验拒绝父轨道环，不启动 Kira 后端。
 use super::super::super::*;
 
 #[test]

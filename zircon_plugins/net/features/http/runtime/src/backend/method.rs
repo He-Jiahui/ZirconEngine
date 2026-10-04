@@ -1,3 +1,6 @@
+//! 在引擎 HTTP method 和 Hyper/Reqwest 类型间保持同一方法语义；server 不支持的方法不命中路由。
+//! 此转换边界不会替业务决定重试幂等性或路由权限。
+
 use zircon_runtime::core::framework::net::NetHttpMethod;
 
 pub(super) fn method_to_reqwest(method: NetHttpMethod) -> reqwest::Method {

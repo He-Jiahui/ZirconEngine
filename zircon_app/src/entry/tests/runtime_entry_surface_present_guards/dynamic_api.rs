@@ -1,3 +1,6 @@
+//! 验证 App 通过动态 Runtime 取帧且 CPU 呈现器只使用 softbuffer，不在 App 重新拥有渲染框架或 wgpu 依赖。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::sources::runtime_surface_present_source;
 
 #[test]

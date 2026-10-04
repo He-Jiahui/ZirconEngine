@@ -9,6 +9,8 @@ pub enum AnimationSkinningBackend {
     Hybrid,
 }
 
+/// 动画侧提供给图形决策的能力摘要；`ready_for_gpu_skinning` 只检查启用、
+/// 后端选择与缺失资源，实际 GPU 调度仍由渲染路径决定。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationGpuSkinningReadiness {
     pub enabled: bool,

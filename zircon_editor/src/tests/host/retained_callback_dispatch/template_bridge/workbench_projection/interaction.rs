@@ -1,3 +1,4 @@
+// 从工作台投影控件和指针入口执行动作，约束工具、层级、抽屉及装饰层的命中语义。
 use super::*;
 use crate::core::editor_event::SelectionHostEvent;
 

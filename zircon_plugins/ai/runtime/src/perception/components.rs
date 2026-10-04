@@ -18,6 +18,7 @@ impl AiPerceptionChannels {
     pub const HEARING: Self = Self(1 << 1);
     pub const ALL: Self = Self(Self::SIGHT.0 | Self::HEARING.0);
 
+    /// 屏蔽声明之外的通道位，动态组件输入也遵守相同的通道集合。
     pub const fn from_bits(bits: u8) -> Self {
         Self(bits & Self::ALL.0)
     }
@@ -112,6 +113,7 @@ pub fn ai_perception_component_descriptors() -> Vec<ComponentTypeDescriptor> {
     ]
 }
 
+// 动态组件存在时优先读取它；字段格式无效会返回 `None`，不回退到旧的 typed 组件。
 pub(crate) fn perception_source(world: &World, entity: EntityId) -> Option<AiPerceptionSource> {
     if let Some(object) = world
         .dynamic_component(entity, AI_PERCEPTION_SOURCE_COMPONENT_TYPE)
@@ -129,6 +131,7 @@ pub(crate) fn perception_source(world: &World, entity: EntityId) -> Option<AiPer
     world.get::<AiPerceptionSource>(entity).copied()
 }
 
+// 与 source 相同，动态数据优先，并拒绝无法转换为有限实数的字段。
 pub(crate) fn perception_receiver(world: &World, entity: EntityId) -> Option<AiPerceptionReceiver> {
     if let Some(object) = world
         .dynamic_component(entity, AI_PERCEPTION_RECEIVER_COMPONENT_TYPE)

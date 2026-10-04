@@ -1,3 +1,4 @@
+//! 覆盖、加法、局部权重及上下半身掩码在同一骨架上的数值契约。
 use zircon_plugin_animation_runtime::{
     MaskWeights, PoseBlendError, PoseBuffer, PoseBufferError, PoseLayer, PoseLayerBlendMode,
 };

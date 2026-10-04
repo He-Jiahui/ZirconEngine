@@ -1,4 +1,5 @@
 //! Static contracts for React + Material UI workspace page layouts.
+//! 检查工作区各页面复用面板、输入和响应式主区域布局。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 工作区页面共享响应式外壳和基础面板密度。
 #[test]
 fn workspace_pages_share_responsive_mui_page_shells() {
     for (page, metric_grid, main_grid, minimum_panel_count) in [
@@ -130,6 +133,8 @@ fn workspace_pages_share_responsive_mui_page_shells() {
     }
 }
 
+// 编辑器、构建和设置页分别投影自己的运行与草稿状态。
+// BUG: [CR-HUBTESTB-0016] 设置保存及目录和云页面布局调用已抽取或扩展，旧的精确片段断言必失败；证据：editor_builds_and_settings_pages_preserve_workspace_specific_state_projection 读取 SettingsPage.tsx。
 #[test]
 fn editor_builds_and_settings_pages_preserve_workspace_specific_state_projection() {
     let editor = read_crate_file("web/src/pages/EditorPage.tsx");
@@ -218,6 +223,7 @@ fn editor_builds_and_settings_pages_preserve_workspace_specific_state_projection
     );
 }
 
+// 目录、云、团队与占位页沿用相同布局语言但各保留业务上下文。
 #[test]
 fn catalog_cloud_team_and_fallback_pages_use_shared_workspace_patterns() {
     let catalog = read_crate_file("web/src/pages/CatalogPage.tsx");
@@ -307,6 +313,7 @@ fn catalog_cloud_team_and_fallback_pages_use_shared_workspace_patterns() {
     );
 }
 
+// 页面只组合共享数据和输入组件，阻止重复底层外壳。
 #[test]
 fn workspace_pages_use_shared_data_and_input_wrappers_not_raw_material_containers() {
     for page in [
@@ -361,6 +368,7 @@ fn workspace_pages_use_shared_data_and_input_wrappers_not_raw_material_container
     }
 }
 
+// 文档记录工作区多页布局的组件边界。
 #[test]
 fn workspace_layout_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -396,6 +404,7 @@ fn workspace_layout_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检工作区契约只引用当前页面与共享组件。
 #[test]
 fn workspace_layout_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_workspace_layout_contract.rs");

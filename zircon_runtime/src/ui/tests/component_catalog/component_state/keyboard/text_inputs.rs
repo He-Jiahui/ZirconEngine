@@ -1,3 +1,5 @@
+//! 原始键盘文本属于表面编辑事务；组件目录仅声明语义提交、焦点能力和保留编辑状态。
+
 use super::*;
 use zircon_runtime_interface::ui::component::{UiComponentEventError, UiHostCapability};
 

@@ -3,6 +3,8 @@ use crate::core::framework::render::{
     RenderPostProcessEffectStackSettings, VolumetricFogSettings,
 };
 
+/// 场景序列化及创作端使用的稀疏体积配置；`None` 表示该效果族不覆盖相机基础值。
+/// 提取时需转换为按组件 schema 排列的覆盖向量，再由评估器逐字段插值。
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RenderPostProcessVolumeProfile {
     pub ambient_occlusion: Option<AoSourceSettings>,

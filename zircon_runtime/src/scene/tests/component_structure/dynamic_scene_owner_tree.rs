@@ -1,3 +1,6 @@
+//! 场景文档、实体、生成和会话归档各有专属所有者；结构测试阻止根模块
+//! 再次承载业务行为或让已迁出的平铺模块成为兼容入口。
+
 #[test]
 fn dynamic_scene_root_owner_tree_stays_folder_backed_after_runtime_05_cutover() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

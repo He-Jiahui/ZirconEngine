@@ -1,3 +1,4 @@
+// 经处理器注销入口核对首次移除成功、重复移除返回 UnknownDynamicEventHandler。
 use super::super::super::*;
 
 use super::support::{register_ambient_event, register_ambient_handler};

@@ -1,4 +1,5 @@
 //! Static contracts for the Zircon Hub Tauri + React + Material UI shell.
+//! 固定桌面宿主、构建配置、后端状态投影和前端组件分层的接线，确保窗口消费真实运行时数据。
 
 use std::{fs, path::PathBuf};
 
@@ -6,6 +7,7 @@ fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     fs::read_to_string(crate_dir().join(path))
         .map(|source| source.replace("\r\n", "\n"))
@@ -26,6 +28,7 @@ fn assert_no_file(path: &str) {
     );
 }
 
+/// 将开发服务、发布资源、窗口权限与命令注册作为一组部署接线审查；真实桌面启动另有运行验证。
 #[test]
 fn tauri_shell_points_at_vite_react_frontend() {
     for path in [
@@ -112,6 +115,7 @@ fn tauri_shell_points_at_vite_react_frontend() {
     }
 }
 
+/// 核对编译入口与公共根只保留当前桌面宿主，避免已移除的 UI 构建链再次参与发布。
 #[test]
 fn tauri_cutover_has_no_compiled_slint_entry_path() {
     assert_no_file("src/app/mod.rs");
@@ -167,6 +171,7 @@ fn tauri_cutover_has_no_compiled_slint_entry_path() {
     );
 }
 
+/// 检查真实配置、共享最近项目、后台任务和目录发现进入快照及展示模型，禁止参考页面数据进入后端状态。
 #[test]
 fn tauri_commands_project_backend_runtime_state_instead_of_reference_data() {
     let tauri_app = read_crate_file("src/tauri_app/mod.rs");
@@ -274,6 +279,8 @@ fn tauri_commands_project_backend_runtime_state_instead_of_reference_data() {
     }
 }
 
+// BUG: [CR-HUBTESTA-0004] 顶层应用已按状态来源验收回复并传入窗口失败回调，旧单参数调用片段检查失败；证据：当前 App.tsx。
+/// 沿组件出口、窗口和业务页面核对组合层次及动作回传；静态接线存在不能替代交互和异步行为验证。
 #[test]
 fn react_material_components_are_split_from_low_level_to_window_shell() {
     for path in [
@@ -867,6 +874,7 @@ fn react_material_components_are_split_from_low_level_to_window_shell() {
     );
 }
 
+/// 约束可见媒体来自运行资源家族，防止参考整页图片掩盖真实组件布局和交互缺陷。
 #[test]
 fn hub_visual_assets_are_runtime_assets_not_reference_screenshots() {
     let data = read_crate_file("web/src/data/hubData.ts");

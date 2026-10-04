@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 // TODO: [CR-WINDOW-0001] 确认这些标志是否应统一驱动主机行为：当前 Runtime
 // 只读取 clears_hover，布局、重绘与关闭仍按事件种类分支处理，两处映射可能漂移。
+/// Declarative consequences of a neutral window event. Runtime/editor hosts may
+/// map these to their own dirty bits without re-interpreting platform variants.
 /// 中性窗口事件的声明式影响提示，供主机映射到各自的脏标志与生命周期处理。
 /// 它描述事件意图，不包含平台类型或具体 UI 树操作。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

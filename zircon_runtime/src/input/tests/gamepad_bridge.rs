@@ -5,6 +5,7 @@ use crate::input::{
     InputEvent,
 };
 
+// 对照手柄断开的状态释放和宿主 ABI 桥接源码；释放边沿只在断开当帧可见。
 #[test]
 fn gamepad_disconnect_clears_held_state_without_panic() {
     let input = DefaultInputManager::default();

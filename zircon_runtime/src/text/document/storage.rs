@@ -10,6 +10,7 @@ use crate::text::TextDocumentKey;
 use zircon_runtime_interface::ui::text::{UiTextDocumentId, UiTextDocumentRevision};
 
 /// Persistent UTF-8 source storage for one text owner.
+/// UI 文档会话通过 Store 管理此唯一可变源；整形需要连续文本时才按版本取得快照。
 ///
 /// The document keeps one immutable original source plus one append-only addition source and
 /// references them through pieces. Editing changes the piece list and appends admitted replacement
@@ -51,6 +52,7 @@ impl fmt::Debug for TextDocument {
 }
 
 /// Immutable, revision-bound contiguous source for legacy and shaping consumers.
+/// 持有租约的消费者须同时使用其文档身份与版本，避免把旧字节误配到新编辑回执。
 ///
 /// Cloning a lease only clones the `Arc`. The document flattens its piece storage at most once for
 /// a revision and keeps older leased revisions alive independently.
@@ -159,6 +161,7 @@ impl TextDocument {
         self.snapshot_lease().as_str().to_owned()
     }
 
+    /// 将当前 piece 视图固定为一次连续源租约；同一版本复用已物化快照，旧版本由租约独立保活。
     pub(crate) fn snapshot_lease(&self) -> TextDocumentSnapshotLease {
         let source = self
             .flattened_snapshot

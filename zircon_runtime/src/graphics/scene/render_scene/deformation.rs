@@ -8,6 +8,8 @@ pub(super) enum RenderSceneSkeletalPoseIssue {
     NonFiniteScale,
 }
 
+/// 持有已封存的动画姿态输入及其骨架身份，让 RenderScene 日志可跨后续动画更新保持旧帧语义。
+/// 投影入口只校验数值有效性；骨骼矩阵求值交给后续网格绘制准备。
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct RenderSceneSkeletalPose {
     skeleton: ResourceId,

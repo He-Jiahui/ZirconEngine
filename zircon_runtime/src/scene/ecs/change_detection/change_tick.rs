@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+/// World 内的环绕变更时钟，供系统上次运行到本次运行之间的 Added/Changed 判断使用。
+/// 比较必须提供同一 World 的时间窗口；超过 MAX_CHANGE_AGE 的旧值会被截断以免环绕误判。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ChangeTick(u64);
 

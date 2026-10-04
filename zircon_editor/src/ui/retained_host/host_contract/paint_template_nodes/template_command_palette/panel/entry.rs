@@ -1,3 +1,5 @@
+//! 提交面板固定结构；候选列表或空态由上层另行提交，保证搜索区域始终保留。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::layers::search_field_order;

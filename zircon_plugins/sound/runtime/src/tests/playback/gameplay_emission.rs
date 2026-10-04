@@ -1,3 +1,4 @@
+// 游戏事件是按世界隔离且有容量上限的只读日志；多个读取游标互不消费彼此数据。
 use super::super::*;
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::sound::{
@@ -7,6 +8,7 @@ use zircon_runtime::core::framework::sound::{
 const WORLD_A: WorldHandle = WorldHandle::new(11);
 const WORLD_B: WorldHandle = WorldHandle::new(12);
 
+// 两个读取者从同一游标独立观察同一空间声事件，另一世界保持空日志。
 #[test]
 fn spatial_source_creation_produces_bounded_gameplay_emission() {
     let sound = DefaultSoundManager::default();
@@ -72,6 +74,7 @@ fn non_gameplay_and_muted_sources_do_not_produce_emissions() {
         .is_empty());
 }
 
+// 超容量写入应报告游标缺失历史并保留最新事件；读取操作不消耗其他读取者的数据。
 #[test]
 fn gameplay_emission_journal_reports_overwritten_history_without_consuming_other_readers() {
     let sound = DefaultSoundManager::default();
@@ -107,6 +110,7 @@ fn gameplay_emission_journal_reports_overwritten_history_without_consuming_other
     );
 }
 
+// 一个世界的日志覆盖不能挤掉另一世界的数据；容量及 missed_events 都按世界计算。
 #[test]
 fn gameplay_emission_capacity_and_coverage_are_isolated_per_world() {
     let sound = DefaultSoundManager::default();

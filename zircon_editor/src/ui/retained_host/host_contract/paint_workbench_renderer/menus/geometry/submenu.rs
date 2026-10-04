@@ -5,6 +5,7 @@ use super::super::super::super::menu_popup_metrics::{
 
 use super::shell::{menu_shell_height, menu_shell_width};
 
+// 子菜单优先从父行右侧展开，空间不足时转向左侧，并按宿主菜单壳尺寸收紧弹层框。
 pub(in crate::ui::retained_host::host_contract) fn constrained_submenu_popup_frame(
     presentation: &HostWindowPresentationData,
     anchor: &FrameRect,

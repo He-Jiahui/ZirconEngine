@@ -1,3 +1,4 @@
+//! 定义准备帧、簇选择和 GPU 遍历工作项在插件内部流转的数据结构。
 mod virtual_geometry_cluster_raster_draw;
 mod virtual_geometry_cluster_selection;
 mod virtual_geometry_node_and_cluster_cull_child_work_item;

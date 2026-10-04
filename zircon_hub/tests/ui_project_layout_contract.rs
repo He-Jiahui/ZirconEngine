@@ -1,4 +1,5 @@
 //! Static contracts for React + Material UI Projects layout composition.
+//! 维护项目总览、浏览器和详情页之间的路由与共享布局约定。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,8 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 总览子路由与筛选状态共同决定呈现项目卡片还是浏览器页。
+// BUG: [CR-HUBTESTB-0004] 项目搜索已交给共享索引及延迟提交，旧的页面内直接查询片段断言必失败；证据：dashboard_routes_project_subpages_and_owns_toolbar_grid_state 读取 ProjectsDashboard.tsx。
 #[test]
 fn dashboard_routes_project_subpages_and_owns_toolbar_grid_state() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
@@ -91,6 +95,7 @@ fn dashboard_routes_project_subpages_and_owns_toolbar_grid_state() {
     );
 }
 
+// 总览把项目卡片、最近表格与新建入口组织成一条操作路径。
 #[test]
 fn dashboard_composes_cards_table_recent_actions_and_new_project_dialog() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
@@ -159,6 +164,7 @@ fn dashboard_composes_cards_table_recent_actions_and_new_project_dialog() {
     );
 }
 
+// 浏览器复用筛选控件和详情动作，并给长列表保留辅助侧栏。
 #[test]
 fn browser_page_uses_shared_toolbar_table_and_side_panel_layout() {
     let browser = read_crate_file("web/src/pages/ProjectBrowserPage.tsx");
@@ -191,6 +197,7 @@ fn browser_page_uses_shared_toolbar_table_and_side_panel_layout() {
     );
 }
 
+// 详情页通过指标、文件树和动作侧栏呈现选中项目。
 #[test]
 fn detail_page_uses_metric_tabs_media_main_and_sidebar_layout() {
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
@@ -248,6 +255,7 @@ fn detail_page_uses_metric_tabs_media_main_and_sidebar_layout() {
     );
 }
 
+// 页面只消费稳定的项目 DTO 与共享控件公开接口。
 #[test]
 fn project_types_preserve_dashboard_browser_and_detail_data_contracts() {
     let types = read_crate_file("web/src/types/hub.ts");
@@ -298,6 +306,7 @@ fn project_types_preserve_dashboard_browser_and_detail_data_contracts() {
     }
 }
 
+// 文档记录三页的组合职责以及数据类型入口。
 #[test]
 fn project_layout_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -329,6 +338,7 @@ fn project_layout_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检项目布局断言只引用迁移后页面与组件。
 #[test]
 fn project_layout_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_project_layout_contract.rs");

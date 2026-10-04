@@ -1,3 +1,5 @@
+//! 键盘激活菜单弹层要同步共享弹层栈，以便后续 Escape 与外部点击针对同一顶部层。
+
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
 use zircon_runtime_interface::ui::{
     dispatch::{UiDispatchDisposition, UiInputEvent},

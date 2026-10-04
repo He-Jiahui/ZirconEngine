@@ -35,6 +35,7 @@ impl SharedEditorMessageBus {
         self.lock().unregister_subscriber(subscriber)
     }
 
+    /// 按主题订阅投递并返回逐目标结果；要求逐条保留的生产者须处理背压后重试，不能将报告忽略为已交付。
     pub fn publish(
         &self,
         topic: EditorTopic,
@@ -47,6 +48,7 @@ impl SharedEditorMessageBus {
         }
     }
 
+    /// 向所有当前订阅者投递，绕过主题筛选；接收者仍需检查协议、主题及载荷。
     pub fn broadcast(
         &self,
         topic: EditorTopic,
@@ -59,6 +61,8 @@ impl SharedEditorMessageBus {
         }
     }
 
+    /// 指定目标的同步回调入口；先保证请求入队，再在总线锁外调用处理器，因此处理器可重入。
+    /// 返回错误可能来自回调后的目标复核；调用方不能把错误当作处理器从未执行或自动回滚。
     pub fn request(
         &self,
         target: EditorSubscriberId,
@@ -89,6 +93,7 @@ impl SharedEditorMessageBus {
             .unwrap_or_default()
     }
 
+    /// 取出并移除该订阅的当前保留消息；最新态可能已经合并，未知或已注销的订阅返回空。
     pub fn drain_deliveries(&self, subscriber: EditorSubscriberId) -> Vec<EditorMessageDelivery> {
         let inbox = { self.lock().inbox_handle(subscriber) };
         inbox
@@ -149,6 +154,7 @@ impl SharedEditorMessageBus {
         self.lock().push_editor_ui_barrier(kind, sequence);
     }
 
+    /// 在一次总线锁内同时取走脏集合与增量批次，供宿主将本轮失效和补丁作为同一刷新输入。
     pub fn drain_view_updates(&self) -> (ViewDirtySet, EditorUiDeltaBatch) {
         self.lock().drain_view_updates()
     }

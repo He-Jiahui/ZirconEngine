@@ -1,3 +1,4 @@
+//! 按所有权拆分查询结构守卫：原型访问、缓存刷新、迭代器和 QueryState 文件布局分别受检。
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 

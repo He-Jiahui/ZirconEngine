@@ -2,6 +2,7 @@ use crate::core::math::{Real, UVec2};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+/// 目标纹理上的物理像素视口；相机栈和输出目标解析后才能按实际尺寸裁剪。
 pub struct RenderViewportRect {
     pub physical_position: UVec2,
     pub physical_size: UVec2,

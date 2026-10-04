@@ -1,3 +1,5 @@
+//! 定义 UI 文本批次到 SDF 图集构建、再到 GPU 上传之间的共享契约；槽位、页面、字形和诊断数据在各阶段保持同一索引与格式语义。
+
 use std::sync::Arc;
 
 use crate::core::framework::text::TextFontFaceHandle;
@@ -14,6 +16,7 @@ pub(crate) struct SdfAtlasRect {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// 缓存键覆盖字形、解析到的字体实例、语言、字重和烘焙参数；相同 Unicode 字符也可能需要不同像素。
 pub(crate) struct SdfAtlasGlyphKey {
     pub(crate) glyph: char,
     pub(crate) glyph_id: Option<u32>,
@@ -40,6 +43,7 @@ pub(crate) struct SdfShapedGlyphIdentity {
     pub(crate) font_instance_id: Option<TextFontFaceHandle>,
 }
 
+/// UI 文本批次实现此接口，把已 shaping 的 glyph id、font handle 和 advance 交给 CPU 图集准备；索引必须对应 render_scalars 的顺序。
 pub(crate) trait SdfTextRun {
     fn font(&self) -> Option<&str>;
     fn font_family(&self) -> Option<&str>;
@@ -59,6 +63,7 @@ pub(crate) struct SdfRunCpuPreparation {
 }
 
 #[derive(Clone, Debug)]
+/// 一次构建的整体交付物：页面像素与脏区供上传，glyphs 按请求槽位顺序供布局，失败项供回退与诊断。
 pub(crate) struct SdfAtlasBake {
     pub(crate) pages: Arc<[SdfAtlasBakePage]>,
     pub(crate) dirty_pages: Arc<[SdfAtlasBakeDirtyPage]>,

@@ -1,3 +1,4 @@
+//! 验证编译绑定端点归属索引区分导入节点和调用方绑定，兼容缺少旧归属表的程序。
 use super::*;
 
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler, UiPrototypeStoreBuilder};

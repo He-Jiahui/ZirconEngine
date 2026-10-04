@@ -1,5 +1,6 @@
 use super::super::super::super::data::HostWindowPresentationData;
 
+// 菜单绘制边界取宿主布局与场景投影中较大的壳尺寸，供根菜单和子菜单约束。
 pub(super) fn menu_shell_width(presentation: &HostWindowPresentationData) -> f32 {
     presentation
         .host_layout

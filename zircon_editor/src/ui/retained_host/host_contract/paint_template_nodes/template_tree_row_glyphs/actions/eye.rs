@@ -1,3 +1,5 @@
+//! 树行可见性操作的打包图标入口；按钮槽、操作可用性和点击语义由树行上层负责。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;

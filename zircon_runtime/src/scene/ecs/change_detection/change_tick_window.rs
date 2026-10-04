@@ -1,5 +1,7 @@
 use super::ChangeTick;
 
+/// 一次查询或系统运行的变更观察窗口；SystemState 与 QueryState 共用它解释组件时钟。
+/// all 用于独立查询，系统运行应传入上次运行时钟以免重复报告历史变化。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ChangeTickWindow {
     last_run: ChangeTick,

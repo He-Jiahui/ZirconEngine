@@ -75,6 +75,7 @@ pub struct RenderVirtualGeometryVisBuffer64DecodedStream {
     pub entries: Vec<RenderVirtualGeometryVisBuffer64Entry>,
 }
 
+/// 调试快照的三段原始字流；任一段解码失败时报告仍保留错误段与总占用。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderVirtualGeometryDebugSnapshotReadbackStreams {
     pub node_and_cluster_cull: RenderVirtualGeometryNodeAndClusterCullWordStreams,
@@ -91,6 +92,7 @@ pub struct RenderVirtualGeometryDebugSnapshotReadbackStreamFootprint {
     pub total_byte_count: usize,
 }
 
+/// 同时保存原始字节占用与可选解码摘要，使畸形读回仍可定位问题规模。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderVirtualGeometryDebugSnapshotReadbackStreamReport {
     pub footprint: RenderVirtualGeometryDebugSnapshotReadbackStreamFootprint,

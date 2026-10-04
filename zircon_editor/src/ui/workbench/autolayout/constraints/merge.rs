@@ -2,6 +2,7 @@ use super::super::axis_constraint_override::AxisConstraintOverride;
 use super::super::pane_constraint_override::PaneConstraintOverride;
 use super::super::{AxisConstraint, PaneConstraints, ShellRegionId};
 
+/// 合并区域保底、descriptor与两层差量；view实例覆盖优先于区域覆盖。
 pub(crate) fn merge_constraints(
     region_defaults: PaneConstraints,
     region_override: Option<PaneConstraintOverride>,
@@ -24,6 +25,7 @@ pub(crate) fn merge_constraints(
     }
 }
 
+/// 将拖动/持久化尺寸意图写到区域主轴；保留内容最小值、上限和伸展策略。
 pub(crate) fn set_primary_preferred(
     region: ShellRegionId,
     mut constraints: PaneConstraints,
@@ -38,6 +40,7 @@ pub(crate) fn set_primary_preferred(
     constraints
 }
 
+/// 完全默认的descriptor轴表示采用区域基线，随后逐层保留未设置字段。
 fn merge_axis(
     region_default: AxisConstraint,
     region_override: Option<AxisConstraintOverride>,

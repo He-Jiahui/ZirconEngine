@@ -7,6 +7,7 @@ use super::{DocumentNode, MainPageId};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// 浮动窗口的布局与请求几何；实际原生窗口位置仍由窗口宿主确认。
 pub struct FloatingWindowLayout {
     pub window_id: MainPageId,
     pub title: String,
@@ -16,6 +17,7 @@ pub struct FloatingWindowLayout {
     pub frame: ShellFrame,
 }
 
+// 为持久化布局使用严格字段形状，避免接受来自其他版本的未知窗口框字段。
 mod strict_shell_frame {
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
 

@@ -7,6 +7,7 @@ use super::super::super::paint_geometry::{is_visible_frame, translated};
 use super::super::super::paint_primitives::{draw_border, draw_rect};
 use super::{palette::current_dock_chrome_palette, pane, panel_header};
 
+// 底部停靠区按宿主投影的区域、页眉和内容顺序绘制；交互与焦点状态原样交给 pane 层。
 pub(in crate::ui::retained_host::host_contract) fn draw_bottom_dock(
     frame: &mut HostRgbaFrame,
     dock: &HostBottomDockSurfaceData,

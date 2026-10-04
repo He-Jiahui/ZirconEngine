@@ -3,6 +3,7 @@ use crate::core::math::UVec2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
+/// 时间历史资源的固定槽位；索引与诊断代码须在渲染器和统计端保持一致。
 pub enum RenderHistoryDomain {
     TaaSceneColor = 0,
     HybridGlobalIllumination = 1,
@@ -107,6 +108,7 @@ impl RenderHistoryDomainStatus {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 各历史域独立的提交状态；全局历史纹理存在不等于每个域都能重投影。
 pub struct RenderHistoryDomainsReport {
     pub history_target_present: bool,
     states: [RenderHistoryDomainStatus; RenderHistoryDomain::COUNT],
@@ -187,6 +189,7 @@ impl RenderFrameHistoryInput {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 前帧资源可用性判定；失效原因应结合相机切换及目标尺寸变化解读。
 pub struct FrameHistoryStatus {
     pub current: Option<FrameHistoryHandle>,
     pub previous: Option<FrameHistoryHandle>,

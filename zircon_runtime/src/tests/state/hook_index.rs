@@ -1,3 +1,4 @@
+//! 钩子索引回归同时验证匹配桶的注册顺序和初始化、同值转换语义；源码检查仅锁定索引形态，行为次序由记录回调证明。
 use std::sync::{Arc, Mutex};
 
 use crate::core::runtime::state_machine::{OnEnter, OnExit, OnTransition};

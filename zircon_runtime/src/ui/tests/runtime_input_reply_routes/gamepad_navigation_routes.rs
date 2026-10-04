@@ -1,3 +1,5 @@
+//! 手柄 D-pad 以逻辑键经焦点路径转换为导航效果；四方向夹具核对原焦点、处理节点与新焦点。
+
 use super::*;
 
 #[test]
@@ -68,6 +70,7 @@ fn unified_gamepad_dpad_up_routes_to_navigation_up_from_focused_path() {
     );
 }
 
+// 这里直接构造带 Gamepad_DPad 逻辑键的 Keyboard DTO，覆盖统一键盘导航；平台事件到该 DTO 的转换不在本 helper 中。
 fn dispatch_gamepad_dpad_input(
     surface: &mut UiSurface,
     logical_key: &str,

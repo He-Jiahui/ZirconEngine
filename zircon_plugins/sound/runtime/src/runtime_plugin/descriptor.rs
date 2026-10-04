@@ -1,3 +1,4 @@
+//! 描述符把基础运行模块与两种可选功能包绑定；状态标为部分实现，宿主按依赖和目标模式选择加载。
 use crate::capability::{RUNTIME_CRATE_NAME, SOUND_DECLARATION, SOUND_RUNTIME_CAPABILITY};
 
 use super::feature_manifest::{

@@ -1,3 +1,4 @@
+// 核对导入主题的规则辅助项、比较差异及正文辅助项应用。
 use toml::Value;
 
 use crate::ui::host::module::EDITOR_MANAGER_NAME;

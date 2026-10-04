@@ -1,3 +1,4 @@
+// 汇集菜单指针和组件截图测试模块；子模块各自验证对应交互或绘制契约。
 mod alert_toast_visual_screenshot;
 mod appearance_visual_screenshot;
 mod asset_browser_controls_visual_screenshot;

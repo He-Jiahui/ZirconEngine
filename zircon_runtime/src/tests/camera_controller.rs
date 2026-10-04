@@ -1,3 +1,4 @@
+//! 相机控制器回归把输入状态、变换输出与光标请求分别核对；静止路径的源码守卫只约束当前实现形态，运动与阻尼由更新调用的结果验证。
 use crate::core::framework::camera_controller::{
     FreeCameraInput, FreeCameraSettings, FreeCameraState, OrbitCameraInput, PanCameraInput,
     PanCameraSettings, PanCameraState,

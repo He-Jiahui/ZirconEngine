@@ -4,6 +4,7 @@ use super::{
     PlatformHostTerminalResult,
 };
 
+/// Immutable control-plane fact published by the platform driver.
 /// 平台驱动发布的不可变控制面事实；管理端以实例、版本和观测证据判定能力。
 /// 描述符只声明宿主类型，Ready 加上所需观测证据才可用于运行时准入。
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -32,6 +32,7 @@ pub(super) fn validate_runtime_plugin_package_provided_interfaces(
     }
 }
 
+// 原生桥接按接口方法槽与方法名查找绑定；包声明先保证二者在各自接口中没有冲突。
 fn validate_interface_methods(
     interface_index: usize,
     interface_id: &str,
@@ -57,6 +58,7 @@ fn validate_interface_methods(
                 method.method_slot
             ));
         }
+        // BUG: [CR-PLUGIN-VALIDATION-0365] 直接构造的桥接方法可声明重名参数并通过包报告校验；证据：这里只检查令牌，静态清单和脚本 Host 注册均拒绝重名。
         for parameter in &method.parameters {
             validate_runtime_plugin_package_token(
                 "provided interface method parameter name",

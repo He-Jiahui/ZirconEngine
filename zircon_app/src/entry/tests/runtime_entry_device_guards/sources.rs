@@ -1,3 +1,6 @@
+//! device 事件分派及目录边界测试使用的编译时源码快照。
+//! 拼接顺序供源级断言使用，不代表实际执行顺序。
+
 use std::path::{Path, PathBuf};
 
 pub(super) fn runtime_entry_app_root() -> PathBuf {

@@ -17,6 +17,7 @@ impl UiActionHostPolicy {
         Self::new([UiActionSideEffectClass::LocalUi])
     }
 
+    /// 编辑器作者态允许本地 UI、编辑写入和资产 I/O；这是配置差异，不会改变动作本身。
     pub fn editor_authoring() -> Self {
         Self::new([
             UiActionSideEffectClass::LocalUi,
@@ -25,12 +26,14 @@ impl UiActionHostPolicy {
         ])
     }
 
+    /// 把宿主显式选择的类别收为集合，供同一动作校验流程按副作用归类复用。
     pub fn new(classes: impl IntoIterator<Item = UiActionSideEffectClass>) -> Self {
         Self {
             allowed_side_effects: classes.into_iter().collect(),
         }
     }
 
+    /// 只查询当前宿主准入集合；验证器据此把不允许的类别转为绑定级诊断。
     pub fn allows(&self, side_effect: UiActionSideEffectClass) -> bool {
         self.allowed_side_effects.contains(&side_effect)
     }

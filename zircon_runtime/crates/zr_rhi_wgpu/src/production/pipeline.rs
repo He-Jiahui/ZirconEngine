@@ -1,3 +1,4 @@
+//! 原生管线构建使用本代资源表解析布局与着色器，句柄分配及描述符验证保留在注册表。
 use zr_rhi::{PipelineDesc, RhiError};
 
 use super::registry::WgpuResourceRegistry;

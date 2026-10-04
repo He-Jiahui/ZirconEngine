@@ -2,6 +2,7 @@ use super::super::HostInvalidationMask;
 use super::{HostInvalidationRoot, HostInvalidationTransaction};
 
 impl HostInvalidationRoot {
+    // 重算阶段取走已合并的展示事务；渲染提交仍以宿主 render_dirty 为入口，并可消费后到的渲染位。
     pub(in crate::ui::retained_host::app) fn take_recompute_transaction(
         &mut self,
     ) -> HostInvalidationTransaction {

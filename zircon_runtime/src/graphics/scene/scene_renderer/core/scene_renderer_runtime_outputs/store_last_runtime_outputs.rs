@@ -3,6 +3,7 @@ use crate::graphics::types::GraphicsError;
 use super::super::scene_renderer::SceneRenderer;
 use super::super::scene_renderer_core_render_compiled_scene::SceneRendererCompiledSceneOutputs;
 
+/// 提交成功后向 SceneRenderer 发布本帧输出；插件读取者通过 take_* 消费各自结果。
 pub(in crate::graphics::scene::scene_renderer::core) fn store_last_runtime_outputs(
     renderer: &mut SceneRenderer,
     runtime_outputs: SceneRendererCompiledSceneOutputs,

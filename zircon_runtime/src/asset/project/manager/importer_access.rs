@@ -1,3 +1,5 @@
+//! 项目 importer 注册必须发生在扫描或目标导入之前；Runtime 管线把插件提供的 handler 汇入项目候选后，扫描才会按扩展名选择它们。
+
 use std::sync::Arc;
 
 use crate::asset::{AssetImportError, AssetImporter, AssetImporterHandler, AssetImporterRegistry};

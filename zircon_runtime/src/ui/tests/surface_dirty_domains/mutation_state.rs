@@ -1,3 +1,5 @@
+//! 结构化脏域是重建选择依据，旧 state_flags.dirty 仅供桥接消费者；两种标志不可互相代替。
+
 use super::*;
 
 #[test]

@@ -15,6 +15,7 @@ pub(super) struct StartupChangeEvents {
     pub(super) resource_change_events: ResourceEventReceiver,
 }
 
+// 宿主订阅 Runtime 与 Editor 的资产变化，并把后台变更唤醒接到 UI 事件循环。
 pub(super) fn subscribe_startup_change_events(
     asset_manager: &dyn AssetManager,
     editor_asset_manager: &dyn EditorAssetManagerContract,

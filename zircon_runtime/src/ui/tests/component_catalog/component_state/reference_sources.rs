@@ -1,3 +1,5 @@
+//! 拖放引用与来源元数据共同构成编辑器可追踪状态；拒绝的拖放不得覆盖现值或历史来源。
+
 use super::*;
 
 #[test]
@@ -259,6 +261,7 @@ fn component_state_clears_reference_source_on_sourceless_accepted_drop() {
 }
 
 #[test]
+// 拒绝拖放只更新 validation；先前接受的引用值和来源仍保留，供后续宿主操作使用。
 fn component_state_preserves_reference_source_on_rejected_drop() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
     let asset = registry.descriptor("AssetField").unwrap();

@@ -1,3 +1,4 @@
+//! 房间预设在音乐图上增加混响轨和发送路由；当前后端若拒绝效果器，调用方只能将它当作作者模板。
 use zircon_runtime::core::framework::sound::{
     SoundEffectDescriptor, SoundEffectId, SoundEffectKind, SoundMixerGraph, SoundReverbEffect,
     SoundTrackDescriptor, SoundTrackId, SoundTrackSend,

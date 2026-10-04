@@ -1,5 +1,6 @@
 use super::super::paint_theme::PALETTE;
 
+// BUG: [CR-EDITOR-PAINT-WORKBENCH-0001] 原生工作台的层级行、空 pane 与 Welcome 仍取默认静态颜色；主题更新后这些元素与当前宿主调色板不一致。
 pub(in crate::ui::retained_host::host_contract) const TOP_BAR: [u8; 4] = PALETTE.popup;
 pub(in crate::ui::retained_host::host_contract) const CENTER_BAND: [u8; 4] = PALETTE.surface;
 pub(in crate::ui::retained_host::host_contract) const SIDE_PANEL: [u8; 4] = PALETTE.surface_inset;

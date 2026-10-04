@@ -1,3 +1,6 @@
+//! 在服务器 HTTP upgrade 回调中校验路径、必需 header 和子协议，失败统一映射为 403。
+//! 允许列表为空表示不限制对应项；子协议选择遵从客户端请求顺序，不能替代身份认证。
+
 use zircon_runtime::core::framework::net::NetWebSocketListenerDescriptor;
 
 type ServerHandshakeRequest = tokio_tungstenite::tungstenite::handshake::server::Request;

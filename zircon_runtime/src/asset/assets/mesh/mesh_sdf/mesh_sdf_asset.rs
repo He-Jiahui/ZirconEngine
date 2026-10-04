@@ -1,3 +1,5 @@
+//! Mesh SDF 是网格派生的可选产物；烹饪与渲染端通过版本、源指纹和编码约定判断能否复用。
+
 use serde::{Deserialize, Serialize};
 
 use crate::asset::MeshVertex;

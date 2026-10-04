@@ -30,6 +30,7 @@ pub(super) fn scene_prepare_resources(
         .scene_surface_cache_page_contents
         .iter()
         .any(persisted_surface_cache_page_has_present_sample);
+    // 干净帧可能仍有持久页或独立深度源；四类输入均缺席时才跳过资源创建。
     if inputs.scene_card_capture_requests.is_empty()
         && !has_present_surface_cache_page_content
         && inputs

@@ -1,3 +1,4 @@
+//! 提供值任务、合作式取消和门闩工作，使准入扩容回归能够确定何时开始与结束；夹具不改变生产任务的保留或调度规则。
 use super::{Duration, EditorJob, Instant, JobContext, JobError, Receiver, Sender};
 
 pub(super) struct ValueJob(pub(super) u32);

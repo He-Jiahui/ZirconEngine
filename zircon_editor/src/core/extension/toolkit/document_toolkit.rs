@@ -31,6 +31,7 @@ impl DocumentAutosavePayload {
 }
 
 /// Implements one open document's concrete persistence hook without owning dirty state.
+/// 文档拥有者供 Registry 调度；同步保存先验证引用，自动保存只在独占租约内捕获不可变字节。
 pub trait DocumentToolkit<Host>: Send + Sync {
     fn descriptor(&self) -> &DocumentToolkitDescriptor;
 

@@ -3,6 +3,7 @@ use crate::core::math::{Mat4, Vec4};
 use super::PLANAR_PLANE_EPSILON;
 
 /// Replaces the near plane of a right-handed WGPU 0..1 projection.
+/// 用于镜面相机裁掉反射平面另一侧；输入退化或投影不可逆时拒绝生成 override。
 pub fn planar_oblique_near_clip_projection(
     projection: Mat4,
     clip_plane_view: Vec4,

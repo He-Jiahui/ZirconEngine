@@ -16,6 +16,7 @@ const MAX_MESH_SDF_DIMENSION: u32 = 256;
 const MESH_SDF_OBJECT_BORDER_VOXELS: u32 = 1;
 const SNORM16_MAX: f32 = i16::MAX as f32;
 
+/// 单原语串行入口；模型导入应使用共享预算入口维持整个事务的资源上限。
 pub fn cook_mesh_sdf_from_mesh(
     vertices: &[MeshVertex],
     indices: &[u32],
@@ -29,6 +30,7 @@ pub fn cook_mesh_sdf_from_mesh(
     )
 }
 
+/// 导入器为多个原语复用同一预算，避免各自满足上限而使模型整体失控。
 pub fn cook_mesh_sdf_from_mesh_with_budget(
     vertices: &[MeshVertex],
     indices: &[u32],
@@ -68,6 +70,7 @@ pub fn cook_mesh_sdf_from_mesh_with_executor(
     )
 }
 
+/// 调用方同时提供任务执行能力与导入预算；并行只替换体素生成方式，成品仍经来源校验。
 pub fn cook_mesh_sdf_from_mesh_with_budget_and_executor(
     executor: &impl ParallelSliceExecutor,
     vertices: &[MeshVertex],
@@ -125,6 +128,7 @@ fn cook_mesh_sdf_from_mesh_with_budget_and_voxel_builder(
     let payload_bytes = voxel_count_u64
         .saturating_mul(std::mem::size_of::<i16>() as u64)
         .saturating_add(MESH_SDF_FIXED_METADATA_BYTES);
+    // 先预留整个原语的成本，再启动体素计算；超限时导入器可以保留基础网格。
     budget.reserve(voxel_count_u64, payload_bytes, work_units)?;
     let voxels = build_voxels(&bvh, layout, distance_limit, voxel_count);
 
@@ -170,6 +174,7 @@ fn cook_voxel(
     encode_snorm16_distance(signed_distance, distance_limit)
 }
 
+/// 导入投影的降级边界：容量超限返回无 SDF，几何损坏与成品无效仍作为错误。
 pub fn cook_mesh_sdf_or_fallback(
     vertices: &[MeshVertex],
     indices: &[u32],
@@ -197,6 +202,7 @@ pub fn cook_mesh_sdf_or_fallback_single(
 }
 
 #[derive(Clone, Copy, Debug)]
+// 体素布局同时决定编码距离范围、资产边界及验证所需的尺寸。
 struct VolumeLayout {
     bounds: Aabb,
     dimensions: [u32; 3],
@@ -234,6 +240,7 @@ fn validate_settings(settings: MeshSdfCookSettings) -> Result<(), MeshSdfCookErr
     Ok(())
 }
 
+// 在体素数和编码字节双重预算内选择最高可用分辨率，供串行与并行路径共用。
 fn choose_volume_layout(
     source_bounds: Aabb,
     settings: MeshSdfCookSettings,

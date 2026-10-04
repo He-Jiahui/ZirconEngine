@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 const DEAD_CODE_ALLOW_CALL_PREFIX: &str = concat!("allow(", "dead_code");
 
 #[test]

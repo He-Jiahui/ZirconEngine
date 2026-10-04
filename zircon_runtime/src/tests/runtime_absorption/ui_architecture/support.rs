@@ -1,3 +1,4 @@
+//! 运行时界面结构和历史命名迁移需遵守架构与文档边界。向相邻守卫提供源码读取、路径枚举或断言工具。
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 

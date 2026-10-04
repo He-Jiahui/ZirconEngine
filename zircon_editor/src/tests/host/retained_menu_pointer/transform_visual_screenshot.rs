@@ -1,3 +1,4 @@
+// 核对变换控件的轴标签、数值字段及比例链接在组件截图中的可见性。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

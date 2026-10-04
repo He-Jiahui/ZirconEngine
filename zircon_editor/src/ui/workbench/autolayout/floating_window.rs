@@ -1,5 +1,6 @@
 use super::ShellFrame;
 
+/// 无持久化位置时提供中心区级联placement；随后必须按当前可见中心band限制范围。
 pub(crate) fn default_floating_window_frame(
     index: usize,
     document_frame: ShellFrame,
@@ -13,6 +14,7 @@ pub(crate) fn default_floating_window_frame(
     ShellFrame::new(x, y, width, height)
 }
 
+/// 把浮层保持在当前中心band内；极小/空壳允许低于期望尺寸，避免返回壳外frame。
 pub(crate) fn clamp_floating_window_frame(frame: ShellFrame, available: ShellFrame) -> ShellFrame {
     if available.width <= 0.0 || available.height <= 0.0 {
         return ShellFrame::default();

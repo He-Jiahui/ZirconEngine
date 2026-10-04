@@ -6,6 +6,7 @@ use crate::core::math::{EulerRot, Quat, Real, Transform, Vec2, Vec3};
 const RADIANS_PER_DOT: Real = 1.0 / 180.0;
 const VELOCITY_STOP_EPSILON: Real = 0.000001;
 
+/// 自由相机的速度和视角状态持有者；调用方每帧提供输入及当前变换，并执行返回的宿主光标请求。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FreeCameraController {
     settings: FreeCameraSettings,
@@ -33,6 +34,7 @@ impl FreeCameraController {
         &mut self.state
     }
 
+    /// 失焦或禁用时停止视角更新；连续速度在帧时间内推进，返回变换和光标抓取意图。
     pub fn update(
         &mut self,
         transform: Transform,

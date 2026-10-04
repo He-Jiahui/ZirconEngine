@@ -1,3 +1,4 @@
+//! 迁移命令测试共享项目根、清单和 sidecar 夹具；路径必须落在清单声明的资源根下。
 mod project_commandlet;
 
 use std::path::{Path, PathBuf};
@@ -8,6 +9,7 @@ use crate::asset::{AssetKind, AssetUri, AssetUuid};
 
 static NEXT_ROOT: AtomicU64 = AtomicU64::new(1);
 
+// TODO: [CR-ASSET-TEST-ROOT-0001] 这条源码断言读取含 cfg(test) 的整份 report.rs，旧版对照函数仍含 String::new；需只检查生产段或增加行为/分配证据，避免测试代码自证。
 #[test]
 fn migration_report_formats_into_one_output_buffer() {
     let source = include_str!("../../migration/report.rs");

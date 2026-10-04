@@ -1,3 +1,4 @@
+//! 资产事件经真实目录索引决定工具包打开路由；无目标工具包时仍须保留规范事件与忽略反馈。
 use super::*;
 use crate::core::asset::AssetToolkitOpenRoute;
 use crate::tests::editor_event::support::TestProjectAssets;

@@ -1,3 +1,4 @@
+// 核对状态信号、芯片及图标的组合和交互状态的原生绘制。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

@@ -1,3 +1,5 @@
+//! 文本与快捷键设置共用字段表面，焦点只改变轮廓；文字载荷由各自编辑协议选择。
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::data::FrameRect;

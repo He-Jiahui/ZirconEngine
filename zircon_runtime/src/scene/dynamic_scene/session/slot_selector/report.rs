@@ -40,6 +40,7 @@ impl<'archive> RuntimeSessionSlotSelection<'archive> {
     }
 }
 
+/// 选择器的可序列化结果；记录实际命中的槽位和摘要，供预览或路径 API 回传。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RuntimeSessionSlotSelectionReport {
     pub selector: RuntimeSessionSlotSelector,

@@ -92,6 +92,7 @@ fn runtime_15_offscreen_target_texture_owner_cleanup() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0002] 渲染后端状态和离屏目标资源的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_render_backend_state_owner_cleanup() {
     let render_backend = read_runtime_src("graphics/backend/render_backend/render_backend.rs");

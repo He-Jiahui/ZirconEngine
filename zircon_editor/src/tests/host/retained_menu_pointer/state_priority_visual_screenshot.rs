@@ -1,3 +1,4 @@
+// 核对焦点不会错误提升悬停或选中表面优先级的组件像素契约。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

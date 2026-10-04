@@ -1,3 +1,6 @@
+//! 通用模板图标的资产绘制门槛：只有名称、目标像素尺寸、可见交集和真实资源均存在时才追加命令。
+//! 调用者可用返回值决定是否继续自己的后备外观；图标加载失败不生成缺失图标占位。
+
 use super::super::data::FrameRect;
 use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;

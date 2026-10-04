@@ -1,3 +1,5 @@
+//! 从控件、图标和校验身份的 ASCII 片段推断危险视觉色调；此识别仅服务绘制，不授权危险动作。
+
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_danger_icon(

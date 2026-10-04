@@ -1,3 +1,5 @@
+//! 为派生字段和宿主函数签名生成脚本类型引用；显式覆盖值类别或名称时，未覆盖部分沿用宿主转换 trait。
+
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{Path, Type};
@@ -12,6 +14,7 @@ pub(crate) fn script_host_type_ref_tokens(
     type_name: Option<String>,
     trait_path: TokenStream2,
 ) -> TokenStream2 {
+    // 只提供一种 override 时沿用 trait 的另一项默认值；两项都给定时无需 trait 默认值。
     match (value_kind, type_name) {
         (Some(value_kind), Some(type_name)) => quote! {
             ::zircon_runtime::core::framework::script::ScriptHostTypeRef::new(#value_kind, #type_name)

@@ -1,3 +1,6 @@
+//! 拖拽反馈的专用提交入口：只呈现上游投影的 payload、许可与目标，不执行落放或修改拖拽状态。
+//! 返回 true 代表接管该节点，即使拖拽关闭或当前无法绘制，也应阻止通用 fallback。
+
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;
@@ -26,6 +29,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dr
     let metrics = layout::drag_overlay_metrics();
     let palette = style::drag_overlay_palette();
     let preview_rect = layout::preview_frame(node, rect);
+    // BUG: [CR-EDITOR-PAINT-OVERLAY-0003] 预览被裁掉时这里提前结束，后面的落点指示器也被跳过；
+    // 游标预览和目标是独立投影的矩形，可出现预览在 clip 外而目标仍可见。应分别判定二者的可见性。
     if preview_rect.width <= 0.0
         || preview_rect.height <= 0.0
         || intersect(&preview_rect, clip).is_none()

@@ -1,6 +1,8 @@
 use crate::core::CoreError;
 use thiserror::Error;
 
+/// 注册、合并和投影层共享的失败分类。重复/无效贡献在登记处产生；下游适配失败转换为 AssetImporter、WorldRegistration 等边界错误。
+/// 名称与诊断文本会进入注册报告及调用端断言，新增变体须核对这些消费者。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum RuntimeExtensionRegistryError {
     #[error("manager {0} already registered")]

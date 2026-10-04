@@ -1,3 +1,4 @@
+//! 静态包依赖要求目标声明能力，未落入静态包的依赖采用宿主命名空间；贡献门槛使用更窄的显式宿主例外。
 use std::collections::BTreeSet;
 use std::path::Path;
 

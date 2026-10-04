@@ -1,3 +1,5 @@
+//! 将 inline Rust 模块中的直接函数属性和类型 derive 汇总为模块描述符及注册函数；实际注册由调用方触发。
+
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::ItemMod;
@@ -34,6 +36,7 @@ pub(crate) fn host_module_impl(args: HostModuleArgs, item: ItemMod) -> syn::Resu
     })?;
     let mut function_names = Vec::new();
     let mut type_names = Vec::new();
+    // 只收集模块体内直接子项；同一函数名单随后生成描述符和导出回调。
     for item in items {
         if let Some(function) = host_attr_function_ident(item) {
             function_names.push(function);

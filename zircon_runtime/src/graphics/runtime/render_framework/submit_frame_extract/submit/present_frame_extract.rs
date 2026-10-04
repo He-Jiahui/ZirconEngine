@@ -1,3 +1,4 @@
+//! 显式呈现与普通提取共用相机序列，最终表面获取及产品发布只由终结相机执行。
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFrameworkError, RenderViewportHandle, UiRenderSubmission,
 };

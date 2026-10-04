@@ -1,3 +1,5 @@
+//! Esc 与虚拟返回沿焦点作用域关闭弹窗；控件取消绑定优先于默认关闭，并保留键盘路由诊断。
+
 use super::*;
 use zircon_runtime_interface::ui::widget::{UiWidgetBehavior, UiWidgetContract};
 
@@ -357,6 +359,7 @@ fn component_keyboard_popup_route_surface(component: &str) -> UiSurface {
     surface
 }
 
+// Escape 从焦点 item 3 处理，ClosePopup 的 target 是 popup owner 2；handler 与被关闭组件的节点身份应分别断言。
 fn assert_escape_closes_component_popup(surface: &mut UiSurface, component: &str) {
     assert_eq!(
         surface

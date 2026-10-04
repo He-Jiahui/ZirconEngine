@@ -22,6 +22,7 @@ impl HybridGiGpuReadbackFuture {
         let trace_diagnostic_word_count = self.trace_diagnostics.word_count;
         let trace_diagnostics =
             probe_trace_diagnostics(&self.trace_diagnostics.take()?, trace_diagnostic_word_count)?;
+        // snapshot 先承载 CPU 准备阶段的元数据；下列映射结果覆盖 GPU 生成的诊断、纹理样本和 tile。
         let mut scene_prepare_resources = self.scene_prepare_resources;
         if let Some(snapshot) = scene_prepare_resources.as_mut() {
             snapshot.store_probe_trace_diagnostics(trace_diagnostics);
@@ -106,6 +107,7 @@ fn take_slot_samples(
         .collect()
 }
 
+// 生成着色器写入 [记录数, 每组线程数, X 组数, Y 组数]；此处输出 [X 组数, Y 组数, tile 数]。
 fn probe_trace_dispatch(indirect_args: &[u32], fallback_tile_count: usize) -> [u32; 3] {
     let tile_count = indirect_args
         .first()

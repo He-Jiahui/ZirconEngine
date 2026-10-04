@@ -1,3 +1,4 @@
+// 只比较静态清单声明的 runtime 模块；包清单还会由运行时入口附加 native 发布模块。
 use super::super::support::{static_sound_contributions, STATIC_SOUND_PLUGIN_MANIFEST};
 
 #[test]

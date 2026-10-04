@@ -4,6 +4,7 @@ use crate::core::framework::render::{
 
 use crate::scene::LevelSystem;
 
+// LevelSystem 是正式帧提取入口：在 World 锁内准备场景快照，再仅附加同一 World 代的动画姿态。
 impl RenderExtractProducer for LevelSystem {
     fn build_render_frame_extract(&self, context: &RenderExtractContext) -> RenderFrameExtract {
         let frame_state = self.frame_state_snapshot();

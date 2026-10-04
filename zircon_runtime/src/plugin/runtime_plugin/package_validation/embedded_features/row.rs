@@ -10,6 +10,8 @@ use self::{
 };
 use super::manifest::validate_runtime_plugin_package_embedded_feature_manifest;
 
+/// 将同一嵌入行的通用特性约束、包内提供者身份和承载包目标覆盖集中累计到报告。
+/// 类别及行号必须对应传入特性在原清单中的位置，否则共享投影会给出另一行的重复结果。
 pub(super) fn validate_runtime_plugin_package_embedded_feature_row(
     field_name: &str,
     feature: &PluginFeatureBundleManifest,

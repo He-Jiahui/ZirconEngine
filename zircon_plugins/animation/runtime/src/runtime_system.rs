@@ -1,3 +1,5 @@
+//! 动画评估系统在场景变换更新之后的 PostUpdate 阶段消费播放器和资源快照。
+//! 每帧由 pipeline 写回场景局部变换、姿态快照和事件，调用者需保证 LevelSystem 仍处于同一替换纪元。
 use zircon_runtime::core::CoreError;
 use zircon_runtime::plugin::PluginEventManifest;
 use zircon_runtime::plugin::RuntimeExtensionRegistryError;
@@ -16,6 +18,7 @@ pub const ANIMATION_CLIP_EVENT_SCHEMA: &str = "animation.clip_event.v1";
 pub const ANIMATION_LAYER_DIAGNOSTIC_EVENT: &str = "animation.events.layer_diagnostic";
 pub const ANIMATION_LAYER_DIAGNOSTIC_SCHEMA: &str = "animation.layer_diagnostic.v1";
 
+/// 注册管线资源、评估系统和场景事件类型；应由插件注册生命周期调用一次。
 pub fn register_runtime_system(
     module: &mut zircon_plugin_sdk::RuntimePluginModuleRegistration<'_>,
 ) -> Result<(), RuntimeExtensionRegistryError> {

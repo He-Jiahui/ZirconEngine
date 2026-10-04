@@ -1,3 +1,4 @@
+//! 状态查询先回收 Kira 已结束句柄，再把片段内播放位置还原为完整素材时间；结束日志需由调用方主动提取。
 use zircon_runtime::core::framework::sound::{
     SoundError, SoundSourceFinished, SoundSourceId, SoundSourceInput, SoundSourceStatus,
 };

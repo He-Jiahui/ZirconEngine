@@ -1,3 +1,6 @@
+//! 对话框标题、正文和动作带的共同几何合同；普通正文使用动作返回的位置预算剩余高度。
+//! 本模块包含性参数顺序为 outer、inner；AlertDialog 的正文仍采用固定单行带。
+
 use super::super::super::data::FrameRect;
 use super::identity::DialogKind;
 use super::metrics::dialog_metrics;

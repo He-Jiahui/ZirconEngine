@@ -95,6 +95,7 @@ fn direct_abi_rejects_missing_off_mesh_link_pointer() {
         polygon_count: 0,
     };
 
+    // SAFETY: 测试数组在同步调用期间存活，计数与数组一致；空连接指针用于验证拒绝路径。
     unsafe {
         zr_nav_detour_create_query(
             vertices.as_ptr(),
@@ -112,6 +113,7 @@ fn direct_abi_rejects_missing_off_mesh_link_pointer() {
     }
 
     assert!(result.query.is_null());
+    // SAFETY: 结果消息是默认零值初始化的固定数组，原生错误写入以 NUL 终止。
     let message = unsafe { CStr::from_ptr(result.message.as_ptr()) }
         .to_string_lossy()
         .into_owned();

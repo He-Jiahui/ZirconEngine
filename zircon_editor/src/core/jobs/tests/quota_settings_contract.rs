@@ -1,3 +1,4 @@
+//! 验证用户配额在注册、当前设置文件加载和系统构造之间保持作用域及重启语义；无效持久值须保留可诊断来源及正数默认配额。
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};

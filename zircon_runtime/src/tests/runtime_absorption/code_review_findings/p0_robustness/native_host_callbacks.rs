@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi() {
     let panic_guard = include_str!("../../../../plugin/native_plugin_loader/ffi_panic_guard.rs");

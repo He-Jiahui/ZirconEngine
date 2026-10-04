@@ -1,3 +1,4 @@
+//! 从 surface 渲染提取核对自动换行后的对齐和末行排除规则，使用共享 text_layout 夹具。
 use super::*;
 
 #[test]

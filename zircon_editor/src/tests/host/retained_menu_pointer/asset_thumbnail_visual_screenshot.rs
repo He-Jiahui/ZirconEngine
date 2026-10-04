@@ -1,3 +1,4 @@
+// 核对资源缩略图的预览、名称区域、宽名换行及状态像素，并保留显式截图入口。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

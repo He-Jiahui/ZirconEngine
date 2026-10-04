@@ -1,3 +1,5 @@
+//! 验证项目源重定位只改变作者路径和 URI，保留 UUID 与 artifact；中断事务必须能恢复原代。
+
 use super::*;
 
 #[test]
@@ -87,6 +89,7 @@ fn project_source_relocation_moves_authoring_files_and_preserves_live_identity()
 }
 
 #[test]
+// 重定位不仅改 URI，还移动作者文件；中断后重新打开项目应恢复文件和注册表的同一个旧代。
 fn interrupted_project_source_relocation_recovers_the_original_generation() {
     let root = unique_temp_project_root("project_manager_source_relocation_recovery");
     let paths = ProjectPaths::from_root(&root).unwrap();

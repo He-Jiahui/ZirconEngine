@@ -1,3 +1,5 @@
+//! 专用 workbench tooltip 与普通 tooltip 区分；固定根 ID 和明确 surface_variant 都可触发认领。
+
 use super::super::super::data::TemplatePaneNodeData;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_workbench_tooltip(

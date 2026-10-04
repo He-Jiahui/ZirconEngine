@@ -6,6 +6,7 @@ use super::{
     ProjectEngineCompatibilityError, ProjectEngineVersion,
 };
 
+/// Evaluates the manifest's declared engine range without loading any project-derived code.
 /// 在加载项目派生代码前评估清单的引擎版本要求；无要求视为兼容，无法判定方向时保留不兼容结果。
 pub fn assess_project_engine_compatibility(
     requirement: Option<&str>,

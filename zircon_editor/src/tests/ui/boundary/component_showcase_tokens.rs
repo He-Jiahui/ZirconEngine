@@ -1,3 +1,5 @@
+//! 验证组件展示页的主题 token、控制尺寸与响应式区域。
+
 const COMPONENT_SHOWCASE_TEMPLATE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/assets/ui/editor/component_showcase.zui"

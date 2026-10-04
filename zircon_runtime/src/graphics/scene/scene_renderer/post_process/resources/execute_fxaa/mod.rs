@@ -4,6 +4,8 @@ use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 impl ScenePostProcessResources {
+    /// 在 DisplayPostProcess 的局部显示颜色目标上执行 FXAA，输出仍以局部原点绘制。
+    /// 最终物理目标的偏移由后续 OutputTransform 负责；此入口复用无偏移的缓存参数。
     pub(in crate::graphics::scene::scene_renderer) fn execute_fxaa(
         &self,
         device: &wgpu::Device,

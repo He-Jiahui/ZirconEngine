@@ -1,4 +1,5 @@
 //! Static contracts for React + Material UI Hub navigation primitives.
+//! 核对主导航、次级页签与菜单向统一命令派发器的接线，保持页面选择状态由后端管理。
 
 use std::{fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path))
@@ -24,6 +26,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path))
@@ -49,6 +52,8 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// BUG: [CR-HUBTESTA-0011] 抽屉已采用派生的折叠状态，测试要求旧状态变量形成必失败断言；证据：NavigationDrawer.tsx。
+/// 核对主导航列表、折叠反馈和页面选择回调归属抽屉，导航文案来自后端本地化外壳。
 #[test]
 fn navigation_drawer_owns_primary_page_list_and_responsive_labels() {
     let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
@@ -79,6 +84,7 @@ fn navigation_drawer_owns_primary_page_list_and_responsive_labels() {
     );
 }
 
+/// 检查顶栏把引擎选择和用户菜单交给共享浮层，再通过统一动作入口切换页面或引擎。
 #[test]
 fn topbar_navigation_routes_source_engine_user_and_settings_actions() {
     let topbar = read_crate_file("web/src/components/shell/TopBar.tsx");
@@ -131,6 +137,7 @@ fn topbar_navigation_routes_source_engine_user_and_settings_actions() {
     );
 }
 
+/// 固定窗口集中选择页面并把同一状态与派发器下传，业务页面不掌管全局路由。
 #[test]
 fn hub_window_routes_primary_pages_from_one_shell_boundary() {
     let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
@@ -162,6 +169,7 @@ fn hub_window_routes_primary_pages_from_one_shell_boundary() {
     );
 }
 
+/// 检查页签与视图切换包装器承接次级导航，页面局部页签和后端项目视图动作各有明确归属。
 #[test]
 fn tabs_and_toggle_wrappers_own_secondary_navigation_controls() {
     let tabs = read_crate_file("web/src/components/inputs/HubTabs.tsx");
@@ -244,6 +252,7 @@ fn tabs_and_toggle_wrappers_own_secondary_navigation_controls() {
     }
 }
 
+/// 沿导航回调、顶层异步反馈和 IPC 检查同一动作链，真实后端失败不能转换成预览成功状态。
 #[test]
 fn tauri_navigation_actions_flow_through_single_action_command() {
     let api = read_crate_file("web/src/tauri/hubApi.ts");
@@ -291,6 +300,7 @@ fn tauri_navigation_actions_flow_through_single_action_command() {
     );
 }
 
+/// 要求文档记录导航组件和统一派发链，保持主导航与次级页面验证入口可追溯。
 #[test]
 fn navigation_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -323,6 +333,7 @@ fn navigation_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn navigation_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_navigation_contract.rs");

@@ -1,3 +1,5 @@
+//! 字段背景和边框的命名角色集中映射当前主题，避免几何或 text 绘制分支单独写死颜色。
+
 use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_palette(

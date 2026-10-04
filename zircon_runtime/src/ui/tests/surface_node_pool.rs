@@ -1,3 +1,5 @@
+//! 动态模板节点回收须先清理焦点与输入瞬态，再按身份复用；容量限制和显式裁剪使驻留量可观察。
+
 use std::collections::BTreeMap;
 
 use crate::ui::{
@@ -241,6 +243,7 @@ fn surface_node_pool_explicit_trim_releases_detached_reuse_storage() {
     assert_eq!(report.resident_bucket_count, 0);
 }
 
+// 创建已发布且干净的表面，池报告因此只包含回收和复用这轮操作。
 fn pooled_surface() -> UiSurface {
     let mut surface = root_surface();
     surface.tree.insert_child(root_id(), child_node()).unwrap();
@@ -292,6 +295,7 @@ fn child_node() -> UiTreeNode {
         })
 }
 
+// 同一 bucket 的身份一致、节点 ID 各异，用来隔离每身份容量与总驻留上限。
 fn pool_node(bucket: usize, replica: usize) -> UiTreeNode {
     let mut node = child_node();
     node.node_id = UiNodeId::new(

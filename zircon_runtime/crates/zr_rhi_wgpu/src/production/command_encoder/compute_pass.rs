@@ -1,3 +1,4 @@
+//! 显式计算通道承接图通道内多个派发，并把诊断查询范围绑定到同一原生通道。
 use zr_rhi::{
     CommandListCommand, DiagnosticPassQueryScope, PipelineKind, RenderQueueClass, RhiError,
 };

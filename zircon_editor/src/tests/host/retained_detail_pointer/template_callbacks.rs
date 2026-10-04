@@ -1,3 +1,4 @@
+// 从检查器模板控件检查宿主回调，约束通用窗格上下文与紧凑控件圆角。
 fn source(relative: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))

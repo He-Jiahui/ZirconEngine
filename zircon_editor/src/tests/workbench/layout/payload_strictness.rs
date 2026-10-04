@@ -1,9 +1,11 @@
+//! 布局版本协议逐层拒绝未知及退役字段；语法合法性与实例身份合法性分开验证。
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::layout::{
     DocumentNode, FloatingWindowLayout, MainPageId, WorkbenchLayout,
 };
 
 #[test]
+/// 从有效默认载荷分别注入深层未知字段，防止外层严格而嵌套协议悄悄接受旧结构。
 fn serialized_workbench_layout_rejects_deep_unknown_fields() {
     let encoded = serde_json::to_value(WorkbenchLayout::default()).unwrap();
 

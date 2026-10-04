@@ -1,3 +1,4 @@
+//! 在资源索引代际与共享航班之间取得准入，已有航班只合并原因，新航班才拥有导入标记；代际重核有次数上限，尚未准入时立即返回待重试状态。
 use std::sync::Arc;
 
 use zircon_runtime::asset::AssetUri;
@@ -15,6 +16,7 @@ use super::{
 };
 
 impl EditorAssetImportFlow {
+    /// 用索引中的当前资源代际申请共享导入；待准入及标记迁移状态交还调用端重试，不在提交线程等待。
     pub fn submit(
         &self,
         request: EditorAssetImportRequest,

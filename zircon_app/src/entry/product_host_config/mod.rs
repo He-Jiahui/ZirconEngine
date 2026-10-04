@@ -1,3 +1,6 @@
+//! 将产品角色、运行配置和导出意图在启动前解析为不可变的宿主契约。
+//! 调用端应先取得解析结果，再进行 Runtime 模块装配或动态库加载。
+
 mod entry_config;
 mod product_artifact_manifest;
 mod product_config_source;

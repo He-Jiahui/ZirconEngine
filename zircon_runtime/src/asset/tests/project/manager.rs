@@ -1,3 +1,5 @@
+//! 为项目管理器测试提供可计数、带依赖和多子资产的导入器，便于验证持久事务及资源索引的边界。
+
 use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -22,6 +24,7 @@ use crate::asset::{
 };
 use crate::core::resource::ResourceState;
 
+// BUG: [CR-ASSET-TEST-PROJECT-0001] 默认并行测试中，多个测试复用此全局计数导入器；重启恢复测试将计数重置并断言精确值时会被其他测试的导入调用干扰。证据：full_generation、relocation、targeted_import 与 restore_failure_migration 均注册 counted_data_importer。
 static COUNTED_IMPORT_CALLS: AtomicUsize = AtomicUsize::new(0);
 
 mod artifact_cache_imports;
@@ -64,6 +67,7 @@ fn import_counted_data(
     ))
 }
 
+// 故意同时声明可解析与缺失依赖，供资源索引检查已知 ID 与诊断是否并存。
 fn import_material_with_dependencies(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
@@ -136,6 +140,7 @@ fn import_multi_asset_bundle(
     )))
 }
 
+// 与正常多子资产夹具成对：同源重复标签必须在发布任何子资产前成为结构化失败。
 fn import_duplicate_label_bundle(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {

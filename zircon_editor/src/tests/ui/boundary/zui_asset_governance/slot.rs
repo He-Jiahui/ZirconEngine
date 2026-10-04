@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 子节点挂载槽、别名及占位声明。
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::metadata::{string_metadata_offender, string_token_metadata_offender};

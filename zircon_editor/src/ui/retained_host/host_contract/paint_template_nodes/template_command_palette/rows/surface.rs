@@ -1,3 +1,5 @@
+//! 只在可见且共享样式给出底色时提交候选底面；普通空背景行仍可由其他子 painter 绘制文字。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

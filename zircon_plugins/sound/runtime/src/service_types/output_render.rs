@@ -1,3 +1,4 @@
+//! 框架保留手动取块接口供能力探测；当前 Kira 独占回调，调用者必须处理明确的未支持结果。
 use zircon_runtime::core::framework::sound::{
     SoundBackendCallbackBlock, SoundError, SoundMixBlock,
 };

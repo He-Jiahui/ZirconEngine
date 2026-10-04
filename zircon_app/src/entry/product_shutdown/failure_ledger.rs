@@ -24,10 +24,13 @@ impl Default for ProductFailureLedgerState {
 }
 
 /// Cloneable cold-path sink for ordered product failures.
+/// 启动失败可即时读取快照；持有动态会话的终结路径应在清理正常返回后读取最终账本。
+/// 会话 destroy 在 Drop 中失败会记录后终止进程，无法返回入口形成最终快照。
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ProductFailureLedger(Arc<Mutex<ProductFailureLedgerState>>);
 
 impl ProductFailureLedger {
+    /// 按观察顺序保留最早的有限条目；容量满时仍计数丢失项，不能把快照视作完整日志。
     pub(crate) fn record(
         &self,
         phase: ProductHostPhase,
@@ -65,6 +68,7 @@ impl ProductFailureLedger {
     }
 }
 
+// 终结诊断使用单行定界文本，必须先转义控制字符和分隔符，再按 UTF-8 字节边界截断。
 fn bounded_failure_message(message: String) -> String {
     let mut escaped = String::with_capacity(message.len().min(PRODUCT_FAILURE_MESSAGE_BYTES));
     for character in message.chars() {

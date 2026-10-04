@@ -1,3 +1,4 @@
+// 静态贡献行的必填项缺失即失败；测试不能为发布清单暗中补默认值。
 pub(super) fn take_required_module_kind(
     value: &mut Option<zircon_runtime::plugin::PluginModuleKind>,
 ) -> zircon_runtime::plugin::PluginModuleKind {

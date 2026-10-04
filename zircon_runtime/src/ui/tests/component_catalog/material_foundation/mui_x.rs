@@ -1,3 +1,5 @@
+//! MUI X 的树、数据网格与编辑器视图通过目录声明所需状态和事件，供宿主按能力提供实现。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{UiComponentEventKind, UiValue};
 

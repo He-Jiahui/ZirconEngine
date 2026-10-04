@@ -40,6 +40,7 @@ where
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// 插件来源身份决定贡献键前缀；构造须走 parse，不能以展示名称替代稳定 ID。
 pub struct PluginContributionId(String);
 
 impl PluginContributionId {
@@ -81,6 +82,7 @@ pub enum ContributionSource {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// 一次发布的撤销凭据；跨多个贡献类别的批次仍按同一票据撤销。
 pub struct ContributionTicket(pub(super) u64);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -122,6 +124,7 @@ impl ContributionChange {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 消费者按代际请求增量；日志窗口已过时应重建完整快照。
 pub struct ContributionDelta {
     pub(super) from_generation: u64,
     pub(super) to_generation: u64,
@@ -202,6 +205,7 @@ impl ContributionCounts {
 }
 
 #[derive(Clone, Debug, Default)]
+/// 固定本票据实际发布的键；撤销时仅删除这些键，保留其他票据贡献。
 pub(super) struct ContributionKeys {
     pub(super) views: Vec<String>,
     pub(super) drawers: Vec<String>,

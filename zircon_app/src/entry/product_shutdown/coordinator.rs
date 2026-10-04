@@ -89,7 +89,9 @@ impl Default for ProductShutdownState {
     }
 }
 
+// TODO: [CR-APP-ENTRY-0001] 确认产品关停阶段由哪条生产入口驱动；当前只有 product_shutdown/tests.rs 实例化协调器，editor/runtime/headless 入口使用故障账本却未提交阶段回执；下一步对照各入口关停与动态 Runtime 销毁链补验证。
 /// Cold-path authority for one product generation's terminal reason and shutdown phases.
+/// 入口应先报告停止，再按实际资源所有者推进相邻阶段；当前生产接线仍需上述审查。
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ProductShutdownCoordinator {
     state: Arc<Mutex<ProductShutdownState>>,
@@ -108,6 +110,7 @@ impl ProductShutdownCoordinator {
         self.request_stop_with_disposition(reason, ProductShutdownPhaseDisposition::Executed)
     }
 
+    /// 保留首次终止原因，允许多个调用方重复请求停止；处置类型描述阶段实际所有权。
     pub(crate) fn request_stop_with_disposition(
         &self,
         reason: ProductTerminalReason,
@@ -133,6 +136,7 @@ impl ProductShutdownCoordinator {
         self.advance_to_with_disposition(phase, ProductShutdownPhaseDisposition::Executed)
     }
 
+    /// 仅接受相邻关停阶段及同阶段回执，防止诊断把未执行的清理阶段报作完成。
     pub(crate) fn advance_to_with_disposition(
         &self,
         phase: ProductHostPhase,
@@ -177,6 +181,7 @@ impl ProductShutdownCoordinator {
         }
     }
 
+    // 锁中毒后仍保留第一故障和阶段快照，供终结诊断读取，而非丢弃清理证据。
     fn lock(&self) -> MutexGuard<'_, ProductShutdownState> {
         match self.state.lock() {
             Ok(state) => state,

@@ -1,3 +1,4 @@
+//! 菜单及活动视图反射投影的查询契约；动作描述和绑定身份在此不执行。
 use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
 use crate::core::editor_operation::EditorOperationPath;
 use crate::ui::binding::{EditorUiBindingPayload, EditorUiEventKind};
@@ -12,6 +13,7 @@ use crate::ui::EditorUiReflectionAdapter;
 use zircon_runtime_interface::ui::event_ui::{UiControlRequest, UiControlResponse, UiNodePath};
 
 #[test]
+/// 将chrome和模型发布成可查询快照，检查菜单规范operation、内容kind与动作描述完整性。
 fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
@@ -91,6 +93,7 @@ fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
 }
 
 #[test]
+/// 嵌套菜单仅把叶子投影为动作，保留规范operation、快捷键和typed payload。
 fn workbench_reflection_model_projects_nested_menu_leaves() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();

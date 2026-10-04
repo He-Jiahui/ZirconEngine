@@ -1,3 +1,6 @@
+//! 把引擎帧 DTO 与 Tungstenite message 相互转换，保留文本、二进制、控制帧和关闭原因。
+//! 原始 wire Frame 非引擎公开合同，转换为关闭信号；实际协议是否合法仍由库处理。
+
 use zircon_runtime::core::framework::net::{NetWebSocketCloseReason, NetWebSocketFrame};
 
 pub(super) fn frame_to_message(

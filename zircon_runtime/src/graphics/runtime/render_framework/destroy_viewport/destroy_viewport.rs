@@ -1,3 +1,4 @@
+//! 销毁视口是历史租约、产品、拾取及调试捕获的共同清理边界，须与提交串行。
 use crate::core::framework::render::{RenderFrameworkError, RenderViewportHandle};
 
 use super::super::wgpu_render_framework::WgpuRenderFramework;

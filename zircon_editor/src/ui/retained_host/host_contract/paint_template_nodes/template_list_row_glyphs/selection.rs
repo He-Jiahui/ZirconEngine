@@ -1,3 +1,5 @@
+//! 装饰含义与共享 resolved state 对齐：loading/disabled 优先，checked 表示勾选，其余表示可导航。
+
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 use super::super::super::data::TemplatePaneNodeData;

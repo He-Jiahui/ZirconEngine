@@ -1,3 +1,4 @@
+//! 在源档案解析选择器后复用命名传输；目标新 ID 始终由调用者指定。
 mod basic;
 mod metadata;
 

@@ -1,3 +1,4 @@
+//! 插件公开面、原生装载命名空间与生命周期回退保持分离。向相邻守卫提供源码读取、路径枚举或断言工具。
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};

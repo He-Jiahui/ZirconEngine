@@ -1,5 +1,6 @@
 use crate::graphics::pipeline::declarations::RenderPassStage;
 
+/// 将阶段枚举转换为稳定诊断文本；仅用于错误消息，不参与图排序或资源查找。
 pub(in crate::graphics::pipeline) fn stage_name(stage: RenderPassStage) -> &'static str {
     match stage {
         RenderPassStage::DepthPrepass => "depth_prepass",

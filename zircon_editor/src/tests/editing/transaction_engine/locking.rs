@@ -1,3 +1,4 @@
+//! 以回调重入和并发查询核对事务引擎锁顺序：重入应返回忙碌错误，公开上下文回调不应形成死锁。
 use std::any::Any;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Weak};

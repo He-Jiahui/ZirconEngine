@@ -1,3 +1,4 @@
+//! 保存通用 MUI 作者样式与节点断言辅助入口；子模块按反馈、展示、槽位和表面拆分。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;

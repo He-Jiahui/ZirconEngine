@@ -1,3 +1,5 @@
+//! 标签采用通用节点文字色，值区另取属性字段颜色；两区保持各自裁剪，防止长标签遮挡值。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_style::text_color;

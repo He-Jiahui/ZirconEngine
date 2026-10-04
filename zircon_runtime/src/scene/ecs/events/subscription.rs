@@ -46,6 +46,8 @@ where
         self.status == EventSubscriptionStatus::Connected
     }
 
+    // BUG: [CR-SCENE-ECS-0001] 跨 EventStore 连接只按数字事件 ID 取得租约；另一 Store 同槽位若是别的类型，连接成功却读不到 T。
+    /// 激活此订阅并从当前队尾开始读取；应传入注册该订阅的 EventStore。
     pub fn connect(&mut self, store: &mut EventStore) -> bool {
         if self.is_connected() {
             return false;

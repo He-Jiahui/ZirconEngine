@@ -1,3 +1,5 @@
+//! 在命令声明中表达运行模式门槛，供谓词求值与快捷键冲突域推导共用；声明匹配当前状态不等于触发运行模式切换。
+
 use serde::{Deserialize, Serialize};
 
 use crate::core::editor_message::PlayStateKind;

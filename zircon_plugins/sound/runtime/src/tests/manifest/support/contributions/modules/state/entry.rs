@@ -1,3 +1,4 @@
+// 表边界先于字段解释；optional_features.modules 不能混入顶层 runtime 模块对照。
 use super::super::line::parse_module_contribution_line;
 use super::storage::ModuleContributionParserState;
 

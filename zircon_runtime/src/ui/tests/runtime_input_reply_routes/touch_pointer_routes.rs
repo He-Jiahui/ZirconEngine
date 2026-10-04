@@ -1,3 +1,5 @@
+//! 触摸保留独立 pointer_id 却复用统一指针路由；取消只释放本指针捕获，其他触摸不继承所有权。
+
 use super::*;
 
 fn assert_touch_notes(result: &UiInputDispatchResult, pointer_id: UiPointerId) {
@@ -307,6 +309,7 @@ fn unified_touch_pointer_capture_is_indexed_by_pointer_id() {
     let first_pointer = UiPointerId::new(11);
     let second_pointer = UiPointerId::new(12);
 
+    // 捕获前置状态由回执应用建立；随后两个触摸 ID 分别验证路由与释放的隔离。
     let first_capture = surface.apply_dispatch_reply(
         keyboard_event(),
         UiDispatchReply::handled().with_effect(UiDispatchEffect::CapturePointer {

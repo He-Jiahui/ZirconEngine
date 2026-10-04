@@ -1,3 +1,4 @@
+//! 把文件选择后的模型导入交给统一后台任务及诊断生命周期；返回的运行时提交回执由宿主用于刷新目录，而非在工作线程修改界面。
 use std::path::PathBuf;
 
 use zircon_runtime::core::CoreError;

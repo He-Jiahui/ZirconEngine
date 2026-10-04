@@ -1,3 +1,4 @@
+// 从宿主页面点击和关闭回执派发，约束隐藏溢出项仍指向原始页面索引。
 use crate::core::editor_event::{
     EditorEvent, LayoutCommand, MainPageId, ViewInstanceId as EventViewInstanceId,
 };

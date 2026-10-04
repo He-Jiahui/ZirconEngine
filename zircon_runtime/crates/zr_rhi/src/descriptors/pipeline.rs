@@ -1,3 +1,5 @@
+//! 管线描述符的中立表示；WGPU 等后端只在注册时把这些字段投影为原生对象。
+
 use serde::{Deserialize, Serialize};
 use std::ops::{BitOr, BitOrAssign};
 
@@ -43,6 +45,7 @@ pub enum PipelineKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 绑定组布局句柄的有序集合，顺序必须与着色器的 bind-group 索引一致。
 pub struct PipelineLayoutDesc {
     pub label: Option<String>,
     pub bind_group_layouts: Vec<BindGroupLayoutHandle>,
@@ -80,6 +83,7 @@ pub enum CullMode {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// 颜色写掩码；未知位在后端创建目标前被拒绝。
 pub struct ColorWriteMask(u32);
 
 impl ColorWriteMask {

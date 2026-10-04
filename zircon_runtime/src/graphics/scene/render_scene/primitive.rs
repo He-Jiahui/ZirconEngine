@@ -89,6 +89,8 @@ impl fmt::Display for RenderScenePrimitiveInputError {
 
 impl Error for RenderScenePrimitiveInputError {}
 
+/// 投影器交给持久 RenderScene 的相机无关输入；稳定实例键决定增量日志身份，
+/// 资源句柄、变形和材质数据留在同一快照，以免消费者混读不同代际。
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct RenderScenePrimitiveDescriptor {
     pub(crate) node_id: EntityId,
@@ -213,6 +215,8 @@ pub(crate) struct RenderScenePrimitive {
 }
 
 impl RenderScenePrimitive {
+    /// 场景写入边界：统一规范 LOD 顺序与包围盒，并在发布日志前拒绝非有限或非仿射输入。
+    /// 调用方应提供每级 LOD 的局部包围盒，使所有视口共享保守的世界包围盒。
     pub(crate) fn new(
         mut descriptor: RenderScenePrimitiveDescriptor,
         local_bounds: RenderScenePrimitiveLocalBounds,
@@ -262,6 +266,7 @@ impl RenderScenePrimitive {
         self.revisions
     }
 
+    /// 将新旧持久快照投影成消费者需要的脏域；资源准备、GPU Scene 与可见性缓存各订阅相关域。
     pub(super) fn dirty_from(&self, previous: &Self) -> RenderScenePrimitiveDirtyFlags {
         let mut dirty = RenderScenePrimitiveDirtyFlags::NONE;
         let current = &self.descriptor;

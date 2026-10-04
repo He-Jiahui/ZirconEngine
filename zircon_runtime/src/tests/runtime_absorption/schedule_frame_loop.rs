@@ -1,3 +1,4 @@
+//! 帧调度执行链与行为锚点保持由调度模块和文档共同约束。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "schedule_frame_loop/inventory.rs"]
 mod inventory;
 #[path = "schedule_frame_loop/mirror_docs.rs"]

@@ -1,5 +1,6 @@
 use crate::project::RelPath;
 
+/// One project-relative file rendered from the packaged template truth.
 /// 模板渲染后交给 Editor 项目创建事务写入暂存目录的单个文件。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderedProjectTemplateEntry {

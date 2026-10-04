@@ -1,3 +1,5 @@
+//! 运行时模板资产由文档编译器形成唯一可消费实例，再交给表面构建器；旧递归文档不直接进入运行时入口。
+
 use std::time::Instant;
 
 use crate::ui::template::{

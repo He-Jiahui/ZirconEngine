@@ -1,3 +1,5 @@
+//! 外部模型导入先生成无写入的源计划与伴随文件快照；目标文件仅在项目事务末尾提交，防止导入器读取半成品。
+
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};

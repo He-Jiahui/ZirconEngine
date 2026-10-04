@@ -1,3 +1,4 @@
+//! 序列注册时验证绑定和曲线；同 ID 再调度会从零开始替换，调用方应避免误当作暂停续播。
 use zircon_runtime::core::framework::sound::{
     SoundError, SoundTimelineSequence, SoundTimelineSequenceId,
 };

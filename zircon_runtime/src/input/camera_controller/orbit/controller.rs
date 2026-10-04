@@ -7,6 +7,7 @@ use crate::core::math::{Real, Transform, Vec2, Vec3};
 const ORBIT_DISTANCE_EPSILON: Real = 0.001;
 const PAN_DISTANCE_FLOOR: Real = 0.5;
 
+/// 轨道相机目标及设置的持有者；编辑器视口和动态会话共用其透视导航结果。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct OrbitCameraController {
     settings: OrbitCameraSettings,
@@ -52,6 +53,7 @@ impl OrbitCameraController {
         self.state.target = target;
     }
 
+    /// 由宿主在轨道、平移、缩放或聚焦事件到达时调用；失焦时保持原变换。
     pub fn update(
         &mut self,
         transform: Transform,

@@ -1,3 +1,5 @@
+//! 验证Material 纸面与告警样例的描述符和主题选择器。
+
 use std::{collections::BTreeSet, fs};
 
 use toml::Value;

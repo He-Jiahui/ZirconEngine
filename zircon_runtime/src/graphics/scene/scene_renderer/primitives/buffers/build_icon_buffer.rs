@@ -2,6 +2,7 @@ use wgpu::util::DeviceExt;
 
 use crate::graphics::scene::scene_renderer::primitives::IconVertex;
 
+/// 将已判定可用贴图的 gizmo 图标顶点固化为本帧 GPU 缓冲；空图标不生成绘制命令。
 pub(crate) fn build_icon_buffer(
     device: &wgpu::Device,
     label: &str,

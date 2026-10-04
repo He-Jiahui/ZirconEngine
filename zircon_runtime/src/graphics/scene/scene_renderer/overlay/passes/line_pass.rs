@@ -1,5 +1,7 @@
 use crate::graphics::types::ViewportRenderRegion;
 
+/// 在已有场景颜色和深度上叠加辅助线，保留附件内容并约束到当前视口物理区域。
+/// 调用方需先完成场景附件初始化；区域为空时不绘制，但附件加载仍属于记录的 pass。
 pub(crate) fn begin_line_pass_for_region<'a>(
     encoder: &'a mut wgpu::CommandEncoder,
     label: &'static str,

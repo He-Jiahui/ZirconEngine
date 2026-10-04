@@ -1,3 +1,5 @@
+//! 守护项目与缓存 URI 的规范化及越界拒绝，并在 Windows 上验证大小写虚拟化路径的反向定位。
+
 #[cfg(windows)]
 use std::fs;
 
@@ -33,6 +35,7 @@ fn asset_uri_rejects_escape_attempts() {
 
 #[cfg(windows)]
 #[test]
+// Windows 调用方可能交付大小写不同的绝对路径；项目根判定和 URI 生成仍须使用磁盘上的原始拼写。
 fn project_manager_resolves_a_case_virtualized_windows_source_path() {
     let root = unique_temp_project_root("project uri \u{8d44}\u{6e90}\u{8def}\u{5f84}");
     let paths = ProjectPaths::from_root(&root).unwrap();

@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
 use super::sources::{assert_contains_all, MirrorDocsSources};
 
 pub(super) fn assert_source_inventory_anchors(sources: &MirrorDocsSources) {

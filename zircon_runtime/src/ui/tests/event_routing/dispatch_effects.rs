@@ -1,3 +1,5 @@
+//! 处理器回复由 UiSurface.apply_dispatch_reply 生效；焦点、捕获和宿主输入请求都必须受当前所有者约束。
+
 use super::*;
 
 #[test]

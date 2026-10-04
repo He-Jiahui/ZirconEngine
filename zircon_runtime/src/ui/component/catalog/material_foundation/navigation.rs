@@ -1,3 +1,5 @@
+//! 导航目录为菜单焦点、搜索、子菜单、页码与标签选择提供属性和事件契约。Menu 的延迟与过期标志由调用链驱动，工厂本身只在共享目录构建时执行。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

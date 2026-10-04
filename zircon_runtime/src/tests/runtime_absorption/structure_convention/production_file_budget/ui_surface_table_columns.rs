@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0116] 表格列宽拖动与绑定修改报告的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_ui_surface_table_column_helpers_are_child_owner() {
     let parent = read_runtime_src("ui/surface/surface/default_interactions/table/mod.rs");

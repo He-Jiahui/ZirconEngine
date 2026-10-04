@@ -1,3 +1,4 @@
+//! 独立转换进度契约；帧管线以有限非负时间推进，并按中断策略生成交叉淡入权重。
 use zircon_runtime::core::math::Real;
 
 use super::{InterruptionPolicy, TransitionRequest, TransitionState, TransitionWeights};
@@ -9,6 +10,7 @@ pub struct TransitionRuntime {
 }
 
 impl TransitionRuntime {
+    /// 建立有界转换进度；这只管理转换权重，不推进剪辑时间或改变播放器活动状态。
     pub fn begin(request: TransitionRequest, elapsed_seconds: Real) -> Self {
         Self {
             request,

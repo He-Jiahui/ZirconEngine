@@ -1,3 +1,4 @@
+//! 从弹窗渲染与增量重建核对菜单锚点、触发器身份、行状态和无效控制节点的拒绝路径。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},

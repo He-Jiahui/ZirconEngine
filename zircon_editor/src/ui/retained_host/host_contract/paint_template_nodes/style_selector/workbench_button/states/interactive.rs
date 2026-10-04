@@ -1,3 +1,5 @@
+//! 基础交互配方保留按钮类型色阶；可见焦点独立使用焦点边框，表面仍表达同时存在的指针热态、展开或持久选中/勾选。
+
 use super::super::model::{WorkbenchButtonKind, WorkbenchButtonStyle};
 use super::super::palette::workbench_button_palette;
 use super::normal::normal_button_style;

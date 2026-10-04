@@ -1,3 +1,5 @@
+//! 绑定目标批量更新用可写域快照维护事务边界；失败时恢复整个表面，性能样本比较其与整面复制。
+
 use std::{hint::black_box, time::Instant};
 
 use zircon_runtime_interface::ui::{
@@ -125,6 +127,7 @@ fn sample_binding_transaction(surface: &UiSurface, clone_count: usize) -> u128 {
     started.elapsed().as_micros()
 }
 
+// 只接收上述固定采样轮次产生的非空集合；该辅助函数不是空样本容错接口。
 fn nearest_rank_p95(samples: &[u128]) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();

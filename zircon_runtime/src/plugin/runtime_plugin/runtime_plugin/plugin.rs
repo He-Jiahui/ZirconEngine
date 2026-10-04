@@ -7,6 +7,7 @@ use crate::plugin::{
 
 use super::super::RuntimePluginDescriptor;
 
+/// 链接式插件的运行时契约：descriptor 提供默认清单，生命周期取自可覆写的 module_descriptor；register 可追加实际扩展。
 pub trait RuntimePlugin {
     fn descriptor(&self) -> &RuntimePluginDescriptor;
 

@@ -6,6 +6,7 @@ use crate::core::resource::{
     ResourceReadinessGenerationAssemblyExt, ResourceRecord, ResourceRegistryError, ResourceResult,
 };
 
+/// ResourceManager 的轻量类型视图；克隆视图不取得载荷租约，需要参与驻留生命周期时应调用 acquire。
 #[derive(Clone, Debug)]
 pub struct Assets<TAsset: Asset> {
     manager: ResourceManager,
@@ -29,11 +30,13 @@ impl<TAsset: Asset> Assets<TAsset> {
         self.get(handle).map(|asset| asset.as_ref().clone())
     }
 
+    /// 在热重载或资源清理可能并发发生时取得带所有权的载荷租约，而非只保存可失效的 ID。
     pub fn acquire(&self, handle: Handle<TAsset>) -> Option<ResourceLease<TAsset>> {
         self.manager
             .acquire::<TAsset::Marker, TAsset>(handle.resource_handle())
     }
 
+    // BUG: [CR-ASSET-PIPELINE-0001] 此处仅比较 ResourceKind；UiIconAsset 与 TextureAsset 等共享 marker 时会把另一种载荷误报为本类型存在。
     pub fn contains(&self, handle: Handle<TAsset>) -> bool {
         self.manager
             .readiness_generation()

@@ -14,6 +14,8 @@ zircon_plugin_sdk::declare_plugin! {
         ],
         maturity: experimental,
         packaging: [source_template, library_embed, native_dynamic],
+        // 此投影生成 native 分发所用的静态入口与扩展清单；新增对外扩展点时也要同步这里，
+        // 否则 dist 报告与 RuntimePlugin::register 的实际扩展会分离。
         native_projection: {
             plugin_id: NATIVE_PLUGIN_ID,
             requested_capabilities: NATIVE_REQUESTED_CAPABILITIES,

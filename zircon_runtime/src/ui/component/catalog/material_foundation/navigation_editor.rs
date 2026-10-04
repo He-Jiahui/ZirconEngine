@@ -1,3 +1,5 @@
+//! 编辑器导航描述传输列表、上下文菜单、工具条和停靠标签的字段与事件。窗口与视图标识作为宿主路由目标保留，编写目录统一收集，实例操作由相应拥有者处理。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

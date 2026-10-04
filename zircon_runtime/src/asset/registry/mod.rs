@@ -1,4 +1,5 @@
 //! Persistent, folder-backed project asset index and dependency graph.
+//! 注册表由扫描/导入写入 generation，查询和依赖关系从同一快照读取。
 
 mod asset_registry_diagnostic;
 mod asset_registry_entry;

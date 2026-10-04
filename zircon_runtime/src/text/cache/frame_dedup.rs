@@ -1,3 +1,4 @@
+//! UI 帧内的测量与布局结果去重；每次 begin_frame 都丢弃旧值，跨帧复用由有容量上限的缓存负责。
 use std::{hash::Hash, sync::Arc};
 
 use super::index::{IndexedTextCache, IndexedTextCacheEntry, TextCacheSlot};
@@ -28,6 +29,7 @@ impl<K, V> IndexedTextCacheEntry<K> for TextFrameDedupEntry<K, V> {
     }
 }
 
+/// 同一帧内按请求键与完整原文共享结果，避免摘要碰撞让不同文本误命中。
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextFrameDedup<K: Eq + Hash, V> {
     index: IndexedTextCache<K, TextFrameDedupEntry<K, V>>,

@@ -1,3 +1,4 @@
+// 从窗格展示构造器核对首批视图的稳定正文元数据及对应载荷类型。
 use super::support::{
     animation_fixture, build_export_fixture, chrome_fixture, module_plugins_fixture,
     pane_body_spec, runtime_diagnostics_fixture,

@@ -1,3 +1,4 @@
+//! 核对内建与插件资产贡献的物化和冲突诊断：完整自定义定义方可落地，工具所有权与创建模板 ID 必须唯一。
 use crate::core::asset::{
     AssetContextCommandDescriptor, AssetCreationTemplateDescriptor, AssetToolkitDescriptor,
     AssetTypeContribution, AssetTypeId, AssetTypePresentation, AssetTypeRegistry,

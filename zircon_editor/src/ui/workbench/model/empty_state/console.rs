@@ -2,6 +2,7 @@ use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::super::pane_empty_state_model::PaneEmptyStateModel;
 
+/// 控制台空态可展示最近任务状态；它不代表日志列表已含该状态行。
 pub(super) fn console_empty_state(chrome: &EditorChromeSnapshot) -> PaneEmptyStateModel {
     if chrome.status_line.trim().is_empty() {
         PaneEmptyStateModel {

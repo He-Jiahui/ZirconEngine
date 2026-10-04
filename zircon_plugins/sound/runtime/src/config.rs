@@ -1,8 +1,10 @@
+//! 配置从包选项构造并修正声道布局；模块默认工厂当前仍以默认配置创建经理，项目选项接线需单独核实。
 use zircon_runtime::core::framework::audio::AudioChannelLayout;
 use zircon_runtime::core::framework::sound::{
     SoundConvolutionBudget, SoundPluginOptions, SoundRayTracingQuality,
 };
 
+/// 运行服务的请求配置；声道元数据在转换时修正，设备能力与高级功能支持仍需在使用入口确认。
 #[derive(Clone, Debug, PartialEq)]
 pub struct SoundConfig {
     pub enabled: bool,

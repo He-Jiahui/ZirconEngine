@@ -1,3 +1,5 @@
+//! 项目清单兼容列表与命名映射两种导出配置格式；旧映射键只在条目未显式命名时补入名称，保存后的运行时视图统一为列表。
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Deserializer};

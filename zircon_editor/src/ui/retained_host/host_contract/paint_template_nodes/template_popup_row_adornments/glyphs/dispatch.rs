@@ -1,3 +1,6 @@
+//! 把勾选、子菜单和显式图标映射到共享图标资产；上游已确定哪一行需要装饰。
+//! clip由节点绘制链传入，图标资源的加载与fallback不由本函数控制。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

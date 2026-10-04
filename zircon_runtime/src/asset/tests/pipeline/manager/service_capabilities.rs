@@ -1,3 +1,5 @@
+//! importer 能力查询通过 AssetManager trait object 暴露，供项目打开前后的调用者识别可用和仅诊断的格式。
+
 use super::*;
 
 #[test]

@@ -1,3 +1,4 @@
+//! 边界索引用于重叠依赖和损伤筛选，返回源序号以保持既有绘制语义。
 use std::cmp::Ordering;
 use std::ops::Range;
 

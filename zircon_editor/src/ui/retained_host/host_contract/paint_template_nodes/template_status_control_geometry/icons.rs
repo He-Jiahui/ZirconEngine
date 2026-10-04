@@ -1,3 +1,5 @@
+//! 状态图标槽位与面板按钮的紧凑 icon 尺寸一致，实际图像按可用帧居中。
+
 use super::super::super::data::FrameRect;
 use super::super::template_status_glyphs::centered_rect;
 use super::status_icon_glyph_size;

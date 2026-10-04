@@ -1,3 +1,5 @@
+//! 外壳画家调用此入口统一选择区域填充和分隔线；布局裁剪与命令记录仍由画家负责。
+
 use super::super::resolved_state_for_node;
 use super::fill::chrome_fill;
 use super::model::{WorkbenchChromeKind, WorkbenchChromeStyle};
@@ -6,6 +8,7 @@ use super::separators::chrome_separator;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterFamily;
 
+/// 为外壳区域选择填充与分隔线；调用端提供区域身份并在绘制命令阶段处理裁剪。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_chrome_style(
     node: &TemplatePaneNodeData,
     kind: WorkbenchChromeKind,

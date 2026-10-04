@@ -1,3 +1,4 @@
+//! 承接已取得导入租约的工作，终态必须同时交还共享航班、资源导入标记和诊断；模型导入回执还承担持久提交后的目录刷新交接。
 use std::any::Any;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::PathBuf;
@@ -18,6 +19,7 @@ use super::{
     EditorAssetImportRequest, EditorAssetImportResult,
 };
 
+// 租约随工作一起转移；准入拒绝、恐慌或提前丢弃也必须释放导入标记并完成共享票据。
 pub(super) struct ImportLease {
     state: Arc<ImportFlowSharedState>,
     index: Arc<Mutex<EditorAssetIndex>>,
@@ -171,6 +173,7 @@ impl AssetImportJob {
                     uri: self.request.uri().clone(),
                 })
             })?;
+        // BUG: [CR-EDITOR-PROJECT-0001] 后端已持久提交后到达的取消会在此把成功导入报告为已取消；证据：运行时导入先发布代际并确认持久化再返回，模型导入已避免该时序。
         context.check_cancelled()?;
         context.report_progress(1, 1, format!("Imported {}", self.request.uri()));
         Ok(EditorAssetImportResult::new(

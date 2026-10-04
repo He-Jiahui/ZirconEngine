@@ -6,12 +6,14 @@ use super::TabInsertionAnchor;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
+/// 单个叶空间的tab顺序和活动项；跨工作区实例唯一性由布局命令协调。
 pub struct TabStackLayout {
     pub tabs: Vec<ViewInstanceId>,
     pub active_tab: Option<ViewInstanceId>,
 }
 
 impl TabStackLayout {
+    /// 移动同栈成员时先去重，再按邻接身份插入并激活；不存在的锚点回退末尾。
     pub(crate) fn insert(
         &mut self,
         instance_id: ViewInstanceId,
@@ -40,6 +42,7 @@ impl TabStackLayout {
         self.active_tab = Some(instance_id);
     }
 
+    /// 移除成员并修复本栈活动项；返回成员列表是否变化。
     pub(crate) fn remove(&mut self, instance_id: &ViewInstanceId) -> bool {
         let before = self.tabs.len();
         self.tabs.retain(|current| current != instance_id);

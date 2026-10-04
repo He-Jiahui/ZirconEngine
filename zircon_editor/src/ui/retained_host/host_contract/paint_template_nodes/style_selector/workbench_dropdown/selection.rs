@@ -1,3 +1,5 @@
+//! 模板下拉框在绘制前调用此入口；先用共用状态优先级解析控件态，再分别选择各视觉通道并应用亮度。
+
 use super::super::resolved_state_for_node;
 use super::brightness::apply_visual_brightness;
 use super::colors::{dropdown_border, dropdown_chevron, dropdown_surface, dropdown_text};
@@ -5,6 +7,7 @@ use super::model::WorkbenchDropdownStyle;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterFamily;
 
+/// 为模板下拉框合成状态和颜色；占位标志由显示内容选择端提供。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_dropdown_style(
     node: &TemplatePaneNodeData,
     label_is_placeholder: bool,

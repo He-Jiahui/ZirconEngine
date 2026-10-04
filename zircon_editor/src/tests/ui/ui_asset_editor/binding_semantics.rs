@@ -1,3 +1,5 @@
+//! 验证运行时绑定诊断及 schema 项能投影到 UI 资产编辑器面板。
+
 use crate::ui::asset_editor::UiAssetEditorDiagnosticSeverity;
 
 use super::support::open_design_session;

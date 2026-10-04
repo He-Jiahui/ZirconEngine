@@ -12,6 +12,7 @@ pub const UI_COMPILED_ASSET_ARTIFACT_GENERATED_POLICY: &str =
     "runtime_09_m3_1_toml_envelope_leaf_dto_not_generated_source";
 pub const UI_COMPILED_ASSET_ARTIFACT_GENERATED_SOURCE_MARKER_REQUIRED: bool = false;
 
+/// 包产物保留编译验证报告和可实例化模板；宿主需另行检查动作许可并安装 surface，反序列化本身不执行绑定。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRuntimeCompiledAssetArtifact {
     pub report: UiCompiledAssetPackageValidationReport,
@@ -37,6 +38,7 @@ impl UiRuntimeCompiledAssetArtifact {
         }
     }
 
+    /// 输出带固定 magic、版本和长度的 TOML envelope，供磁盘缓存与包清单指纹共同使用；不是生成 Rust 源码。
     pub fn to_bytes(&self) -> Result<Vec<u8>, UiAssetError> {
         let payload = toml::to_string(self).map_err(package_error)?.into_bytes();
         let mut bytes = Vec::with_capacity(ENVELOPE_HEADER_LEN + payload.len());
@@ -47,6 +49,7 @@ impl UiRuntimeCompiledAssetArtifact {
         Ok(bytes)
     }
 
+    /// 拒绝截断、未知格式和内部不合法的绑定程序；只恢复数据，不加载报告列出的资源依赖。
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, UiAssetError> {
         if bytes.len() < ENVELOPE_HEADER_LEN {
             return Err(invalid_artifact("compiled artifact envelope is truncated"));
@@ -86,6 +89,7 @@ impl UiRuntimeCompiledAssetArtifact {
 
         let payload = std::str::from_utf8(payload).map_err(package_error)?;
         let artifact: Self = toml::from_str(payload).map_err(package_error)?;
+        // TODO: [CR-UI-TEMPLATE-COMP-0003] 确认是否还需校验模板内容与绑定程序一致；目前只比较节点数量和程序内部结构；缺少节点数量不变但改绑的载荷回归，下一步核对树构建与程序安装约束。
         let binding_program = artifact.compiled.binding_program();
         if binding_program.generation().is_invalid()
             || binding_program.node_count() != template_node_count(&artifact.compiled.root)
@@ -99,6 +103,7 @@ impl UiRuntimeCompiledAssetArtifact {
     }
 }
 
+// 与绑定编译和树构建采用同一孩子遍历域；解码至少要求模板节点和程序节点数量一致。
 fn template_node_count(root: &zircon_runtime_interface::ui::template::UiTemplateNode) -> usize {
     let mut pending = vec![root];
     let mut count = 0usize;

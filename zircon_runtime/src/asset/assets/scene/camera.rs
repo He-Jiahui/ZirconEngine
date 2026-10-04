@@ -1,3 +1,5 @@
+//! 相机资产保存投影、目标与后处理引用；World 项目 I/O 将其转换为运行时相机，图形场景抽取只读取已解析的相机状态。
+
 use crate::asset::AssetReference;
 use crate::core::framework::render::{
     CorePipelineKind, ProjectionMode, RenderCameraClearColor, DEFAULT_CAMERA_EXPOSURE_EV100,

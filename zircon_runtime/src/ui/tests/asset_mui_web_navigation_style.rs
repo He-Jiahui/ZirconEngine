@@ -1,3 +1,4 @@
+//! 验证导航控件的本地工具类覆盖链接、分页、步骤器、标签和穿梭列表。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;

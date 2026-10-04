@@ -5,6 +5,7 @@ use super::gateway::SessionGateway;
 use super::protocol::ensure_status;
 
 impl SessionGateway {
+    /// 仅在活跃会话报告高亮能力且值对象有效时跨 ABI 提交；失败留在网关边界。
     pub(super) fn submit_highlight_set(
         &self,
         set: EditorRuntimeHighlightSet,

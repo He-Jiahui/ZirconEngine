@@ -1,3 +1,5 @@
+//! 把残留会话锁与自动保存候选合并成启动恢复选择；计划必须逐项解析候选，失败重试保留原始选择上下文。
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
@@ -189,6 +191,7 @@ impl RestoreFlow {
     }
 
     /// Requires one and only one decision for every candidate before any source owner acts.
+    /// 只形成恢复决议而不直接覆盖源文件；宿主按决议取得会话所有权并执行后续物化。
     pub fn plan(
         startup: &RestoreStartup,
         resolutions: impl IntoIterator<Item = RestoreResolution>,

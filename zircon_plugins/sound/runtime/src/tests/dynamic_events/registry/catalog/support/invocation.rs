@@ -1,3 +1,4 @@
+// 与目录夹具共享事件及模式身份，供注册、卸载和队列状态用例提交同一个有效事件。
 use super::super::super::super::*;
 
 use super::ids::{EVENT_ID, PAYLOAD_SCHEMA};

@@ -1,3 +1,5 @@
+//! 分段组的主体、组标签、单项和选中区域几何门面；由 segments/labels 共享。
+
 mod body;
 mod group;
 mod item;

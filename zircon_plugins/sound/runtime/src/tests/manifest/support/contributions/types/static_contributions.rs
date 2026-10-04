@@ -1,3 +1,4 @@
+// 测试专用的静态贡献视图，只包含三个与运行时包清单逐项比较的集合。
 use super::{StaticDependency, StaticEventCatalog, StaticModule};
 
 pub(in crate::tests::manifest) struct StaticSoundContributions {

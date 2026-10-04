@@ -1,3 +1,4 @@
+// 使用不同优先级及同优先级身份制造排序对照；依赖调用方已注册对应事件。
 use super::super::super::super::super::*;
 
 use super::super::ids::EVENT_ID;

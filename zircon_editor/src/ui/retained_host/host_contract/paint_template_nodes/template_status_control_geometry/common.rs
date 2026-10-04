@@ -1,3 +1,5 @@
+//! 状态栏偏移是视觉位置声明；产生命令的调用方仍须决定是否允许内容越过原节点矩形。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_paintable_status_control_extent(
@@ -23,6 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_i
         && inner.y + inner.height <= outer.y + outer.height
 }
 
+/// 为状态 chip/图标应用视觉偏移，保持原尺寸；返回矩形不保证仍被原矩形包含。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_control_offset_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

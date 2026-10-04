@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+/// 注册表记录的语义槽位；与布局五个抽屉槽保持一一对应。
 pub enum DrawerDockPosition {
     LeftTop,
     LeftBottom,

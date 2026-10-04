@@ -8,6 +8,7 @@ use super::gateway::SessionGateway;
 use super::protocol::ensure_status;
 
 impl SessionGateway {
+    /// 先占用会话所有者的视口过渡许可，再调用 ABI；仅成功后发布新绑定。
     pub(super) fn bind_viewport_surface(
         &self,
         request: ZrRuntimeBindViewportSurfaceRequestV1,
@@ -29,6 +30,7 @@ impl SessionGateway {
         result
     }
 
+    /// 未绑定视口可幂等退出；已绑定视口只有运行时解绑成功才释放所有者记录。
     pub(super) fn unbind_viewport_surface(
         &self,
         viewport: ZrRuntimeViewportHandle,

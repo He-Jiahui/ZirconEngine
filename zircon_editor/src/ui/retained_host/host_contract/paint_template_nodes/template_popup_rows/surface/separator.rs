@@ -1,3 +1,5 @@
+//! 分隔项使用行内的主题柔和分隔色；只提交与clip相交且完全位于该行中的线。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

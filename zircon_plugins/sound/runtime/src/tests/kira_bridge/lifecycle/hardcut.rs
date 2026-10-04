@@ -1,3 +1,4 @@
+// 前两项经 MockBackend 核对重配置后的图与格式；末项仅用停机声源夹具验证控制参数拒绝。
 use kira::backend::mock::MockBackend;
 use zircon_runtime::core::framework::sound::{
     SoundPlaybackId, SoundSourceId, SoundSourceManager, SoundTrackId,

@@ -1,3 +1,5 @@
+//! 关闭装饰标记统一复用图标资源与 tint 合同；本函数只绘制，调用方另行持有关闭动作和点击区域。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;

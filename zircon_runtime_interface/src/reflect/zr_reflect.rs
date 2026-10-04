@@ -1,5 +1,6 @@
 use super::{ReflectError, ReflectTypeRegistration, ReflectedValue};
 
+/// Compile-time reflection contract implemented by `#[derive(ZrReflect)]`.
 /// 由派生宏实现的静态反射契约，运行时组件适配器据此建立注册并访问字段。
 pub trait ZrReflect: Sized {
     fn reflect_type_registration() -> Result<ReflectTypeRegistration, ReflectError>;

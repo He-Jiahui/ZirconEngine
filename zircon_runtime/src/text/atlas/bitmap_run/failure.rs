@@ -1,3 +1,6 @@
+//! 区分可跨帧恢复的容量阻塞与必须修正输入的永久失败。
+//! 提交层只为本帧不能驱逐的页面排入重试并保留占位，其他错误交给报告层诊断。
+
 use super::super::GlyphAtlasFormat;
 use super::placeholder::bitmap_placeholder_glyph;
 use super::types::{GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSource};
@@ -19,6 +22,8 @@ pub(crate) struct GlyphAtlasBitmapAllocationFailure {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 保留一次字形出现的来源与最早重试帧；不是拥有像素的缓存。
+/// 跨帧使用者还须保留或重新取得同一光栅键的像素，并在字体失效时丢弃队列。
 pub(crate) struct GlyphAtlasBitmapQueuedGlyph {
     pub(crate) source_index: usize,
     pub(crate) source: GlyphAtlasBitmapSource,

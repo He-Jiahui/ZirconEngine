@@ -1,3 +1,4 @@
+//! 检查审查守卫汇总清单内源码的行数预算；注释和空行参与计数，未列入清单的文件仍需由递归预算守卫覆盖。
 use super::*;
 
 pub(super) fn assert_direct_assertions_child_ownership_children_line_budgets_are_current() {

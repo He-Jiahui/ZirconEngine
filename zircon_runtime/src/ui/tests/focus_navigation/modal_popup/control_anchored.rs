@@ -1,3 +1,5 @@
+//! 控件锚定弹窗把触发控件作为焦点恢复所有者；嵌套关闭按栈进行，非法锚点不得打开作用域。
+
 use super::*;
 use zircon_runtime_interface::ui::widget::UiPopupAnchor;
 

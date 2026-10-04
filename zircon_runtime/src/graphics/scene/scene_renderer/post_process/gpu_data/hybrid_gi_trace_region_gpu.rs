@@ -1,5 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
+/// 将本帧调度的 GI 追踪区域投影为后处理可消费的覆盖与光照贡献。
+/// 有效前缀及其计数由编码器一起产生，字段顺序须与 WGSL 存储布局保持一致。
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub(in crate::graphics::scene::scene_renderer::post_process) struct GpuHybridGiTraceRegion {

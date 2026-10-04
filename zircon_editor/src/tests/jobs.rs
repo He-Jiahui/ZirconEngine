@@ -1,3 +1,4 @@
+//! 核对失败任务保留具体导出计划错误供调用端向下转型，避免异步包装抹去可诊断原因。
 use std::error::Error as _;
 
 use zircon_runtime::plugin::ExportBuildPlanError;

@@ -1,3 +1,5 @@
+//! 定义后台自动保存请求、快照源与完成结果；请求只持捕获能力与源身份，作业先核验捕获路径，再提交快照并留存失败阶段。
+
 use std::error::Error as StdError;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -45,6 +47,7 @@ impl AutosaveSnapshot {
 
 /// The one document/transaction owner supplies a snapshot only when a worker
 /// has been admitted. It never writes the authoritative source file here.
+/// 宿主在后台任务执行时提供文档快照；实现必须返回与请求相同的源身份及可信来源信息。
 pub trait AutosaveSnapshotSource: Send + Sync + 'static {
     /// Supplies the immutable source identity before a worker is admitted.
     ///
@@ -162,6 +165,7 @@ pub enum AutosaveRetryability {
 }
 
 /// One terminal result from a document-bound autosave ticket.
+/// 每文档记录保存结果、失败阶段与是否仍有可用快照；诊断写入失败不等于快照内容未落盘。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AutosaveDocumentOutcome {
     document: AutosaveDocumentId,

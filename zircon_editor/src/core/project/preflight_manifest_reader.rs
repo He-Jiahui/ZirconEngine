@@ -1,3 +1,4 @@
+//! 在启动准入前有界读取清单，产出摘要、内容摘要和迁移事实；禁止在此阶段因读取项目信息而启动运行时或执行来源变更。
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;

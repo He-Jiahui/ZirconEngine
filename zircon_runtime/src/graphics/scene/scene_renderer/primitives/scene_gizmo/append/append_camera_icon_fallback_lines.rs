@@ -3,6 +3,7 @@ use crate::core::math::Vec3;
 
 use crate::graphics::scene::scene_renderer::primitives::LineVertex;
 
+/// 摄像机贴图缺失时的世界空间线框回退；沿当前相机基向量绘制，保持可辨识的视口图标。
 pub(in crate::graphics::scene::scene_renderer::primitives::scene_gizmo::append) fn append_camera_icon_fallback_lines(
     vertices: &mut Vec<LineVertex>,
     icon: &OverlayBillboardIcon,

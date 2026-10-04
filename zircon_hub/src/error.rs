@@ -1,3 +1,4 @@
+/// Hub 操作边界统一返回的错误；`Status` 保留可本地化的详情与恢复建议。
 #[derive(Debug, thiserror::Error)]
 pub enum HubError {
     #[error("I/O error: {0}")]
@@ -42,6 +43,7 @@ impl HubError {
         }
     }
 
+    /// 动作状态记录消费错误时保留结构化提示；普通错误退化为原文详情。
     pub fn into_status_messages(
         self,
     ) -> (crate::state::HubMessage, Option<crate::state::HubMessage>) {

@@ -1,3 +1,4 @@
+//! 中断策略、退出门槛、无效时间和交叉淡入连续性的契约。
 use zircon_plugin_animation_runtime::{
     InterruptionPolicy, TransitionDesc, TransitionRequest, TransitionRuntime, TransitionState,
 };

@@ -1,3 +1,5 @@
+//! 验证层级面板启动模板装载和空状态在列表表面中的投影。
+
 use crate::ui::layouts::views::hierarchy_pane_nodes;
 use crate::ui::workbench::snapshot::{SceneEntries, SceneEntry};
 use zircon_runtime::ui::v2::UiV2AssetLoader;

@@ -10,6 +10,7 @@ pub struct MeshRendererPrimitiveBinding {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 相机距离达到正且有限的门槛时参与选择；提取采用适用门槛最大的层，相同门槛由后项覆盖。
 pub struct MeshRendererLodLevel {
     #[serde(default)]
     pub min_distance: Real,
@@ -43,6 +44,7 @@ impl MeshRendererLodLevel {
     type_path = "zircon_runtime::scene::components::MeshRenderer",
     script_visibility = "public"
 )]
+/// 网格节点的可序列化渲染意图；帧提取将资源、LOD、队列和覆盖值投影成后端快照。
 pub struct MeshRenderer {
     #[zr_reflect(
         value_type_path = "Resource",

@@ -70,6 +70,7 @@ impl ShaderFragmentOutputNumericType {
     }
 }
 
+// 管线创建前对齐 WGSL 反射与顶点缓冲、阶段连接、颜色目标；三项调用方分别拥有各自的设备布局。
 impl ShaderTemplateReflection {
     pub(crate) fn validate_vertex_input_stage_interface(
         &self,
@@ -122,6 +123,7 @@ impl ShaderTemplateReflection {
         Ok(())
     }
 
+    /// 比较顶点输出与片元输入的 location、数值类型及插值约定，防止组合后才在设备编译失败。
     pub(crate) fn validate_vertex_fragment_stage_interface(
         &self,
         vertex_entry_name: &str,

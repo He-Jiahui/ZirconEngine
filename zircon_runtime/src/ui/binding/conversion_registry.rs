@@ -10,6 +10,7 @@ use zircon_runtime_interface::ui::{
     component::{UiValue, UiValueKind},
 };
 
+/// 单次值转换的提供者入口；注册表负责检查载荷种类，提供者负责其领域值约束并保留可识别错误。
 pub type UiBindingConversionFunction =
     fn(&UiValue) -> Result<UiValue, UiBindingConversionProviderError>;
 
@@ -73,6 +74,8 @@ struct RegisteredBindingConversion {
     function: UiBindingConversionFunction,
 }
 
+/// 为绑定程序持有转换槽位和提供者代次；句柄仅在产生它的注册表内有效。
+/// 升级替换会使旧代次失效，卸载不复用槽位，防止已编译绑定误调用另一提供者。
 #[derive(Clone, Debug, Default)]
 pub struct UiBindingConversionRegistry {
     slots: Vec<Option<RegisteredBindingConversion>>,
@@ -93,6 +96,8 @@ impl UiBindingConversionRegistry {
         self.slots_by_id.len()
     }
 
+    /// 同一描述符重复注册视为幂等；若实现发生变化，调用者必须提升 provider_generation。
+    /// 此契约按描述符判定身份，不比较函数地址，也不会用同代次的新函数替换旧实现。
     pub fn register(
         &mut self,
         descriptor: UiBindingConversionDescriptor,
@@ -180,6 +185,7 @@ impl UiBindingConversionRegistry {
         Ok(descriptor)
     }
 
+    /// 在当前代次下执行转换，同时核验提供者声明的输入与输出；Any 只放宽值种类，不放宽句柄寿命。
     pub fn execute(
         &self,
         handle: UiBindingConversionHandle,

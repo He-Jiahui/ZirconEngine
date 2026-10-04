@@ -57,6 +57,7 @@ impl VirtualGeometryRuntimeState {
             .map(|index| evictable_pages[index])
     }
 
+    /// 根据目标页血缘、活动请求和热点前沿选择可淘汰页，准备帧与反馈完成共用此优先级。
     pub(in crate::virtual_geometry) fn preferred_evictable_page_index_for_target(
         &self,
         target_page_id: u32,

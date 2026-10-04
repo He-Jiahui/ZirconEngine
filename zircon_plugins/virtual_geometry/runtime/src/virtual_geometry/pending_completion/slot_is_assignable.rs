@@ -1,6 +1,7 @@
 use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
+    /// 仅允许空槽或由本次反馈声明可淘汰页占用的槽位，避免覆盖受保护页。
     pub(in crate::virtual_geometry::pending_completion) fn slot_is_assignable(
         &self,
         slot: u32,

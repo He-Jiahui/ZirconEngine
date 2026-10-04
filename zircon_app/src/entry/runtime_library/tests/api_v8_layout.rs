@@ -1,3 +1,6 @@
+//! V8 动态 API 表的字段偏移和冻结尺寸契约测试。
+//! 字段可用性辅助检查不等于允许截短表；实际加载要求完整 V8 结构。
+
 use super::super::loaded_runtime::runtime_api_field_available;
 use super::{
     fake_drain_host_requests, fake_profile_control, fake_tick_frame, valid_runtime_api_table,

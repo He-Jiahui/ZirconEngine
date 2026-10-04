@@ -1,3 +1,4 @@
+//! 网格准备向运行时 provider 传递几何身份及 SDF 可用性，变形网格保留拒绝原因以防误用静态数据。
 use std::sync::Arc;
 
 use crate::asset::{MeshSdfAsset, MeshSdfValidationError};
@@ -23,6 +24,7 @@ pub enum RuntimePrepareMeshSdfSeed {
     Deforming(RuntimePrepareMeshSdfDeformationReason),
 }
 
+/// 供准备收集器判断网格静态几何可用性的只读种子。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RuntimePrepareMeshGeometrySeed {
     pub local_bounds: RenderMeshBounds,

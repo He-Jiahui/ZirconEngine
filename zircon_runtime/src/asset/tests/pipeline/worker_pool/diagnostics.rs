@@ -1,3 +1,5 @@
+//! 工作池计数器供 DiagnosticStore 和逐帧采样器消费；累计值与每帧增量各有独立契约。
+
 use super::*;
 
 #[test]

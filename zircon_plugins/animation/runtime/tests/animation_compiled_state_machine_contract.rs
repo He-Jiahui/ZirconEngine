@@ -1,3 +1,4 @@
+//! 编译状态机的稠密状态、条件、混合空间与源资产变更隔离契约。
 use zircon_plugin_animation_runtime::{
     compile_animation_state_machine_runtime, AnimationStateMachineCompileError,
     CompiledAnimationStateMachine, CompiledConditionExpression, ConditionExpression,

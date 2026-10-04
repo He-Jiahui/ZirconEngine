@@ -16,6 +16,7 @@ pub enum SystemStage {
 
 impl SystemStage {
     pub const COUNT: usize = 9;
+    // 此顺序同时规定 Native Host API 的 u32 阶段编号；重排会改变既有插件的阶段含义。
     pub const ORDER: [Self; Self::COUNT] = [
         Self::First,
         Self::PreUpdate,
@@ -27,6 +28,7 @@ impl SystemStage {
         Self::Last,
         Self::RenderExtract,
     ];
+    /// WorldDriver 在每个固定步内完整运行这三个阶段，提交或回滚以整步为边界。
     pub const FIXED_LOOP: [Self; 3] = [Self::FixedFirst, Self::FixedUpdate, Self::FixedPostUpdate];
 
     pub const fn rank(self) -> usize {

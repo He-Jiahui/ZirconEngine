@@ -1,3 +1,4 @@
+//! 外部特性依赖索引区分包能力和特性能力；普通依赖可引用两者，主依赖必须由所有者的包能力满足。
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 

@@ -1,3 +1,5 @@
+//! 分隔线的行内位置合同；沿用文本左右边距，避免触及弹层框线。
+
 use super::super::super::super::super::data::FrameRect;
 use super::super::super::metrics::WorkbenchPopupRowMetrics;
 

@@ -6,6 +6,7 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
 
 use super::element::push_runtime_paint_element;
 
+/// Runtime 命令的自有裁剪优先于父裁剪，再把临时绘制元素依序投影为宿主命令；这条路径不附加 retained 来源引用。
 pub(super) fn push_runtime_command(
     output: &mut Vec<HostPaintCommand>,
     command: &UiRenderCommand,

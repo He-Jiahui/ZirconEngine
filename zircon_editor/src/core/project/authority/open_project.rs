@@ -1,3 +1,4 @@
+//! 项目打开先选定物理身份再传入运行时所有者；上游已解析的项目保持同一操作路径，仅检查现有项目结构，避免再次解析别名改变身份。
 use std::path::{Path, PathBuf};
 
 use zircon_runtime::asset::project::{ProjectManager, ResolvedProjectPath};

@@ -1,3 +1,4 @@
+// 从注册表解析并释放管理器，约束项目打开失败和异常展开后运行时根对象不被保留。
 use std::fs;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::Arc;

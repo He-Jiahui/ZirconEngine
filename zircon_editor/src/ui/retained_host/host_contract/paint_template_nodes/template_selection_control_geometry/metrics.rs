@@ -1,3 +1,5 @@
+//! 将宿主行高、边框与间距映射为选择控件标记、开关和文字尺度；输入命中与绘制要保持密度一致。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, HostControlMetrics,
 };
@@ -13,6 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const TOGG
     12.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 复选、单选、开关绘制与文字共享的密度投影；测试常量只代表默认主题尺度。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchSelectionControlMetrics
 {
     pub mark_inset_x: f32,

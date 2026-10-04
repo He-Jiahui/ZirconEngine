@@ -20,6 +20,7 @@ where
 }
 
 impl World {
+    // 派生状态刷新后发布一次渲染组件变化工件，供跨线程场景投影消费。
     pub(super) fn publish_render_component_changes(&mut self) {
         let journal = self.derived_state_dirty.render_dirty_entity_journal();
         let mut projector = self

@@ -3,6 +3,7 @@ use std::fmt;
 
 use super::DisplayId;
 
+/// 后端观测转为发布快照时的输入错误；调用方应拒绝整次发布，不能以默认显示器掩盖坏数据。
 #[derive(Clone, Debug, PartialEq)]
 pub enum DisplayTopologyError {
     NonFiniteLogicalGeometry,

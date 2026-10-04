@@ -1,3 +1,5 @@
+//! 把项目 catalog generation 当作面向消费者的不可变快照，验证身份复用、增量发布和跨代差异合并。
+
 use std::fs::{self, File, FileTimes};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -18,6 +20,7 @@ use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceR
 use super::super::unique_temp_project_root;
 
 #[test]
+// 消费者用 Arc 身份判断整代是否无需刷新，因此无变化扫描必须复用快照对象。
 fn project_catalog_input_generation_reuses_identity_when_every_input_is_unchanged() {
     let (root, source_path, mut project) = data_project("catalog_generation_unchanged");
     project.scan_and_import().unwrap();
@@ -276,6 +279,7 @@ fn project_root_change_reconciles_the_full_catalog_delta() {
 }
 
 #[test]
+// 消费者可能错过中间代；差异查询必须从旧快照重建净变化而非只返回最后一次发布。
 fn skipped_catalog_delta_reconciles_added_removed_and_renamed_rows() {
     let root = PathBuf::from("catalog-skipped-delta-reconciliation");
     let manifest = manifest();
@@ -519,6 +523,7 @@ fn catalog_delta_uses_local_successor_changes_and_reconciles_skipped_generations
 }
 
 #[test]
+// UUID 冲突重新铸号时，catalog 必须保留原 owner 并以移除旧 ID、加入新 ID 告知消费者。
 fn targeted_import_remint_preserves_catalog_inputs_for_owner_and_target() {
     let (root, target_path, mut project) = data_project("catalog_targeted_remint");
     let owner_path = target_path.with_file_name("owner.json");

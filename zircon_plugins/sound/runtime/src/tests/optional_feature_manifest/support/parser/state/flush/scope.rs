@@ -1,3 +1,4 @@
+// 关闭功能范围时先附加子行，再提交功能；这个次序保留最终依赖与模块。
 use super::super::super::section::OptionalFeatureSection;
 use super::super::OptionalFeatureParserState;
 use super::{dependency, feature, module};

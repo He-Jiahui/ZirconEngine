@@ -1,9 +1,11 @@
+//! 按当前能力和实例策略打开视图种类；返回实例后仍须由宿主附着到布局。
 use serde_json::Value;
 
 use super::workbench_slot_to_view_host::workbench_slot_to_view_host;
 use super::{ViewDescriptorId, ViewInstance, ViewInstanceId, ViewRegistry};
 
 impl ViewRegistry {
+    /// 单实例种类复用现有实例，多实例种类分配新键；descriptor须已注册且满足当前能力。
     pub fn open_descriptor(
         &mut self,
         descriptor_id: ViewDescriptorId,

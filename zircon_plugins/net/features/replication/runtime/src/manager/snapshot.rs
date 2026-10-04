@@ -1,3 +1,6 @@
+//! 比较同一对象/组件的新旧字段，生成变更 delta 并保存最新快照。
+//! 只有已登记组件会被接受；调用者须提供完整一致的字段集，缺失字段的删除语义未在此定义。
+
 use zircon_runtime::core::framework::net::{
     NetObjectId, SyncDelta, SyncFieldValue, SyncObjectSnapshot,
 };

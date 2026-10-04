@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 组件名、默认 class 和作用域边界。
+
 use zircon_runtime_interface::ui::template::UiStyleScope;
 
 use super::metadata::string_token_metadata_offender;

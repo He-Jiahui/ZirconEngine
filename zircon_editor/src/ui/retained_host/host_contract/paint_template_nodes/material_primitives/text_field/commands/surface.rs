@@ -6,6 +6,7 @@ use super::super::style::{
 };
 use super::underline::push_underline;
 
+// 三种外观共享 TextField 入口：outlined 自绘边框，filled 叠底线，standard 只绘底线。
 pub(super) fn push_outlined_field(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

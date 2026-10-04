@@ -1,3 +1,4 @@
+//! 汇集 Material 组件专用绘制命令；分发器决定完整接管节点或仅替换 TextField 表面。
 mod alert;
 mod avatar;
 mod badge;

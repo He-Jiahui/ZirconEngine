@@ -1,3 +1,6 @@
+//! Toast 普通声明色仅覆盖 Normal 的外壳及正文；状态配方保留悬停、焦点和按压反馈。
+//! 标记与操作按钮是独立语义通道，在可用的动态状态仍可消费节点声明色。
+
 use super::super::super::template_style_color::resolved_style_color;
 use super::model::WorkbenchToastStyle;
 use super::state::is_unavailable_toast_state;

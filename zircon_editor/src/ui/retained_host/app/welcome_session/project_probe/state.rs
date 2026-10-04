@@ -14,6 +14,7 @@ pub(super) const WELCOME_PROJECT_PROBE_DEBOUNCE: Duration = Duration::from_milli
 pub(super) const WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY: Duration = Duration::from_millis(250);
 static NEXT_WELCOME_PROJECT_PROBE_OWNER: AtomicU64 = AtomicU64::new(1);
 
+/// 表单探测按代际去重并限制最晚反馈；新输入取消旧任务，只有当前代结果可更新欢迎页。
 pub(in crate::ui::retained_host::app) struct WelcomeProjectProbeState {
     pub(super) generation: u64,
     pub(super) pending: Option<PendingWelcomeProjectProbe>,

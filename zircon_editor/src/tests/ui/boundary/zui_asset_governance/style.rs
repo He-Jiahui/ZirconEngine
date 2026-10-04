@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 样式覆盖键、颜色 token 与非负数值。
+
 use std::collections::BTreeMap;
 
 use toml::Value;

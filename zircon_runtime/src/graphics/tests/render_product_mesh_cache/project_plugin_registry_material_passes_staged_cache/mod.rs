@@ -1,3 +1,4 @@
+//! 项目及插件材质 pass 的分阶段预热入口；各 helper 分别检查注册记录、清单、提交与后续启动的缓存链。
 use std::fs;
 use std::path::PathBuf;
 

@@ -2,6 +2,7 @@ use wgpu::util::DeviceExt;
 
 use super::super::super::super::primitives::build_grid_vertices;
 
+/// 渲染器构造时一次性上传世界网格；后续帧只切换可见性，不更新网格几何。
 pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) fn create_grid_buffer(
     device: &wgpu::Device,
 ) -> (wgpu::Buffer, u32) {

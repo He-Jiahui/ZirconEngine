@@ -1,3 +1,5 @@
+//! ShaderAsset 是导入后的统一描述，保存作者源、生成材质布局与渲染状态；资源流从中读取入口、依赖和变体，而非重解析 zshader。
+
 use serde::{Deserialize, Serialize};
 
 use crate::asset::AssetUri;

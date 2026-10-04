@@ -1,3 +1,4 @@
+// 输出配置入口拒绝无效描述符及多声道请求，并保留原输出状态；started 仅由测试状态助手标记。
 use super::super::super::*;
 use super::support::{
     invalid_block_size_descriptor, invalid_channel_layout_descriptor,

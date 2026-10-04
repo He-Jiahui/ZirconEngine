@@ -1,3 +1,5 @@
+//! 拖拽效果同步共享输入状态与组件标志，后者投影到 V2 样式及绘制命令；拒绝更新不得改变标志。
+
 use std::collections::BTreeMap;
 
 use crate::ui::surface::UiSurface;

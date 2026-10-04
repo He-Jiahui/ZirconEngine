@@ -22,6 +22,7 @@ pub struct DynamicSceneAssetReloadLimits {
 }
 
 impl DynamicSceneAssetReloadLimits {
+    // 队列构造时归一化内存上限，使单个准备结果同时可进入待处理、收集和应用预算。
     pub(crate) fn normalized(mut self) -> Self {
         const MIN_BOUNDED_RESULT_BYTES: usize = 1_024;
 

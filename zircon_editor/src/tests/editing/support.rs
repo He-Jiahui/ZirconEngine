@@ -1,3 +1,4 @@
+//! 为编辑上下文和视口测试建立共享场景与节点句柄；调用方依赖稳定的测试世界，而非各自复制启动前提。
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime::scene::NodeId;

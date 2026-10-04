@@ -1,3 +1,4 @@
+//! 验证手风琴、对话框、移动步骤器和抽屉的子节点样式契约。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;

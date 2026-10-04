@@ -27,6 +27,7 @@ impl EditorPluginCatalogProjection {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+/// 面板安全的包摘要；完整登记和诊断仍留在目录快照，显示消费者不应将摘要当作可执行插件句柄。
 pub struct EditorPluginCatalogEntry {
     pub package_id: String,
     pub display_name: String,

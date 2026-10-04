@@ -1,3 +1,5 @@
+//! 网页语义工具以可编写描述符进入统一目录，并通过 behavior_utility 标明用途。容器、媒介查询与配色字段保持交换契约，宿主需要为所用角色提供对应执行支持。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

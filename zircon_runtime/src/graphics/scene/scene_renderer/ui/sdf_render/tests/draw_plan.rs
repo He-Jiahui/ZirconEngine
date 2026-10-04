@@ -1,3 +1,4 @@
+//! 覆盖图集页、字形基线、子像素落点与不可见字符对绘制计划的影响。
 use super::*;
 use crate::text::ShapedGlyphRotation;
 
@@ -216,6 +217,7 @@ fn sdf_draw_plan_uses_resolved_baseline_for_horizontal_glyph_artifact() {
         &asset_manager,
         UVec2::new(128, 128),
     );
+    // BUG: [CR-SCENE-UI-0007] 非有限产物基线已被过滤，当前帧应取仍有效的装饰基线 26；后续相同输入也验证 26，此处期望 22 与实现矛盾。
     let expected_fallback_top = text_frame_device_origin(frame).y + 22.0
         - (display_metrics.bitmap_bottom + display_metrics.bitmap_height as f32);
     assert_eq!(fallback_vertices.len(), 6);

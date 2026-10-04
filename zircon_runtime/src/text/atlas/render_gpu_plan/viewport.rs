@@ -1,3 +1,6 @@
+//! 把左上原点的像素边缘矩形交给顶点着色器转换为裁剪空间。
+//! 不额外添加半像素偏移；光栅位置已经由上游按灰度或子像素策略对齐。
+
 use crate::core::math::UVec2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

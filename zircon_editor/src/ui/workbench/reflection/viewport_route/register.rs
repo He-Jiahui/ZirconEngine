@@ -1,3 +1,4 @@
+//! 画布动作汇入现有ViewportSurface分派路径，事件类型和命令负载共同决定路由身份。
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::EditorActivityReflection;
@@ -10,6 +11,7 @@ use super::super::name_mapping::binding_view_id;
 use super::super::route_registration::register_binding_route;
 use super::default_command::default_viewport_command;
 
+/// 登记画布事件的有类型绑定；同控件上的动作通过完整负载保持独立。
 pub(crate) fn register_viewport_route(
     service: &mut EditorUiControlService,
     activity: &EditorActivityReflection,

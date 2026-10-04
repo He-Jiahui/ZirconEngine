@@ -5,6 +5,8 @@ use crate::core::resource::{MaterialMarker, MeshMarker, ModelMarker, ResourceHan
 use super::super::super::RendererCommon;
 use super::{RenderMeshLodSelection, RenderMeshStaticState};
 
+/// 场景生产者交给一帧渲染的网格实例；同一实体的多个 primitive 以稳定键区分。
+/// transform_revision 与资源修订共同决定跨帧缓存是否可复用，不能只凭实体 ID 推断。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderMeshSnapshot {
     pub node_id: EntityId,

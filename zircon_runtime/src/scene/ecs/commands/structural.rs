@@ -1,5 +1,6 @@
 use crate::scene::ecs::{Command, DeferredCommandOperation, DeferredEntityRef};
 
+/// 允许结构性命令在 World barrier 中进入 DeferredStructuralBatch，而不是逐条暴露半完成的原型状态。
 pub(crate) trait QueuedStructuralCommand: Command {
     fn structural_metadata(&self) -> DeferredStructuralMetadata;
 

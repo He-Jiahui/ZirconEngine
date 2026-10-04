@@ -222,6 +222,7 @@ pub(super) fn state_after_enablement_request(
     Ok(state)
 }
 
+// 将启停请求转换为管理器拥有的生命周期回调与最终状态；禁用回调失败需保持 Faulted 并允许后续显式重试。
 pub(super) fn apply_enablement_request(
     catalog: &mut EditorPluginCatalog,
     entry: &mut EditorPluginManagerEntry,
@@ -318,6 +319,7 @@ pub(super) fn normalize_entries_for_loading_phase(
     }
 }
 
+// 只激活已经到达加载阶段的 Validated 条目；Loaded 成功可在重试时复用，Enabled 必须完成后才对外发布 Active。
 pub(super) fn activate_eligible_entries(
     catalog: &mut EditorPluginCatalog,
     entries: &mut [EditorPluginManagerEntry],

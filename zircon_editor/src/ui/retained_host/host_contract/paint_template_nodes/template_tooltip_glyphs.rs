@@ -1,3 +1,5 @@
+//! 工作台 tooltip 的箭头和 info 图标复用资产入口；调用方决定其布局槽位与主题色。
+
 mod arrows;
 mod icons;
 mod metrics;

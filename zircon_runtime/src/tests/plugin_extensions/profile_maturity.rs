@@ -1,3 +1,4 @@
+//! 成熟度与能力状态是目录元数据，需在清单往返、目标投影和提供者诊断中保持；状态文字不授予可执行能力。
 use crate::core::framework::project::RuntimeProfileId;
 use crate::plugin::{
     CapabilityStatus, CapabilityStatusManifest, PluginMaturity, PluginPackageManifest,

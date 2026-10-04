@@ -1,3 +1,5 @@
+//! 测试管理器统一资产、路由及批次错误；索引指向第一个失败事件，前序已成功事件保留。
+
 use thiserror::Error;
 use zircon_runtime_interface::ui::tree::UiTreeError;
 use zircon_runtime_interface::ui::v2::UiV2AssetError;

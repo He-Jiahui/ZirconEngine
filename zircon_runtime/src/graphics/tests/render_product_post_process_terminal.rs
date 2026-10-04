@@ -1,3 +1,4 @@
+//! 终止抗锯齿路径用实际帧对照验证 FXAA 与动态分辨率 SMAA，统计断言约束输出尺寸和执行顺序。
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;

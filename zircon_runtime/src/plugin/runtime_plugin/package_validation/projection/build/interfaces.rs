@@ -6,6 +6,8 @@ use super::super::duplicate_identity::DuplicateIdentity;
 use super::super::duplicate_occurrence::DuplicateOccurrence;
 use super::index_identity;
 
+/// 提供接口的身份属于包域；方法名与槽位属于所在接口，所需能力属于所在方法。
+/// 这些作用域必须与接口校验传入的原始行号一致，避免不同接口的方法互相误报。
 pub(super) fn index_interfaces<'a>(
     manifest: &'a PluginPackageManifest,
     seen: &mut HashSet<DuplicateIdentity<'a>>,

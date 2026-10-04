@@ -1,6 +1,7 @@
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{Real, Vec3};
 
+/// provider 提供的可见性候选簇；cluster、page 与实例身份必须属于同一份提取数据。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RenderVirtualGeometryCluster {
     pub entity: EntityId,

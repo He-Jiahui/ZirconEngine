@@ -1,3 +1,5 @@
+//! 组件事件信封把文档目标和类型化事件传给宿主适配器；投影属性、状态与错误必须跨序列化边界保持可辨。
+
 use crate::ui::component::inspector_selected_entity_data_source;
 use zircon_runtime_interface::ui::component::{
     UiComponentAdapterError, UiComponentAdapterResult, UiComponentBindingTarget,
@@ -47,6 +49,7 @@ fn component_event_envelope_preserves_typed_event_and_target() {
 }
 
 #[test]
+// 种类分歧在事件信封反序列化时即被拒绝；此用例未进入宿主适配器的目标域路由。
 fn component_event_envelope_rejects_mismatched_wire_event_kind() {
     let envelope = UiComponentEventEnvelope::new(
         "document-main",

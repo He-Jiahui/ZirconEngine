@@ -30,6 +30,7 @@ impl HybridGiGlobalSdfSceneState {
         page_budget: usize,
     ) -> bool {
         let next_clipmap_bounds = Self::clipmap_bounds_for_camera(camera_position);
+        // 按相机附近的确定性顺序选择驻留页；共同驻留的页沿用原 atlas 槽。
         let desired_pages = desired_page_keys(
             &next_clipmap_bounds,
             page_budget.min(GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT),

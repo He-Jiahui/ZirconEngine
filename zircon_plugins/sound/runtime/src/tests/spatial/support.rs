@@ -1,3 +1,4 @@
+// 提供固定采样率的普通与长尾 HRTF 描述符；目录和校验用例用它们构造有效基线及待拒绝输入。
 use super::super::*;
 
 pub(super) fn test_hrtf_profile(profile_id: &str) -> SoundHrtfProfileDescriptor {

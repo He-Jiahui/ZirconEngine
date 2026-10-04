@@ -1,3 +1,4 @@
+//! 保存表单类样式夹具和共享断言辅助入口；具体控件族断言由子模块承接。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;

@@ -1,3 +1,4 @@
+//! 核对会话网关保留运行时提供者与外部帧缓冲直到显式释放，确保帧析构仅释放一次并稳定排列能力冲突。
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 

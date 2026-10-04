@@ -1,3 +1,4 @@
+//! 创建视口建立独立历史、拾取及产品身份；后续提交只能使用返回的视口句柄。
 use crate::core::framework::render::{
     RenderFrameworkError, RenderViewportDescriptor, RenderViewportHandle,
 };

@@ -1,3 +1,4 @@
+//! 从完整 surface 重建核对骨架屏的占位、禁用、变体与分数坐标契约。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},

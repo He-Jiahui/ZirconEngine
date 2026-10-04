@@ -1,3 +1,4 @@
+//! 由结构回归测试入口读取 MUI 样式测试与约定文档，守住分组职责、原迁移契约保留和文件规模预算；父模块零测试假定需随合法职责变化复核。
 use super::*;
 
 #[test]
@@ -23,6 +24,7 @@ fn runtime_15_ui_asset_mui_web_style_tests_are_folder_backed() {
             "fn assert_no_classes(",
         ],
     );
+    // BUG: [CR-UI-TEST-0003] 零测试假定已与父模块现有两个借用路径源码守卫冲突，使该结构回归必然失败；需按当前职责复核布局与断言。
     assert_eq!(
         parent.matches("#[test]").count(),
         0,
@@ -124,6 +126,7 @@ fn runtime_15_ui_asset_mui_web_style_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
+    // BUG: [CR-UI-TEST-0009] 跨文档镜像断言要求每份文档都含同一组里程碑锚点，但四份受跟踪且干净的现行文档均缺至少一项；须核对归档职责并更新此处期待。
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),
         ("Runtime index", runtime_index.as_str()),

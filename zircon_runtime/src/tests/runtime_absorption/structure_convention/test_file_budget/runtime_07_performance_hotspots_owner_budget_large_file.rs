@@ -1,3 +1,4 @@
+//! 保护运行时热点职责预算的子模块职责、检查入口与源码规模；这些约束读取检出文本，具体业务结果由被列出的行为测试另行验证。
 use super::*;
 
 const STATUS: &str = "runtime_15_runtime_07_owner_budget_large_file_gate_child_owner_split_static_passed_cargo_deferred";

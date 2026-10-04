@@ -1,3 +1,6 @@
+//! 为分段容器与单个页签区分外壳通道：前者保留容器边框，后者由绘制端独立输出选中下划线。
+//! 可见焦点只改变焦点边框；Focused 分支仍读取节点热态，保留同时悬停或展开的表面反馈。
+
 use super::super::super::template_style_color::resolved_style_color;
 use super::metrics::workbench_segmented_selector_metrics;
 use super::model::WorkbenchSegmentedControlKind;

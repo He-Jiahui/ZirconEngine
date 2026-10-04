@@ -1,3 +1,4 @@
+// 执行待处理事件后只核对已注册的两个执行器写入调用日志，确保缺失执行器不会被调用。
 use super::super::super::*;
 
 use super::support::report_fixture;

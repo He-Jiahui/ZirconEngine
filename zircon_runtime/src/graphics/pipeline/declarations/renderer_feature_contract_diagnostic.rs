@@ -1,3 +1,4 @@
+//! 特性素材诊断保留缺失引用、接口不匹配及严重度，供作者工具展示而不直接替代图编译错误。
 use crate::asset::AssetReference;
 use crate::core::framework::render::{
     RenderMaterialDiagnosticSource, RenderMaterialValidationError,

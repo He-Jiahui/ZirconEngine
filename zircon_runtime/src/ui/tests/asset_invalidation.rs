@@ -1,3 +1,4 @@
+//! 验证失效图把文档和资源变化映射到重建域，诊断遍历仍共用单次节点访问。
 use std::collections::BTreeSet;
 
 use crate::ui::template::{

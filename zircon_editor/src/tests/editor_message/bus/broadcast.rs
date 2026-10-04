@@ -1,3 +1,4 @@
+//! 核对广播绕过主题过滤仍抵达所有订阅者，使全局控制消息与按主题发布的语义区分清楚。
 use crate::core::editor_message::{EditorMessageBus, EditorMessageProtocol};
 
 use super::fixture::{topic, typed_messages};

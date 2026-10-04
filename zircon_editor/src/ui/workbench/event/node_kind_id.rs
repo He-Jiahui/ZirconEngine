@@ -1,3 +1,4 @@
+//! 节点创建动作与控件路径的两种稳定后缀；对应解析器共用于菜单绑定回传，不创建场景对象。
 use zircon_runtime::scene::components::NodeKind;
 
 pub(super) fn node_kind_id(kind: &NodeKind) -> &'static str {

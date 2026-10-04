@@ -1,3 +1,4 @@
+//! 插件贡献必须先经能力门槛发布，再由 UI 快照读取模板、Inspector 和字段编辑器。
 use super::super::*;
 use crate::core::commands::EditorCommandDescriptor;
 #[test]

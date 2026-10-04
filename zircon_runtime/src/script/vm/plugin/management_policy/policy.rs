@@ -1,3 +1,4 @@
+//! 管理策略是热重载、GC 与内存约束的清单聚合；发现时先验证，再由协调器按生命周期消费。
 use serde::{Deserialize, Serialize};
 
 use super::{

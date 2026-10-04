@@ -1,3 +1,4 @@
+// 卸载事件后重复卸载同一身份，核对第二次操作返回 UnknownDynamicEvent。
 use super::super::super::*;
 
 use super::support::register_marker_event;

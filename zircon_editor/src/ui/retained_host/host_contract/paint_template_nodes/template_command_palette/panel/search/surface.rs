@@ -1,3 +1,5 @@
+//! 搜索底面的焦点反馈采用节点的可见焦点状态，避免把鼠标激活当作键盘焦点环。
+
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::super::super::style_selector::focus_visible_for_node;

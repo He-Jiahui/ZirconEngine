@@ -1,3 +1,6 @@
+//! 把根网络 WS 后端协议连接到 Tungstenite client/listener，实现按 frame 的异步读写。
+//! 连接对象和 runtime 由根 manager 持有，后端负责握手策略与异步任务。
+
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 

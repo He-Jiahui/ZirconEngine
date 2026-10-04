@@ -1,3 +1,5 @@
+//! 选择控件的状态样式门面；复选、单选与开关均走集中选择器。
+
 mod checkbox;
 mod radio;
 mod selector;

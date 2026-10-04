@@ -1,3 +1,5 @@
+//! Mesh 资源字段使用打包立方体图标并接受该字段的声明色；字段几何和后备行为由调用者决定。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;

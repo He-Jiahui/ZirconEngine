@@ -1,3 +1,4 @@
+// 提供组件图谱中的信号、字段、按钮及表面节点夹具。
 use super::*;
 
 pub(super) fn atlas_status_signal(

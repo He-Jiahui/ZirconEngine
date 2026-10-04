@@ -6,6 +6,8 @@ use crate::ResourceId;
 #[derive(Debug, Default)]
 pub(crate) struct ResourceLeaseIdentity;
 
+/// 管理器对某次载荷驻留的租约；最后一个当前身份的租约释放时可卸载管理器中的载荷。
+/// 热重载替换后，旧租约仍保留旧载荷，但其释放不会卸载新载荷；重载失败时允许保留最后有效版本。
 pub struct ResourceLease<TData> {
     id: ResourceId,
     lease_identity: Option<Arc<ResourceLeaseIdentity>>,
@@ -32,6 +34,7 @@ impl<TData> ResourceLease<TData> {
         self.id
     }
 
+    /// 克隆此 `Arc` 只延长载荷对象生命周期，不增加管理器的驻留租约；需要驻留保证时保留租约本身。
     pub fn resource(&self) -> &Arc<TData> {
         &self.resource
     }

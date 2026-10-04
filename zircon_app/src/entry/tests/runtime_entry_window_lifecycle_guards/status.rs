@@ -1,3 +1,6 @@
+//! 验证窗口 Destroyed/Moved/Occluded/Theme 状态转为 ABI 事件。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::{runtime_window_events_source, runtime_window_lifecycle_source};
 

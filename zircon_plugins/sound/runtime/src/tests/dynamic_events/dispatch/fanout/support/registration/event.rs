@@ -1,3 +1,4 @@
+// 扇出用例先注册共同事件及负载模式，再注册处理器；此助手要求新的测试管理器状态。
 use super::super::super::super::super::*;
 
 use super::super::ids::{EVENT_ID, PAYLOAD_SCHEMA};

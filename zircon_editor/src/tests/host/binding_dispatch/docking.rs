@@ -1,3 +1,4 @@
+// 从停靠控件绑定调用布局派发器，约束抽屉模式、预设和附着请求落到明确的布局命令。
 use super::support;
 use crate::core::editor_event::{
     ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, MainPageId, ViewHost, ViewInstanceId,

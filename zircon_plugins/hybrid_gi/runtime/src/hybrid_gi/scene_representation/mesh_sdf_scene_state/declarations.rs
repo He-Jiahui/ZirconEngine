@@ -83,6 +83,7 @@ impl HybridGiMeshSdfObject {
         let transform_valid =
             inverse.is_finite() && distance_scale.is_finite() && distance_scale > f32::EPSILON;
         let mut bounds = local_bounds.transformed(mesh.transform);
+        // 蒙皮形变没有可靠的局部包围盒时，扩至所有活动 clipmap，确保后续影响索引转为保守回退。
         if asset_state.uses_unbounded_skinning_fallback() {
             bounds = clipmaps
                 .iter()

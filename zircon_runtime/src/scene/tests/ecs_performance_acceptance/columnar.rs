@@ -1,3 +1,4 @@
+//! 在多种规模下观察 QueryState 变更窗口和 ArchetypeIndex 倒排查找的计数；耗时样本用于诊断。
 use std::time::{Duration, Instant};
 
 use crate::scene::ecs::{
@@ -121,6 +122,7 @@ fn columnar_query_records_one_to_one_hundred_thousand_scale_counters() {
         assert_eq!(sample.cache_misses, 1);
         assert!(sample.retained_bytes > 0);
         assert_ne!(sample.p95, Duration::MAX);
+        // BUG: [CR-SCENE-TEST-QRY-0007] p95 只与 MAX 比较且没有延迟预算，任意实际慢回归仍可通过性能验收。证据：本文件两处 p95 断言。
         eprintln!("ecs columnar query acceptance: {sample:?}");
     }
 }

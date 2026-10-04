@@ -1,3 +1,4 @@
+//! 声音基础能力由 SDK 声明生成原生注册投影；时间序列和射线卷积是需要各自依赖的可选能力。
 zircon_plugin_sdk::declare_plugin! {
     pub SOUND_DECLARATION {
         id: PLUGIN_ID = "sound",

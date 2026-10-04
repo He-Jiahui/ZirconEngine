@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{InternalSceneSystem, SystemSetId, SystemStage};
 
+/// 系统或命名集合的排序目标；尚未注册的系统目标暂不成边，后续注册时会重新编译日程。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SystemRef {
     System(String),
@@ -14,6 +15,7 @@ pub enum SystemOrderingConstraint {
     After(SystemRef),
 }
 
+/// 可序列化的内建系统日程声明；注册表验证 ID，编译器将 order 与 before/after 转为阶段内顺序。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SceneSystemDescriptor {
     pub id: String,

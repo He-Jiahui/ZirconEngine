@@ -1,3 +1,6 @@
+//! Inspector 字段背景与轮廓共用当前主题；焦点可见时边框先于声明边框，hover/pressed 改变底面。
+//! 资源与阴影选择共用这个静态外观，实际输入事件走模板桥。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_theme::current_host_metrics;
 use super::super::super::render_commands::HostPaintCommand;

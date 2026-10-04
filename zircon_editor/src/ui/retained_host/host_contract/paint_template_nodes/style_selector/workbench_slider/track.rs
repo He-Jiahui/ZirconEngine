@@ -1,3 +1,5 @@
+//! 滑块轨道与填充分别消费背景和数值声明色；验证警告或错误优先决定填充语义，不可用状态覆盖全部声明色。
+
 use super::super::super::template_style_color::resolved_style_color;
 use super::colors::declared_color;
 use super::palette::WorkbenchSliderPalette;

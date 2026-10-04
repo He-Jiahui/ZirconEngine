@@ -1,3 +1,6 @@
+//! 间接命令在测试验证与原生编码前共享字节 ABI；验证范围、用途与对齐，不读取 GPU 生成的参数值。
+//! 调用方还需检查设备操作支持、当前 pass 状态及实际管线绑定。
+
 use zr_rhi::{BufferDesc, BufferHandle, BufferUsage, RhiError};
 
 use crate::resource_validation::ensure_buffer_usage;

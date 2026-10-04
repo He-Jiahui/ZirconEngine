@@ -8,6 +8,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paper_i
         || node.surface_variant.as_str() == "paper-outlined"
 }
 
+/// 将非法或负 elevation 归零，保证阴影和表面叠色共享可绘的高度状态。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn paper_elevation(
     node: &TemplatePaneNodeData,
 ) -> f32 {

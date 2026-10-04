@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use super::ProjectGuidParseError;
 
+/// Stable project-owned GUID. Missing values must be handled by explicit migration policy.
 /// 项目持久化身份；缺失值只能经显式迁移处理，不能在读取清单时隐式补造。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
 #[serde(transparent)]

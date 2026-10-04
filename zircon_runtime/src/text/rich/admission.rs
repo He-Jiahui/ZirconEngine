@@ -45,6 +45,7 @@ pub const DEFAULT_RICH_TEXT_BIDI_CONTROL_DEPTH: usize = 125;
 
 const MAX_RICH_TEXT_INDEXED_BYTES: usize = u32::MAX as usize;
 
+/// 调用方仅对受控作者源选择 TrustedAuthoring；默认入口保持不可信策略，防止旧式双向控制随缓存复用进入 UI。
 /// Declares whether one rich-text source may use legacy bidi embeddings and overrides.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum RichTextContentTrust {
@@ -55,6 +56,7 @@ pub enum RichTextContentTrust {
     TrustedAuthoring,
 }
 
+/// 源文本、可见输出、语义文本、标记深度和元数据分别计费；调用方应在编译前设定预算，缓存命中也须先通过源准入。
 /// Request-local rich-text parser capacity limits.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -524,6 +526,7 @@ impl Display for RichTextParseError {
 
 impl Error for RichTextParseError {}
 
+/// BBCode 与 HTML 共用的单标记准入约束；在分配标签名或属性前执行，避免局部标记绕过请求总预算。
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct RichTokenizerBudget {
     max_token_bytes: usize,

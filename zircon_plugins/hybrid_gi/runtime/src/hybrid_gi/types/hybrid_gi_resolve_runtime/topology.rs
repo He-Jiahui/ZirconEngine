@@ -24,6 +24,7 @@ impl HybridGiResolveRuntime {
         self.probe_parent_probes = probe_parent_probes;
     }
 
+    /// 从直接父探针向上枚举深度；遇到重复节点即终止，避免损坏拓扑导致循环。
     pub fn parent_probe_chain(&self, probe_id: u32) -> Vec<(u32, usize)> {
         let mut chain = Vec::new();
         let mut current_probe_id = probe_id;
@@ -42,6 +43,7 @@ impl HybridGiResolveRuntime {
         chain
     }
 
+    /// 枚举后代及深度；已访问节点只输出一次，并在循环拓扑处停止。
     pub fn descendant_probe_chain(&self, probe_id: u32) -> Vec<(u32, usize)> {
         let mut chain = Vec::new();
         let mut stack = self

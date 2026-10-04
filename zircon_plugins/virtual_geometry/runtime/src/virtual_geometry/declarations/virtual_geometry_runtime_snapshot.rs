@@ -1,4 +1,5 @@
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 汇总插件页状态，供 provider 在渲染后发布运行时统计。
 pub(crate) struct VirtualGeometryRuntimeSnapshot {
     page_table_entry_count: usize,
     resident_page_count: usize,

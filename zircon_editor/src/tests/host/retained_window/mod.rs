@@ -1,3 +1,4 @@
+// 汇集原生窗口宿主的输入、绘制、生命周期及结构契约测试。
 mod activity_rail_template_boundary;
 mod callback_source_window;
 mod generic_host_boundary;

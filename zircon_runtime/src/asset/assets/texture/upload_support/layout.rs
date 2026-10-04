@@ -1,3 +1,5 @@
+//! 压缩块布局由 KTX/DDS/ASTC 解析路径共享；上传尺寸与覆盖范围以此计算，未知格式必须留在拒绝路径。
+
 use super::TextureUploadCompressionFamily;
 #[derive(Clone, Copy)]
 pub(super) struct CompressedFormatLayout {

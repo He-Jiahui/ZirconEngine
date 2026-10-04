@@ -6,6 +6,7 @@ use super::super::metrics::{
     CHIP_ICON_SMALL_EDGE,
 };
 
+/// 标签布局依头像优先、图标次之的同一判定留槽；与 commands 的实际绘制分支保持一致。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_leading_edge(
     node: &TemplatePaneNodeData,
 ) -> f32 {

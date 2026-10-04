@@ -1,6 +1,8 @@
 use super::super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use super::bind_group_entries::bind_group_entries;
 
+/// 为共享后处理布局组装一次 pass 的绑定，调用方选择自己的参数槽与图读资源。
+/// 当前写附件须从可选采样输入中移除；资源类型和深度采样模式必须与构造时布局一致。
 #[allow(clippy::too_many_arguments)]
 pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn create_bind_group(
     resources: &ScenePostProcessResources,

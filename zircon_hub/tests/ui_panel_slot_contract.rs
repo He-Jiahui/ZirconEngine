@@ -1,4 +1,5 @@
 //! Static contracts for React + Material UI panel composition.
+//! 约束页面把重复面板外壳交给共享数据组件，防止布局迁移时各页重新定义视觉外壳。
 
 use std::{fs, path::PathBuf};
 
@@ -13,6 +14,7 @@ fn repo_dir() -> PathBuf {
         .to_path_buf()
 }
 
+// 源码片段跨检出平台比较时统一换行；这里不会执行被检查的前端代码。
 fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
@@ -49,6 +51,8 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// 共享面板定义标题、内容和空态的公共外壳，页面只提供内容。
+// BUG: [CR-HUBTESTB-0002] 共享面板标题现带可访问 ID，旧的连续文字片段匹配不到真实标题节点，当前测试必失败；证据：data_panel_primitives_are_reexported_and_own_shared_panel_chrome 读取 HubPanel.tsx。
 #[test]
 fn data_panel_primitives_are_reexported_and_own_shared_panel_chrome() {
     let index = read_crate_file("web/src/components/data/index.ts");
@@ -127,6 +131,7 @@ fn data_panel_primitives_are_reexported_and_own_shared_panel_chrome() {
     );
 }
 
+// 以页面可见面板数量保护工作区信息层次；组件抽取需同步更新消费面。
 #[test]
 fn pages_route_repeated_panel_shells_through_hub_panel() {
     for (page, minimum_panel_count) in [
@@ -172,6 +177,7 @@ fn pages_route_repeated_panel_shells_through_hub_panel() {
     }
 }
 
+// 项目三页分别组合共享表格、指标和侧栏，保持导航职责清楚。
 #[test]
 fn project_pages_keep_dashboard_browser_and_detail_panels_componentized() {
     let dashboard = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
@@ -265,6 +271,7 @@ fn project_pages_keep_dashboard_browser_and_detail_panels_componentized() {
     );
 }
 
+// 工作区指标与辅助面板应在各页复用同一空态与间距契约。
 #[test]
 fn workspace_pages_share_metric_rows_side_panels_and_empty_states() {
     for page in [
@@ -326,6 +333,7 @@ fn workspace_pages_share_metric_rows_side_panels_and_empty_states() {
     );
 }
 
+// 阻止页面绕开共享面板直接消费原生容器造成布局分叉。
 #[test]
 fn pages_do_not_import_raw_material_panel_or_data_container_primitives() {
     for page in [
@@ -372,6 +380,7 @@ fn pages_do_not_import_raw_material_panel_or_data_container_primitives() {
     }
 }
 
+// 文档需记录面板所有权、测试入口及迁移后的组件目录。
 #[test]
 fn panel_slot_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -404,6 +413,7 @@ fn panel_slot_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+// 自检只从当前前端及文档入口读取面板契约。
 #[test]
 fn panel_slot_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_panel_slot_contract.rs");

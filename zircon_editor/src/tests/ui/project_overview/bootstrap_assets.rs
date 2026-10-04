@@ -1,3 +1,5 @@
+//! 验证项目概览启动模板装载、自托管壳区域和宿主节点投影。
+
 use crate::ui::layouts::views::project_overview_pane_data;
 use crate::ui::workbench::snapshot::ProjectOverviewSnapshot;
 use zircon_runtime_interface::ui::layout::UiSize;

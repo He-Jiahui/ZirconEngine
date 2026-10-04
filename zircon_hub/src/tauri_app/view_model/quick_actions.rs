@@ -1,9 +1,13 @@
+//! 把统一项目范围转为快捷操作的目标说明与可用性提示。
+//! 这是显示时的逻辑准入；动作派发后仍需在运行时锁内解析请求并验证实际项目/产物。
+
 use crate::settings::HubLanguage;
 use crate::state::{HubSnapshot, ProjectEngineScopeState, ProjectScope};
 use crate::tauri_app::action_id::HubActionId;
 
 use super::HubQuickAction;
 
+/// 供页面展示当前逻辑范围内的快捷入口；可用标记不保证磁盘状态或构建输出仍然有效。
 pub(super) fn quick_actions(snapshot: &HubSnapshot) -> Vec<HubQuickAction> {
     let project_target = quick_action_project_target(snapshot);
     [
@@ -70,6 +74,7 @@ enum QuickActionKind {
     OpenEditor,
 }
 
+/// 保留选中、最近后备和显式过期选择的区别，使操作提示与后台范围解析一致。
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum QuickActionProjectTarget {
     Selected {
@@ -84,6 +89,7 @@ enum QuickActionProjectTarget {
     None,
 }
 
+/// 快捷构建提示所需的注册表绑定状态，不代表工具链或编辑器产物已就绪。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum QuickActionSourceEngineState {
     Ready,
@@ -120,6 +126,7 @@ fn quick_action(
     }
 }
 
+// 只从统一范围派生目标；每个页面自行猜测最近项目会改变显式过期选择的含义。
 fn quick_action_project_target(snapshot: &HubSnapshot) -> QuickActionProjectTarget {
     match snapshot.scope().project {
         ProjectScope::Selected(project) => QuickActionProjectTarget::Selected {
@@ -145,6 +152,7 @@ fn quick_action_source_engine_state(
     }
 }
 
+// 空项目编辑器有独立工作流；其余项目动作的执行前校验由运行时继续负责。
 fn quick_action_enabled(action: QuickActionKind, target: &QuickActionProjectTarget) -> bool {
     match action {
         QuickActionKind::BuildProject => target.has_source_engine(),

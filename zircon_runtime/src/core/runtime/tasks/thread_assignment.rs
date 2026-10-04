@@ -7,6 +7,7 @@ pub struct TaskPoolThreadAssignmentPolicy {
 }
 
 impl TaskPoolThreadAssignmentPolicy {
+    /// 按总线程数计算期望值，再受本次剩余额度及池的 min/max 约束，供各工作池依次分配共享预算。
     pub fn thread_count(self, remaining_threads: usize, total_threads: usize) -> usize {
         let desired_threads = self.desired_threads(total_threads);
         if remaining_threads == 0 {

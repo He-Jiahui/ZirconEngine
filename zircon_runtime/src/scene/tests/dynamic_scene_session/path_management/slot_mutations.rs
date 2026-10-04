@@ -1,3 +1,6 @@
+//! 路径入口的槽位变更返回已发布清单，调用方可用磁盘重读结果
+//! 判断 ID、元数据和时间索引是否与提交一致。
+
 use super::*;
 
 #[test]
@@ -14,6 +17,8 @@ fn runtime_session_archive_renames_slot_at_path_atomically() {
         .save_to_path_atomically(&path)
         .expect("archive should save before path rename");
 
+    // TODO: [CR-SCENE-TEST-CONTRACT-0003] 明确同一路径并发槽位更新的覆盖语义；
+    // 当前路径变更先读取完整归档再写回，写入门禁未比对读取时的文件版本，需补并发测试。
     let manifest =
         RuntimeSessionArchive::rename_slot_at_path_atomically(&path, "manual-old", " manual-new ")
             .expect("slot should rename directly on archive path");

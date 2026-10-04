@@ -1,3 +1,4 @@
+// 稳定事件 ID 是动态事件订阅者与包清单之间的契约；此处固定运行时目录中的顺序和名称。
 #[test]
 fn sound_dynamic_event_catalog_contributes_stable_event_ids() {
     let runtime_manifest = crate::package_manifest();

@@ -1,3 +1,4 @@
+//! 保护根测试入口的子模块职责、检查入口与源码规模；这些约束读取检出文本，具体业务结果由被列出的行为测试另行验证。
 use super::*;
 
 const SLICE: &str = "Runtime 15 M3 root entries guard child-owner split";

@@ -4,6 +4,7 @@ use crate::graphics::visibility::{
     HzbOcclusionCullReadbackStats, HzbOcclusionIndirectArgsReadbackSummary,
 };
 
+/// 将 HZB 异步回读统计附到当前帧报告；没有回读时仍保留图执行侧的调度证据。
 pub(super) fn attach_hzb_occlusion_readback_stats(
     culler: &HzbOcclusionCuller,
     current_frame_index: Option<u64>,

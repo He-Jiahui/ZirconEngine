@@ -1,3 +1,4 @@
+//! 核对绑定检查器的结构化字段、动作载荷和 schema 建议在选择与更新后保持同一文档语义。
 use super::super::support::*;
 
 #[test]

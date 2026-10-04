@@ -1,3 +1,5 @@
+//! 导出逻辑资源访问的 ID、范围、版本及意图；builder 编排声明，编译索引与执行绑定按精确访问身份读取。
+
 mod buffer_range;
 mod resource_access_id;
 mod resource_access_intent;

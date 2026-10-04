@@ -1,3 +1,5 @@
+//! 验证重复实例的参数目标、重载与错误样本的绑定恢复。
+
 use std::fs;
 use std::path::Path;
 

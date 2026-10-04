@@ -1,3 +1,6 @@
+//! 移除对象的快照、序号、调度时间与插值样本，供本地所有权结束时释放状态。
+//! 若需通知远端，调用者应先从 collect_despawn_deltas 获取 tombstone，再安排发送。
+
 use zircon_runtime::core::framework::net::{NetObjectId, SyncObjectSnapshot};
 
 use super::NetReplicationRuntimeManager;

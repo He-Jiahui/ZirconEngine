@@ -1,9 +1,12 @@
+//! 包声明的模块构造入口，并将运行时模块声明投影为核心模块排序所需的描述符。
+//! 构造器提供默认初始化级别和目标；实际名称、依赖与能力合法性仍由注册阶段校验。
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 
 use super::super::{PluginModuleKind, PluginModuleManifest};
 
 impl PluginModuleManifest {
+    /// 构造可参与运行时注册的模块声明；空目标集合表示未在此处收窄目标。
     pub fn runtime(name: impl Into<String>, crate_name: impl Into<String>) -> Self {
         let name = name.into();
         Self {
@@ -21,6 +24,7 @@ impl PluginModuleManifest {
         }
     }
 
+    /// 构造编辑器宿主模块；默认只声明 EditorHost 目标，供后续目标校验。
     pub fn editor(name: impl Into<String>, crate_name: impl Into<String>) -> Self {
         let name = name.into();
         Self {
@@ -38,6 +42,7 @@ impl PluginModuleManifest {
         }
     }
 
+    /// 描述原生形态模块；是否能进入当前加载入口由制品选择和 ABI 校验决定。
     pub fn native(name: impl Into<String>, crate_name: impl Into<String>) -> Self {
         let name = name.into();
         Self {
@@ -55,6 +60,7 @@ impl PluginModuleManifest {
         }
     }
 
+    /// 描述 VM 形态模块；声明本身不注册脚本宿主回调。
     pub fn vm(name: impl Into<String>, crate_name: impl Into<String>) -> Self {
         let name = name.into();
         Self {
@@ -95,6 +101,8 @@ impl PluginModuleManifest {
         self
     }
 
+    /// 仅向核心模块排序传递名称、描述、初始化级别和模块依赖。
+    /// 目标、能力、系统与事件仍保留在包声明中，不能以此投影代替完整注册校验。
     pub fn module_descriptor(&self) -> ModuleDescriptor {
         let description = if self.description.is_empty() {
             default_module_description(self.kind, &self.name)

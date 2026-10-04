@@ -1,3 +1,4 @@
+//! 可变迭代器借用计划并维持调用局部候选；稳定位置唯一性是逐项可变借用的安全前提。
 use super::*;
 
 #[test]
@@ -27,6 +28,7 @@ fn full_mutable_iteration_snapshots_only_stable_locations_for_alias_safety() {
     assert!(iter.contains("world.stable_query_location_iter("));
     assert!(iter.contains("find_cached_archetype_plan(self.plans"));
     assert!(iter.contains("plan.write_component_locations("));
+    // BUG: [CR-SCENE-TEST-QRY-0006] 当前调用传 cached_archetype_plans()，旧字段借用字符串不存在，断言必失败。证据：query_mut_iter.rs。
     assert!(iter.contains("QueryMutIter::new(world, &self.cached_archetype_plans, ticks)"));
     assert!(!iter.contains("cached_entities.clone()"));
 }

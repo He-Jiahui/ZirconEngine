@@ -4,6 +4,8 @@ use super::{
 };
 
 impl RenderHybridGiExtract {
+    /// 在 provider 已确定烘焙光照可用性后，固化预设和预算并报告回退原因。
+    /// 调用方仍须单独尊重 enabled 与 provider 能力；解析结果本身不启用 GI。
     pub fn resolved_settings(
         &self,
         baked_lighting_available: bool,

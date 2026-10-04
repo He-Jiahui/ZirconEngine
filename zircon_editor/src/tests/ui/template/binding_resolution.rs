@@ -1,3 +1,5 @@
+//! 验证模板适配器将稳定绑定 ID 解析为类型化编辑器绑定并拒绝缺失项。
+
 use super::support::EDITOR_HOST_WINDOW_ASSET_TOML;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::template::{

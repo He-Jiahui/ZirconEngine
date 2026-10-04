@@ -1,3 +1,4 @@
+// 源码结构守卫：固定可选功能运行时投影的子层交接；运行清单语义由 parity 测试验证。
 use super::super::super::sources::*;
 
 #[test]

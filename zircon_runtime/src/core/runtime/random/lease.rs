@@ -60,6 +60,7 @@ impl RandomStreamLease {
 
     /// Commits this lease immediately and returns the committed stream state.
     /// 需要在 checkpoint 或 reseed 前解除活跃租约时，应显式归还并处理所得状态。
+    /// 在主动释放前复制末态并归还唯一租约；同键随后获取会从该末态继续。
     pub fn release(mut self) -> RandomState {
         let state = self.stream_ref().snapshot();
         self.commit();
@@ -87,6 +88,7 @@ impl RandomStreamLease {
 
 // TODO: [CR-RUNTIME-RANDOM-0001] 核查未来固定步调用链的 commit/abort：若失败步持有租约，析构仍会提交抽样进度。
 // 证据：release 和 Drop 均调用 commit；当前生产调用链尚未接入固定步抽样。
+// 作用域结束也会归还本地进度；当前没有 abort 分支，失败步持有租约时 Drop 仍会提交抽样进度。
 impl Drop for RandomStreamLease {
     fn drop(&mut self) {
         self.commit();

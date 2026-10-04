@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[path = "d1_capability_single_source/audit_surfaces.rs"]
 mod audit_surfaces;
 #[path = "d1_capability_single_source/runtime_roots.rs"]

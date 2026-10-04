@@ -8,6 +8,8 @@ use super::super::super::backends::{
 use super::super::super::status::CapabilityStatus;
 use super::super::PlatformCapabilityMatrix;
 
+// 先拒绝 server/headless，再由窗口后端筛选光标能力；进入该判定的分支原样
+// 传播 FeatureDisabled/Unavailable；选项与原始运动还各有目标或输入 gate 限制。
 impl PlatformCapabilityMatrix {
     pub(in crate::platform::capability::matrix) fn cursor_boundary_backend(
         self,

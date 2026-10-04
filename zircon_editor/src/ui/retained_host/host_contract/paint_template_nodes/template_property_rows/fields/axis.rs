@@ -1,3 +1,6 @@
+//! 多轴属性摘要最多显示四组，轴标识、输入外观和值文字共同占用各组分配区。
+//! 这是静态属性行绘制，不注册单独输入框；值文本已由上层摘要拆分。
+
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_property_axis_values::PropertyAxisValue;
 use super::super::super::template_row_metrics::workbench_row_palette;

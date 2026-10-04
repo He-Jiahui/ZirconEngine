@@ -1,3 +1,5 @@
+//! 数值输入域的步进器资产和密度门面；仅由 fields 命令入口在足够空间时调用。
+
 mod command;
 mod metrics;
 

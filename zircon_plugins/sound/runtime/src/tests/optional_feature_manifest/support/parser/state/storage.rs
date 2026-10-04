@@ -1,3 +1,4 @@
+// 状态仅为固定静态清单的测试投影服务；功能、依赖和模块在表切换时分别完成。
 use super::super::super::types::{PendingOptionalFeatureManifest, StaticOptionalFeatureManifest};
 use super::super::section::OptionalFeatureSection;
 

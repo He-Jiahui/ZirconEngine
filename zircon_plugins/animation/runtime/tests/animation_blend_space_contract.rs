@@ -1,3 +1,4 @@
+//! 一维、二维混合空间编译、插值、外壳投影及输入缩放等价性回归。
 use std::f32::consts::TAU;
 
 use zircon_plugin_animation_runtime::compile_animation_state_machine_runtime;

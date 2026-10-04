@@ -1,3 +1,4 @@
+// 核对 MUI 提示条的轮廓、填充、图标和关闭动作几何。
 use std::rc::Rc;
 
 use crate::ui::retained_host::primitives::{ModelRc, VecModel};

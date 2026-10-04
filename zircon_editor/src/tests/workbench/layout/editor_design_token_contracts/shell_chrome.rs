@@ -1,7 +1,9 @@
+//! 壳层复合资产继承共享表面、密度与语义槽；响应式隐藏属于资产声明。
 use super::chrome_theme::strict_theme_rule;
 use super::support::assert_tokenized_assets;
 use toml::Value;
 
+/// 嵌入本测试实际检查的壳资产，源码断言不代表已完成窗口交互验证。
 macro_rules! workbench_asset {
     ($path:literal) => {
         include_str!(concat!(
@@ -12,6 +14,7 @@ macro_rules! workbench_asset {
 }
 
 #[test]
+/// 工具栏与状态栏共同依赖壳层主题，不允许各自私有颜色和文字度量。
 fn shell_chrome_roots_share_tokenized_surface_typography_and_density_inputs() {
     assert_tokenized_assets(&[
         (
@@ -62,6 +65,7 @@ fn shell_chrome_roots_share_tokenized_surface_typography_and_density_inputs() {
 }
 
 #[test]
+/// 保留可拉伸语义槽及窄屏最小tier，防止宿主组合退回固定绝对尺寸。
 fn activity_drawer_window_uses_relative_shell_constraints() {
     let asset = workbench_asset!("shell/activity_drawer_window.zui");
     assert_tokenized_assets(&[(
@@ -138,6 +142,7 @@ fn activity_drawer_window_uses_relative_shell_constraints() {
 }
 
 #[test]
+/// 活动栏自身宽度、间距和按钮高度应从统一密度来源获得。
 fn activity_rail_uses_shared_component_spacing() {
     let asset = workbench_asset!("shell/workbench_activity_rail.zui");
     assert_tokenized_assets(&[(
@@ -162,6 +167,7 @@ fn activity_rail_uses_shared_component_spacing() {
 }
 
 #[test]
+/// 标题与动作作为可分配空间的槽共存，允许长标题与宿主操作共同布局。
 fn panel_header_uses_shared_container_surface_and_density() {
     let asset = workbench_asset!("composites/chrome/workbench_panel_header.zui");
     assert_tokenized_assets(&[(
@@ -191,6 +197,7 @@ fn panel_header_uses_shared_container_surface_and_density() {
 }
 
 #[test]
+/// 样本容器继承共用类规则；局部圆角或边宽不能掩盖主题容器行为。
 fn component_drawer_sample_cards_share_container_chrome() {
     let asset = workbench_asset!("shell/workbench_component_drawer.zui");
     let document = asset

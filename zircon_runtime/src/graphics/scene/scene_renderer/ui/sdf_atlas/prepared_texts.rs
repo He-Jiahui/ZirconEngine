@@ -5,6 +5,7 @@ use crate::graphics::scene::scene_renderer::ui::render::{
 use crate::text::sdf::SdfMode;
 
 #[derive(Default)]
+/// 非分段图集路径的输入快照；比较文本、塑形、字体及字形产物身份，稳定帧可复用槽规划。
 pub(super) struct PreparedSdfAtlasTexts {
     texts: Vec<PreparedSdfAtlasText>,
 }
@@ -12,6 +13,7 @@ pub(super) struct PreparedSdfAtlasTexts {
 struct PreparedSdfAtlasText {
     text: String,
     shaped_glyphs: Vec<ScreenSpaceUiShapedGlyph>,
+    // TODO: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0005] 快照仅存产物地址而不持有 Arc；尚缺跨帧地址不被复用的保活证据，需追踪父级引用并验证同代数产物替换后的缓存失效。
     glyph_artifact_identity: Option<ScreenSpaceUiGlyphArtifactCacheIdentity>,
     font: Option<String>,
     font_family: Option<String>,

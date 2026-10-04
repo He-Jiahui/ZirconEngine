@@ -1,3 +1,5 @@
+//! 按钮族的样式、反馈状态与可发事件共同构成编写和检查节点时的元数据契约。注册入口统一收集这些工厂；按钮交互随后由 button 与 keyboard 归约器消费。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

@@ -1,3 +1,4 @@
+// 图在申请 Kira 资源前完成父节点与环校验，编译结果需保留轨道和发送目标。
 use zircon_runtime::core::framework::sound::{SoundTrackDescriptor, SoundTrackId, SoundTrackSend};
 
 use crate::kira_bridge::compile_graph;

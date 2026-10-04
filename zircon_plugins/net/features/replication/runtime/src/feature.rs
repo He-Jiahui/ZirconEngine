@@ -1,3 +1,6 @@
+//! 将复制算法 manager 注册为依赖根 net 的懒加载服务，并在包清单声明 client/server 目标。
+//! factory 当前只创建内存 manager，World snapshot 与真实网络传输需外层驱动。
+
 use std::sync::Arc;
 
 use zircon_runtime::core::runtime::ServiceObject;

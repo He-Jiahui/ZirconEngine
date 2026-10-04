@@ -1,3 +1,6 @@
+//! 后处理框架契约：场景提取生成相机生效设置，帧提交据此组装并校验通道图，执行器再消费图资源。
+//! 此模块只描述设置、依赖与诊断；历史纹理和 GPU 通道由图形运行层拥有。
+
 mod ambient_occlusion_settings;
 mod chain;
 mod color_lut_readback;

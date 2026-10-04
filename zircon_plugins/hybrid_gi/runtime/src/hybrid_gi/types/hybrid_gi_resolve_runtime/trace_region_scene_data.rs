@@ -1,4 +1,5 @@
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 已排程追踪区域的整数场景数据；中心、半径和覆盖度由 GPU 准备阶段按各自尺度还原。
 pub struct HybridGiResolveTraceRegionSceneData {
     center_x_q: u32,
     center_y_q: u32,

@@ -5,6 +5,7 @@ use crate::input::{
     InputAction, InputActionEvaluator, InputActionMap, InputAxisBinding, InputBinding, InputEvent,
 };
 
+// 动作层必须把轴越过死区及设备断开投影成边沿事件；测试跨 InputManager 快照和求值器。
 #[test]
 fn gamepad_axis_action_reports_deadzone_transition_edges() {
     let gamepad = GamepadId(12);

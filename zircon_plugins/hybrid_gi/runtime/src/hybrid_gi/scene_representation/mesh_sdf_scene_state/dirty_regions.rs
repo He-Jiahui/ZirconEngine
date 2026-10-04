@@ -4,6 +4,7 @@ use zircon_runtime::core::framework::render::RenderMeshBounds;
 
 use super::declarations::HybridGiMeshSdfObject;
 
+// 调用方按 stable_instance_key 排序并去重；物体移动时旧、新边界都要使 Global SDF 页失效。
 pub(super) fn changed_object_regions(
     previous: &[HybridGiMeshSdfObject],
     next: &[HybridGiMeshSdfObject],

@@ -1,3 +1,5 @@
+//! 活动指针按 pointer_id 分隔触摸生命周期；物理悬停、捕获、主触摸点击及双击计时由管理器协调。
+
 use super::*;
 use zircon_runtime_interface::ui::dispatch::UiInputDiagnosticsMode;
 

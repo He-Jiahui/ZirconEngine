@@ -15,6 +15,7 @@ pub(crate) const RUNTIME_REFLECT_VALUE_BUDGET: ReflectValueBudget = ReflectValue
     RUNTIME_REFLECT_VALUE_MAX_CONTAINER_ENTRIES,
 );
 
+// 远程反射值进入 World 前的统一资源预算与类型校验；读回也验证，避免发布超限的插件数据。
 pub(crate) fn validate_reflected_value(
     type_path: &str,
     field_name: &str,

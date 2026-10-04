@@ -6,6 +6,8 @@ use crate::core::editor_extension::{EditorExtensionRegistry, EditorExtensionRegi
 use super::extension_catalog_report::EditorExtensionCatalogReport;
 use super::registration::EditorPluginRegistrationReport;
 
+// 从本代已激活登记重新构造扩展视图；逐项登记失败收集诊断，不复用原注册表的可变所有权。
+// 资产类型先建内置基线，再按输入顺序应用插件贡献，诊断按原贡献顺序还原。
 pub(super) fn build_editor_extensions<'a>(
     catalog_generation: u64,
     registrations: impl IntoIterator<Item = &'a EditorPluginRegistrationReport>,

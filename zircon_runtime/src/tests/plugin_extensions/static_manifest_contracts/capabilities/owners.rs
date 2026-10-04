@@ -1,3 +1,4 @@
+//! 能力归属检查同时支持包、特性和已命名的领域别名；全局唯一性与本包状态引用是不同范围的约束。
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 

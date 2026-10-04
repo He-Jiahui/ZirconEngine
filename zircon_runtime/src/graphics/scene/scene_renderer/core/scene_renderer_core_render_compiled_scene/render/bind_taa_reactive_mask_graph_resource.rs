@@ -5,6 +5,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 use crate::graphics::scene::scene_renderer::post_process::ScenePostProcessResources;
 use crate::render_graph::CompiledRenderGraph;
 
+/// 没有 mesh 贡献 reactive mask 时绑定中性黑纹理，确保 TAA pass 仍满足编译图读取契约。
 pub(super) fn bind_taa_reactive_mask_graph_resource(
     graph: &CompiledRenderGraph,
     post_process: &ScenePostProcessResources,

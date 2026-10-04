@@ -1,7 +1,10 @@
+//! 按钮族先处理高频焦点、悬停和按压反馈；其余事件保留所有权交回通用归约入口，确保专用路径与公共事件契约一致。
+
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEvent, UiComponentState,
 };
 
+// Applied 表示专用路径已消费事件；通用分支携带原事件供上层继续归约，避免双重处理。
 #[derive(Clone, Debug, PartialEq)]
 pub(super) enum UiButtonReduceOutcome {
     Applied,

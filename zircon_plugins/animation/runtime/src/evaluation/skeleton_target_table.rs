@@ -1,3 +1,5 @@
+//! 骨架修订的目标身份表：完整层级路径得到稳定 ID，稠密槽只在此表内部有效。
+//! 重复短骨名允许存在，但使用短名解析轨道或掩码时必须报歧义。
 use std::collections::BTreeMap;
 
 use zircon_runtime::core::framework::animation::AnimationSkeletonAsset;
@@ -20,6 +22,7 @@ pub struct SkeletonTargetTable {
 }
 
 impl SkeletonTargetTable {
+    /// 建立此骨架的身份表并拒绝非法父链、重复完整路径及非规范骨名；短骨名允许重复。
     pub fn compile(skeleton: &AnimationSkeletonAsset) -> Result<Self, AnimationClipCompileError> {
         let mut targets = TargetTable::new();
         let mut bone_slots = Vec::with_capacity(skeleton.bones.len());

@@ -17,6 +17,7 @@ use crate::ui::widget::UiWidgetContract;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+/// 导入清单用粗资产类别区分布局、组件和样式；加载器会在展开前核对引用类别。
 pub enum UiAssetKind {
     Layout,
     Widget,
@@ -34,6 +35,7 @@ pub struct UiAssetHeader {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 声明编译要解析的组件、样式与资源依赖；实际句柄解析留给后续运行时层。
 pub struct UiAssetImports {
     #[serde(default)]
     pub widgets: Vec<String>,
@@ -149,6 +151,7 @@ pub struct UiComponentDefinition {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// 组件参数声明记录值种类和可选默认值，实例展开时据此解析参数输入。
 pub struct UiComponentParamSchema {
     #[serde(default)]
     pub r#type: String,
@@ -171,6 +174,7 @@ pub struct UiNamedSlotSchema {
 }
 
 impl UiNamedSlotSchema {
+    /// 空 accepts 集合保留不限制子组件的旧式槽；非空时只接受显式列出的直接组件身份。
     pub fn accepts_component(&self, component: &str) -> bool {
         self.accepts.is_empty() || self.accepts.contains(component)
     }
@@ -178,6 +182,8 @@ impl UiNamedSlotSchema {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+/// TODO: [CR-R02-public_ui_templates-0001] 确认是否应驱动私有样式隔离；当前定义和扁平原型仅保存此值，选择器校验实际按公开部件表拒绝私有目标。
+/// 证据缺口是尚无 Open/Closed 跨组件 selector 行为测试；下一步分别断言外部选择器访问私有部件的结果，确认隔离边界。
 pub enum UiStyleScope {
     Open,
     #[default]
@@ -202,6 +208,7 @@ pub struct UiStyleRule {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// self 与 slot 分开保存声明值，展开器据两类位置分别应用于节点和槽内容。
 pub struct UiStyleDeclarationBlock {
     #[serde(default, rename = "self")]
     pub self_values: BTreeMap<String, Value>,

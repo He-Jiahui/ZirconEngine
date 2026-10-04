@@ -2,6 +2,7 @@ use crate::core::framework::render::{ProjectionMode, ViewportCameraSnapshot};
 use crate::core::math::{Real, UVec2, Vec2, Vec3};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 后端共用的世界空间射线；通过 new 创建可保证方向单位化并拒绝非有限输入。
 pub struct PointerRay {
     pub origin: Vec3,
     pub direction: Vec3,
@@ -15,6 +16,7 @@ impl PointerRay {
     }
 }
 
+/// 把视口局部像素点投影到相机射线；实际视口尺寸决定宽高比，越界或退化相机返回 None。
 pub fn ray_from_viewport_point(
     camera: &ViewportCameraSnapshot,
     viewport_size: UVec2,

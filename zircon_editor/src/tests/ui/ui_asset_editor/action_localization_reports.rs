@@ -1,3 +1,5 @@
+//! 验证动作策略与本地化依赖进入面板报告，缺失语言表和键产生诊断。
+
 use crate::ui::asset_editor::UiAssetEditorDiagnosticSeverity;
 
 use super::support::open_design_session;

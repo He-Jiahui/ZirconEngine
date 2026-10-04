@@ -1,9 +1,12 @@
+//! 固定状态栏控制 ID 对应交互类型；诊断项则从验证等级导出语义信号，和状态选择器保持一致。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::style_selector::{
     WorkbenchStatusSignalKind as StatusSignalKind, WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT,
 };
 use super::super::template_status_glyphs::StatusIconKind;
 
+/// 专用状态控件的绘制所有权标记；认领后不会再落入模板节点通用表面分支。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) enum StatusControlKind {
     Signal(StatusSignalKind),

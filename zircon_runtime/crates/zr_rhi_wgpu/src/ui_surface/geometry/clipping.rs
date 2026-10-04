@@ -1,3 +1,4 @@
+//! 显式裁剪保证三角形只覆盖有效矩形，同时保留顶点插值供解析形状着色使用。
 use zr_rhi::UiSurfaceRect;
 
 use super::{quad_positions, SolidVertex};

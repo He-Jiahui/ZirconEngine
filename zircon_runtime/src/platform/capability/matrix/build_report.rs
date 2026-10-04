@@ -6,6 +6,9 @@ use super::super::report::PlatformCapabilityReport;
 use super::super::status::CapabilityStatus;
 use super::PlatformCapabilityMatrix;
 
+// 此入口组装静态目录；PlatformConfig 在禁用时掩盖能力，PlatformManager 再捕获宿主快照。
+// runtime 报告仅把窗口、显示拓扑、事件、生命周期、尺寸和循环策略投影到观测状态；
+// 其他目录字段仍供规划和诊断使用。
 impl PlatformCapabilityMatrix {
     pub fn report(
         self,
@@ -76,6 +79,7 @@ impl PlatformCapabilityMatrix {
         }
     }
 
+    /// 运行时可请求具体事件循环策略；服务端或无窗口拓扑仍由矩阵强制为 headless。
     /// Builds a report with an explicit Bevy-style update policy while keeping
     /// server/headless topology authoritative.
     pub fn report_with_event_loop_policy(

@@ -2,6 +2,8 @@ use crate::core::math::Real;
 
 use super::{IblBakeKey, ProceduralSkyParams, SkyboxMode, SourceCubemapEnvironment};
 
+/// 一帧天空模式的入口；场景提取、IBL 请求和渲染器都从当前模式读取同一数据。
+/// 改变模式时应使用构造器或同步更新对应 payload，避免模式与可选源图分离。
 #[derive(Clone, Debug, PartialEq)]
 pub struct SkyboxSettings {
     pub mode: SkyboxMode,
@@ -26,6 +28,7 @@ impl SkyboxSettings {
         }
     }
 
+    /// 把源图转入天空模式时预先编码 GPU 上传内容，使帧提交只处理资源变更。
     pub fn source_cubemap(source_cubemap: SourceCubemapEnvironment) -> Self {
         Self {
             mode: SkyboxMode::SourceCubemap,

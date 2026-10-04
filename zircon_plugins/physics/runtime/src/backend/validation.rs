@@ -1,3 +1,5 @@
+//! 提供 builtin 与 Jolt 共用的描述符粗校验；provider 仍须检查自身资源注册、几何支持和原生接口约束。
+
 use zircon_runtime::core::framework::{
     physics::PhysicsColliderShape,
     scene::physics::{PhysicsMassProperties, PhysicsMaterialMetadata},
@@ -5,6 +7,7 @@ use zircon_runtime::core::framework::{
 
 use super::BodyDesc;
 
+// body 与 collider 必须属于同一实体；该门同时检查已同步数值，但自动质量只检查输入密度而未检查派生结果。
 pub(super) fn body_desc_is_valid(desc: &BodyDesc) -> bool {
     let body = &desc.body;
     body.entity == desc.collider.entity
@@ -23,6 +26,7 @@ pub(super) fn body_desc_is_valid(desc: &BodyDesc) -> bool {
         && body.transform.scale.is_finite()
 }
 
+// 该函数只做共享结构和有限值检查；网格数据、provider 支持范围及派生几何仍由各 backend 决定。
 pub(super) fn shape_is_valid(shape: &PhysicsColliderShape) -> bool {
     match shape {
         PhysicsColliderShape::Box { half_extents } => half_extents
@@ -61,6 +65,8 @@ pub(super) fn shape_is_valid(shape: &PhysicsColliderShape) -> bool {
     }
 }
 
+// TODO: [CR-PHYSICS-BACKEND-0003] 共享层只要求材质值有限；Jolt 另拒绝负摩擦并将恢复系数限于 [0,1]，Builtin 接受相同有限输入。
+// 需要由材质合同确定共同范围或明确 provider 差异，不能仅凭 native 习惯统一数值。证据：builtin/runtime.rs::create_shape、jolt/runtime.rs::create_shape；关联 PH-P1-019 / PHY4-P1-010。
 pub(super) fn material_is_valid(material: &PhysicsMaterialMetadata) -> bool {
     material.static_friction.is_finite()
         && material.dynamic_friction.is_finite()

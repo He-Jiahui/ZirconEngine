@@ -1,3 +1,4 @@
+// 提交已注册的环境事件，供新增或移除处理器后验证当前订阅集合；不负责注册目录。
 use super::super::super::super::*;
 
 use super::ids::{EVENT_ID, PAYLOAD_SCHEMA};

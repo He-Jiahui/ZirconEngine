@@ -17,6 +17,7 @@ impl RetainedEditorHost {
         self.launch_recent_project(path, ProjectLaunchProfile::Recovery);
     }
 
+    // 最近项目的普通、安全、恢复入口共用一次带操作 ID 的启动意图；失败后刷新欢迎页错误与最近列表。
     fn launch_recent_project(&mut self, path: &str, profile: ProjectLaunchProfile) {
         let result = next_project_launch_operation_id()
             .and_then(|operation_id| {

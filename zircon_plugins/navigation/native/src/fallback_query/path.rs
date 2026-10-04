@@ -114,6 +114,7 @@ fn native_polyline_length(points: &[NavPathPoint]) -> Real {
         coordinates.extend_from_slice(&point.position);
     }
     let length =
+        // SAFETY: 坐标缓冲区连续存放每点三个浮点数，原生函数只在同步调用期间读取。
         unsafe { ffi::zr_nav_recast_polyline_length(coordinates.as_ptr(), points.len() as u64) };
     if length.is_finite() {
         length

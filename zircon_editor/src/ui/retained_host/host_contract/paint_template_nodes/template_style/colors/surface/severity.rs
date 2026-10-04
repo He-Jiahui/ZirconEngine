@@ -1,3 +1,5 @@
+//! 校验信息先于普通交互和显式背景，保证错误/警告的容器语义仍可见。
+
 use super::super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::super::paint_theme::PALETTE;
 

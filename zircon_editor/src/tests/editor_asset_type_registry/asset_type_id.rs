@@ -1,3 +1,4 @@
+//! 核对开放插件资产类型 ID 的规范化和反序列化校验，防止路径状或非规范键进入注册表。
 use crate::core::asset::{AssetTypeId, AssetTypeIdError};
 
 #[test]

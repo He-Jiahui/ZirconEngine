@@ -1,3 +1,5 @@
+//! 导入修订号既驱动变更通知，也供渲染预热读取 Ready 记录；重导入只能更新受影响的资源。
+
 use super::*;
 
 #[test]
@@ -171,6 +173,7 @@ fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
     let _ = fs::remove_dir_all(root);
 }
 
+// 渲染预热通过 ResourceManager 的 Ready shader 记录读取修订号；重导入后该视图必须与项目状态一致。
 #[test]
 fn shader_reimport_exports_updated_revision_for_prewarm_registry() {
     let root = unique_temp_project_root("asset_manager_shader_revision_export");

@@ -1,5 +1,6 @@
 use crate::core::framework::render::{FroxelGridQuality, PostProcessGraphResourceNames};
 
+/// 以 froxel 质量档位为键保存体积散射历史，独立于普通屏幕历史尺寸。
 pub(super) struct VolumetricHistoryTexture {
     pub(super) quality: FroxelGridQuality,
     pub(super) texture: wgpu::Texture,

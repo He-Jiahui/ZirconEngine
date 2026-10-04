@@ -1,3 +1,4 @@
+// 从欢迎页最近项目和层级树列表桥进入滚动及点击，约束视口内路由与大列表按需计算。
 use crate::core::editor_event::EditorEvent;
 use crate::core::editor_event::SelectionHostEvent;
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};

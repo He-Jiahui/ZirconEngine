@@ -1,3 +1,5 @@
+//! 把一次帧泵处理后的最终 cadence 状态发布给 Winit 事件循环。
+
 use winit::event_loop::ActiveEventLoop;
 
 use super::super::RuntimeEntryApp;

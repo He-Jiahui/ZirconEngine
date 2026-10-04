@@ -1,3 +1,4 @@
+//! 编译图拓扑、参数覆盖、掩码、加法、共享节点和稳定剪辑顺序的契约。
 use std::hint::black_box;
 use std::sync::Arc;
 use std::time::Instant;

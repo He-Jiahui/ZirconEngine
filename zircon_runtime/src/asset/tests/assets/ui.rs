@@ -1,3 +1,5 @@
+//! 共享 UI 文档夹具供包装解析、导入和 ProjectManager 扫描测试使用；资源引用访客的结构门禁另以源码文本检查。
+
 use std::fs;
 
 use crate::asset::assets::{ui_asset_references, ui_v2_asset_references};
@@ -19,6 +21,7 @@ fn optimization_batch_20260826b_runtime74_ui_resource_reference_visitor_borrows_
     let collector = include_str!("../../assets/ui/resource_references.rs");
     assert!(collector.contains("visit_resource_uris"));
     assert!(collector.contains("FnMut(&'a str)"));
+    // BUG: [CR-ASSET-TEST-ASSETS-0001] include_str! 连同被测文件内含相同字面量的自测一起读取，故否定断言恒失败；证据：resource_references.rs 的自测也包含 Vec<&str>。
     assert!(!collector.contains("Vec<&str>"));
     assert!(!collector.contains("uris.push(uri.to_string())"));
 }

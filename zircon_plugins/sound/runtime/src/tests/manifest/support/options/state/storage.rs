@@ -1,3 +1,4 @@
+// 暂存一个静态选项行；只有拿到 key 后才会形成运行时类型，必填元数据由完成阶段检查。
 #[derive(Default)]
 pub(in super::super) struct PendingOptionManifest {
     pub(in super::super) key: Option<String>,

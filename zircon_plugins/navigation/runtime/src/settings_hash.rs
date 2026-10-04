@@ -77,6 +77,7 @@ impl StableHasher {
     }
 }
 
+// 按固定字段序列编码表面与代理设置，并把结果写入生成资产的 settings_hash。
 pub(crate) fn navigation_settings_hash(
     surface: &NavMeshSurfaceDescriptor,
     settings: &NavigationSettingsAsset,

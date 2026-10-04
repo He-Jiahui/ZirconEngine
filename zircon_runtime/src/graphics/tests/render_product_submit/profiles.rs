@@ -1,3 +1,4 @@
+//! 默认、无头、高级与 Solari 质量档的产品验收入口；同时检查 profile 声明与实际 WGPU 提交统计。
 use super::super::{render_product_advanced, render_product_solari};
 use super::*;
 

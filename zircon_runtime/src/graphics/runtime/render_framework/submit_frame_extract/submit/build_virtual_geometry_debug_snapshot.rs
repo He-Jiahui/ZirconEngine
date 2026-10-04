@@ -1,3 +1,4 @@
+//! 虚拟几何调试产品汇集页、节点与执行快照，供编辑器观察同一相机帧的完整驻留决策。
 mod execution;
 mod node_cull;
 mod page;

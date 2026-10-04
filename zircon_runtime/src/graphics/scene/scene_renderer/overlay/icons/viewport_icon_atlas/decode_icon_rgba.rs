@@ -2,6 +2,7 @@ use image::GenericImageView;
 
 use crate::graphics::types::GraphicsError;
 
+/// 图标素材的亮度代表覆盖率，颜色由场景实例提供；输入图片本身的颜色与 alpha 不参与着色。
 pub(super) fn decode_icon_rgba(
     bytes: &[u8],
     label: &str,

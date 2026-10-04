@@ -1,3 +1,4 @@
+//! 由结构回归测试入口读取作者资产测试与约定文档，守住分组职责、迁移契约保留和文件规模预算；固定数量是该拆分时点的快照。
 use super::*;
 
 #[test]
@@ -108,6 +109,7 @@ fn runtime_15_ui_asset_tests_are_folder_backed() {
     .into_iter()
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
+    // BUG: [CR-UI-TEST-0006] 固定总数仍停留在 33，当前六子模块已含 37 个契约测试，使该结构回归必然失败；复核新增契约后更新快照或改用职责证据。
     assert_eq!(
         child_test_total, 33,
         "UI asset children should retain the current contract set after retiring source-template conversion"
@@ -151,6 +153,7 @@ fn runtime_15_ui_asset_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
+    // BUG: [CR-UI-TEST-0008] 跨文档镜像断言要求每份文档都含同一组里程碑锚点，但四份受跟踪且干净的现行文档均缺至少一项；须核对归档职责并更新此处期待。
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),
         ("Runtime index", runtime_index.as_str()),

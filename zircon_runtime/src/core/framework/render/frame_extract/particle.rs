@@ -6,6 +6,8 @@ use super::super::{
 };
 use super::RenderParticleGpuFrameExtract;
 
+/// 粒子系统跨场景与渲染边界的提交包，包含当前实例、历史实例及 GPU 统计侧带。
+/// 运动向量历史可由渲染提交上下文另行覆盖，不能假定此处总携带前帧数据。
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct ParticleExtract {
     pub emitters: Vec<EntityId>,

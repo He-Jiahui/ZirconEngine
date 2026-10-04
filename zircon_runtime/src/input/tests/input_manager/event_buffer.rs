@@ -1,5 +1,6 @@
 use super::*;
 
+// 指针高频事件只在相邻同类项合并；测试确认按钮、触摸和失焦仍是有序边界。
 #[test]
 fn pointer_event_streams_are_frame_bounded_at_common_polling_rates() {
     for events_per_second in [125, 500, 1_000] {

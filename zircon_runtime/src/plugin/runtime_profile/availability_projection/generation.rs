@@ -1,3 +1,6 @@
+//! 单代可用性快照借用目录文本，用共享行索引同时服务分类和必需缺失视图。
+//! 仅在导出或诊断边界才分配完整文本报告。
+
 use std::collections::HashMap;
 
 use crate::builtin::RuntimePluginId;
@@ -65,6 +68,7 @@ pub(super) enum RuntimePluginAvailabilityReason {
     Available,
 }
 
+/// 供轮询和概要视图使用的常量规模计数，不需要物化各行原因文本。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RuntimePluginAvailabilitySummary {
     row_count: usize,
@@ -161,6 +165,7 @@ impl RuntimePluginAvailabilityRow<'_> {
         self.category
     }
 
+    /// 在需要序列化或单项详情时复制借用行；生成代仍保持轻量。
     pub fn detail(&self) -> RuntimePluginAvailabilityEntry {
         RuntimePluginAvailabilityEntry {
             id: self.id().to_string(),
@@ -183,6 +188,8 @@ impl RuntimePluginAvailabilityReason {
             }
             Self::MissingCatalog => "plugin is missing from runtime catalog".to_string(),
             Self::TargetUnsupported(target) => format!("target {target:?} is not supported"),
+            // BUG: [CR-PLUGIN-BOUNDARY-0302] 即使同包 linked 提供者已传入，
+            // 此处仍称未提供注册；外置分类在提供者查询前即返回。
             Self::Externalized => {
                 "plugin runtime is externalized and no linked registration was supplied".to_string()
             }
@@ -202,6 +209,7 @@ impl RuntimePluginAvailabilityReason {
     }
 }
 
+// 从目录或注册报告借用计算所需的最小字段，不复制整个包清单。
 pub(super) struct RuntimePluginAvailabilityDescriptorRef<'a> {
     pub(super) package_id: &'a str,
     pub(super) runtime_id: RuntimePluginId,
@@ -281,6 +289,7 @@ impl RuntimePluginAvailabilitySummary {
     }
 }
 
+// 构建期独占修改行和索引，完成后统一冻结；输入插件身份已由选择层去重。
 pub(super) struct RuntimePluginAvailabilityGenerationBuilder<'a> {
     rows: Vec<RuntimePluginAvailabilityRow<'a>>,
     categories: [Vec<usize>; PRIMARY_AVAILABILITY_CATEGORY_COUNT],
@@ -298,6 +307,7 @@ impl<'a> RuntimePluginAvailabilityGenerationBuilder<'a> {
         }
     }
 
+    /// 一个原始行可同时进入主类别和必需缺失索引，避免两份状态漂移。
     pub(super) fn push(&mut self, missing_required: bool, row: RuntimePluginAvailabilityRow<'a>) {
         let row_index = self.rows.len();
         self.by_runtime_id.insert(row.runtime_id.clone(), row_index);

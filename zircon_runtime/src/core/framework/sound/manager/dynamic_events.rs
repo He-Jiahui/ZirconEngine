@@ -4,6 +4,7 @@ use super::super::{
     SoundDynamicEventInvocation, SoundError,
 };
 
+/// 声音事件的登记、排队、分发与执行边界；drain/dispatch/execute 会取走待处理队列。
 pub trait SoundDynamicEventManager {
     fn dynamic_event_catalog(&self) -> Result<SoundDynamicEventCatalog, SoundError>;
     fn register_dynamic_event(

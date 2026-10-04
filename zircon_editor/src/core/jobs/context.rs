@@ -1,3 +1,4 @@
+//! 工作端通过上下文观察合作式取消并报告进度，事件由任务生命周期入口进入日志与权威进度源；调用端应选择可安全取消的边界。
 use super::event_sink::JobEventSink;
 use super::{CancellationToken, JobError, JobEventKind};
 
@@ -20,6 +21,7 @@ impl JobContext {
         self.cancel.is_cancelled()
     }
 
+    /// 仅在允许放弃结果或尚未提交副作用的边界使用；此检查无法回滚已完成的外部事务。
     pub fn check_cancelled(&self) -> Result<(), JobError> {
         if self.is_cancelled() {
             Err(JobError::Cancelled)

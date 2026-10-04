@@ -1,3 +1,4 @@
+//! 核对编辑相机快照与场景相机命令、父节点变换及撤销重做的同步关系；无关编辑不得覆盖用户导航后的视口相机。
 use crate::core::editing::intent::EditorIntent;
 use crate::scene::viewport::ViewportInput;
 use crate::ui::workbench::state::EditorState;

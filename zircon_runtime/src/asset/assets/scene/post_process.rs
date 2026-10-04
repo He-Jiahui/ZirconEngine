@@ -1,3 +1,5 @@
+//! 后处理资产描述相机设置和体积覆盖；World I/O 保存作者值，图形场景抽取再按相机与体积关系选择实际效果。
+
 use crate::core::math::Real;
 use serde::{Deserialize, Serialize};
 

@@ -25,6 +25,7 @@ mod fixtures;
 const PATROL_TARGET: [f32; 3] = [4.0, 0.0, 0.0];
 const CHASE_TARGET: [f32; 3] = [0.0, 0.0, -8.0];
 
+// 串起插件注册、感知更新、行为树执行和导航目标变更的跨系统回归。
 #[test]
 fn patrol_detect_chase_scenario() {
     let runtime = zircon_runtime::core::CoreRuntime::new();

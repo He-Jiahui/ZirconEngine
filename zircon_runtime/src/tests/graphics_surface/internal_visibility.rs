@@ -1,3 +1,4 @@
+//! 通过当前源码检查视口帧和图标来源的内部可见性；这些文本断言约束导出形态，不证明下游代码的可编译性。
 #[test]
 fn graphics_surface_keeps_viewport_frame_and_icon_source_internal() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

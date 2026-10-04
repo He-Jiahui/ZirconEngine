@@ -1,3 +1,6 @@
+//! 查看器持久项目复用前的材质语义检查。
+//! 这里只校验材质夹具；项目树其余资源及场景完整性由项目生成层共同检查。
+
 use std::path::Path;
 
 use zircon_runtime::asset::assets::{AlphaMode, MaterialAsset, ZMaterialDocument};
@@ -8,6 +11,7 @@ use crate::material_fixture::ViewerMaterialFixture;
 
 /// Validates the generated material through the same project-document path the
 /// runtime uses before a persistent viewer project tree may be reused.
+/// 读取或解析失败也视为不符合夹具，由项目生成层决定重建；其余资源完整性另行校验。
 pub(crate) fn viewer_material_matches_fixture(
     material_path: &Path,
     material_fixture: ViewerMaterialFixture,

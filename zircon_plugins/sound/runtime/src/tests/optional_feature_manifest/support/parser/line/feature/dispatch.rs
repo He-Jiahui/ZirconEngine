@@ -1,3 +1,4 @@
+// 功能本体的身份、能力、默认策略按字段归入当前记录，供后续静态签名比较。
 use super::super::super::super::types::PendingOptionalFeatureManifest;
 use super::{capabilities, defaults, identity};
 

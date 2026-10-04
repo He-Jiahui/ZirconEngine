@@ -1,6 +1,7 @@
 use super::super::super::scene_renderer_core::{SceneEnvironmentBrdfLut, SceneEnvironmentCubemap};
 use crate::graphics::scene::scene_renderer::shadow::ShadowSceneEnvironmentBindingLease;
 
+/// 一组相同设备世代的 scene 绑定与 fallback 环境资源；阴影阶段从这里借用一致的环境视图。
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) struct SceneBindGroupBundle
 {
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) layout:

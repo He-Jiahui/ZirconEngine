@@ -1,3 +1,6 @@
+//! WOC 原始 GLB 样本与小型合成 glTF 共同覆盖扩展准入、材质投影及 artifact 往返。
+//! 样本测试依赖工作区的参考资产树；合成样本用于独立证明拒绝顺序和明确诊断。
+
 use super::*;
 use std::path::{Path, PathBuf};
 
@@ -22,6 +25,8 @@ fn import_woc_model(relative_path: &str, uri: &str) -> (AssetUri, AssetImportOut
     (root_uri, outcome)
 }
 
+// TODO: [CR-ASSET-TEST-GLTF-0002] 确认 CI 是否会提供被 /dev/ 忽略的 WOC 模型树；
+// 这些未加条件的测试在普通 Git 检出缺少该树时会先于导入断言失败。
 fn woc_model_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dev/world-of-claudecraft/public/models")
 }
@@ -355,6 +360,7 @@ fn required_clearcoat_factors_project_owned_semantics() {
     let _ = fs::remove_dir_all(root);
 }
 
+// 故意让图片 URI 指向不存在的文件：必要扩展若缺少渲染语义，应在读取图片前拒绝。
 #[test]
 fn required_material_extensions_reject_semantics_without_shader_owners() {
     for (case_name, required_extensions, material_extensions, expected_field) in [
@@ -581,6 +587,9 @@ fn woc_imported_assets_and_dependency_graph_roundtrip_through_artifacts() {
     let _ = fs::remove_dir_all(root);
 }
 
+// BUG: [CR-ASSET-TEST-GLTF-0001] 结构哨兵仍要求旧版 import_gltf.rs 的
+// primitive_asset.virtual_geometry.take()，但当前源码没有该表达式；像素所有权也已移到
+// gltf_texture_subassets.rs。测试在第一条旧字符串断言必然失败，无法证明现行所有权。
 #[test]
 fn woc_gltf_importer_keeps_single_decode_and_cooked_payload_owners() {
     let importer = include_str!("../../../importer/ingest/import_gltf.rs");

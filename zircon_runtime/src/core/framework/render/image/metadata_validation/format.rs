@@ -1,5 +1,6 @@
 use super::super::TextureCompressionTarget;
 
+// 此处识别实际容器格式标识；不能凭任意名称后缀推断有可用的 sRGB 视图。
 pub(super) fn format_has_srgb_variant(format: &str) -> bool {
     let format = format.trim().to_ascii_lowercase();
     if format.starts_with("astc/") {

@@ -1,7 +1,10 @@
+//! 字段偏移和完整容纳判定；搜索字段可在传入布局框内缩短高度，最终光栅化仍保留小数位置。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::search::search_field_paint_rect;
 use crate::ui::retained_host::host_contract::paint_geometry::corner_radius_for_frame;
 
+/// 在布局框上应用显示偏移，再让搜索字段按密度上限垂直居中；字段节点本身布局数据保持不变。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_paint_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -25,6 +28,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_pai
         && rect.height > 0.0
 }
 
+/// 用于字段外框与内部文字/附件的完整容纳判定；与上游相交判定含义不同。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_is_within(
     inner: &FrameRect,
     outer: &FrameRect,

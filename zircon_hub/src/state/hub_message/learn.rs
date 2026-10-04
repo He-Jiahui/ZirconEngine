@@ -1,5 +1,9 @@
+//! 定义学习资源打开动作的准入失败和恢复建议；动作端保存语义编号与位置参数，显示端再选择语言。
+//! 稳定编号同时用于持久化恢复；新增条目需同步枚举全集、参数契约及两种语言模板。
+
 use crate::settings::HubLanguage;
 
+/// 学习资源打开动作的准入失败和恢复建议的语义身份；调用端按条目约定传入原始路径或错误参数。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LearnMessageId {
     ChooseResource,
@@ -12,6 +16,7 @@ pub enum LearnMessageId {
 }
 
 impl LearnMessageId {
+    /// 供持久化编号解析和双语模板全集检查使用；新增枚举成员须纳入此表。
     pub const ALL: &'static [Self] = &[
         Self::ChooseResource,
         Self::OpenResourceTargetRequired,
@@ -22,6 +27,7 @@ impl LearnMessageId {
         Self::ResourcePathMustBeAbsolute,
     ];
 
+    // 已保存记录以这些编号恢复，文案调整不应顺带重命名编号。
     pub(super) fn as_str(self) -> &'static str {
         match self {
             Self::ChooseResource => "learn.choose-resource",
@@ -34,6 +40,7 @@ impl LearnMessageId {
         }
     }
 
+    // 这是模板的参数契约元数据，实际消息构造不会在这里校验参数数量。
     pub(super) fn param_count(self) -> usize {
         match self {
             Self::ResourceFileDoesNotExist | Self::ResourcePathMustBeAbsolute => 1,
@@ -41,6 +48,7 @@ impl LearnMessageId {
         }
     }
 
+    // 位置参数保持原始用户数据；语言投影负责周围的语句和标点。
     pub(super) fn template(self, language: HubLanguage) -> &'static str {
         match (language, self) {
             (HubLanguage::English, Self::ChooseResource) => {

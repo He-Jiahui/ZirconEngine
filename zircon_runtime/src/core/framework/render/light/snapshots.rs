@@ -1,3 +1,5 @@
+//! 场景按活动状态和相机层筛选光源后，向阴影规划、GPU 打包与帧统计传递的只读快照。
+
 use crate::core::framework::render::RenderLayerSet;
 use crate::core::framework::scene::EntityId;
 use crate::core::framework::scene::Mobility;
@@ -46,6 +48,7 @@ pub struct RenderSpotLightSnapshot {
     pub shadow: Option<LightShadowSettings>,
 }
 
+/// 环境光是场景级贡献；`renderer_degraded` 让统计区分已抽取和实际支持的光源。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderAmbientLightSnapshot {
     pub color: Vec3,
@@ -70,6 +73,7 @@ impl Default for RenderAmbientLightSnapshot {
     }
 }
 
+/// 面光源保留稳定实体和光源 ID，供 GPU 打包及阴影、Cookie 元数据关联。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderRectLightSnapshot {
     pub node_id: EntityId,
@@ -86,6 +90,7 @@ pub struct RenderRectLightSnapshot {
     pub degradation_reason: Option<String>,
 }
 
+/// 全屏后处理中的中性烘焙照明参数；当前光照贴图按表面采样，零值避免重复叠加。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RenderBakedLightingExtract {
     pub color: Vec3,

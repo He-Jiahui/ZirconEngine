@@ -44,10 +44,12 @@ pub struct UiRawAssetPrototype {
 }
 
 impl UiRawAssetPrototype {
+    /// 句柄按节点表索引读取；越界时返回 None，让迁移/实例化调用方处理无效引用而不越界访问。
     pub fn node(&self, handle: UiPrototypeNodeHandle) -> Option<&UiNodePrototype> {
         self.document.nodes.get(handle.index())
     }
 
+    /// 节点数与扁平表长度一致，配合句柄范围校验而非树遍历计数。
     pub fn node_count(&self) -> usize {
         self.document.nodes.len()
     }
@@ -80,6 +82,7 @@ pub struct UiStylePrototype {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// 扁平节点保留展开器需要的源属性和契约；children 改用索引句柄以支持缓存存储。
 pub struct UiNodePrototype {
     #[serde(default)]
     pub node_id: String,
@@ -122,6 +125,7 @@ pub struct UiNodePrototype {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 扁平子挂载以句柄指向节点表，mount 与 slot 继续承载树形源文档中的挂载信息。
 pub struct UiPrototypeChildMount {
     #[serde(default)]
     pub mount: Option<String>,

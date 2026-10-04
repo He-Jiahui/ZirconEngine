@@ -12,6 +12,7 @@ enum ParsePolicy {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+// 插件和 VM 声明字段的运行时类型语言；注册阶段解析后用于值准入，避免写入时凭 JSON 形状猜测类型。
 pub(super) enum DeclaredValueType {
     Null,
     Bool,

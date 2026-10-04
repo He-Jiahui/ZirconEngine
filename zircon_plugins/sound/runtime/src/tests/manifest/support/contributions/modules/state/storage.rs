@@ -1,3 +1,4 @@
+// 仅保存当前静态表行及已完成结果；表边界负责提交，最终结果交给包清单对照用例。
 use super::super::super::StaticModule;
 
 // Preserves the static plugin.toml scanner's table-boundary behavior for module rows.

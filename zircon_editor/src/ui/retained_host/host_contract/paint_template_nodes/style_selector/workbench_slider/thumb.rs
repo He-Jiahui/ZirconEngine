@@ -1,3 +1,6 @@
+//! 拇指填色、边线和 halo 为独立通道；已声明的 halo 在可用状态可持续显示，否则按可见焦点或热态回退。
+//! 此处只选择颜色，halo 尺寸与绘制位置由模板绘制和几何端负责。
+
 use super::super::super::template_style_color::resolved_style_color;
 use super::colors::declared_color;
 use super::palette::WorkbenchSliderPalette;

@@ -1,8 +1,11 @@
+//! 集中定义物理 provider 生命周期、描述符验证、容量和步进失败的结构化错误类型及其显示文本。
+
 use std::error::Error;
 use std::fmt;
 
 use zircon_runtime::core::math::Real;
 
+/// 错误中标识的对象类别；与具体后端错误分开，便于调用方按对象类型处理句柄和容量失败。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PhysicsBackendObjectKind {
     Shape,
@@ -10,6 +13,7 @@ pub enum PhysicsBackendObjectKind {
     Constraint,
 }
 
+/// 后端操作失败的分类；调用方可匹配错误种类，detail 保留 provider 或描述符的具体原因。
 #[derive(Clone, Debug, PartialEq)]
 pub enum PhysicsBackendError {
     Initialization {

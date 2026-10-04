@@ -1,3 +1,5 @@
+//! 保存离线和动态烘焙共用的稳定参数，并把烘焙像素尺度换算成屏幕解码范围；规范化结果也是产物身份的一部分。
+
 use super::SdfMode;
 
 const DEFAULT_SDF_BAKE_EM_PX: u32 = 48;
@@ -7,6 +9,7 @@ const PX_MILLI_SCALE: f32 = 1_000.0;
 
 /// Stable bake identity shared by runtime generation, atlas keys, and offline artifacts.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// 离线产物与动态图集共享的烘焙身份；修改参数会改变像素，调用方需用 normalized 结果形成键。
 pub(crate) struct SdfBakeParams {
     pub(crate) mode: SdfMode,
     pub(crate) bake_em_px: u32,

@@ -7,6 +7,8 @@ pub enum IblBakeArtifactReadbackSectionKind {
     IrradianceCube,
 }
 
+/// GPU 回读完成后才组装的分段结果；descriptor 决定每段必须存在及其精确字节数。
+/// 此类型隔离异步回读顺序与持久化载荷的固定 PMREM、SH9、IEM 排列。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IblBakeArtifactReadbackSections {
     descriptor: IblBakeArtifactDescriptor,

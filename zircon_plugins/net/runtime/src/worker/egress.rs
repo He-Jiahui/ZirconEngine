@@ -1,3 +1,6 @@
+//! 定义 manager 到单一 TCP/UDP worker 的有界命令和一次性回执协议。
+//! 同步 manager 方法送命令后等待结果，命令转移参数所有权以隔离 socket 状态。
+
 use std::sync::mpsc::SyncSender;
 
 use zircon_runtime::core::framework::net::{

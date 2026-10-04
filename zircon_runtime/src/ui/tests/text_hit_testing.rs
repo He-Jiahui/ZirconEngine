@@ -1,3 +1,4 @@
+//! 从已排版文字的几何位置反查源字节偏移，核对 grapheme、双向文字、竖排和字形产物优先级。
 use crate::text::{layout::measured_grapheme_widths, text_style};
 use crate::ui::text::{hit_test_text_layout, layout_text, measure_text_size};
 use std::sync::Arc;

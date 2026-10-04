@@ -300,6 +300,7 @@ pub struct NavigationBakePanel {
     last_error: Option<String>,
 }
 
+// 保留式面板以选中的实体 ID 生成操作参数；列表刷新会撤销失效选择，旧进度不得覆盖新请求。
 impl NavigationBakePanel {
     pub fn handle_retained_event(
         &mut self,

@@ -1,3 +1,5 @@
+//! 范围下限滑块和主滑块共用同一轨道坐标；主滑块叠在下限之上以保留可操作状态。
+
 use super::super::super::layers::{primary_thumb_order, range_min_thumb_order};
 use super::super::super::thumb::push_slider_thumb;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};

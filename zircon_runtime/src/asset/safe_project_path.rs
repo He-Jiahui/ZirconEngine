@@ -3,6 +3,7 @@ use std::path::Path;
 
 use crate::asset::project::ProjectPaths;
 
+// TODO: [CR-ASSET-PIPELINE-0004] 核实调用者是否在检查后仍按路径重新打开；当前路径检查不固定文件句柄，需证明并发替换不会绕过根目录边界。
 pub(crate) fn is_safe_regular_file(root: &Path, path: &Path) -> std::io::Result<bool> {
     let metadata = match fs::symlink_metadata(path) {
         Ok(metadata) => metadata,

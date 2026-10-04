@@ -14,6 +14,7 @@ const THUMBNAIL_ITEM_ROW_MULTIPLIER: f32 = 3.0;
 const CONTENT_PADDING_EDGE_COUNT: f32 = 2.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 线性资产内容的共同度量；绘制布局和指针桥必须选同一surface与显示模式。
 pub(crate) struct AssetContentLayoutMetrics {
     pub(crate) viewport_offset_y: f32,
     pub(crate) row_x: f32,
@@ -24,6 +25,7 @@ pub(crate) struct AssetContentLayoutMetrics {
 }
 
 impl AssetContentLayoutMetrics {
+    /// 选取活动区或browser列表的几何基线；browser缩略图由专属网格度量处理。
     pub(crate) fn for_surface(
         surface: AssetContentSurfaceProfile,
         view_mode: AssetViewMode,
@@ -69,6 +71,7 @@ impl AssetContentLayoutMetrics {
         }
     }
 
+    /// 给滚动及命中使用的pane局部视口，排除固定表头占用。
     pub(crate) fn viewport_frame(self, pane_size: UiSize) -> UiFrame {
         UiFrame::new(
             0.0,

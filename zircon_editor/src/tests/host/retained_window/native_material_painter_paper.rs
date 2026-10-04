@@ -1,3 +1,4 @@
+// 核对 Paper 阴影、轮廓和暗色遮罩在原生绘制中的差异。
 use std::rc::Rc;
 
 use crate::ui::retained_host::primitives::{ModelRc, VecModel};

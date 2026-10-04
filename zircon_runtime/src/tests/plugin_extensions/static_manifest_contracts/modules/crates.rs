@@ -1,3 +1,4 @@
+//! 从插件工作区成员清单读取实际包名，再约束模块声明所属目录；认可的包目录别名只解决静态布局归属。
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;

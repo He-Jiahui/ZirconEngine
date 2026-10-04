@@ -1,5 +1,6 @@
 use super::{assert_contains_all, assert_contains_all_exact, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0033] 动态会话注册表的句柄和唤醒生命周期的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_dynamic_api_session_registry_is_child_owner() {
     let parent = read_runtime_src("dynamic_api/session.rs");

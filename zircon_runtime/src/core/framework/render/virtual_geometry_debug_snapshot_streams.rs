@@ -1,3 +1,6 @@
+//! 将虚拟几何调试快照导出为可检查的 GPU 字流，并提供严格解码和分段诊断。
+//! 这是显式诊断接口；普通帧渲染不应依赖 CPU 解码回读来决定执行路径。
+
 use super::virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryExecutionState,
     RenderVirtualGeometryHardwareRasterizationRecord,
@@ -108,6 +111,7 @@ impl RenderVirtualGeometryDebugSnapshot {
         Self::summarize_debug_readback_stream_footprint(&self.debug_readback_streams())
     }
 
+    /// 同时保留原始载荷尺寸与首个解码错误，便于坏流诊断仍报告回读成本。
     pub fn debug_readback_stream_report(
         &self,
     ) -> RenderVirtualGeometryDebugSnapshotReadbackStreamReport {

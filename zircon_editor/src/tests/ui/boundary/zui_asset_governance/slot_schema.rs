@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 挂载槽名称、数量及 slotProps 对组件 schema 的遵循。
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;

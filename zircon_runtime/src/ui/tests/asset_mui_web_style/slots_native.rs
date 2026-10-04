@@ -1,3 +1,4 @@
+//! 验证作者槽位属性和原生别名穿过样式合并，最终落在根与具名子槽位。
 use super::*;
 
 #[test]
@@ -26,6 +27,7 @@ fn mui_slot_props_apply_to_root_and_named_slot_children() {
     assert_eq!(str_attr(child, "text"), Some("Slot Prop"));
     assert_eq!(str_attr(child, "text_tone"), Some("info"));
     assert_eq!(str_attr(child, "surface_variant"), Some("success"));
+    // 此夹具把 slots 替换名记入元数据，子节点仍按 Label 参与类名生成。
     assert_eq!(str_attr(child, "mui_slot_component"), Some("IconButton"));
     assert_classes(
         child,

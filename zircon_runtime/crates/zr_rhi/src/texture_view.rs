@@ -57,6 +57,7 @@ impl TextureViewDesc {
     }
 
     pub const fn resolved_format(&self, parent_format: TextureFormat) -> TextureFormat {
+        // 未指定时沿用父纹理格式；指定的重解释格式仍须在 TextureDesc::view_formats 中预先声明。
         match self.format {
             Some(format) => format,
             None => parent_format,

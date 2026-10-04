@@ -1,3 +1,4 @@
+// 核对时间线、字段、图标与头像回退形状的 MUI 绘制。
 use super::support::*;
 
 #[test]

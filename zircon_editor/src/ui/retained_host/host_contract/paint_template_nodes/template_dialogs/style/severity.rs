@@ -1,3 +1,6 @@
+//! 把dialog严重性token映射为提示边框和标记颜色；未声明info/error时沿用warning默认。
+//! 只有需要严重性装饰的dialog种类消费这些颜色，普通dialog保持中性容器。
+
 use super::palette::dialog_palette;
 use super::variants::variant_contains_any;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;

@@ -1,3 +1,5 @@
+//! 验证项目概览共享表面 token 与导入图投影。
+
 const PROJECT_OVERVIEW_TEMPLATE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/assets/ui/editor/project_overview.zui"

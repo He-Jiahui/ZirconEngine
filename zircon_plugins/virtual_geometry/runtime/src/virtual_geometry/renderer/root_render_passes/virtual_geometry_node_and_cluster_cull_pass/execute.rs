@@ -101,6 +101,7 @@ pub(in crate::virtual_geometry::renderer::root_render_passes) fn execute_virtual
     let mut page_request_ids = Vec::new();
     let mut seen_page_request_ids = BTreeSet::new();
     let mut current_wave_records = traversal_records.clone();
+// 当前帧的新请求额度先扣除已挂起页；同一去重集合贯穿所有子节点波次。
     let page_request_budget = cull_input
         .page_budget
         .saturating_sub(cull_input.pending_page_request_count);

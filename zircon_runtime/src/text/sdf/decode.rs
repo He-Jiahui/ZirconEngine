@@ -1,3 +1,5 @@
+//! 提供 CPU 侧距离场解码参考值，供解码测试与着色器语义对齐；MSDF 从 RGB 中位数取边界，MTSDF 的真距离来自 alpha。
+
 /// Median channel selection used by the MSDF reference implementation and WGSL.
 pub(crate) fn median3(red: f32, green: f32, blue: f32) -> f32 {
     red.max(green.min(blue)).min(green.max(blue))

@@ -30,6 +30,7 @@ impl ProductHostPhase {
         }
     }
 
+    /// 供协调器校验阶段回执；未执行资源释放时调用方须用处置类型明确说明。
     pub(super) const fn next_shutdown_phase(self) -> Option<Self> {
         match self {
             Self::Composing | Self::Running => Some(Self::Quiescing),

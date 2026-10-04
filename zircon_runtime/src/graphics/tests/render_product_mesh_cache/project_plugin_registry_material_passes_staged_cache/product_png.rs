@@ -1,3 +1,4 @@
+//! 注册材质 pass 的首帧与速度帧并排导出；保留两帧 GPU 结果供人工比较，自动断言由主测试承担。
 use std::{fs, path::PathBuf};
 
 use image::{ImageBuffer, ImageFormat, Rgba};

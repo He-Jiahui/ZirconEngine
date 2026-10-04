@@ -1,5 +1,6 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0017] 渲染框架锁恢复守卫首先失败于旧导入写法；导入形式不足以证明恢复行为，需定位现行框架状态访问器及中毒恢复测试后修订。
 #[test]
 fn runtime_15_wgpu_render_framework_lock_poison_recovery_guard_covers_wgpu_framework() {
     let wgpu_framework = read_runtime_src(
@@ -31,6 +32,7 @@ fn runtime_15_wgpu_render_framework_lock_poison_recovery_guard_covers_wgpu_frame
     );
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0016] 动画播放设置写入未匹配旧锁访问表达式；尚未证明恢复策略失效，需沿设置更新入口检查现行锁封装和中毒写入测试。
 #[test]
 fn runtime_15_animation_manager_lock_poison_recovery_guard_covers_playback_settings() {
     let animation_manager = read_runtime_src("animation/manager/mod.rs");

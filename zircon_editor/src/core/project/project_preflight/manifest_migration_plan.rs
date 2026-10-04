@@ -1,9 +1,9 @@
 use super::ProjectManifestMigrationAction;
 
-/// Static migration policy produced from a supported legacy manifest version.
+/// Static migration policy produced from a supported prior manifest version.
 ///
 /// A selected action must be executed by the owning transaction and followed by a fresh
-/// preflight. This plan never grants activation permission for the legacy receipt itself.
+/// preflight. This plan never grants activation permission for the pre-migration receipt itself.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ProjectManifestMigrationPlan {
     source_format_version: u32,

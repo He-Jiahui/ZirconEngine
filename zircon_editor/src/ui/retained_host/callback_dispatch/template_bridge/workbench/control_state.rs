@@ -8,6 +8,7 @@ use super::{
 };
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    // 同一选择状态同时写入控件及其子节点，避免模板视觉状态与事件值分离。
     pub(super) fn set_control_active(
         &mut self,
         control_id: &str,

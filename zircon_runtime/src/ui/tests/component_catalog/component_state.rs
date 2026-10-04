@@ -1,3 +1,5 @@
+//! 这里按语义事件拆分状态归约契约，子模块复用同一注册表与错误类型观察公开调用结果。
+
 use std::collections::BTreeMap;
 
 use crate::ui::component::UiComponentStateRuntimeExt;

@@ -1,3 +1,5 @@
+//! 错误诊断保存在资源记录中；typed facade 应能在没有可用 payload 时仍向调用者解释加载失败。
+
 use crate::asset::{AssetLoadState, Handle, ProjectAssetManager, TextureAsset};
 use crate::core::resource::{
     ResourceDiagnostic, ResourceId, ResourceKind, ResourceRecord, ResourceState,

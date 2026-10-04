@@ -2,6 +2,7 @@ use super::super::super::{
     RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlotMutationPreviewReport,
 };
 
+// 预览调用者给定的更新时间，保留其他元数据；不读取时钟，也不要求时间递增。
 pub(in crate::scene::dynamic_scene::session) fn preview_touch_slot(
     archive: &RuntimeSessionArchive,
     slot_id: &str,

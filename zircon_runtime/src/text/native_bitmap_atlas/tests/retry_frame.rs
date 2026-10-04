@@ -1,3 +1,5 @@
+//! 验证旧阻塞来源与当前可见来源按一对一顺序匹配、过期来源被丢弃、字体失效和背压报告沿完整帧传递。
+
 use super::*;
 use crate::text::atlas::{GlyphAtlasPageKey, GlyphAtlasPageSpec};
 

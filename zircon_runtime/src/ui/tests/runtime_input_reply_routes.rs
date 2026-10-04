@@ -1,3 +1,5 @@
+//! 共享夹具为不同输入家族建立同一根节点与元数据，子测试据此比较路由阶段、效果、组件事件和诊断。
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
@@ -55,6 +57,7 @@ mod tooltip_timer_routes;
 mod touch_pointer_routes;
 mod tree_view_pointer_routes;
 
+// 仅适用于下面固定的两层路由夹具；阶段数量属于该夹具的预览和目标处理契约。
 fn assert_two_node_bubble_handled_at_target(result: &UiInputDispatchResult) {
     assert_eq!(result.diagnostics.route_policy, UiInputRoutePolicy::Bubble);
     assert_eq!(result.diagnostics.route_target, Some(UiNodeId::new(2)));
@@ -110,6 +113,7 @@ fn assert_two_node_bubble_handled_at_target(result: &UiInputDispatchResult) {
     assert!(result.diagnostics.route_steps[2].stopped);
 }
 
+// 直接构造捕获前置状态以测试释放后的旧路由；并不替代输入管理器的真实捕获流程。
 fn capture_pointer_for_test(surface: &mut UiSurface, pointer_id: UiPointerId, owner: UiNodeId) {
     surface.focus.captured = Some(owner);
     surface.input.set_pointer_capture_for_id(pointer_id, owner);

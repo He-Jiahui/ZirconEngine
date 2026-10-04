@@ -2,6 +2,7 @@ use thiserror::Error;
 
 pub(crate) type ObjDecodeResult<T> = std::result::Result<T, ObjDecodeError>;
 
+/// 保留路径、行号和底层错误，使后台加载失败能够追溯到具体 OBJ 输入。
 #[derive(Debug, Error)]
 pub(crate) enum ObjDecodeError {
     #[error("read mesh {path}: {source}")]

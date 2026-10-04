@@ -3,6 +3,8 @@ use std::ops::Index;
 
 const MAX_CACHEABLE_PHASE_COUNT: usize = 3;
 
+/// 单个静态网格最多缓存预深度、阴影、主颜色三个 pass 的命令。
+/// 若增加可缓存 pass，须同步扩容这个固定槽位。
 pub(super) struct PendingMeshCommandSlots<T> {
     items: [Option<T>; MAX_CACHEABLE_PHASE_COUNT],
     len: usize,

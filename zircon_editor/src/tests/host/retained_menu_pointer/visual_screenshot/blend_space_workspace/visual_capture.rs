@@ -1,3 +1,4 @@
+// 核对混合空间截图的原生父链、绘制区域及显式生成入口。
 use super::support::*;
 use super::*;
 

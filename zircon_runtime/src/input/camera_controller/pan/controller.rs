@@ -3,6 +3,7 @@ use crate::core::framework::camera_controller::{
 };
 use crate::core::math::{clamp_viewport_size, Quat, Real, Transform, Vec2, Vec3};
 
+/// 二维平移与缩放状态持有者；调用方负责把输出变换应用到相机或场景。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PanCameraController {
     settings: PanCameraSettings,
@@ -30,6 +31,7 @@ impl PanCameraController {
         &mut self.state
     }
 
+    /// 将键盘轴、拖动、旋转和缩放汇入同一帧输出；拖动距离依赖视口尺寸。
     pub fn update(
         &mut self,
         transform: Transform,

@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0095] 虚拟几何页计划、前沿和优先级测试的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_visibility_virtual_geometry_tests_are_child_owners() {
     let parent = read_runtime_src("graphics/tests/visibility.rs");

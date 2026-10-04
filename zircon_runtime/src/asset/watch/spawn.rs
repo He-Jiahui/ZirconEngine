@@ -27,6 +27,7 @@ impl AssetWatcher {
         )
     }
 
+    /// 注册递归监听并等待启动握手；返回后回调可能并发运行，项目关闭时须释放或停止 watcher。
     pub fn spawn_with_options(
         assets_root: PathBuf,
         options: AssetWatcherOptions,

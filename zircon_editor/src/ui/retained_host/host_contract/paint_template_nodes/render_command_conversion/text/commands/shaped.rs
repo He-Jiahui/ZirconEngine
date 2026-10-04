@@ -10,6 +10,7 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
 
 use super::metrics::{resolved_font_size, resolved_line_height};
 
+/// 运行片段未接管时沿用 Runtime 字形簇的行与字形几何；至少两个非空簇且绘制样式相同才按行合并，其余有簇行按可见簇输出，无簇行使用行级回退。
 pub(super) fn push_shaped_text_commands(
     output: &mut Vec<HostPaintCommand>,
     text: &UiTextPaint,

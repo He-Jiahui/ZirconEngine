@@ -1,6 +1,7 @@
 use crate::core::math::{Real, Vec2, Vec3};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 宿主为一帧自由相机操作汇总的输入；焦点限制视角和光标抓取，移动速度仍由控制器状态连续积分。
 pub struct FreeCameraInput {
     pub delta_seconds: Real,
     pub movement_axis: Vec3,

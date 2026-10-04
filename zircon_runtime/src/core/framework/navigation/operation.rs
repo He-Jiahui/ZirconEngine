@@ -14,6 +14,7 @@ pub struct NavigationClearBakeRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// 记录某个 surface 的已发布烘焙资源，供清除、恢复及编辑器撤销操作交换前后状态。
 pub struct NavigationGeneratedBakeSnapshot {
     pub surface_entity: Option<u64>,
     pub asset: Option<NavMeshAsset>,
@@ -31,6 +32,7 @@ impl NavigationGeneratedBakeSnapshot {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// 一起携带烘焙前后快照与报告，供操作总线和撤销记录还原生成资源。
 pub struct NavigationGeneratedBakeChange {
     pub before: NavigationGeneratedBakeSnapshot,
     pub after: NavigationGeneratedBakeSnapshot,

@@ -1,3 +1,4 @@
+//! 已选适配器及主表面一次性交给设备，后续表面帧由同一代际管理。
 use zr_rhi::{RenderAdapterFacts, RenderDeviceProfile, RhiError, SurfaceSessionCreateOutcome};
 
 use super::{WgpuRenderDevice, WgpuRenderDeviceContext};

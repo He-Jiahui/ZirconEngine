@@ -1,8 +1,10 @@
+//! 从运行时源码树统计生产文件行数；排除测试目录后用统一预算约束职责聚合。
 use super::{assert_contains_all, read_repo, read_runtime_src};
 use std::path::{Path, PathBuf};
 
 const PRODUCTION_FILE_LINE_BUDGET: usize = 800;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0035] 运行时生产文件的全树行数预算 超出当前结构预算；需核对职责边界和预算来源，区分新增责任与历史门槛过时。
 #[test]
 fn runtime_15_no_oversized_production_files() {
     let runtime_src_root = runtime_src_root();

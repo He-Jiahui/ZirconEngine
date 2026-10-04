@@ -147,6 +147,7 @@ impl NativePluginLiveHost {
             .map_err(|error| error.to_string())
     }
 
+    // 在同一 loaded 保护期固定广播目标，再解锁逐一调用插件；避免回调重入主机造成死锁。
     pub(super) fn dispatch_runtime_plugin_command_result(
         &self,
         command_name: impl AsRef<str>,
@@ -221,6 +222,7 @@ impl NativePluginLiveHost {
             .map_err(|error| error.to_string())
     }
 
+    // Play Mode 只保存成功且带 payload 的插件状态；失败或无 payload 留在诊断中。
     pub(super) fn save_runtime_plugin_states_result(
         &self,
     ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimeStateSnapshot> {
@@ -308,6 +310,7 @@ impl NativePluginLiveHost {
             .map_err(|error| error.to_string())
     }
 
+    // 恢复前核对当前代次的状态 schema；缺失和版本不符仅跳过该插件，不阻断其他快照。
     pub(super) fn restore_runtime_plugin_states_result(
         &self,
         snapshot: &NativePluginRuntimeStateSnapshot,
@@ -373,6 +376,7 @@ impl NativePluginLiveHost {
             .map_err(|error| error.to_string())
     }
 
+    // 先留存状态，再广播进入事件；退出时反向广播后恢复，用于编辑器 Play Mode 边界。
     pub(super) fn enter_runtime_play_mode_result(
         &self,
     ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimePlayModeSnapshot> {
@@ -455,6 +459,7 @@ pub(super) fn unload_behavior(
     allow_missing_unload_callback_to_drop_handle(report)
 }
 
+// 卸载回调是可选能力：缺失时允许生命周期释放句柄，真实回调失败仍保持错误状态。
 pub(super) fn allow_missing_unload_callback_to_drop_handle(
     report: NativePluginBehaviorCallReport,
 ) -> NativePluginBehaviorCallReport {

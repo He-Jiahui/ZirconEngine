@@ -1,3 +1,4 @@
+// 从文档及浮窗标签指针回执派发，约束索引、可关闭性、焦点和关闭命令。
 use crate::core::editor_event::{
     EditorEvent, LayoutCommand as EventLayoutCommand, ViewInstanceId as EventViewInstanceId,
 };

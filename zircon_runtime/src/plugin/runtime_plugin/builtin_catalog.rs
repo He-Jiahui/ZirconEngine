@@ -27,6 +27,7 @@ type BuiltinCatalogDescriptorBuilder = RuntimePluginDescriptorBuilder;
 type IdentifiedBuiltinCatalogDescriptorBuilder = (&'static str, BuiltinCatalogDescriptorBuilder);
 
 impl RuntimePluginDescriptor {
+    /// 构造内建包的静态目录：先补充能力与可选特性，再分类状态，供目录构造器一次性生成初始代。
     pub fn builtin_catalog() -> Vec<Self> {
         builtin_catalog_rows()
             .map(|row| {

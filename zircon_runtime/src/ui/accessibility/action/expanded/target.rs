@@ -16,6 +16,7 @@ pub(super) struct UiExpandableActionTarget {
     pub(super) kind: UiExpandableActionKind,
 }
 
+// 用 widget 行为找真实 open 属性，解决组件自定义 alias 与默认 expanded/popup_open 名称不一致的问题。
 pub(super) fn expandable_action_target(
     surface: &UiSurface,
     target: UiNodeId,

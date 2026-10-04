@@ -1,3 +1,4 @@
+//! 查询资源准备遵守设备查询容量与布局上限，解析缓冲随帧提交后才能读取。
 use std::ops::Range;
 
 use zr_rhi::{DiagnosticQueryPlan, DiagnosticReadbackTerminal, RhiError, SubmissionStatus};

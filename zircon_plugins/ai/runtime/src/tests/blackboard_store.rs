@@ -65,6 +65,7 @@ fn write_same_value_does_not_bump_generation() {
     assert_eq!(store.generation(slot), 2);
 }
 
+// 出错快照不得部分写入稠密槽位，也不得改变已有通知状态。
 #[test]
 fn synchronize_failure_is_atomic() {
     let layout = Arc::new(BlackboardLayout::from_schema(&schema()).expect("valid layout"));

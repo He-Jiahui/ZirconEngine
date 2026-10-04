@@ -2,6 +2,7 @@ use super::{
     RenderHybridGiFallbackReason, RenderHybridGiMode, RenderHybridGiProfile, RenderHybridGiQuality,
 };
 
+/// provider 实际采用的 GI 配置及回退原因，供帧统计和编辑器诊断回显。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderHybridGiResolvedSettings {
     pub mode: RenderHybridGiMode,

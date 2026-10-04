@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
     serializable = false,
     script_visibility = "public"
 )]
+/// 节点的父子关系源数据；重设父节点应走 World 的受检入口，以同时维护拓扑、派生变换和绑定失效代。
 pub struct Hierarchy {
     #[zr_reflect(
         value_type_path = "Entity",

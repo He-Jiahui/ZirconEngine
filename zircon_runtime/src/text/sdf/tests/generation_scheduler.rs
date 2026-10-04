@@ -1,3 +1,5 @@
+//! 检验批量字形生成在任务池阻塞、去重、取消和预算压力下的可重试状态，防止 atlas_build 长时间等待或丢失请求。
+
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 

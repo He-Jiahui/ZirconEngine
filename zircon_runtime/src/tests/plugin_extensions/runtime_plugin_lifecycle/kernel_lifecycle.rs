@@ -1,3 +1,4 @@
+//! 记录夹具随核心模块经历构建、就绪、完成和清理，证明插件描述符复用核心生命周期。
 use std::sync::{Arc, Mutex};
 
 use crate::core::{CoreRuntime, ModuleLifecycle};

@@ -1,3 +1,4 @@
+//! 注册边界的清单验证集中于此，保证进入可撤销表的标识与描述符满足各自约束。
 mod component;
 mod plugin_event_catalog;
 mod plugin_option;

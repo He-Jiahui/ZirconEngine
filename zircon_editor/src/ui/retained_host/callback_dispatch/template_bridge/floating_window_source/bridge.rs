@@ -11,6 +11,7 @@ use super::surface::{
     build_builtin_floating_window_source_surface, rebuild_builtin_floating_window_source_surface,
 };
 
+// 浮动窗口布局只提供宿主可复用的来源帧；窗口身份和聚焦顺序由宿主维护。
 pub(crate) struct BuiltinFloatingWindowSourceTemplateBridge {
     surface: UiSurface,
     shell_size: UiSize,

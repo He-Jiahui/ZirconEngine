@@ -1,3 +1,4 @@
+// 构造全局外观偏好组件并捕获像素证据，约束字段、分段选择和列表行的绘制。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

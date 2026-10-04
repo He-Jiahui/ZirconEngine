@@ -1,3 +1,5 @@
+//! 三类状态各有独立的非零发布代数，跨源比较须先确认是创建、请求还是生效状态。
+
 use std::num::NonZeroU64;
 
 macro_rules! window_state_generation {

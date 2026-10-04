@@ -12,6 +12,7 @@ pub fn project_session_lock_path(project_root: impl AsRef<Path>) -> PathBuf {
 
 /// 按传入根路径的 UTF-16 原样散列互斥名；调用方必须先选择同一物理根的规范形式。
 // TODO: [CR-PROJECT-0004] Hub 与 Editor 各自规范化根路径；补跨端等价测试，覆盖扩展前缀与非 Unicode 路径。
+// 当前 Hub 经 normalize_project_root 去除 Windows 扩展长度前缀，Editor 经 ProjectPaths::resolve_path 取显示路径；现有扩展前缀与别名测试未比较两端最终互斥名。
 #[cfg(windows)]
 pub fn windows_project_session_mutex_name(project_root: impl AsRef<Path>) -> String {
     use std::os::windows::ffi::OsStrExt;

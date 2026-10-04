@@ -1,3 +1,4 @@
+//! 实体组件存储与标识能力吸收后，核心拥有者和文档锚点需一致。以结果断言检查当前接口或源码快照对应的边界。
 use super::support::assert_source_anchors;
 
 pub(super) const EXPECTED_RUNTIME_08_BEHAVIOR_TEST_ANCHORS: &[&str] = &[

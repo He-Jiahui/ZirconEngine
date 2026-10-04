@@ -1,3 +1,5 @@
+//! 弹层容器底面仅在当前clip有交集时提交；尺寸与圆角从节点/宿主主题读取。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

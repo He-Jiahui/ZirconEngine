@@ -1,3 +1,6 @@
+//! 快照构建从模板元数据提取朗读名称/替代文本；存在性检测与取值转换共享同一标量规则。
+//! 空字符串不构成可朗读名称，数字和布尔属性保留为其文字表达。
+
 use toml::Value;
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 

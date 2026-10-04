@@ -90,6 +90,7 @@ impl HybridGiRuntimeState {
         self.probe_parent_probes_mut().clear();
         self.probe_ray_budgets_mut().clear();
         self.probe_scene_data_mut().clear();
+        // BUG: [CR-HYBRID-GI-0004] 每帧注册都会清除上一帧 GPU 回写的探针颜色，下一次投影无法消费该历史。
         self.probe_irradiance_rgb_mut().clear();
         self.probe_rt_lighting_rgb_mut().clear();
         self.recent_lineage_trace_support_q8_mut().clear();

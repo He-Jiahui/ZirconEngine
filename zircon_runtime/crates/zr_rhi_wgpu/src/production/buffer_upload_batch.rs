@@ -1,3 +1,4 @@
+//! 产品侧将不可变上传字节和目标缓存一起移交提交队列，使异步提交前载荷始终有效。
 use core::ops::Range;
 use std::sync::Arc;
 

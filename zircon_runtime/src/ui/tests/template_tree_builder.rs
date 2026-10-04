@@ -1,3 +1,5 @@
+//! 模板实例构树须承受深层作者树且拒绝重复 control_id，避免栈耗尽与后续按身份路由的歧义。
+
 use crate::ui::template::{UiTemplateBuildError, UiTemplateInstance, UiTemplateTreeBuilder};
 use zircon_runtime_interface::ui::{event_ui::UiTreeId, template::UiTemplateNode};
 
@@ -60,6 +62,7 @@ fn template_tree_builder_rejects_duplicate_control_ids_during_instantiation() {
     );
 }
 
+// 自底向上建立单链，只用来压测构树栈边界；释放策略由调用测试单独隔离。
 fn deep_template_chain(node_count: usize) -> UiTemplateNode {
     assert!(node_count > 0);
     let mut node = UiTemplateNode {

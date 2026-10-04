@@ -1,3 +1,4 @@
+//! 检查器动作先落到动画命令绑定；空路径只是注册时的命令形状。
 use crate::ui::binding::{AnimationCommand, EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::EditorActivityReflection;
@@ -9,6 +10,7 @@ use zircon_runtime_interface::ui::{
 use super::name_mapping::binding_view_id;
 use super::route_registration::register_binding_route;
 
+/// 为轨道创建动作登记有类型的事件路由；实际路径须由后续事件参数提供。
 pub(super) fn register_animation_route(
     service: &mut EditorUiControlService,
     activity: &EditorActivityReflection,

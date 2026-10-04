@@ -3,6 +3,7 @@ use super::super::super::super::visual_assets::{
     raster_size_from_frame, template_image_pixels, HostPaintImagePixels,
 };
 
+// 头像图像和文字均无内容时，按 icon_name 尝试图像回退；该请求返回 None 后内容序列才画内置 glyph。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_icon_pixels(
     node: &TemplatePaneNodeData,
     icon_rect: &FrameRect,

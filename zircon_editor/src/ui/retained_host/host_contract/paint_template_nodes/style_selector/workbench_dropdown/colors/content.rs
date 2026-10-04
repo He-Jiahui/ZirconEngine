@@ -1,3 +1,5 @@
+//! 文字区分显式值色和占位色，箭头区分展开反馈；不可用状态统一压过这些局部颜色。
+
 use super::super::palette::workbench_dropdown_palette;
 use super::super::state::{dropdown_node_is_open, is_unavailable_dropdown_state};
 use super::declared::declared_color;

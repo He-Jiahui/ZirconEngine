@@ -7,6 +7,7 @@ use crate::core::framework::bridge::{BridgeError, InterfaceSlot, PluginInterface
 
 use super::table::FrozenBridgeTable;
 
+/// 可跨 owner 启停持有的调用句柄。缓存只保存弱 provider，避免旧实现被缓存延长寿命。
 pub struct WeakBridge<T: ?Sized> {
     table: FrozenBridgeTable,
     slot: Option<InterfaceSlot>,
@@ -40,11 +41,14 @@ where
         }
     }
 
+    /// 通过静态接口 ID 一次确定 slot；热更新维持 slot，调用时再查代际。
     pub fn owned(table: FrozenBridgeTable) -> Self {
         let slot = table.resolve_slot(T::INTERFACE_ID);
         Self::new(table, slot)
     }
 
+    /// 每次调用先验证当前代际；匹配时复用弱缓存，否则从表重新获取 provider。
+    /// 已取得 Arc 的在途回调允许跨禁用或替换完成，调用方不能以禁用撤销正在运行的回调。
     pub fn call<R>(&self, f: impl FnOnce(&T) -> R) -> Result<R, BridgeError> {
         let slot = self.slot.ok_or(BridgeError::Absent)?;
         match self.current_generation(slot) {
@@ -79,6 +83,7 @@ where
         }
     }
 
+    /// 系统体批量调用前解析一次；guard 持强 Arc，停用后仍可使用直到 guard 释放。
     pub fn pin(&self) -> Result<BridgeGuard<T>, BridgeError> {
         match self.provider_with_slot() {
             Ok((slot, target)) => {
@@ -134,6 +139,7 @@ where
             .map_err(|(_, error)| (Some(slot), error))
     }
 
+    // 代际奇偶是新调用准入的快速判断；真正 provider 与类型仍在慢路径的同一状态快照中核验。
     fn current_generation(&self, slot: InterfaceSlot) -> Result<u32, BridgeError> {
         let generation = self
             .table
@@ -163,6 +169,7 @@ where
     }
 }
 
+/// 批量调用期间显式持有本次解析结果；该结构不再跟随表的代际变化。
 pub struct BridgeGuard<T: ?Sized> {
     target: Arc<T>,
 }

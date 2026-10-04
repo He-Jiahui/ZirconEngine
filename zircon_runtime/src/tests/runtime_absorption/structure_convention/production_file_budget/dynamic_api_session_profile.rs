@@ -1,5 +1,6 @@
 use super::{assert_contains_all, assert_contains_all_exact, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0032] 动态会话的运行配置解析归属 超出当前结构预算；需核对职责边界和预算来源，区分新增责任与历史门槛过时。
 #[test]
 fn runtime_15_dynamic_api_session_profile_is_child_owner() {
     let parent = read_runtime_src("dynamic_api/session.rs");

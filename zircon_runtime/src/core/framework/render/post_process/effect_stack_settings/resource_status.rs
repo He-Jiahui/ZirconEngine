@@ -1,5 +1,7 @@
 use crate::core::framework::render::MotionVectorCameraStatus;
 
+/// 帧提交汇集的资源可用性快照，供效果报告解释运动向量、SSR 历史等降级原因。
+/// 它不是效果开关；创作设置和实际资源状态须分别传入诊断构造函数。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderPostProcessEffectStackResourceStatus {
     pub ssr_normal_available: bool,

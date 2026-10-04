@@ -1,4 +1,5 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 运行时向编辑器暴露的后端可用性摘要；不承担设备特性协商。
 pub struct RenderingBackendInfo {
     pub backend_name: String,
     pub supports_runtime_preview: bool,
@@ -27,6 +28,7 @@ pub struct RenderDeviceLimitDiagnostics {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 捕获钩子的生命周期状态；available 不表示调试器已经附着。
 pub struct GraphicsDebuggerStatus {
     /// True when the backend exposes a graphics-debugger capture hook through wgpu.
     /// This does not prove that RenderDoc or another debugger is attached.

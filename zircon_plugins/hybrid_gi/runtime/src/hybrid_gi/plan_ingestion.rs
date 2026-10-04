@@ -58,6 +58,7 @@ impl HybridGiRuntimeState {
         self.replace_evictable_probes(evictable_probes);
     }
 
+    // 场景表示自行管理探针时，旧可见性计划不得再把遗留探针提升为驻留。
     fn has_live_probe_payload(&self, probe_id: u32) -> bool {
         !self.scene_representation_owns_runtime() && self.probe_scene_data().contains_key(&probe_id)
     }

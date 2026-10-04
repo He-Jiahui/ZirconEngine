@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0105] 场景渲染光源快照投影 超出当前结构预算；需核对职责边界和预算来源，区分新增责任与历史门槛过时。
 #[test]
 fn runtime_15_scene_world_render_light_collectors_are_child_owner() {
     let parent = read_runtime_src("scene/world/render.rs");

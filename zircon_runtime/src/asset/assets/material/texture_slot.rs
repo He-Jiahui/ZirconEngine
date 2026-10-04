@@ -1,3 +1,5 @@
+//! 纹理槽把 shader 声明的绑定名与资产引用关联；材质依赖提取和渲染绑定需要保持同一槽名及引用身份。
+
 use serde::{Deserialize, Serialize};
 
 use crate::asset::AssetReference;

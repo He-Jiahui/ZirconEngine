@@ -1,3 +1,5 @@
+//! 注册表按类型签名和提供者代际解析转换句柄；升级或卸载必须拒绝旧句柄，避免调用错误版本。
+
 use crate::ui::binding::{UiBindingConversionRegistry, UiBindingConversionRegistryError};
 use zircon_runtime_interface::ui::{
     binding::{
@@ -156,6 +158,7 @@ fn conversion_registry_preserves_provider_errors_and_rejects_wrong_input_or_outp
     ));
 }
 
+// 固定转换 ID 用于同一个注册槽的代际冲突测试；generation 必须为正值，类型签名由各案例选择。
 fn descriptor(
     generation: u64,
     source: UiValueKind,
@@ -168,6 +171,7 @@ fn descriptor(
     )
 }
 
+// 提供者只接受注册签名的输入；不可直接拿它测试类型拒绝，类型错误由 registry.execute 在进入提供者前判定。
 fn int_to_string(value: &UiValue) -> Result<UiValue, UiBindingConversionProviderError> {
     let UiValue::Int(value) = value else {
         unreachable!("registry validates the source kind before provider execution")
@@ -195,6 +199,7 @@ fn reject_negative_int(value: &UiValue) -> Result<UiValue, UiBindingConversionPr
     Ok(UiValue::String(value.to_string()))
 }
 
+// 故意违背声明的返回类型，以验证注册表执行后再次检查输出签名。
 fn int_to_float(value: &UiValue) -> Result<UiValue, UiBindingConversionProviderError> {
     let UiValue::Int(value) = value else {
         unreachable!("registry validates the source kind before provider execution")

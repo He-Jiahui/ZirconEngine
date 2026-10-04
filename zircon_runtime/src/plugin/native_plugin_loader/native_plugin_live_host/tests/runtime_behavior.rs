@@ -162,6 +162,8 @@ unsafe extern "C" fn stateful_save_state(
         };
     }
     static STATE: &[u8] = b"state";
+    // SAFETY: output 已检查非空，且仅由行为回调适配器传入有效可写的 ABI 输出槽；
+    // 返回的缓冲指向静态 STATE，整个测试回调之后仍存活。
     unsafe {
         *output = NativePluginOwnedByteBufferV3 {
             data: STATE.as_ptr().cast_mut(),
@@ -181,6 +183,8 @@ unsafe extern "C" fn stateful_restore_state(
     state: NativePluginByteSliceV3,
 ) -> NativePluginCallbackStatusV3 {
     let restored = !state.data.is_null()
+        // SAFETY: state 来自宿主保存的 Vec 状态，在同步 restore 回调期间保持存活；
+        // 前面的非空检查排除了空指针，长度由同一快照生成。
         && unsafe { std::slice::from_raw_parts(state.data, state.len) } == b"state";
     if restored {
         state_restore_count().fetch_add(1, Ordering::SeqCst);
@@ -690,6 +694,8 @@ fn native_runtime_broadcast_32_plugin_benchmark() {
     run_native_runtime_broadcast_benchmark(32);
 }
 
+// BUG: [CR-PLUGIN-NATIVE-0304] 基准广播的命令未在 fixture 的命令清单声明，
+// 因而测量拒绝路径而没有进入原生回调；证据：宿主 fixture 复用仅声明 probe 的行为表。
 fn run_native_runtime_broadcast_benchmark(plugin_count: usize) {
     let metadata = BenchmarkRunMetadata::from_environment(
         "native_runtime_broadcast",

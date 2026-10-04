@@ -1,3 +1,5 @@
+//! 运行时与编辑器对同一 Material 目录的可见集不同；本测试固定 MUI X 与过渡组件的能力分界。
+
 use super::*;
 
 #[test]
@@ -87,6 +89,7 @@ fn material_editor_foundation_catalog_covers_mui_x_runtime_visibility_contracts(
     assert_has_prop(agent_chat, "streaming");
     assert_has_event(agent_chat, UiComponentEventKind::Commit);
 
+    // 此处按 required_host_capabilities 查询宿主可见声明；夹具不创建组件实例或验证渲染能力。
     let editor_visible = registry.descriptors_for_host(&UiHostCapabilitySet::editor_authoring());
     assert_eq!(editor_visible.len(), expected_len);
     let runtime_visible_ids = registry

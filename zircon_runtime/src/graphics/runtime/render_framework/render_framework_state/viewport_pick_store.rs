@@ -1,3 +1,4 @@
+//! 拾取存储按票据与视口句柄配对请求和异步结果，并在撤销或销毁时丢弃失效等待者。
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 

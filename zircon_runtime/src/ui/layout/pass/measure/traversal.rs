@@ -15,6 +15,7 @@ use super::super::{
 };
 use super::measure_content_size;
 
+/// 完整布局按子先父后的次序生成期望尺寸，共用文本缓存；此阶段不发布最终帧坐标。
 pub(crate) fn measure_node(
     tree: &mut UiTree,
     node_id: UiNodeId,
@@ -38,6 +39,8 @@ pub(crate) fn measure_node(
     })
 }
 
+/// 增量入口必须传入已扩展的布局依赖路径；有效且不在路径上的子树保留缓存，Collapsed 例外。
+/// visited 收集真正处理的节点，返回计数还包含用于决定复用的探测，供工作量诊断分别统计。
 pub(crate) fn measure_node_incremental(
     tree: &mut UiTree,
     node_id: UiNodeId,

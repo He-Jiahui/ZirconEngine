@@ -1,3 +1,4 @@
+//! 时间序列动画功能包声明对动画事件轨和 Sound 基础能力的依赖，供宿主按项目选择加载。
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{

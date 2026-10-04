@@ -1,3 +1,4 @@
+//! RSS 采样器把平台可用的工作集读数交给独立线程，finish 通过 stop-and-join 固定采样生命周期。
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;

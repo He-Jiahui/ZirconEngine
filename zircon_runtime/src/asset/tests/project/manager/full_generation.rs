@@ -1,8 +1,11 @@
+//! 通过事务故障注入和重启恢复，守护整项目导入时磁盘文件、两套注册表与当前代的一致性。
+
 use super::*;
 use crate::core::resource::io::transaction::DurableCommitReport;
 use crate::core::resource::ResourceRecord;
 
 #[test]
+// 资源记录与磁盘事务同代发布；注册表写入前失败时，不允许留下新 artifact、sidecar 或内存可见状态。
 fn full_generation_commit_failure_rolls_back_every_visible_file_and_live_registry() {
     let root = unique_temp_project_root("project_manager_full_generation_rollback");
     let paths = ProjectPaths::from_root(&root).unwrap();
@@ -150,6 +153,7 @@ fn full_generation_rejects_a_sidecar_that_changes_after_prepare() {
 }
 
 #[test]
+// 重启恢复以事务终态为界；任何未达终态的阶段都应回滚作者可见文件及索引。
 fn project_generation_restart_rolls_back_every_preterminal_phase() {
     for (label, inject) in [
         (
@@ -245,6 +249,7 @@ fn unsynced_commit_point_installs_the_live_generation_before_reporting_pending_r
 }
 
 #[test]
+// 恢复入口处理磁盘日志前须约束可写命名空间，否则伪造日志可能覆盖项目源文件。
 fn project_open_rejects_a_forged_generation_targeting_a_source_file() {
     let mut fixture = durable_generation_fixture("forged_source_target");
     let journal_directory = fixture.paths.derived_root().join("project-generation");

@@ -3,6 +3,7 @@ use super::super::super::{
     RuntimeSessionSlotMutationPreviewReport,
 };
 
+// 验证显式目标后预览完整元数据替换；规范化仅作用于报告，不变更槽位、标签索引或场景。
 pub(in crate::scene::dynamic_scene::session) fn preview_update_slot_metadata(
     archive: &RuntimeSessionArchive,
     slot_id: &str,

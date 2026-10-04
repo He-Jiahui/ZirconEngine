@@ -4,6 +4,7 @@ use crate::core::math::Real;
 use crate::core::math::Transform;
 use crate::core::resource::AssetReference;
 
+/// 后端中立的碰撞几何；资源型形状留给物理插件解析，复合形状保留子形状局部姿态。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum PhysicsColliderShape {

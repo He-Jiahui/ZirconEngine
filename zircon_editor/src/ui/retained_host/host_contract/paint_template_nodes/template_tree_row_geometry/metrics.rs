@@ -1,3 +1,5 @@
+//! 将工作台统一密度和 palette 投影给树行；行内布局不可单独猜测文字与导线尺寸。
+
 use super::super::template_row_metrics::{
     workbench_row_metrics, workbench_row_palette, WorkbenchRowMetrics,
 };

@@ -1,3 +1,5 @@
+//! 验证 ArtifactStore 写入的二进制缓存能恢复模型、网格、纹理和引用值；ProjectManager 读取缓存时依赖这些字段不被旧序列化形状遗漏。
+
 use super::*;
 use crate::core::framework::render::{
     RenderImageColorSpace, TextureMipFilter, TextureMipPolicy, TextureUsageHint,

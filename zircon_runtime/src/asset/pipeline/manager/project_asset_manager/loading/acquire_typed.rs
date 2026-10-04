@@ -6,6 +6,7 @@ use super::super::ProjectAssetManager;
 use crate::asset::AssetId;
 
 impl ProjectAssetManager {
+    /// 供各类 acquire_* 入口复用：先确保驻留，再交出能跨资源替换持有该载荷的 lease。
     pub(in crate::asset::pipeline::manager::project_asset_manager::loading) fn acquire_typed<
         TMarker,
         TAsset,

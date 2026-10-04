@@ -1,3 +1,4 @@
+//! 以点击、框选和帧提交调用核对视口选择、覆盖层命中与运行时渲染提取的边界，确保多选和文本覆盖层按活动世界域提交。
 use crate::core::editing::engine::{
     CommandExecutionError, EditCommand, EditCommandError, EditContext, HistoryContextId,
 };

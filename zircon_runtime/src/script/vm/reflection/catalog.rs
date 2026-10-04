@@ -1,3 +1,4 @@
+//! 反射目录为每个插件槽位维护可发布的类型代际；候选先验证现有世界，再在协调器提交时同步当前和未来世界。
 use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};

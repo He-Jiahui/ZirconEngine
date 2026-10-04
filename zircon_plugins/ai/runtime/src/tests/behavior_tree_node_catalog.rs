@@ -4,6 +4,7 @@ use crate::behavior_tree::{
 };
 use zircon_runtime::plugin::PluginModuleId;
 
+// 固定标准节点语义快照，避免注册表顺序或类别变化悄悄改变编译结果。
 #[test]
 fn standard_node_catalog_snapshot() {
     let catalog = standard_node_catalog().expect("standard node catalog is valid");

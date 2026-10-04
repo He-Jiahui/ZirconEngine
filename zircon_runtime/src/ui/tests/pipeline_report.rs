@@ -1,3 +1,4 @@
+//! 从已发布 surface frame 核对流水线阶段顺序、跳过条件与统计归属，含文本缓存工作量。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},

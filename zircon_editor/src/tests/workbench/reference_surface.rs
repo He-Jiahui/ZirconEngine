@@ -1,3 +1,4 @@
+//! 真实模板投影与程序化参考壳的对照；局部语义、几何更新和指针事件分别有独立断言。
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostValue, WORKBENCH_WINDOW_DOCUMENT_ID,
 };
@@ -18,6 +19,7 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
+/// hover仅影响一个语义节点时应局部更新并跳过frame抽取，结果与独立全量基线等价。
 fn workbench_template_surface_patches_single_interaction_node_and_matches_full_projection() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
@@ -64,6 +66,7 @@ fn workbench_template_surface_patches_single_interaction_node_and_matches_full_p
 }
 
 #[test]
+/// 运行时focus与focus-visible有独立状态，投影不能由focused推断可见焦点环。
 fn workbench_template_surface_patches_runtime_focus_visibility_and_matches_full_projection() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
@@ -101,6 +104,7 @@ fn workbench_template_surface_patches_runtime_focus_visibility_and_matches_full_
 }
 
 #[test]
+/// resize只更新几何工作集；节点语义及完整重建计数保持不变，再比全量基线。
 fn workbench_template_surface_patches_resize_geometry_without_rebuilding_node_semantics() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
@@ -135,6 +139,7 @@ fn workbench_template_surface_patches_resize_geometry_without_rebuilding_node_se
 }
 
 #[test]
+/// 故意破坏索引后须安全回退完整投影，不能继续提交不完整局部工作集。
 fn workbench_template_surface_falls_back_when_projection_index_is_invalid() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
@@ -171,6 +176,7 @@ fn workbench_template_surface_falls_back_when_projection_index_is_invalid() {
 }
 
 #[test]
+/// 程序化参考以共享metrics确定壳区域，并核对实际布局引擎参与；参考本身不是操作会话。
 fn reference_workbench_surface_lays_out_target_editor_chrome() {
     let mut reference = build_editor_workbench_reference_surface().unwrap();
     reference.compute_reference_layout().unwrap();
@@ -252,6 +258,7 @@ fn reference_workbench_surface_lays_out_target_editor_chrome() {
 }
 
 #[test]
+/// 已布局参考必须输出panel和控件的渲染命令；存在quad或text不代表GPU已经绘制。
 fn reference_workbench_surface_extracts_renderable_panels_and_controls() {
     let mut reference = build_editor_workbench_reference_surface().unwrap();
     reference.compute_reference_layout().unwrap();
@@ -282,6 +289,7 @@ fn reference_workbench_surface_extracts_renderable_panels_and_controls() {
 }
 
 #[test]
+/// 在真实布局中心发送按下和抬起，验证命中、pressed以及Click事件，而非只检查绑定字符串。
 fn reference_workbench_surface_routes_primary_button_pointer_response() {
     let mut reference = build_editor_workbench_reference_surface().unwrap();
     reference.compute_reference_layout().unwrap();
@@ -317,6 +325,7 @@ fn reference_workbench_surface_routes_primary_button_pointer_response() {
 }
 
 #[test]
+/// 真实复合模板对照参考几何、host节点状态和binding，再resize验证投影同步；此处不执行各模块业务动作。
 fn reference_workbench_componentized_window_surface_matches_reference_chrome_metrics() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
@@ -674,6 +683,7 @@ fn reference_workbench_componentized_window_surface_matches_reference_chrome_met
     );
 }
 
+/// 供参考几何和指针用例读取已完成布局的节点frame；缺节点直接失败以暴露fixture契约破坏。
 fn frame(reference: &EditorWorkbenchReferenceSurface, node_id: UiNodeId) -> UiFrame {
     reference
         .surface
@@ -684,6 +694,7 @@ fn frame(reference: &EditorWorkbenchReferenceSurface, node_id: UiNodeId) -> UiFr
         .frame
 }
 
+/// 模板对照用稳定control身份查询实际树节点，避免依赖生成节点数值ID。
 fn node_by_control<'a>(
     surface: &'a zircon_runtime::ui::surface::UiSurface,
     control_id: &str,
@@ -701,6 +712,7 @@ fn node_by_control<'a>(
         .unwrap_or_else(|| panic!("missing control `{control_id}`"))
 }
 
+/// 参考与模板对照共享小容差，容纳布局浮点结果；该容差仅为几何回归判断。
 fn assert_frame(actual: UiFrame, expected: UiFrame) {
     let epsilon = 0.01;
     assert!(

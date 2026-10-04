@@ -1,6 +1,7 @@
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::{ExportPackagingStrategy, ProjectPluginManifest};
 
+// 指纹只作快速候选索引；缓存命中仍以完整清单相等校验，避免哈希碰撞误用计划。
 pub(super) fn project_manifest_fingerprint(manifest: &ProjectPluginManifest) -> u64 {
     let mut fingerprint = ManifestFingerprint::new();
     fingerprint.write_len(manifest.selections.len());

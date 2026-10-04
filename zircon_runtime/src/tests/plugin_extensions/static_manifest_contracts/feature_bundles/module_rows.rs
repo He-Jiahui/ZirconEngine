@@ -1,3 +1,4 @@
+//! 模块遍历覆盖包本身、包内特性与外部特性；缺失模块不产生行，已声明但类型错误则失败。
 use std::path::Path;
 
 use super::feature_bundle_rows::for_each_feature_bundle;

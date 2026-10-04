@@ -1,3 +1,4 @@
+//! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。以结果断言检查当前接口或源码快照对应的边界。
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};

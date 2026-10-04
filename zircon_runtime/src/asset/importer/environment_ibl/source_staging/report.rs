@@ -8,6 +8,8 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 导入器向直接调用者或项目事务交付的结果：状态、规范请求、缓存路径和本次工作量。
+/// Skipped 不携带请求与路径；Written 描述本次已编码的输出，持久化仍由发布方完成。
 pub struct EnvironmentIblSourceStagingReport {
     status: EnvironmentIblSourceStagingStatus,
     request: Option<IblBakeArtifactRequest>,
@@ -49,6 +51,8 @@ impl EnvironmentIblSourceStagingReport {
         self.timing.bundle_commit = self.timing.bundle_commit.saturating_add(duration);
     }
 
+    // 只在 standalone commit 或项目事务接收待写文件时记录一次；
+    // 调用者不应再次上报同一 report，否则 attempt 与阶段计数会重复。
     pub(in crate::asset::importer::environment_ibl) fn record_profile_observation(&self) {
         #[cfg(feature = "profiling")]
         {

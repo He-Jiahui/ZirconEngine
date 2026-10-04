@@ -1,3 +1,5 @@
+//! 固定 Material 可交互原型的事件 ID、种类与路由清单，供反馈事件和路由测试共同对照。
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,

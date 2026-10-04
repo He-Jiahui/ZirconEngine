@@ -4,6 +4,9 @@ use super::super::{
 use super::byte_view::ScriptHostByteView;
 use super::typed_conversion::argument_type_error;
 
+/// 借用型参数值，只在 ScriptHostArguments 的同步 visitor 中有效。
+///
+/// 字符串和字节需要跨越调用栈时，应在明确的业务边界复制并计入热路径指标。
 #[derive(Clone, Copy)]
 pub enum ScriptHostValueRef<'call> {
     Null,
@@ -28,6 +31,7 @@ impl ScriptHostValueRef<'_> {
         }
     }
 
+    /// 将借用字符串转为业务拥有值，并记录这次跨边界复制的字节数。
     pub fn copy_string_at_business_boundary(
         &self,
         argument_index: usize,
@@ -45,6 +49,7 @@ impl ScriptHostValueRef<'_> {
         }
     }
 
+    /// 将借用字节转为业务拥有值；guest 源的读取错误会原样返回。
     pub fn copy_bytes_at_business_boundary(
         &self,
         argument_index: usize,

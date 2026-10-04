@@ -1,3 +1,5 @@
+//! 验证取消、关闭、期限和发布竞争的唯一终态，以及锁外交付观察者的重入限制。
+//! 队列阻塞夹具将票据过期与工作退休分开，检查迟到任务不会改写既定终态。
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Barrier};
@@ -121,6 +123,7 @@ fn ticket_wait_uses_terminal_notification_without_polling() {
 }
 
 #[test]
+// 先占据唯一线程，证明等待票据可自行到期；释放线程后再检查任务退休记录保留同一失败类别。
 fn queued_ticket_deadline_terminalizes_without_a_collector_worker() {
     let pool = TaskPool::new(TaskPoolDescriptor::io().with_worker_threads(1));
     let (blocker_started_sender, blocker_started_receiver) = mpsc::sync_channel(1);
@@ -155,6 +158,8 @@ fn queued_ticket_deadline_terminalizes_without_a_collector_worker() {
         NativePluginDiscoveryRefreshTerminal::DeadlineExceeded
     ));
     assert!(started_while_blocked.is_err());
+    // BUG: [CR-PLUGIN-NATIVE-0209] 票据已在队列中到期后，收集入口先检查取消状态并直接返回，
+    // 不会调用此接收器的发送端；此断言等待必然超时。证据：收集代际在调用收集器之前先执行活跃检查。
     collector_started_receiver
         .recv_timeout(Duration::from_secs(1))
         .expect("late collector start");
@@ -176,6 +181,7 @@ fn queued_ticket_deadline_terminalizes_without_a_collector_worker() {
 }
 
 #[test]
+// 观察者在收集线程交付，重新调用发现只能投影或返回诊断，不能等待同一任务池中的工作。
 fn terminal_observer_reentry_projects_without_waiting_on_collector_lane() {
     let (started_sender, started_receiver) = mpsc::sync_channel(1);
     let barrier = Arc::new(Barrier::new(2));

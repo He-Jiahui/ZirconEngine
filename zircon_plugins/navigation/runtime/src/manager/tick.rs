@@ -20,6 +20,7 @@ use super::traversal::{
 };
 use super::DefaultNavigationManager;
 
+// 此路径处理动态障碍和离网连接，保留手动链接的容量、事件和失败报告语义。
 pub(crate) fn tick_world_agents_legacy(
     manager: &DefaultNavigationManager,
     world: &mut World,

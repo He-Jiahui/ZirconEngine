@@ -1,3 +1,5 @@
+//! 从绑定解析和事件分派入口验证动画轨道、时间线与播放命令能往返绑定编码，并经无窗口路由分派。
+
 use crate::ui::binding::{
     AnimationCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, EditorUiRouter,
 };

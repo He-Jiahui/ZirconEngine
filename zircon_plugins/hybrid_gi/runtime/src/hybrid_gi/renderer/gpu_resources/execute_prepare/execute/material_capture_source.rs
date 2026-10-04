@@ -34,6 +34,7 @@ pub(in crate::hybrid_gi::renderer) struct HybridGiMaterialCaptureSeed {
     pub(in crate::hybrid_gi::renderer) emissive_texture: Option<HybridGiMaterialCaptureTextureKey>,
 }
 
+// 实现者提供准备帧固定版本的材质和中心纹理样本；计算期间不得切换到较新的资源版本。
 pub(in crate::hybrid_gi::renderer) trait HybridGiMaterialCaptureSource {
     fn material_capture_seed(&self, id: &ResourceId) -> Option<HybridGiMaterialCaptureSeed>;
 

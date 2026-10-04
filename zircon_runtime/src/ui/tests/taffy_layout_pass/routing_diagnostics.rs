@@ -1,5 +1,8 @@
+//! 布局路由报告供诊断消费者辨别原生后端和具体回退原因；源码结构哨兵仅是辅助，不能代替真实路由断言。
+
 use super::*;
 
+// BUG: [CR-UI-TEST-0602] 布局桥已由轴能力选择后端，本结构断言仍查旧容器 match 文本而必失败；证据：taffy_arrange.rs 的 taffy_main_axis 调用。
 #[test]
 fn layout_pass_routes_supported_containers_through_taffy_arrange() {
     let arrange = std::fs::read_to_string(

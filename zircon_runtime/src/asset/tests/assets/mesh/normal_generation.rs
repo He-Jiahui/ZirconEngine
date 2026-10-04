@@ -1,3 +1,5 @@
+//! 法线生成服务于缺失作者数据的网格；索引网格共享顶点而采用光滑法线，展开的三角形采用平面法线。
+
 use std::collections::BTreeMap;
 
 use crate::asset::{

@@ -1,3 +1,5 @@
+//! popup行尾反馈的组织边界；以图形呈现勾选、子菜单或声明图标，不负责菜单激活。
+
 mod flags;
 mod geometry;
 mod glyphs;

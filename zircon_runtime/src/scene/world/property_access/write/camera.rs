@@ -8,6 +8,7 @@ use super::super::value_conversion::{
 };
 
 impl World {
+    // 场景属性入口更新摄像机配置后必须使节点投影失效，供后续帧重新提取视图。
     pub(super) fn set_camera_property(
         &mut self,
         entity: EntityId,

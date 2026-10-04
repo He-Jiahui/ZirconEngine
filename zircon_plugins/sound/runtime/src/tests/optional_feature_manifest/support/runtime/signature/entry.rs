@@ -1,3 +1,4 @@
+// 从生产功能清单构造测试签名；集合排序由各子投影负责，与静态扫描结果使用同一比较域。
 use super::super::super::types::StaticOptionalFeatureManifest;
 
 pub(in super::super::super) fn optional_feature_signature(

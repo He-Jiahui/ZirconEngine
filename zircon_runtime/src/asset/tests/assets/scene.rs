@@ -1,3 +1,5 @@
+//! 场景资产测试使用仅供测试的直接 TOML 往返检查组件形状；项目级持久化的引用解析由 project_document 路径另行覆盖。
+
 use crate::asset::{
     AssetReference, AssetUri, AssetUuid, SceneAmbientLightAsset, SceneAnimationGraphPlayerAsset,
     SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,

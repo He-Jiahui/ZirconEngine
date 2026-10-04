@@ -1,3 +1,6 @@
+//! 提示条与 toast 的统一几何出口；有限尺寸与包含性检查由共同 helper 管理。
+//! inline 和 toast 各自持有内容预算，调用方应传入对应 metrics 类型。
+
 mod common;
 mod inline;
 mod metrics;

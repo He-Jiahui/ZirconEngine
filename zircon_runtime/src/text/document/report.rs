@@ -3,6 +3,7 @@ use std::{mem::size_of, sync::Arc};
 use super::storage::{TextDocument, TextDocumentPiece};
 
 /// Content-free retained-memory accounting for one document authority.
+/// Store 用其具体容量字段判断编辑与快照准入；下界估计仅供观测，不替代容量限制。
 ///
 /// The estimate includes owned source bytes and vector capacities, but not allocator headers or
 /// `Arc` control blocks, so it is explicitly a lower bound rather than an admission limit.

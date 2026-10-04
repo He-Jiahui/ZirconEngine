@@ -1,3 +1,6 @@
+//! 菜单或选项标题的单行绘制入口；列宽已由共享geometry扣除快捷键与尾部装饰预算。
+//! 空标签、不可见行和无法容纳一行文字时不提交命令。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

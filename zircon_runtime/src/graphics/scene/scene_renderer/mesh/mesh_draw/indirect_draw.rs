@@ -11,6 +11,8 @@ impl MeshDraw {
         self.indirect_args_offset
     }
 
+    /// 编译场景执行前改用本次提交私有的间接参数缓冲区。
+    /// 调用方须先从原参数编码复制并保持新缓冲区活到提交完成。
     pub(crate) fn assign_execution_owned_indirect_args(
         &mut self,
         buffer: Arc<wgpu::Buffer>,

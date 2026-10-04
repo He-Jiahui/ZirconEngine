@@ -1,3 +1,6 @@
+//! 为选中项提供表面、边线与下划线配方；选择器总会返回这些通道，绘制端负责仅给选中项输出。
+//! 边宽的存在标志保留显式零值；下划线高度只有有限正值覆盖主题默认值，非正值不表示关闭下划线。
+
 use super::metrics::workbench_segmented_selector_metrics;
 use super::palette::workbench_segmented_control_palette;
 use super::state::is_unavailable_segmented_state;

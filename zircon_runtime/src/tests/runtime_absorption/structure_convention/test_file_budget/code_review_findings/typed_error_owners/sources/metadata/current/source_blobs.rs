@@ -1,3 +1,4 @@
+//! 保留类型化错误审查的历史辅助定义；当前模块入口未挂载此文件，文件存在本身不构成已执行的守卫覆盖。
 use super::super::super::super::super::super::*;
 use super::super::*;
 use super::*;

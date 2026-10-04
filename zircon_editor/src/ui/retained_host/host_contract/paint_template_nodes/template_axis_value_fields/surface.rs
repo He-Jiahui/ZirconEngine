@@ -1,3 +1,5 @@
+//! 字段表面使用共享状态色与边框样式；整体字段经祖先裁剪后才追加四边形命令。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;

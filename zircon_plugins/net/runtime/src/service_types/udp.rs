@@ -1,3 +1,6 @@
+//! 将 UDP socket ID 与本地 endpoint 映射到 worker，并统计发送/轮询字节数。
+//! 显式 poll 接收 packet；scene ingress 只发布生命周期事件，不替业务接收数据。
+
 use zircon_runtime::core::framework::net::{NetEndpoint, NetError, NetPacket, NetSocketId};
 
 use crate::poison_recovery::{lock_or_error, NetSharedState};

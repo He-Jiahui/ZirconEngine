@@ -1,3 +1,4 @@
+//! 验证等待队列按分类维护的容量、估算字节和最早等待年龄在合并及移除后同步更新，清空时全局与分类取消计数必须一致。
 use std::time::{Duration, Instant};
 
 use super::super::*;

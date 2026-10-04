@@ -1,3 +1,4 @@
+//! 调色板双缓冲、就绪回退、关节上限及单个关节矩阵的期望变换契约；未执行 GPU 或 CPU/GPU 对照。
 use zircon_plugin_animation_runtime::{
     AnimationGpuSkinningDecision, SkinningPalette, SkinningPaletteDoubleBuffer, MAX_SKIN_JOINTS,
 };

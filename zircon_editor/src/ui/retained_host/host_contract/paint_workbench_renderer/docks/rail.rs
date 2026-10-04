@@ -4,6 +4,7 @@ use super::super::super::paint_geometry::translated;
 use super::super::super::paint_primitives::draw_border_clipped;
 use super::palette::current_dock_chrome_palette;
 
+// 侧栏 rail 的高亮按当前激活控件 ID 投影到按钮框，边框裁剪在 rail 内以免盖住相邻 pane。
 pub(in crate::ui::retained_host::host_contract) fn draw_active_rail_marker(
     frame: &mut HostRgbaFrame,
     dock: &HostSideDockSurfaceData,

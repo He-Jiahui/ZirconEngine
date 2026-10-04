@@ -1,3 +1,4 @@
+//! 模块启动时此驱动建立宿主能力与导出注册表，并一次性安装内置模块；管理器从同一驱动取得注册表以维持调用表身份。
 use crate::script::{register_builtin_host_modules, HostExportRegistry, HostRegistry};
 
 #[derive(Debug)]

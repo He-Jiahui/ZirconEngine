@@ -6,6 +6,8 @@ use super::{
     RenderPipelinePhase, RenderSceneSubmissionCompletionError,
 };
 
+/// 框架入口向运行时和编辑器报告的边界错误；含提交后失败回执的变体
+/// 必须保留原场景票据，调用方才能区分重试与已经入队的 GPU 工作。
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum RenderFrameworkError {
     #[error("render framework viewport `{viewport}` does not exist")]

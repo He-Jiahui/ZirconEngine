@@ -1,3 +1,5 @@
+//! 通过共享组件家族接管工作台图标按钮，显式让出 WorkbenchStatus 给状态控件绘制器。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
     is_component_family, uses_workbench_visual_language, TemplateComponentFamily,

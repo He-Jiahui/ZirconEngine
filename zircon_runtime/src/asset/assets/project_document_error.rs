@@ -1,3 +1,5 @@
+//! 项目文档错误保留引用解析与格式失败的区别，供 scene/world 和 editor 选择诊断与用户可见失败路径。
+
 use thiserror::Error;
 
 use crate::asset::ReferenceResolutionError;

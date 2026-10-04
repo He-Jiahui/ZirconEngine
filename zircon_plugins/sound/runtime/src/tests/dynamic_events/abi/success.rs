@@ -1,3 +1,4 @@
+// 原生回调接收完整事件投递投影；版本、身份、时间、模式与负载在回调侧逐项确认。
 use super::super::*;
 
 use super::support::{capture_abi_callback, register_abi_event_and_handler};

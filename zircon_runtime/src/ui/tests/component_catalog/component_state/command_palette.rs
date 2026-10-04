@@ -1,3 +1,5 @@
+//! 命令面板的查询、禁用项和远端窗口请求共享同一保留状态，导航不能把未载入项当作本地循环项。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventError, UiComponentEventKind, UiComponentKeyboardAction,
@@ -212,6 +214,7 @@ fn command_palette_selects_enabled_command_and_rejects_disabled_command() {
 }
 
 #[test]
+// 窗口请求保留当前目录代次与换页方向；此处核对归约后的请求字段，不加载目标窗口的命令。
 fn command_palette_keyboard_requests_deep_windows_without_local_wrap() {
     let registry = UiComponentDescriptorRegistry::material_editor_foundation();
     let palette = registry

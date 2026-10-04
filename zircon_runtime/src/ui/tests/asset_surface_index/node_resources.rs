@@ -1,3 +1,4 @@
+//! 验证节点级资源边在模板元数据更新后替换，并参与热重载目标定位。
 use super::*;
 
 #[test]
@@ -133,6 +134,7 @@ fn surface_index_registers_node_resources_from_template_metadata() {
 
     assert_eq!(report.tree_id, tree_id("runtime.ui.main"));
     assert_eq!(report.nodes_registered, 2);
+    // BUG: [CR-W12-UI-ASSET-0003] 两个节点分别注册 3/2 个互异 URI（含备用 URI），注册器逐节点累加得到 5；此处期望 4 与下方列表也矛盾。
     assert_eq!(report.resource_uris_registered, 4);
     assert_eq!(report.nodes_without_resources, vec![UiNodeId::new(3)]);
     assert_eq!(

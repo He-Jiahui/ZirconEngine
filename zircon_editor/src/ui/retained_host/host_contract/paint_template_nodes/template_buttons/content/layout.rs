@@ -1,14 +1,18 @@
+//! 将真实字形宽度用于视觉居中，同时给文字保留裁剪保护空间；调用方负责随后检查内容框是否放得下。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::{label_text_slot_width, max_label_slot_width};
 
 const CENTER_FACTOR: f32 = 0.5;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 内容入口消费的文字可用宽度与视觉起点，均使用宿主布局坐标。
 pub(super) struct ButtonContentLayout {
     pub(super) text_slot_width: f32,
     pub(super) start_x: f32,
 }
 
+/// 需要已经测量的字形宽度；视觉居中按墨迹宽度，文字槽额外允许裁剪保护区。
 pub(super) fn button_content_layout(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

@@ -1,3 +1,6 @@
+//! 锁定指针/触摸/滚轮/原始鼠标位移路由及模块边界，确保具体 ABI 构造保留在 pointer 叶模块。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::{
     runtime_app_source, runtime_application_handler_source, runtime_device_events_source,

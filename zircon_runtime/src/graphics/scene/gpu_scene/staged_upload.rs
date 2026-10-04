@@ -43,6 +43,8 @@ impl GpuScene {
         self.prepare_staged_updates(backend, encoder, scene_data_counts)
     }
 
+    /// 绘制准备期使用即将提交的虚拟几何数量，而非上一次 GPU 阴影数据长度；
+    /// 同一绘制包的着色器边界检查必须与页面上传前沿一致。
     pub(crate) fn prepare_updates_with_staging_for_virtual_geometry_counts(
         &mut self,
         backend: &RenderBackend,

@@ -1,3 +1,6 @@
+//! 从仓库字体派生受控 SFNT/TTC 夹具，用来覆盖解析器的权重、变体和集合路径；
+//! 这些合成字节验证输入形状，不代表任意外部字体文件均有效。
+
 use std::path::Path;
 
 pub(super) fn fira_regular() -> Vec<u8> {

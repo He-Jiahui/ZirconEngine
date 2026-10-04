@@ -6,6 +6,7 @@ use super::super::ProjectAssetManager;
 use crate::asset::AssetId;
 
 impl ProjectAssetManager {
+    /// 供 load_* 入口取得当前资产值的独立副本；需要精确修订版身份时应取 snapshot。
     pub(in crate::asset::pipeline::manager::project_asset_manager::loading) fn load_typed<
         TMarker,
         TAsset,

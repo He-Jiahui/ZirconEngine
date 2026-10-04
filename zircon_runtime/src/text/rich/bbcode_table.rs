@@ -27,6 +27,7 @@ struct ActiveTable {
     placement: TablePlacementCursor,
 }
 
+/// 将嵌套表格标记收敛为带源范围的语义单元格；解析时限制表深和总单元格数，几何排版留给布局阶段。
 #[derive(Clone, Debug)]
 pub(super) struct BbCodeTableState {
     tables: Vec<ActiveTable>,

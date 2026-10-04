@@ -1,3 +1,4 @@
+// 核对第二版运行时按钮夹具能投影交互元数据。
 use super::support::*;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 

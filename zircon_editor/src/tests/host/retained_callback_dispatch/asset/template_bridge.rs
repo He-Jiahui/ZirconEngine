@@ -1,3 +1,4 @@
+// 由资产模板控件进入宿主回调，约束动态与静态绑定可在最小启动环境下等价派发。
 use super::super::support::*;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 

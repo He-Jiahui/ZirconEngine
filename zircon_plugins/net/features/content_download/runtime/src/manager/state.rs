@@ -1,3 +1,6 @@
+//! 内容下载 manager clone 共享内存进度，生产入口保存 Core 弱引用及根网络服务句柄。
+//! 不持有 Core 强引用；每次 fetch 解析当前服务，Core 关闭或句柄失效应返回不可用。
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 

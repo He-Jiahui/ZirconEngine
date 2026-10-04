@@ -1,3 +1,4 @@
+//! 运行时根公开面和图形别名的收敛结果需与架构文档一致。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "root_surface/docs.rs"]
 mod docs;
 #[path = "root_surface/graphics_alias.rs"]

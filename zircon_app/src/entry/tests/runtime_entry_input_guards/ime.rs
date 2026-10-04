@@ -1,3 +1,6 @@
+//! 检查 IME 事件在窗口路由与 composition/deletion/lifecycle 叶模块中的可见接线，以及隐藏游标和删除字节计数的 ABI 语义。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::{
     runtime_app_source, runtime_application_handler_source, runtime_entry_app_path,

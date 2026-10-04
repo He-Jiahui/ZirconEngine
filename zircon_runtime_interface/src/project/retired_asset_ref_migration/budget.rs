@@ -5,6 +5,7 @@ pub const MAX_RETIRED_ASSET_REF_MIGRATION_NODES: usize = 2_000_000;
 /// Maximum exact retired references resolved by one migration attempt.
 pub const MAX_RETIRED_ASSET_REF_MIGRATION_REFERENCES: usize = 1_000_000;
 
+/// Caller-owned limits for one retired asset-reference migration attempt.
 /// 单次旧资产引用迁移的调用方预算；完整遍历通过后才会调用身份解析器。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RetiredAssetRefMigrationBudget {

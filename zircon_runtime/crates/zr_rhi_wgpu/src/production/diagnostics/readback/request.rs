@@ -1,3 +1,4 @@
+//! 请求保存已准入的来源和布局；场景尾部路径在准备包时建暂存，独立诊断路径取得票据后建暂存，均在提交后映射。
 use zr_rhi::{BufferHandle, DiagnosticReadbackRequestId, TextureCopyRegion, TextureHandle};
 
 use super::layout::{DiagnosticTextureMipChainReadbackLayout, DiagnosticTextureReadbackLayout};

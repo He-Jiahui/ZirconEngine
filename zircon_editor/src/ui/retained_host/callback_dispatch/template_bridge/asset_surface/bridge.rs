@@ -14,6 +14,7 @@ use super::super::{
 };
 use super::error::BuiltinAssetSurfaceTemplateBridgeError;
 
+// 资产页事件从模板路由投影中取得绑定；宿主的资产控制器仍是实际操作的所有者。
 pub(crate) struct BuiltinAssetSurfaceTemplateBridge {
     bindings_by_id: HashMap<String, EditorUiBinding>,
     host_projection: RetainedUiHostProjection,

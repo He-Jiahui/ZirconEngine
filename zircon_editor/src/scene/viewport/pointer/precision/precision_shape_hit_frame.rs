@@ -1,3 +1,5 @@
+//! 形状粗筛矩形扩大半径与容差，表面命中后仍须精确评分；粗筛覆盖不等于目标真正命中。
+
 use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::PrecisionShape;

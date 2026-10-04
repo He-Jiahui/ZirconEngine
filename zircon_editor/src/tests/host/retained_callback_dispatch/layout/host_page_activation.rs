@@ -1,3 +1,4 @@
+// 由宿主页面模板绑定触发页面激活，约束结果与旧布局命令路径一致。
 use super::super::support::*;
 use crate::core::editor_event::{
     LayoutCommand as EventLayoutCommand, MainPageId as EventMainPageId,

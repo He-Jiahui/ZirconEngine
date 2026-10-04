@@ -1,4 +1,5 @@
 //! Static contracts for the Zircon Hub Tauri, React, and Material UI foundation.
+//! 把启动配置、主题、组件出口、页面组合与后端事实来源串成同一基础契约，供后续页面功能沿用。
 
 use std::{fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path)).unwrap_or_else(|error| {
@@ -25,6 +27,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 只供自审迁移守卫使用的可选源码入口；缺失时由调用方采用内嵌契约片段，而非证明生产模块仍存在。
 fn read_optional_crate_file(path: &str) -> Option<String> {
     fs::read_to_string(crate_dir().join(path))
         .ok()
@@ -49,6 +52,8 @@ fn assert_not_contains_any(source: &str, snippets: &[&str], label: &str) {
     }
 }
 
+// BUG: [CR-HUBTESTA-0005] 桌面依赖现为可选特性，固定非可选依赖片段与当前清单冲突；证据：Cargo.toml 特性和依赖定义。
+/// 固定 Rust 主程序、构建脚本和桌面宿主之间的接线，避免公共入口继续暴露已移除的编译 UI。
 #[test]
 fn tauri_launcher_and_build_path_are_hard_cut_to_react_shell() {
     let cargo = read_crate_file("Cargo.toml");
@@ -130,6 +135,7 @@ fn tauri_launcher_and_build_path_are_hard_cut_to_react_shell() {
     );
 }
 
+/// 核对开发和发布前端路径、窗口初始约束及本地权限边界，避免同一宿主采用互不一致的构建配置。
 #[test]
 fn tauri_configuration_uses_vite_window_and_capability_boundary() {
     let tauri_config = read_crate_file("tauri.conf.json");
@@ -201,6 +207,7 @@ fn tauri_configuration_uses_vite_window_and_capability_boundary() {
     );
 }
 
+/// 检查全局主题安装与状态加载、订阅、命令回复及错误反馈的贯通；异步竞争需由行为测试另行验证。
 #[test]
 fn react_root_installs_mui_theme_and_backend_state_flow() {
     let main = read_crate_file("web/src/main.tsx");
@@ -274,6 +281,7 @@ fn react_root_installs_mui_theme_and_backend_state_flow() {
     );
 }
 
+/// 固定共享窗口密度、颜色与底层主题覆盖的对应关系，让包装器消费同一主题来源。
 #[test]
 fn theme_tokens_define_window_density_palette_and_mui_overrides() {
     let tokens = read_crate_file("web/src/theme/tokens.ts");
@@ -350,6 +358,7 @@ fn theme_tokens_define_window_density_palette_and_mui_overrides() {
     );
 }
 
+/// 检查组件家族的稳定出口与所属层级，确保页面的导入边界与组件拥有者一致。
 #[test]
 fn component_family_barrels_match_bottom_up_material_layers() {
     let inputs = read_crate_file("web/src/components/inputs/index.ts");
@@ -422,6 +431,7 @@ fn component_family_barrels_match_bottom_up_material_layers() {
     );
 }
 
+/// 核对外壳掌管视口和路由、页面组合共享组件的分工；页面内容变化应继续满足响应式布局约束。
 #[test]
 fn shell_and_pages_are_structural_composition_surfaces() {
     let hub_window = read_crate_file("web/src/components/shell/HubWindow.tsx");
@@ -521,6 +531,7 @@ fn shell_and_pages_are_structural_composition_surfaces() {
     }
 }
 
+/// 沿命令解析、后台工作、快照和序列化投影核对事实来源，预览数据不能替代真实桌面后端。
 #[test]
 fn backend_commands_and_view_model_keep_rust_state_as_source_of_truth() {
     let tauri_app = read_crate_file("src/tauri_app/mod.rs");
@@ -849,6 +860,7 @@ fn backend_commands_and_view_model_keep_rust_state_as_source_of_truth() {
     );
 }
 
+/// 约束尚未开放的功能有可见分类、本地化文案和禁用状态，使页面不会把预留能力呈现为可执行命令。
 #[test]
 fn coming_soon_entries_expose_visible_localized_categories() {
     let coming_soon = read_optional_crate_file("src/tauri_app/view_model/coming_soon.rs")
@@ -909,6 +921,7 @@ fn coming_soon_entries_expose_visible_localized_categories() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn foundation_contract_is_cut_over_to_react_sources() {
     let source = read_crate_file("tests/ui_foundation_contract.rs");

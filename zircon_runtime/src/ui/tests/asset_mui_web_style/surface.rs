@@ -1,3 +1,4 @@
+//! 验证 Paper、Card 与 AppBar 等表面控件的本地工具类映射到具体节点。
 use super::*;
 
 #[test]

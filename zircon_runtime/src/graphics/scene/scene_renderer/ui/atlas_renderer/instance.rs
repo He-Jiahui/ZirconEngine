@@ -2,6 +2,7 @@ use crate::text::atlas::render_gpu_plan::{
     GlyphAtlasGpuInstanceAttributeFormat, GlyphAtlasGpuInstanceBufferLayout,
 };
 
+// wgpu 顶点属性必须与 text::atlas 的规范实例布局及字形着色器一致；布局漂移会破坏图集实例读取。
 const GLYPH_ATLAS_WGPU_INSTANCE_ATTRIBUTES: [wgpu::VertexAttribute; 5] = [
     wgpu::VertexAttribute {
         format: wgpu::VertexFormat::Float32x4,

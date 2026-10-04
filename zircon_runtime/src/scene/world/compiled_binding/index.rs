@@ -21,6 +21,7 @@ impl CompiledDescendantNameEntry {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 层级有序的子节点名称缓存；持有者在查询前用根绑定代数判断是否需要重新编译。
 pub struct CompiledDescendantNameIndex {
     root: EntityId,
     generation: u64,

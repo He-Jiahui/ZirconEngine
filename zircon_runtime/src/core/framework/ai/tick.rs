@@ -6,6 +6,7 @@ use crate::core::math::Real;
 use super::{AiBehaviorTreeId, AiBlackboardEntry, AiBlackboardSchemaId, AiPerceptionSnapshot};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 一次代理决策的输入边界。树与布局句柄必须已注册；黑板和感知按本次请求提供，执行状态由管理器保留。
 pub struct AiAgentTickRequest {
     pub world: WorldHandle,
     pub entity: EntityId,
@@ -16,6 +17,7 @@ pub struct AiAgentTickRequest {
     pub perception: Option<AiPerceptionSnapshot>,
 }
 
+/// 行为树执行器向管理器和编辑器报告空闲、运行、成功、失败或阻塞状态。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AiDecisionStatus {
@@ -27,6 +29,7 @@ pub enum AiDecisionStatus {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 决策结果与当前活动节点的轻量投影；编辑器事件可由 node_result_event 派生，但无活动节点时没有该事件。
 pub struct AiAgentTickReport {
     pub world: WorldHandle,
     pub entity: EntityId,
@@ -36,6 +39,7 @@ pub struct AiAgentTickReport {
 }
 
 /// Typed node-state update consumed by read-only behavior-tree editor mirrors.
+/// 它由 tick 报告按活动节点派生并发送到 World 事件通道；没有活动节点时不会生成事件。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BtNodeResultEvent {
     pub world: WorldHandle,

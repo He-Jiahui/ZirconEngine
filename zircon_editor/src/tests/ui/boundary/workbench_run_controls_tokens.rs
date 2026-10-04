@@ -1,3 +1,5 @@
+//! 验证工作台运行按钮及弹出菜单的 token 密度。
+
 const WORKBENCH_TOP_TOOLBAR_TEMPLATE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui"

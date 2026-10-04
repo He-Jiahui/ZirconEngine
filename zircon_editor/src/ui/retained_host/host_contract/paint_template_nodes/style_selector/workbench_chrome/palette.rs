@@ -1,3 +1,5 @@
+//! 把宿主主题表面层级映射为窗口、栏、面板和分隔线颜色；选择器消费当前主题快照。
+
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{

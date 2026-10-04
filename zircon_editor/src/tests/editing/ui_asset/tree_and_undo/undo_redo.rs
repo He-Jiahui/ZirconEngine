@@ -1,3 +1,4 @@
+//! 核对 UI 文档差分与外部效果的撤销重做；无效样式重放和局部失败必须原子拒绝或回滚。
 use super::super::support::*;
 use zircon_runtime_interface::ui::template::UiNodeDefinitionKind;
 

@@ -1,3 +1,5 @@
+//! 记录生成当前发布快照的收集工作量，供发现测试区分全扫、单清单更新和纯索引删除。
+//! 计数饱和避免诊断统计溢出；它们不参与资源准入，亦不跨代际累计。
 /// Structured filesystem work counters for one published discovery generation.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct NativePluginDiscoveryRefreshMetrics {

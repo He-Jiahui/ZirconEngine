@@ -9,6 +9,7 @@ type WorldRuntimeExtensionApply =
     Arc<dyn Fn(&mut World) -> Result<(), WorldRuntimeExtensionError> + Send + Sync>;
 
 #[derive(Clone)]
+/// 一个稳定键与一个 World 安装回调；插件注册表生成这些项，WorldDriver 在世界初始化时应用。
 pub struct WorldRuntimeExtensionRegistration {
     key: String,
     apply: WorldRuntimeExtensionApply,

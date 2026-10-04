@@ -1,3 +1,4 @@
+//! UI 文本测量的跨帧驻留缓存；摘要只定位候选，完整原文仍须逐项核对。
 use std::{hash::Hash, sync::Arc};
 
 use super::index::{IndexedTextCache, IndexedTextCacheEntry, TextCacheSlot};
@@ -38,6 +39,7 @@ impl<K, V> IndexedTextCacheEntry<K> for TextMeasureCacheEntry<K, V> {
     }
 }
 
+/// 保存成功测量及其共享原文；UI 帧内缓存借用这份原文，避免命中时再次分配。
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextMeasureCache<K: Eq + Hash, V> {
     index: IndexedTextCache<K, TextMeasureCacheEntry<K, V>>,
@@ -127,6 +129,7 @@ where
         self.get_with_stored_text(key, text).map(|(_, value)| value)
     }
 
+    /// 命中后把驻留的 Arc 原文交还给 UI owner，使本帧去重沿用同一份文本。
     pub(crate) fn get_with_stored_text(&mut self, key: &K, text: &str) -> Option<(&Arc<str>, &V)> {
         let slot = self.find_slot(key, text)?;
         self.index
@@ -138,6 +141,7 @@ where
         self.insert_with_additional_heap_bytes(key, text, value, 0)
     }
 
+    /// 调用方补计 K 和 V 的堆数据；缓存只自动计入条目本体与原文，字节报告用于预算观察。
     pub(crate) fn insert_with_additional_heap_bytes(
         &mut self,
         key: K,

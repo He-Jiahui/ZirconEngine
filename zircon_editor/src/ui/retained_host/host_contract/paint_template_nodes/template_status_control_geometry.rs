@@ -1,3 +1,5 @@
+//! 状态栏文字、图标与语义信号共用宿主密度指标；坐标映射不负责决定节点认领。
+
 mod chips;
 mod common;
 mod icons;

@@ -1,3 +1,4 @@
+//! 帧格式为恢复提供有界长度与完整性证据；校验和不赋予路径所有权，领域校验仍由恢复策略承担。
 //! Bounded checksummed WAL frame encoding and decoding.
 
 use std::io;
@@ -50,6 +51,8 @@ pub(in crate::io::transaction) fn encode_frame(
     Ok(frame)
 }
 
+// 首帧意图必须完整；后续最末帧允许视为撕裂尾部并停在最后有效位置，调用端须先截断尾部再追加。
+// 中间帧损坏不能解释为普通中断，否则会跳过已持久化的状态证据。
 pub(super) fn decode_frame<'a>(
     path: &Path,
     bytes: &'a [u8],

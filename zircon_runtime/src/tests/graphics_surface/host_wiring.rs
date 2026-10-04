@@ -1,3 +1,4 @@
+//! 先约束旧宿主构造职责退役，再实际注册模块并解析惰性渲染服务；模块激活成功不能单独证明服务已初始化。
 #[test]
 fn graphics_runtime_host_no_longer_owns_legacy_preview_or_render_service_wiring() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

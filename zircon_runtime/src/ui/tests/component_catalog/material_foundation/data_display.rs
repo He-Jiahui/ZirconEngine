@@ -1,3 +1,5 @@
+//! 数据展示描述符把视觉默认值、选项和事件提供给 Material 渲染端；断言防止组件族升级时丢失目录契约。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventKind, UiValue,

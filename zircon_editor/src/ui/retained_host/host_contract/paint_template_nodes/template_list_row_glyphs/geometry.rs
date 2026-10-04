@@ -1,3 +1,5 @@
+//! 列表尾部装饰固定靠右，正文布局使用相同工作台密度预留位置；调用方负责容纳与裁剪。
+
 use super::super::super::data::FrameRect;
 use super::super::template_row_metrics::workbench_row_metrics;
 

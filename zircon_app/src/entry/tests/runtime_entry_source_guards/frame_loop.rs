@@ -1,6 +1,10 @@
+//! 试图固定空闲帧抑制、tick、demand、宿主请求和 redraw 次序。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::runtime_application_handler_source;
 
+// BUG: [CR-APP-ENTRY-0007] 顺序断言仍要求旧的空闲 early-return 布局，当前帧泵统一在末尾发布控制流，因此测试确定失败；证据：clean frame_loop.rs 和外部原始快照。
 #[test]
 fn runtime_entry_ticks_dynamic_runtime_time_before_redraw_request() {
     let runtime_handler_source = runtime_application_handler_source();

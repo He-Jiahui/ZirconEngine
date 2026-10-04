@@ -1,3 +1,4 @@
+//! 核心脊柱、根公开面和生成模板的结构清单需与审计证据同步。保存同组守卫使用的局部数据或辅助变换。
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 

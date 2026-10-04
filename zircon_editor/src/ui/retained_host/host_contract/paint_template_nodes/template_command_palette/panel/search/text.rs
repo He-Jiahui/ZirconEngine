@@ -1,3 +1,6 @@
+//! 查询文字直接消费节点 search_query；空查询的占位文案通过语义标志选择颜色。
+//! 复制文本只为绘制命令拥有内容，不在此规范化或修改用户输入。
+
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::super::layers::search_text_order;

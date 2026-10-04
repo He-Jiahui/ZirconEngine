@@ -1,3 +1,4 @@
+//! 运行时技术栈、清单和结构文档维持共同的基础门禁。保存同组守卫使用的局部数据或辅助变换。
 pub(super) fn assert_runtime_01_behavior_anchors() {
     let text_shaper_tests = include_str!("../../../ui/tests/text_shaper.rs");
     let physics_contract_mod = include_str!(

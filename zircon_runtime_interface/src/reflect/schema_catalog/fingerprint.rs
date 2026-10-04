@@ -15,6 +15,7 @@ use super::ReflectSchemaCatalogEntry;
 pub const REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION: u32 = 1;
 const FINGERPRINT_DOMAIN: &[u8] = b"zircon-reflect-schema-catalog-v1\0";
 
+/// 规范化反射目录元数据的 32 字节 BLAKE3 指纹，在查询响应与快照中标识同一目录内容。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ReflectSchemaFingerprint([u8; blake3::OUT_LEN]);
 

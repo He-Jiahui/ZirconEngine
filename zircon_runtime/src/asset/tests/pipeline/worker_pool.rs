@@ -1,3 +1,5 @@
+//! 工作池测试固定 IO worker 的占用时机，以区分排队容量、请求截止时间、完成缓存和观察者预算。
+
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 

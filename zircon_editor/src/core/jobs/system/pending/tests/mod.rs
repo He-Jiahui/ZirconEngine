@@ -1,3 +1,4 @@
+//! 为待运行队列提供可替换的最小任务夹具，子回归只考察准入及公平性，避免执行器行为干扰队列状态断言。
 use std::any::Any;
 
 use crate::core::jobs::JobContext;

@@ -1,3 +1,6 @@
+//! 汇总 net 主包的可选 feature、配置项与事件目录，供插件目录、导出和宿主选择装配。
+//! 清单声明依赖与能力，实际模块注册在各 feature crate。
+
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::{
     plugin::PluginEventCatalogManifest, plugin::PluginEventManifest,

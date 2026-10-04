@@ -1,3 +1,5 @@
+//! 集中公开 net Editor 插件、authoring 资源和能力常量，供宿主插件发现与 Editor 注册报告使用。
+
 mod authoring;
 mod capability;
 mod plugin;

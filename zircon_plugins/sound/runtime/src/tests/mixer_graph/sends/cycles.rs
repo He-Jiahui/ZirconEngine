@@ -1,3 +1,4 @@
+// 经停机发送编辑入口核对图校验拒绝循环路由，不启动 Kira 后端。
 use super::super::super::*;
 
 #[test]

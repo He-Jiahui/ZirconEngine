@@ -18,6 +18,8 @@ use super::{
 };
 
 impl EntryConfig {
+    /// 在任何 Runtime 组合或原生宿主加载前，拒绝未交付角色和相互矛盾的启动来源。
+    /// 成功结果是后续模块选择、诊断回执与宿主能力检查共同使用的固定输入。
     pub fn resolve(&self) -> Result<ResolvedProductHostConfig, ProductHostConfigError> {
         let role_descriptor = *self.role.descriptor();
         if !role_descriptor
@@ -87,6 +89,7 @@ impl EntryConfig {
             return Err(ProductHostConfigError::EditorSettingsRequireEditorHost);
         }
 
+        // 先合并 Runtime profile、项目及入口插件意图，再把同一清单交给组合器解析实际注册。
         let (project_plugins, project_plugins_source) = resolve_project_plugins(
             self.project_plugins.as_ref(),
             self.project_plugins_source,
@@ -135,6 +138,7 @@ impl EntryConfig {
             window_descriptor.primary_window.is_some(),
         )?;
 
+        // 来源回执保留优先级信息，供启动诊断解释为何选定该模式及窗口、渲染策略。
         let target_mode_source = if self.export_profile.is_some() {
             ProductConfigSource::ExportProfile
         } else if self.target_mode.is_some() {
@@ -295,6 +299,7 @@ fn ensure_target_mode(
     })
 }
 
+// Runtime profile 提供基线；项目选择覆盖同 id 声明，入口必需性最终只能提高约束。
 fn resolve_project_plugins(
     requested: Option<&ProjectPluginManifest>,
     requested_source: Option<ProductConfigSource>,

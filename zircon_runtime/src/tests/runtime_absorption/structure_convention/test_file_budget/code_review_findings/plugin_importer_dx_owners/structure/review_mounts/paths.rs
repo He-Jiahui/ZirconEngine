@@ -1,3 +1,4 @@
+//! 为插件导入接口审查集中声明路径、子模块与锚点清单；消费者把这些值用于源码检查，清单中的名称不证明对应行为已执行。
 pub(super) const PLUGIN_IMPORTER_DX_REVIEW_SOURCE_PATH: &str =
     "tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs";
 pub(super) const PLUGIN_IMPORTER_DX_D10_SOURCE_PATH: &str =

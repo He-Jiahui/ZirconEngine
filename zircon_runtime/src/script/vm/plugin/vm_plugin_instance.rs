@@ -4,6 +4,7 @@ use crate::script::{VmError, VmPluginHostContext, VmPluginManifest};
 use super::super::gc_bridge::{VmGcBudget, VmGcStepOutcome};
 use super::{VmStateBlob, VmStateSchema};
 
+/// 一个已装载包的可变 VM 实例，由协调器独占驱动生命周期；导出与 GC 受活动槽位约束，状态交接随装载或重载阶段执行。
 pub trait VmPluginInstance: Send + Sync {
     fn manifest(&self) -> &VmPluginManifest;
 

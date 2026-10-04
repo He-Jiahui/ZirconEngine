@@ -1,3 +1,5 @@
+//! 从当前宿主主题取树行角色色；持久标记使用低强调表面，键盘焦点边线与文字角色分开。
+
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{

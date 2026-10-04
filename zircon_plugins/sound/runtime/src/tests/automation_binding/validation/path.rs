@@ -1,3 +1,4 @@
+// 绑定入口拒绝空路径及不符合 AnimationTrackPath 风格的路径，保护时间线目标标识契约。
 use super::super::super::*;
 
 #[test]

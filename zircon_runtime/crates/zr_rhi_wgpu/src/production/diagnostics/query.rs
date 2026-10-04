@@ -1,3 +1,4 @@
+//! 时间戳与管线统计先按帧规划原生查询，解析、映射和投递随后绑定场景提交票据。
 //! Submission-bound native query allocation, resolve, and ordered delivery.
 
 mod support;
@@ -329,6 +330,7 @@ impl WgpuDiagnosticQueryService {
         }))
     }
 
+    // 原生查询范围必须和本帧计划相符，解析命令随场景编码器提交，不另开时间线。
     pub(crate) fn prepare_native_frame(
         &mut self,
         device: &wgpu::Device,
@@ -386,6 +388,7 @@ impl WgpuDiagnosticQueryService {
         }))
     }
 
+    // 仅在场景包已有接受票据后绑定查询帧；终态与映射顺序均随该票据。
     pub(crate) fn bind_native_frame(
         &mut self,
         ticket: SubmissionTicket,

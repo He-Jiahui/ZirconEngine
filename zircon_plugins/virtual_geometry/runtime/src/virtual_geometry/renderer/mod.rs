@@ -1,3 +1,4 @@
+// 本模块保留插件侧 GPU/readback 投影；生产 pass executor 另在 render_pass_executors 注册。
 mod gpu_readback;
 mod gpu_resources;
 mod root_mesh_sources;

@@ -1,3 +1,4 @@
+//! 空状态按钮复用菜单命令，让pane恢复入口进入相同宿主执行链。
 use crate::core::editor_event::MenuAction;
 use crate::ui::workbench::event::menu_action_binding;
 

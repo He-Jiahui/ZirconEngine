@@ -1,3 +1,5 @@
+//! 以 index/generation 管理 provider 对象生命周期；删除后复用空槽，并通过拆分切片取得两个不同槽位的可变引用。
+
 use std::marker::PhantomData;
 
 use super::handles::ArenaHandle;
@@ -60,6 +62,8 @@ where
             .and_then(|slot| slot.value.as_mut())
     }
 
+    // TODO: [CR-PHYSICS-BACKEND-0005] high_index 在 split_at_mut 前未做长度检查，只有 high_index > slots.len() 时会 panic；当前两个调用遍历已创建的约束，create_constraint 已验证端点且 destroy_body 拒绝仍被引用的 body，未发现生产路径可传入越界句柄。
+    // 未来若扩大调用面，应先边界检查或显式固定前置条件。证据：builtin/runtime.rs::create_constraint/destroy_body/step、jolt/runtime.rs::create_constraint/destroy_body/project_constraints。
     pub(super) fn get_pair_mut(&mut self, a: H, b: H) -> Option<(&mut T, &mut T)> {
         let (a_index, a_generation) = unpack_handle(a.raw());
         let (b_index, b_generation) = unpack_handle(b.raw());
@@ -87,6 +91,8 @@ where
         }
     }
 
+    // BUG: [CR-PHYSICS-BACKEND-0007] generation 从 1 起步并在 remove 时 wrapping_add().max(1)，同一槽经 2^32−1 次 remove/insert 后会再次成为 generation 1。
+    // 仍保留的旧 Copy 句柄随即被 get 接受并可指向新对象；该路径需要极高 churn，但当前没有耗尽保护。证据：insert 复用 free_indices、remove 回绕、get 只比较 index/generation；关联 PHY4-P1-016。
     pub(super) fn remove(&mut self, handle: H) -> Option<T> {
         let (index, generation) = unpack_handle(handle.raw());
         let slot = self.slots.get_mut(index as usize)?;

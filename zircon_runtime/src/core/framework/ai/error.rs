@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 注册、感知输入与代理 tick 的统一边界错误；调用方可据变体区分坏描述符和失效句柄。
 pub enum AiManagerError {
     EmptyId {
         field: &'static str,

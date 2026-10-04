@@ -1,3 +1,6 @@
+//! 对话框内容的文本投影边界；标题优先text再label，正文优先value再validation message并避免重复标题。
+//! 普通dialog正文在动作带之前换行；AlertDialog保留单行策略，空间不足时不提交超出根矩形的文字。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::identity::DialogKind;

@@ -1,3 +1,4 @@
+//! 核对世界同步使用自有 ABI 缓冲传输，来自运行时的非法观察令牌须在会话边界拒绝。
 use std::sync::atomic::Ordering;
 
 use zircon_runtime_interface::world_sync::{

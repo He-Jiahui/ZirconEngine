@@ -1,3 +1,5 @@
+//! 把标签之外的空间交给值区，标量外观与文字内距均可退化为零，后续绘制用裁剪判定是否还有内容。
+
 use super::super::super::super::data::FrameRect;
 use super::metrics::property_row_metrics;
 

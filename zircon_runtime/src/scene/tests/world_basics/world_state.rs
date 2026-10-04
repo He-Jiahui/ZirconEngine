@@ -1,3 +1,5 @@
+//! 守护世界持久化的准入与恢复边界：无效输入应返回可定位错误，成功恢复后仍保留实体身份和层级约束。
+
 use super::*;
 
 #[test]
@@ -306,6 +308,7 @@ fn project_load_rejects_default_node_allocation_exhaustion_without_panicking() {
 }
 
 #[test]
+// 版本判定必须先于世界载荷解码，因此这里同时给出无法按当前格式解析的载荷。
 fn project_load_rejects_an_unsupported_project_format_version() {
     let world = World::new();
     let unique = SystemTime::now()
@@ -372,6 +375,7 @@ fn project_roundtrip_preserves_imported_meshes() {
 }
 
 #[test]
+// 节点记录用于撤销与恢复既有实体；恢复身份本身与创建一个外观相同的新实体是不同契约。
 fn node_record_roundtrip_restores_same_entity() {
     let mut world = World::new();
     let cube = world

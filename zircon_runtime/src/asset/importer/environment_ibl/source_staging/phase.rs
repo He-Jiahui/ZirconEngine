@@ -4,6 +4,7 @@ const PROFILE_STREAM: &str = "asset";
 const PROFILE_CATEGORY: &str = "environment_ibl.stage";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// profiling span 与报告中的阶段时间共用同一边界；子阶段不能再计入 total，避免重复统计。
 pub(in crate::asset::importer::environment_ibl) enum EnvironmentIblStagingPhase {
     SourceClassify,
     SourceIdentity,

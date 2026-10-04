@@ -1,3 +1,5 @@
+//! 夹具把稳定资产 ID、URI 和运行时路径关联，供测试管理器加载与资源反查共用。
+
 use std::path::{Path, PathBuf};
 
 use crate::asset::runtime_asset_path;

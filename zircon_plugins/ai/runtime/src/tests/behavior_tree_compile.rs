@@ -11,6 +11,7 @@ fn node(id: &str, kind: AiBehaviorNodeKind) -> AiBehaviorNodeDescriptor {
     AiBehaviorNodeDescriptor::new(id, kind, id)
 }
 
+// 编译产物的先序区间同时供子节点查找与执行器跳转使用。
 #[test]
 fn compiled_tree_preorder_ranges_are_consistent() {
     let descriptor = AiBehaviorTreeDescriptor::new("patrol", "Patrol", "root")

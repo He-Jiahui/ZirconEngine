@@ -74,6 +74,7 @@ impl VirtualGeometryNodeAndClusterCullTraversalRecord {
     pub(crate) const GPU_WORD_COUNT: usize = 16;
     const NONE_SENTINEL: u32 = u32::MAX;
 
+    /// 按 GPU 遍历记录布局编码操作、来源、实体和预算，保留末尾对齐字。
     pub(crate) fn packed_words(&self) -> [u32; Self::GPU_WORD_COUNT] {
         [
             self.op.packed_word(),

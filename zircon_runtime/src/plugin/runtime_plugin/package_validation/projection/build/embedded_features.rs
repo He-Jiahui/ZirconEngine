@@ -6,6 +6,8 @@ use super::super::duplicate_identity::DuplicateIdentity;
 use super::super::duplicate_occurrence::{DuplicateOccurrence, EmbeddedFeatureKind};
 use super::index_identity;
 
+/// 统一索引两类内嵌特性，供特性校验借用包视图，避免逐特性重建重复集合。
+/// 提供者身份按特性与提供包组合去重，缺省提供包沿用宿主包。
 pub(super) fn index_embedded_features<'a>(
     manifest: &'a PluginPackageManifest,
     seen: &mut HashSet<DuplicateIdentity<'a>>,
@@ -45,6 +47,7 @@ pub(super) fn index_embedded_features<'a>(
     }
 }
 
+// 特性内部身份带上类别和原清单行号，因此两个不同特性可以合法使用相同的局部名称。
 fn index_feature_rows<'a>(
     kind: EmbeddedFeatureKind,
     feature_index: usize,

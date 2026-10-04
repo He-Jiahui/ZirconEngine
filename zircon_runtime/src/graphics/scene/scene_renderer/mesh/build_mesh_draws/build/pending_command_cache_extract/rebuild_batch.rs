@@ -10,6 +10,8 @@ use super::super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry};
 use super::extract_item::PendingMeshCommandCacheExtractItem;
 use super::non_material_rebuild;
 
+/// 缓存未命中时，只在材质绑定构造前重建不依赖材质的阴影命令。
+/// 预深度与主颜色命令交给 residual MeshDraw 路径。
 pub(super) fn pending_mesh_command_cache_rebuild_batch_for_phase(
     pending_draw: &PendingMeshDraw,
     item: PendingMeshCommandCacheExtractItem,

@@ -1,3 +1,4 @@
+//! 编辑器模型只保存设备选择和诊断展示所需的快照；设备切换、启动和停机仍交给运行服务执行。
 use serde::{Deserialize, Serialize};
 use zircon_runtime::core::framework::sound::{
     SoundBackendState, SoundBackendStatus, SoundOutputDeviceDescriptor, SoundOutputDeviceInfo,

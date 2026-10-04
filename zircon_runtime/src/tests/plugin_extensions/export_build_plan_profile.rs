@@ -1,3 +1,4 @@
+//! 运行时配置身份须由导出配置显式提供；计划诊断与净化后的生成文本分别验证，不从配置名称猜测身份。
 use crate::asset::{AssetUri, ProjectManifest};
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::{

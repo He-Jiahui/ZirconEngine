@@ -1,3 +1,4 @@
+// 经处理器注册入口核对事件必须已存在；补齐事件后注册成功并可在处理器目录中查询。
 use super::super::super::*;
 
 use super::support::{register_ambient_event, register_ambient_handler};

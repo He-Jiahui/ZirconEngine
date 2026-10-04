@@ -1,3 +1,6 @@
+//! 单条已投影通知的视觉组合；背景区分未读/禁用，边框区分选中/焦点，标记使用语义严重性。
+//! 只有行可见且文本区域有效时才复制标题/消息进入拥有内容的绘制命令。
+
 use super::super::super::data::{FrameRect, TemplatePaneOptionData};
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;

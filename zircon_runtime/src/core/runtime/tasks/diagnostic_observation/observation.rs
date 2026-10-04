@@ -84,6 +84,7 @@ impl TaskDiagnosticObservation {
     }
 }
 
+// 字节上限截断退回到 UTF-8 字符边界，避免固定预算产生无效字符串。
 fn bounded_message(message: Arc<str>) -> Arc<str> {
     if message.len() <= MAX_TASK_DIAGNOSTIC_MESSAGE_BYTES {
         return message;

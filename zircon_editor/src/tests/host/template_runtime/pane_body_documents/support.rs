@@ -1,3 +1,4 @@
+// 提供面板正文路径、运行时、属性、路由与文本尺寸断言夹具。
 use std::path::Path;
 
 use zircon_runtime::core::CoreRuntime;

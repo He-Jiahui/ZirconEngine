@@ -1,5 +1,6 @@
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0125] 内置后处理执行器根模块仍保留测试体块；需核对子模块迁移是否完成及旧体块是否保留必要覆盖。
 #[test]
 fn runtime_15_builtin_postprocess_executors_are_folder_backed() {
     let parent = read_runtime_src(

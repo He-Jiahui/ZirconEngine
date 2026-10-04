@@ -1,3 +1,4 @@
+//! 抽屉命令的区域归属、局部几何与原子前置校验；故意不一致的无关抽屉用于检测越界修复。
 use crate::ui::workbench::layout::{
     ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, LayoutManager, WorkbenchLayout,
 };

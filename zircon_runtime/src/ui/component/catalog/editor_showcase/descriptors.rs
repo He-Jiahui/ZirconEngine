@@ -1,3 +1,5 @@
+//! 展示 V1 目录的完整声明集合，供默认编译器、调色板与组件契约测试使用；每项经相同元数据补充和注册校验。
+
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptorKind, UiComponentEventKind, UiComponentLayoutRole, UiDragPayloadKind,
     UiHostCapability, UiValue, UiValueKind,
@@ -16,6 +18,7 @@ use super::descriptor_builders::{
     validation_message_prop, value_text_prop, visual, with_palette_metadata,
 };
 
+// 每次工厂调用单独形成构造帧，支持展示目录的小栈初始化契约；编写默认值仍统一由元数据补充入口生成。
 #[inline(never)]
 fn build_editor_showcase_descriptor(
     factory: impl FnOnce() -> UiComponentDescriptor,

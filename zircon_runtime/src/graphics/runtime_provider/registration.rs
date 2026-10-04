@@ -1,3 +1,4 @@
+//! provider 注册承载身份、优先级与共享实现；框架构造时拒绝重复身份及最高优先级并列。
 use std::fmt;
 use std::sync::Arc;
 

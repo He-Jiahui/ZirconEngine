@@ -23,6 +23,7 @@ impl RuntimeSessionMetadata {
         self
     }
 
+    /// 仅规范标签；展示名、来源和时间字段保持调用者提供的值。
     pub fn normalize(&mut self) {
         normalize_metadata_tags(&mut self.tags);
     }

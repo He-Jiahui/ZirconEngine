@@ -19,6 +19,7 @@ use super::super::{
 };
 use super::gateway::SessionGateway;
 
+// 序列化端点的统一适配；跨 ABI 操作转发给 SessionGateway，由各方法执行所需的会话、入口与协议检查。
 impl EditorRuntimeGateway for SessionGateway {
     fn capabilities(&self) -> Arc<RuntimeCapabilities> {
         self.capabilities.clone()

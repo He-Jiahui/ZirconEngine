@@ -24,6 +24,7 @@ use crate::extension_ids::{
 };
 use crate::operation_command::NavigationOperationCommandFactory;
 
+// 命令表把烘焙和清除路由到可撤销编辑事务；打开视图与切换叠加层只发编辑器命令。
 pub(super) fn register(
     registry: &mut EditorExtensionRegistry,
 ) -> Result<(), EditorExtensionRegistryError> {

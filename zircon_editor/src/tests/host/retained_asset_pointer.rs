@@ -1,3 +1,4 @@
+// 从共享资产指针桥进入滚动和点击路由，约束大列表固定节点开销、稳定身份及模板回调。
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent};
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::host::editor_asset_manager::{

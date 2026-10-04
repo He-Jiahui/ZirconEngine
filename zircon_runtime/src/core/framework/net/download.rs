@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::NetDownloadId;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 内容清单中的一个可校验块；偏移和长度指资源字节范围，哈希覆盖完整块，镜像失败后仍按同一块身份重试。
 pub struct NetDownloadChunk {
     pub id: String,
     pub url: String,
@@ -32,6 +33,7 @@ impl NetDownloadChunk {
         }
     }
 
+    // BUG: [CR-FRAMEWORK-NET-0001] 完整块末尾的续传偏移会通过清单校验，但 HTTP 拉取将其判为非法范围并使下载失败。
     pub fn with_resume_from_byte(mut self, resume_from_byte: u64) -> Self {
         self.resume_from_byte = Some(resume_from_byte);
         self.allow_range_resume = true;
@@ -45,6 +47,7 @@ impl NetDownloadChunk {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 某块的一次候选 URL 拉取；range_start 是本次 HTTP Range 的起点，失败后 attempt_index 推进到镜像。
 pub struct NetDownloadAttemptDescriptor {
     pub download: NetDownloadId,
     pub chunk_id: String,
@@ -56,6 +59,7 @@ pub struct NetDownloadAttemptDescriptor {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 下载任务的稳定块清单；先提交给下载管理器校验，再按块选择主 URL 与镜像，进度按整个清单累计。
 pub struct NetDownloadManifest {
     pub download: NetDownloadId,
     pub resource_id: String,

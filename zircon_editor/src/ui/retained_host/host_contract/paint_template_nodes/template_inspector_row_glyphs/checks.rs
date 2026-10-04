@@ -1,3 +1,5 @@
+//! 勾选符仅用于已判定为真且能容纳的阴影属性；最终像素受共享图标资源和祖先裁剪门槛约束。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;

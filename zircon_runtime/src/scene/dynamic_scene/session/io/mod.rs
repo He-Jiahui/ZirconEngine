@@ -1,3 +1,5 @@
+//! 会话档案的路径和后台 I/O 边界；封存结果、路径身份与任务票据在此汇合。
+
 mod atomic;
 mod load_save;
 mod mutation;

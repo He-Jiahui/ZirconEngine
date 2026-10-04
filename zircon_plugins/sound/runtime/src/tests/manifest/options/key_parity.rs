@@ -1,3 +1,4 @@
+// 选项键是配置读写的稳定身份；静态清单与 sound_options 的集合必须一致。
 use super::super::support::{option_keys_from_plugin_toml, STATIC_SOUND_PLUGIN_MANIFEST};
 
 #[test]

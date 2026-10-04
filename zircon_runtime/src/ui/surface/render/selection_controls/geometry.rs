@@ -1,3 +1,5 @@
+//! 选择控件内部标记、文字和开关轨道的逻辑几何，由 checkbox/radio/toggle 内容层消费。
+//! 这些矩形是原节点的绘制区域，不是布局子节点或独立命中区域；active 只决定拇指的视觉端点。
 use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::{state::SelectionRenderState, style::SelectionVisual};

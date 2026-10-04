@@ -1,3 +1,6 @@
+//! 列表行表面优先呈现按压与持久选择，普通焦点只给边线而不伪装悬停表面。
+//! 边线宽度跟随是否输出边线，调用端同时消费颜色与宽度。
+
 use super::super::workbench_row_selection::selected_row_outline_color;
 use super::palette::{workbench_list_row_palette, WorkbenchListRowPalette};
 use super::state::is_unavailable_list_row_state;

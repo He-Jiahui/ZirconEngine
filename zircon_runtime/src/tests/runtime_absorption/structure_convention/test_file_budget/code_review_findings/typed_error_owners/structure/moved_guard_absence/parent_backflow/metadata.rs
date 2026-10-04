@@ -1,3 +1,4 @@
+//! 为类型化错误审查集中声明路径、子模块与锚点清单；消费者把这些值用于源码检查，清单中的名称不证明对应行为已执行。
 pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_PARENT_BACKFLOW_CHILD_INVENTORY_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/child_inventory.rs";
 pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_PARENT_BACKFLOW_CHILD_OWNERSHIP_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/child_ownership.rs";
 pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_PARENT_BACKFLOW_GUARD_BODY_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/guard_body.rs";

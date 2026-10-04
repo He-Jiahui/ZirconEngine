@@ -1,3 +1,4 @@
+//! 锁外的视口状态快照只供当前帧编译；锁内提交前仍须检查原视口代际。
 use crate::core::framework::render::{
     AdvancedProfileRuntimePlan, RenderCapabilitySummary, RenderFrameworkError,
     RenderParticlePreviousSpriteSnapshot, RenderPipelineHandle, ShaderQualityTier,

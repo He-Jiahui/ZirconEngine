@@ -55,6 +55,7 @@ fn runtime_15_core_handle_time_lock_poison_recovery_guard_covers_outer_time_auth
     assert_no_direct_lock_unwrap_in_production("core handle time", &time_handle);
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0021] 关卡固定步进接收外层时钟快照的旧入口签名未匹配；当前缺少时钟推进链证据，需沿世界与关卡的预算交接重新核对模拟时钟归属。
 #[test]
 fn runtime_22_core_time_hard_cut_keeps_simulation_clocks_world_owned() {
     let time_owner = read_runtime_src("core/runtime/time.rs");
@@ -106,6 +107,7 @@ fn runtime_22_core_time_hard_cut_keeps_simulation_clocks_world_owned() {
     );
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0020] 核心状态注册未匹配经恢复访问器初始化的旧表达式；需沿现行状态初始化链查明锁恢复策略，并关联中毒后初始化测试。
 #[test]
 fn runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registry() {
     let states_handle = read_runtime_src("core/runtime/handle/states.rs");

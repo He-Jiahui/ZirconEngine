@@ -1,3 +1,4 @@
+//! 上下文向设备所有者提供同设备原生句柄；过渡期场景和界面仍借这些句柄录制，提交包回到设备票据时间线。
 use std::sync::Arc;
 
 use zr_rhi::{RenderDeviceProfile, RenderDeviceQueueTopology, RhiError};

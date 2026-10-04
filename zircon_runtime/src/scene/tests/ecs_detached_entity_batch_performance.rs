@@ -1,3 +1,4 @@
+//! 编辑器删除和撤销依赖子树摘除及恢复；这里核对工作量只随受影响实体增长，并记录托管规模样本。
 use std::time::{Duration, Instant};
 
 use crate::scene::ecs::{Component, DetachedEntityBatchDiagnostics, StorageType};
@@ -31,6 +32,7 @@ fn subtree_component_count_is_scoped_to_descendants() {
     assert_eq!(world.subtree_component_count::<DetachedHealth>(999_999), 0);
 }
 
+// 构建不进入摘除及恢复的计时；两种操作分别重置计数，供规模门槛判断局部工作量。
 fn detached_batch_scale_sample(
     affected_entities: usize,
     unrelated_entities: usize,

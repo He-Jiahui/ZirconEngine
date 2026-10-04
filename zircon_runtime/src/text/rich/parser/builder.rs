@@ -6,6 +6,7 @@ use super::super::admission::{RichParseBudget, RichTextContentTrust, RichTextPar
 use super::super::decorator::retained_metadata_bytes;
 use super::bidi_diagnostics::{BidiControlAdmission, BidiControlKind};
 
+/// 各格式解析共用的请求内产物与准入账本；先积累可见文本和语义元数据，通过最终校验后才交给编译缓存。
 pub(super) struct RichParseBuilder {
     pub(super) text: String,
     pub(super) runs: Vec<StyledRun>,
@@ -42,6 +43,7 @@ impl RichParseBuilder {
         }
     }
 
+    /// 发布解析结果前统一拒绝已记录的容量错误及未闭合的双向控制序列。
     pub(super) fn finish(mut self) -> Result<RichParseResult, RichTextParseError> {
         if let Some(error) = self.error.take() {
             return Err(error);
@@ -77,6 +79,7 @@ impl RichParseBuilder {
         self.bidi_control_admission.finish()
     }
 
+    /// 所有可见文本扩展都必须先取得有界的 u32 范围，供 run、段落和表格共享同一索引空间。
     pub(super) fn admit_append(&mut self, appended_bytes: usize) -> Option<(u32, u32)> {
         if self.error.is_some() {
             return None;

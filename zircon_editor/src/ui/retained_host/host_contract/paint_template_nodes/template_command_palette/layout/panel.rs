@@ -1,3 +1,5 @@
+//! 空结果文案占用搜索区之后的剩余内容带；短面板允许该带退化为零高。
+
 use super::super::super::super::data::FrameRect;
 use super::common::symmetric_extent;
 use super::metrics::command_palette_metrics;

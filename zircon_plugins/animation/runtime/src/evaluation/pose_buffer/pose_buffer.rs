@@ -1,3 +1,4 @@
+//! 姿态缓冲区按骨架稠密行持有局部变换和通道权重；缓冲区索引不携带跨骨架身份。
 use zircon_runtime::core::math::{Quat, Transform, Vec3};
 
 /// Structure-of-arrays local pose storage indexed by a dense skeleton row.

@@ -1,3 +1,4 @@
+//! 核对每种运行时资源恰有一个内建资产定义，并明确纹理预览与动画工具入口的单一权威来源。
 use std::collections::BTreeSet;
 
 use crate::core::asset::{AssetTypeId, AssetTypeRegistry, ThumbnailProviderDescriptor};

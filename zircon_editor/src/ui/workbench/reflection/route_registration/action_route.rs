@@ -1,3 +1,4 @@
+//! 把公开动作连接到停靠、草稿、检查器、资产、动画或画布命令；未知动作不擅自授权远程调用。
 use crate::ui::control::EditorUiControlService;
 use crate::ui::EditorActivityReflection;
 use zircon_runtime_interface::ui::event_ui::UiActionDescriptor;
@@ -9,6 +10,7 @@ use super::super::draft_route::register_draft_route;
 use super::super::inspector_route::register_inspector_route;
 use super::super::viewport_route::register_viewport_route;
 
+/// 为已知动作补齐有类型路由；缺少映射的动作保持不可远程调用。
 pub(super) fn register_action_route(
     service: &mut EditorUiControlService,
     activity_meta: &EditorActivityReflection,

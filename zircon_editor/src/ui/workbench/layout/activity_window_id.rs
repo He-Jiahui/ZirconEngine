@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+/// 活动窗口的稳定键；主页面、视图实例和原生宿主句柄使用各自身份。
 pub struct ActivityWindowId(pub(crate) String);
 
 impl ActivityWindowId {

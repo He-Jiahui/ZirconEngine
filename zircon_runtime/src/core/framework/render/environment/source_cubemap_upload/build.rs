@@ -7,6 +7,8 @@ use super::{SourceCubemapUploadArtifact, SourceCubemapUploadMip};
 const RGBA16F_BYTES_PER_TEXEL: u32 = 8;
 const UPLOAD_ROW_ALIGNMENT: u32 = 256;
 
+/// 在场景提取/资源准备阶段把源图、PMREM 和可选 IEM 编成渲染后端可直接上传的字节。
+/// 行对齐与六面顺序由这里固定，渲染提交不得重新解释 CPU 浮点布局。
 pub fn build_source_cubemap_upload_artifact(
     mip_chain: &SourceCubemapMipChain,
     irradiance_cube: Option<&SourceCubemapIrradianceCube>,

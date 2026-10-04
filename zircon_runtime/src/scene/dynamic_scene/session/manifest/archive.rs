@@ -9,6 +9,8 @@ mod sorted_lookup;
 
 use self::sorted_lookup::sorted_index_by_key;
 
+/// 不含场景负载的会话目录；保存预览与路径查询借此展示槽位，规范产物按槽位 ID 排序。
+/// 可反序列化的外部清单不保证排序，查找实现因此保留线性兜底。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RuntimeSessionArchiveManifest {
     pub format_version: u32,

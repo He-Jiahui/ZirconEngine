@@ -12,6 +12,7 @@ pub struct AnimationSkeletonComponent {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 资源与播放参数的场景配置；LevelSystem 在固定帧中消费它并把姿态作为帧快照发布给渲染提取。
 pub struct AnimationPlayerComponent {
     pub clip: ResourceHandle<AnimationClipMarker>,
     pub playback_speed: Real,

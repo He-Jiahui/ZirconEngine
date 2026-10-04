@@ -1,3 +1,4 @@
+//! 每个可拾取帧注册命中代理快照，GPU 读回只用相同帧身份解释像素令牌。
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 

@@ -8,6 +8,7 @@ use super::super::HybridGiRuntimeState;
 use super::scene_fallback::{quantize_positive, quantize_signed, POSITIVE_RADIUS_SCALE};
 
 impl HybridGiRuntimeState {
+    // 仅为当前跟踪的探针投影历史和场景兜底，避免将已失效的缓存颜色带入渲染帧。
     pub(crate) fn build_resolve_runtime(&self) -> HybridGiResolveRuntime {
         let tracked_probe_ids = self.tracked_runtime_probe_ids();
         let mut probe_hierarchy_irradiance_rgb_and_weight = BTreeMap::new();

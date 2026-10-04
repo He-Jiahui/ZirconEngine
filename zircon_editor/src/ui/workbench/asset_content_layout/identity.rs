@@ -1,3 +1,4 @@
+//! 代次构建时解释资产控件身份；绘制与虚拟slot绑定复用分类，避免热路径重复解码字符串。
 use super::controls::{
     activity_reference_row_index, browser_reference_row_index, browser_source_tree_row_index,
     ActivityAssetReferenceListKind, BrowserAssetReferenceListKind,
@@ -9,6 +10,7 @@ use super::controls::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 身份分类所属资产面；同类控件编号须连同surface解释。
 pub(crate) enum AssetContentSurface {
     Activity,
     Browser,
@@ -24,6 +26,7 @@ pub(crate) enum ActivityContentNodeRole {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 活动区内容身份；文件夹和资产行属于同一列表，但索引各自计数。
 pub(crate) enum ActivityContentNodeIdentity {
     ContentPanel,
     Empty,
@@ -67,6 +70,7 @@ impl ActivityContentNodeIdentity {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// browser内容节点或物化slot身份；逻辑资产身份由当前代次绑定提供。
 pub(crate) enum BrowserContentNodeIdentity {
     TablePanel,
     Header,
@@ -126,6 +130,7 @@ pub(crate) enum AssetContentRowDescriptor {
     },
 }
 
+/// 发布代次前生成结构分类；无法识别的控件保留固定节点身份。
 pub(crate) fn describe_asset_content_row(
     surface: AssetContentSurface,
     control_id: &str,
@@ -136,6 +141,7 @@ pub(crate) fn describe_asset_content_row(
     }
 }
 
+/// 活动内容允许挂载路径前缀；只按末段及约定编号解释。
 pub(crate) fn parse_activity_content_identity(
     control_id: &str,
 ) -> Option<ActivityContentNodeIdentity> {
@@ -155,6 +161,7 @@ pub(crate) fn parse_activity_content_identity(
         })
 }
 
+/// 按browser模板控件契约解码身份，不能依赖展示文案或旧版名称。
 pub(crate) fn parse_browser_content_identity(
     control_id: &str,
 ) -> Option<BrowserContentNodeIdentity> {

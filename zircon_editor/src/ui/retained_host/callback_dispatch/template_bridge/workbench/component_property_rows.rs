@@ -39,6 +39,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .map_err(BuiltinHostWindowTemplateBridgeError::from)
     }
 
+    // 滚动只重绑运行时报告发生变化的槽位，随后由失效计数决定是否请求重绘。
     pub(crate) fn refresh_component_property_rows_after_scroll(
         &mut self,
         route: &UiPointerRoute,
@@ -75,6 +76,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(true)
     }
 
+    // 槽位拓扑变化后刷新控件索引，后续属性编辑才能按新虚拟控件 ID 找到目标。
     fn reconcile_component_property_rows(
         &mut self,
         item_keys: &[UiVirtualListItemKey],

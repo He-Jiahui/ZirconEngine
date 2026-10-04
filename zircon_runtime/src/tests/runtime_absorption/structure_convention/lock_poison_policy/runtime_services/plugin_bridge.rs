@@ -1,5 +1,6 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0024] 插件桥接提供方槽位的锁恢复的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_plugin_bridge_table_lock_poison_recovery_guard_covers_provider_slot() {
     let table = read_runtime_src("plugin/bridge/table.rs");

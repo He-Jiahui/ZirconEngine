@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+/// 一次反射值验证的调用方配额，覆盖反射容器及嵌入的 JSON 子树；入口按信任边界选择上限，本类型不提供隐式默认值。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReflectValueBudget {
     max_depth: usize,

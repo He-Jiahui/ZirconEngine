@@ -1,3 +1,6 @@
+//! 把分配计划与借用的字形像素合成可独立持有的上传区域。
+//! 每个区域先重放当前页世代的 CPU 阴影，再叠加本次来源，保证合并脏区时仍驻留的字形不会被清零。
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -5,6 +8,8 @@ use super::super::{GlyphAtlasPageKey, GlyphAtlasRect, GlyphAtlasUploadCommand};
 use super::types::{GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapUploadCopy};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 像素借用必须使用此次运行的局部来源索引，长度须匹配该来源的拷贝描述。
+/// 字体世代在上游交接处验证；暂存阶段只消费像素，不能据此判定字体仍然有效。
 pub(crate) struct GlyphAtlasBitmapUploadSourceBytes<'a> {
     pub(crate) source_index: usize,
     pub(crate) bytes: &'a [u8],
@@ -30,6 +35,8 @@ impl<'a> GlyphAtlasBitmapUploadSourceBytes<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// 拥有一个上传矩形的紧凑像素缓冲区；行跨度按矩形宽度计算。
+/// 它携带页世代以供提交前拒绝过期任务，缓冲区不是整页坐标下的原始来源。
 pub(crate) struct GlyphAtlasBitmapPageUploadStaging {
     pub(crate) page_key: GlyphAtlasPageKey,
     pub(crate) page_generation: u64,
@@ -66,6 +73,8 @@ impl GlyphAtlasBitmapUploadStagingPlan {
     }
 }
 
+/// 应在完成图集分配后提供对应来源的像素；输出尚未表示 GPU 已接受写入。
+/// 调用者必须同时检查暂存失败，并通过后续上传确认来提交 CPU 阴影。
 pub(crate) fn glyph_atlas_bitmap_upload_staging_plan<'a, I>(
     run: &GlyphAtlasBitmapRunPlan,
     source_bytes: I,

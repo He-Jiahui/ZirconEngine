@@ -1,3 +1,4 @@
+//! 汇总旧探针驻留统计与场景表示资源统计，供每帧插件回传运行状态；数值由 snapshot 构造，不在此处更新。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct HybridGiRuntimeSnapshot {
     cache_entry_count: usize,

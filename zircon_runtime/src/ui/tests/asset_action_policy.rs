@@ -1,3 +1,4 @@
+//! 验证包校验依据运行时或编辑器权限报告动作副作用；文档节点遍历服务该校验的共同入口。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use zircon_runtime_interface::ui::template::{
     UiActionSideEffectClass, UiCompiledAssetPackageProfile,

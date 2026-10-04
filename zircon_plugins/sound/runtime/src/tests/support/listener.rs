@@ -1,3 +1,4 @@
+// 提供朝向、耳位与主轨道均有效的默认监听器；空间声用例据此只变更待验证的几何或 HRTF 字段。
 use zircon_runtime::core::framework::sound::{
     SoundListenerDescriptor, SoundListenerId, SoundTrackId,
 };

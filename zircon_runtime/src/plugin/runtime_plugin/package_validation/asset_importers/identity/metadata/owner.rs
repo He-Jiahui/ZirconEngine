@@ -2,6 +2,7 @@ use crate::asset::AssetImporterDescriptor;
 
 use super::super::super::super::validate_runtime_plugin_package_id;
 
+// 导入器所有权按清单原始包 ID 校验；包坐标生成的展示 ID 不参与扩展注册表的身份匹配。
 pub(super) fn validate_runtime_plugin_package_asset_importer_owner(
     package_id: &str,
     importer: &AssetImporterDescriptor,

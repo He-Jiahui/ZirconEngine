@@ -1,3 +1,5 @@
+//! 沿轨道百分比放置主/下限滑块，并在焦点或悬停时可选绘制 halo；颜色来自同一选择器。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchSliderStyle;
@@ -6,6 +8,7 @@ use super::super::template_slider_geometry::{
 };
 use super::layers::thumb_body_order;
 
+/// percent 应由值域模块限制在 0..1；此函数可被双滑块调用，并沿用调用方分配的层级。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_thumb(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

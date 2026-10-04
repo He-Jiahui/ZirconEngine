@@ -1,3 +1,6 @@
+//! Material 字段前保留单槽数量列，当前视觉固定显示一个资源槽，不读取资源集合计数。
+//! Mesh 行不占此列；将来多槽数据需由投影与字段布局一起改动。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_inspector_row_geometry::inspector_row_metrics;

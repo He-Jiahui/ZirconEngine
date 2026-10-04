@@ -1,3 +1,4 @@
+// 静态模块种类须映射到运行时枚举；新增种类时需同步对照值域。
 pub(in super::super) fn module_kind_from_plugin_toml(
     value: &str,
 ) -> zircon_runtime::plugin::PluginModuleKind {

@@ -1,3 +1,4 @@
+// 从资产事件记录宿主效果，约束后端同步、预览绘制、布局和渲染失效域分离。
 use crate::core::editor_event::EditorEventEffect;
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::retained_host::HostInvalidationMask;

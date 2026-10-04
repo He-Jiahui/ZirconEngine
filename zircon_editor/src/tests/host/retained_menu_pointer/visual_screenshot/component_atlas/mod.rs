@@ -1,3 +1,4 @@
+// 组合工作台组件图谱的节点并提供显式截图生成入口。
 const WORKBENCH_COMPONENT_ATLAS_SCREENSHOT: &str =
     "editor-components-workbench-slate-atlas-900x620.png";
 

@@ -1,3 +1,6 @@
+//! 把当前宿主主题投影为选择控件角色色；勾选表面保持低强调，与焦点边线和标记强调色独立。
+//! 测试常量用于默认主题断言；运行时入口读取当前宿主主题。
+
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{

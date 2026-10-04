@@ -1,3 +1,4 @@
+//! 预设是可编辑的声明图；应用仍受当前 Kira 图编译能力和活动播放的结构编辑限制。
 use std::collections::HashSet;
 
 use zircon_runtime::core::framework::sound::{

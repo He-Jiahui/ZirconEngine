@@ -1,3 +1,4 @@
+/// 封存产物的聚合视图；用于保存预览和路径查询，不代表实时 World 的统计。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RuntimeSessionArchiveStatistics {
     pub format_version: u32,

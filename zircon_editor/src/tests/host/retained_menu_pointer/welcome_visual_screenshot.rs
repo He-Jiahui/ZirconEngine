@@ -1,3 +1,4 @@
+// 提供欢迎页 MVP 动作的显式视觉快照入口和基础像素检查。
 use std::path::Path;
 
 use super::visual_screenshot::{save_window_snapshot, welcome_input_window};

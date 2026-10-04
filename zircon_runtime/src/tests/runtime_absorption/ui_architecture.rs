@@ -1,3 +1,4 @@
+//! 运行时界面结构和历史命名迁移需遵守架构与文档边界。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "ui_architecture/architecture_boundaries.rs"]
 mod architecture_boundaries;
 #[path = "ui_architecture/legacy_renames.rs"]

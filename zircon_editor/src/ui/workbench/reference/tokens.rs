@@ -1,4 +1,5 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 静态参考界面的视觉令牌；用于重现比较，不承载运行时主题状态。
 pub struct EditorWorkbenchReferencePalette {
     pub app_background: &'static str,
     pub panel_background: &'static str,

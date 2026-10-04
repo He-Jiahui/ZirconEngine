@@ -1,3 +1,5 @@
+//! 状态信号只呈现标记与文字，不生成 chip 表面；标记和文字分别做边界/裁剪验证。
+
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::{
     select_workbench_status_signal_style, WorkbenchStatusSignalKind as StatusSignalKind,

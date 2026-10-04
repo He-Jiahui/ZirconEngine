@@ -1,7 +1,9 @@
+//! 次表面散射的链接式注册入口；导出宿主按项目特性选择调用报告函数，再合并贡献。
 use crate::{
     render_feature_descriptor, render_pass_executor_registrations, shading_model_descriptor,
 };
 
+/// 可重复构造的特性提供者；实例无渲染设备状态，资源生命周期由登记的 executor 或宿主管理。
 #[derive(Clone, Debug)]
 pub struct RenderingSubsurfaceScatteringRuntimeFeature;
 
@@ -10,6 +12,7 @@ impl zircon_runtime::plugin::RuntimePluginFeature for RenderingSubsurfaceScatter
         feature_manifest()
     }
 
+    // 向本次报告的暂存表提交图拓扑、executor 和着色模型；错误保留在报告诊断中，由目录决定是否接纳。
     fn register(
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
@@ -23,10 +26,12 @@ impl zircon_runtime::plugin::RuntimePluginFeature for RenderingSubsurfaceScatter
     }
 }
 
+/// 提供用于 trait 注册的无设备实例；调用后仍须生成并检查注册报告。
 pub fn runtime_plugin_feature() -> RenderingSubsurfaceScatteringRuntimeFeature {
     RenderingSubsurfaceScatteringRuntimeFeature
 }
 
+/// 供生成的链接式导出宿主收集贡献；必须检查报告诊断，不能仅凭取得报告判定可用。
 pub fn plugin_feature_registration(
 ) -> zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport {
     zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport::from_feature(
@@ -34,6 +39,7 @@ pub fn plugin_feature_registration(
     )
 }
 
+/// 由渲染主包生成此特性的目标模式、owner 与依赖关系；注册内容须保持同一身份。
 pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
     zircon_plugin_rendering_runtime::feature_manifest(
         zircon_plugin_rendering_runtime::RenderingFeatureKind::SubsurfaceScattering,

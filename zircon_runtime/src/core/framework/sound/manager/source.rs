@@ -5,6 +5,7 @@ use super::super::{
 };
 use crate::core::framework::scene::WorldHandle;
 
+/// 管理混音图中的持续声源、空间监听与音量区域；外部音频由提供方按同一 handle 推送。
 pub trait SoundSourceManager {
     fn create_source(&self, source: SoundSourceDescriptor) -> Result<SoundSourceId, SoundError>;
     fn update_source(&self, source: SoundSourceDescriptor) -> Result<(), SoundError>;
@@ -22,6 +23,7 @@ pub trait SoundSourceManager {
     fn source_empty(&self, source: SoundSourceId) -> Result<bool, SoundError>;
     fn source_status(&self, source: SoundSourceId) -> Result<SoundSourceStatus, SoundError>;
     fn drain_finished_sources(&self) -> Result<Vec<SoundSourceFinished>, SoundError>;
+    /// 按世界读取非消费式事件日志。首次传 None 取得游标，后续传回游标并检查 missed_events。
     fn read_gameplay_emissions(
         &self,
         world: WorldHandle,

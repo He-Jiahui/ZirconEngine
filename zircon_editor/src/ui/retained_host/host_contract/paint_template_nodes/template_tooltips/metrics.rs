@@ -1,9 +1,12 @@
+//! 从当前帧密度投影 tooltip 的气泡、文字、箭头与图标；宽度上限按行单位缩放。
+
 use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 // Unreal Slate wraps text-only tooltips at 1000 logical pixels. Express the
 // same limit in row units so the retained painter scales it with device DPI.
 const TOOLTIP_MAX_WIDTH_IN_ROWS: f32 = 31.25;
 
+/// 布局与绘制共用的主题尺寸协议；尺寸是请求值，子内容是否可画仍由容器边界判定。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchTooltipMetrics
 {

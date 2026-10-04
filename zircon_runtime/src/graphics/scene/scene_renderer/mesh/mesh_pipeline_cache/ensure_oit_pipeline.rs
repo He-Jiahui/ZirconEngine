@@ -10,6 +10,8 @@ use super::{MeshPipelineCache, PipelineCreationTarget};
 const OIT_PIPELINE_TARGET: PipelineCreationTarget = PipelineCreationTarget::Oit;
 
 impl MeshPipelineCache {
+    /// 透明 Base 变体须先通过 WGSL、入口和资源 ABI 准入，再供 OIT replay 使用。
+    /// Deferred/Failed 由调用方记录回退；仅 Ready 可取已缓存管线。
     pub(crate) fn ensure_oit_pipeline_admission_for_base_variant(
         &mut self,
         device: &wgpu::Device,

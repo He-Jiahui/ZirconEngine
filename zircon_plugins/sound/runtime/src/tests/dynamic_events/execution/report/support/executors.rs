@@ -1,3 +1,4 @@
+// 对两个处理器分别模拟成功与业务失败，共享调用日志供报告用例核对顺序；第三个处理器故意不注册执行器。
 use super::super::super::super::*;
 
 use std::sync::{Arc, Mutex};

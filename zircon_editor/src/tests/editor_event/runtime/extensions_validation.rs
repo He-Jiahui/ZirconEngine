@@ -1,3 +1,4 @@
+//! 扩展批次的无效引用或冲突必须整体拒绝；错误后命令与 UI 投影不得部分发布。
 use super::*;
 use crate::core::commands::EditorCommandDescriptor;
 

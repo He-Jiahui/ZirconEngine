@@ -30,6 +30,7 @@ use serde::{Deserialize, Serialize};
         write = "super::reflection::local_transform::write_scale"
     )
 )]
+/// 节点作者编辑的局部变换；World 由它和层级关系计算全局矩阵，不能直接把全局缓存当作源数据保存。
 pub struct LocalTransform {
     #[zr_reflect(skip)]
     pub transform: Transform,
@@ -44,6 +45,7 @@ impl Default for LocalTransform {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+/// World 内部传播维护的全局矩阵缓存；通用组件写入与可变查询不得把它当作作者输入修改。
 pub struct WorldMatrix(pub Mat4);
 
 impl Default for WorldMatrix {

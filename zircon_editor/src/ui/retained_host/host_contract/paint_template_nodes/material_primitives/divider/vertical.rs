@@ -4,6 +4,7 @@ use super::geometry::{vertical_divider_extent, vertical_label_bounds, vertical_l
 use super::labels::{divider_label, push_vertical_divider_label};
 use super::lines::push_vertical_line;
 
+/// 纵向标签占据线段中间的缺口；上下线和文字使用同一裁剪与叠放顺序。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_vertical_divider(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

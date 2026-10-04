@@ -1,3 +1,5 @@
+//! 管理策略验证返回的结构化错误；包发现把它们转换为带清单路径的 VmError::Parse。
+
 pub type VmPluginManagementPolicyResult<T> = std::result::Result<T, VmPluginManagementPolicyError>;
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]

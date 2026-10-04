@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0114] 界面属性修改的脏域分类的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_ui_surface_property_mutation_metadata_dirty_is_child_owner() {
     let parent = read_runtime_src("ui/surface/property_mutation.rs");

@@ -1,3 +1,6 @@
+//! 把 World 或业务提供的字段快照转换为增量，并为 despawn 生成逐组件 tombstone。
+//! 本文件只处理内存状态，不读取 World 也不发送网络帧；调用方要按发送结果处理生命周期。
+
 use zircon_runtime::core::framework::net::{NetObjectId, SyncDelta, SyncFieldValue};
 
 use super::NetReplicationRuntimeManager;

@@ -4,6 +4,7 @@ use super::SaveReason;
 use crate::core::extension::toolkit::ToolkitInstanceId;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// Toolkit hook 成功后的文档保存回执；字节数与写入保证来自 SaveCtx。
 pub struct DocumentSaveReport {
     document: DocumentId,
     instance: ToolkitInstanceId,
@@ -13,6 +14,7 @@ pub struct DocumentSaveReport {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 保证只覆盖同一源写入 Authority 的协作写方；外部写方冲突仍需审慎处理。
 pub(in crate::core::extension::toolkit) struct DocumentSaveGuarantee {
     cooperating_source_writes_are_serialized: bool,
     external_conflict_detection_is_best_effort: bool,

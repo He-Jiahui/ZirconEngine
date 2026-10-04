@@ -1,3 +1,4 @@
+// 根文字与覆盖层的锚点、尺寸和文本框在此汇总；覆盖层锚点遵循节点 variant。
 mod anchor;
 mod metrics;
 mod model;

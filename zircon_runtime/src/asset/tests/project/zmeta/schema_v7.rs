@@ -1,3 +1,5 @@
+//! 守护 zmeta v7 的严格读取边界：旧版与非法字段必须明确失败，直接 serde 入口也不能绕过标签校验。
+
 use std::fs;
 
 use crate::asset::{AssetKind, AssetMetaDocument, AssetMetaError, AssetUri, AssetUuid};
@@ -203,6 +205,7 @@ tags = [" trailing "]
 }
 
 #[test]
+// 不只高层 load，公开的 serde 反序列化入口也必须执行相同的版本与标签约束。
 fn direct_serde_entry_points_cannot_bypass_strict_tag_validation() {
     let duplicate_root = r#"format_version = 7
 uuid = "11111111-2222-4333-8444-555555555555"

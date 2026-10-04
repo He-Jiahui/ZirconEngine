@@ -1,3 +1,6 @@
+//! 树行入口和标题使用共同的有限尺寸与包含门槛，避免窄行产生越界操作或一像素文字。
+//! 这组判定只负责几何，节点是否属于树行由 identity 决定。
+
 use super::super::super::data::FrameRect;
 use super::super::template_tree_row_geometry::tree_action_button_rect;
 

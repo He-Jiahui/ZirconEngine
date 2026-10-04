@@ -6,6 +6,8 @@ use super::super::duplicate_identity::DuplicateIdentity;
 use super::super::duplicate_occurrence::DuplicateOccurrence;
 use super::index_identity;
 
+/// 模块名在包内唯一；能力、系统集和系统锚点在各模块内部独立去重。
+/// 包注册核对还会使用运行时模块的有序锚点，确认清单声明对应具体注册结果。
 pub(super) fn index_package_modules<'a>(
     manifest: &'a PluginPackageManifest,
     seen: &mut HashSet<DuplicateIdentity<'a>>,

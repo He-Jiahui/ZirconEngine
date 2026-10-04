@@ -1,3 +1,4 @@
+//! 每个目标生成固定层次的可绘制节点；行操作和诊断颜色随目标状态一起发布给宿主。
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData;
 use crate::ui::retained_host as host_contract;

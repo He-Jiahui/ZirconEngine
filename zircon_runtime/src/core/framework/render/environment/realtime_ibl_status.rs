@@ -38,6 +38,8 @@ pub struct RealtimeIblFailureReport {
     pub last_good_available: bool,
 }
 
+/// 渲染器对外发布的实时 IBL 生命周期观察值，区分回退、烘焙中和沿用最后可用结果。
+/// 生成键与帧号描述已经发布及排队的工作，调用方不应把 `Ready` 之外的状态当作新结果可见。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RealtimeIblStatusReport {
     pub readiness: RealtimeIblReadiness,

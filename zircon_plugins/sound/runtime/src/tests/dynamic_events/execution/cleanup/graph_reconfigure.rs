@@ -1,3 +1,4 @@
+// 整图替换移除事件后应清理其执行器；重建事件与处理器后的调用须报告 SkippedMissingExecutor。
 use super::super::super::*;
 
 use super::support::{

@@ -1,3 +1,4 @@
+//! 图编辑先在锁外准备并校验声明，后端活动时再编译更新计划；提交时核对修订号与活动状态，Arc 快照避免持锁完成准备工作。
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::sound::SoundMixerGraph;

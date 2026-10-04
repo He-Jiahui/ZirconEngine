@@ -7,6 +7,7 @@ use crate::{
     ResourceResult,
 };
 
+/// 目录的不可变读取快照；克隆共享索引，后续写入以写时复制隔离已有快照，不携带运行时载荷。
 #[derive(Clone, Debug, Default)]
 pub struct ResourceRegistry {
     by_id: Arc<HashMap<ResourceId, Arc<ResourceRecord>>>,
@@ -14,6 +15,7 @@ pub struct ResourceRegistry {
 }
 
 impl ResourceRegistry {
+    // 仅供已完成定位符与身份预检的提交/离线构建调用；绕过预检可能破坏两个索引的一致归属。
     pub(crate) fn insert_unchecked(&mut self, record: ResourceRecord) -> Option<ResourceRecord> {
         debug_assert!(
             self.id_by_locator
@@ -89,6 +91,7 @@ pub struct ResourceRegistryStaging {
 }
 
 impl ResourceRegistryStaging {
+    /// 构建离线候选目录；同一 ID 已建立的种类与定位符必须保持一致，定位符变化须先显式迁移。
     pub fn stage_record(
         &mut self,
         record: ResourceRecord,
@@ -180,11 +183,13 @@ impl ResourceRegistryStaging {
             })
     }
 
+    /// 从候选目录移除记录，但保留本次构建中已建立的身份约束；删除再插入不能绕过种类或定位符校验。
     pub fn stage_remove_locator(&mut self, locator: &ResourceLocator) -> Option<ResourceRecord> {
         let id = self.registry.id_for_locator(locator)?;
         self.registry.remove_by_id(id)
     }
 
+    /// 完成离线候选快照；此结果尚未发布到运行时，在线变化仍须提交对应管理器批次。
     pub fn finish(self) -> ResourceRegistry {
         self.registry
     }

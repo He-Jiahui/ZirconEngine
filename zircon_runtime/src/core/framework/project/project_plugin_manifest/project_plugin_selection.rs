@@ -8,6 +8,7 @@ use super::default_true::default_true;
 use super::ProjectPluginFeatureSelection;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 单个插件在项目中的声明；enabled 和 target_modes 决定是否参与当前目标，required 仅约束参与解析后的失败。
 pub struct ProjectPluginSelection {
     pub id: String,
     #[serde(default = "default_true")]

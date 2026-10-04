@@ -8,6 +8,7 @@ use super::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// 收件箱对事实的保留责任：逐条必须交付、同键仅需最新态、或允许有界淘汰。
 pub(super) enum EditorMessageRetention {
     Lossless,
     Latest(EditorMessageCoalescingKey),
@@ -15,6 +16,7 @@ pub(super) enum EditorMessageRetention {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+// 同键表示可被后续事实替代；文档、任务和世界域身份必须在键中保留，避免互相覆盖。
 pub(super) enum EditorMessageCoalescingKey {
     DocumentDirty(DocumentId),
     DocumentFocus,
@@ -25,6 +27,8 @@ pub(super) enum EditorMessageCoalescingKey {
     SceneInspection,
 }
 
+// 保留策略按协议及事实语义选择；事务和生命周期不能跳过中间项，状态通知则由消费者回查权威状态。
+// 场景检查仅保留最新层级代次，选择变化由消息层合并；代次不连续时消费方必须重同步。
 pub(super) fn editor_message_retention(
     protocol: EditorMessageProtocol,
     message: &EditorMessage,

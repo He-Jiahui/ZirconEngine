@@ -4,6 +4,7 @@ use super::location::EntityLocation;
 
 pub(super) const FIRST_GENERATION: u32 = 1;
 
+/// 内部句柄的槽位状态；释放时递增代数，让旧句柄无法命中新实体。代数耗尽的槽位不再复用。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct EntitySlot {
     pub(super) generation: u32,

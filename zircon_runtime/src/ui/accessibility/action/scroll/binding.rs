@@ -9,6 +9,7 @@ use zircon_runtime_interface::ui::{
 use crate::ui::binding::{binding_update_report, runtime_state_update_with_source_kind};
 use crate::ui::surface::UiSurface;
 
+// 树滚动成功后补记 AccessibilityAction -> runtime scroll_offset 的来源和最终值；报告不会再次改变树。
 pub(super) fn append_scroll_binding_report(
     surface: &UiSurface,
     result: &mut UiInputDispatchResult,

@@ -1,3 +1,5 @@
+//! 验证UI 控制服务注册活动描述符，并将活动抽屉限定到底部停靠槽。
+
 use crate::ui::activity::{
     ActivityDrawerSlotPreference, ActivityViewDescriptor, ActivityWindowDescriptor,
 };

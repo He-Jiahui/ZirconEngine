@@ -1,3 +1,4 @@
+//! 检查可选领域移出旧聚合入口后的包归属；存在性和源码文本断言是结构契约，不执行插件注册或领域模拟。
 #[test]
 fn optional_extension_module_registration_keeps_current_owner_packages_explicit() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

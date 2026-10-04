@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证工作台状态信号的共享度量和语义配色。
+
 use toml::Value;
 
 use super::support::{editor_asset_root, load_zui_document};

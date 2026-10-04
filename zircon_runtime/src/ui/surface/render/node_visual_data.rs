@@ -9,6 +9,8 @@ use super::resolve::{
     resolve_painter_state, resolve_style, resolve_text,
 };
 
+/// 同一次元数据解析产生的通用视觉快照，供命令提取与文字预热使用，避免来源不一致。
+/// 专用 painter 可接管其中的文字、图片或表面；这里的样式状态只是绘制投影，不授予输入权限。
 #[derive(Default)]
 pub(super) struct UiNodeVisualData {
     pub(super) style: UiResolvedStyle,

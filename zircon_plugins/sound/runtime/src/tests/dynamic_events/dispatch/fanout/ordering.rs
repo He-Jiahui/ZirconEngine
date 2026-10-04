@@ -1,3 +1,4 @@
+// 固定一次事件扇出时处理器按优先级与身份排序，供后续执行报告保持可预测顺序。
 use super::super::super::*;
 
 use super::support::fanout_fixture;

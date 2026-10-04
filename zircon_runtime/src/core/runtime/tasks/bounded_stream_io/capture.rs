@@ -55,6 +55,7 @@ impl fmt::Debug for BoundedStreamIoCapture {
     }
 }
 
+// 丢弃先关闭消费端并清空残留，再置取消标志；阻塞中的 Read 仍由 reader 终态计数跟踪。
 impl Drop for BoundedStreamIoCapture {
     fn drop(&mut self) {
         self.state.close_consumer();

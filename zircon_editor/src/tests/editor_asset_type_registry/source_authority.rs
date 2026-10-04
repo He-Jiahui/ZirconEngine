@@ -1,3 +1,4 @@
+//! 核对项目源和只读源的写入权限矩阵由资产定义独占，避免调用端另行推断可写性。
 use crate::core::asset::{
     AssetSourceAuthority, AssetSourceKind, AssetSourceWritePolicy, AssetTypeContribution,
     AssetTypeId, AssetTypePresentation, AssetTypeRegistry, AssetTypeRegistryError,

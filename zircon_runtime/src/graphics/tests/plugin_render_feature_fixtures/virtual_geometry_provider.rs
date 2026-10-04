@@ -1,3 +1,4 @@
+//! 测试 provider 从模型资产投影虚拟几何，并把局部页与 cluster 身份重映射到整帧；验证插件注册到自动提取的调用链。
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 

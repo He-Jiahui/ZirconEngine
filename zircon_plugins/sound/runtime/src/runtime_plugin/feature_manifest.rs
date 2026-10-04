@@ -1,3 +1,4 @@
+//! 可选功能清单只描述供给包、依赖和导出形式；具体后端声学或动画行为需由已装载的服务实现提供。
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{

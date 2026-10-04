@@ -1,3 +1,4 @@
+//! 核对事务生命周期事件直接按顺序进入配置的接收端，使外部观察者看到与提交和撤销相同的状态迁移。
 use std::sync::{Arc, Mutex};
 
 use crate::core::editing::engine::{

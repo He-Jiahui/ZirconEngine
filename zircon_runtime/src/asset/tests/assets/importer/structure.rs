@@ -1,5 +1,7 @@
 ﻿use super::*;
 
+// 结构门禁约束导入流程归属和根资产所有权：项目调用 ingest 时应移动产物，避免仅为返回根资产复制大型负载。
+
 #[test]
 fn importer_subtree_uses_ingest_namespace_without_service_shell() {
     let importer_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/asset/importer");

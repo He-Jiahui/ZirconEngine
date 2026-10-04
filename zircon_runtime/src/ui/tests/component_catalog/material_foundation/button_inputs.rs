@@ -1,3 +1,5 @@
+//! 按钮族目录的样式默认值与事件声明服务于 Material 表面呈现，测试以描述符而非单个绘制实现为边界。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{UiComponentEventKind, UiRenderCapability, UiValue};
 
@@ -125,6 +127,7 @@ fn assert_floating_action_button(registry: &UiComponentDescriptorRegistry) {
     let fab = registry
         .descriptor("FloatingActionButton")
         .expect("FloatingActionButton descriptor");
+    // schema 默认值与 default_props 分属两层；编译先采用 default_props，再补齐缺失的 schema 默认值。
     assert_button_style_schema_with_variant_default(fab, "icon_only", "default");
     assert_enum_options(fab, "button_shape", &["circular", "extended", "pill"]);
     assert_enum_options(fab, "fab_style", &["small", "standard", "large"]);

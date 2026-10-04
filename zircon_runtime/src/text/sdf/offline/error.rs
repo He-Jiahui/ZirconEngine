@@ -1,3 +1,5 @@
+//! 集中表达离线产物的格式、几何和身份拒绝原因，便于构建工具报告与运行时缓存失效后回退。
+
 use thiserror::Error;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]

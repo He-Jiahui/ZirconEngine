@@ -1,3 +1,4 @@
+// 通过生产源码片段确认执行器状态位于引擎状态文件；只核对字段标识存在，不执行事件运行时。
 use super::super::support::{assert_source_contains, src_root};
 
 #[test]

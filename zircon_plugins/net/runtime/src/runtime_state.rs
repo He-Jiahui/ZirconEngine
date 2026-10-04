@@ -1,3 +1,6 @@
+//! 根 manager 的共享生命周期容器：Tokio runtime 供 HTTP/WS 使用，专用 worker 持有 TCP/UDP socket，事件队列连接二者与 ECS。
+//! manager clone 共享 ID、注册表和计数器，worker 关闭由显式 shutdown/Drop 负责。
+
 use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};

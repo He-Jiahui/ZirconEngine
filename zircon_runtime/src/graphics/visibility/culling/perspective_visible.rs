@@ -1,6 +1,7 @@
 use crate::core::framework::render::ViewportCameraSnapshot;
 use crate::core::math::{Real, Vec3};
 
+// 调用前须完成近远平面检查；以相机空间深度扩展横纵界限，包围半径来自世界空间球。
 pub(crate) fn perspective_visible(
     view_position: Vec3,
     depth: Real,

@@ -1,3 +1,5 @@
+//! 面板、标题与通知行共享的几何出口；同一metrics决定预取计算、行位置及行内文本预算。
+
 mod common;
 mod metrics;
 mod panel;

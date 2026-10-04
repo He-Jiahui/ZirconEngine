@@ -1,3 +1,5 @@
+//! 这组表面帧夹具把布局后端选择、安排几何、绘制、命中和指针分发串成同一发布边界。
+
 use crate::ui::{
     dispatch::UiPointerDispatcher,
     surface::{hit_test_surface_frame, UiSurface},

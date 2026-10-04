@@ -1,3 +1,4 @@
+//! 校验模拟统计中计算、精灵、界面及高级渲染指标的诊断投影；指标存在不表示真实后端具备相应执行结果。
 use crate::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 use super::support::{

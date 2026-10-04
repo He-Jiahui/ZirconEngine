@@ -8,6 +8,7 @@ use crate::core::settings::SettingsProjectLayerLoad;
 use super::project_editor_workspace::ProjectEditorWorkspace;
 
 #[derive(Clone, Debug, PartialEq)]
+/// runtime项目激活后的启动材料；world尚需生命周期提交，workspace回退和settings来源必须保留诊断。
 pub struct EditorProjectDocument {
     pub root_path: PathBuf,
     pub manifest: ProjectManifest,
@@ -57,6 +58,7 @@ impl ProjectSettingsLoadState {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 辅助workspace读取或解码失败的显式说明；允许用默认布局继续，不应静默视作恢复成功。
 pub struct EditorWorkspaceRestoreDiagnostic {
     pub path: PathBuf,
     pub message: String,

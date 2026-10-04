@@ -1,3 +1,6 @@
+//! 把提示级别映射到对应图标资产；调用方同时提供当前语义色和裁剪范围。
+//! tone 决定图形种类，color 决定主题呈现，二者必须来自同一反馈语义。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchAlertTone as AlertTone;

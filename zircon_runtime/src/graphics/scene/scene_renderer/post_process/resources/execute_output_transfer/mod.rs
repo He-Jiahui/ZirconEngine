@@ -5,6 +5,8 @@ use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
 impl ScenePostProcessResources {
+    /// 把局部显示颜色写入物理输出区域；支持完整效果资源和精简输出资源两种启动模式。
+    /// 区域偏移仅应用于输出附件，输入采样保持局部坐标；空裁剪区域跳过 draw。
     pub(in crate::graphics::scene::scene_renderer) fn execute_output_transfer(
         &self,
         device: &wgpu::Device,

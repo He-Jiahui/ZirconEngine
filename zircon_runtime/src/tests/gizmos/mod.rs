@@ -1,3 +1,4 @@
+//! 即时与保留式调试图元共用提取契约；共享存储、序列化形态和命令顺序由行为断言验证，源码守卫与显式计时样本保留各自的验证边界。
 use std::{hint::black_box, time::Instant};
 
 use crate::core::{

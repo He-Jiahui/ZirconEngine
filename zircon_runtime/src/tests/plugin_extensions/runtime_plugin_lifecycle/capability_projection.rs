@@ -1,3 +1,4 @@
+//! 能力视图只从具体登记报告投影，元数据目录不单独增加可执行能力。
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::{
     CapabilityStatus, CapabilityStatusManifest, CapabilityView, PluginFeatureBundleManifest,

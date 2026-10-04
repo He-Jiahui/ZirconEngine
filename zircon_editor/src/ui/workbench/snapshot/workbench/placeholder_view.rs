@@ -5,6 +5,7 @@ use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId, Vie
 
 use super::{ViewContentKind, ViewTabSnapshot};
 
+/// 缺失视图仍保留layout位置与诊断identity；不注册新实例或执行旧payload。
 pub(super) fn placeholder_view(
     instance_id: ViewInstanceId,
     descriptor_id: ViewDescriptorId,

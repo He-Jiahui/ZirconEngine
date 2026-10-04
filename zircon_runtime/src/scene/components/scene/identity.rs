@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 节点创建时选择默认组件组合的模板标识；实际运行能力由已安装的组件决定。
 pub enum NodeKind {
     Empty,
     Camera,

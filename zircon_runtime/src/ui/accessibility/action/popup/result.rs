@@ -53,6 +53,7 @@ pub(super) fn finish_unsupported_dismiss(
     )
 }
 
+// ClosePopup 只随已接受的 owner 属性变更发出；查询、拒绝和未变化结果保持各自状态。
 pub(super) fn finish_popup_dismiss_mutation(
     popup_id: UiNodeId,
     result: UiInputDispatchResult,

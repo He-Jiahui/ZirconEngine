@@ -1,3 +1,5 @@
+//! typeahead、子菜单和 toast 到期经计时器变成默认组件事件；禁用控件不发布键盘语义动作。
+
 use super::*;
 
 #[test]
@@ -77,6 +79,7 @@ fn unified_keyboard_text_arms_typeahead_expiry_timer_and_tick_dispatches_event()
 }
 
 #[test]
+// 此用例直接注入 SubmenuHoverTimer，验证到期事件的语义处理与回执；没有通过 tick 等待并验证 100ms 的唤醒时刻。
 fn submenu_hover_timer_dispatches_ready_value_changed_event() {
     let mut surface = semantic_menu_list_submenu_hover_route_surface();
     let mut manager = UiInputManager::default();
@@ -122,6 +125,7 @@ fn submenu_hover_timer_dispatches_ready_value_changed_event() {
 }
 
 #[test]
+// 此用例直接注入 ToastTimer，验证计时器事件触发 dismiss 的语义与回执；没有验证 4000ms 的实际 arming/tick 边界。
 fn toast_timer_dispatches_expired_commit_event() {
     let mut surface = semantic_snackbar_toast_route_surface();
     let mut manager = UiInputManager::default();
@@ -176,6 +180,8 @@ fn unified_keyboard_printable_text_respects_disabled_component_gate() {
         .unwrap()
         .state_flags
         .enabled = false;
+    // BUG: [CR-W12-UI-INPUT-0001] 上方禁用节点 2 后，focus_node 返回 MissingNode；
+    // 此处 unwrap 先于键盘分发 panic，无法执行后续门控断言；focus_node 的候选检查拒绝 enabled=false。
     surface.focus_node(UiNodeId::new(2)).unwrap();
 
     let result = surface

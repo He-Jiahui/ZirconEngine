@@ -1,3 +1,4 @@
+//! 定义任务配额与准入优先级的共同分类；分类决定调度预算，优先级只表达等待队列的服务顺序，不等同于操作权限或依赖完成条件。
 use serde::{Deserialize, Serialize};
 
 macro_rules! define_job_enum {

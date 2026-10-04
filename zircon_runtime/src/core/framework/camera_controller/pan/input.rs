@@ -1,6 +1,7 @@
 use crate::core::math::{Real, UVec2, Vec2};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 平面相机的一帧输入；拖拽像素按 viewport_size 与缩放状态换算为世界位移，键盘平移另按秒积分。
 pub struct PanCameraInput {
     pub delta_seconds: Real,
     pub pan_axis: Vec2,

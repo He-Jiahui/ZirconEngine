@@ -8,6 +8,7 @@ use crate::core::math::Real;
 
 use super::PhysicsJointType;
 
+/// 场景关节投影；连接关系与约束供后端装配，骨骼绑定也用于动画和布娃娃交换姿态。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PhysicsJointSyncState {
     pub entity: EntityId,

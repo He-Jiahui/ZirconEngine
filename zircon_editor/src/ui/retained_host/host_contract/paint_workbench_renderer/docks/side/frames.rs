@@ -5,6 +5,7 @@ pub(super) struct SideDockFrames {
     pub(super) panel_origin: FrameRect,
 }
 
+// 左右侧栏共用此坐标投影；rail_before_panel 控制 rail 在 panel 前后，调用方据此定位导航与内容。
 pub(super) fn side_dock_frames(dock: &HostSideDockSurfaceData) -> SideDockFrames {
     if dock.rail_before_panel {
         return SideDockFrames {

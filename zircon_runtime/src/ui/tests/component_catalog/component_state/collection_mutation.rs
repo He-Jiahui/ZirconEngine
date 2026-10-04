@@ -1,3 +1,5 @@
+//! 集合编辑是保留状态的用户操作；错误必须保留原值并为编辑器提供可展示的验证状态。
+
 use super::*;
 
 #[test]
@@ -108,6 +110,8 @@ fn component_state_renames_map_keys_and_rejects_duplicate_targets() {
 }
 
 #[test]
+// TODO: [CR-W12-UI-CATALOG-0006] 确认缺失或异型集合在修改失败后应保留什么状态；当前只测已具正确类型的集合。
+// array_value_mut/map_value_mut 会先置空再检查索引或键，需补错误后原值、来源和 validation 的联合断言。
 fn component_state_sets_collection_validation_on_row_errors() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
     let array = registry.descriptor("ArrayField").unwrap();

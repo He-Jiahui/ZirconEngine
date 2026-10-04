@@ -2,6 +2,7 @@ use super::*;
 
 #[test]
 fn gameplay_host_damage_report_preserves_death_position() {
+    // 先通过 gameplay 导出造成死亡，再检查报告中的最后坐标和世界移除顺序。
     let core = CoreRuntime::new();
     let mut world = World::empty();
     let entity = world
@@ -84,6 +85,7 @@ fn gameplay_host_damage_report_preserves_death_position() {
 
 #[test]
 fn script_held_entity_handle_reports_invalid_after_despawn() {
+    // 该测试覆盖脚本持有的实体 ID 在 despawn 后读写均经过当前世界状态校验。
     let core = CoreRuntime::new();
     let mut world = World::empty();
     let entity = world
@@ -207,6 +209,7 @@ fn script_held_entity_handle_reports_invalid_after_despawn() {
 
 #[test]
 fn gameplay_host_damage_entity_reports_hit_before_death() {
+    // 非致命伤害更新脚本绑定中的 hp；导出返回后从 LevelSystem 回读以确认实体保留及数值变化。
     let core = CoreRuntime::new();
     let mut world = World::empty();
     let entity = world

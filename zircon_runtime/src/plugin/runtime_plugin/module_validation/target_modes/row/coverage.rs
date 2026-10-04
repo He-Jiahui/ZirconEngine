@@ -1,6 +1,7 @@
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::PluginModuleManifest;
 
+// 只有调用端提供包级覆盖时才比对目标；独立 feature 模块不走这项检查。
 pub(super) fn validate_runtime_plugin_module_target_mode_coverage(
     manifest_label: &str,
     module: &PluginModuleManifest,

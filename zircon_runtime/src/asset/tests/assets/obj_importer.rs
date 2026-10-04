@@ -1,3 +1,5 @@
+//! 验证 OBJ 多对象导入产生可寻址的网格子资产，且根模型依赖与烹制后的虚拟几何保持对应。
+
 use std::fs;
 
 use crate::asset::tests::project::unique_temp_project_root;

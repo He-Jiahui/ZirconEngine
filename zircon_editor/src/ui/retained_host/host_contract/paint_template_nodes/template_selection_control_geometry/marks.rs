@@ -1,3 +1,5 @@
+//! 复选框与单选按钮的前置标记和随后的文字槽；实例图标大小和标签间距可以覆盖宿主默认值。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::{workbench_selection_control_metrics, WorkbenchSelectionControlMetrics};
 
@@ -36,6 +38,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_i
         && inner_bottom <= outer_bottom
 }
 
+/// 复选和单选共享前置标记框；可选实例大小仍要由调用方做完整容纳检查。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn leading_mark_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -50,6 +53,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn leading
     }
 }
 
+/// 标签槽接在已计算的标记之后；实例间距与宿主默认间距在此统一。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn label_rect_after_mark(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,

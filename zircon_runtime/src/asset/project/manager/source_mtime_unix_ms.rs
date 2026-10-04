@@ -1,3 +1,5 @@
+//! 源文件修改时间只作为导入观测信息；内容/sidecar 身份仍需依赖摘要和注册表，不能以时间戳代替一致性检查。
+
 use std::fs;
 use std::path::Path;
 use std::time::UNIX_EPOCH;

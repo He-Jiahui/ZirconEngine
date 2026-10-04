@@ -30,6 +30,8 @@ use super::sources::{
     RenderVirtualGeometryVisBuffer64Source,
 };
 
+/// 单帧虚拟几何调试汇聚：源场景、CPU 对照、GPU 执行及来源标签共同解释可见结果。
+/// 集合仅供观测；页驻留与资源生命周期仍归虚拟几何 provider。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RenderVirtualGeometryDebugSnapshot {
     pub instances: Vec<RenderVirtualGeometryInstance>,

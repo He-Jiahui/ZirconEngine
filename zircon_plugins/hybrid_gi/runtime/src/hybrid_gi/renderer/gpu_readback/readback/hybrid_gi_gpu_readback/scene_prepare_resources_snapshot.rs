@@ -1,6 +1,7 @@
 use zircon_runtime::core::framework::render::RenderHybridGiProbeTraceDiagnosticRecord;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+// 保留 CPU 准备的场景元数据，并在回读完成后填入 GPU 的槽样本、tile 和诊断。
 pub(crate) struct HybridGiScenePrepareResourcesSnapshot {
     pub(super) card_capture_request_count: u32,
     pub(super) voxel_clipmap_ids: Vec<u32>,

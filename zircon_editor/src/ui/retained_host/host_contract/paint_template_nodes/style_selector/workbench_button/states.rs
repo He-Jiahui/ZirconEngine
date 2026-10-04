@@ -1,3 +1,5 @@
+//! 基础按钮配方只按交互状态与按钮类型取色；特殊命令、标签和声明色由外层选择器随后决定。
+
 mod interactive;
 mod normal;
 mod unavailable;

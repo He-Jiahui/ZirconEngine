@@ -1,3 +1,4 @@
+/// 与 GPU 阶段计数数组共享固定顺序；提交后的统计汇总按此索引归属各阶段。
 pub const RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT: usize = 6;
 pub const RENDER_HYBRID_GI_PROBE_TRACE_DIAGNOSTIC_WORD_COUNT: usize = 13;
 
@@ -68,6 +69,7 @@ pub struct RenderHybridGiGlobalSdfStats {
     pub transient_upload_byte_count: u64,
 }
 
+/// GI provider 与场景渲染器交给提交后反馈链的中立读回载体；合并后转为运行时完成事件。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderHybridGiReadbackOutputs {
     pub cache_entries: Vec<RenderHybridGiCacheEntryRecord>,
@@ -83,6 +85,7 @@ pub struct RenderHybridGiReadbackOutputs {
 }
 
 impl RenderHybridGiReadbackOutputs {
+    /// 只判断能触发运行时反馈的负载；场景准备尺寸与占用元数据单独存在时不产生完成事件。
     pub fn is_empty(&self) -> bool {
         self.cache_entries.is_empty()
             && self.completed_probe_ids.is_empty()
@@ -104,6 +107,7 @@ pub struct RenderHybridGiCacheEntryRecord {
     pub value: u64,
 }
 
+/// 同时携带运行时负载和描述元数据；仅尺寸、占用槽位等元数据不触发反馈。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RenderHybridGiScenePrepareReadbackOutputs {
     pub occupied_atlas_slots: Vec<u32>,

@@ -2,6 +2,7 @@ use crate::asset::AssetImporterDescriptor;
 
 use super::typed_extension_point::ExtensionSlot;
 
+/// 某 owner 在各扩展家族中的逻辑槽位快照；资源管理器导入器以描述符而非槽位报告。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ExtensionOwnership {
     pub plugin_systems: Vec<ExtensionSlot>,
@@ -37,6 +38,7 @@ pub struct ExtensionOwnership {
 }
 
 impl ExtensionOwnership {
+    /// 判断撤销或查询是否仍有贡献；调用方不应把空结果解释为 owner 从未被登记。
     pub fn is_empty(&self) -> bool {
         let empty = self.plugin_systems.is_empty()
             && self.plugin_runtime_systems.is_empty()

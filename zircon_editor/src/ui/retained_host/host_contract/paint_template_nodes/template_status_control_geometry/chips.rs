@@ -1,3 +1,5 @@
+//! chip 文本区域预留左右缓冲，供标签和值左右分列；绘制器须再确认其有效且处于父框内。
+
 use super::super::super::data::FrameRect;
 use super::metrics::workbench_status_metrics;
 

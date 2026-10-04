@@ -434,6 +434,7 @@ impl HybridGiSceneRepresentation {
     }
 
     #[allow(clippy::too_many_arguments)]
+    // 先确定参与与光源，再更新 surface/voxel；屏幕探针和辐照缓存消费这些已同步的来源。
     pub(crate) fn synchronize_scene_with_baked_and_view_state(
         &mut self,
         meshes: &[RenderMeshSnapshot],

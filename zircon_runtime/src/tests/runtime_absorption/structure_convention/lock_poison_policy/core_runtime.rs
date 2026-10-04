@@ -13,6 +13,7 @@ mod task_profiling;
 
 const TEST_ATTRIBUTE: &str = concat!("#[", "test", "]");
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0018] 核心运行时锁守卫的子职责划分的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_core_runtime_lock_poison_guard_child_owner_split() {
     let parent = read_runtime_src(

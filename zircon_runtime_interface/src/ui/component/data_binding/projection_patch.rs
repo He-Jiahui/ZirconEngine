@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::ui::component::UiValue;
 
 /// Carries host projection updates while keeping attributes separate from retained state.
+/// 适配器完成数据处理后交给宿主的局部呈现增量；此结构只描述投影更新，不执行源数据写入。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiComponentProjectionPatch {
     pub control_id: String,

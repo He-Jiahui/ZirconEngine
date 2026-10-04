@@ -20,6 +20,7 @@ pub use render::SoundMixRenderManager;
 pub use runtime_settings::SoundRuntimeSettingsManager;
 pub use source::SoundSourceManager;
 
+/// 运行时声音服务的聚合契约；插件实现各子接口，宿主通过统一管理器句柄解析能力。
 pub trait SoundManager:
     SoundBackendManager
     + SoundOutputDeviceManager

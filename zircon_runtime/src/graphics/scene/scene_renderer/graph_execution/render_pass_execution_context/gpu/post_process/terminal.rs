@@ -1,3 +1,6 @@
+//! 终端后处理把场景空间结果转换为展示尺寸及输出颜色。
+//! 相位目标与视口区域须先由帧计划确认，再使用图声明的读写视图录制。
+
 use crate::core::framework::render::RenderPipelinePhase;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 

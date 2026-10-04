@@ -6,6 +6,7 @@ use zircon_runtime_interface::{
 use super::{EditorRuntimeGateway, GatewayError, GatewaySessionIdentity};
 
 #[derive(Debug, Default)]
+/// 无会话时的稳定端点；宿主仍可保留统一接口，但运行时操作必须显式失败。
 pub struct DetachedEditorRuntimeGateway;
 
 impl EditorRuntimeGateway for DetachedEditorRuntimeGateway {

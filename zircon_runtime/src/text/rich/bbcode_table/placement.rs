@@ -6,6 +6,7 @@ pub(super) struct CellPlacement {
     pub row_span: u16,
 }
 
+/// 按源顺序为单元格分配行列；跨行占位和可用连续列共同决定后续单元格位置，供布局复现表格结构。
 /// Resolves sequential cells without allocating a dense row-by-column matrix.
 #[derive(Clone, Debug)]
 pub(super) struct TablePlacementCursor {

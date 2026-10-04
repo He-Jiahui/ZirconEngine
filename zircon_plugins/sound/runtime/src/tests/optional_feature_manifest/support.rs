@@ -1,3 +1,4 @@
+//! 测试专用静态解析与运行时投影入口；仅针对 sound/plugin.toml 当前写法及可选功能对照使用。
 mod parser;
 mod runtime;
 mod types;

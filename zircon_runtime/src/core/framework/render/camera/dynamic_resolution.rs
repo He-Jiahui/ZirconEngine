@@ -6,6 +6,7 @@ pub const MIN_DYNAMIC_RESOLUTION_SCALE: Real = 0.1;
 pub const MAX_DYNAMIC_RESOLUTION_SCALE: Real = 1.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+/// 相机仅给出主渲染比例；显示尺寸、历史目标和升采样类别由视图族与渲染图决定。
 pub struct RenderDynamicResolutionSettings {
     #[serde(default)]
     pub enabled: bool,

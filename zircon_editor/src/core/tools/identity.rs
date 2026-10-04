@@ -1,3 +1,5 @@
+//! 区分工具定义、插件所有者代次、实例及请求/租约身份；热重载后的新代次不能借旧实例或旧lease回收新资源。
+
 use std::fmt;
 use std::num::NonZeroU64;
 use std::sync::Arc;
@@ -14,6 +16,7 @@ pub const MAX_TOOL_DEFINITION_ID_BYTES: usize = MAX_TOOL_INSTANCE_ID_BYTES
     - MAX_TOOL_OWNER_GENERATION_DIGITS
     - MAX_TOOL_INSTANCE_ORDINAL_DIGITS;
 
+/// 所有者生命周期身份；内建代次受服务保护，插件应使用服务分配的新代次并在卸载时撤销。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ToolOwnerGeneration(NonZeroU64);
@@ -168,6 +171,7 @@ impl From<ToolDefinitionIdError> for ToolInstanceIdError {
     }
 }
 
+/// 把定义、代次和实例序号组成独立身份；显示字符串是投影，反序列化仍验证各部分。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ToolInstanceId {
     definition: ToolDefinitionId,

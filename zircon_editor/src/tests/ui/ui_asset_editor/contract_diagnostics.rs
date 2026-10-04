@@ -1,3 +1,5 @@
+//! 验证私有选择器、API 不匹配和封闭根 class 的诊断定位到源码节点。
+
 use crate::ui::asset_editor::{UiAssetEditorDiagnosticSeverity, UiAssetEditorSession};
 use zircon_runtime::ui::template::UiAssetLoader;
 use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};

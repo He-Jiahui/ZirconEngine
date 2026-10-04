@@ -1,3 +1,4 @@
+//! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。保存同组守卫使用的局部数据或辅助变换。
 pub(in super::super) const EXPECTED_RUNTIME_10_RUNTIME_DIAGNOSTICS_ANCHORS: &[(&str, &str)] = &[
     (
         "zircon_runtime_interface/src/profiling.rs",

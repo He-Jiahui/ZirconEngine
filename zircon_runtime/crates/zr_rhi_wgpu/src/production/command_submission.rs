@@ -1,3 +1,4 @@
+//! 这一遍历把中立命令翻译为一次原生缓冲编码；资源用途标记已由调用方先完成。
 use zr_rhi::{CommandList, CommandListCommand, DiagnosticPassQueryScope, RhiError};
 
 use super::command_encoder::{

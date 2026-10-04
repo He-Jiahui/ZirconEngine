@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 导入资产声明的逻辑资源需求；调用前仍需与 pass 绑定容量和访问权限契约核对。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderResourceDescriptor {
     pub name: String,

@@ -1,3 +1,4 @@
+// 核对高密度宿主动作的图文构成、面板宽度和输入间距令牌。
 #[test]
 fn dense_host_actions_declare_their_icon_and_text_composition() {
     let cases = [

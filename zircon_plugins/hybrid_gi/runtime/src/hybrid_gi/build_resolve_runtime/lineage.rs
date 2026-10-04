@@ -43,6 +43,7 @@ impl HybridGiRuntimeState {
             .clamp(0.25, 2.75)
     }
 
+    // 层级继承只沿可达且未成环的祖先计算，较远祖先按深度和射线预算衰减。
     pub(super) fn runtime_hierarchy_irradiance_entry(
         &self,
         probe_id: u32,

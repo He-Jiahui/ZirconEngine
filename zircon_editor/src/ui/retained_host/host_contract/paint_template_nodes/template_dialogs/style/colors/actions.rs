@@ -1,3 +1,6 @@
+//! 动作颜色的只读快照；取消、普通动作、确认/破坏性确认各有宿主语义角色。
+//! 不可用或确认禁用优先于破坏性配色，防止被禁用的动作仍显示为可执行。
+
 use super::super::palette::dialog_palette;
 use super::super::variants::variant_contains_any;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;

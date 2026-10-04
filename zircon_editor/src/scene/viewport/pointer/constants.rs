@@ -1,3 +1,5 @@
+//! 本地指针表面的节点身份与类别阈值在路由、候选和 UI 表面之间共用，最终优先级仍映射到 Runtime 的目标类别。
+
 use zircon_runtime::core::framework::picking::PickingTargetPriority;
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
 

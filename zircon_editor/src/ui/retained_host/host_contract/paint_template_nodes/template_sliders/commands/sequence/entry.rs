@@ -1,3 +1,5 @@
+//! 消费单次滑块上下文并按局部层级分发；值框应覆盖轨道，滑块本体应覆盖刻度。
+
 use super::super::super::layers::{label_order, value_surface_order};
 use super::super::context::SliderCommandParts;
 use super::label::push_sequence_label;
@@ -7,6 +9,7 @@ use super::values::push_sequence_values;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 
+/// 只接收 Ready 上下文；局部层级关系由 layers 模块给出，顺序本身不能替代 z_index 约束。
 pub(in super::super) fn push_ready_slider_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

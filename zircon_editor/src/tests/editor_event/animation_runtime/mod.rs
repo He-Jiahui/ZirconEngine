@@ -1,3 +1,4 @@
+//! 动画作者事件通过真实资产目录与工具包会话验证，测试从输入事件一直观察到文档状态。
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent, EditorEventSource};
 use crate::ui::binding::{
     AnimationCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,

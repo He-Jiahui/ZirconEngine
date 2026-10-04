@@ -1,3 +1,5 @@
+//! 为可容纳的数值输入输出分隔线与步进 SVG；资产不可用时仍可保留分隔线，不创建替代手工图标。
+
 use super::super::super::data::FrameRect;
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
@@ -7,6 +9,7 @@ use super::metrics::workbench_field_stepper_metrics;
 
 const FIELD_STEPPER_ICON: &str = "zircon_editor_shell/controls/field-stepper.svg";
 
+/// 仅在字段入口通过完整容纳验证后调用；分隔线和资源图标共用字段计算的预留宽度。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_stepper(
     commands: &mut Vec<HostPaintCommand>,
     rect: &FrameRect,

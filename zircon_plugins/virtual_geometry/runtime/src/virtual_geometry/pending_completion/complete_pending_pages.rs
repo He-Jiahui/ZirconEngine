@@ -1,6 +1,7 @@
 use super::super::VirtualGeometryRuntimeState;
 
 impl VirtualGeometryRuntimeState {
+    /// 无 GPU 完成结果时按反馈请求兑现驻留，并仅淘汰反馈允许的页。
     pub(in crate::virtual_geometry::pending_completion) fn complete_pending_pages(
         &mut self,
         page_ids: impl IntoIterator<Item = u32>,

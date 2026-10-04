@@ -1,3 +1,6 @@
+//! 集中公开 RPC feature、握手 wire frame、channel DTO 与 manager，供宿主装配和测试调用。
+//! 公开 API 仍需与实际传输连接、身份与消息路由绑定。
+
 mod capability;
 mod feature;
 mod manager;

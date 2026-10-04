@@ -1,3 +1,4 @@
+//! 层编译失败边界；框架源诊断阻止不合法权重或目标掩码进入帧混合。
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 

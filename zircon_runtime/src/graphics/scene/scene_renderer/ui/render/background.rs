@@ -7,6 +7,8 @@ use super::color::parse_hex_color;
 
 const BACKGROUND_COVERAGE_EPSILON: f32 = 0.01;
 
+/// 按绘制顺序记录已知不透明底色与遮挡项，供后续文字抗锯齿/混合选择背景。
+/// 查询从最近命令回溯，设计上应在无法推断底色时返回未知；部分相交的不透明项仍有 CR-SCENE-UI-0005 所记误判。
 #[derive(Default)]
 pub(super) struct ScreenSpaceUiBackgroundTracker {
     effects: Vec<ScreenSpaceUiBackgroundEffect>,
@@ -103,6 +105,7 @@ impl ScreenSpaceUiBackgroundTracker {
                 } if frames_intersect(*blocker_frame, frame) => {
                     return (None, visit_count);
                 }
+                // BUG: [CR-SCENE-UI-0005] 新近不透明背景只覆盖文字查询框的一部分时不能继续使用更早的单色底色；这里忽略相交项会把混色区域误判为旧底色。
                 _ => {}
             }
         }
@@ -140,6 +143,7 @@ impl ScreenSpaceUiBackgroundTracker {
     }
 }
 
+/// 同命令显式背景优先于先前画层；无法确认不透明时返回未知，交由字形合成路径处理。
 pub(super) fn text_batch_background_color(
     command: &UiRenderCommand,
     frame: UiFrame,
@@ -178,6 +182,7 @@ fn command_opaque_fill_background(
         return None;
     }
 
+    // TODO: [CR-SCENE-UI-0006] 圆角填充在四角并未覆盖整个矩形；当前按矩形记录不透明底色，需确认文字查询区域与圆角掩膜的契约。
     let color = command_opaque_background_color(command)?;
     inset_frame(frame, command.style.border_width.max(0.0)).map(|frame| (frame, color))
 }

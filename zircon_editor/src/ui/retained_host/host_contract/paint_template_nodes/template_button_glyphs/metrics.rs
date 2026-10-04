@@ -1,3 +1,5 @@
+//! 把当前宿主控件密度投影为按钮图标槽；图标尺寸与行高一致，避免随文本偏好独立缩放。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, HostControlMetrics,
 };

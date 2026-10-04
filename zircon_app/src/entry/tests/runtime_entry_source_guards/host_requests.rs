@@ -1,3 +1,6 @@
+//! 验证 tick 后排空宿主请求，IME 目标视口与逻辑坐标边界、Windows 剪贴板拥有者窗口、UI 动作诊断内容最小化的源码接线。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 
 #[test]

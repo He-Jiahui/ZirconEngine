@@ -1,3 +1,4 @@
+//! 选项的单能力门槛与导入器的能力数组共用遍历入口，保持各自贡献身份供命名空间及解析回归消费。
 use std::path::Path;
 
 use super::super::{non_empty_string_array_values, non_empty_string_value};

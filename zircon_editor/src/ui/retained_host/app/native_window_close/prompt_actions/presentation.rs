@@ -16,6 +16,7 @@ impl RetainedEditorHost {
         self.begin_close_prompt_plan(prompt);
     }
 
+    // 关闭目标优先选择对应原生窗口，浮窗目标已消失时回退主窗；计划留在宿主以供异步保存完成继续处理。
     pub(in crate::ui::retained_host::app) fn begin_close_prompt_plan(
         &mut self,
         prompt: PendingClosePrompt,

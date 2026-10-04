@@ -1,3 +1,4 @@
+//! IBL 烘焙读回资源把各节缓冲区绑定到同一产物描述符，异步取回时不能混合不同请求。
 use crate::core::framework::render::{IblBakeArtifactContents, IblBakeArtifactDescriptor};
 use crate::graphics::types::GraphicsError;
 

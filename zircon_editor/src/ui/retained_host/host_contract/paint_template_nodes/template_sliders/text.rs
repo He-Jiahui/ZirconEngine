@@ -1,3 +1,5 @@
+//! 滑块三类文字的绘制门面；标签、主值和范围下限来自不同数据来源。
+
 mod label;
 mod range_min;
 mod value;

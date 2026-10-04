@@ -1,4 +1,5 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 命中后的遮挡与悬停策略彼此独立；不可悬停目标仍可阻断更低层目标。
 pub struct Pickable {
     pub should_block_lower: bool,
     pub is_hoverable: bool,

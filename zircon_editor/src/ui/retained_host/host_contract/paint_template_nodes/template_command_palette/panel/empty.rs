@@ -1,3 +1,5 @@
+//! 空候选状态使用内容带内的换行文案；仅表示当前结果为空，不能据此判断命令目录是否已加载。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::layout::{command_palette_metrics, empty_text_rect};

@@ -1,3 +1,4 @@
+//! 约束骨架、剪辑和已报告诊断的驻留量；骨架淘汰须一并撤销依附的剪辑与诊断身份。
 use zircon_runtime::core::resource::ResourceId;
 
 use super::AnimationClipEvaluator;

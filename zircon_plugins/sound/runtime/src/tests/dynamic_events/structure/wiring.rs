@@ -1,3 +1,4 @@
+// 固定动态事件的目录、执行器与 ABI 模块分层；该守卫检查源码形状，不执行运行时事件。
 use super::support::{assert_structural_module, src_root};
 
 #[test]

@@ -28,6 +28,7 @@ pub enum OffMeshTraversePhase {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 代理跨越离网格连接时的瞬时状态；管理器据此推进阶段，并生成带原连接所有者的开始/完成事件。
 pub struct OffMeshTraverseState {
     pub agent_entity: u64,
     pub nav_mesh: super::handle::NavMeshHandle,
@@ -87,6 +88,7 @@ impl Default for NavLinkTraversalMode {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
+/// 场景作者定义的单条跨网格连接；烘焙收集器将局部端点投影到世界空间后写入网格资源。
 pub struct NavMeshOffMeshLinkDescriptor {
     pub start_entity: Option<u64>,
     pub end_entity: Option<u64>,
@@ -95,6 +97,7 @@ pub struct NavMeshOffMeshLinkDescriptor {
     pub width: Real,
     pub bidirectional: bool,
     pub activated: bool,
+    // TODO: [CR-NAVIGATION-0005] 明确禁用端点自动更新的语义；当前连接收集器始终依据端点实体变换重算世界位置，未读取该字段。
     pub auto_update_positions: bool,
     pub cost_override: Option<Real>,
     pub area_type: NavAreaId,
@@ -127,6 +130,7 @@ impl Default for NavMeshOffMeshLinkDescriptor {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
+/// 一条场景桥接组件可展开为多条共享容量的离网格车道；运行时再按组约束通行。
 pub struct NavMeshOffMeshBridgeDescriptor {
     pub start_entity: Option<u64>,
     pub end_entity: Option<u64>,

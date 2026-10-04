@@ -1,3 +1,5 @@
+//! 将持久台账投影为精确的剩余恢复责任；宿主据此决定继续、补偿或让用户处理残留。
+
 use super::{
     ProjectSessionEffect, ProjectSessionEffectDisposition, ProjectSessionEffectLedgerPhase,
 };

@@ -1,3 +1,4 @@
+//! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn builtin_root_stays_structural_after_runtime_module_split() {
     let source = include_str!("../../../builtin/mod.rs");

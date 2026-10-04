@@ -1,3 +1,6 @@
+//! 段与段之间的分隔线出口；位于基础表面上方、选中层下方。
+
+// BUG: [CR-EDITOR-PAINT-FORMS-0005] 这里读取固定 PALETTE.border；主题切换后组表面和文字读取当前动态 palette，分隔线仍保留默认主题颜色。
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::render_commands::HostPaintCommand;

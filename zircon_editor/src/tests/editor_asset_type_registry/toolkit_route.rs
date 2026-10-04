@@ -1,3 +1,4 @@
+//! 核对工具打开路由通过规范资源定位符和操作路径往返，拒绝旧物理路径载荷及无效操作标识。
 use crate::core::asset::AssetToolkitOpenRoute;
 use crate::core::editor_operation::EditorOperationPath;
 use zircon_runtime::asset::AssetUri;

@@ -1,3 +1,4 @@
+// 由欢迎页模板编辑项目名称，约束动态绑定与直接派发保持相同事件。
 use super::super::support::*;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 

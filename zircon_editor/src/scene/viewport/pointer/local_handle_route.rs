@@ -1,3 +1,5 @@
+//! Play gizmo 等世界中立入口以现有 Handle 值进行一次局部拾取，仍使用 Runtime 的统一解析器，结果只声明 owner 和轴。
+
 use zircon_runtime_interface::math::{UVec2, Vec2};
 use zircon_runtime_interface::ui::layout::UiPoint;
 
@@ -8,6 +10,7 @@ use crate::scene::viewport::{HandleOverlayExtract, ViewportCameraSnapshot};
 
 use super::ViewportPointerRoute;
 
+/// 世界中立拾取只回答 owner 与轴；调用方仍需验证活动 Play 实例、gateway 身份和对应事务许可。
 pub(in crate::scene::viewport) fn local_handle_route(
     handles: &[HandleOverlayExtract],
     camera: &ViewportCameraSnapshot,

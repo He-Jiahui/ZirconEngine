@@ -1,3 +1,4 @@
+//! 生成的导出模板应只承担薄适配，启动和注册行为归手写拥有者。以结果断言检查当前接口或源码快照对应的边界。
 use std::path::{Path, PathBuf};
 
 use super::support::{collect_rust_source_files, relative_path};

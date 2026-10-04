@@ -1,3 +1,4 @@
+// 核对头像裁剪、徽章、芯片图标和层级顺序的 MUI 绘制。
 use super::support::*;
 
 #[test]

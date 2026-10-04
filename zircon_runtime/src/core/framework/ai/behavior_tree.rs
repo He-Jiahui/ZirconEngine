@@ -134,6 +134,7 @@ impl AiBehaviorNodeParameter {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 可序列化的节点声明；children 和 root_node 用 id 连成拓扑，implementation 在注册时由节点目录解析。
 pub struct AiBehaviorNodeDescriptor {
     pub id: String,
     pub kind: AiBehaviorNodeKind,
@@ -205,6 +206,7 @@ const fn default_behavior_node_implementation(kind: AiBehaviorNodeKind) -> &'sta
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 行为树的创作态契约。先注册并校验整棵树，再把返回的句柄用于代理 tick；此对象本身不保存执行状态。
 pub struct AiBehaviorTreeDescriptor {
     pub format_version: u32,
     pub id: String,

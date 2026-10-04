@@ -1,3 +1,5 @@
+//! 验证 zmeta 与资源注册表随导入、监听、重命名和失败重导入共同迁移，UUID 始终是身份锚点。
+
 use super::*;
 
 #[test]
@@ -62,6 +64,7 @@ fn project_manager_writes_zmeta_schema_and_ignores_old_meta_toml_sidecars() {
 }
 
 #[test]
+// 监听事件既影响渲染资源索引又影响资产身份索引，消费者不能观察到仅一侧已删除的代。
 fn project_manager_watch_remove_commits_resource_and_asset_registries_together() {
     let root = unique_temp_project_root("project_manager_watch_remove");
     let paths = ProjectPaths::from_root(&root).unwrap();
@@ -192,6 +195,7 @@ fn project_manager_registry_commit_failure_keeps_both_live_registries_unchanged(
 }
 
 #[test]
+// 持久引用中的路径提示可因重命名过期；UUID 是解析时的主身份。
 fn project_manager_resolves_asset_references_by_uuid_before_stale_url() {
     let root = unique_temp_project_root("project_manager_reference_uuid_first");
     let paths = ProjectPaths::from_root(&root).unwrap();

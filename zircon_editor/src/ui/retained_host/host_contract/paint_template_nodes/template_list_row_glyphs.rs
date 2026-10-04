@@ -1,3 +1,5 @@
+//! 尾部装饰区按不可用、勾选、导航优先级选择打包图标；只有行内空间足够时上层才调用。
+
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;

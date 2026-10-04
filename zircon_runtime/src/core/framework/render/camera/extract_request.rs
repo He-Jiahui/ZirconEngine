@@ -6,6 +6,7 @@ use super::super::RenderVirtualGeometryDebugState;
 use super::ViewportRenderSettings;
 
 #[derive(Clone, Debug, PartialEq)]
+/// 视口对场景提取层的一次性请求；相机覆盖和预览设置先汇合，再生成独立帧快照。
 pub struct SceneViewportExtractRequest {
     pub settings: ViewportRenderSettings,
     pub active_camera_override: Option<EntityId>,

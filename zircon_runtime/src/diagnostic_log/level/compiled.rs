@@ -1,3 +1,4 @@
+//! 将配置中的作用域前缀编译为字节 trie，使每条日志在写入 worker 前按最长匹配规则判定。
 use std::collections::HashMap;
 
 use super::{DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel};
@@ -47,7 +48,9 @@ impl CompiledDiagnosticLogFilter {
         self.nodes[node_index].filter = Some(filter);
     }
 
+    // 沿 scope 的字节路径保留最后命中的过滤值；路径缺失或输入耗尽时结束，未命中则沿用全局 minimum。
     fn filter_for_scope(&self, scope: &str) -> DiagnosticLogFilter {
+        // BUG: [CR-LOG-EMPTY-PREFIX-0001] 手工配置空前缀 Off 且全局级别开启时，规则写入根节点却被查询跳过，日志仍可入队；公开 filter_for_scope 对该前缀返回 Off。
         if self.nodes.len() == 1 {
             return self.minimum;
         }

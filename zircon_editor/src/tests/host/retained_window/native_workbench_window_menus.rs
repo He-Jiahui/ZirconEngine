@@ -1,3 +1,4 @@
+// 核对工作台运行菜单的原生预览像素与弹出项文字颜色。
 use std::path::PathBuf;
 use std::rc::Rc;
 

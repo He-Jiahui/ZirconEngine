@@ -39,6 +39,7 @@ pub struct RenderMaterialManagementQueryFacets {
 }
 
 impl RenderMaterialManagementQueryFacets {
+    // TODO: [CR-MATERIAL-0002] 确认同维度 facet 是否应显示切换后的候选数；当前索引已受该维度筛选，备选计数可为零，缺少交互契约测试。
     pub fn from_query_result(
         query: &RenderMaterialManagementQuery,
         query_result: &RenderMaterialManagementQueryResult,

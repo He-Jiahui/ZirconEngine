@@ -1,3 +1,4 @@
+//! 服务构造失败或回滚时，注册表不得形成保留运行时根的所有权环。以结果断言检查当前接口或源码快照对应的边界。
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::Arc;
 

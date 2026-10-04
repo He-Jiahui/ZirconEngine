@@ -17,6 +17,7 @@ pub struct UiInvalidationImpact {
 }
 
 impl UiInvalidationImpact {
+    /// 按去重后的分类阶段汇总脏域和重建需求；当前热重载计划仍独立决定实际执行动作。
     pub fn from_stages(stages: &BTreeSet<UiInvalidationStage>) -> Self {
         let mut impact = Self::default();
         for stage in stages {

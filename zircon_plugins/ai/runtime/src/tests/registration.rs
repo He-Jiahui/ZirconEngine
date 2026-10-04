@@ -362,6 +362,7 @@ fn runtime_registry_bridge_adds_a_node_to_the_live_ai_manager_catalog() {
     assert!(manager.behavior_trees().is_empty());
 }
 
+// 通过阻塞节点验证插件 owner 回收要等运行中的动态实现和状态析构结束。
 #[test]
 fn owner_revoke_waits_for_in_flight_node_execution_and_runtime_drop() {
     {

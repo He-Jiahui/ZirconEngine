@@ -1,3 +1,5 @@
+//! 在运行时布局契约和 Taffy 表示之间做能力检查；不支持的语义交回引擎安排而不伪造近似规则。
+
 use taffy::geometry::{Line, Rect, Size};
 use taffy::style::{
     AlignContent, AlignItems, AlignSelf, Dimension, Display, FlexDirection, FlexWrap,
@@ -11,6 +13,7 @@ use zircon_runtime_interface::ui::layout::{
     UiLayoutEngineFamily, UiLayoutSize, UiLayoutStyle, UiOverflow, UiOverflowPair, UiPositionMode,
 };
 
+/// 转换显式后端样式；失败原因供选择报告和回退使用，转换成功仍不代表父子槽位都受支持。
 pub fn taffy_style_from_ui_layout_style(
     style: &UiLayoutStyle,
 ) -> Result<Style, UiLayoutEngineFallbackReason> {
@@ -69,6 +72,7 @@ pub fn taffy_style_from_ui_layout_style(
     Ok(taffy_style)
 }
 
+/// 把传统容器和轴约束投影到通用样式；Free、Canvas、滚动等引擎专属语义返回回退原因。
 pub fn ui_layout_style_from_container(
     container: UiContainerKind,
     constraints: BoxConstraints,
@@ -127,6 +131,8 @@ pub fn ui_layout_style_from_container(
     Ok(style)
 }
 
+/// 提供轴约束的通用样式投影；没有内部生产调用，不能据此认定它承载完整线性槽位策略。
+/// 优先级和实际主轴的伸缩规则由桥接安排处理，调用方仍须经过后端能力校验。
 pub fn ui_layout_style_from_axis_constraints(
     horizontal: AxisConstraint,
     vertical: AxisConstraint,

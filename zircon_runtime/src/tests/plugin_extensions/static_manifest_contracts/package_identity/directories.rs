@@ -1,3 +1,4 @@
+//! 目录归属接受完整标识符、物化名称或末段包名；身份格式与全局唯一性由相邻回归分别保证。
 use super::super::{for_each_static_plugin_manifest, non_empty_string_value};
 use super::package_id_tokens::assert_package_id_token;
 

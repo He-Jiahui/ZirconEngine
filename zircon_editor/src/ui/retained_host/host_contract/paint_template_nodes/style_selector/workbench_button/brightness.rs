@@ -1,3 +1,5 @@
+//! 按钮最终配方按有限的标签亮度缩放 RGB、保留 alpha；该显示调整在语义和声明色选择之后进行。
+
 use super::model::WorkbenchButtonStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_visual_brightness(

@@ -1,6 +1,7 @@
 #[cfg(debug_assertions)]
 use std::sync::atomic::{AtomicU64, Ordering};
 
+/// 弱桥接调用的诊断快照；计数仅在调试构建中维护，发布构建返回零。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct BridgeDiagnosticsSnapshot {
     pub enabled_calls: u64,

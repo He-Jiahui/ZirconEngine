@@ -5,7 +5,9 @@ use zircon_runtime_interface::ui::{
     tree::{UiTree, UiTreeError},
 };
 
+/// 在已完成至少一次几何安排的 ScrollableBox 上更新滚动状态，按缓存内容和视口范围钳制偏移。
 pub trait UiRuntimeTreeScrollExt {
+    /// 返回是否发生实际位移；这里只登记布局、命中和绘制失效，表面负责随后发布新的几何。
     fn set_scroll_offset(&mut self, node_id: UiNodeId, offset: f32) -> Result<bool, UiTreeError>;
     fn scroll_by(&mut self, node_id: UiNodeId, delta: f32) -> Result<bool, UiTreeError>;
 }

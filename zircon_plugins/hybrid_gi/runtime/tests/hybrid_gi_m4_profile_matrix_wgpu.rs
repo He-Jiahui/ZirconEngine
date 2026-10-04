@@ -105,6 +105,7 @@ struct Capture {
 }
 
 #[test]
+// 此集成测试会写入 docs/tests/runtime/render 的 PNG 与报告；先比较各配置画面，再留存证据。
 fn hybrid_gi_m4_profiles_render_forward_deferred_wgpu_product_matrix() {
     let profiles = [
         ("fully_dynamic", RenderHybridGiProfile::FullyDynamic, false),

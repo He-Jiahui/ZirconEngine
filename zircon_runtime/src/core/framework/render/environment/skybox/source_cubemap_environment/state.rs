@@ -6,6 +6,9 @@ use super::super::super::{
 };
 use super::SourceCubemapUploadKey;
 
+// TODO: [CR-ENVIRONMENT-0001] 核实公开的 mip_chain 字段是否需要受控修改入口；直接替换纹理而保持 revision/hash 不变会让上传键命中旧字节。下一步收敛失效规则并补覆盖该路径的测试。
+/// 同时携带源图、派生漫反射、工件来源和预编码上传缓存的环境状态。
+/// 内容更替必须同步更新身份并失效上传缓存；展示强度与旋转不改变纹理身份。
 #[derive(Clone, Debug)]
 pub struct SourceCubemapEnvironment {
     pub mip_chain: SourceCubemapMipChain,

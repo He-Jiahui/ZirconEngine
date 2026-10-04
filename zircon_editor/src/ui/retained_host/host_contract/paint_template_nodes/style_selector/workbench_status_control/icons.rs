@@ -1,3 +1,6 @@
+//! 状态条图标按钮的视觉入口；持久选择或展开/拖放使用强调图标，普通悬停与可见焦点保持各自颜色通道。
+//! 透明普通背景和边线交给状态条绘制端过滤，此处不决定图标资源或触发动作。
+
 use super::super::resolved_state_for_node;
 use super::helpers::{status_node_is_hot, status_node_is_selected, status_node_uses_active_glyph};
 use super::model::WorkbenchStatusIconButtonStyle;
@@ -5,6 +8,7 @@ use super::palette::{workbench_status_control_palette, WorkbenchStatusControlPal
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
+/// 为状态条图标按钮选择视觉通道；图标资源和动作由调用端负责。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_status_icon_button_style(
     node: &TemplatePaneNodeData,
 ) -> WorkbenchStatusIconButtonStyle {

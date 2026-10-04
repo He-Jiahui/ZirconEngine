@@ -1,3 +1,4 @@
+//! 原生提交成功后集中推进历史、可见性、捕获和 provider 反馈，避免失败帧污染视口记录。
 use crate::core::framework::render::{
     FrameHistoryHandle, RenderFrameworkError, RenderViewportHandle,
 };

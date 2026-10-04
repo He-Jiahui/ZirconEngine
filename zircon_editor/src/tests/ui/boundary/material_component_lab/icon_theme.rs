@@ -1,3 +1,5 @@
+//! 验证Material 图标样例的描述符、主题选择器及 SVG 参数。
+
 use std::{collections::BTreeSet, fs};
 
 use toml::Value;

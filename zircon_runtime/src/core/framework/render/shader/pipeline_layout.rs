@@ -25,6 +25,7 @@ pub enum RenderShaderBindingResourceType {
     Sampler,
 }
 
+/// 导入资产中的声明式绑定布局；资源就绪检查先验证它，WGPU 管线再由图形层据此匹配实际资源。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderShaderPipelineLayoutDescriptor {
     pub bind_groups: Vec<RenderShaderBindGroupLayoutDescriptor>,

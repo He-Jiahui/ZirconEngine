@@ -1,3 +1,4 @@
+// 为绑定派发测试建立已打开项目的最小场景状态，保证选择和视口命令拥有同一前置条件。
 use crate::core::editing::context::CoreEditContext;
 use crate::core::editing::engine::SelectionSnapshot;
 use crate::core::editing::selection::SceneSelection;

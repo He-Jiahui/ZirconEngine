@@ -1,3 +1,4 @@
+//! 从 surface 渲染提取核对列表、树和表格行的文字归属、选择优先级与加载态视觉契约。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     design_tokens::EditorDesignTokens,

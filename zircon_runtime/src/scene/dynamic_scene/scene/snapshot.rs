@@ -5,6 +5,7 @@ use super::super::{DynamicEntity, DynamicResource};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// 可迁移的场景快照：保存节点、插件类型描述和反射资源；应用前须针对目标世界重新编译。
 pub struct DynamicScene {
     #[serde(
         skip,

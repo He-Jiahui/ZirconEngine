@@ -1,3 +1,4 @@
+// 经外部采样块提交入口拒绝空白句柄，核对外部输入身份的前置条件。
 use super::super::super::super::*;
 
 #[test]

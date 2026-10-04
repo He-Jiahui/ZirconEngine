@@ -1,3 +1,5 @@
+//! 验证资源记录缺失及混合依赖状态如何经 readiness generation 映射到 typed facade；失败必须压过仍在加载的依赖。
+
 use super::*;
 
 #[test]
@@ -61,6 +63,7 @@ fn readiness_report_marks_missing_dependency_records_as_failed_rows() {
         .any(|message| message.contains("missing asset dependency record")));
 }
 
+// 混合状态的优先级是调用者用于阻止错误资源进入后续加载链的契约；不能由依赖列表顺序决定。
 #[test]
 fn dependency_load_state_applies_direct_precedence_and_missing_records() {
     let manager = ProjectAssetManager::default();

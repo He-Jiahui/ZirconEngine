@@ -1,3 +1,5 @@
+//! 正文缺席时不占独立命令；有正文时需完整处于气泡内，防止窄/短 tooltip 向箭头区泄漏文字。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::layout::frame_is_within;

@@ -1,3 +1,4 @@
+//! 扩展slot意向到新实例默认宿主的映射；实际布局附着与后续移动由宿主管理。
 use crate::core::extension::WorkbenchSlot;
 use crate::ui::workbench::layout::{ActivityDrawerSlot, MainPageId};
 

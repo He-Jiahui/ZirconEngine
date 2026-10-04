@@ -1,3 +1,5 @@
+//! 下拉选项中selected与special均触发已标记呈现；焦点、禁用和loading仍交给共享popup状态优先级。
+
 use super::super::super::super::data::TemplatePaneOptionData;
 use super::super::super::style_selector::{
     select_workbench_popup_row_style, WorkbenchPopupRowState, WorkbenchPopupRowStyle,

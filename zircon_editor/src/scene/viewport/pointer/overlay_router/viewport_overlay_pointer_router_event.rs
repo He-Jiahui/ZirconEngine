@@ -1,3 +1,5 @@
+//! 每个事件先清空上次路由与报告，再由 UI 表面分发；类型化表面错误直接返回，未处理事件不能携带旧命中。
+
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind, tree::UiTreeError,
 };
@@ -42,6 +44,7 @@ impl ViewportOverlayPointerRouter {
         )
     }
 
+    // 清旧结果必须发生在分发之前；错误或未消费事件不能被误认为重复命中上一 owner。
     fn handle_event(
         &mut self,
         event: UiPointerEvent,

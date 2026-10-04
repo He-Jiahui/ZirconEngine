@@ -1,3 +1,5 @@
+//! 标签从节点共享文字来源获取；箭头实际能放下时才预留右侧空间，窄 chip 可以只保留表面。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
@@ -10,6 +12,7 @@ use super::metrics::{chip_font_size, chip_line_height, chip_text_right};
 use super::style::chip_text_color;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+/// 接管入口只负责传入 clip 和 order；这里的文字来源与箭头预留共用 chip 判定，空标签或过窄时可不发命令。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chip_label(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

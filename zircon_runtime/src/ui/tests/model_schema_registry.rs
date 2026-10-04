@@ -1,3 +1,4 @@
+//! 验证模型提供者按模式版本和字段权限注册，身份冲突与未知字段须显式报错。
 use crate::ui::binding::{UiModelSchemaRegistrationError, UiModelSchemaRegistry};
 use zircon_runtime_interface::ui::{
     binding::{

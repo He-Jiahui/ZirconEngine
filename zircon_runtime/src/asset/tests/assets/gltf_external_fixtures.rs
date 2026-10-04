@@ -1,6 +1,10 @@
+//! 为外部 glTF 输入测试写出真实的伴随文件；导入器须从 .gltf 的相对 URI 解析 buffer 和图像。
+//! 测试调用方只传主文件路径，避免用预先注入的字节掩盖旁路资源解析错误。
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// 供外部资源正例使用：纹理经独立 PNG 和 buffer 导入，材质仍引用生成的 Texture 子资产。
 pub(super) fn write_external_texture_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("external_texture.bin");
     let image_path = root.join("external_albedo.png");
@@ -85,6 +89,7 @@ pub(super) fn write_external_texture_gltf(root: &Path) -> PathBuf {
     gltf_path
 }
 
+/// 只写主文档而保留缺失的相对 buffer URI，供错误测试检查诊断包含原始文件名。
 pub(super) fn write_missing_buffer_gltf(root: &Path) -> PathBuf {
     let gltf_path = root.join("missing_buffer.gltf");
 

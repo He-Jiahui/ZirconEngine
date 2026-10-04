@@ -1,3 +1,4 @@
+// 将左、右和底部抽屉尺寸命令应用到布局，约束组内槽位同步及未知分组报错。
 use std::fs;
 
 use zircon_runtime::core::manager::ManagerResolver;

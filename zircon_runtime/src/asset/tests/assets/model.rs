@@ -1,3 +1,5 @@
+//! 模型根资产汇总原语几何和子网格引用，供导入依赖提取与管理视图消费；虚拟几何序号复用静态顶点的关节槽。
+
 use crate::asset::{
     AssetReference, AssetUri, MeshVertex, ModelAsset, ModelAssetManagementRecord,
     ModelAssetManagementRecordSet, ModelPrimitiveAsset, ModelPrimitiveOverview,
@@ -43,6 +45,7 @@ fn model_asset_toml_roundtrip_preserves_virtual_geometry_payload() {
     assert_eq!(loaded, asset);
 }
 
+// 静态虚拟几何用两个关节索引槽传递完整顶点序号；蒙皮权重存在时必须保留作者关节数据。
 #[test]
 fn virtual_geometry_vertex_ordinals_pack_into_joint_index_slots() {
     assert_eq!(
@@ -325,6 +328,7 @@ fn asset_reference(uri: &str) -> AssetReference {
     AssetReference::from_locator(AssetUri::parse(uri).unwrap())
 }
 
+// 分页层级、依赖和簇范围同时存在，才能验证模型往返保留的是完整虚拟几何载荷。
 fn sample_virtual_geometry_asset() -> VirtualGeometryAsset {
     VirtualGeometryAsset {
         hierarchy_buffer: vec![

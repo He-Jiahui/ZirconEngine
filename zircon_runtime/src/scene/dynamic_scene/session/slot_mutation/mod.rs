@@ -1,3 +1,4 @@
+//! 显式 ID 的槽位管理边界；供 facade、选择器和路径接口共用变更规则及只读摘要。
 mod metadata;
 mod remove;
 mod rename;

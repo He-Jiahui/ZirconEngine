@@ -3,6 +3,7 @@ use crate::core::math::{Mat4, Vec3};
 use super::PLANAR_PLANE_EPSILON;
 
 /// Builds the affine reflection across a world-space plane.
+/// 返回值供反射眼点和朝向共同变换；零法线或非有限输入交由相机推导路径跳过。
 pub fn planar_reflection_matrix(plane_point: Vec3, plane_normal: Vec3) -> Option<Mat4> {
     if !plane_point.is_finite() || !plane_normal.is_finite() {
         return None;

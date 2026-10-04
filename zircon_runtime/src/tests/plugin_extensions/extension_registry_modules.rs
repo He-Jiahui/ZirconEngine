@@ -1,3 +1,4 @@
+//! 核对模块贡献的收集、字段约束与重名拒绝，并验证非法贡献会使插件注册报告和目录聚合报告携带失败诊断。
 use crate::core::ModuleDescriptor;
 use crate::plugin::{
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog,

@@ -1,3 +1,4 @@
+// 提供原生宿主测试的窗口布局、面板节点、模板动作与控件帧夹具。
 pub(super) use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};
 pub(super) use crate::ui::retained_host::{
     build_pane_template_surface_frame, callback_dispatch::BuiltinViewportToolbarTemplateBridge,

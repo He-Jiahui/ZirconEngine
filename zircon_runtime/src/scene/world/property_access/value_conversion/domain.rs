@@ -11,6 +11,7 @@ use super::errors::unknown_property_error;
 use super::identifiers::normalized_identifier_matches;
 use super::values::{expect_bool, expect_scalar};
 
+// 路径属性写入的领域值门禁；资源、枚举和动画参数先按声明语义校验，再交给组件修改路径。
 pub(in crate::scene::world::property_access) fn expect_resource_id(
     value: ScenePropertyValue,
     property_path: &ComponentPropertyPath,

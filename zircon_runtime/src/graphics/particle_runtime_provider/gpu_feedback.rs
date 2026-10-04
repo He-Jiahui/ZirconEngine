@@ -1,6 +1,7 @@
 use crate::core::framework::render::RenderParticleGpuReadbackOutputs;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 单帧粒子 GPU 回读的有所有权载体；空结果由提交汇总层过滤，调用者消费后生成粒子统计。
 pub struct ParticleGpuFeedback {
     readback_outputs: RenderParticleGpuReadbackOutputs,
 }

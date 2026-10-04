@@ -2,6 +2,7 @@ use crate::plugin::PluginModuleManifest;
 
 use super::super::RuntimePluginDescriptor;
 
+// 将内嵌模块描述符映射为包清单中的运行时模块，供注册阶段统一校验模块与包的目标模式和能力声明。
 pub(super) fn descriptor_runtime_module_manifest(
     descriptor: &RuntimePluginDescriptor,
 ) -> PluginModuleManifest {

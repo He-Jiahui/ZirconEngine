@@ -1,3 +1,5 @@
+//! 单选按钮先画标记，再按选中态绘制中心点和文字；完整容纳保障内容不扩张节点框。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_selection_control_geometry::{

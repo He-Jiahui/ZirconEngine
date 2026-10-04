@@ -1,3 +1,4 @@
+//! 射线响应服务保存外部提供者结果并供声学快照查询；真实声源卷积仍取决于输出渲染链的接入。
 use zircon_runtime::core::framework::sound::{
     SoundError, SoundImpulseResponseId, SoundRayTracedImpulseResponseDescriptor,
     SoundRayTracingConvolutionStatus,

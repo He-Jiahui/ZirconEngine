@@ -1,3 +1,4 @@
+//! 命令注册、远端控制与 journal 共用操作身份；失败也要保留类型错误及可审计的展示记录。
 use super::*;
 use crate::core::commands::{EditorCommandAction, EditorCommandDescriptor, EditorCommandRegistry};
 

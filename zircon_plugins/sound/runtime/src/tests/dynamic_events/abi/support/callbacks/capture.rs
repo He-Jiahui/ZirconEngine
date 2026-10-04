@@ -1,3 +1,4 @@
+// 作为原生 ABI 消费端核对借用切片与身份字段；调用期间读取有效，结果写回由执行器接收。
 use zircon_runtime_interface::{
     ZrPluginEventCallbackRequestV1, ZrPluginEventCallbackResultV1, ZrStatus,
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_NATIVE_STRING_MAX_ENCODED_BYTES_V1,

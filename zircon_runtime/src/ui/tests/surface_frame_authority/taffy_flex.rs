@@ -1,3 +1,5 @@
+//! Taffy Flex 及其 slot 尺寸结果经表面帧供渲染、命中和指针事件共同读取；受限 slot 回退也须维持该一致性。
+
 use super::*;
 
 #[test]

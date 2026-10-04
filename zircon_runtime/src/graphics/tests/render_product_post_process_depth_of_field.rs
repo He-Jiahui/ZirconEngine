@@ -1,3 +1,4 @@
+//! 景深产品测试将 CoC/Bokeh 资源链与最终像素对照；执行次序和资源非混用一起构成回归证据。
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;

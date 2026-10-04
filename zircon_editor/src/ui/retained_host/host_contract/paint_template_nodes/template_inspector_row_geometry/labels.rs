@@ -1,3 +1,5 @@
+//! 嵌套阴影属性的标签从额外缩进后开始，与独立选择字段分列；窄行通过自身框收缩。
+
 use super::super::super::data::FrameRect;
 use super::metrics::inspector_row_metrics;
 

@@ -6,6 +6,7 @@ use crate::core::framework::script::ScriptHostModuleDescriptor;
 
 use super::{render_script_host_modules_markdown, ScriptHostInterfaceMarkdownOptions};
 
+/// CLI 用此入口把描述符投影落盘；调用方负责选择输出路径，写入会创建父目录并传播 I/O 错误。
 pub fn write_script_host_modules_markdown(
     path: impl AsRef<Path>,
     modules: &[ScriptHostModuleDescriptor],

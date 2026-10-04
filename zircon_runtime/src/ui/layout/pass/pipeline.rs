@@ -1,3 +1,4 @@
+/// 供诊断和结构校验描述一次布局工作的先后关系；枚举不充当后端调度器。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UiLayoutPassStage {
     ResponsiveStyleResolution,
@@ -23,6 +24,7 @@ impl UiLayoutPassStage {
     }
 }
 
+/// 完整和增量布局共用的依赖顺序；安排阶段会在一次遍历中选择后端并传播裁剪。
 pub const UI_LAYOUT_PASS_ORDER: [UiLayoutPassStage; 7] = [
     UiLayoutPassStage::ResponsiveStyleResolution,
     UiLayoutPassStage::Measurement,
@@ -33,6 +35,7 @@ pub const UI_LAYOUT_PASS_ORDER: [UiLayoutPassStage; 7] = [
     UiLayoutPassStage::SelectionReport,
 ];
 
+/// 诊断消费者读取稳定的阶段名；新增阶段必须同步入口的顺序检查。
 pub fn ui_layout_pass_stage_names() -> [&'static str; 7] {
     UI_LAYOUT_PASS_ORDER.map(UiLayoutPassStage::as_str)
 }

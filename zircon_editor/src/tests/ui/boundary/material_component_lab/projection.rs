@@ -1,3 +1,5 @@
+//! 验证Material 实验室原型到可渲染宿主节点的投影。
+
 use std::collections::BTreeSet;
 
 use crate::ui::template_runtime::EditorUiHostRuntime;

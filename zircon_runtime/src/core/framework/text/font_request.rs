@@ -1,5 +1,6 @@
 use super::TextRenderMode;
 
+/// 排版调用方借用的字体选择条件；由文本服务映射到实现层样式和字体集合。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TextFontRequest<'a> {
     pub families: &'a [&'a str],

@@ -1,3 +1,4 @@
+// 单一声明同时供静态插件注册和 native v3 分发入口生成能力及清单常量。
 zircon_plugin_sdk::declare_plugin! {
     pub AI_DECLARATION {
         id: PLUGIN_ID = "ai",

@@ -18,6 +18,7 @@ const DEFAULT_TREE_ROW_EXTENT: f64 = 24.0;
 const DEFAULT_TREE_VIEWPORT_COUNT: i64 = 20;
 
 impl UiSurface {
+    /// 指针滚轮的树窗口入口；只发布范围与别名，不替作者加载数据，捕获或范围未变时不消费滚动。
     pub(in crate::ui::surface::surface) fn apply_default_tree_view_virtual_scroll(
         &mut self,
         route: &UiPointerRoute,
@@ -119,6 +120,7 @@ impl UiSurface {
         Ok(None)
     }
 
+    /// 由已验证的树重排提交调用，将移动后的逻辑位置带入可见窗口；这里不重复校验输入门禁。
     pub(super) fn apply_tree_view_virtual_window_for_index(
         &mut self,
         owner_id: UiNodeId,
@@ -188,6 +190,7 @@ impl UiSurface {
     }
 }
 
+/// 为已钳制的可见起点构造模型窗口；可见计数与 overscan 请求计数分别用于展示和物化。
 fn tree_virtual_window_for_start(
     owner_id: UiNodeId,
     metadata: &UiTemplateNodeMetadata,
@@ -200,6 +203,9 @@ fn tree_virtual_window_for_start(
         .saturating_add(viewport_count)
         .min(total_count);
     let overscan = tree_overscan(metadata);
+    // BUG: [CR-UI-SURFACE-0010] i64 的 saturating_sub 仅防整数溢出，不能保证请求起点非负；
+    // viewport_start=1、overscan=2 会发布 requested_start=-1，窗口同步直接保留该值。
+    // 应在构造时钳到零，再计算请求计数，并覆盖滚轮与重挂两条调用路径。
     let requested_start = viewport_start.saturating_sub(overscan);
     let requested_end = visible_end.saturating_add(overscan).min(total_count);
     UiVirtualWindowState {

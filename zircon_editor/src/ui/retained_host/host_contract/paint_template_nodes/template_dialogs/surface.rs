@@ -1,3 +1,6 @@
+//! 对话框容器与严重性边条提交；根节点的可见区域已由 commands 确认。
+//! 焦点、按压和打开状态不改变普通dialog边框，避免把容器当成按钮呈现。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::identity::DialogKind;

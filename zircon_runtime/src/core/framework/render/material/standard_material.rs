@@ -13,6 +13,7 @@ pub const STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
 pub const STANDARD_MATERIAL_TEXTURE_UV_CHANNEL_COUNT: u32 = 2;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 资产解析后的标准表面参数快照；streamer 用它决定依赖、pass/队列和 GPU uniform，原始编辑权威仍在 MaterialAsset。
 pub struct StandardMaterialDescriptor {
     pub name: Option<String>,
     pub dependencies: RenderMaterialDependencySet,
@@ -85,12 +86,14 @@ pub struct StandardMaterialDescriptor {
 }
 
 impl StandardMaterialDescriptor {
+    /// 优先使用显式队列值；旧资产只有整数队列时，结合 alpha 模式推导兼容的队列段。
     pub fn resolved_render_queue_value(&self) -> RenderQueueValue {
         self.render_queue_value.unwrap_or_else(|| {
             RenderQueueValue::from_authored_queue(&self.alpha_mode, self.render_queue)
         })
     }
 
+    /// 只检查实际绑定纹理的槽位；空槽的 UV 设定不会阻止材质准备。
     pub fn unsupported_texture_uv_channels(&self) -> Vec<(&'static str, u32)> {
         [
             (

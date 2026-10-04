@@ -1,3 +1,4 @@
+// 停机夹具先保留发送与效果声明，再通过 compile_graph 核对可编译发送及阶段能力拒绝。
 use zircon_runtime::core::framework::sound::{SoundEffectKind, SoundTrackId};
 
 use crate::kira_bridge::compile_graph;

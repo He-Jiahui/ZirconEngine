@@ -1,3 +1,4 @@
+// 表切换是静态测试投影的提交边界，离开本类表后不再吸收同名字段。
 use super::storage::DependencyParserState;
 
 impl DependencyParserState {

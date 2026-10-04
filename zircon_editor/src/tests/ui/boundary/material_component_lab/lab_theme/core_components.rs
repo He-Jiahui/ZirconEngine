@@ -1,3 +1,5 @@
+//! 验证基础 Material 组件样例的描述符和主题选择器。
+
 use super::*;
 
 #[test]

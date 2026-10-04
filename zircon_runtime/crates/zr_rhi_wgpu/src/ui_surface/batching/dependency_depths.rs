@@ -1,3 +1,4 @@
+//! 输入已按画家顺序排列；重叠关系决定层深，同层图元才可按材质重组。
 use super::{bounds_index::BoundsIndex, DrawItem};
 
 pub(super) fn dependency_depths(items: &[DrawItem]) -> (Vec<usize>, usize, usize, usize) {

@@ -1,3 +1,4 @@
+//! 启动时注册并加载用户任务配额，再构造统一任务系统；用户配置只覆盖明确允许的分类且更改需要重启，其他分类仍从共享调度器宽度派生。
 use crate::core::settings::{
     SettingDefinition, SettingSchema, SettingValue, SettingsError, SettingsKey,
     SettingsPresentation, SettingsRegistry, SettingsScope,

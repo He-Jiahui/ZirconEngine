@@ -86,6 +86,8 @@ impl RealtimeIblExecutionResourceLayout {
 }
 
 #[derive(Default)]
+/// 在持有 A/B 物理资源的 owner 内复用已验证绑定，容量受该调度布局的拓扑数限制。
+/// 天空内容更新不改变绑定；尺寸、拓扑容量变化须清空，缓存不能跨物理资源 owner 迁移。
 pub(super) struct RealtimeIblExecutionResourceCache {
     resource_layout: Option<RealtimeIblExecutionResourceLayout>,
     topology_capacity: usize,

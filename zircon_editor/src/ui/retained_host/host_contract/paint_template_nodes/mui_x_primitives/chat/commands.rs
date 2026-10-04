@@ -4,6 +4,7 @@ use super::agent::push_agent_chat;
 use super::composer::push_chat_composer;
 use super::identity::ChatKind;
 
+/// 聊天角色在 MUI X 分发后由专属外观接管；普通文本仍可在节点回退链中绘制。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chat(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

@@ -1,3 +1,4 @@
+//! 运行时内置模块组合保持核心脊柱顺序，外部插件按必需性报告缺失。以结果断言检查当前接口或源码快照对应的边界。
 use crate::{
     builtin::{runtime_modules_for_target, RuntimePluginId},
     core::framework::platform::RuntimeTargetMode,

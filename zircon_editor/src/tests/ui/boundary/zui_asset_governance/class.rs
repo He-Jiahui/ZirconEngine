@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI class 列表及样式锚点的命名规范。
+
 use super::metadata::{class_list_offenders, class_name_prop_offenders};
 use super::support::{collect_zui_files, editor_asset_root, load_zui_document, runtime_asset_root};
 

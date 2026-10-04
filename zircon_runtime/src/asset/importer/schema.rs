@@ -1,6 +1,8 @@
 use super::AssetSchemaMigrationReport;
 use crate::asset::AssetImportError;
 
+// TODO: [CR-ASSET-IMPORT-0003] 确认此公开接口是否只负责版本准入与报告：.zui 插件已调用，但默认 migrate_source_schema 未改写旧版源文档却可能报告已迁移。
+/// 源资产版本准入及迁移摘要契约；调用方若需要真正的结构转换，必须另行提供转换步骤。
 pub trait AssetSchemaMigrator {
     fn current_schema_version(&self) -> u32;
     fn minimum_supported_schema_version(&self) -> u32;

@@ -21,6 +21,7 @@ pub(super) fn next_project_launch_operation_id() -> Result<ProjectActivationOper
 }
 
 impl RetainedEditorHost {
+    // 模板绑定只产出类型化欢迎页事件；此层把表单、项目启动和示例视图分派到各自会话操作。
     pub(in crate::ui::retained_host::app) fn handle_welcome_surface_event(
         &mut self,
         event: WelcomeHostEvent,

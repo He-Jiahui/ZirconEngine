@@ -1,3 +1,5 @@
+//! 递归收集可读取的 Rust 源文件，供 UI 模块归属与旧路径边界测试使用。
+
 pub(super) fn collect_rust_files(root: &std::path::Path) -> Vec<std::path::PathBuf> {
     let mut files = Vec::new();
     if let Ok(entries) = std::fs::read_dir(root) {

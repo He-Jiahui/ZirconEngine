@@ -13,6 +13,8 @@ enum ArtifactCacheJsonNumber {
     Decimal(String),
 }
 
+// JSON 数字与对象另存为稳定的缓存表示；读回时重新构造 serde_json::Value，
+// 供 DataAsset 等调用者保持原有的文档语义。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) enum ArtifactCacheJsonValue {
     Null,

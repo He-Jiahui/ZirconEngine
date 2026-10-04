@@ -46,6 +46,7 @@ fn runtime_15_runtime_dead_code_guard_is_folder_backed() {
     );
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0135] 死代码守卫根模块未挂载此处要求的状态锚点子模块；精确测试失败，需核对清理后的证据职责再修订期待。
 #[test]
 fn runtime_15_runtime_dead_code_guard_children_are_folder_backed() {
     let parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");

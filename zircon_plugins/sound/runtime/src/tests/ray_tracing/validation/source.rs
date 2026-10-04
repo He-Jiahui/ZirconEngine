@@ -1,3 +1,4 @@
+// 经脉冲响应提交入口拒绝不存在的声源引用，核对描述符的引用前置条件。
 use super::super::super::*;
 use super::descriptor::valid_ray_traced_descriptor;
 

@@ -1,3 +1,5 @@
+//! 选中项的表面和可选下划线叠层；当前节点状态和集中选择器决定颜色与线宽。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_segmented_control_geometry::{
@@ -6,6 +8,7 @@ use super::super::super::template_segmented_control_geometry::{
 use super::super::style::segmented_control_style;
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
+/// 选中项在段内缩区域绘制表面，配置下划线时再发强调层；不负责判断哪个选项被选中。
 pub(super) fn push_selected_segment(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

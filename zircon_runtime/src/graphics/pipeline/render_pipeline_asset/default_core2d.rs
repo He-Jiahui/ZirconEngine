@@ -6,6 +6,7 @@ use crate::graphics::pipeline::declarations::{
 };
 
 impl RenderPipelineAsset {
+    /// 构造默认 Core2D 管线；阶段映射和 feature 顺序决定 2D、UI 与 overlay 的图顺序。
     pub fn default_core2d() -> Self {
         Self {
             handle: Self::DEFAULT_CORE2D_HANDLE,

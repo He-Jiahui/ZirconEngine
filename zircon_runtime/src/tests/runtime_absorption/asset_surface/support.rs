@@ -1,3 +1,4 @@
+//! 资产入口吸收后，注册、命名空间与查询边界保持由运行时资产模块拥有。向相邻守卫提供源码读取、路径枚举或断言工具。
 use std::path::PathBuf;
 
 pub(super) fn runtime_root() -> PathBuf {

@@ -10,6 +10,7 @@ use crate::core::runtime::TaskGraphAdmissionError;
 use super::super::RenderArtifactIoPriority;
 use super::super::{RenderArtifactManifest, RenderArtifactStoreLimits};
 
+/// 一个资源修订与目标平台的清单身份；相同键的请求合并 IO，但保留各自票据。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RenderArtifactManifestRequestKey {
     resource: UntypedResourceHandle,
@@ -104,6 +105,7 @@ pub struct RenderArtifactManifestIoDispatchReport {
     pub budget_exhausted: bool,
 }
 
+/// 项目代次内清单队列和内存的上界；实际读取仍须由调用方按预算 dispatch。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderArtifactManifestLoaderLimits {
     max_entries: usize,

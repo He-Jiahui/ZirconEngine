@@ -1,3 +1,5 @@
+//! Flow、Grid 和 Masonry 的父容器按各自排序与列分配策略消费 slot；发布后的帧必须继续作为绘制与命中的共同几何依据。
+
 use super::*;
 
 #[test]

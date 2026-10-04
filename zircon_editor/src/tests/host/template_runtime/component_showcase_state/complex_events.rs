@@ -1,3 +1,4 @@
+// 核对复杂组件事件对展示页运行时状态的更新。
 use super::support::apply_showcase_binding;
 use crate::ui::template_runtime::{EditorUiHostRuntime, UiComponentShowcaseDemoEventInput};
 

@@ -28,6 +28,7 @@ impl ProductRoleRequest {
         Self::Embedded,
     ];
 
+    /// 兼容既有 profile 入口；细分子进程和平台宿主时应显式传入产品角色。
     pub(super) const fn from_entry_profile(profile: crate::entry::EntryProfile) -> Self {
         match profile {
             crate::entry::EntryProfile::Editor => Self::EditorHost,
@@ -46,6 +47,7 @@ impl ProductRoleRequest {
         }
     }
 
+    /// 导出包装层先归类宿主形态，随后由 resolve 拒绝当前尚无配置所有者的角色。
     pub(in crate::entry) const fn from_export_profile(profile: &ExportProfile) -> Self {
         match profile.target_platform {
             ExportTargetPlatform::Android => Self::AndroidClient,

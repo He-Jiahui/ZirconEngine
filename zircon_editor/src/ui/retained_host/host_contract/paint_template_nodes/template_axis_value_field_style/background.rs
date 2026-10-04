@@ -1,3 +1,5 @@
+//! 轴值字段表面按 disabled、pressed、hovered/selected 顺序选择宿主主题色；focus 只改变边框。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::colors::{
     axis_field_disabled_background, axis_field_hover_background, axis_field_normal_background,

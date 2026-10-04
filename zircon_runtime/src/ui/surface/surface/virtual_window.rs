@@ -14,6 +14,8 @@ use crate::ui::{
 
 use super::UiSurface;
 
+/// 行为层已经计算好的可见/请求窗口快照；别名一起发布，避免模板、组件状态和样式基值观察到不同窗口。
+/// 可见范围与含 overscan 的请求范围分别保留；调用方须保证起点、计数及滚动偏移符合模型范围。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::surface::surface) struct UiVirtualWindowState {
     pub(in crate::ui::surface::surface) owner_id: UiNodeId,
@@ -53,6 +55,8 @@ impl UiVirtualWindowState {
 }
 
 impl UiSurface {
+    /// 在 Surface 所有者内批量同步窗口元数据、样式基值和组件值，并汇总绑定回执与失效域。
+    /// 这是已有输入事务中的一步；不获取行数据、不自动重建，空变更不产生回执，调用方另行发布可见范围事件。
     pub(in crate::ui::surface::surface) fn mutate_virtual_window(
         &mut self,
         window: &UiVirtualWindowState,

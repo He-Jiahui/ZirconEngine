@@ -1,3 +1,4 @@
+//! 经真实可访问性输入路由核对祖先禁用门：拒绝动作应发生在属性变更和绑定发布之前。
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,

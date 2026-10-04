@@ -1,3 +1,5 @@
+//! 图标按钮将选中身份与指针热态分开，供背景、边框和图标通道各自选择反馈。
+
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

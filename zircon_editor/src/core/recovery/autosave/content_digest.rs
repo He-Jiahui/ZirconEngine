@@ -1,3 +1,5 @@
+//! 保存源文件或快照的内容摘要身份；恢复目录以字节内容比较新旧源，时间戳变化本身不足以判断可恢复性。
+
 use std::fmt;
 use std::io::{self, Read};
 use std::path::Path;

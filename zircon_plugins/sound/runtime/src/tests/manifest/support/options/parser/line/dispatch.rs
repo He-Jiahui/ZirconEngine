@@ -1,3 +1,4 @@
+// 字段先按身份、值、能力要求归属到当前选项，再由表边界统一完成记录。
 use super::super::super::state::PendingOptionManifest;
 use super::{identity, requirement, value};
 

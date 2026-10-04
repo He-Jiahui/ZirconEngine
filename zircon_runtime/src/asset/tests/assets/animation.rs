@@ -1,3 +1,5 @@
+//! 检验动画资产的二进制版本边界和直接依赖：导入器先解码各资产，资源管理器再按图、片段与状态机引用加载；旧版夹具须保持真实的旧线格式。
+
 use crate::core::framework::animation::AnimationTrackPath;
 
 use crate::asset::tests::support::{

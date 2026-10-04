@@ -12,6 +12,7 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 从 World 组件存储读取的节点值投影；transform 保留局部空间，世界空间应通过 World 查询。
 pub struct SceneNode {
     pub id: EntityId,
     pub name: String,
@@ -44,6 +45,7 @@ pub struct SceneNode {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 项目/编辑器边界使用的节点聚合记录；导入时应由 World 校验并拆入 ECS 组件，不能视作实时组件存储。
 pub struct NodeRecord {
     pub id: EntityId,
     pub name: String,

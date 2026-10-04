@@ -1,3 +1,5 @@
+//! 验证调色板保留本地与导入来源，并用描述符默认节点及插槽实例化。
+
 use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::palette::{

@@ -1,3 +1,5 @@
+//! 此对照测试把本地 Material UI 参考导出分类映射到运行时描述符；执行环境必须能读取对应参考树。
+
 use std::{
     collections::BTreeSet,
     fs,
@@ -6,6 +8,7 @@ use std::{
 
 use crate::ui::component::UiComponentDescriptorRegistry;
 
+// direct 分类允许多个导出共享一个本地描述符；utility 只参与导出名集合比较，不要求注册描述符。
 const DIRECT_MUI_MATERIAL_DESCRIPTOR_EXPORTS: &[(&str, &str)] = &[
     ("Accordion", "Accordion"),
     ("AccordionActions", "AccordionActions"),
@@ -197,6 +200,7 @@ const GROUPED_MUI_LAB_EXPORTS: &[&str] = &[];
 
 const UTILITY_MUI_LAB_EXPORTS: &[&str] = &["useAutocomplete"];
 
+// BUG: [CR-UI-TEST-0202] 两个普通测试依赖 Git 忽略的 dev/material-ui 参考树；干净克隆缺文件时 collect_default_exports 必定 panic。
 #[test]
 fn material_foundation_catalog_tracks_local_mui_material_exports() {
     let registry = UiComponentDescriptorRegistry::material_editor_foundation();
@@ -256,6 +260,8 @@ fn tracked_exports(
 }
 
 fn collect_default_exports(relative: &str) -> BTreeSet<String> {
+    // TODO: [CR-W12-UI-CATALOG-0011] 确认普通测试是否要求本地 dev 参考树；固定路径缺失会在下面 panic，尚无当前 CI 输入契约证据。
+    // 核对参考版本和准备步骤，再决定声明独立前置条件或提供版本化导出清单夹具。
     fs::read_to_string(workspace_path(relative))
         .unwrap_or_else(|error| panic!("{relative} should be readable: {error}"))
         .lines()

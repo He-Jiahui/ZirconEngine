@@ -1,3 +1,4 @@
+//! 有效视图及设备约束先形成缓存键，再编译或复用图；预算降级和 OIT 筛选须先完成。
 use crate::core::framework::render::{OitBufferPlan, RenderFrameExtract, RenderFrameworkError};
 
 use std::sync::Arc;

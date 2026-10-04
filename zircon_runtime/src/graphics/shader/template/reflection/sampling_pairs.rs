@@ -1,5 +1,6 @@
 use super::ShaderSamplingPairIdentity;
 
+// 只保留该入口实际使用的纹理/采样器对；布局哈希依赖这组关系，不能仅凭声明列表推断。
 pub(super) fn reflect_entry_sampling_pairs(
     module: &naga::Module,
     entry_info: &naga::valid::FunctionInfo,

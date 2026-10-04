@@ -1,3 +1,4 @@
+//! 图切换只保留仍存在于新目录中的事件处理器和待发事件，避免旧目录身份跨快照泄漏。
 use std::collections::HashSet;
 
 use zircon_runtime::core::framework::sound::SoundMixerGraph;

@@ -1,3 +1,4 @@
+// 核对模板投影绑定注册为可见路由占位项。
 use super::support::*;
 
 #[test]

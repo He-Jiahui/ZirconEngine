@@ -1,3 +1,4 @@
+//! 调度边界检查序列、关键帧和当时存在的绑定；后续绑定删除仍可能使推进失败。
 use std::collections::HashSet;
 
 use zircon_runtime::core::framework::sound::{

@@ -1,3 +1,6 @@
+//! 资源目录与运行时发布的领域错误；调用端据此区分身份冲突、过期加载结果和状态迁移失败。
+//! 文件持久化错误由 I/O 子模块独立承载，资源批次预检失败不会写入部分结果。
+
 use thiserror::Error;
 
 pub type ResourceResult<T> = std::result::Result<T, ResourceRegistryError>;

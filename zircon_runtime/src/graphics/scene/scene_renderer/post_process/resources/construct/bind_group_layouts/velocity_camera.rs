@@ -1,5 +1,6 @@
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
 
+/// 相机速度重建管线的深度槽须与后端选择的 WGSL 深度读取分支相同。
 pub(crate) fn velocity_camera(
     device: &wgpu::Device,
     depth_sampling_mode: PostProcessDepthSamplingMode,

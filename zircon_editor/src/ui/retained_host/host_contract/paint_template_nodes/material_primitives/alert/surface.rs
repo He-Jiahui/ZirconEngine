@@ -4,6 +4,7 @@ use super::style::{
     alert_background_color, alert_border_color, alert_border_width, alert_corner_radius,
 };
 
+// 命令序列先绘制统一底面，再叠加图标、正文与操作；样式模块负责填充、边框和圆角。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_alert_surface(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

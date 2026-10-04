@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// Declares whether a UI node can become a pointer target and whether its descendants remain hit-testable.
 /// 声明节点自身和后代能否进入指针命中路径；实际目标还受可见性与输入策略约束。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -29,6 +30,7 @@ impl UiPointerEvents {
 
 // BUG: [CR-UITREE-0002] `UiTreeNode.cursor` 目前只被存储和序列化，
 // Runtime 命中结果未读取该字段，也未据此向宿主请求光标形状。
+/// Declares the cursor requested by a node after it wins the pointer hit path.
 /// 节点为指针命中声明的预期光标形状。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

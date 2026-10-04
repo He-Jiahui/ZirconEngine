@@ -1,3 +1,6 @@
+//! 同一 glTF 图像在 sRGB 与线性用途下产生不同纹理子资产；材质槽和渲染描述符
+//! 必须保留各自的 UV 选择与 KHR_texture_transform，而不能仅凭共享 Texture0 还原。
+
 use super::*;
 use crate::asset::assets::{RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
 

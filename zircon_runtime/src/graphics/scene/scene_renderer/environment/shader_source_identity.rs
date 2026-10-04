@@ -1,3 +1,5 @@
+/// 以完整 WGSL 文本标识源版本，参与实时烘焙 key；空白或注释变化也会使缓存失效。
+/// 它用于缓存隔离，不提供抵抗碰撞的安全保证。
 pub(super) const fn shader_source_content_hash(source: &str) -> u64 {
     let bytes = source.as_bytes();
     let mut hash = 0xcbf2_9ce4_8422_2325_u64;

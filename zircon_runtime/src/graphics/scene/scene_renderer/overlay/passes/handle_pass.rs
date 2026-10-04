@@ -1,6 +1,7 @@
 use crate::graphics::scene::scene_renderer::overlay::begin_line_pass_for_region;
 use crate::graphics::types::ViewportRenderRegion;
 
+/// 在其他辅助层之后绘制操纵手柄；复用场景深度测试而不写入深度。
 pub(crate) struct HandlePass;
 
 impl HandlePass {

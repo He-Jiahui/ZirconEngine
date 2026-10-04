@@ -91,6 +91,7 @@ impl ZrRuntimeFrameV2 {
         }
     }
 
+    /// Reports only the canonical cleared out-parameter state, never a malformed frame.
     /// 仅判断尺寸与 RGBA 输出是否为空；调用方仍须核对调用状态、ABI 版本和帧代数。
     pub const fn is_empty(&self) -> bool {
         self.width == 0 && self.height == 0 && self.rgba.is_empty()

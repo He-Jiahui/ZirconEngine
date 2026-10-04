@@ -1,3 +1,5 @@
+//! 验证原子集合等待与单资源等待的公平边界：集合头只阻挡重叠资源，互不重叠的单资源队列可晋升；后来的集合不能越过阻塞的集合头。
+
 use super::{acquired, modal_surface, queued, resources, scene_mode_slot, tool, viewport_input};
 use crate::core::tools::{
     AcquireDenial, AcquireOutcome, ReleaseOutcome, ToolLeaseHandle, ToolQueueLimits,

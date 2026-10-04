@@ -6,6 +6,7 @@ use super::super::main_host_strip_view_model::MainHostStripViewModel;
 use super::breadcrumbs::breadcrumbs_for_page;
 use super::page_access::{page_dirty, page_id, page_title};
 
+/// 保留主页面顺序和独占页关闭目标；传入active_page应来自本轮chrome的页面解析。
 pub(crate) fn host_strip_model(
     active_page: &MainPageSnapshot,
     chrome: &EditorChromeSnapshot,

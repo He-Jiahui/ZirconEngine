@@ -1,4 +1,5 @@
 //! Static contract for App-level localized error recovery feedback.
+//! 约束顶层错误反馈从后端本地化外壳文案投影到前端，避免向用户展示未经整理的异常文本。
 
 use std::{fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path)).unwrap_or_else(|error| {
@@ -25,6 +27,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path)).unwrap_or_else(|error| {
@@ -51,6 +54,8 @@ fn assert_not_contains_any(source: &str, snippets: &[&str], label: &str) {
     }
 }
 
+// BUG: [CR-HUBTESTA-0001] 前端外壳状态接收改为从预览状态初始化后，旧初始化片段断言必然失败；证据：App.tsx 当前状态引用及测试断言。
+/// 同时核对后端文案、前端 DTO、预览数据与错误出口，保证用户看到当前语言的标签、详情和恢复建议。
 #[test]
 fn app_error_recovery_copy_stays_on_the_localized_shell_dto() {
     let app = read_crate_file("web/src/App.tsx");

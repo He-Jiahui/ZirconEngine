@@ -1,3 +1,4 @@
+//! 核对运行时 UI 资源从源码目录迁往 assets 的装载边界，以及 .zui surface 不回退到旧模板构建器。
 use super::*;
 
 #[test]

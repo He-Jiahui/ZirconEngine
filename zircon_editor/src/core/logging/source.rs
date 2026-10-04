@@ -16,6 +16,7 @@ pub enum LogChannel {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+/// 日志渠道和具体所有者的结构化身份；过滤按渠道，展示可保留插件或 Play 实例。
 pub struct LogSource {
     kind: LogChannel,
     detail: LogSourceDetail,
@@ -50,6 +51,7 @@ impl LogSource {
         }
     }
 
+    /// 插件日志须有非空所有者 ID，避免匿名消息混入插件渠道。
     pub fn plugin(id: impl Into<String>) -> Result<Self, EditorLogError> {
         let id = id.into();
         if id.trim().is_empty() {

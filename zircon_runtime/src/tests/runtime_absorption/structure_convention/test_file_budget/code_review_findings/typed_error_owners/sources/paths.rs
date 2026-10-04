@@ -1,3 +1,4 @@
+//! 为类型化错误审查读取或聚合父子源码，保留路径与文本的配对关系供上层检查；聚合结果只描述被列入清单的文件。
 pub(super) const TYPED_ERROR_SOURCE_PATHS: &[&str] = &[
     "tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs",
     "tests/runtime_absorption/code_review_findings/typed_error_convergence/animation_resource.rs",

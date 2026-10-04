@@ -1,3 +1,5 @@
+//! 从公开入口验证角色准入、配置来源与产物声明，避免未交付角色提前进入 Runtime。
+
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::{
     ExportProfile, ExportTargetPlatform, ProjectPluginManifest, ProjectPluginSelection,

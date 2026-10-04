@@ -1,3 +1,5 @@
+//! 选择族同时声明输入值、选项状态、弹层和键盘导航字段，供 selection 与 keyboard 消费。自动补全的文本输入能力是宿主筛选条件，结构化选项还携带禁用元数据。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

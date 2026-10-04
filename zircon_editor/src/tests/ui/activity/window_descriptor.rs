@@ -1,3 +1,5 @@
+//! 验证UI 资源编辑器窗口描述符与共享资产编辑器的宿主、标题和挂载路径一致。
+
 use crate::ui::asset_editor::ui_asset_editor_window_descriptor;
 use zircon_runtime_interface::ui::event_ui::UiNodePath;
 

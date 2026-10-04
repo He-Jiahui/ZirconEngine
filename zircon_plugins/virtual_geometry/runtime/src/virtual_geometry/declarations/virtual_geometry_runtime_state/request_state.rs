@@ -55,6 +55,7 @@ impl VirtualGeometryRuntimeState {
         &self.pending_requests
     }
 
+    /// 保存待上传请求的代次和大小；调用方同时维护 pending_pages 索引。
     pub(in crate::virtual_geometry) fn push_pending_page_request(
         &mut self,
         request: VirtualGeometryPageRequest,

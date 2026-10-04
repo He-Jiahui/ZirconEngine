@@ -1,3 +1,4 @@
+// 为资源引用与主题提升测试提供共同的加载器、项目夹具和管理器入口。
 use std::fs;
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;

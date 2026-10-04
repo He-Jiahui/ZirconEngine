@@ -21,6 +21,8 @@ const UNSUPPORTED_OPTIONAL_GLTF_MATERIAL_EXTENSIONS: &[&str] = &[
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// glTF clearcoat 法线槽传给几何切线需求和材质子资产的共同投影。
+/// 保留纹理索引、UV 频道、变换与强度，使两条消费链不会各自解释扩展字段。
 pub struct GltfClearcoatNormalTextureProjection {
     pub texture_index: usize,
     pub transform: Option<RenderMaterialTextureTransform>,
@@ -120,6 +122,7 @@ fn unsupported_required_material_semantic(
     ))
 }
 
+/// 几何导入在生成切线前读取 clearcoat 法线需求；材质导入随后复用同一投影语义。
 pub fn gltf_clearcoat_normal_texture_projection(
     material: &gltf::Material<'_>,
 ) -> Option<GltfClearcoatNormalTextureProjection> {

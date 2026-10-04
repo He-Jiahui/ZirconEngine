@@ -1,3 +1,5 @@
+//! 边框优先表达不可用与校验错误，再表达焦点或指针反馈；声明边框仅覆盖普通、选中或勾选状态。
+
 use super::super::palette::workbench_dropdown_palette;
 use super::super::state::is_unavailable_dropdown_state;
 use super::declared::declared_style_color;

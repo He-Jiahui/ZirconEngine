@@ -1,3 +1,5 @@
+//! 选择控件需区分单选、多选与特殊项；来自保留元数据的禁用规则先于值写入生效。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentState, UiValidationLevel, UiValue,

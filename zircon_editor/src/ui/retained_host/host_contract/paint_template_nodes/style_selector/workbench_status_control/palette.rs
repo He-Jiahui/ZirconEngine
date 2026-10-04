@@ -1,3 +1,5 @@
+//! 从当前宿主主题投影状态条的颜色角色；透明普通外壳、持久选择表面和语义信号色独立。
+
 #[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::host_contract::paint_theme::{

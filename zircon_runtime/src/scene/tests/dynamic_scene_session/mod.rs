@@ -1,3 +1,6 @@
+//! 会话归档测试用共享槽位与临时路径夹具比较内存和路径入口的契约，
+//! 包括预览、提交、选择、留存和读写产物。
+
 mod archive_artifact;
 mod capture;
 mod load;

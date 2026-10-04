@@ -1,3 +1,4 @@
+//! 把导入准入与终态投影为同一份日志：工作可能先于提交返回结束，因此终态先缓存，准入确认后才发布；拒绝提交则关闭该投影，避免重复诊断。
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -25,6 +26,7 @@ pub(super) struct EditorModelImportDiagnostics {
     state: DeferredSubmissionDiagnostic<Result<ProjectImportReceipt, JobError>>,
 }
 
+// 提交返回和工作终态可能先后颠倒；此状态只决定何时允许发布一次诊断。
 struct DeferredSubmissionDiagnostic<T> {
     state: Mutex<DeferredSubmissionDiagnosticState<T>>,
 }

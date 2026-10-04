@@ -1,3 +1,4 @@
+//! 战斗脚本属性写入定向修改实体的启用绑定；此处和 scene_system.rs 的属性索引共享绑定语义，不能把脚本状态当作独立组件副本。
 pub(super) const SCRIPT_BINDINGS_COMPONENT: &str = "script.bindings";
 
 #[cfg(test)]

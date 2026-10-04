@@ -1,6 +1,7 @@
 use super::super::*;
 
 impl RetainedEditorHost {
+    // 每次展示投影更新后同步三个滚动表面；控制台依据当前来源窗口取得视口尺寸。
     pub(in crate::ui::retained_host::app) fn sync_detail_pointer_layouts(
         &mut self,
         chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,

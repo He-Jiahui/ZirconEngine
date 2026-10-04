@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证生产 ZUI 组件根节点与布局宽度契约。
+
 use toml::Value;
 
 use super::metadata::string_token_metadata_offender;

@@ -1,4 +1,5 @@
 //! Static API contracts for the React/MUI Hub input and navigation surface.
+//! 固定输入包装器的受控回调及动作标识集合，使页面操作沿同一派发链到达 Rust 命令入口。
 
 use std::{collections::BTreeSet, fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path))
@@ -24,6 +26,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path))
@@ -49,6 +52,8 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+// TODO: [CR-HUBTESTA-0014] 确认动作集合提取是否会把固定区段的注释或非动作字符串误作协议值；当前按引号分片；下一步用结构化表或负例验证。
+/// 为两端动作表提取固定区段内的字符串集合；调用方必须保持标记唯一且区段只包含动作值。
 fn quoted_values_between(source: &str, begin: &str, end: &str) -> BTreeSet<String> {
     let start = source
         .find(begin)
@@ -66,6 +71,7 @@ fn quoted_values_between(source: &str, begin: &str, end: &str) -> BTreeSet<Strin
         .collect()
 }
 
+/// 检查前后端规范动作标识集合双向一致，避免前端发出不可解析动作或遗漏后端可用入口。
 #[test]
 fn hub_action_id_table_matches_react_hub_action_map_bidirectionally() {
     let action_id = read_crate_file("src/tauri_app/action_id.rs");
@@ -88,6 +94,7 @@ fn hub_action_id_table_matches_react_hub_action_map_bidirectionally() {
     );
 }
 
+/// 固定历史输入别名只在后端解析，前端始终提交规范动作以便协议和调用日志保持唯一表示。
 #[test]
 fn hub_action_legacy_aliases_stay_rust_side_only() {
     let action_id = read_crate_file("src/tauri_app/action_id.rs");
@@ -109,6 +116,7 @@ fn hub_action_legacy_aliases_stay_rust_side_only() {
     );
 }
 
+/// 要求需要结构数据的动作有对应前端载荷类型，限制调用方把无关参数提交到另一个动作入口。
 #[test]
 fn payload_carrying_actions_keep_typed_entries_in_react_payload_map() {
     let types = read_crate_file("web/src/types/hub.ts");
@@ -140,6 +148,7 @@ fn payload_carrying_actions_keep_typed_entries_in_react_payload_map() {
     );
 }
 
+/// 固定输入家族出口，页面可从同一边界获得包装器类型和回调契约。
 #[test]
 fn input_barrel_exports_stable_react_wrapper_api_surface() {
     let index = read_crate_file("web/src/components/inputs/index.ts");
@@ -162,6 +171,7 @@ fn input_barrel_exports_stable_react_wrapper_api_surface() {
     );
 }
 
+/// 核对受控值、选项和布尔状态的回调类型及只读语义，底层事件应在包装器边界变成业务值。
 #[test]
 fn text_select_combo_and_binary_inputs_preserve_typed_props_and_callbacks() {
     let search = read_crate_file("web/src/components/inputs/HubSearchField.tsx");
@@ -252,6 +262,7 @@ fn text_select_combo_and_binary_inputs_preserve_typed_props_and_callbacks() {
     }
 }
 
+/// 核对点击、单选和页签回调的契约及无障碍名称，让上层导航通过业务值派发动作。
 #[test]
 fn button_icon_toggle_and_tabs_preserve_navigation_callback_contracts() {
     let button = read_crate_file("web/src/components/inputs/HubButton.tsx");
@@ -321,6 +332,8 @@ fn button_icon_toggle_and_tabs_preserve_navigation_callback_contracts() {
     );
 }
 
+// BUG: [CR-HUBTESTA-0007] 窗口已改为按需加载页面并传播窗口动作失败回调，旧页面路由片段检查失败；证据：HubWindow.tsx。
+/// 沿抽屉、顶栏、窗口和顶层状态接收检查同一派发器，避免导航组件直接另建 IPC 出口。
 #[test]
 fn navigation_components_share_one_action_dispatcher_api() {
     let drawer = read_crate_file("web/src/components/shell/NavigationDrawer.tsx");
@@ -408,6 +421,7 @@ fn navigation_components_share_one_action_dispatcher_api() {
     );
 }
 
+/// 固定页面筛选、选择和设置保存通过包装器回调提交到后端，页面局部交互状态不能替代持久化事实。
 #[test]
 fn routed_pages_use_input_callbacks_for_navigation_and_filters() {
     let projects = read_crate_file("web/src/pages/ProjectsDashboard.tsx");
@@ -507,6 +521,7 @@ fn routed_pages_use_input_callbacks_for_navigation_and_filters() {
     );
 }
 
+/// 要求文档记录动作派发和输入回调的拥有者及验证入口，使协议调整能同时定位两端。
 #[test]
 fn input_navigation_api_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -540,6 +555,7 @@ fn input_navigation_api_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn input_navigation_api_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_input_navigation_api_contract.rs");

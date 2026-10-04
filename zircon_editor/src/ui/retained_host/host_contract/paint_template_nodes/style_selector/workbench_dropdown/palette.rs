@@ -1,3 +1,5 @@
+//! 把当前宿主主题映射为下拉框静态、热态、展开、校验和不可用色阶；选择器不自行保存主题副本。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_palette, HostMaterialPalette,
 };

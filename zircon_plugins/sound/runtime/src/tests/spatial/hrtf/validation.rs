@@ -1,3 +1,4 @@
+// 经 HRTF 目录入口拒绝非有限或静音内核，并核对移除缺失身份的错误。
 use super::super::super::*;
 use super::super::support::test_hrtf_profile;
 

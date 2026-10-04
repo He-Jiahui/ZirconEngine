@@ -1,3 +1,5 @@
+//! 验证工作台文本、芯片和轴值字段继承运行时密度 token。
+
 use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 use super::{

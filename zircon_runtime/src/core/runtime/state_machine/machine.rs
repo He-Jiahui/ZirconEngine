@@ -64,6 +64,7 @@ impl<T: StateSpec> StateMachine<T> {
     }
 
     // 提交至多一个待处理状态；同值是否产生事件取决于调用方选用的排队策略。
+    // take_transition 先消费请求；同值且禁止重复事件时 current 不变，其余路径先更新 current，再生成供锁外调用的派发快照。
     pub(crate) fn apply_pending_transition(&mut self) -> Option<StateTransitionDispatch<T>> {
         let (entered, allow_same_state_transitions) = self.next.take_transition()?;
         let exited = self.current.as_ref().map(|state| state.get().clone());

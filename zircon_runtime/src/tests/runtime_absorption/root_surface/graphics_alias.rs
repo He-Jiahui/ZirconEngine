@@ -1,3 +1,4 @@
+//! 运行时根公开面和图形别名的收敛结果需与架构文档一致。以结果断言检查当前接口或源码快照对应的边界。
 use super::inventory::{LIB_RS, ROOT_SURFACE_DOC, RUNTIME_02_OUTPUT_RECORDS};
 
 #[test]

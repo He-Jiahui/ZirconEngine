@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0102] 场景项目文档和网格资源的输入输出投影的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_scene_world_project_io_mesh_is_child_owner() {
     let parent = read_runtime_src("scene/world/project_io.rs");

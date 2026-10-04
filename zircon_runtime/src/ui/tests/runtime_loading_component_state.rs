@@ -1,3 +1,5 @@
+//! 运行时 loading 属性经组件状态投影到 V2 样式与绘制命令，避免只更改属性而漏掉可见状态。
+
 use std::collections::BTreeMap;
 
 use toml::Value;

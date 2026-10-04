@@ -1,5 +1,6 @@
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiResolvedGlyphArtifactRouteReport;
 
+/// 单独记录布局字形产物的准入结果，帮助诊断缺失、过期与拒绝回退的真实比例。
 pub(super) fn record_resolved_glyph_artifact_route_profile(
     report: &ScreenSpaceUiResolvedGlyphArtifactRouteReport,
     post_layout_stale_artifact_batch_rejection_count: usize,

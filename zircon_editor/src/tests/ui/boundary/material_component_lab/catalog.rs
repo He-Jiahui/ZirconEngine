@@ -1,3 +1,5 @@
+//! 验证Material 原型到运行时组件描述符及 MUI X 样例目录的映射。
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;

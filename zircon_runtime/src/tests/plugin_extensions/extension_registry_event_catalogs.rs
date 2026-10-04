@@ -1,3 +1,4 @@
+//! 类型化事件登记派生目录并验证事件身份和载荷模式；本组同时检查声明目录与实际类型登记的一致性。
 use crate::plugin::{
     PluginEventCatalogManifest, PluginEventManifest, PluginPackageManifest,
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog,

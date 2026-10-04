@@ -1,3 +1,5 @@
+//! 隔离受忽略的发布性能门槛，对照有界执行回执与随动态身份增长的遥测键成本。
+// 计时样本按两种路径交替先后收集；普通测试不运行此门槛，发布验证需显式选择被忽略的测试。
 use std::{collections::BTreeMap, hint::black_box, time::Instant};
 
 use zircon_runtime_interface::ui::binding::UiBindingExecutionReceipt;

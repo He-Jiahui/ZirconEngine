@@ -10,6 +10,7 @@ use super::prepared_upload::GpuScenePreparedUpload;
 use super::upload::GpuSceneBufferUploadBatchBuilder;
 
 impl GpuScene {
+    /// 独立 GPU Scene 调用的即时上传入口；帧绘制路径使用准备批次，让帧提交者统一决定接受时机。
     pub(crate) fn flush_updates(
         &mut self,
         backend: &RenderBackend,
@@ -128,6 +129,8 @@ impl GpuScene {
         Ok(prepared.commit(self))
     }
 
+    /// 仅在后端已接收该场景的上传批次后清除脏标记并释放待回收 ID。
+    /// 提前调用会使下一帧跳过仍未到达 GPU 的变更。
     pub(super) fn commit_prepared_upload(
         &mut self,
         prepared: GpuScenePreparedUpload,

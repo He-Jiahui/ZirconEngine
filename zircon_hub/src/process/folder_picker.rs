@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::error::HubError;
 
+/// 导入项目等桌面动作使用的文件夹选择请求；取消由 `None` 表示，不视为操作错误。
 pub struct FolderPickerRequest {
     title: String,
     initial_dir: Option<PathBuf>,
@@ -17,6 +18,7 @@ impl FolderPickerRequest {
 }
 
 #[cfg(windows)]
+/// 在后台动作中显示原生目录选择器；仅 Windows 实现，调用端须处理用户取消和平台错误。
 pub fn pick_folder(request: &FolderPickerRequest) -> Result<Option<PathBuf>, HubError> {
     let script = r#"
 Add-Type -AssemblyName System.Windows.Forms

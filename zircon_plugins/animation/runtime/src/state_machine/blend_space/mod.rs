@@ -1,3 +1,4 @@
+//! 混合空间编译和权重类型的内部边界，供编译状态类型保存采样布局。
 mod blend_space_1d;
 mod blend_space_2d;
 mod blend_space_compile_error;

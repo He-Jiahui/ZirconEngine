@@ -1,3 +1,6 @@
+//! 按编译图中实际存在的前驱结果录制场景合成、景深、模糊与 Bloom。
+//! 可选效果缺席时使用约定的中性输入，必需读写边仍由资源 resolver 严格校验。
+
 use crate::core::framework::render::{PostProcessGraphResourceNames, RenderPipelinePhase};
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};
 

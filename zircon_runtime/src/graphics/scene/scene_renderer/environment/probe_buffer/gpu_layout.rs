@@ -12,6 +12,8 @@ pub(super) const PLANAR_REFLECTION_PARAMS_BINDING: u32 = 30;
 
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
+/// CPU 上传与 zr_reflection_probe 共用的固定 ABI：局部影响范围、投影、旋转和纹理槽位。
+/// misc 的层遮罩通过 f32 位表示传输，采样端按位还原，不能作为浮点数转换。
 pub(super) struct GpuReflectionProbe {
     pub(super) position_blend: [f32; 4],
     pub(super) box_min: [f32; 4],
@@ -78,6 +80,7 @@ pub(super) struct GpuReflectionProbeHeader {
 
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
+/// 平面捕获在固定物理纹理中的有效范围和变换；默认禁用，准备阶段成功后才开放采样。
 pub(super) struct GpuPlanarReflection {
     pub(super) clip_from_world: [[f32; 4]; 4],
     pub(super) local_from_world: [[f32; 4]; 4],
@@ -112,6 +115,8 @@ impl GpuReflectionProbeHeader {
 }
 
 #[derive(Clone)]
+/// 将探针与平面反射的五项绑定一起投影到 mesh/deferred 场景布局。
+/// 句柄共享资源 owner 的生命周期，调用前须完成本帧探针选择与上传准备。
 pub(in crate::graphics::scene::scene_renderer) struct ReflectionProbeGpuBindings {
     probe_buffer: Arc<wgpu::Buffer>,
     header_buffer: Arc<wgpu::Buffer>,

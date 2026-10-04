@@ -1,3 +1,4 @@
+//! 保护代码审查的子模块职责、检查入口与源码规模；这些约束读取检出文本，具体业务结果由被列出的行为测试另行验证。
 #[path = "code_review_findings/f8_child_owners.rs"]
 mod f8_child_owners;
 #[path = "code_review_findings/folder_backed_summary.rs"]

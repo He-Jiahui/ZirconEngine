@@ -1,3 +1,4 @@
+//! 核对视口指针路由对手柄、场景 gizmo 与可渲染对象的命中优先级，并与运行时命中目标枚举保持一致。
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::pointer::{
     ViewportOverlayPointerRouter, ViewportPointerLayout, ViewportPointerRoute,

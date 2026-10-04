@@ -1,3 +1,4 @@
+// 经停机图编辑入口核对发送移除及重复移除、缺失目标轨道的错误，不安装 Kira 路由。
 use super::super::super::super::*;
 
 #[test]

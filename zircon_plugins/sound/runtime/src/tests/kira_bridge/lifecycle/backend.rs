@@ -1,3 +1,4 @@
+// MockBackend 只隔离设备 I/O，仍通过真实 KiraEngine 验证容量、启动和失败后的已安装图。
 use kira::{
     backend::mock::MockBackend,
     sound::static_sound::{StaticSoundData, StaticSoundSettings},

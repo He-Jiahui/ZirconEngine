@@ -1,3 +1,4 @@
+//! 提供可注入失败的编辑上下文和命令，供事务测试观察应用、逆转、选区恢复与最终释放的真实顺序。
 use std::any::Any;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;

@@ -1,3 +1,4 @@
+//! 把掩码规则展开为骨架行权重，供姿态层混合；规则按声明顺序覆盖子树与边界权重。
 use zircon_runtime::core::math::Real;
 
 use crate::{AnimationClipCompileError, SkeletonTargetTable};
@@ -28,6 +29,7 @@ impl MaskWeights {
         })
     }
 
+    /// 以目标骨架展开有序规则；返回行数只证明形状，调用方还须保持骨架身份一致。
     pub fn compile(
         asset: &AvatarMaskAsset,
         targets: &SkeletonTargetTable,

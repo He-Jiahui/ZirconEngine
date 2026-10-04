@@ -1,5 +1,6 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0012] 项目资源管理器的锁守卫类型及恢复测试文本未匹配；尚缺迁移后恢复入口的行为证据，需追踪访问器与对应中毒恢复测试再更新断言。
 #[test]
 fn runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_asset_manager() {
     let construction =
@@ -48,6 +49,7 @@ fn runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_as
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0013] 资源工作池的进行中任务表与诊断锁访问器未匹配旧签名；需核对并发计数和中毒恢复的现行调用及行为覆盖，避免仅按名称补锚点。
 #[test]
 fn runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_pool() {
     let worker_pool = read_runtime_src("asset/pipeline/worker_pool.rs");

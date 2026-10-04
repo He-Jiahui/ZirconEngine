@@ -1,3 +1,5 @@
+//! 头像、徽标和图片集合交付视觉元数据与插槽契约；显示值可由属性或绑定提供。Image 能力声明用于后续消费方选择可用渲染路径。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

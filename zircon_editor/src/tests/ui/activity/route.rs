@@ -1,3 +1,5 @@
+//! 验证路由保留 UI 资源 ID、资源类型与编辑模式，并选择停靠预览和共享窗口 ID。
+
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetPreviewPreset};
 use zircon_runtime_interface::ui::template::UiAssetKind;
 

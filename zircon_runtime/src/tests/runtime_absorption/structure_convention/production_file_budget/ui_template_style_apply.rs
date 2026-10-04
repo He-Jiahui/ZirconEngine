@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0119] 界面样式槽契约拆分的旧计划回执未匹配；需关联现行槽名验证与样式应用测试，补归档映射或修订历史期待。
 #[test]
 fn runtime_15_ui_template_style_slot_contract_is_child_owner() {
     let parent = read_runtime_src("ui/template/asset/compiler/style_apply.rs");
@@ -97,6 +98,7 @@ fn runtime_15_ui_template_style_slot_contract_is_child_owner() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0118] 数据表类名分派父模块未匹配旧通用属性读取辅助入口；需核对现行组件族分派和属性解析归属，确认类名契约后更新守卫。
 #[test]
 fn runtime_15_ui_template_mui_x_data_grid_classes_are_child_owner() {
     let parent = read_runtime_src("ui/template/asset/compiler/style_apply/mui_x_classes.rs");

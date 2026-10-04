@@ -5,6 +5,7 @@ use crate::core::editor_message::{EditorMessageDelivery, EditorSubscriberId, Edi
 use super::{EditorMessage, EditorMessageProtocol};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 指定订阅者的一次请求输入；总线生成的请求与投递记录共享载荷，请求处理器不在总线锁内运行。
 pub struct EditorMessageRequest {
     target: EditorSubscriberId,
     delivery: EditorMessageDelivery,

@@ -61,6 +61,7 @@ impl SourceCubemapTextureKind {
     }
 }
 
+// 先读取轻量容器信息完成分类；是否展开像素数据留给后续缓存探测的未命中分支决定。
 pub(super) fn source_cubemap_texture_kind(
     texture: &TextureAsset,
 ) -> Result<Option<SourceCubemapTextureKind>, EnvironmentIblSourceStagingError> {
@@ -182,6 +183,7 @@ fn prepare_classified_source_cubemap_texture(
         staged_bundle_state(&store, &request, &texture.uri, source_image)?
     };
     timing.cache_probe = cache_probe_started.elapsed();
+    // 当前 bundle 可直接复用；仅有源 zcube 时复用源，缺失时按容器类型解码。
     let staged_source = match staged_bundle {
         EnvironmentIblStagedBundleState::Current => {
             let output = EnvironmentIblSourceStagingOutput::from_reused_paths(
@@ -205,6 +207,7 @@ fn prepare_classified_source_cubemap_texture(
         EnvironmentIblStagedBundleState::Missing => None,
     };
     let source_was_reused = staged_source.is_some();
+    // SourceOnly 已带解码后的 texels；Missing 分支区分内置 zcube 与外部 DDS/KTX 的解码器。
     let (source_face_size, source_mip_count, source_texels) = if let Some(source) = staged_source {
         (source.face_size(), source.mip_count(), source.into_texels())
     } else {
@@ -247,6 +250,7 @@ fn prepare_classified_source_cubemap_texture(
     timing.pmrem_build = cubemap_timing.pmrem_build();
     timing.sh9_build = cubemap_timing.sh9_build();
     let write_started = Instant::now();
+    // 将重建结果编码为源 zcube 与派生 IBL bundle；暂存写入项交由调用方的提交阶段发布。
     let (output, writes) = {
         let _phase = EnvironmentIblStagingPhase::BundleEncode.enter();
         prepare_environment_ibl_staged_outputs(

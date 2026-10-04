@@ -1,3 +1,4 @@
+//! 固定场景只移动相机穿越体积边界，以角落亮度的单调变化检查体积混合确实影响最终帧。
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;

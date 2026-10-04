@@ -7,6 +7,7 @@ pub(in crate::hybrid_gi::renderer::gpu_readback) fn completed_probe_ids(
     word_count: usize,
 ) -> Result<Vec<u32>, GraphicsError> {
     let completed_probe_words = read_buffer_u32s(bytes, word_count)?;
+    // TODO: [HGI-GPU-READBACK-001] 核对首字计数是否超过实际载荷；当前截取会静默接受不完整回读。
     let completed_probe_count = completed_probe_words.first().copied().unwrap_or_default() as usize;
     Ok(completed_probe_words
         .into_iter()

@@ -1,3 +1,4 @@
+//! 覆盖交互变换的选择根过滤、父变换换算和预览事务边界；静态或过期目标以及剪切变换错误不得留下部分预览。
 use zircon_runtime::scene::components::{Mobility, NodeKind};
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::{Quat, Transform, Vec3};

@@ -13,6 +13,7 @@ use crate::core::framework::render::{
     RenderTonemapSettings, RenderVignetteSettings, VolumetricFogSettings,
 };
 use crate::scene::components::{PostProcessSettingsComponent, PostProcessVolumeComponent};
+// 项目资源的后处理配置在此进入场景组件；渲染提取随后按摄像机和体积混合解释这些值。
 pub(super) fn post_process_settings_from_asset(
     settings: ScenePostProcessSettingsAsset,
 ) -> PostProcessSettingsComponent {

@@ -1,3 +1,4 @@
+//! 静态清单的依赖包身份、能力解析与主依赖约束回归；经共享读取和本领域断言检查当前包声明，不执行插件行为。
 mod capabilities;
 mod capability_assertions;
 mod optional_features;

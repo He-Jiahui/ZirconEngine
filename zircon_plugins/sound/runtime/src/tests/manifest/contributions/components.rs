@@ -1,3 +1,4 @@
+// 确认包清单发布的组件类型与注册路径使用的描述符一致；数量也固定当前对外组件集合。
 #[test]
 fn static_plugin_manifest_keeps_component_descriptors_in_sync() {
     let runtime_manifest = crate::package_manifest();

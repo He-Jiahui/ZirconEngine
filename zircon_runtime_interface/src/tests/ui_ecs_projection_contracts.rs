@@ -686,6 +686,7 @@ fn ui_ecs_projection_schedule_mask_maps_domains_to_ordered_pipeline_stages() {
     assert_eq!(
         mask.pipeline_stages(),
         vec![
+            // 这里的顺序是流水线执行顺序，不能只按脏域枚举顺序比较。
             UiPipelineStage::TextMeasure,
             UiPipelineStage::Layout,
             UiPipelineStage::PostLayout,

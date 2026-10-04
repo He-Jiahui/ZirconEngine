@@ -1,3 +1,4 @@
+//! 提交登记结果把历史句柄、捕获和高级 provider 统计作为一次成功帧的原子报告交给更新阶段。
 use crate::core::framework::render::{
     FrameHistoryHandle, FrameHistoryStatus, RenderCaptureReport, RenderHybridGiGlobalSdfStats,
     RenderHybridGiResolvedSettings, RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT,

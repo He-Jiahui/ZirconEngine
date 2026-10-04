@@ -1,6 +1,8 @@
+//! 语义区域、抽屉槽和大小token到壳几何的连接；角色不匹配必须在资产入口拒绝。
 use super::*;
 
 #[test]
+/// 区域绑定须符合固定角色，允许从语义区域推导既有抽屉槽而不复制另一套槽身份。
 fn region_bindings_map_semantic_regions_to_existing_drawer_slots() {
     let binding = RegionBinding::new(
         EditorRegion::LeftBottom,
@@ -30,6 +32,7 @@ fn region_bindings_map_semantic_regions_to_existing_drawer_slots() {
 }
 
 #[test]
+/// 默认骨架提供预期六区域及模式，中心引用主band而非一个抽屉槽。
 fn jetbrains_workbench_skeleton_exposes_fixed_layout_regions() {
     let skeleton = WorkbenchSkeleton::jetbrains_default();
 
@@ -54,6 +57,7 @@ fn jetbrains_workbench_skeleton_exposes_fixed_layout_regions() {
 }
 
 #[test]
+/// 验证真实区域资源头、角色和尺寸来源；修改主题尺寸后还比较实际壳几何以证明消费链。
 fn shell_regions_asset_loads_verified_workbench_skeleton_regions() {
     let asset =
         WorkbenchShellRegionsAsset::from_toml_str(SHELL_REGIONS_ASSET).expect("asset parses");
@@ -145,6 +149,7 @@ fn shell_regions_asset_loads_verified_workbench_skeleton_regions() {
 }
 
 #[test]
+/// 通过真实资源变体触发角色错误，确认异常指向具体区域与预期角色。
 fn shell_regions_asset_rejects_region_role_mismatches() {
     let mismatched_source =
         SHELL_REGIONS_ASSET.replace("role = \"project_tree\"", "role = \"detail_inspector\"");

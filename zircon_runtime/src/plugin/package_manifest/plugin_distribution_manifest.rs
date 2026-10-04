@@ -1,8 +1,11 @@
+//! 发行形态的序列化声明，连接包清单、原生制品定位和开库前兼容性检查。
 use serde::{Deserialize, Serialize};
 
 use crate::core::framework::project::ExportPackagingStrategy;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// 原生加载器据 forms、ABI 和引擎兼容范围筛选候选，再用 dist_crate 定位库。
+/// 缺失的可选字段按空值反序列化，不能作为通过信任与兼容性检查的凭据。
 pub struct PluginDistributionManifest {
     #[serde(default)]
     pub forms: Vec<String>,

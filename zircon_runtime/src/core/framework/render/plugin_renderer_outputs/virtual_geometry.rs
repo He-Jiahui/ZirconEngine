@@ -7,6 +7,7 @@ use super::super::{
     RenderVirtualGeometryVisBuffer64Entry,
 };
 
+/// 虚拟几何 provider 的页驻留、选择和剔除读回；提交端将请求 ID 与 GPU 完成信息分路处理。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RenderVirtualGeometryReadbackOutputs {
     pub page_table_entries: Vec<u32>,
@@ -29,6 +30,7 @@ impl RenderVirtualGeometryReadbackOutputs {
             && self.node_cluster_cull.is_empty()
     }
 
+    /// 在构造 GPU completion 前转移页请求，供流送反馈单独处理。
     pub fn take_node_and_cluster_cull_page_request_ids(&mut self) -> Vec<u32> {
         std::mem::take(&mut self.node_cluster_cull.page_request_ids)
     }

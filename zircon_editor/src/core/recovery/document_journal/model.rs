@@ -1,3 +1,5 @@
+//! 协调器测试追加结果公开耐久序号；生产耐久发布仍由事务引擎的提交线性化设计负责。
+
 /// One committed transaction that has crossed the durable journal boundary.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DocumentJournalAppend {

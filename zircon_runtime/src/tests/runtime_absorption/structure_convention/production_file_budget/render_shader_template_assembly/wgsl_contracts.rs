@@ -1,5 +1,6 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0076] 着色器模板包含源的输入输出契约的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_render_shader_template_wgsl_contracts_are_child_owner() {
     let scene_runtime_wgsl = read_runtime_src("graphics/shader/wgsl/zr_scene_runtime.wgsl");

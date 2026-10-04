@@ -1,3 +1,5 @@
+//! 模板图标按钮调用此入口，结合共享状态、上下文与危险身份选择配方；导入命令在普通配方之后覆写外观。
+
 mod background;
 mod border;
 mod danger;
@@ -24,6 +26,7 @@ pub(super) use border::icon_border_width_from_host;
 #[cfg(test)]
 pub(super) use radius::icon_radius_from_host;
 
+/// 为模板图标按钮合成绘制配方；上下文由布局身份端提供，控制背景与边框通道。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_icon_button_style(
     node: &TemplatePaneNodeData,
     context: WorkbenchIconButtonContext,

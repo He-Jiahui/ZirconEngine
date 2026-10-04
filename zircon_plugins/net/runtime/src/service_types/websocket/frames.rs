@@ -1,3 +1,6 @@
+//! 统一处理 loopback 与真实 WS 后端的帧发送/轮询，并记录用户帧字节数。
+//! 真实后端调用在连接表锁外，loopback 写入对端队列是同步本地操作。
+
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::net::{

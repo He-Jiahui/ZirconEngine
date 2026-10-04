@@ -1,3 +1,4 @@
+//! 核对公共属性值与内部属性条目的可见性分界，并验证世界反射列举仍位于内部目录。
 #[test]
 fn runtime_scene_property_reflection_stays_internal() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));

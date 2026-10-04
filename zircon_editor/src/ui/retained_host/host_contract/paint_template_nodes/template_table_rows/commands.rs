@@ -1,3 +1,6 @@
+//! 按工作台视觉语言决定完整表格接管，正文为空时允许普通回退；文本入口主动跳过已由专用入口绘制的行。
+//! 命令消费固定单元格序列，表头、尾行和选中行的偏移需先在同一行框上应用。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;

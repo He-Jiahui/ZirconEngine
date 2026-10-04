@@ -7,6 +7,7 @@ use super::super::page_table_words::page_table_words;
 use super::super::pending_requests::pending_requests;
 use super::virtual_geometry_prepare_execution_inputs::VirtualGeometryPrepareExecutionInputs;
 
+// 页表预留常驻页与本帧请求的容量；完成缓冲以一个计数头加每页三个字存储。
 pub(super) fn collect_inputs(
     prepare: &VirtualGeometryPrepareFrame,
 ) -> VirtualGeometryPrepareExecutionInputs {

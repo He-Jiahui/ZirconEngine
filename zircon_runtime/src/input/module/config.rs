@@ -4,6 +4,7 @@ use crate::core::framework::input::InputActionMap;
 
 use super::super::runtime::{DefaultInputActionManager, InputActionEvaluator};
 
+/// 输入服务的序列化启动配置；未启用时仍注册服务，但动作表对消费者呈现为空。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InputConfig {
     #[serde(default)]
@@ -32,6 +33,7 @@ impl InputConfig {
         self
     }
 
+    /// 在模块工厂或独立求值器创建前读取；返回拥有所有权的表，后续重绑定须显式更新管理器。
     pub fn effective_action_map(&self) -> InputActionMap {
         if self.enabled {
             self.action_map.clone()

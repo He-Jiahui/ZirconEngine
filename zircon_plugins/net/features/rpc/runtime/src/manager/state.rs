@@ -1,3 +1,6 @@
+//! RPC manager clone 共享握手策略、session、回调注册、quota 窗口和优先级队列。
+//! 状态锁只同步内存协议；连接、网络收发和玩家身份均需外层提供。
+
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, VecDeque};
 use std::sync::{Arc, Mutex};

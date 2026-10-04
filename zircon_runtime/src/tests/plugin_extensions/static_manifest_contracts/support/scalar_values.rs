@@ -1,3 +1,4 @@
+//! 标量读取把缺失或类型不匹配附带清单路径及行上下文报告，避免把错误声明当作缺省值。
 use std::path::Path;
 
 pub(in crate::tests::plugin_extensions::static_manifest_contracts) fn bool_value(

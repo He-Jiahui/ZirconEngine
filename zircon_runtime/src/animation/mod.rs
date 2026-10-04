@@ -1,3 +1,4 @@
+//! 动画模块向插件提供基础服务和世界序列桥接；插件负责资产版本、播放时钟及每帧调度。
 pub const PLUGIN_ID: &str = "animation";
 pub const ANIMATION_PLAYBACK_CONFIG_KEY: &str = "animation.playback_settings";
 

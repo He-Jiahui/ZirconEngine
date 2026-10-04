@@ -1,3 +1,4 @@
+//! 执行器只能附着到已登记的处理器身份；声学事件目录和处理器必须先就绪，之后才能派发。
 use zircon_runtime::core::framework::sound::{SoundDynamicEventDelivery, SoundError};
 
 use crate::engine::{SoundDynamicEventExecutor, SoundDynamicEventExecutorKey};
@@ -5,6 +6,7 @@ use crate::engine::{SoundDynamicEventExecutor, SoundDynamicEventExecutorKey};
 use super::super::DefaultSoundManager;
 
 impl DefaultSoundManager {
+    /// 为已登记的处理器安装或替换执行器；回调在声音状态锁外同步调用，可重新进入经理服务。
     pub fn register_dynamic_event_executor<F>(
         &self,
         plugin_id: impl Into<String>,

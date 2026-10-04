@@ -9,6 +9,7 @@ use super::{
     ProductRuntimeLinkage, ProductShutdownPolicy,
 };
 
+// 产品目录只声明入口策略与交付状态；实际后端能力仍由 Runtime 和装配阶段裁决。
 const REQUIRED_WINDOWED_CAPABILITIES: ProductHostCapabilityPolicy =
     ProductHostCapabilityPolicy::new(
         ProductPlatformClass::Desktop,
@@ -183,6 +184,7 @@ const EMBEDDED: ProductRoleDescriptor = ProductRoleDescriptor {
 };
 
 impl ProductRoleRequest {
+    /// 为诊断、导出和入口解析返回同一角色策略；不可将目录中的目标名当作已构建产物。
     pub const fn descriptor(self) -> &'static ProductRoleDescriptor {
         match self {
             Self::EditorHost => &EDITOR_HOST,

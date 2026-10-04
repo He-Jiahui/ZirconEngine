@@ -1,3 +1,5 @@
+//! 把占位标签事实交给集中样式选择器，确保文字颜色与表面状态来自同一节点。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::style_selector::{select_workbench_dropdown_style, WorkbenchDropdownStyle};
 

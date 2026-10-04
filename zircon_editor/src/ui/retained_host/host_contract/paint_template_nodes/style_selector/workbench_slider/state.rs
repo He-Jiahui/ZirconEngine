@@ -1,3 +1,5 @@
+//! 滑块将可见焦点与指针热态分开：两者可显示拇指 halo，状态测试仍单独验证焦点不属于热态。
+
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_workbench_slider_state_hot(

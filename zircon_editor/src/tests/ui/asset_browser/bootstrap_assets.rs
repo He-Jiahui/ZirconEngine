@@ -1,3 +1,5 @@
+//! 验证资源浏览器模板可加载并自托管壳区域，投影保留预览内容和紧凑排版。
+
 use crate::ui::layouts::views::{asset_browser_pane_nodes, ViewTemplateNodeData};
 use crate::ui::workbench::snapshot::{
     AssetItemSnapshot, AssetSelectionSnapshot, AssetUtilityTab, AssetViewMode,

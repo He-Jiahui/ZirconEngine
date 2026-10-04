@@ -1,9 +1,11 @@
+//! UI 富文本句柄的进程内产物身份；比较布局来源与字体租约，不用序列化 DTO 推断字形等价。
 use std::sync::Arc;
 
 use crate::text::layout::LogicalVirtualLineSequence;
 
 use super::ResolvedTextGlyphArtifact;
 
+/// 注册为 UI artifact handle 时携带；相同 Arc 快速命中，独立构建的产物仍比较可见布局输入。
 #[derive(Clone, Debug)]
 pub(super) struct ResolvedTextGlyphArtifactIdentity(Arc<ResolvedTextGlyphArtifact>);
 

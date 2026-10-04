@@ -1,3 +1,6 @@
+//! 为可选 WS 后端登记 listener，暂存接受结果后统一提交连接表，后端 accept 在表锁外运行。
+//! 传入的轮询超时当前只限制 TCP accept，握手等待见 CR-PLUGIN-NET-0015；失败回滚仅请求暂存连接的 Closed 状态，见 CR-PLUGIN-NET-0014。
+
 use std::sync::Arc;
 use std::time::Duration;
 

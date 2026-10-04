@@ -36,6 +36,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ve
     push_quad(commands, frame, clip, order, divider_color(node), opacity);
 }
 
+// 每段线独立与裁剪区求交；调用方可提交跨边界线段，而不会产生无交集命令。
 fn push_quad(
     commands: &mut Vec<HostPaintCommand>,
     frame: FrameRect,

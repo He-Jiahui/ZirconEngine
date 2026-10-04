@@ -1,3 +1,5 @@
+//! 纹理描述符把作者纹理元数据转换为渲染图像契约；GPU 上传需要以此与实际 payload 的格式和尺寸保持一致。
+
 use crate::core::framework::render::RenderImageDescriptor;
 
 use super::{TextureAsset, TextureAssetDescriptor};

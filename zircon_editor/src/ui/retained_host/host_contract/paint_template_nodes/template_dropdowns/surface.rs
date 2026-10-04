@@ -1,3 +1,5 @@
+//! 使用入口的一次性样式和密度快照绘制下拉表面；调用方负责外框与 clip 的可见性。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchDropdownStyle;

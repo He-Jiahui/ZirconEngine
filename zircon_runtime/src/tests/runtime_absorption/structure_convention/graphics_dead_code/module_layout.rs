@@ -1,6 +1,7 @@
 use super::super::{assert_contains_all, runtime_src_path};
 use super::DEAD_CODE_ALLOW_ATTRIBUTE;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0009] 结构测试父模块的子职责挂载的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_graphics_dead_code_guard_is_folder_backed() {
     let old_flat_guard =

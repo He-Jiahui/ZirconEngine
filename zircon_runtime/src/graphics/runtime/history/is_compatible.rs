@@ -1,3 +1,4 @@
+//! 提交前以尺寸、管线、绑定和结构键决定历史能否继承，失效原因传入图执行端。
 use crate::core::framework::render::{FrameHistoryInvalidationReason, RenderPipelineHandle};
 use crate::core::math::UVec2;
 

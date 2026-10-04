@@ -9,6 +9,8 @@ use super::super::{
 };
 use super::node::require_node;
 
+/// 在保留的拖拽会话上核对 owner、pointer 和 session，并同步捕获与伪状态。
+/// 调用方须通过 effect 事务进入：切换目标时旧/新节点失效可能失败，需要恢复整组状态。
 pub(super) fn apply_drag_drop_effect(
     surface: &mut UiSurface,
     effect: &UiDispatchEffect,

@@ -1,3 +1,6 @@
+//! 固定 DPI 变化先传后端缩放，再传逻辑缩放，第一步失败则停止后续派发。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::{runtime_window_events_source, runtime_window_lifecycle_source};
 

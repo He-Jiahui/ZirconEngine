@@ -18,6 +18,7 @@ use super::window::{input_event, window_event};
 
 const PIXEL_SCROLL_LINE_DELTA_SCALE: f32 = 0.1;
 
+// 触摸以 finger_id 维护独立会话；鼠标/笔移动先走窗口光标事件，由共享窗口泵补全指针生命周期。
 pub(super) fn translate_pointer_moved(
     context: UiWindowInputContext,
     position: PhysicalPosition<f64>,
@@ -71,6 +72,7 @@ pub(super) fn translate_pointer_left(
     }
 }
 
+// precise_scroll 保留平台横纵轴及单位；标量仅为旧的纵向滚动消费者提供兼容尺度，不能据此恢复像素值。
 pub(super) fn translate_mouse_wheel_event(
     context: UiWindowInputContext,
     point: UiPoint,

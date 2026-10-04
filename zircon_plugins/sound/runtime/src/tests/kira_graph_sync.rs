@@ -1,3 +1,4 @@
+// 图同步回归跨越编译、Kira 后端和公共管理器；容量、并发提交与性能样本共用同一图构造。
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::hint::black_box;
@@ -19,6 +20,7 @@ use crate::kira_bridge::{
 use crate::service_types::{last_graph_commit_lock_hold_for_test, ActiveGraphCommitHarness};
 use crate::DefaultSoundManager;
 
+// 分配统计只覆盖当前测试线程显式启用的窗口；作为全 crate 分配器仍把所有申请交给系统分配器。
 struct CountingAllocator;
 
 thread_local! {
@@ -34,6 +36,7 @@ fn count_allocation() {
     });
 }
 
+// 与 finish_allocation_count 成对包围单次被测调用；夹具、恢复图及日志输出须放在测量窗口外。
 fn begin_allocation_count() {
     ALLOCATION_CALLS.with(|calls| calls.set(0));
     COUNT_ALLOCATIONS.with(|enabled| enabled.set(true));
@@ -68,6 +71,7 @@ unsafe impl GlobalAlloc for CountingAllocator {
 #[global_allocator]
 static TEST_ALLOCATOR: CountingAllocator = CountingAllocator;
 
+// 生成不含发送路径的最小有效图，供编译次数与增量安装断言共用。
 fn graph_with_track(track: u64) -> SoundMixerGraph {
     let mut graph = SoundMixerGraph::default_stereo(48_000);
     graph.tracks.push(SoundTrackDescriptor::child(
@@ -77,6 +81,7 @@ fn graph_with_track(track: u64) -> SoundMixerGraph {
     graph
 }
 
+// 活跃同步测试仍走 Kira 管理器，但使用固定采样率模拟后端隔离主机设备。
 fn mock_settings() -> AudioManagerSettings<MockBackend> {
     AudioManagerSettings {
         backend_settings: MockBackendSettings {
@@ -257,6 +262,7 @@ fn inactive_public_preset_mutation_skips_m1_kira_compile_and_records_lock_hold()
     );
 }
 
+// 同时发起独立轨道编辑，核对公共提交的版本重试保留双方结果；不要求两次写入真正同时持锁。
 #[test]
 fn concurrent_track_updates_rebase_without_lost_updates() {
     let manager = Arc::new(DefaultSoundManager::default());
@@ -292,6 +298,7 @@ fn concurrent_track_updates_rebase_without_lost_updates() {
         .any(|track| track.id == SoundTrackId::new(3)));
 }
 
+// 统一定义四类图编辑，使差异规划、活跃 Kira 安装和公共锁时长样本可相互对照。
 #[derive(Clone, Copy)]
 enum Mutation {
     Add,
@@ -313,6 +320,7 @@ impl Mutation {
     }
 }
 
+// 这是受当前机器调度影响的规模回归门槛；三组指标测量不同边界，不能作为真实硬件延迟结论。
 #[test]
 fn graph_mutation_benchmark_records_scale_allocations_and_lock_hold_time() {
     for track_count in [10_usize, 100, 1_000] {
@@ -379,6 +387,7 @@ fn graph_mutation_benchmark_records_scale_allocations_and_lock_hold_time() {
     }
 }
 
+// 基准图包含主轨道及指定数量子轨道；变更助手依赖至少一个子轨道，当前样本从十条开始。
 fn graph_with_tracks(track_count: usize) -> SoundMixerGraph {
     let mut graph = SoundMixerGraph::default_stereo(48_000);
     graph.tracks.extend((0..track_count).map(|index| {
@@ -410,6 +419,7 @@ fn mutated_graph(before: &SoundMixerGraph, mutation: Mutation) -> SoundMixerGrap
     after
 }
 
+// 仅测差异规划及其分配，每个样本还核对编译恰好一次；输出和排序留在计时窗口外。
 fn benchmark_diff(
     before: &SoundMixerGraph,
     after: &SoundMixerGraph,
@@ -430,6 +440,7 @@ fn benchmark_diff(
     percentile_pair(durations, allocations)
 }
 
+// 先安装基线图再计时一次活跃同步；每次测量后推进后端并恢复基线，避免命令积压污染下个样本。
 fn benchmark_active_kira_mutation(
     graph: &SoundMixerGraph,
     mutation: Mutation,
@@ -464,6 +475,7 @@ fn benchmark_active_kira_mutation(
     percentile_pair(durations, allocations)
 }
 
+// 使用与公共提交相同的测试桥观察状态锁持有时长，不把图克隆及整个提交耗时计作锁占用。
 fn benchmark_active_public_manager_lock_hold(
     graph: &SoundMixerGraph,
     mutation: Mutation,
@@ -502,6 +514,7 @@ fn active_public_lock_budget(track_count: usize) -> Duration {
     Duration::from_micros(5_000_u64.saturating_add((track_count as u64).saturating_mul(250)))
 }
 
+// 当前基准固定传入非空样本；零样本不受支持，返回的是排序后的时长中位数与第九十五百分位。
 fn duration_percentile_pair(mut durations: Vec<Duration>) -> (Duration, Duration) {
     durations.sort_unstable();
     let p50 = durations.len() / 2;
@@ -509,6 +522,7 @@ fn duration_percentile_pair(mut durations: Vec<Duration>) -> (Duration, Duration
     (durations[p50], durations[p95])
 }
 
+// 时间和分配数分别排序，返回各自百分位而非同一次调用的配对观测；调用方须提供同量非空样本。
 fn percentile_pair(
     mut durations: Vec<Duration>,
     mut allocations: Vec<usize>,

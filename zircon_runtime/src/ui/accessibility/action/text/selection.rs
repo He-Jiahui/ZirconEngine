@@ -15,6 +15,7 @@ use self::result::{finish_missing_text_selection, finish_set_text_selection};
 mod payload;
 mod result;
 
+// 选择范围作为 UI 交互状态提交，不生成文档内容修订；必须先具备 TextInput 角色和当前快照公开的动作。
 pub(in crate::ui::accessibility::action) fn dispatch_set_text_selection(
     surface: &mut UiSurface,
     request: &UiAccessibilityActionRequest,

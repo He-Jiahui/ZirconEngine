@@ -1,3 +1,4 @@
+//! 可访问性 widget 动作共用夹具：输入经 surface 分发，子测试核对展开、弹层和提示的状态与绑定来源。
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
@@ -86,6 +87,7 @@ fn assert_accessibility_binding_report(
 
 fn assert_widget_binding_report(result: &UiInputDispatchResult) {
     assert_eq!(result.binding_reports.len(), 1);
+    // TODO: [CR-UI-TEST-0802] 确认一个绑定报告中的所有更新是否都应来自 WidgetBehavior；当前辅助断言只检查首条，缺少多更新来源契约；下一步检查绑定引擎报告与混合更新测试。
     assert_eq!(
         result
             .binding_reports

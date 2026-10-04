@@ -1,3 +1,4 @@
+// 结构不变量测试把公开组件字段语法、完整对象与目录快照身份作为一组边界，防止代际更新接受不可保留的世界数据。
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use zircon_runtime_interface::reflect::{ReflectError, ReflectFieldInfo};
 

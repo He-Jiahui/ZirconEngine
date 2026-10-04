@@ -1,3 +1,5 @@
+//! 此结构守卫锁定目录测试的子模块归属和历史迁移清单；源码读取经统一换行归一化后再验证挂载、数量与行数预算。
+
 use super::*;
 
 #[test]
@@ -74,6 +76,7 @@ fn runtime_15_ui_component_catalog_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
+        // BUG: [CR-UI-TEST-0205] 当前已跟踪的三个目录子模块合计 11 个测试，此处仍要求迁移时的 7 个，导致本结构测试恒失败。
         child_test_total, 7,
         "UI component catalog children should preserve all 7 parent tests"
     );
@@ -115,6 +118,7 @@ fn runtime_15_ui_component_catalog_tests_are_folder_backed() {
         ("module convention doc", module_doc.as_str()),
         ("UI architecture doc", ui_doc.as_str()),
     ] {
+        // BUG: [CR-UI-TEST-0208] 本循环要求每份文档都有六项目录迁移针值；四份干净文档至少缺一项，当前已跟踪文档使本断言必败。
         assert_contains_all(
             label,
             source,

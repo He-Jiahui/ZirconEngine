@@ -1,5 +1,6 @@
 use crate::input::{InputEvent, InputEventQueueStatus};
 
+// 帧内瞬时事件供宿主按顺序提取；仅合并相邻指针样本，按钮、触摸和失焦保持排序屏障。
 #[derive(Debug, Default)]
 pub(in crate::input::runtime) struct FrameEventBuffer {
     events: Vec<InputEvent>,

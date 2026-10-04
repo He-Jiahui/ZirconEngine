@@ -1,3 +1,4 @@
+//! 模块约定门禁的文档读取与锚点检查支持；调用方按具体文档责任选择断言。
 use super::super::repo_path;
 
 pub(super) const AUDIT_ROOT: &str =

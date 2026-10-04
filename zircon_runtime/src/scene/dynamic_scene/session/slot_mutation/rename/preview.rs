@@ -4,6 +4,8 @@ use super::super::super::{
 };
 use super::super::report::slot_mutation_report;
 
+// 显式旧 ID 必须存在；新 ID 修剪后可等于旧 ID，但不得占用其他槽位的身份。
+// 该摘要供立即提交和只读路径预览共用，本身不绑定档案代际。
 pub(in crate::scene::dynamic_scene::session) fn preview_rename_slot(
     archive: &RuntimeSessionArchive,
     old_slot_id: &str,

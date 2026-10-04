@@ -1,3 +1,4 @@
+//! 核对运行时 tick、事件与帧需求通过 ABI 转发，并将可选函数缺失和畸形延迟转换为有界的类型化错误。
 use std::time::Duration;
 
 use zircon_runtime_interface::{

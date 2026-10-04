@@ -1,3 +1,4 @@
+// 停机管理器接受绑定声明后，在应用阶段拒绝目标不支持的参数名称。
 use super::super::super::super::*;
 
 #[test]

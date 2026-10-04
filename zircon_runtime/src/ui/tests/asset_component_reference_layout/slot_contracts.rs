@@ -1,3 +1,4 @@
+//! 验证槽位接受集合使用被引用组件的身份，并在作者资产与原型编译路径一致拒绝越界填充。
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler, UiPrototypeStoreBuilder};
 use zircon_runtime_interface::ui::template::UiAssetError;
 

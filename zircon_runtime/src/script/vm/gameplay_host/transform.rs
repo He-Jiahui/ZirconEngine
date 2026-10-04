@@ -1,3 +1,4 @@
+//! 位姿宿主导出通过当前场景世界读写实体；脚本传入的目标与步长必须符合世界坐标和有效时间语义，写入最终由 World 校验。
 use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValue};
 use crate::core::math::{Quat, Transform, Vec3};
 use crate::script::runtime_context_for_frame;
@@ -158,6 +159,7 @@ pub(super) fn set_entity_position(
             let mut transform = world
                 .world_transform(entity)
                 .unwrap_or_else(Transform::default);
+            // BUG: [CR-SCRIPT-AUDIT-0002] 此处读取世界位姿却交给写局部位姿的接口，有父节点时父级位姿会再叠加；同类平移、朝向、缩放和跟随路径亦受影响。证据：scene/world/query.rs 与 hierarchy.rs。
             transform.translation = position;
             Ok(world.update_transform(entity, transform)?)
         });
@@ -288,6 +290,7 @@ pub(super) fn move_entity_towards_target(
             if distance <= f32::EPSILON {
                 return Ok(false);
             }
+            // TODO: [CR-SCRIPT-AUDIT-0001] 确认趋近移动是否允许负速度或负时间步长；当前入口未限符号，会朝目标反向移动，导航入口却收敛负速度；补充参数契约与边界测试。
             let step = delta.normalize() * (speed * dt).min(distance);
             let mut transform = world
                 .world_transform(entity)

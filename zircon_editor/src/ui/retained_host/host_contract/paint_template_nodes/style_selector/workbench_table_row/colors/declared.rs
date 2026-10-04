@@ -1,3 +1,5 @@
+//! 表格普通行背景允许节点声明；表尾数值文字单独消费非透明 value_color。
+
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_template_nodes::template_style_color::resolved_style_color;
 

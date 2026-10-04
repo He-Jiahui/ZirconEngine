@@ -1,3 +1,6 @@
+//! 导入外部纹理视图时同步携带物理身份，供 TAA 等缓存判断复用边界。
+//! 名称只是图内逻辑路由；同名视图替换后必须刷新身份以免误复用旧绑定。
+
 use crate::graphics::resource_identity::SampledTextureIdentity;
 
 use super::RenderGraphExecutionResources;

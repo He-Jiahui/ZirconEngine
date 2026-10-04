@@ -7,6 +7,7 @@ use super::PROJECT_ASSET_MANAGER_NAME;
 #[derive(Debug, Default)]
 pub(super) struct AssetModuleLifecycle;
 
+// 模块 ready 表示项目目录代次可被一致读取；具体资产载荷的就绪状态由资源 readiness 单独查询。
 impl ModuleLifecycle for AssetModuleLifecycle {
     fn ready(&self, context: &ModuleContext) -> CoreResult<bool> {
         let core = context

@@ -1,3 +1,5 @@
+//! 内容编排的文字出口；完整行框放不下时省略文字，裁剪框仍用于最终像素覆盖。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::geometry::frame_is_within;
@@ -5,6 +7,7 @@ use super::layout::content_centered_y;
 use super::metrics::button_label_line_height;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+/// 调用方已给出内容槽及测量风格；完整行框越出按钮时不输出，避免窄或矮控件产生外溢字形。
 pub(super) fn push_button_label(
     commands: &mut Vec<HostPaintCommand>,
     rect: &FrameRect,

@@ -1,3 +1,5 @@
+//! 树选择、重命名与拖放行为先从有效命中路径确认模型 owner/稳定项标识，再形成变更计划。
+//! 多属性更新依赖外层指针事务的收束/回滚；此层通过 Surface 变更入口同步状态，回执是已执行变更的通知。
 use zircon_runtime_interface::ui::{
     binding::{UiBindingUpdateReport, UiEventKind},
     component::{UiComponentEvent, UiComponentKeyboardAction, UiDragMetrics, UiValue},
@@ -22,6 +24,7 @@ use super::tree_view_support::{
     tree_node_values_for_property, tree_nodes_property, tree_option_is_disabled, tree_reorderable,
 };
 
+/// 选择操作的已解析计划：保留目标、范围锚点、单值/多选写入差异，避免更新途中重新解释作者别名。
 struct UiDefaultTreeViewSelection {
     owner_id: UiNodeId,
     event_property: String,
@@ -35,6 +38,7 @@ struct UiDefaultTreeViewSelection {
     write_value: bool,
 }
 
+/// 进入编辑的状态投影计划；业务文字提交仍由后续编辑动作处理，双击/次键释放仅建立编辑上下文。
 struct UiDefaultTreeViewRenameEntry {
     owner_id: UiNodeId,
     option_id: String,
@@ -56,6 +60,7 @@ struct UiDefaultTreeViewReorderStart {
     source_index: usize,
 }
 
+/// 拖动释放后重新按稳定标识核实的数据变更，兼顾平面排序与层级重挂；旧起点索引只用于编码，不作为提交凭据。
 struct UiDefaultTreeViewReorderDrop {
     owner_id: UiNodeId,
     property: String,
@@ -142,6 +147,9 @@ impl UiSurface {
                     self.push_tree_view_end_drag(events, owner_id, end_property, drag)?;
                     return Ok(false);
                 };
+                // BUG: [CR-UI-SURFACE-0012] 层级重挂可保持相同前序位置；A(C),B 重挂 B 到 C 后仍是 from=to=2，
+                // 但节点已从根移动到 C.children。这里只比较索引会丢弃新层级、展开状态及窗口更新。
+                // 应按结构变更判断提交，并覆盖“父级变化但前序位置不变”的指针回归。
                 let moved = drop.from != drop.to;
                 if moved {
                     let mut changed = false;
@@ -637,6 +645,7 @@ impl UiSurface {
         }))
     }
 
+    /// 从命中候选建立项到树 owner 的归属；途中禁用状态阻断整个候选，避免子项绕过祖先门禁。
     fn tree_view_hit(&self, route: &UiPointerRoute) -> Result<Option<TreeViewHit>, UiTreeError> {
         let mut option_id = None;
         let mut blocked = false;
@@ -700,6 +709,7 @@ fn encode_tree_reorder_drag(property: &str, source_index: usize, option_id: &str
     format!("{TREE_REORDER_DRAG_PREFIX}:{property}:{source_index}:{option_id}")
 }
 
+/// 拖动令牌保留数据属性与稳定项标识；释放时重新解析当前位置，允许拖动期间模型索引移动。
 fn decode_tree_reorder_drag(value: &str) -> Option<UiTreeReorderDragToken> {
     let mut parts = value.splitn(4, ':');
     let prefix = parts.next()?;

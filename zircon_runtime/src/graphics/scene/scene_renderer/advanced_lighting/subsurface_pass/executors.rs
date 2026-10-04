@@ -15,6 +15,8 @@ use super::{
 };
 
 #[derive(Default)]
+/// 三个 SSS 图通道共享按设备世代和目标格式缓存的管线。
+/// setup 单次准备参数上传，scatter 只消费间接派发，recombine 写回场景颜色。
 struct SubsurfaceExecutor {
     pipelines: Mutex<RenderPassDeviceEpochCache<wgpu::TextureFormat, SubsurfacePipelines>>,
 }

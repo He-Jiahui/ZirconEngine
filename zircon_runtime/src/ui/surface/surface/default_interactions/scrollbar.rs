@@ -15,6 +15,7 @@ use crate::ui::tree::UiRuntimeTreeScrollExt;
 
 use super::widget_behavior;
 
+/// 默认滚动条行为对指针路由的投影回执；捕获/释放反馈由路由所有者消费，滚动损伤归实际目标容器。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(in crate::ui::surface::surface) struct UiDefaultScrollbarPointerActionReport {
     pub handled_by: Option<UiNodeId>,
@@ -24,6 +25,8 @@ pub(in crate::ui::surface::surface) struct UiDefaultScrollbarPointerActionReport
 }
 
 impl UiSurface {
+    /// 按路由阶段处理轨道翻页或拇指捕获/拖动；目标须解析为具有滚动状态的节点，行为变化另带绑定回执。
+    /// 使用本轮保留布局的轨道/拇指几何，不在输入阶段重新计算布局或写作者配置。
     pub(in crate::ui::surface::surface) fn apply_default_scrollbar_pointer_action(
         &mut self,
         route: &UiPointerRoute,
@@ -355,6 +358,9 @@ fn page_offset_for_track_click(
     Some(scroll_state.offset + page_delta)
 }
 
+/// 将当前指针位置投影到轨道可移动范围，滚动偏移由容器统一钳制；没有可滚动空间时不产生变更。
+// TODO: [CR-UI-SURFACE-0013] 核实拇指应保留按下点的抓取偏移还是始终追随指针中心；
+// 当前拖动公式忽略输入层记录的按下位置，靠近拇指边缘抓取后首次移动会把中心重新对齐到指针。
 fn thumb_drag_offset(
     route: &UiPointerRoute,
     context: UiDefaultScrollbarThumbContext,

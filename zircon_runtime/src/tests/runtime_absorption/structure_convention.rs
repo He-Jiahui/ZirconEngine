@@ -1,3 +1,4 @@
+//! 运行时结构约束的测试入口；子模块分别检查所有权拆分、锁中毒策略和迁移证据。
 #[path = "structure_convention/animation_manager.rs"]
 mod animation_manager;
 #[path = "structure_convention/diagnostics_surface.rs"]

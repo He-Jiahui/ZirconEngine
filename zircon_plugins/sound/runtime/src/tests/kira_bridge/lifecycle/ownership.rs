@@ -1,3 +1,4 @@
+// 播放 ID、声源与完成事件的所有权在停机和自然结束后应收敛，避免幽灵句柄或重复完成。
 use kira::backend::mock::MockBackend;
 use zircon_runtime::core::framework::sound::{
     SoundClipId, SoundPlaybackCompletionAction, SoundPlaybackFinishReason, SoundPlaybackId,

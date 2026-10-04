@@ -1,3 +1,4 @@
+//! 提供共享、阻塞和故障输出实现，分别驱动并发 flush、关闭握手及输出错误状态机。
 use std::io::{self, Write};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};

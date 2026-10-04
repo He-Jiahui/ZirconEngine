@@ -1,3 +1,4 @@
+// 先构造基础选项，再附加枚举及能力门槛，以运行时相同的值类型做元数据对照。
 use super::super::signature::OptionManifestSignature;
 use super::{attachments, base};
 

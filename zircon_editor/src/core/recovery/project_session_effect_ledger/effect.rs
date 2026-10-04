@@ -1,3 +1,5 @@
+//! 列出项目会话激活与关闭可能留下的外部副作用；允许相位由台账验证，补偿动作需对应实际已准备/提交状态。
+
 use serde::{Deserialize, Serialize};
 
 use super::ProjectSessionEffectLedgerPhase;

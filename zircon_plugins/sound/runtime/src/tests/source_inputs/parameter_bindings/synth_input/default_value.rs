@@ -1,3 +1,4 @@
+// 创建合成参数声源时拒绝非有限默认值，核对输入描述符的数值边界。
 use super::super::super::super::*;
 
 #[test]

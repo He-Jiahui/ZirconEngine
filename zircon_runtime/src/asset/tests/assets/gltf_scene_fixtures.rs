@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// 两个场景共享同一网格但各自有独立根节点，用于证明 Scene 标签的实体与依赖不会串场。
 pub(super) fn write_two_scene_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("two_scenes.bin");
     let gltf_path = root.join("two_scenes.gltf");

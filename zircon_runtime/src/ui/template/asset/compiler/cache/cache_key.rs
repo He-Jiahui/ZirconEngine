@@ -6,6 +6,8 @@ use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiCo
 
 use super::super::UiDocumentCompiler;
 
+/// 同时刻画源文档、已注册导入、描述符和跨资产契约，用于内存复用及包产物失效判断。
+/// 注册集合的变化也是失效输入；即使未被当前布局使用的注册项变化，也会造成保守失效。
 pub fn compile_cache_key_from_compiler(
     compiler: &UiDocumentCompiler,
     document: &UiAssetDocument,

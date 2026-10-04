@@ -160,6 +160,7 @@ impl<'nodes> BinaryValueDeserializer<'nodes> {
             .ok_or_else(|| de::Error::custom("binary value ended before a typed payload completed"))
     }
 
+    // Serde 忽略未知字段时会调用此路径；按节点数跳过完整子树，保持后续兄弟值的游标对齐。
     fn skip_value(&mut self) -> Result<(), DecodeError> {
         match self.next_node()? {
             BinaryNode::Array { len } => {

@@ -1,3 +1,5 @@
+//! 共享组件家族决定是否是表格，视觉语言决定是否启用工作台专用表面；特定行 ID 补充表头、尾行和旧选中外观语义。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
     is_any_component_family, uses_workbench_visual_language, TemplateComponentFamily,

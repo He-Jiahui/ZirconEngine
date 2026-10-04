@@ -1,3 +1,5 @@
+//! 容器、滚动与分割布局在目录中声明角色、内容槽和交互字段，供编写与布局处理使用。窗口化数据和像素几何各有拥有者，属性声明本身不会装载列表数据。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

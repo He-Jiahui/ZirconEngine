@@ -1,3 +1,5 @@
+//! 没有更强状态或显式样式时，模板变体选择容器语义；资源卡片透明底交给独立名称区与图像呈现。
+
 use super::super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::super::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::ButtonVariant;

@@ -1,5 +1,7 @@
 use super::super::pending_mesh_draw::PendingMeshDraw;
 
+/// 保留原 source_draw_index 的未命中项，供后续 MeshDraw 实体化和命令排序。
+/// All 用于未启用预提取；Residual 只保存静态缓存剩余项。
 pub(in super::super) enum PendingMeshDrawRemainder {
     All(Vec<PendingMeshDraw>),
     Residual(Vec<(usize, PendingMeshDraw)>),

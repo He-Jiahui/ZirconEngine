@@ -15,6 +15,8 @@ enum ShaderSourceValidationState<V, E> {
     Failed(E),
 }
 
+/// 异步 WGSL 校验的源码身份登记表；Pending 仅可转为 Ready 或 Failed。
+/// 安装 shader 模块后消费 Ready 并清除记录，计数用于诊断积压。
 pub(super) struct ShaderSourceValidationStates<K, V, E> {
     states: HashMap<K, ShaderSourceValidationState<V, E>>,
     pending_count: usize,

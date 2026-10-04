@@ -1,3 +1,6 @@
+//! 子测试共用的主机契约夹具：默认光栅管线带固定颜色/深度附件，顶点布局由具体用例显式选择。
+//! 简化 WGSL 只服务于描述符与状态验证；该设备不会编译或执行这些着色器。
+
 use crate::{DeterministicRhiContractCommandList, DeterministicRhiContractDevice};
 use zr_rhi::{
     BindGroupDesc, BindGroupEntryDesc, BindGroupEntryResource, BindGroupHandle,

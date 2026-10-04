@@ -1,3 +1,6 @@
+//! 网络 WS 连接维护共享状态、异步写队列和入站帧队列；同步 send 成功仅表示写队列接收。
+//! writer task 负责实际发送与失败状态，reader task 独立处理入站/关闭事件。
+
 use std::collections::VecDeque;
 use std::fmt;
 use std::sync::{Arc, Mutex};
@@ -45,6 +48,7 @@ impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
             .expect("net WebSocket state mutex poisoned")
     }
 
+    // BUG: [CR-PLUGIN-NET-0014] 根关闭/登记回滚只写 Closed；reader 不检查此状态，仍可收帧并发布已移除或未登记 ID 的事件。
     fn set_state(&self, state: NetConnectionState) {
         *self
             .state

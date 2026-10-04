@@ -1,3 +1,5 @@
+//! 地形、瓦片与脚本绑定在场景中仅记录引用和作者设置；各运行时子系统决定是否支持以及何时实例化这些扩展。
+
 use std::collections::BTreeMap;
 
 use crate::asset::AssetReference;

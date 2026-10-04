@@ -1,3 +1,6 @@
+//! 统一 NetConnectionId 空间查询/关闭 TCP 与 WebSocket 连接，并将真实 WS 后端调用放在表锁外。
+//! TCP 状态由 worker 轮询回写，WS 状态由后端共享对象或 loopback 对象维护。
+
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::net::{NetConnectionId, NetConnectionState, NetError};

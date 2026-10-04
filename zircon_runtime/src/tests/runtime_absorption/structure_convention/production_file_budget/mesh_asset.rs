@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0040] 网格资源概览与聚合记录 超出当前结构预算；需核对职责边界和预算来源，区分新增责任与历史门槛过时。
 #[test]
 fn runtime_15_mesh_asset_management_records_are_child_owner() {
     let parent = read_runtime_src("asset/assets/mesh/mesh_asset.rs");

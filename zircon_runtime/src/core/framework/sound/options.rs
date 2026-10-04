@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::framework::audio::AudioChannelLayout;
 
+/// 插件启动配置的持久化契约；运行时将其转为 SoundConfig，设备与混音图在各自激活边界校验。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundPluginOptions {
     pub enabled: bool,

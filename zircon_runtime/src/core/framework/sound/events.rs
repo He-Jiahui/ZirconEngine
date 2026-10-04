@@ -33,6 +33,7 @@ pub struct SoundDynamicEventHandlerDescriptor {
     pub priority: i32,
 }
 
+/// 待处理的动态声音事件；payload_schema 须与登记的事件目录匹配后才进入分发队列。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundDynamicEventInvocation {
     pub event_id: String,

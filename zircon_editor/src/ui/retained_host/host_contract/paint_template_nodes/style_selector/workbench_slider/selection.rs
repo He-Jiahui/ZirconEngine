@@ -1,3 +1,5 @@
+//! 在滑块绘制前一次解析共享状态与当前主题，再提供各绘制通道；此入口不处理数值、范围或拖动输入。
+
 use super::super::resolved_state_for_node;
 use super::model::WorkbenchSliderStyle;
 use super::palette::workbench_slider_palette;
@@ -8,6 +10,7 @@ use super::track::{slider_fill_color, slider_tick_color, slider_track_color};
 use super::value::{slider_range_value_border, slider_value_border, slider_value_surface};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
+/// 滑块模板的视觉选择入口；调用前已有宿主节点状态，返回独立绘制通道。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_slider_style(
     node: &TemplatePaneNodeData,
 ) -> WorkbenchSliderStyle {

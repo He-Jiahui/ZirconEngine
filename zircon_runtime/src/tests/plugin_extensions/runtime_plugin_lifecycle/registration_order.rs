@@ -1,3 +1,4 @@
+//! 模块依赖排序先于扩展贡献合并；循环报告必须保持注册表为空，项目选择版本仅排序已启用贡献。
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::{
     ExportPackagingStrategy, ProjectPluginManifest, ProjectPluginSelection,

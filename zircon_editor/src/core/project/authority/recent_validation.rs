@@ -1,3 +1,4 @@
+//! 启动页只读分类最近项目路径及清单可用性，不加载项目代码；可迁移清单必须与可直接打开的项目区分，后续启动仍执行正式预检。
 use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectPaths;

@@ -6,6 +6,7 @@ impl HybridGiRuntimeState {
         &mut self,
         resources: &dyn HybridGiScenePrepareResourceSamples,
     ) {
+        // 先写入完成的表面页，再用更新后的整页快照重建体素来源，最后叠加 GPU 体素回读。
         self.scene_representation_mut()
             .surface_cache_mut()
             .apply_scene_prepare_resources(resources);

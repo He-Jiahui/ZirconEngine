@@ -1,3 +1,6 @@
+//! 为弹层容器、行面、分隔线、文字与尾部标记预留高于根节点的内部层序。
+//! order来自template_node_paint_order，调用方必须保证叠层整数余量；极值约束由全局ordering issue跟踪。
+
 const POPUP_BACKGROUND_ORDER_OFFSET: i32 = 10_000;
 const POPUP_ROW_SURFACE_ORDER_OFFSET: i32 = POPUP_BACKGROUND_ORDER_OFFSET + 1;
 const POPUP_SEPARATOR_ORDER_OFFSET: i32 = POPUP_BACKGROUND_ORDER_OFFSET + 2;

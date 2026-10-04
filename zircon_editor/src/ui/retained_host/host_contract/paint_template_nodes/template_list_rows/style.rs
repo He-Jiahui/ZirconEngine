@@ -1,3 +1,5 @@
+//! 列表行各视觉字段共享状态选择器；selected 与 checked 的差异由样式与装饰层分别表达。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::style_selector::{select_workbench_list_row_style, WorkbenchListRowStyle};
 

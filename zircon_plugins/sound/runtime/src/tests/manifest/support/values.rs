@@ -1,3 +1,4 @@
+//! 静态清单测试共用的值转换表；输入范围由仓内插件文件及其测试投影限定。
 mod array;
 mod boolean;
 mod capability_status;

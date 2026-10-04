@@ -1,3 +1,4 @@
+//! 此后端提供可观察的插件生命周期替身，使管理器、热重载和宿主上下文测试能检查协议而不依赖语言解释器。
 use crate::core::framework::script::ScriptHostValue;
 use crate::script::{
     VmBackend, VmError, VmPluginHostContext, VmPluginInstance, VmPluginManifest, VmPluginPackage,

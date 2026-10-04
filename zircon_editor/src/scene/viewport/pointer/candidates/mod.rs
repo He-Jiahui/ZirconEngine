@@ -1,3 +1,5 @@
+//! 候选层只转换呈现几何与粗拾取参数，不自行决定活动世界授权或最终命中目标。
+
 mod candidate_z_index;
 mod gizmo_axis;
 mod handle_candidate;

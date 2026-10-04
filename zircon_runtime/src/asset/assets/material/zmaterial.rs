@@ -1,3 +1,5 @@
+//! zmaterial 是磁盘作者格式，不是 GPU 材质实例；导入器先解析文档，再由 MaterialAsset 进行依赖、覆写和就绪投影。
+
 use std::collections::BTreeMap;
 
 use serde::de::Error as _;

@@ -274,6 +274,8 @@ impl<'de> Deserialize<'de> for AnimationGraphNodeAsset {
     }
 }
 
+/// 作者编辑的图源数据；共享编译器只校验并解析图内连接，
+/// 插件运行时随后结合骨架目标表和资源缓存生成可执行图。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationGraphAsset {
     pub name: Option<String>,

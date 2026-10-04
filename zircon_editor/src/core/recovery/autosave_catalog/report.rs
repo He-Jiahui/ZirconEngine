@@ -1,3 +1,5 @@
+//! 把可恢复快照与隔离的目录/元数据故障同时交给宿主；单个坏文档不应吞掉其他文档的恢复候选。
+
 use std::path::{Path, PathBuf};
 
 use crate::core::recovery::{AutosaveError, RestoreCandidate};

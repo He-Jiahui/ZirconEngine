@@ -1,3 +1,5 @@
+//! 分页组件的窗口数据由总量和页请求推导，零总量与非法页大小仍需产生稳定的空窗口。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventKind, UiComponentState, UiValue,

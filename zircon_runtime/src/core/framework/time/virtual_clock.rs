@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 /// Game-time marker. Virtual time may be paused, scaled, and clamped per update.
+/// World 游戏时间的可暂停、变速时钟；每次推进时才采样 effective_speed，长帧经 max_delta 截断。
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Virtual {
     max_delta: Duration,

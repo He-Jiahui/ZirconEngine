@@ -5,6 +5,8 @@ use crate::core::resource::{MaterialMarker, ResourceHandle, TextureMarker};
 use super::super::super::RenderLayerSet;
 use super::RenderParticleSpriteIdentity;
 
+/// 当前帧粒子绘制输入；稳定流键让历史速度和当前精灵可靠配对。
+/// 同实体含多个精灵时不要都使用零键，否则运动向量路径会跳过歧义项。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderParticleSpriteSnapshot {
     pub entity: EntityId,

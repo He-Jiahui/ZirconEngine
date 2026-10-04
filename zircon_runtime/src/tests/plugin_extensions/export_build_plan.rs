@@ -1,3 +1,4 @@
+//! 导出计划先解析项目选择与具体提供者，再生成注册和构建文本；致命诊断应阻止目录或归档物化，文本检查不执行导出程序。
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};

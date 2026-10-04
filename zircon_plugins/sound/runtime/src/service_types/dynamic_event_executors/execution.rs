@@ -1,3 +1,4 @@
+//! 执行阶段先在锁内生成交付快照并克隆回调句柄，再在锁外调用插件代码；缺失执行器以跳过状态报告。
 use zircon_runtime::core::framework::sound::{
     SoundDynamicEventExecutionReport, SoundDynamicEventExecutionStatus,
     SoundDynamicEventHandlerExecution, SoundError,

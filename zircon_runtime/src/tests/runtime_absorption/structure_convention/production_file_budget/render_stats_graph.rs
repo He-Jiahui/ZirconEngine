@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// BUG: [CR-RUNTIME-TESTS-STRUCT-0080] 此守卫经运行时源码定位器读取渲染诊断图旧入口，当前文件不存在，精确测试复现文件读取 panic；核对迁移后的真实 owner 并修订守卫。
 #[test]
 fn runtime_15_render_stats_graph_execution_resources_are_child_owner() {
     let parent = read_runtime_src("core/runtime/diagnostics/render_stats_store/graph.rs");

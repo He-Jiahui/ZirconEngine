@@ -1,3 +1,6 @@
+//! 通用控件的边界尺寸综合节点与 typed 样式；焦点/选中可增强轮廓，资源内容容器保留其 authored 细边。
+//! 圆角只是请求值，消费者仍须按最终帧尺寸裁定可用半径。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::state::button_interaction_state;
 use super::surface_roles::{

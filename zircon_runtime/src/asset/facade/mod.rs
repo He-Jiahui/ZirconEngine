@@ -1,3 +1,6 @@
+//! typed facade 只负责把 ResourceManager 的 marker、状态、事件和 readiness 视图投影成资产 API。
+//! 具体载荷仍由底层资源管理器持有，因而 handle 转换和事件过滤必须保持 kind 一致。
+
 mod asset;
 mod assets;
 mod event;

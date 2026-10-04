@@ -1,3 +1,5 @@
+//! 模拟轴先经死区与重复计时，再在焦点路径请求方向导航；低于阈值仍可路由但不移动焦点。
+
 use super::*;
 
 #[test]
@@ -107,6 +109,7 @@ fn unified_analog_left_x_threshold_stays_owner_routed_without_navigation() {
 }
 
 #[test]
+// 重设焦点并清空 focused_inputs 只复位外显观察值，保留 surface 内的模拟重复 gate，以验证等待期内不会再次导航。
 fn unified_analog_left_x_repeat_waits_for_initial_repeat_interval() {
     let mut surface = horizontal_route_surface();
     surface.focus_node(UiNodeId::new(2)).unwrap();
@@ -277,6 +280,7 @@ fn dispatch_analog_input(
     dispatch_analog_input_at(surface, control, value, 10)
 }
 
+// 模拟导航的等待比较使用 metadata.timestamp；sequence 只是回执标识，两者都由本测试显式指定。
 fn dispatch_analog_input_at(
     surface: &mut UiSurface,
     control: &str,
@@ -299,6 +303,7 @@ fn dispatch_analog_input_at(
         .unwrap()
 }
 
+// route_target 记录分发前的焦点 owner；SetFocus、focus_after 与导航日志目标记录移动后的节点，应分别核对。
 fn assert_analog_navigation_result(
     surface: &UiSurface,
     result: &UiInputDispatchResult,

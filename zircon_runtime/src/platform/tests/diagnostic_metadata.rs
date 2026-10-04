@@ -1,5 +1,6 @@
 use super::super::*;
 
+// 本组测试遍历当前三种运行模式，并用固定 token 样本检查诊断元数据不混入能力状态前缀。
 const TARGET_MODES: &[crate::core::framework::platform::RuntimeTargetMode] = &[
     crate::core::framework::platform::RuntimeTargetMode::ClientRuntime,
     crate::core::framework::platform::RuntimeTargetMode::ServerRuntime,

@@ -1,3 +1,6 @@
+/// 异步配置写入器的累计观测值；比较 dirty 与 persisted 代际可判断待落盘状态。
+///
+/// 计数和时延供诊断使用，不能代替 flush 的成功结果作为持久性确认。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ConfigPersistenceReport {
     pub dirty_generation: u64,

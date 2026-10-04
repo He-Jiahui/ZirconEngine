@@ -1,3 +1,4 @@
+// 提供窗口、资源浏览器和弹层夹具及可见帧与快照辅助断言。
 use super::fixture_support::{frame, visual_layout_output_path};
 use super::*;
 

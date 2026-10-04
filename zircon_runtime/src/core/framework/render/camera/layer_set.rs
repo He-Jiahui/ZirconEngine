@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{RenderLayer, DEFAULT_RENDER_LAYER};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+/// 相机裁剪、光照和可见性共用的可扩展层集合；运行时不得缩回旧场景的 32 位掩码。
 pub struct RenderLayerSet {
     #[serde(default)]
     blocks: Vec<u64>,
@@ -39,6 +40,7 @@ impl RenderLayerSet {
         }
     }
 
+    /// 仅用于旧场景出口；高层信息不能往返，运行时过滤应使用完整集合。
     pub fn to_scene_schema_v1_mask_lossy(&self) -> u32 {
         self.blocks.first().copied().unwrap_or_default() as u32
     }

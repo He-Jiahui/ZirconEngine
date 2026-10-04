@@ -12,6 +12,8 @@ use super::model_geometry_resolution::{
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
+    /// 按模型源修订和外部 mesh 依赖修订决定整组 GPU 几何是否重建；
+    /// scene resource 预备在直接 mesh 不可用时走此模型路径。
     pub(crate) fn ensure_model(
         &mut self,
         device: &wgpu::Device,

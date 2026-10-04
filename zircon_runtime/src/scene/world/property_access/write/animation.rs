@@ -12,6 +12,7 @@ use super::super::value_conversion::{
 };
 
 impl World {
+    // 编辑器或脚本的低频动画配置写入；逐帧播放参数由编译绑定路径处理。
     pub(super) fn set_animation_skeleton_property(
         &mut self,
         entity: EntityId,

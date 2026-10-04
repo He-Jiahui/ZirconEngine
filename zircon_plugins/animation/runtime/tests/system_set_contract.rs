@@ -1,3 +1,4 @@
+//! 动画系统声明与运行时注册必须加入主系统集合的装配契约。
 use zircon_plugin_animation_runtime::{
     package_manifest, plugin_registration, ANIMATION_SYSTEM_SET, PLUGIN_RUNTIME_MODULE_NAME,
 };

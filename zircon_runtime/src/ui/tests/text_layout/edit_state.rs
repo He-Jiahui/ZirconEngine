@@ -1,3 +1,4 @@
+//! 核对渲染提取携带的可编辑文本状态，以及预编辑、选区和取消组合时源文档与显示布局的边界。
 use super::*;
 use zircon_runtime_interface::ui::surface::{
     UiEditableTextState, UiTextCaret, UiTextCaretAffinity, UiTextEditAction, UiTextSelection,

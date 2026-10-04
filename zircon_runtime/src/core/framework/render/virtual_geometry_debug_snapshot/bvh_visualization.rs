@@ -1,3 +1,4 @@
+/// 面向调试视图的 BVH 节点投影；驻留与选择标记来自同一帧，不负责修改页状态。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderVirtualGeometryBvhVisualizationNode {
     pub node_id: u32,

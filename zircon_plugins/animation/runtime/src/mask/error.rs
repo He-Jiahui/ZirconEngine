@@ -1,3 +1,4 @@
+//! 掩码解析、目标解析和权重校验失败契约；层编译失败时不得用部分权重参与混合。
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 

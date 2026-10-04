@@ -1,5 +1,8 @@
+//! Runtime 结构门禁从磁盘读取槽位测试的父子文件与文档，校验职责拆分、测试保留和文件预算；布局行为由被读测试另行验证。
+
 use super::*;
 
+/// 由 Rust 测试入口运行，并被根布局守卫按源码锚点核验；必须在仓库源码及相关文档可读的环境调用。
 #[test]
 fn runtime_15_ui_layout_slots_tests_are_folder_backed() {
     let parent = read_runtime_src("ui/tests/layout_slots.rs");
@@ -20,6 +23,7 @@ fn runtime_15_ui_layout_slots_tests_are_folder_backed() {
             "fn hit_frame_for(",
         ],
     );
+    // BUG: [CR-UI-TEST-0604] 父测试文件现含一项测量回归，本守卫仍固定要求零项，当前计数断言必失败；需核对父子职责后校准。
     assert_eq!(
         parent.matches("#[test]").count(),
         0,
@@ -68,6 +72,7 @@ fn runtime_15_ui_layout_slots_tests_are_folder_backed() {
         ],
     );
 
+    // 固定总数意在防止拆分漏测；新增回归需要与此历史保留基线一并审查。
     let child_test_total = [
         linear_free.as_str(),
         overlay_scroll.as_str(),
@@ -100,6 +105,7 @@ fn runtime_15_ui_layout_slots_tests_are_folder_backed() {
         );
     }
 
+    // 文档锚点记录已接受的目录职责，避免结构迁移只改变代码而留下旧操作说明。
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -115,6 +121,7 @@ fn runtime_15_ui_layout_slots_tests_are_folder_backed() {
         ("module convention doc", module_doc.as_str()),
         ("UI architecture doc", ui_doc.as_str()),
     ] {
+        // BUG: [CR-UI-TEST-0609] 此循环仍要求父计划和总览复制已迁入编号归档的历史拆分锚点，多个 clean 文档缺针；需按现行文档权威核对。
         assert_contains_all(
             label,
             source,

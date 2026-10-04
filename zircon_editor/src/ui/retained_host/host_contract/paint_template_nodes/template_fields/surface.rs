@@ -1,3 +1,5 @@
+//! 使用字段入口已选择的样式绘制稳定表面；文本和可选附属件随后叠加。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchTextFieldStyle;

@@ -1,3 +1,4 @@
+// 三条对照路径先投影到同一签名并按功能 ID 排序；排序仅消除枚举顺序，不省略签名内字段。
 use super::super::support::{optional_feature_signature, StaticOptionalFeatureManifest};
 
 pub(super) fn sorted_static_optional_feature_signatures(

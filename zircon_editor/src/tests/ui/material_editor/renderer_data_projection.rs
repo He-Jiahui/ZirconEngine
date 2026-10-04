@@ -1,3 +1,5 @@
+//! 验证渲染器功能契约和诊断按功能及源码位置归入材质编辑器行。
+
 use std::time::{Duration, Instant};
 
 use crate::ui::material_editor::{RendererDataDiagnosticRow, RendererDataEditorProjection};

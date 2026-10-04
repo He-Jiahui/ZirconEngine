@@ -1,5 +1,7 @@
 use crate::{ResourceRecord, ResourceRegistryError, ResourceResult};
 
+// 版本代表记录中的内容身份；载荷地址或诊断变化不会自动形成新内容版本，调用端需更新来源、导入配置等身份字段。
+// TODO: [CR-RESOURCE-AUDIT-0002] 确认各 Ready 发布入口都能把载荷内容变化反映到元数据身份；当前同元数据替换载荷不会增版或发出记录变化事件，需补齐直接注册与导入路径的契约验证。
 pub(super) fn next_ready_revision(
     previous: &ResourceRecord,
     next: &ResourceRecord,

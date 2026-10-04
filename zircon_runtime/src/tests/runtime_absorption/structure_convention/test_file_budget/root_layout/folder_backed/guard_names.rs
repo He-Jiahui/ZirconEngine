@@ -1,3 +1,4 @@
+//! 为测试目录根布局组织专属断言与资料清单；调用关系保留在子职责中，转发入口自身不提供额外的运行验收。
 pub(super) struct GuardNames {
     pub(super) asset_pack_guard: String,
     pub(super) asset_facade_guard: String,

@@ -1,3 +1,5 @@
+//! 文件监听事件进入项目增量导入，再同步资源代际；测试关注多根路径、sidecar 回声和身份连续性。
+
 use super::*;
 
 #[test]
@@ -147,6 +149,7 @@ fn asset_manager_watcher_reimports_modified_assets() {
     let _ = fs::remove_dir_all(root);
 }
 
+// 导入会写回 zmeta；若监听器把该回声当源文件变化，就会造成重复修订与通知。
 #[test]
 fn watcher_ignores_meta_sidecar_updates_for_revision_tracking() {
     let root = unique_temp_project_root("asset_manager_meta_sidecar");
@@ -238,6 +241,7 @@ fn watcher_ignores_meta_sidecar_updates_for_revision_tracking() {
     let _ = fs::remove_dir_all(root);
 }
 
+// 单个源编辑只准备受影响的资源闭包；断言通知、修订号和增量记录数共同限制回声循环。
 #[test]
 fn watcher_reimports_modified_asset_once_without_revision_loop() {
     let root = unique_temp_project_root("asset_manager_single_watch_reimport");
@@ -419,6 +423,7 @@ fn watcher_removes_only_the_deleted_source_from_runtime_resources() {
     let _ = fs::remove_dir_all(root);
 }
 
+// 操作系统可能把移动拆成 Removed 与 Added；伴随移动的 sidecar UUID 才是延续原资产身份的依据。
 #[test]
 fn project_manager_split_move_events_reconcile_sidecar_identity_as_rename() {
     let root = unique_temp_project_root("project_manager_added_move_identity");

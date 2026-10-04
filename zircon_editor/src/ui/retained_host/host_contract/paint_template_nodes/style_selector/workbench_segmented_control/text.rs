@@ -1,3 +1,5 @@
+//! 区分选中项、未选中项与组标签的文字语义；声明组标签颜色及其亮度仅参与该通道，禁用或加载统一使用不可用文字色。
+
 use super::palette::workbench_segmented_control_palette;
 use super::state::is_unavailable_segmented_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;

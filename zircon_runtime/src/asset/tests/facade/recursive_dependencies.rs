@@ -1,3 +1,5 @@
+//! readiness 同时服务运行时是否可用判断和工具快照；直接依赖、传递依赖及诊断行必须保持不同语义。
+
 use super::*;
 
 #[test]
@@ -177,6 +179,7 @@ fn readiness_report_exposes_loaded_dependency_rows_and_record_diagnostics() {
     assert_eq!(texture_row.diagnostics, vec![texture_diagnostic]);
 }
 
+// 序列化字段是诊断工具的快照契约，不能在报告落盘后丢失三层状态的区分。
 #[test]
 fn readiness_report_and_load_states_roundtrip_for_tooling_snapshots() {
     let manager = ProjectAssetManager::default();
@@ -221,6 +224,7 @@ fn readiness_report_and_load_states_roundtrip_for_tooling_snapshots() {
     assert!(json.contains("\"recursive_dependency_load_state\":\"loaded\""));
 }
 
+// 工具只应看到每个依赖一行；广度优先发现保证直接边和最浅深度在环存在时仍占优。
 #[test]
 fn readiness_report_keeps_shallowest_direct_dependency_row_and_terminates_cycles() {
     let manager = ProjectAssetManager::default();

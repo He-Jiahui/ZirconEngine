@@ -1,3 +1,5 @@
+//! 布局与场景同步决定候选重建，提取身份改变时撤销旧渲染快照；外部渲染提交后才能采用新空间查询来源。
+
 use std::sync::Arc;
 
 use crate::scene::viewport::{ViewportCameraSnapshot, ViewportInteractionExtract};
@@ -11,6 +13,7 @@ use super::ViewportOverlayPointerRouter;
 
 impl ViewportOverlayPointerRouter {
     pub(crate) fn clear_scene(&mut self) -> bool {
+        // BUG: [CR-EDITOR-SP-0005] 带副作用的清理串在短路条件里；提取存在时后续代际和渲染快照不会被取走，清场后仍保留旧空间来源。
         let had_scene = self.interaction_extract.take().is_some()
             || self.scene_world_generation.take().is_some()
             || self.renderer_visible_spatial_snapshot.take().is_some()
@@ -32,6 +35,7 @@ impl ViewportOverlayPointerRouter {
         true
     }
 
+    /// 仅接收渲染已发布且与相机、尺寸一致的提取；采用它时旧渲染空间来源失效，等待新的提交快照。
     pub(crate) fn sync_scene(
         &mut self,
         camera: &ViewportCameraSnapshot,

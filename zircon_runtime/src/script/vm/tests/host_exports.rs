@@ -1,3 +1,4 @@
+// 这些测试穿过句柄注册、描述符校验和调用表分发，约束旧句柄失效、能力门控以及借用调用帧的宿主边界。
 use super::*;
 
 fn register_null_host_export(exports: &HostExportRegistry, module_name: &str, function_name: &str) {

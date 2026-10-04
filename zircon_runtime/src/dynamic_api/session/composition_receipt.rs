@@ -9,6 +9,7 @@ use crate::core::framework::project::RuntimeProfileId;
 
 use super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
 
+// 仅在 catalog 代次、清单指纹和摘要都可验证时才向 ABI 生成成功回执。
 pub(super) fn module_composition_receipt_response(
     session: &RuntimeDynamicSession,
 ) -> ProfileControlResponse {

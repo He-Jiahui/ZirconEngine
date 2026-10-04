@@ -5,6 +5,7 @@ use super::super::ProjectAssetManager;
 use crate::asset::{AssetId, AssetKind, ImportedAsset};
 
 impl ProjectAssetManager {
+    /// 给不预知具体类型的调用方取资产；共享 ResourceKind 的分支仍以实际载荷下转型决定返回变体。
     pub fn load_imported_asset(&self, id: AssetId) -> Result<ImportedAsset, CoreError> {
         let kind = self
             .resource_manager()

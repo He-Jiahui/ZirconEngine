@@ -24,6 +24,7 @@ impl SpriteVertex {
     }
 
     pub(crate) fn layout() -> wgpu::VertexBufferLayout<'static> {
+        // 字段顺序对应 SpriteRenderer 内嵌 WGSL 的 position/uv/color 位置 0、1、2。
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Self>() as u64,
             step_mode: wgpu::VertexStepMode::Vertex,

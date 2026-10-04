@@ -1,3 +1,4 @@
+//! 编译状态机内的稠密状态行号；不能跨另一状态机或另一修订复用。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct StateSlot(u32);
 

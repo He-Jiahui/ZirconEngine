@@ -1,3 +1,4 @@
+// 核对混合空间宽布局详情中的高密度样本行是否完整呈现。
 use super::support::*;
 use super::*;
 

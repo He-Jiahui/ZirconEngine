@@ -1,3 +1,5 @@
+//! 原始设备相对位移的 Runtime 输入通道；窗口绝对位置由另一条指针事件链维护。
+
 use winit::event::DeviceEvent;
 use winit::event_loop::ActiveEventLoop;
 use zircon_runtime_interface::{ZrRuntimeEventV1, ZIRCON_RUNTIME_ABI_VERSION_V1};

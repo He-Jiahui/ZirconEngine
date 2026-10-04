@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use super::{AnimationPoseBone, AnimationPoseSource};
 
+/// 骨架采样和图混合后的实体姿态；流水线把它封入帧快照，
+/// 渲染提取与 GPU 骨骼调色板读取的是已提交版本。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationPoseOutput {
     pub source: AnimationPoseSource,

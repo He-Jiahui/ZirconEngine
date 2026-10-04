@@ -1,3 +1,6 @@
+//! 按组数共享可用值宽度，轴标识、间距和外观区都随窄行缩小；不会要求字段保持固定最小宽度。
+//! 索引被限制到现有组，但上层仍须用实际轴数生成对应文字。
+
 use super::super::super::super::data::FrameRect;
 use super::metrics::property_row_metrics;
 

@@ -5,6 +5,7 @@ use zircon_runtime_interface::world_sync::WorldFact;
 use super::{BundleInsertionTransaction, SceneError, SceneResult, World};
 
 impl World {
+    /// 为一组 ECS 组件分配新实体并走同一预检/发布事务；调用方通过返回 ID 建立后续层级关系。
     pub fn spawn<B>(&mut self, bundle: B) -> SceneResult<EntityId>
     where
         B: Bundle,

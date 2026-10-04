@@ -1,3 +1,4 @@
+//! 脚本宿主函数的能力、注册表和文档账本需相互对应。以结果断言检查当前接口或源码快照对应的边界。
 use crate::script::CapabilitySet;
 
 use super::capability_fixture::{

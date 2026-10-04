@@ -1,3 +1,4 @@
+// 派发呈现欢迎页效果，约束仅标记欢迎页展示路径。
 use crate::core::editor_event::EditorEventEffect;
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 

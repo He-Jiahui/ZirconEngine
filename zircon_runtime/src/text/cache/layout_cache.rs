@@ -1,9 +1,11 @@
+//! UI 布局的跨帧驻留缓存；请求键、完整文本和已认证的宽度区间共同决定可否复用。
 use std::{hash::Hash, sync::Arc};
 
 use super::index::{IndexedTextCache, IndexedTextCacheEntry, TextCacheSlot};
 
 pub(crate) const DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY: usize = 2048;
 
+/// 调用方对布局不随宽度变化的区间作出的证明；Range 的上界不包含在内，未经认证时使用 Exact。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum TextLayoutWidthValidity {
     Exact(u32),
@@ -80,6 +82,7 @@ impl<K, V> IndexedTextCacheEntry<K> for TextLayoutCacheEntry<K, V> {
     }
 }
 
+/// UI 布局 owner 在帧内去重未命中后查询本缓存，只有已完成的布局才可写入。
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextLayoutCache<K: Eq + Hash, V> {
     index: IndexedTextCache<K, TextLayoutCacheEntry<K, V>>,
@@ -199,6 +202,7 @@ where
         self.insert_with_additional_heap_bytes(key, text, width_validity, value, 0)
     }
 
+    /// 调用方补计 K 和 V 的堆数据；缓存只自动计入条目本体与原文，字节报告用于预算观察。
     pub(crate) fn insert_with_additional_heap_bytes(
         &mut self,
         key: K,

@@ -1,3 +1,5 @@
+//! 文本类 importer 保留原文与可选的规范 JSON 投影；缓存与资源消费者可以分别使用保真文本和结构化视图，不应把 format 当作已完成语义校验的证明。
+
 use serde::{Deserialize, Serialize};
 
 use crate::asset::AssetUri;

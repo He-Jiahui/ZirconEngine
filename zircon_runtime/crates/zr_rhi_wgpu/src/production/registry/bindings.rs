@@ -1,3 +1,4 @@
+//! 绑定与采样资源先通过中立描述符校验，再注册为本代句柄及原生依赖。
 use zr_rhi::{
     BindGroupDesc, BindGroupHandle, BindGroupLayoutDesc, BindGroupLayoutEntryDesc,
     BindGroupLayoutHandle, BindingResourceType, BufferDesc, BufferHandle, RhiError, SamplerDesc,

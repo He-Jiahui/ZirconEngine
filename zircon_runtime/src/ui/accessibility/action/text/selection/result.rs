@@ -24,6 +24,7 @@ pub(super) fn finish_missing_text_selection(
     )
 }
 
+// 在真实表面状态重新构造选择并通过文本属性事务提交；仅成功后标记已处理及执行安全文本脱敏。
 pub(super) fn finish_set_text_selection(
     surface: &mut UiSurface,
     target: UiNodeId,

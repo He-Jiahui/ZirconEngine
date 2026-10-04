@@ -1,3 +1,5 @@
+//! 统一原生插件发现的身份准备、同步报告投影与异步收集入口，避免加载器维护第二份候选真相。
+//! 来自扫描、导出选择和路径通知的工作共享票据机制；输入模式不同则拥有独立发布历史。
 use std::collections::BTreeMap;
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, OnceLock};
@@ -208,6 +210,7 @@ impl NativePluginDiscoveryAuthority {
         self.project_refresh(root, input, force_refresh, work)
     }
 
+    // 同步调用优先投影最后成功快照；强制调用等待票据，失败时同时返回旧候选与失败诊断。
     fn project_refresh(
         &self,
         root: NativePluginDiscoveryRoot,
@@ -272,6 +275,8 @@ impl NativePluginDiscoveryAuthority {
             .map(|existing| (existing.ticket.clone(), existing.forced))
         {
             if !existing_ticket.is_complete() {
+                // BUG: [CR-PLUGIN-NATIVE-0201] 已有强制票据时，后续不同路径的刷新/删除通知在此直接复用票据，
+                // 没有把新通知交给服务合并，因而丢失该路径变更；证据：通知入口每次携带独立 work。
                 if !force_refresh || existing_forced {
                     return existing_ticket;
                 }
@@ -355,6 +360,8 @@ impl NativePluginDiscoveryAuthority {
         if let Some(existing) = root_identities.get(&lexical_path) {
             return existing.clone();
         }
+        // TODO: [CR-PLUGIN-NATIVE-0205] 确认逐出仍有已发布快照的词法身份后，按路径查询代际应如何报告；
+        // 当前查询只读取此缓存，达到上限后可能返回空而共享根句柄仍可查询快照；下一步补齐别名压力契约。
         if root_identities.len() >= MAX_ROOT_IDENTITIES {
             if let Some(evicted) = root_identities.keys().next().cloned() {
                 root_identities.remove(&evicted);
@@ -465,6 +472,8 @@ fn collect_root_scan(
         Err(NativePluginManifestTraversalError::Collection(error)) => {
             visitor.emit_diagnostic(|| error.to_string())?;
             drop(visitor);
+            // TODO: [CR-PLUGIN-NATIVE-0207] 确认中途目录枚举失败时是否允许将部分候选作为新快照发布；
+            // 此分支以成功载荷携带错误诊断，可能替换已有完整快照；下一步对照插件选择端的完整性要求。
             return input_identity(request, sink, "collection-error", 0, 0);
         }
         Err(NativePluginManifestTraversalError::Visitor(error)) => return Err(error),
@@ -484,6 +493,7 @@ fn collect_root_scan(
     )
 }
 
+// 增量读取不扫描目录；任何替换清单的读取或解析失败都会放弃整批候选，保留最后成功快照。
 fn collect_incremental_manifest_batch(
     request: &NativePluginDiscoveryRefreshRequest,
     sink: &mut NativePluginDiscoveryRefreshSink,
@@ -504,6 +514,7 @@ fn collect_incremental_manifest_batch(
     input_identity(request, sink, "manifest-batch", 0, 0)
 }
 
+/// 为扫描和导出选择生成同一来源描述；暂存额度在格式化路径和计数前取得。
 pub(in crate::plugin::native_plugin_loader) fn input_identity(
     request: &NativePluginDiscoveryRefreshRequest,
     sink: &mut NativePluginDiscoveryRefreshSink,
@@ -525,6 +536,7 @@ pub(in crate::plugin::native_plugin_loader) fn input_identity(
     ))
 }
 
+// 全量扫描允许单包内容错误形成诊断并继续；预算、取消和期限失败必须终止本次收集。
 struct MeteredDiscoveryVisitor<'a> {
     request: &'a NativePluginDiscoveryRefreshRequest,
     sink: &'a mut NativePluginDiscoveryRefreshSink,
@@ -613,6 +625,9 @@ fn notification_work(
     }
 }
 
+// BUG: [CR-PLUGIN-NATIVE-0202] 通知映射只归一词法路径，随后清单读取会跟随符号链接；
+// 根内链接可指向根外清单并被增量加入候选，绕过全扫拒绝符号链接和越根目录的边界；证据：受限读取直接打开映射路径。
+// 删除通知常在文件消失后到达，因此词法映射不能要求目标存在；刷新读取另需确认真实路径边界。
 fn canonical_notification_path(
     canonical_root: &Path,
     lexical_root: &Path,

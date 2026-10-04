@@ -1,3 +1,4 @@
+// 读取宿主页面回调源码，约束显式动作与类型化回执投影替代几何镜像。
 fn source(relative: &str) -> String {
     std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))

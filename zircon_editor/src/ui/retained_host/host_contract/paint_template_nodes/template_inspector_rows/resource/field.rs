@@ -1,3 +1,6 @@
+//! 资源字段承载主题表面、Mesh/Material 前导图标、值文字与下拉符；文字预留右侧图标空间。
+//! 实际资源选择或修改由 Inspector 事件链处理，这里只负责显示。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_inspector_row_geometry::{

@@ -1,5 +1,7 @@
 use crate::graphics::scene::resources::{GpuMeshVertex, PipelineKey};
 
+/// 为 Base pass 创建写入调用方指定颜色目标的普通材质管线。
+/// 透明键使用排序混合且不写深度；shader 与 layout 应在缓存准入阶段通过资源契约校验。
 pub(in crate::graphics::scene::scene_renderer::mesh) fn create_mesh_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,

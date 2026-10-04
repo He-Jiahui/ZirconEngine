@@ -4,6 +4,7 @@ use zircon_runtime_interface::reflect::{ReflectError, ReflectedValue};
 
 use super::super::{MeshRenderer, MeshRendererPrimitiveBinding};
 
+// 该适配层把资源句柄转换为稳定的反射值，供编辑器和场景捕获读取；资源加载仍由资源系统负责。
 pub(in crate::scene::components::scene) fn read_model(
     component: &MeshRenderer,
 ) -> Result<ReflectedValue, ReflectError> {

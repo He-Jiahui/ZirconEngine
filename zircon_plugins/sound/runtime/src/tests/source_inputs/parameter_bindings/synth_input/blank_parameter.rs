@@ -1,3 +1,4 @@
+// 创建合成参数声源时拒绝空白参数身份，核对输入描述符的引用前置条件。
 use super::super::super::super::*;
 
 #[test]

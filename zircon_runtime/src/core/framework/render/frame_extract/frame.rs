@@ -16,6 +16,8 @@ use super::{
     VisibilityRenderableInput,
 };
 
+/// Runtime 外层帧的时间标签，在场景缓存取出后叠加到本次提交。
+/// 它不参与场景内容的缓存身份，因此相同场景可对应连续的提交帧。
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RenderFrameTiming {
     outer_frame_index: u64,
@@ -43,6 +45,8 @@ impl RenderFrameTiming {
     }
 }
 
+/// 渲染提交边界：场景载荷可跨相机共享，时间与选中视图属于单次提交。
+/// 生产端构造场景代，提交端按相机派生视图；修改场景域会触发写时复制。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderFrameExtract {
     scene: Arc<RenderFrameScenePayload>,
@@ -177,6 +181,8 @@ impl RenderFrameExtract {
         Self::new(scene, view, RenderFrameTiming::default())
     }
 
+    /// 将提交包投影回视口快照，供往返校验等轻量路径使用。
+    /// 此转换不会回写动画、粒子等扩展域。
     pub fn to_scene_snapshot(&self) -> RenderSceneSnapshot {
         RenderSceneSnapshot {
             scene: RenderSceneGeometryExtract {
@@ -222,6 +228,8 @@ impl RenderFrameExtract {
         self.view.select_camera_descriptor(descriptor);
     }
 
+    /// 为相机序列中的一次提交派生视图，并继续共享源场景与时间标签。
+    /// 渲染循环应以原始帧为源逐相机调用，避免上一个相机的覆盖影响下一个。
     pub fn for_camera_submission(&self, descriptor: CameraRenderDescriptor) -> Self {
         Self {
             scene: Arc::clone(&self.scene),
@@ -247,6 +255,7 @@ impl Deref for RenderFrameExtract {
     }
 }
 
+// 场景域的写入与廉价的相机视图派生分开，避免覆盖污染其他相机提交。
 impl DerefMut for RenderFrameExtract {
     fn deref_mut(&mut self) -> &mut Self::Target {
         Arc::make_mut(&mut self.scene)

@@ -1,3 +1,5 @@
+//! 集中 chrome 选择器负责 fill/分隔色，表面绘制器组合可选背景、内容框和更高层分隔线。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
@@ -6,6 +8,7 @@ use super::frame::{shell_panel_border_color, shell_panel_border_width, shell_pan
 use super::identity::ShellPanelKind;
 use super::separators::push_shell_panel_separators;
 
+/// 由已认领 shell kind 的入口调用；clip 为上游已裁定的区域，缺少背景仍可尝试绘制分隔线。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_shell_panel_surface(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

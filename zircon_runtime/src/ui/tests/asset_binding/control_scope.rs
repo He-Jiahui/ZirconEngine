@@ -1,3 +1,4 @@
+//! 验证组件实例的控件引用被限定在各自展开树中，重复实例不得串接动作载荷。
 use std::collections::BTreeSet;
 use std::time::{Duration, Instant};
 
@@ -236,6 +237,7 @@ control_id = "Duplicate"
     );
 }
 
+// TODO: [CR-UI-TEST-0004] 确认线性复杂度门槛的证据要求；单个千实例样本和五秒上限只能验证规模可完成，下一步增加多规模增长率对照。
 #[test]
 fn component_control_scope_qualifies_one_thousand_instances_linearly() {
     const INSTANCE_COUNT: usize = 1_000;

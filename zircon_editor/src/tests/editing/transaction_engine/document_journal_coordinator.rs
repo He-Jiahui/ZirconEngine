@@ -1,3 +1,4 @@
+//! 以文档绑定、追加、压缩与解绑定调用核对日志协调器的项目根和写入门槛，阻止跨项目键或解绑后继续落盘。
 use std::any::Any;
 use std::fs;
 use std::path::{Path, PathBuf};

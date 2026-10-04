@@ -5,6 +5,7 @@ use super::super::validation::{validate_manager_plugin_id, validate_module_descr
 use super::super::RuntimeExtensionRegistry;
 
 impl RuntimeExtensionRegistry {
+    /// 将管理器挂到包级 owner，供目录合并和模块装配；同名管理器在全局目录中唯一。
     pub fn register_manager(
         &mut self,
         plugin_id: impl Into<String>,
@@ -25,6 +26,8 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    // BUG: [CR-PLUGIN-BOUNDARY-0101] 描述符名已是 `client.runtime` 时这里再附加 `.runtime`，模块登记为 `client.runtime.runtime` owner；对 `client.runtime` 撤销会留下模块；证据：contributions/extension.rs 的目标模块样例及本函数调用链。
+    /// 目录注册模块贡献时使用；模块名既用于目标筛选，也必须与其它贡献的 owner 命名一致。
     pub fn register_module(
         &mut self,
         descriptor: ModuleDescriptor,

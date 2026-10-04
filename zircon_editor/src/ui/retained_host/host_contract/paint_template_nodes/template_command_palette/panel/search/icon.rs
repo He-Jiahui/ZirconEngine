@@ -1,3 +1,5 @@
+//! 搜索装饰图标使用统一图标资源入口，复用 tint、加载和裁剪合同；不参与点击目标计算。
+
 use super::super::super::super::super::data::FrameRect;
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::super::super::template_icon_assets::push_icon_asset_pixels;

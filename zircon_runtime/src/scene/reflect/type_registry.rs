@@ -21,6 +21,7 @@ const MAX_REFLECT_ENUM_VALUE_BYTES: usize = 128;
 const MAX_REFLECT_ENUM_DISPLAY_NAME_BYTES: usize = 256;
 
 #[derive(Clone, Default)]
+/// World 拥有的类型与稳定字段 ID 目录；插件或 VM 模式变更应通过注册入口推进目录代数。
 pub struct TypeRegistry {
     registrations: BTreeMap<String, RuntimeTypeRegistration>,
     schema_catalog: ReflectSchemaCatalog,

@@ -1,3 +1,4 @@
+//! 一维或二维混合空间的少量图权重结果；状态机用它挑选图并合成姿态。
 use zircon_runtime::core::math::Real;
 
 #[derive(Clone, Copy, Debug, PartialEq)]

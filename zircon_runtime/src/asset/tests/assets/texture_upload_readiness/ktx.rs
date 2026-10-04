@@ -1,6 +1,9 @@
+//! KTX1/KTX2 回归测试检查层级索引、数据格式与描述符的交叉验证；不可信范围必须在进入压缩上传计划前被拒绝。
+
 use super::container_fixtures::*;
 use crate::asset::{AssetUri, TextureAsset, TextureUploadSupport};
 
+// KTX1 的层级长度与 KTX2 的索引范围都要覆盖实际压缩块，不能只验证头部存在。
 #[test]
 fn texture_upload_readiness_rejects_short_ktx_level_declarations() {
     let support = TextureUploadSupport {
@@ -36,6 +39,7 @@ fn texture_upload_readiness_rejects_short_ktx_level_declarations() {
         1,
         1,
     );
+    // BUG: [CR-ASSET-TEST-TEXTURE-0004] KTX2 层声明 16 字节而夹具仅含 8 字节，计划构造先失败并返回通用索引诊断，旧详细文案断言必失败；证据：upload_support/ktx.rs:174-188、upload_support.rs:240-244。
     assert_eq!(
         ktx2.upload_readiness(support).unsupported_reason(),
         Some(
@@ -44,6 +48,7 @@ fn texture_upload_readiness_rejects_short_ktx_level_declarations() {
     );
 }
 
+// 文件标识和字节序先于层级解析；错误头部不能被碰巧合理的偏移掩盖。
 #[test]
 fn texture_upload_readiness_rejects_malformed_ktx_headers_before_level_parsing() {
     let support = TextureUploadSupport {
@@ -99,6 +104,7 @@ fn texture_upload_readiness_rejects_malformed_ktx_headers_before_level_parsing()
     );
 }
 
+// KTX2 索引须完整且未压缩长度与无超压缩声明一致，后续才可按 mip 切分。
 #[test]
 fn texture_upload_readiness_rejects_malformed_ktx2_level_index_entries() {
     let support = TextureUploadSupport {
@@ -139,6 +145,7 @@ fn texture_upload_readiness_rejects_malformed_ktx2_level_index_entries() {
     );
 }
 
+// 导入描述符与容器的 mip 数是双重来源；失配时不得凭单方信息推断上传范围。
 #[test]
 fn texture_upload_readiness_rejects_ktx_header_mip_mismatches() {
     let support = TextureUploadSupport {
@@ -179,6 +186,7 @@ fn texture_upload_readiness_rejects_ktx_header_mip_mismatches() {
     );
 }
 
+// KTX 层与面数共同决定 GPU 图像形状；合法数组仍受当前 KTX1 子资源布局能力限制。
 #[test]
 fn texture_upload_readiness_rejects_ktx_header_layer_face_mismatches() {
     let support = TextureUploadSupport {
@@ -235,6 +243,7 @@ fn texture_upload_readiness_rejects_ktx_header_layer_face_mismatches() {
     );
 }
 
+// 格式 token 与容器头的 GL/Vulkan 编码、超压缩声明必须一致；不做隐式转码或重解释。
 #[test]
 fn texture_upload_readiness_rejects_ktx_descriptor_header_format_mismatches() {
     let support = TextureUploadSupport {
@@ -307,6 +316,7 @@ fn texture_upload_readiness_rejects_ktx_descriptor_header_format_mismatches() {
     );
 }
 
+// 结构字段和 DFD 范围同样限定可信 payload；错误元数据即使不碰图像字节也应拒绝。
 #[test]
 fn texture_upload_readiness_rejects_ktx_structural_header_mismatches() {
     let support = TextureUploadSupport {

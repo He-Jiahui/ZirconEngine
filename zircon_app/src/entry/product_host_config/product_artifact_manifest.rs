@@ -41,6 +41,7 @@ impl ProductArtifactDeliveryStatus {
         !matches!(self, Self::Unavailable)
     }
 
+    /// 仅表示角色目录允许启动该类产物；实际文件和 ABI 身份仍须由构建回执验证。
     pub const fn has_runnable_artifact(self) -> bool {
         matches!(self, Self::Runnable | Self::Preview)
     }

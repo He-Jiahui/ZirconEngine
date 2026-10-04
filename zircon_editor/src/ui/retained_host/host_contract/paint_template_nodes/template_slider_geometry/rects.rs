@@ -1,3 +1,5 @@
+//! 滑块轨道、值框与居中标记的几何门面；命令上下文一次确定轨道后，后续绘制重用该框。
+
 mod alignment;
 mod range;
 mod track;

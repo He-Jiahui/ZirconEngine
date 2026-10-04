@@ -12,6 +12,7 @@ pub struct UiComponentAdapterResult {
     pub changed: bool,
     /// 宿主据此刷新展示投影，即使没有局部 patch 也可能需要刷新。
     pub refresh_projection: bool,
+    /// 目标资源是否应标记为待保存；已处理的命令不一定修改该资源。
     pub dirty: bool,
     pub transaction_id: Option<String>,
     pub mutation_source: Option<String>,

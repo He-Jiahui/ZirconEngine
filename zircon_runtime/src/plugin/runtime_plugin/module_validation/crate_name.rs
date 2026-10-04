@@ -8,6 +8,8 @@ use self::{
     underscore::validate_runtime_plugin_module_crate_name_underscore,
 };
 
+/// 在包和 feature 的注册报告中校验供项目选择及导出计划消费的 crate 标识。
+/// 必须通过完整组合规则才算名称有效；这里只检查声明形态，不确认 Cargo 包或动态产物存在。
 pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_module_crate_name(
     manifest_label: &str,
     validate_field: fn(&str, &str, &mut Vec<String>),

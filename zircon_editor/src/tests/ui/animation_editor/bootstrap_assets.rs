@@ -1,3 +1,5 @@
+//! 验证动画图和序列宿主模板具有原生挂载槽，且没有尚未接通的占位动作。
+
 use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 const ANIMATION_GRAPH_BODY_ZUI: &str = include_str!(concat!(

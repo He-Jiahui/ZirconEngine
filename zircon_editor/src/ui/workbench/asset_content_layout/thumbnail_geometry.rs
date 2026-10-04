@@ -29,6 +29,7 @@ const THUMBNAIL_META_ROW_GAP: f32 = 5.0;
 
 /// Item-specific thumbnail frames derived from a stable materialized card.
 #[derive(Clone, Copy, Debug)]
+/// 卡片各语义子区的共同几何；布局与虚拟绘制须使用同一role映射。
 pub(crate) struct AssetThumbnailCardGeometry {
     card: AssetContentRect,
     visual: AssetContentRect,
@@ -57,6 +58,7 @@ impl AssetThumbnailCardGeometry {
     }
 }
 
+/// 以当前卡片框和资产文本特征派生子区，避免复用slot时沿用上一资产的几何。
 pub(crate) fn asset_thumbnail_card_geometry(
     card: AssetContentRect,
     has_name_continuation: bool,

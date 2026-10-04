@@ -1,3 +1,5 @@
+//! 索引格式保留作者数据的 u16/u32 宽度；网格校验以顶点数约束它，上传层再选择对应 GPU index format。
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

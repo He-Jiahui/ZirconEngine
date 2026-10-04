@@ -4,6 +4,7 @@ use crate::core::resource::ResourceId;
 
 use super::RenderFrameSubmissionBoundaryReason;
 
+/// 场景命令包之前的工作来源；类别标识用途，不代表独立的物理提交边界。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum RenderFrameSubmissionProducer {
@@ -13,6 +14,7 @@ pub enum RenderFrameSubmissionProducer {
     FrameResourceUpload,
 }
 
+/// 提交事务记录的生产者票据；仅纹理旧 mip 保留操作可携带强制边界原因。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderFrameSubmissionProducerRecord {
     producer: RenderFrameSubmissionProducer,

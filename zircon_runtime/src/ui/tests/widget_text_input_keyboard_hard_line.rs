@@ -1,3 +1,5 @@
+//! 平台式硬行导航需区别软换行布局与文档换行；修饰键只改变编辑动作语义。
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,

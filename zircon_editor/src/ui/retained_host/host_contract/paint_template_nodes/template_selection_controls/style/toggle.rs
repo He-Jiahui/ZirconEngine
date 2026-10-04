@@ -1,3 +1,5 @@
+//! 开关轨道、滑块、边框和标签颜色从同一个 Toggle 状态选择器获取。
+
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::style_selector::WorkbenchSelectionControlKind as SelectionStyleKind;
 use super::selector::selection_style;

@@ -1,3 +1,4 @@
+//! 稳定目标 ID、骨架归属、重复短名歧义及编译剪辑无源字符串查找的契约。
 use std::sync::Arc;
 
 use zircon_plugin_animation_runtime::{

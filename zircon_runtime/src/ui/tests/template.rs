@@ -1,3 +1,5 @@
+//! 已展开的模板夹具只包含原生组件节点；树构建将其属性与绑定投向 retained UI，不在测试夹具中再做资产编译。
+
 use crate::ui::template::{UiTemplateInstance, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder};
 use serde::Deserialize;
 use toml::Value;
@@ -136,17 +138,21 @@ fn root_with_inline_node(node: &str) -> String {
     node.to_string()
 }
 
+/// 只给测试提供已展开原生节点的 TOML 外壳，不属于运行时资产加载协议。
 #[derive(Deserialize)]
 struct CompiledTemplateFixture {
     root: UiTemplateNode,
 }
 
+/// 构树与槽位测试共用的已展开实例入口；非法 TOML 或未解析模板会直接断言失败。
+/// 这里不运行资产编译器，编译权威与版本迁移由独立管线测试验证。
 pub(super) fn compiled_instance_from_toml(source: &str) -> UiTemplateInstance {
     let fixture: CompiledTemplateFixture = toml::from_str(source).unwrap();
     assert_compiled_node(&fixture.root);
     UiTemplateInstance::new(fixture.root)
 }
 
+// 夹具必须先满足原生节点约束，避免把编译或槽填充缺口误报成构树失败。
 fn assert_compiled_node(node: &UiTemplateNode) {
     assert!(
         node.component.is_some() && node.template.is_none() && node.slot.is_none(),

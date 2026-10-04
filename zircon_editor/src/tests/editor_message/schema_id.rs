@@ -1,3 +1,4 @@
+//! 核对编辑器与插件消息 schema 命名空间、长度和反序列化约束，防止未归属标识混入类型化协议。
 use crate::core::editor_message::{
     EditorMessageSchemaId, EditorMessageSchemaIdError, MAX_EDITOR_MESSAGE_SCHEMA_ID_BYTES,
 };

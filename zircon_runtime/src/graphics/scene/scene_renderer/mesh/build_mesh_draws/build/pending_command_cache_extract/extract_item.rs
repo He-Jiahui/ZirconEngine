@@ -53,6 +53,8 @@ pub(super) fn pending_mesh_command_cache_extract_item(
     }
 }
 
+/// 仅在静态修订权威、几何可复用且无蒙皮或反应遮罩时跳过 MeshDraw 构造。
+/// 命中后仍须使用本帧 GPUScene span 和当前视图可见性。
 pub(super) fn can_skip_pending_mesh_draw_for_cached_commands(
     item: PendingMeshCommandCacheExtractItem,
 ) -> bool {

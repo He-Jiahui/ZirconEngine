@@ -1,3 +1,5 @@
+/// 场景执行层从已编译渲染管线取得的功能权限，用于资源绑定、历史维护和效果执行。
+/// 它描述管线能力；本帧设置和资源是否可用仍须在执行入口检查，默认值关闭全部功能。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct SceneRuntimeFeatureFlags {
     pub(crate) deferred_lighting_enabled: bool,

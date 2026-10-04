@@ -19,6 +19,7 @@ const FOCUS_REQUEST_TTL_MILLIS: u64 = 10_000;
 const FOCUS_INBOX_MAX_PENDING_REQUESTS: usize = 32;
 
 /// Atomically publishes a focus request without touching the editor's recovery lock.
+/// 仅在已确认 Ready 的 Editor 上发布带实例代次与截止时间的请求；调用方随后等待同一请求的确认。
 pub(crate) fn publish_project_editor_focus_signal(
     project_root: impl AsRef<Path>,
     target: &ProjectSessionAdmissionRecordV1,
@@ -81,6 +82,7 @@ fn unix_millis_now() -> Result<u64, HubError> {
         .map_err(|error| HubError::message(format!("read Hub focus clock: {error}")))
 }
 
+// 发送前清理到期请求，为有限收件箱腾出容量；无效消息留给 Editor 的消费边界处理。
 fn clean_expired_requests(directory: &Path, now_unix_millis: u64) -> Result<(), HubError> {
     let entries = match fs::read_dir(directory) {
         Ok(entries) => entries,
@@ -104,6 +106,8 @@ fn clean_expired_requests(directory: &Path, now_unix_millis: u64) -> Result<(), 
     Ok(())
 }
 
+// BUG: [CR-HUBCORE-0003] 目录遍历中的单项错误被 `filter_map(Result::ok)` 丢弃，容量计数可能低于实际文件数并允许超限发布；证据：本函数与 publish_project_editor_focus_signal 的上限判断。
+// 收件箱限额是对发布者的背压约束，计数失败时不应默认为空。
 fn pending_request_count(directory: &Path) -> Result<usize, HubError> {
     let entries = match fs::read_dir(directory) {
         Ok(entries) => entries,
@@ -130,6 +134,7 @@ fn pending_request_count(directory: &Path) -> Result<usize, HubError> {
         })
 }
 
+// Editor 轮询请求目录，故仅在完整写入并同步后公布目标路径，避免读到半写的 JSON。
 fn write_atomically(path: &Path, bytes: &[u8]) -> io::Result<()> {
     let directory = path
         .parent()

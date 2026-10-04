@@ -32,6 +32,7 @@ use super::root_shell_frames::BuiltinHostRootShellFrames;
 const HOST_BODY_CONTROL_ID: &str = "WorkbenchBody";
 pub(super) const HOST_PAGE_STRIP_CONTROL_ID: &str = "HostPageStripRoot";
 
+// 宿主外壳把模板路由、布局帧与编辑器绑定封装为同一投影，供启动和输入分发共享。
 pub(crate) struct BuiltinHostWindowTemplateBridge {
     runtime: Arc<EditorUiHostRuntime>,
     projection: RetainedUiProjection,
@@ -93,6 +94,7 @@ impl BuiltinHostWindowTemplateBridge {
         self.recompute_layout_with_workbench_model_at_scale(shell_size, 1.0, _model, _metrics)
     }
 
+    // 物理窗口尺寸在此换算为模板逻辑尺寸；暴露给宿主的帧再统一乘展示比例。
     pub(crate) fn recompute_layout_with_workbench_model_at_scale(
         &mut self,
         physical_shell_size: UiSize,

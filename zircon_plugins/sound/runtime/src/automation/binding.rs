@@ -1,3 +1,4 @@
+//! 自动化绑定入库前规范化轨道路径；时间序列与直接赋值借此使用相同的目标身份。
 use zircon_runtime::core::framework::{
     animation::AnimationTrackPath,
     sound::{SoundAutomationBinding, SoundError},

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use crate::graphics::scene::scene_renderer::mesh::EnvironmentOnlyPbrBasePipelinePrewarmReport;
 
+/// 向 Runtime 启动诊断汇总一次构建的分段耗时与异步上传票据；时间值不是 GPU 完成时长。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SceneRendererStartupReport {
     pub(in crate::graphics::scene::scene_renderer::core) backend_initialization: Duration,
@@ -76,6 +77,7 @@ impl SceneRendererEnvironmentOnlyPbrBasePrewarmReport {
     }
 }
 
+/// 场景核心构造的成本切片；用于比较资源、光照和界面初始化阶段，而非逐帧性能。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SceneRendererCoreStartupReport {
     pub(in crate::graphics::scene::scene_renderer::core) setup: Duration,

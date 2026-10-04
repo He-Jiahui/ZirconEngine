@@ -5,6 +5,8 @@ use crate::text::{InlineBaseline, InlineObjectRef, TextStyle};
 
 use super::finite_non_negative;
 
+/// 将富文本 run 的局部覆写投影到一次布局使用的中性样式。
+/// 未覆写的字体与行距保留基样式，测量、整形和最终物化须使用同一投影以免宽度漂移。
 pub(crate) fn resolve_rich_run_style(
     base: &TextStyle,
     override_style: &crate::text::StyleOverride,
@@ -37,6 +39,7 @@ pub(crate) fn resolve_rich_run_style(
     style
 }
 
+/// 内联对象参与基线和折行时的几何约定；同一尺寸用于前期宽度估计和最终行物化。
 #[derive(Clone, Copy, Debug)]
 pub(super) struct InlineBoxMetrics {
     pub(super) advance: f32,
@@ -46,6 +49,8 @@ pub(super) struct InlineBoxMetrics {
     pub(super) baseline: InlineBaseline,
 }
 
+/// 把图片、图标或控件槽转为行内盒模型，并按文本 ascent/descent 计算基线占用。
+/// 输入尺寸可能来自可编辑标记，先收敛非有限或负尺寸，再供 RichAdvanceIndex 与物化共用。
 pub(super) fn inline_box_metrics(
     inline: &InlineObjectRef,
     text_ascent: f32,

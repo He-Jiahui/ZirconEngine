@@ -1,3 +1,4 @@
+//! 运行时技术栈、清单和结构文档维持共同的基础门禁。保存同组守卫使用的局部数据或辅助变换。
 use std::path::Path;
 
 pub(super) const EXPECTED_RUNTIME_01_MANIFESTS: &[&str] = &[

@@ -38,6 +38,7 @@ impl EditorRuntimeFramePixels for EditorOwnedRuntimeFramePixels {
     }
 }
 
+/// 帧像素的所有权包装；显式 release 可观察释放错误，会话帧在 Drop 时也归还资源。
 pub struct EditorRuntimeFrame {
     abi_version: u32,
     width: u32,
@@ -204,6 +205,7 @@ impl EditorRuntimePluginEventPage {
     }
 }
 
+/// 编辑器访问本地或会话运行时的统一契约；可选能力默认返回明确错误。
 pub trait EditorRuntimeGateway: Send + Sync {
     fn capabilities(&self) -> Arc<RuntimeCapabilities> {
         RuntimeCapabilities::unavailable()
@@ -374,6 +376,7 @@ pub trait EditorRuntimeGateway: Send + Sync {
         })
     }
 
+    /// 异步操作的句柄只属于产生它的端点；可替换网关的调用方应使用身份固定的路由完成轮询和收取。
     fn submit_operation(
         &self,
         request: ZrRuntimeOperationSubmitRequestV1,

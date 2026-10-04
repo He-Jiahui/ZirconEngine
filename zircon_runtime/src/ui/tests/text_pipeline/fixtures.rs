@@ -1,3 +1,4 @@
+//! 文本管线测试共用元数据、约束和可见状态夹具；调用方统一经布局与渲染阶段观察缓存。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::UiStateFlags,

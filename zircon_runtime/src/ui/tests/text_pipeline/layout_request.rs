@@ -1,3 +1,4 @@
+//! 直接核对文本布局请求的预编辑注入：显示文本改变时保留未提交的文档值。
 use crate::ui::text::{resolve_text_layout, UiPreeditSpan, UiTextLayoutRequest};
 use zircon_runtime_interface::ui::{
     layout::UiFrame,

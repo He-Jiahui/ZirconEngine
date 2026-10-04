@@ -1,3 +1,4 @@
+//! 共享界面管理夹具验证模块服务解析、持久表面重建和输入派发；切换夹具后，旧节点绑定的处理器必须失效。
 use crate::core::CoreRuntime;
 
 const DEAD_CODE_ALLOW_ATTRIBUTE: &str = concat!("#[allow(", "dead_code", ")]");

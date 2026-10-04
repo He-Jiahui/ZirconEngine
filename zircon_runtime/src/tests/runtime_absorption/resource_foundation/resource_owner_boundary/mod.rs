@@ -1,3 +1,4 @@
+//! 资源基础层与高层运行时引用保持单向依赖和受限公开面。集中挂载下级测试；所有行为断言留在被挂载模块。
 use std::collections::HashMap;
 use std::path::Path;
 

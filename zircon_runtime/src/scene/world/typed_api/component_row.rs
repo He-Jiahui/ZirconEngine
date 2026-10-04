@@ -9,6 +9,7 @@ use crate::scene::{EntityId, World};
 
 type DenseComponentValue = Box<dyn std::any::Any + Send + Sync>;
 
+// 密集组件行的暂存所有权；完整预检后统一提交，避免外部看到部分安装的实体。
 pub(in crate::scene::world) struct PendingComponentRow {
     signature: ArchetypeSignature,
     tick: crate::scene::ecs::ChangeTick,
@@ -214,6 +215,7 @@ impl World {
         transitioned
     }
 
+    // 调用方已清空原型行并保留实体身份；直接追加完整目标行，避免先挂空行再迁移产生临时位置。
     pub(in crate::scene::world) fn commit_rebuilt_component_row(
         &mut self,
         entity: EntityId,

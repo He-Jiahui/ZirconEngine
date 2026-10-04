@@ -1,3 +1,6 @@
+//! 把 RPC/session 算法 manager 注册成依赖根 net 的懒服务，并声明 server/client 目标。
+//! factory 当前只造本地状态，没有绑定 NetManager 连接或 ECS 事件消费。
+
 use std::sync::Arc;
 
 use zircon_runtime::core::runtime::ServiceObject;

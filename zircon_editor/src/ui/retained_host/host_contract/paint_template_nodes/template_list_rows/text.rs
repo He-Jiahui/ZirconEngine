@@ -1,3 +1,5 @@
+//! 列表标题保留尾部装饰空间，并把文字裁剪限制到正文区域；不可用状态的文字色来自共享样式。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;

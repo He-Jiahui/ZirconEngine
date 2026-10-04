@@ -1,3 +1,4 @@
+//! 目标行的操作标识交给工作台导出动作分发器；忙碌状态切换为取消，致命诊断只阻止新的导出。
 use crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData;
 use crate::ui::retained_host as host_contract;
 

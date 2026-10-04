@@ -1,3 +1,4 @@
+//! 条件树的后序指令布局；求值器按相同参数槽和子表达式数量消费。
 use zircon_runtime::core::framework::animation::AnimationConditionOperatorAsset;
 use zircon_runtime::core::framework::animation::AnimationParameterValue;
 

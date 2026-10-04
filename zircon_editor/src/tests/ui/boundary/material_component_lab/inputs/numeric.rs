@@ -1,3 +1,5 @@
+//! 验证数字输入的步进、拖动、错误及禁用状态元数据。
+
 use std::fs;
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;

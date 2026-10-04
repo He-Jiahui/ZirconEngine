@@ -1,3 +1,4 @@
+// 由欢迎页模板触发最近项目打开、恢复及安全模式，约束宿主事件与直接绑定一致。
 use super::super::support::*;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 

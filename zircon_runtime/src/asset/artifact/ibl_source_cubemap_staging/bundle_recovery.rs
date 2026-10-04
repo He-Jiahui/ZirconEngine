@@ -5,6 +5,8 @@ use crate::core::resource::io::transaction::{JournalDocument, RecoveryPolicy};
 
 use super::IBL_SOURCE_CUBEMAP_BUNDLE_MANIFEST_FILE_NAME;
 
+// 持久事务恢复时限制 journal 只能触及三类预期目标，且不得退休当前文件。
+// 这是缓存重放边界，不能接受符号链接或任意路径作为发布目标。
 pub(super) struct IblSourceCubemapBundleRecoveryPolicy {
     journal_directory: PathBuf,
     source_root: PathBuf,

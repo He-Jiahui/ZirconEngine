@@ -1,3 +1,4 @@
+// 每次进入或离开能力状态表都会完成上一行，避免跨表字段污染测试投影。
 use super::storage::CapabilityStatusParserState;
 
 impl CapabilityStatusParserState {

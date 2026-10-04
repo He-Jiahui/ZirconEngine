@@ -1,3 +1,4 @@
+// 模块签名保留名称、种类、crate、目标及能力，避免只核对模块名称。
 mod collections;
 mod required;
 

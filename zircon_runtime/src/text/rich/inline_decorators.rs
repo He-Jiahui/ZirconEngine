@@ -8,6 +8,7 @@ use super::{RichTextDecoration, RichTextDecorator};
 const DEFAULT_INLINE_ICON_SIZE_PX: f32 = 16.0;
 const MAX_INLINE_WIDGET_EXTENT: f32 = 16_384.0;
 
+/// 内置 icon 标签只声明受限资源和尺寸，交由布局与图形层解释为可见内嵌对象。
 pub(super) struct IconTextDecorator;
 
 impl RichTextDecorator for IconTextDecorator {
@@ -29,6 +30,7 @@ impl RichTextDecorator for IconTextDecorator {
     }
 }
 
+/// 内置 widget 标签只声明槽位和尺寸；UI 随后按唯一声明与可见性建立控件绑定。
 pub(super) struct WidgetTextDecorator;
 
 impl RichTextDecorator for WidgetTextDecorator {

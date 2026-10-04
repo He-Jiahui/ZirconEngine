@@ -1,9 +1,13 @@
+//! 动态 Runtime 在帧末发往宿主的请求批次入口。
+//! 排空失败终止产品；单项操作的后续错误策略由路由层决定。
+
 use winit::event_loop::ActiveEventLoop;
 
 use super::super::RuntimeEntryApp;
 use super::routing::apply_runtime_host_request;
 
 impl RuntimeEntryApp {
+    /// tick 后、重绘前消费完整请求批次；排空失败记录为产品终止原因。
     pub(in crate::entry::runtime_entry_app) fn apply_runtime_host_requests(
         &mut self,
         event_loop: &dyn ActiveEventLoop,

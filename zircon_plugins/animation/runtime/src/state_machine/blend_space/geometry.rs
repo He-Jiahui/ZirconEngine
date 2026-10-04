@@ -1,3 +1,4 @@
+//! 二维混合空间的三角形及边界投影支持；仅供已校验的二维样本求权重。
 use zircon_runtime::core::math::{Real, Vec2};
 
 pub(super) fn barycentric(point: Vec2, a: Vec2, b: Vec2, c: Vec2) -> Option<[Real; 3]> {

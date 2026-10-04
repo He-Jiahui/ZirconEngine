@@ -3,6 +3,7 @@ use crate::core::resource::{ResourceId, ResourceSnapshot};
 
 use super::super::ResourceStreamer;
 
+/// 把 shader 身份、修订和内容锁成一次资产快照，供材质候选校验依赖时避免跨修订读取。
 pub(in crate::graphics::scene::resources::resource_streamer) struct MaterialShaderContractSnapshot {
     resource_id: ResourceId,
     asset: ResourceSnapshot<ShaderAsset>,

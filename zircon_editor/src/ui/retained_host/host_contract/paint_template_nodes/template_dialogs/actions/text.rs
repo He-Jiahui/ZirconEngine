@@ -1,3 +1,5 @@
+//! 动作文字的独立提交边界；消费labels测量好的按钮内区域，不在这里重新布局按钮或解析动作。
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::super::data::FrameRect;

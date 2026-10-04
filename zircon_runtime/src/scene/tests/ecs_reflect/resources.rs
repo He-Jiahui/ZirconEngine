@@ -1,3 +1,5 @@
+//! 资源与组件共享反射协议，但资源地址必须路由至按具体类型存储的 World 资源并维护变更追踪。
+
 use std::{cell::Cell, hint::black_box, time::Instant};
 
 use zircon_runtime_interface::reflect::{
@@ -435,6 +437,7 @@ fn frame_counter_write_routes() -> (usize, usize) {
     )
 }
 
+// 此性能门槛只在显式启用的 release 环境比较单字段槽写入与旧批量写入路径。
 #[test]
 #[ignore = "release performance gate"]
 fn resource_reflection_single_write_release_benchmark() {

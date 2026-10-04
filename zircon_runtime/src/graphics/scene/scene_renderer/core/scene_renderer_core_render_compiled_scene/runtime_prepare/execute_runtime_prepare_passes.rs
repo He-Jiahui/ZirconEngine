@@ -8,6 +8,7 @@ use super::super::super::scene_renderer_core::{
 };
 
 impl SceneRendererCore {
+    /// 在场景图物化前运行已登记插件准备回调；是否允许 GPU 工作由调用方本帧 admission 决定。
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn execute_runtime_prepare_passes(
         &mut self,
         device_profile: &RenderDeviceProfile,

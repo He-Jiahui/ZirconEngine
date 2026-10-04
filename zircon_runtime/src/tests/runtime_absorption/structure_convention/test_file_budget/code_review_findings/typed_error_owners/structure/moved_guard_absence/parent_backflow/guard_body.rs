@@ -1,3 +1,4 @@
+//! 检查类型化错误审查迁出的守卫仍由子文件承担，避免父模块重新吸收细节；检查针对文本位置与清单保留，不执行被检查的业务。
 use super::*;
 
 pub(in super::super) fn assert_typed_error_parent_backflow_guards_are_absent() {

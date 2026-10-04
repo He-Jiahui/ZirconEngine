@@ -1,3 +1,4 @@
+//! 区分正式界面入口资源与测试夹具源码；路径、资源种类和默认字体清单检查只约束资源布局与引用关系。
 #[test]
 fn production_ui_entry_assets_live_under_crate_assets_not_src() {
     let runtime_fixture_source =

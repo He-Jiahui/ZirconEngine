@@ -1,3 +1,4 @@
+//! 资产管线吸收后，门禁与镜像文档共同约束管理器、工作池和产物路径。向相邻守卫提供源码读取、路径枚举或断言工具。
 use std::path::Path;
 
 pub(super) fn assert_files_exist(runtime_root: &Path, files: &[&str], label: &str, boundary: &str) {

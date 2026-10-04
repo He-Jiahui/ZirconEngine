@@ -1,3 +1,4 @@
+// 核对复选框、单选框及开关的焦点和禁用态的原生绘制。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

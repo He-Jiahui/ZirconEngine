@@ -1,3 +1,4 @@
+//! 验证选择器优先级与主题令牌共同决定静态样式，表面构建随后接管运行态规则。
 use super::super::*;
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 

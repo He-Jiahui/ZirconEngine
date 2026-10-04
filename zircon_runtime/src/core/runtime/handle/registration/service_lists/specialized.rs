@@ -1,3 +1,4 @@
+//! 一到五项直接构造顺序稳定的三份列表，供归属、即时启动和卸载顺序复用。
 use std::sync::Arc;
 
 use crate::core::StartupMode;

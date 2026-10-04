@@ -5,6 +5,8 @@ use crate::graphics::types::GraphicsError;
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
+    /// 读取注册表当前修订供资源准备判定缓存；它不要求 Ready，
+    /// 需要完整就绪快照的批量查询须改用 with_ready_resource_revisions。
     pub(crate) fn resource_revision(&self, id: ResourceId) -> Result<u64, GraphicsError> {
         self.asset_manager()?
             .resource_manager()

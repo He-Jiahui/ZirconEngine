@@ -1,3 +1,4 @@
+//! 约束日志重放先解码全部命令再进入目标历史；未知 codec 的失败不得改写目标上下文。
 use std::any::Any;
 
 use serde_json::json;

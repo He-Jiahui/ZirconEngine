@@ -1,6 +1,9 @@
+//! 开关轨道在控件右侧，滑块位置由 checked/selected 决定；实例数值和布局尺寸可覆盖宿主尺度。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::{workbench_selection_control_metrics, WorkbenchSelectionControlMetrics};
 
+/// 轨道宽高受宿主密度和实例覆盖共同约束；在控件右侧为标签保留左区。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toggle_track_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -17,6 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toggle_
     }
 }
 
+/// 滑块在轨道内部随 checked/selected 移动；调用方在输出前验证完全落入轨道。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toggle_thumb_rect(
     node: &TemplatePaneNodeData,
     track: &FrameRect,

@@ -1,9 +1,12 @@
+//! 决定普通按钮是否归此绘制器及其语义样式；共享组件家族判断后排除工具栏、状态栏等已有专用域。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
     is_component_family, uses_workbench_visual_language, TemplateComponentFamily,
 };
 use super::super::style_selector::{is_tab_like_workbench_button, WorkbenchButtonKind};
 
+/// primary 链的归属判定；排除已由后续家族处理的工作台控件，避免短路抢占。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_workbench_button(
     node: &TemplatePaneNodeData,
 ) -> bool {
@@ -58,6 +61,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_add_
     node.control_id.as_str() == "WorkbenchAddComponent"
 }
 
+/// 样式类别与内置图标共用的身份来源，包含标签与声明变体；不是交互命中键。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_identity_values(
     node: &TemplatePaneNodeData,
 ) -> [&str; 6] {
@@ -71,6 +75,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
     ]
 }
 
+/// 调用方必须传入非空的 ASCII 语义词；身份值按 ASCII 大小写不敏感匹配，保留非 ASCII 标签。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_identity_contains(
     values: &[&str],
     needle: &str,

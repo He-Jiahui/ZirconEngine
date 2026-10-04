@@ -1,3 +1,4 @@
+//! 姿态写入错误契约；索引、有限值和旋转长度失败不得进入混合输出。
 use std::error::Error;
 use std::fmt;
 

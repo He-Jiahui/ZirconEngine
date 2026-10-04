@@ -1,3 +1,5 @@
+//! 克隆共享不可变布局产品，但重新建立表面、分发器和解析状态，视口副本不能共享上一事件的路由或捕获状态。
+
 use std::sync::Arc;
 
 use super::ViewportOverlayPointerRouter;

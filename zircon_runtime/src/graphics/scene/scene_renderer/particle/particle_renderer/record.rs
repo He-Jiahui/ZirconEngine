@@ -4,6 +4,8 @@ use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use wgpu::util::DeviceExt;
 
 impl ParticleRenderer {
+    /// 在已初始化的场景颜色/深度附件上追加透明粒子，随后追加不受深度遮挡的世界 HUD。
+    /// 两组均不写深度；调用方须使用与管线匹配的目标格式及本视口物理 render region。
     pub(crate) fn record(
         &self,
         device: &wgpu::Device,

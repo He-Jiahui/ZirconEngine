@@ -1,3 +1,4 @@
+//! 在会话准入前编译普通、安全或恢复策略的静态输入；迁移阻塞时及受限配置不携带项目代码能力，激活端只能在正式准入后消费该计划。
 use zircon_runtime::asset::project::ProjectScriptManifest;
 use zircon_runtime::core::framework::project::ProjectPluginManifest;
 

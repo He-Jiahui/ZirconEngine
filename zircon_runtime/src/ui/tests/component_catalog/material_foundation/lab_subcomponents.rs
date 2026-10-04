@@ -1,3 +1,5 @@
+//! Lab 子组件通过父布局和插槽接入运行时目录；选项默认值与事件能力需要保持可查询。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{UiComponentEventKind, UiRenderCapability, UiValue};
 

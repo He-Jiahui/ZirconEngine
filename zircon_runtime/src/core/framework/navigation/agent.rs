@@ -19,6 +19,7 @@ pub enum NavAvoidanceQuality {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 决定导航更新由运行时直接改写场景变换，还是把避障速度交给外部运动系统消费。
 pub enum NavAgentWritebackMode {
     #[default]
     Transform,
@@ -38,6 +39,7 @@ impl Default for NavAvoidanceQuality {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
+/// 场景组件与导航运行时之间的代理契约；烘焙配置决定可走区域，逐帧执行读取这里的移动和回写策略。
 pub struct NavMeshAgentDescriptor {
     pub nav_mesh: Option<NavMeshHandle>,
     pub agent_type: String,
@@ -106,6 +108,7 @@ pub struct NavigationDebugCapture {
 impl SceneResource for NavigationDebugCapture {}
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// 一帧导航执行的结果汇总，供场景调度、脚本到达事件和可选调试覆盖层共同消费。
 pub struct NavAgentTickReport {
     pub scanned_agents: usize,
     pub moved_agents: usize,

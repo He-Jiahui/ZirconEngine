@@ -4,6 +4,8 @@ use super::{
     RenderVirtualGeometryPageDependency,
 };
 
+/// provider 的一帧虚拟几何输入；可见性规划按预算选择簇和页，并通过实例键关联常规网格。
+/// 簇、层级、页和实例索引必须在同一帧快照内相互对应。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderVirtualGeometryExtract {
     pub cluster_budget: u32,

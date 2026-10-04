@@ -1,3 +1,5 @@
+//! 显式运行时渲染三种工作台尺寸并写入 PNG；该截图测试默认忽略，常规测试不生成文件。
+
 use std::path::{Path, PathBuf};
 
 use crate::ui::asset_editor::ui_asset_editor_surface_for_test;

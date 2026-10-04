@@ -1,3 +1,5 @@
+//! 候选匹配标记的几何约定；rows/indicator 在行底面之上使用它，窄行时应维持最小可见标记。
+
 use super::super::super::super::data::FrameRect;
 use super::common::{centered_offset, symmetric_extent};
 use super::metrics::WorkbenchCommandPaletteMetrics;

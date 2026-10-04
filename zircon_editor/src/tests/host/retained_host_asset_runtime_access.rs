@@ -1,3 +1,4 @@
+// 通过源文本核对资产宿主服务入口，约束运行时解析器不泄漏成通用依赖。
 #[test]
 fn retained_host_asset_services_do_not_leak_a_generic_runtime_resolver() {
     let app_source = include_str!("../../ui/retained_host/app.rs");

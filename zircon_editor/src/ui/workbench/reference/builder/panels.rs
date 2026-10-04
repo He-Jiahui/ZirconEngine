@@ -1,3 +1,4 @@
+//! 静态参考工作台的各区域和组件样本，供布局、视觉和交互契约测试比较。
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{UiContainerKind, UiGridBoxConfig, UiLinearBoxConfig},
@@ -331,6 +332,7 @@ impl ReferenceSurfaceBuilder {
         Ok(())
     }
 
+    // TODO: [CR-EDITOR-WORKBENCH-0002] 确认标为 Disabled 的输入和列表样本是否应真实禁用；当前共享节点工厂仍启用指针交互。
     fn build_input_samples(&mut self, parent: UiNodeId) -> Result<(), UiTreeError> {
         let group = self.add_gallery_group(parent, "inputs", "Inputs", 230.0)?;
         for (id, label, focused) in [
@@ -433,6 +435,7 @@ impl ReferenceSurfaceBuilder {
         Ok(())
     }
 
+    // 列表样本沿用按钮事件契约；选中样式与禁用交互是不同状态。
     fn build_list_samples(&mut self, parent: UiNodeId) -> Result<(), UiTreeError> {
         let group = self.add_gallery_group(parent, "lists", "List", 300.0)?;
         for (label, selected) in [

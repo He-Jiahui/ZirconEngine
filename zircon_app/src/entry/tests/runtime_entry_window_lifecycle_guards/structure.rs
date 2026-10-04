@@ -1,9 +1,13 @@
+//! 固定窗口生命周期子模块布局与无主窗口准入策略。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::{
     runtime_app_source, runtime_entry_app_root, runtime_window_creation_source,
     runtime_window_lifecycle_root_source,
 };
 
+// BUG: [CR-APP-ENTRY-0009] 无主窗口分支守卫仍要求 unit early-return，当前创建函数返回布尔准入结果，导致此断言失败；证据：clean window_creation.rs 与外部基线。
 #[test]
 fn runtime_entry_keeps_window_lifecycle_sources_folder_backed() {
     let runtime_app_source = runtime_app_source();

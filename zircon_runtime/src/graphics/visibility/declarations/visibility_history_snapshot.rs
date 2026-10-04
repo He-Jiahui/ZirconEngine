@@ -2,6 +2,7 @@ use crate::core::framework::scene::EntityId;
 
 use super::visibility_history_entry::VisibilityHistoryEntry;
 
+/// 跨帧保留的可见性与资源请求边界；构建下一帧时用它区分首次、变化与延续。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct VisibilityHistorySnapshot {
     pub instances: Vec<VisibilityHistoryEntry>,

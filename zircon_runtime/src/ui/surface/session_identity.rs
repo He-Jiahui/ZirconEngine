@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+/// 区分拥有相同树 ID 的不同运行时 surface 实例，隔离文档历史和未完成模型回写。
+/// 普通克隆获得新身份；值相等不代表可继续使用原实例的宿主会话。
 #[derive(Debug, Default)]
 pub(super) struct UiSurfaceSessionIdentity(Arc<()>);
 
@@ -22,6 +24,7 @@ impl PartialEq for UiSurfaceSessionIdentity {
     }
 }
 
+/// 宿主保留此句柄以识别会话切换；句柄克隆保持身份，surface 克隆则重新发放身份。
 #[derive(Clone, Debug)]
 pub(crate) struct UiSurfaceSessionIdentityHandle(Arc<()>);
 

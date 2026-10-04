@@ -1,8 +1,11 @@
+//! 由选择器状态形成图标颜色与按压位移快照，供 commands 在几何检查前应用。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::style_selector::WorkbenchIconButtonStyle;
 use crate::ui::retained_host::host_contract::paint_theme::current_host_metrics;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
+/// 命令入口共享的图标颜色及状态位移；位移后仍须重新验证容纳。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes::template_icon_buttons) struct IconButtonContentStyle
 {
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes::template_icon_buttons) glyph:

@@ -5,6 +5,7 @@ use zircon_runtime_interface::ZrRuntimePayloadLimitV1;
 use super::deadline::ProcessingDeadline;
 use super::BoundedJsonError;
 
+// 保存首个限额/超时错误，避免 serde_json 的 I/O 包装覆盖更具体的策略原因。
 pub(super) struct BoundedJsonCountingWriter {
     count: usize,
     limit: ZrRuntimePayloadLimitV1,

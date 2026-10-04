@@ -2,6 +2,7 @@ use std::fmt;
 
 use super::super::{PluginSlotId, VmError};
 
+// 这些错误由 registry 校验阶段产生，Display 只负责把结构化字段投影给宿主日志。
 /// Structured failure returned by VM extension registration and dispatch.
 #[derive(Debug)]
 pub enum VmHostInterfaceError {

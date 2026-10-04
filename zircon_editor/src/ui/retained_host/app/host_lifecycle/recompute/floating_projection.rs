@@ -16,6 +16,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "recompute_floating_source_bridge"
             );
+            // TODO: [CR-EDITOR-APP-SHELL-0002] 确认模板重算失败时旧 source frames 是否仍可用于新尺寸的浮窗边界；当前错误被丢弃后继续同步。
             let _ = self
                 .floating_window_source_bridge
                 .recompute_layout(UiSize::new(self.shell_size.width, self.shell_size.height));

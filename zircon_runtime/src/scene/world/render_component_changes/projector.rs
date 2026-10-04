@@ -87,6 +87,7 @@ impl RemovalWindows {
 }
 
 #[derive(Clone, Debug, Default)]
+// 将 World 的实体脏日志与移除窗口压缩为渲染组件增量；日志丢失或代数断裂时请求全量重投影。
 pub(in crate::scene::world) struct RenderComponentChangeProjector {
     bound_world: Option<RenderDirtyWorldId>,
     journal_generation: u64,

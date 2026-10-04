@@ -1,3 +1,5 @@
+//! 数值与布尔控件在此声明可编辑属性、选项及拖动步长；注册表向模板编译器和实例状态归约器提供同一份字段说明。控件动作仍须经过描述符的事件支持检查。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::style::ButtonVariant;
 

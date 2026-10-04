@@ -1,3 +1,5 @@
+//! 反射 JSON 的持久化边界须精确迁移旧资产引用，并在发布前拒绝未来版本和非有限值。
+
 use zircon_runtime_interface::reflect::ReflectValueFloatKind;
 use zircon_runtime_interface::serialization::LoadError;
 

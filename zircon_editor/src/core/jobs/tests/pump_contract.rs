@@ -1,3 +1,4 @@
+//! 验证工作事件必须经主循环泵送才进入总线，预算延后与进度合并不能丢失生命周期边；逃逸上下文也不能在终态后再发进度。
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;

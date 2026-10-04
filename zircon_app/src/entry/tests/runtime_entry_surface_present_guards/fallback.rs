@@ -1,3 +1,6 @@
+//! 验证 reference CPU 路径必须显式 opt-in，有独立 presenter 状态及拷贝/延迟/丢帧度量，动态 API 的 unavailable 回执保留。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::sources::{runtime_app_source, runtime_session_source, runtime_surface_present_source};
 
 #[test]

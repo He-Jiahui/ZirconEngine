@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_07_submit_paths_return_errors_for_checked_viewport_records() {
     let submit_extract = include_str!(

@@ -2,6 +2,7 @@ use super::super::super::constraints::fixed_zero_constraints;
 use super::super::super::WorkbenchChromeMetrics;
 use super::super::super::{AxisConstraint, PaneConstraints, ShellRegionId, StretchMode};
 
+/// 折叠内容只保留活动rail或底部标题栏；交叉轴继续随壳伸展，不使用内容最小尺寸。
 pub(super) fn collapsed_region_constraints(
     region: ShellRegionId,
     metrics: &WorkbenchChromeMetrics,

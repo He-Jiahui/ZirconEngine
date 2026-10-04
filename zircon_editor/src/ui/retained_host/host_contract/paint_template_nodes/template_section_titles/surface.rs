@@ -1,3 +1,5 @@
+//! 背景与分隔轮廓作为一条表面命令，供图标和文字在更高层叠加；不扩展标题的命中区域。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::style::{section_title_metrics, section_title_palette};

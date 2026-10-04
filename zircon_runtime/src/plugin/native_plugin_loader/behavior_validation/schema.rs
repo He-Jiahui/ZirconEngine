@@ -9,6 +9,7 @@ pub const ZIRCON_NATIVE_EVENT_MANIFEST_SCHEMA_V3: &str = "zircon.native.event-ma
 pub const ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3: &str =
     "zircon.native.registration-manifest/3";
 
+/// Editor 入口发布序列化编辑器贡献；其余入口使用运行时注册清单，不可混用两个内容协议。
 pub(super) fn expected_registration_manifest_schema(module_kind: PluginModuleKind) -> &'static str {
     match module_kind {
         PluginModuleKind::Editor => SERIALIZED_EDITOR_CONTRIBUTION_BATCH_SCHEMA_V1,
@@ -18,6 +19,9 @@ pub(super) fn expected_registration_manifest_schema(module_kind: PluginModuleKin
     }
 }
 
+// TODO: [CR-PLUGIN-NATIVE-0004] 确认原生事件清单文本是否仅用于报告；当前只校验 schema 和非空并投影，未见解析/注册消费；下一步追踪外部订阅入口并补坏格式测试。
+/// 只检查已声明 schema 的版本和文本存在性；命令表在 ABI 解码阶段先解析，
+/// 注册内容由回放或编辑器贡献路径消费。事件文本目前仅随报告投影，语义消费尚待确认。
 pub(super) fn validate_v3_schema(
     diagnostics: &mut Vec<ValidationDiagnostic>,
     abi_version: u32,

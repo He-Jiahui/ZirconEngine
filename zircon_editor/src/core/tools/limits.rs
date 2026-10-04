@@ -1,3 +1,5 @@
+//! 给单资源等待队列与原子集合等待队列独立容量门槛；容量拒绝只限制排队，不改变已授予资源和公平晋升规则。
+
 pub const DEFAULT_MAX_SINGLE_QUEUE_PER_RESOURCE: usize = 64;
 pub const DEFAULT_MAX_SET_QUEUE: usize = 64;
 

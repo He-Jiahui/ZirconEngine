@@ -55,6 +55,7 @@ pub struct RecastCrowd {
     native_state_scratch: RefCell<Vec<ZrNavCrowdAgentState>>,
 }
 
+// SAFETY: 原生 Crowd 仅经可变借用更新；状态缓冲区使用 RefCell 且类型不实现 Sync，所有权随包装器移动。
 unsafe impl Send for RecastCrowd {}
 
 impl RecastCrowd {
@@ -81,6 +82,7 @@ impl RecastCrowd {
             .ok_or_else(|| crowd_error("navmesh asset could not create a Detour query"))?;
         let area_costs = detour_area_costs(asset);
         let mut result = ZrNavCrowdCreateResult::default();
+        // SAFETY: 查询句柄及区域代价数组在调用期间存活，结果结构可写且创建成功后才转移查询所有权。
         unsafe {
             ffi::zr_nav_crowd_create(
                 query.as_raw(),
@@ -98,6 +100,7 @@ impl RecastCrowd {
             .ok_or_else(|| crowd_error("native crowd returned a null handle"))?;
         query.into_raw();
         if result.capacity != config.max_agents {
+            // SAFETY: 非空句柄来自刚成功的创建调用，容量不符时尚未交给包装器。
             unsafe {
                 ffi::zr_nav_crowd_free(handle.as_ptr());
             }
@@ -136,6 +139,7 @@ impl RecastCrowd {
             area_mask: agent.area_mask,
         };
         let mut result = ZrNavCrowdCommandResult::default();
+        // SAFETY: Crowd 句柄有效，位置和参数在同步调用期间存活，结果结构可写。
         unsafe {
             ffi::zr_nav_crowd_add_agent(
                 self.handle.as_ptr(),
@@ -150,6 +154,7 @@ impl RecastCrowd {
 
     pub fn remove_agent(&mut self, handle: RecastCrowdAgentHandle) -> Result<(), NavigationError> {
         let mut result = ZrNavCrowdCommandResult::default();
+        // SAFETY: Crowd 句柄由本包装器持有，代理句柄作为数值传递，结果结构可写。
         unsafe {
             ffi::zr_nav_crowd_remove_agent(self.handle.as_ptr(), handle.0, &mut result);
         }
@@ -162,6 +167,7 @@ impl RecastCrowd {
         target: [Real; 3],
     ) -> Result<(), NavigationError> {
         let mut result = ZrNavCrowdCommandResult::default();
+        // SAFETY: Crowd 句柄有效，目标三坐标在同步调用期间存活，结果结构可写。
         unsafe {
             ffi::zr_nav_crowd_set_target(
                 self.handle.as_ptr(),
@@ -175,6 +181,7 @@ impl RecastCrowd {
 
     pub fn clear_target(&mut self, handle: RecastCrowdAgentHandle) -> Result<(), NavigationError> {
         let mut result = ZrNavCrowdCommandResult::default();
+        // SAFETY: Crowd 句柄有效；空目标指针是清除目标的原生 ABI 约定，结果结构可写。
         unsafe {
             ffi::zr_nav_crowd_set_target(
                 self.handle.as_ptr(),
@@ -192,6 +199,7 @@ impl RecastCrowd {
         position: [Real; 3],
     ) -> Result<(), NavigationError> {
         let mut result = ZrNavCrowdCommandResult::default();
+        // SAFETY: Crowd 句柄有效，位置三坐标在同步调用期间存活，结果结构可写。
         unsafe {
             ffi::zr_nav_crowd_sync_agent_position(
                 self.handle.as_ptr(),
@@ -205,6 +213,7 @@ impl RecastCrowd {
 
     pub fn update(&mut self, dt_seconds: Real) -> Result<(), NavigationError> {
         let mut result = ZrNavCrowdCommandResult::default();
+        // SAFETY: Crowd 句柄由本包装器独占，更新期间没有并发原生访问，结果结构可写。
         unsafe {
             ffi::zr_nav_crowd_update(self.handle.as_ptr(), dt_seconds, &mut result);
         }
@@ -217,6 +226,7 @@ impl RecastCrowd {
             .try_borrow_mut()
             .map_err(|_| crowd_error("native crowd state scratch is already in use"))?;
         let mut result = ZrNavCrowdCommandResult::default();
+        // SAFETY: 独占借用保持状态缓冲区稳定，传入容量不超过其长度，结果结构可写。
         unsafe {
             ffi::zr_nav_crowd_read_states(
                 self.handle.as_ptr(),
@@ -257,6 +267,7 @@ impl RecastCrowd {
     ) -> Result<Vec<RecastCrowdAgentState>, NavigationError> {
         let mut states = vec![ZrNavCrowdAgentState::default(); self.capacity];
         let mut result = ZrNavCrowdCommandResult::default();
+        // SAFETY: 本地状态数组在同步调用期间稳定，传入容量等于其长度，结果结构可写。
         unsafe {
             ffi::zr_nav_crowd_read_states(
                 self.handle.as_ptr(),
@@ -285,6 +296,7 @@ impl RecastCrowd {
 
 impl Drop for RecastCrowd {
     fn drop(&mut self) {
+        // SAFETY: 句柄由本包装器唯一持有且此前未释放，Drop 只释放一次。
         unsafe {
             ffi::zr_nav_crowd_free(self.handle.as_ptr());
         }
@@ -326,6 +338,7 @@ fn recast_agent_state(state: &ZrNavCrowdAgentState) -> RecastCrowdAgentState {
 }
 
 fn native_message(message: &[c_char; 256]) -> String {
+    // SAFETY: 固定消息数组由默认零值初始化，原生写入以 NUL 终止。
     unsafe { CStr::from_ptr(message.as_ptr()) }
         .to_string_lossy()
         .into_owned()

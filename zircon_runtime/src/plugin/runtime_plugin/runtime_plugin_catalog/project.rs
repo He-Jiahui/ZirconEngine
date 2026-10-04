@@ -171,6 +171,7 @@ impl RuntimePluginCatalog {
     }
 
     /// Compiles or reuses the immutable plugin plan for one catalog generation and target.
+    /// 对同一目录代、完整源清单和目标复用一次编译，产出一致的清单、依赖与扩展结果。
     pub fn compiled_project_plan(
         &self,
         manifest: &ProjectPluginManifest,

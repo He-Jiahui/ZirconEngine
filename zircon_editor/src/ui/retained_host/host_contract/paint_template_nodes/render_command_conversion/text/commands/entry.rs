@@ -11,6 +11,7 @@ use super::fallback::push_fallback_text_command;
 use super::runs::push_text_run_commands;
 use super::shaped::push_shaped_text_commands;
 
+/// 按文字运行、整行字形布局、简单回退的顺序选一路输出，装饰层仍保留原元素的绘制层级。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_text_paint_commands(
     output: &mut Vec<HostPaintCommand>,
     command: &UiRenderCommand,

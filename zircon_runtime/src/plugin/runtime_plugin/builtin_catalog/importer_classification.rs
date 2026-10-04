@@ -14,6 +14,7 @@ pub(super) fn is_importer_descriptor(package_id: &str) -> bool {
         || is_pipeline_importer_descriptor(package_id)
 }
 
+// 先按模型、媒体、管线分类；与 is_importer_descriptor 共用同一组判定，命中后不再进入其它分类器。
 pub(super) fn classify_importer_descriptor(
     package_id: &str,
     descriptor: BuiltinCatalogDescriptorBuilder,

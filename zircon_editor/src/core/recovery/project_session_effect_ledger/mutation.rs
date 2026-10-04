@@ -1,3 +1,5 @@
+//! 将台账状态变更表达为受控操作；存储层在写盘前应用并校验，防止记录与执行副作用的阶段分离。
+
 use super::ProjectSessionEffectDisposition;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

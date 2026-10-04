@@ -16,6 +16,7 @@ mod binding;
 mod payload;
 mod result;
 
+// 滚动由树的 ScrollableBox/虚拟窗口规划器裁剪并设置脏域；此入口只验证公开动作和解析目标偏移。
 pub(super) fn dispatch_scroll_to(
     surface: &mut UiSurface,
     request: &UiAccessibilityActionRequest,

@@ -7,6 +7,7 @@ use super::{
     ZrPackDeltaInstallError, ZrPackDeltaInstallReport,
 };
 
+/// 在发布前先从 base 与 delta 构造完整候选包；调用方只有验证报告后才能执行替换。
 pub(super) fn rebuild_to_staging(
     base_pack: &Path,
     delta_pack: &Path,

@@ -1,3 +1,5 @@
+//! 把自动保存成功/失败结果单独持久化为有限诊断记录；恢复时读取问题应进入诊断列表，不代替快照可用性判断。
+
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -121,6 +123,7 @@ impl AutosaveDiagnosticStore {
             if !is_diagnostic_path(&path) {
                 continue;
             }
+            // TODO: [CR-EDITOR-EDITING-0005] 确认项目诊断目录是否视为非可信输入；load逐文件无大小上限且目录项数无上限，启动读取可能受异常文件拖慢；下一步核对项目打开信任边界并用有界读取案例验证。
             let bytes = match fs::read(&path) {
                 Ok(bytes) => bytes,
                 Err(source) => {

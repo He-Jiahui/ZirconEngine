@@ -14,6 +14,8 @@ use super::{
 };
 use crate::ui::dispatch::UiNavigationDispatcher;
 
+/// 把导航 dispatcher 已执行的焦点变化转换成统一 reply 和回执。
+/// SetFocus effect 在这里是结果投影；不可再调用 effect 应用器重复变更焦点。
 pub(super) fn dispatch_navigation_input(
     surface: &mut UiSurface,
     dispatcher: &UiNavigationDispatcher,

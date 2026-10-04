@@ -1,3 +1,4 @@
+// 从视口控件绑定进入带类型的命令路径，约束错误原因、工具状态和渲染包投影一致。
 use zircon_runtime_interface::{
     math::UVec2,
     ui::{event_ui::UiNodeId, tree::UiTreeError},

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::math::Real;
 
+/// 场景资产保留质量模式；物理插件创建刚体前验证，并选择形状推导或显式惯量。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "mode", rename_all = "snake_case")]
 pub enum PhysicsMassProperties {
@@ -23,6 +24,7 @@ impl Default for PhysicsMassProperties {
 }
 
 impl PhysicsMassProperties {
+    /// 供刚体接纳路径使用；显式张量必须是有限、近似对称且正定的物理惯量。
     pub fn is_valid(self) -> bool {
         match self {
             Self::AutoFromShape { density } => density.is_finite() && density > 0.0,

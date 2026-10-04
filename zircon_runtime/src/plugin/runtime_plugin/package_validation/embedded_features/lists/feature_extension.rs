@@ -5,6 +5,8 @@ use crate::plugin::PluginPackageManifest;
 
 use super::super::row::validate_runtime_plugin_package_embedded_feature_row;
 
+/// 使用扩展列表的类别与原始行号建立特性校验视图，避免为每个嵌入特性重建身份索引。
+/// 调用时必须保留构建包投影时的列表顺序。
 pub(super) fn validate_runtime_plugin_package_feature_extension_list(
     package_manifest: &PluginPackageManifest,
     projection: &RuntimePluginPackageValidationProjection<'_>,

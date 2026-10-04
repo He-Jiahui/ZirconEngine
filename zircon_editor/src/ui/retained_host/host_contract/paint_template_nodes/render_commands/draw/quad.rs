@@ -6,6 +6,7 @@ use super::super::super::super::paint_primitives::{
 use super::super::command::HostPaintCommand;
 use super::{border::draw_border_width, color::color_with_opacity};
 
+/// 表面和边框由同一宿主命令约束裁剪与透明度，录制和即时绘制应保持一致。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_quad_command(
     frame: &mut HostRgbaFrame,
     command: &HostPaintCommand,

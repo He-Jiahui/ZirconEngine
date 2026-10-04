@@ -1,3 +1,5 @@
+//! 验证编辑器事件所有权、核心层依赖和事务形态的迁移边界。
+
 use super::support::collect_rust_files;
 
 #[test]

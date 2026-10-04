@@ -1,3 +1,5 @@
+//! 输入组件目录承诺可编辑属性、交互事件和 Material 默认值，供模板构建及表面输入两侧共同识别。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{UiComponentEventKind, UiValue};
 

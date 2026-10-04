@@ -1,3 +1,5 @@
+//! 导入与编译命令在普通按钮配方之后应用独立视觉角色；不可用状态已由上层选择器提前返回。
+
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
 use super::super::resolved_state_for_node;
@@ -13,6 +15,7 @@ pub(super) fn is_prominent_workbench_command_button(node: &TemplatePaneNodeData)
     )
 }
 
+// TODO: [CR-EDITOR-PAINT-STYLE-0002] 确认命令特例是否应沿用合成的按压态；当前仅读 node.pressed，会覆盖 enter_pressed 或声明 Pressed 的表面，补同状态等价测试。
 pub(super) fn prominent_workbench_command_style(
     node: &TemplatePaneNodeData,
     style: WorkbenchButtonStyle,

@@ -1,3 +1,5 @@
+//! 以模板控件和动作身份识别标签式按钮；同一分类也供按钮几何与活动指示器使用，不能仅凭外观状态推断导航动作。
+
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_tab_like_workbench_button(

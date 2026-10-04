@@ -1,3 +1,5 @@
+//! 复选框标记、勾号资产和文字的组合；只有标记完整装入控件时才输出可勾选图形。
+
 mod tick;
 
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};

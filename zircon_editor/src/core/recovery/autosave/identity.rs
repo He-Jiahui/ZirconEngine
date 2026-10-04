@@ -1,3 +1,5 @@
+//! 由稳定源路径导出自动保存文档身份；跨进程恢复须复用相同身份，不能使用本次运行的DocumentId替代。
+
 use std::cmp::Ordering;
 
 use serde::{Deserialize, Serialize};

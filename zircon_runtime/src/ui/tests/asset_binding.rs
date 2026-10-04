@@ -1,3 +1,4 @@
+//! 汇集作者绑定的诊断和编译夹具；子测试区分源表达式验证、编译程序与实例范围。
 use crate::ui::component::UiComponentDescriptorRegistry;
 use crate::ui::template::{
     collect_asset_binding_report, UiAssetLoader, UiDocumentCompiler, UiRuntimeCompiledAssetArtifact,

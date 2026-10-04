@@ -1,3 +1,4 @@
+//! 编译选项记录特性门控与图资源形状；它进入缓存键，调用方须先解析有效视图配置。
 use std::collections::BTreeSet;
 
 use crate::core::framework::render::{
@@ -7,6 +8,7 @@ use crate::graphics::feature::{BuiltinRenderFeature, RenderFeatureCapabilityRequ
 
 use super::AdvancedLightingCompileInputs;
 
+/// 单次视图编译的有效门控和资源形状；构造缓存键后不应再改变。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RenderPipelineCompileOptions {
     pub enabled_features: BTreeSet<BuiltinRenderFeature>,

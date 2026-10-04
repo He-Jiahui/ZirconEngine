@@ -1,3 +1,5 @@
+//! 覆盖 WAV 入口对声道布局、采样帧和有类型错误的契约；导入器调用 SoundAsset::from_wav_bytes 后，音频层按布局解释交错样本。
+
 use crate::asset::{AssetUri, SoundAsset, SoundAssetError};
 use crate::core::framework::audio::{AudioChannelLayout, AudioSpeakerChannel};
 

@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 const HUB_RECENT_PROJECTS_FILE_NAME: &str = "recent_projects.json";
 
+/// Returns the shared Hub and Editor registry path required by protocol v1.
 /// 返回协议 v1 的最近项目文件路径；缺少用户主目录环境变量时退回相对 `.zircon/hub` 路径。
 pub fn hub_recent_projects_path() -> PathBuf {
     let home = if cfg!(target_os = "windows") {

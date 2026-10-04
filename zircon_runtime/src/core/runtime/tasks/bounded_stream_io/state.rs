@@ -143,6 +143,7 @@ impl CaptureState {
         state.queued_bytes = 0;
     }
 
+    // 这里只发布协作取消标志，不清队列也不能打断阻塞 Read；close_consumer 才关闭接收并丢弃未消费记录。
     pub fn request_cancellation(&self) {
         self.lock().cancellation_requested = true;
     }

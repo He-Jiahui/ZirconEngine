@@ -1,3 +1,4 @@
+//! 状态机多层、掩码、混合模式及非法层诊断的编译契约。
 use zircon_plugin_animation_runtime::{
     compile_animation_state_machine_layers_runtime, PoseLayerBlendMode,
     StateMachineLayerCompileError,

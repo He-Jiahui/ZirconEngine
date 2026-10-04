@@ -1,3 +1,6 @@
+//! 预览天空沿用场景图的颜色与深度附件契约。
+//! 入口由内建注册表匹配，不能脱离当前 pass 的附件操作和 GPU 上下文独立录制。
+
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::render_graph::RenderGraphAttachmentOps;
 

@@ -1,3 +1,4 @@
+//! 向诊断端提供有界日志的保留量、峰值与丢弃事实；该快照用于压力观察，消费者的任务真相仍来自权威进度源。
 use std::time::Duration;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

@@ -1,3 +1,4 @@
+// 提供截图输出路径、菜单预设和窗口布局等共享测试夹具。
 use super::*;
 
 fn visual_layout_output_dir() -> PathBuf {

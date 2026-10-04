@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证工作台菜单浮层的密度和圆角。
+
 use toml::Value;
 use zircon_runtime_interface::ui::v2::UiV2NodeDefinition;
 

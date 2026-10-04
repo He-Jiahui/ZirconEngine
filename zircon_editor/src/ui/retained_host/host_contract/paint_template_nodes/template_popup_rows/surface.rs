@@ -1,3 +1,5 @@
+//! 菜单与下拉弹层的底面、行面和分隔线组织边界；三者共享同一clip和popup层序。
+
 mod background;
 mod row;
 mod separator;

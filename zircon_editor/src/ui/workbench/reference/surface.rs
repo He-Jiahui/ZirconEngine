@@ -7,6 +7,7 @@ use super::{
 };
 
 #[derive(Clone, Debug)]
+/// 可重复的参考树、节点身份和布局度量，用于几何、交互及模板对照。
 pub struct EditorWorkbenchReferenceSurface {
     pub surface: UiSurface,
     pub ids: EditorWorkbenchReferenceIds,
@@ -20,6 +21,7 @@ impl EditorWorkbenchReferenceSurface {
     }
 }
 
+/// 构造固定视觉样本；需要几何时调用其布局计算入口。
 pub fn build_editor_workbench_reference_surface(
 ) -> Result<EditorWorkbenchReferenceSurface, UiTreeError> {
     ReferenceSurfaceBuilder::new(

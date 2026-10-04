@@ -1,3 +1,5 @@
+//! 对话框与动作的语义颜色出口，供容器、正文和动作提交共享使用。
+
 mod actions;
 mod border;
 mod surface;

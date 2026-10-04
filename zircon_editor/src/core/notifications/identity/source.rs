@@ -1,3 +1,4 @@
+//! 把内建或插件生产者身份保留在通知载荷中，供诊断及展示追溯来源；来源标记本身不执行插件动作或授予资源写入权。
 use std::sync::Arc;
 
 use super::NotificationIdentityError;

@@ -1,3 +1,6 @@
+//! Lighting 分组标题以配套下拉图标加文本表达专用外观；这里只提交视觉命令，展开状态由宿主控件维护。
+//! 图标与文本共用基础层的局部次序，调用者须为偏移保留层级余量。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_inspector_row_geometry::inspector_row_metrics;

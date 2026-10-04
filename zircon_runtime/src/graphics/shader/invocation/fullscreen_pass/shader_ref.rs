@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::resource::{AssetReference, ResourceLocator, ResourceLocatorError};
 
+/// 指向全屏 pass 的片元入口；这里只建立资源定位，入口阶段的有效性由 Builder::build 验证。
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FullscreenShaderRef {
     pub shader: AssetReference,

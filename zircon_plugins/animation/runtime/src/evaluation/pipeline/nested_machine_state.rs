@@ -1,3 +1,4 @@
+//! 清理已离场实体的子状态机状态与转换缓存，避免新实体继承旧实例历史。
 use std::collections::BTreeSet;
 
 use zircon_runtime::scene::EntityId;

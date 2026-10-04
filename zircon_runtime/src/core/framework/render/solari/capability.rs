@@ -1,5 +1,6 @@
 use super::super::RenderCapabilityKind;
 
+/// Solari 实验路径的硬件前提集合；报告逐项记录缺失能力而非只检查总开关。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SolariCapabilityRequirement {
     InlineRayQuery,

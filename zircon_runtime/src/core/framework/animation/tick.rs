@@ -5,6 +5,8 @@ use crate::core::math::Real;
 
 use super::{AnimationEventRecord, AnimationPlaybackSettings};
 
+/// 传给管理器的世界帧输入；调用方需使用 `sanitized_delta_seconds`，
+/// 防止非有限值或倒退时间污染后续播放计算。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationTickRequest {
     pub world: WorldHandle,
@@ -42,6 +44,8 @@ impl AnimationTickRequest {
     }
 }
 
+/// 世界帧动画工作的聚合诊断；计数与事件描述一次调度结果，
+/// 不承担姿态所有权，姿态另由 Level 帧快照发布。
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct AnimationTickReport {
     pub world: WorldHandle,

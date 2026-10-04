@@ -10,6 +10,7 @@ pub struct NativeHostApiV4RegistrationPolicy {
 }
 
 impl NativeHostApiV4RegistrationPolicy {
+    /// 构造一次注册入口使用的宿主授权集合；重复能力和资源名归并后供访问计划核验。
     pub fn new<C, R, CS, RS>(granted_capabilities: C, known_resource_ids: R) -> Self
     where
         C: IntoIterator<Item = CS>,

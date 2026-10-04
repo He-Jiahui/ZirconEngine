@@ -1,3 +1,5 @@
+//! 主机镜像验证纹理区域、mip/层/aspect 和字节保真；紧密行布局是模型输入，不代表原生命令对齐许可。
+
 use crate::DeterministicRhiContractDevice;
 use zr_rhi::{
     BufferDesc, BufferUsage, CommandList, RenderDevice, RenderQueueClass, TextureCopyAspect,

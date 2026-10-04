@@ -1,9 +1,13 @@
+//! 把已发生的按压状态呈现为静态涟漪；输入事件与按压原点由节点投影负责。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_style::is_button_disabled;
 use super::super::state::MATERIAL_STATE_LAYER_OPACITY_PRESS;
 use super::geometry::{ripple_clip, ripple_radius, ripple_rect};
 
+/// 供状态层入口追加按压反馈；调用方须先保证表面与 clip 有交集。
+/// 受限涟漪的空交集会变成无裁剪载荷，不能将完全离屏的节点直接交给此入口。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ripple_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

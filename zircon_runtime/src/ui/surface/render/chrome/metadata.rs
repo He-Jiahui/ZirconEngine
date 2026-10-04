@@ -1,6 +1,7 @@
 use toml::Value;
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 
+/// 决定外壳默认调色板、分隔边与内容度量的视觉分类，不改变节点的业务组件或交互身份。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum ChromeKind {
     Shell,
@@ -11,6 +12,10 @@ pub(super) enum ChromeKind {
     Viewport,
 }
 
+/// 显式组件名优先；未识别的组件还可通过工作台控件标识约定进入外壳绘制。
+/// 该结果同时被提取阶段用于抑制通用内容，新增匹配规则必须审查这一调用后果。
+// TODO: [CR-UI-SURFACE-0007] 核实控件标识中的 Panel/Dock/Toolbar 等是否被约束为外壳语义；
+// 普通组件仅因标识包含这些片段也会失去通用文字、图片和背景，现有测试仅覆盖显式外壳组件。
 pub(super) fn chrome_kind(metadata: &UiTemplateNodeMetadata) -> Option<ChromeKind> {
     match metadata.component.as_str() {
         "WorkbenchShell" | "Shell" | "WorkbenchWindow" => Some(ChromeKind::Shell),

@@ -1,3 +1,4 @@
+//! 管理器贡献从扩展目录投影到模块服务，身份、重复项和所有者约束在登记入口报告。
 use crate::builtin::RuntimePluginId;
 use crate::core::runtime::ServiceObject;
 use crate::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode};

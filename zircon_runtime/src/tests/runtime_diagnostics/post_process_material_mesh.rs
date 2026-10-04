@@ -1,3 +1,4 @@
+//! 校验模拟统计中后处理、材质与网格提交指标；共享断言保留值、单位和标签的完整契约。
 use crate::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 use super::support::{

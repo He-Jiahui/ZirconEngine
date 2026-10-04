@@ -1,3 +1,4 @@
+// 功能提交前规范化集合顺序，使静态与运行时签名按内容比较。
 use super::super::super::super::types::{
     PendingOptionalFeatureManifest, StaticOptionalFeatureManifest,
 };

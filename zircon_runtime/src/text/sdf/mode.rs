@@ -1,3 +1,5 @@
+//! 把烘焙通道数、图集存储格式和 shader 判别值绑定到同一模式，供离线文件、运行时图集与 GPU 解码共享。
+
 use crate::text::atlas::GlyphAtlasFormat;
 
 /// Pixel encoding chosen after shaping and before glyph atlas allocation.

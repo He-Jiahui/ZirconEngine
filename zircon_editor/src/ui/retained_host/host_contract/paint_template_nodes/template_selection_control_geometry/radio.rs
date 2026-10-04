@@ -1,3 +1,5 @@
+//! 单选点大小允许正的实例 value_number 覆盖默认；最终可见点由共享居中框限制在标记内。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::metrics::workbench_selection_control_metrics;
 

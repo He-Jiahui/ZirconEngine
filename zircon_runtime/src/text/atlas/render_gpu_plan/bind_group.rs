@@ -1,3 +1,6 @@
+//! CPU 图集计划与渲染资源创建共享的纹理数组、过滤采样器及视口绑定约定。
+//! 绑定编号必须与拼接后的 WGSL 一致，逻辑图集页索引对应纹理数组层。
+
 const GLYPH_ATLAS_GPU_BIND_GROUP_INDEX: u32 = 0;
 const GLYPH_ATLAS_GPU_ATLAS_TEXTURE_BINDING: u32 = 0;
 const GLYPH_ATLAS_GPU_ATLAS_SAMPLER_BINDING: u32 = 1;
@@ -41,6 +44,7 @@ pub(crate) struct GlyphAtlasGpuViewportUniformBinding {
 }
 
 /// Fixed texture-array and sampler binding contract consumed by the future wgpu atlas renderer.
+/// 由图集渲染器资源创建路径消费，绑定编号与着色器布局必须同步。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct GlyphAtlasGpuBindGroupLayout {
     pub(crate) atlas_texture: GlyphAtlasGpuTextureBinding,

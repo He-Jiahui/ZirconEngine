@@ -1,3 +1,5 @@
+//! 票据进入已提交或已完成状态后可启动映射；设备所有者在刷新或轮询路径收集回调，设备轮询推进回调执行。
+//! 批次与查询共用票据状态、有界投递和终态语义。
 use std::collections::{HashMap, VecDeque};
 use std::sync::mpsc::{self, TryRecvError};
 
@@ -271,6 +273,7 @@ impl WgpuDiagnosticReadbackService {
         self.drain_tracker_receipts();
     }
 
+    // 场景提交取得票据后才绑定暂存缓冲；映射开始必须等待该票据进入已提交状态。
     pub(crate) fn bind_batch(
         &mut self,
         ticket: SubmissionTicket,
@@ -295,6 +298,7 @@ impl WgpuDiagnosticReadbackService {
         Ok(frame_key)
     }
 
+    // 刷新提交和设备轮询都可汇总已到达的回调，再按已登记批次的完成次序投递终态和数据。
     pub(crate) fn collect_completed_maps(
         &mut self,
         mut status_for: impl FnMut(SubmissionTicket) -> Result<SubmissionStatus, RhiError>,
@@ -623,6 +627,7 @@ impl WgpuDiagnosticReadbackService {
         }
     }
 
+    // 完成投递也受收据数与字节预算限制；旧投递可被淘汰而不改变已记录终态。
     pub(super) fn push_delivery(&mut self, delivery: WgpuDiagnosticReadbackDelivery) {
         self.metrics.record_terminal(delivery.receipt());
         let receipt_limit = self.tracker.budget().max_completed_receipts();

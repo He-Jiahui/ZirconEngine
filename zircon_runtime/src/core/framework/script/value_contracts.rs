@@ -33,6 +33,7 @@ impl ScriptHostValueKind {
     }
 }
 
+/// 反射描述符中的 VM 类型名称及其宿主值类别，供注册校验和文档生成共用。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScriptHostTypeRef {
     pub value_kind: ScriptHostValueKind,
@@ -75,6 +76,7 @@ impl Default for ScriptHostPrototypeKind {
     }
 }
 
+/// 跨 VM/宿主拥有的值传输形式；热路径读取优先使用 ScriptHostValueRef 的借用视图。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "value", rename_all = "snake_case")]
 pub enum ScriptHostValue {

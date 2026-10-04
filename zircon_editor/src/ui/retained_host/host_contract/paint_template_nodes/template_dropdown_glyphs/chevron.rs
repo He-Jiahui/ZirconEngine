@@ -1,3 +1,5 @@
+//! 下拉箭头沿用入口传入的样式与密度快照；按统一 SVG 资产路径绘制，不维护手工图标位图。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchDropdownStyle;
@@ -6,6 +8,7 @@ use super::super::template_icon_assets::push_icon_asset_pixels;
 
 const DROPDOWN_CHEVRON_ICON: &str = "zircon_editor_shell/toolbar/dropdown.svg";
 
+/// 入口在 dropdown_chevron_fits 后调用；继续防御非有限尺寸，并用同帧的 style/metrics 投影 SVG 颜色与位置。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dropdown_chevron(
     commands: &mut Vec<HostPaintCommand>,
     rect: &FrameRect,

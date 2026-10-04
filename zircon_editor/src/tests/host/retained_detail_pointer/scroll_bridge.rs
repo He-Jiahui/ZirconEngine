@@ -1,3 +1,4 @@
+// 从控制台、资产和检查器滚动桥进入路由，约束边界裁剪、重复布局复用和直接回执。
 use crate::ui::retained_host::console_content_extent;
 use crate::ui::retained_host::detail_pointer::{
     asset_details_content_extent, asset_details_scroll_layout, console_scroll_layout,

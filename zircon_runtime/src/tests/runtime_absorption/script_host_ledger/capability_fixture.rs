@@ -1,3 +1,4 @@
+//! 脚本宿主函数的能力、注册表和文档账本需相互对应。保存同组守卫使用的局部数据或辅助变换。
 use std::sync::Arc;
 
 use crate::core::framework::bridge::PluginInterface;

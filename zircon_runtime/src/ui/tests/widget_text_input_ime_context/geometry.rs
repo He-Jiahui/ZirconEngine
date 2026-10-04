@@ -1,3 +1,5 @@
+//! 输入法候选位置必须取当前排版与组合串几何；软换行、制表符、竖排和双向文字边界都会影响宿主光标矩形。
+
 use crate::{
     core::framework::input::{ImeCursorArea, ImeCursorRange, ImeHostRequest, ImeSurroundingText},
     ui::{

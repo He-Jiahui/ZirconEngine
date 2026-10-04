@@ -1,3 +1,4 @@
+//! 为遗留接口清理集中声明路径、子模块与锚点清单；消费者把这些值用于源码检查，清单中的名称不证明对应行为已执行。
 pub(super) const STRUCTURE_GUARD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners.rs";
 pub(super) const LATE_API_CLEANUP_BUDGETS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_owners/budgets.rs";
 pub(super) const LATE_API_CLEANUP_DELEGATION_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_owners/delegation.rs";

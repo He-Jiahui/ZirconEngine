@@ -28,6 +28,7 @@ const TEMPORAL_CAMERA_MAX_CLIP_PLANE_RELATIVE_DELTA: Real = 0.5;
 const TEMPORAL_CAMERA_MIN_PROJECTION_PARAMETER: Real = 0.001;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 帧提取交给图形后端的相机值快照；场景和编辑器可独立生产它，后端无需反查实时场景。
 pub struct ViewportCameraSnapshot {
     pub transform: Transform,
     /// Selects the render schedule independently from the projection matrix.
@@ -75,6 +76,7 @@ impl ViewportCameraSnapshot {
             .primary_extent()
     }
 
+    /// 历史纹理发布与相机速度生成共用的切镜门槛；调用方仍须检查视口尺寸和前帧资源。
     pub fn supports_temporal_reprojection_from(&self, previous: &Self) -> bool {
         if self.projection_mode != previous.projection_mode
             || self.dynamic_resolution != previous.dynamic_resolution

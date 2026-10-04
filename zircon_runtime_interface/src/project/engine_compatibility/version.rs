@@ -4,6 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::ProjectEngineVersionParseError;
 
+/// Canonical semantic version of the running editor engine selected for preflight.
 /// 预检所用的运行中 Editor 引擎版本；序列化为文本，反序列化时再次按 semver 校验。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProjectEngineVersion(semver::Version);

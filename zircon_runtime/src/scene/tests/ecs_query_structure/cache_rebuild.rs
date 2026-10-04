@@ -1,3 +1,4 @@
+//! QueryState 以原型代际驱动局部计划更新；计划预绑定存储槽与 Rust 类型供缓存读取使用。
 use super::*;
 
 #[test]
@@ -7,6 +8,7 @@ fn query_state_cache_compiles_one_binding_plan_per_matching_archetype() {
     let plan = read_source(&query_root.join("query_state/archetype_plan.rs"));
 
     assert!(cache.contains("world.matching_query_archetypes(&self.access)"));
+    // BUG: [CR-SCENE-TEST-QRY-0003] 计划编译现用 reserve/for/push，旧 map 字符串不存在，此结构测试必失败。证据：query_state/cache.rs。
     assert!(cache.contains(".map(|archetype| self.compile_archetype_plan(world, archetype))"));
     assert!(cache.contains("Vec::with_capacity(self.access.reads().len())"));
     assert!(cache.contains("for component_id in self.access.reads().iter().copied()"));
@@ -20,6 +22,7 @@ fn query_state_cache_compiles_one_binding_plan_per_matching_archetype() {
     );
     let location =
         read_source(&manifest_dir().join("src/scene/ecs/storage/component_storage/location.rs"));
+    // BUG: [CR-SCENE-TEST-QRY-0004] 字段实际为 pub(crate)，旧可见性字符串不存在，断言必失败。证据：storage/component_storage/location.rs。
     assert!(
         location.contains("pub rust_type_id: Option<TypeId>"),
         "the per-row projection must carry the binding type token without a runtime registry probe"
@@ -35,6 +38,7 @@ fn query_state_membership_changes_refresh_local_plans_without_global_projection_
     assert!(cache.contains("if self.cached_archetype_generation == archetype_generation"));
     assert!(cache.contains("world.matching_query_archetypes_from("));
     assert!(cache.contains("if new_matches.is_empty()"));
+    // BUG: [CR-SCENE-TEST-QRY-0005] 新原型计划现以 reserve/for/push 追加，旧 extend 锚点不存在，断言必失败。证据：query_state/cache.rs。
     assert!(cache.contains("self.cached_archetype_plans.extend("));
     assert!(cache.contains("self.refresh_plan_memberships(world);"));
     assert!(cache.contains("for plan in &mut self.cached_archetype_plans"));

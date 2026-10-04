@@ -1,3 +1,4 @@
+//! HRTF 状态按声源、监听器和配置身份分隔；源环境处理链负责使用它，Kira 实时输出尚未调用该处理链。
 mod apply;
 mod key;
 mod output_bed;

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{type_path::validate_type_path, ReflectError};
 
+/// 反射读写请求的组件或资源目标；构造器校验类型路径，是否已注册及实例是否存在仍由 World 反射入口检查。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum ReflectObjectAddress {

@@ -1,3 +1,6 @@
+//! 固定 viewport 交互的动态 Runtime 所有权。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::sources::runtime_application_handler_source;
 
 #[test]

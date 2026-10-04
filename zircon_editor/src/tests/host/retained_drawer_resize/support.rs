@@ -1,3 +1,4 @@
+// 为尺寸调整派发与命中测试建立可比较的工作台布局帧。
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 

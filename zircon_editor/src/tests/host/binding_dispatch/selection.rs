@@ -1,3 +1,4 @@
+// 从层级树选择绑定进入派发与应用路径，约束场景节点选择同步到编辑器状态。
 use super::support;
 use crate::core::editor_event::SelectionHostEvent;
 use crate::core::play::WorldDomain;

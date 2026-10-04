@@ -1,4 +1,5 @@
 //! Static contracts for React + Material UI data container components.
+//! 固定数据组件家族承接底层呈现原语、页面只组合 DTO 与共享组件的分工。
 
 use std::{fs, path::PathBuf};
 
@@ -10,6 +11,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path)).unwrap_or_else(|error| {
@@ -36,6 +38,7 @@ fn assert_not_contains_any(source_path: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+/// 检查页面可依赖的数据家族公共出口，避免调用方绕到私有文件或重新暴露历史样例条带。
 #[test]
 fn data_components_are_reexported_from_the_react_barrel() {
     let index = read_crate_file("web/src/components/data/index.ts");
@@ -63,6 +66,7 @@ fn data_components_are_reexported_from_the_react_barrel() {
     );
 }
 
+/// 固定列表、树与表格拥有选中、展开和行交互的基础呈现职责，业务页面只提供数据与回调。
 #[test]
 fn list_tree_and_table_components_own_material_data_primitives() {
     for (source_path, snippets) in [
@@ -116,6 +120,7 @@ fn list_tree_and_table_components_own_material_data_primitives() {
     }
 }
 
+/// 锁定卡片、封面、指标、状态和空态共用的展示职责，使页面不用再次建立同类视觉语义。
 #[test]
 fn cards_metrics_badges_and_empty_states_are_shared_data_atoms() {
     for (source_path, snippets) in [
@@ -189,6 +194,7 @@ fn cards_metrics_badges_and_empty_states_are_shared_data_atoms() {
     }
 }
 
+/// 检查快捷行和引擎行复用同一交互组件边界，调用方用 DTO 与回调决定实际操作目标。
 #[test]
 fn interactive_data_rows_use_shared_row_components() {
     for (source_path, snippets) in [
@@ -224,6 +230,7 @@ fn interactive_data_rows_use_shared_row_components() {
     }
 }
 
+/// 核对业务页面的数据家族依赖与响应式布局，并限制页面直接拥有底层数据控件。
 #[test]
 fn pages_compose_shared_data_components_instead_of_raw_data_material() {
     for (source_path, snippets) in [
@@ -348,6 +355,7 @@ fn pages_compose_shared_data_components_instead_of_raw_data_material() {
     );
 }
 
+/// 锁定后端展示数据在前端的形状，保证行组件接收项目、资源和历史记录而不是自行发现业务状态。
 #[test]
 fn backend_types_feed_react_data_components() {
     let types = read_crate_file("web/src/types/hub.ts");
@@ -375,6 +383,7 @@ fn backend_types_feed_react_data_components() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn data_container_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_data_container_primitives_contract.rs");
@@ -396,6 +405,7 @@ fn data_container_contract_is_cut_over_to_react_sources() {
     }
 }
 
+/// 供页面组合守卫约束数据原语导入；当前输入契约是单行导入文本，结果不代表完整语法分析。
 fn assert_page_material_imports_do_not_include_data_primitives(source_path: &str, source: &str) {
     let forbidden_material_imports = [
         "Card",

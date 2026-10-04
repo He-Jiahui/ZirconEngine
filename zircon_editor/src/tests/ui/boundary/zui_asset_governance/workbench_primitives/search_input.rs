@@ -1,3 +1,5 @@
+//! 读取生产 ZUI 资产并验证搜索输入原语所需图标资产与覆盖属性。
+
 use super::super::support::{editor_asset_root, load_zui_document};
 
 #[test]

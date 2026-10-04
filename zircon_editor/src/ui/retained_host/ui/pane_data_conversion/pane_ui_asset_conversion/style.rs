@@ -1,3 +1,4 @@
+//! 样式面板的数据来自同一资产呈现快照，宿主只接收可绘制字段和动作标识。
 use crate::ui::asset_editor;
 use crate::ui::retained_host as host_contract;
 

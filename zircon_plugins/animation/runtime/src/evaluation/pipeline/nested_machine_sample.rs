@@ -1,3 +1,4 @@
+//! 在解析后的子状态机上采样姿态、事件与转换进度；子机时间和根机时间共用同一帧参数投影。
 use std::sync::Arc;
 
 use zircon_runtime::asset::ProjectAssetManager;

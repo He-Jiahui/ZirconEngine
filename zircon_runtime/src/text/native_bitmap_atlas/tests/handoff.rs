@@ -1,3 +1,5 @@
+//! 用合成帧报告固定交接优先级：完整单格式或混合格式可替换，离屏空帧可空闲，可见缺图、预算压力及缺背景需退化。
+
 use super::*;
 use crate::text::atlas::GlyphAtlasBitmapRetryFrameSubmissionReport;
 

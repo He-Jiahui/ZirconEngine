@@ -11,6 +11,7 @@ impl RetainedEditorHost {
         self.sync_asset_pointer_layout("browser", &chrome.asset_browser);
     }
 
+    // 资产快照变化时重建树、内容和引用列表的指针布局；仅 pane 尺寸变化走下方几何同步路径。
     pub(in crate::ui::retained_host::app) fn sync_asset_pointer_layout(
         &mut self,
         surface_mode: &str,

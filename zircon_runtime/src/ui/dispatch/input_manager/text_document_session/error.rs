@@ -10,6 +10,7 @@ pub(in crate::ui) enum UiTextDocumentSessionError {
 }
 
 impl UiTextDocumentSessionError {
+    /// 跨输入报告传递稳定且不含文本内容的失败码；不会暴露文档载荷或借错误码放宽准入限制。
     pub(in crate::ui) const fn diagnostic_code(self) -> &'static str {
         match self {
             Self::SourceNotSynchronized => "source_not_synchronized",

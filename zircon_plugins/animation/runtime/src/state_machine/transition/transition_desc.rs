@@ -1,3 +1,4 @@
+//! 转换持续时间、归一退出门槛和中断策略的有界描述；状态机候选选择以此判定时机。
 use zircon_runtime::core::math::Real;
 
 use super::InterruptionPolicy;

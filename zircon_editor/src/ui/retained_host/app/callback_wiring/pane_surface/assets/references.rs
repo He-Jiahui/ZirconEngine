@@ -2,6 +2,7 @@ use super::*;
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::retained_host::PaneSurfaceHostContext;
 
+// 引用列表的点击、拖动和滚动共享 pane 来源窗口；hover 仍由宿主弱引用独立更新。
 pub(super) fn wire_asset_reference_callbacks(
     pane_surface_host: &PaneSurfaceHostContext,
     ui: &UiHostWindow,

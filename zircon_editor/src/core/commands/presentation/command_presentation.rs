@@ -1,3 +1,5 @@
+//! 把命令身份、翻译键与已准入的插件词包连接起来；可序列化声明不含运行时绑定，宿主应在贡献准入时重绑后再生成界面投影。
+
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -62,6 +64,7 @@ impl EditorCommandPresentation {
         self.description_key.as_str()
     }
 
+    // 由贡献准入路径校验包身份与必需词条；反序列化后缺少绑定时仅显示原键，调用方不能假定包已恢复。
     pub(crate) fn bind_bundle(&mut self, bundle: &EditorLocalizationBundle) -> Result<(), String> {
         let Some(expected_id) = self.source.bundle_id() else {
             return Err("built-in command presentation cannot bind a plugin bundle".to_string());
@@ -107,6 +110,7 @@ impl EditorCommandPresentation {
     }
 }
 
+// 相等性比较贡献声明，运行时包绑定由注册目录的生命周期维护，不作为持久化声明身份。
 impl PartialEq for EditorCommandPresentation {
     fn eq(&self, other: &Self) -> bool {
         self.source == other.source

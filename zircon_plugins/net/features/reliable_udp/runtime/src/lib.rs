@@ -1,3 +1,6 @@
+//! 集中导出 reliable UDP feature、内存 manager 和 wire header/packet DTO，供插件目录与调用者使用。
+//! wire 编解码与实际 socket 收发之间尚需明确连接层。
+
 mod capability;
 mod feature;
 mod manager;

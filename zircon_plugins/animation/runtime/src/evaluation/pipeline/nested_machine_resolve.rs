@@ -1,3 +1,4 @@
+//! 逐级解析子状态机，直到当前层需要转换或到达可采样叶状态；根活动状态仍归根播放器所有。
 use std::sync::Arc;
 
 use zircon_runtime::asset::{AssetId, ProjectAssetManager};

@@ -1,3 +1,5 @@
+//! 后端桥只转换 Taffy 能精确保留的容器和有限样式值；其余语义交还 Zircon 并记录可诊断回退。
+
 use crate::ui::layout::{taffy_display_for_family, taffy_style_for_container};
 use taffy::style::{Dimension, Display, FlexDirection, FlexWrap, LengthPercentage};
 use zircon_runtime_interface::ui::layout::{

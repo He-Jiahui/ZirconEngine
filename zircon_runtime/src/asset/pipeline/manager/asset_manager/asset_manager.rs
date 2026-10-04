@@ -10,6 +10,7 @@ use crate::asset::{
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+/// 供 Runtime/Editor 使用的项目资产服务边界：项目代次、导入器、监听与状态查询共用一个所有者。
 pub trait AssetManager: Send + Sync {
     fn pipeline_info(&self) -> AssetPipelineInfo;
     fn register_asset_importer(

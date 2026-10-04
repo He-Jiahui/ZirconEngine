@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+/// HZB 物理纹理的采样身份；绑定缓存用它区分重建后的同名历史资源。
 pub(crate) struct HzbSampledResourceIdentity(u64);
 
 static NEXT_HZB_SAMPLED_RESOURCE_ID: AtomicU64 = AtomicU64::new(1);

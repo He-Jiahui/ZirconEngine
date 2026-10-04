@@ -1,3 +1,5 @@
+//! 验证控制台启动模板加载、壳区域自托管及宿主节点投影。
+
 use crate::ui::layouts::views::console_pane_nodes;
 use zircon_runtime::ui::v2::UiV2AssetLoader;
 use zircon_runtime_interface::ui::layout::UiSize;

@@ -9,6 +9,7 @@ use super::scene_gizmo_pass::SceneGizmoPass;
 const ICON_SHADER: &str = include_str!("../../shaders/icon.wgsl");
 
 impl SceneGizmoPass {
+    /// 与场景 uniform 和图标纹理布局配套创建绘制资源；颜色格式必须匹配最终叠加目标。
     pub(crate) fn new(
         device: &wgpu::Device,
         target_format: wgpu::TextureFormat,

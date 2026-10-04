@@ -6,6 +6,7 @@ use zircon_runtime_interface::ZrRuntimeViewportHandle;
 use super::SurfaceLease;
 use crate::core::framework::window::{DisplayId, DisplayTopologyGeneration, WindowId};
 
+/// 表面租约状态转换的拒绝原因，供调用方决定取消准备、重新读取拓扑或完成旧租约退役。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SurfaceLeaseError {
     InvalidViewport {

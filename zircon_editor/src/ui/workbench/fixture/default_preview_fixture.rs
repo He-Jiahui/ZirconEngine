@@ -8,6 +8,7 @@ use super::{
     ensure_ui_asset_descriptor::ensure_ui_asset_descriptor, PreviewEditorData, PreviewFixture,
 };
 
+/// 装配跨布局、视图与编辑数据的共同预览基线；内嵌资源损坏视为夹具错误。
 pub fn default_preview_fixture() -> PreviewFixture {
     let mut descriptors: Vec<ViewDescriptor> =
         serde_json::from_str(DEFAULT_DESCRIPTORS_JSON).expect("preview view descriptors fixture");

@@ -1,3 +1,4 @@
+// 结构测试读取当前 crate 的生产源码；运行环境须保留编译时清单目录和对应文件，不能只搬运测试二进制。
 use std::path::{Path, PathBuf};
 
 pub(crate) fn src_root() -> PathBuf {

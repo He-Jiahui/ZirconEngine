@@ -1,3 +1,5 @@
+//! 通知队列的定时事件携带旧项身份；过期回调不可关闭已晋级的新通知。
+
 use std::collections::BTreeMap;
 
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};

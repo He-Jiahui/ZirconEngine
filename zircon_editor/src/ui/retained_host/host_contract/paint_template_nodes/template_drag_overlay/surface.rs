@@ -1,3 +1,6 @@
+//! 拖拽预览与目标的底面提交；预览图标是许可色块的 fallback，不代表真实资产缩略图。
+//! 调用方已选择位置、尺寸和顺序，本层保持传入 clip，避免落点反馈越过宿主绘制边界。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::{layout, style};

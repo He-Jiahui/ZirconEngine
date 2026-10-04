@@ -1,3 +1,5 @@
+//! 画布承载与停靠布局声明编辑器插槽、窗口身份和能力要求，供模板准入和宿主装配。CanvasRender/Canvas 与 Editor 分别表达画布与编辑环境需求，宿主仍负责创建实际视口或窗口。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

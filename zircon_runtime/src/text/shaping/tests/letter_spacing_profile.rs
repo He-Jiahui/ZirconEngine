@@ -1,3 +1,6 @@
+//! 手动 release 性能样本：比较现行整形与测试内的候选字间距处理，记录字素、后端与缓存工作量。
+//! 样本签名用于重复运行的一致性；候选尚未进入正式布局与缓存契约，数值不作为机器耗时验收阈值。
+
 use std::hint::black_box;
 use std::mem::size_of;
 use std::time::Instant;
@@ -602,6 +605,8 @@ mod rss {
         let mut counters = MaybeUninit::<ProcessMemoryCounters>::zeroed();
         let counters_ptr = counters.as_mut_ptr();
         // SAFETY: the ABI-sized counter buffer and process handle remain valid for this OS call.
+        // SAFETY: repr(C) 缓冲区仅含整数且已全零初始化，写入长度与传入容量一致；
+        // 当前进程伪句柄在调用期间有效，断言 OS 成功后才读取工作集字段。
         unsafe {
             (*counters_ptr).cb = size_of::<ProcessMemoryCounters>() as u32;
             assert_ne!(

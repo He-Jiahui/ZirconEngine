@@ -1,3 +1,4 @@
+// 核对属性行和变换轴控件的排列、状态及说明文本避让关系。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

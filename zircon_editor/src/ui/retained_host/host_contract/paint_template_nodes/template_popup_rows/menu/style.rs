@@ -1,3 +1,5 @@
+//! 将菜单项的显式状态与原始loading/danger flag映射为共享popup行样式；仅影响呈现。
+
 use super::super::super::super::data::TemplatePaneMenuItemData;
 use super::super::super::style_selector::{
     select_workbench_popup_row_style, WorkbenchPopupRowState, WorkbenchPopupRowStyle,

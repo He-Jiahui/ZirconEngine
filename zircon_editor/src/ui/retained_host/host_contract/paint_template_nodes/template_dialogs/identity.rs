@@ -1,3 +1,6 @@
+//! 把非对话框、关闭对话框与三种打开状态显式区分，供分派决定是否阻止 fallback。
+//! ConfirmDialog 与 AlertDialog 都有严重性装饰，但它们的正文和动作布局合同不同。
+
 use super::super::super::data::TemplatePaneNodeData;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

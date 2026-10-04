@@ -1,3 +1,4 @@
+//! 输出状态保留请求的设备描述及最近一次启动诊断，供编辑器即使在后端不可用时显示原因。
 use zircon_runtime::core::framework::sound::{SoundOutputDeviceDescriptor, SoundOutputDeviceState};
 
 use crate::SoundConfig;

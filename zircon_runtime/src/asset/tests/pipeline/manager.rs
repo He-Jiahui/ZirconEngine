@@ -1,3 +1,5 @@
+//! 这些集成测试从项目目录进入 ProjectAssetManager，再观察资源记录、运行时驻留和变更发布。
+
 use crossbeam_channel::RecvTimeoutError;
 use std::fs;
 use std::time::{Duration, Instant};

@@ -1,3 +1,4 @@
+/// 字体句柄所属的集合身份；解析字形时必须与当前集合快照配对。
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TextFontCollectionHandle(u64);

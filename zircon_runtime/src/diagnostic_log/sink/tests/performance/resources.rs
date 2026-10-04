@@ -1,3 +1,4 @@
+//! 持有测试状态、RSS 采样器和完成标志；正常路径先关闭 sink 再取快照，异常 drop 路径仍尝试有界关闭。
 use std::sync::Arc;
 use std::time::Duration;
 

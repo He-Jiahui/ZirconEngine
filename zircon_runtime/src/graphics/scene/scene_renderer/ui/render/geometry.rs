@@ -3,6 +3,7 @@ use zircon_runtime_interface::ui::layout::UiFrame;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
+/// UI 绘制顶点与 screen_space_ui 着色器的位置 0–6 属性契约；包含圆角和边框的解析覆盖参数。
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiVertex {
     pub(super) position: [f32; 2],
     pub(super) color: [f32; 4],
@@ -120,6 +121,7 @@ fn push_rect_geometry(
     ]);
 }
 
+/// 用同一几何覆盖区承载边框和填充，避免两次半透明叠加在圆角边缘产生缝隙。
 pub(super) fn push_rounded_box(
     vertices: &mut Vec<ScreenSpaceUiVertex>,
     frame: UiFrame,
@@ -254,6 +256,7 @@ pub(in crate::graphics::scene::scene_renderer::ui) fn frame_to_scissor(
 ) -> Option<ScreenSpaceUiScissor> {
     let x = frame.x.max(0.0).floor() as u32;
     let y = frame.y.max(0.0).floor() as u32;
+    // BUG: [CR-SCENE-UI-0004] 小数起点与宽度独立取整会缩短右/下边界；例如 x=0.75、宽=1 得到 [0,1)，漏掉应覆盖的像素列 1。
     let width = frame.width.max(0.0).ceil() as u32;
     let height = frame.height.max(0.0).ceil() as u32;
     (width > 0 && height > 0).then_some(ScreenSpaceUiScissor {
@@ -264,6 +267,7 @@ pub(in crate::graphics::scene::scene_renderer::ui) fn frame_to_scissor(
     })
 }
 
+/// 先按视口和命令裁剪求交，再换算物理 scissor；无显式裁剪时沿用调用方的完整视口边界。
 pub(in crate::graphics::scene::scene_renderer::ui) fn clipped_scissor(
     frame: UiFrame,
     clip_frame: Option<UiFrame>,

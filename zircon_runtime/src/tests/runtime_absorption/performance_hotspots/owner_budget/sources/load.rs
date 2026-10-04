@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。提取源文件或定义分类规则，供同组守卫复用。
 use super::OwnerBudgetSources;
 
 pub(super) fn load() -> OwnerBudgetSources {

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 单个精灵的图像布局策略；顶点构建端将平铺和九宫格展开为受预算限制的切片。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum RenderSpriteImageMode {
     #[default]
@@ -38,6 +39,7 @@ pub enum RenderSpriteScalingMode {
     FitEnd,
 }
 
+/// 九宫格源边框与中间/侧边缩放约定；必须与源矩形和绘制尺寸一起解释。
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RenderSpriteSlicer {
     pub border: RenderSpriteSliceBorder,

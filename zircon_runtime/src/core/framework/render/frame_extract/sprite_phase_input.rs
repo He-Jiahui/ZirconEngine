@@ -2,6 +2,8 @@ use crate::core::framework::scene::EntityId;
 
 use super::super::RenderMaterialAlphaMode;
 
+/// 精灵进入统一阶段排序器前的作者排序状态。
+/// `sprite_index` 必须对应同一精灵提取包，队列与深度语义应和网格阶段一致。
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpritePhaseExtractInput {
     pub entity: EntityId,

@@ -24,6 +24,7 @@ const ROW_CHILD_PATHS: &[&str] = &[
     "structure_convention/module_convention_gate/split_layout.rs",
 ];
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0026] 模块约定门禁父模块未挂载此处要求的审计状态子模块；精确测试失败，需核对状态归档设计再修订挂载期待。
 #[test]
 fn runtime_15_module_convention_gate_guard_is_folder_backed() {
     let parent = read_repo(PARENT_PATH);

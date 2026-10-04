@@ -1,3 +1,4 @@
+//! 这里汇总包的公开元数据、可选坐标、目标集合与相对根路径，再交给模块和特性校验处理其关联约束。
 mod description;
 mod public_metadata;
 mod supported_platforms;

@@ -5,6 +5,7 @@ use zircon_runtime_interface::serialization::{
 };
 
 impl DynamicScene {
+    /// 读取带版本封装的场景文档；编辑器快照、项目恢复和异步场景加载均经此入口完成迁移与支持性校验。
     pub fn from_versioned_json(json: &str) -> Result<Self, DynamicSceneError> {
         let loaded = load_versioned_legacy_schema_zero::<Self>(json.as_bytes(), Format::Text)?;
         let scene = loaded.value;
@@ -12,6 +13,7 @@ impl DynamicScene {
         Ok(scene)
     }
 
+    /// 供会话归档内嵌场景使用：外层已经解析封装头，此处只迁移该载荷并拒绝未来版本。
     pub(crate) fn from_versioned_json_payload(
         header: PayloadHeader,
         payload: &RawValue,

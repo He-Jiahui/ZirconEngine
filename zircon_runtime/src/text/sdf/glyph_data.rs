@@ -1,3 +1,5 @@
+//! 约束单个距离场字形的大小、通道数和像素长度，给生成调度的内存预算提供可信上界。
+
 use crate::core::math::UVec2;
 
 use super::{SdfGlyphGenerationError, SdfMode};

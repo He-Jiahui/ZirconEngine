@@ -1,4 +1,5 @@
 //! Static contracts for the React + Material UI Hub component stack.
+//! 核对主题、控件、数据、浮层、反馈与页面的底层库使用关系，防止页面承担独立控件实现。
 
 use std::{fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path)).unwrap_or_else(|error| {
@@ -25,6 +27,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path)).unwrap_or_else(|error| {
@@ -51,6 +54,7 @@ fn assert_not_contains_any(source_path: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+/// 核对应用对底层库的显式依赖与主题安装，参考源码只用于组件分类证据而非运行时导入。
 #[test]
 fn react_material_ui_packages_are_directly_composed_through_theme_and_tokens() {
     let package_json = read_crate_file("package.json");
@@ -129,6 +133,7 @@ fn react_material_ui_packages_are_directly_composed_through_theme_and_tokens() {
     }
 }
 
+/// 检查每类基础输入控件由共享包装器承接，统一密度、颜色、回调和可访问名称。
 #[test]
 fn low_level_inputs_wrap_material_primitives_with_shared_tokens() {
     for (source_path, snippets) in [
@@ -262,6 +267,7 @@ fn low_level_inputs_wrap_material_primitives_with_shared_tokens() {
     );
 }
 
+/// 固定数据家族拥有列表、表格、树及交互行原语，使页面沿 DTO 组合信息。
 #[test]
 fn data_container_components_wrap_material_lists_tables_and_rows() {
     for (source_path, snippets) in [
@@ -381,6 +387,7 @@ fn data_container_components_wrap_material_lists_tables_and_rows() {
     );
 }
 
+/// 核对浮层、反馈和外壳表面沿底层组件体系实现，统一焦点、锚点及窗口呈现边界。
 #[test]
 fn overlays_feedback_and_shell_use_material_surfaces_not_standalone_html() {
     for (source_path, snippets) in [
@@ -507,6 +514,8 @@ fn overlays_feedback_and_shell_use_material_surfaces_not_standalone_html() {
     }
 }
 
+// BUG: [CR-HUBTESTA-0009] 窗口路由值改为按需页面变量，旧直接页面映射断言必然失败；证据：HubWindow.tsx 当前映射。
+/// 检查各业务页面对共享组件家族的消费和响应式布局，再核对窗口的集中路由接线。
 #[test]
 fn pages_compose_shared_components_with_responsive_layouts() {
     for (source_path, snippets) in [
@@ -659,6 +668,7 @@ fn pages_compose_shared_components_with_responsive_layouts() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn material_usage_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_material_usage_contract.rs");

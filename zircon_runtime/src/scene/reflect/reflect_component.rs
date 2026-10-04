@@ -34,6 +34,7 @@ pub type ReflectComponentStageClone =
     ) -> Result<(), zircon_runtime_interface::reflect::ReflectError>;
 
 #[derive(Clone)]
+/// 反射组件的 World 访问能力表；类型元数据由注册表持有，读写回调负责具体 ECS 存储和失效通知。
 pub struct ReflectComponent {
     pub type_path: String,
     pub contains: fn(&crate::scene::World, crate::scene::EntityId, &str) -> bool,

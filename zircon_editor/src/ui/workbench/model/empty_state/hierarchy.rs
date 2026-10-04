@@ -2,6 +2,7 @@ use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
 use super::super::pane_empty_state_model::PaneEmptyStateModel;
 
+/// 区分项目尚未打开与当前层级为空，供pane选择恢复提示。
 pub(super) fn hierarchy_empty_state(chrome: &EditorChromeSnapshot) -> Option<PaneEmptyStateModel> {
     if !chrome.project_open {
         Some(PaneEmptyStateModel {

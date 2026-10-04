@@ -1,3 +1,5 @@
+//! 检索提示颜色跟随宿主语义角色；disabled 只降低呈现强度，不在 painter 中取消检索匹配。
+
 use super::super::super::super::super::data::TemplatePaneOptionData;
 use super::super::super::palette::command_palette_palette;
 

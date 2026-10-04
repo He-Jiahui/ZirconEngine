@@ -29,6 +29,7 @@ impl<TAsset: Asset> AssetEventPoll<TAsset> {
     }
 }
 
+/// 将共享资源事件流投影到资产 API；等待时间包含略过其他 kind 事件所花的时间。
 pub struct AssetEventReceiver<TAsset: Asset> {
     receiver: ResourceEventReceiver,
     _asset: PhantomData<fn() -> TAsset>,

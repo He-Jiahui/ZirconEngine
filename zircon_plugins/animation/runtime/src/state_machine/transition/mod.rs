@@ -1,3 +1,4 @@
+//! 状态转换描述、进度和交叉淡入权重的公共导出层。
 mod interruption_policy;
 mod transition_desc;
 mod transition_request;

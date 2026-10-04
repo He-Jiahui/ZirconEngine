@@ -1,6 +1,7 @@
 use super::super::HybridGiRuntimeState;
 
 impl HybridGiRuntimeState {
+    /// 以 GPU 上报槽位为准：回收探针旧槽、驱逐目标槽旧归属，再建立唯一驻留映射。
     pub(in crate::hybrid_gi) fn promote_to_resident_in_slot(&mut self, probe_id: u32, slot: u32) {
         self.clear_pending_update(probe_id);
         if let Some(previous_slot) = self.remove_resident_probe_slot(probe_id) {

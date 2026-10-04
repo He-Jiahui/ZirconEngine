@@ -1,3 +1,4 @@
+//! 反射模型构建与发布之间的注册边界，统一连接菜单和所有宿主类型的动作。
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::control::EditorUiControlService;
 use zircon_runtime_interface::ui::event_ui::UiRouteId;
@@ -5,6 +6,7 @@ use zircon_runtime_interface::ui::event_ui::UiRouteId;
 use super::activity_routes::register_activity_routes;
 use super::binding_route::register_binding_route;
 
+/// 发布反射快照前登记可调用路由；重复刷新保留已有菜单路由身份。
 pub fn register_workbench_reflection_routes(
     service: &mut EditorUiControlService,
     mut model: crate::ui::EditorWorkbenchReflectionModel,

@@ -1,3 +1,4 @@
+//! 将文档和共享原型编译成可重复实例化的模板；导入解析由宿主先完成，实际树安装与绑定执行由构建层负责。
 mod binding_param_resolver;
 mod binding_program;
 mod cache;

@@ -1,3 +1,5 @@
+//! 导航组件目录须同时支持树形插槽、选项和当前页状态，保证模板生成和输入分发看到一致模式。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventKind, UiValue,

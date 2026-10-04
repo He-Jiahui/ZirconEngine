@@ -1,3 +1,4 @@
+//! 脚本宿主函数的能力、注册表和文档账本需相互对应。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "script_host_ledger/capability.rs"]
 mod capability;
 #[path = "script_host_ledger/capability_fixture.rs"]

@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// Failure from the exact retired-reference value walker or its caller-owned resolver.
 /// 区分旧引用形状或预算错误与调用方解析器错误，供迁移报告定位失败阶段。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RetiredAssetRefMigrationError<E> {

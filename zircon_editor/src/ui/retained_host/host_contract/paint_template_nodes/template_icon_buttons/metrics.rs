@@ -1,3 +1,5 @@
+//! 从共享宿主行高映射工具栏、面板与侧轨图标槽；图标使用密度尺度，避免由标题字体决定点击目标内容大小。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, HostControlMetrics,
 };

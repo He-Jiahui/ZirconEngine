@@ -1,3 +1,4 @@
+//! 校验模拟统计的图资源、绑定及稀疏纹理指标；本文件消费诊断快照，不分配图形资源。
 use crate::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 use super::support::{assert_render_byte_series, assert_render_count_series};

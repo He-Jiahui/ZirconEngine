@@ -1,3 +1,4 @@
+//! 剪辑进入编译缓存前的通道合法性关口；拒绝时间序列、值类型和旋转错误以免帧采样产生无效姿态。
 use zircon_runtime::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelValueAsset, AnimationClipAsset,
 };

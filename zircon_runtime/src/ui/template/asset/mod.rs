@@ -1,3 +1,5 @@
+//! 负责作者资产的加载、契约检查、编译缓存与热重载归属。
+//! 校验报告、资源解析和运行时发布分别消费这些结果；编译成功本身不注册正在使用资产的表面。
 mod action_policy;
 mod binding;
 mod binding_reload_transaction;

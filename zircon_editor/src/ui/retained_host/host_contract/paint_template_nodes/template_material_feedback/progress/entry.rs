@@ -1,3 +1,5 @@
+//! 只选择进度表现形态，保留同一份节点、裁剪和外部透明度交给线形或环形专用绘制器。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::circular_progress::push_circular_progress_command;

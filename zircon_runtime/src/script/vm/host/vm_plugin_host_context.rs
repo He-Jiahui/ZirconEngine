@@ -1,3 +1,4 @@
+//! 上下文封装一次包装载可使用的宿主服务；协调器在加载前附上槽位和代际，未附所有者的测试上下文不能注册扩展回调。
 use std::fmt;
 use std::sync::{Arc, RwLock};
 
@@ -156,6 +157,7 @@ impl VmPluginHostContext {
         )
     }
 
+    /// 协调器在每次装载或重载前绑定所有者；后端须用此上下文的 caller 归属扩展注册。
     pub fn with_vm_owner(&self, slot: PluginSlotId, generation: u32) -> Self {
         let mut context = self.clone();
         context.vm_owner = Some((slot, generation));

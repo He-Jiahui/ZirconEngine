@@ -1,3 +1,5 @@
+//! 候选行子命令的入口边界；一行的状态、匹配标记及两种文本由 entry 统一组合。
+
 mod detail;
 mod entry;
 mod indicator;

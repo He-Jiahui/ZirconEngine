@@ -1,3 +1,5 @@
+//! 资产导入、模板组装和图形缓存共享的 shader 描述契约位于这里。
+//! 本层保存可序列化标识、资源声明及诊断，不拥有编译器或 GPU 对象。
 mod asset_kind;
 mod definition_value;
 mod dependency;

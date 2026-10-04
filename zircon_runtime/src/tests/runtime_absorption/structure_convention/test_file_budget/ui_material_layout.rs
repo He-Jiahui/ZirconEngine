@@ -1,3 +1,5 @@
+//! 此结构守卫保护 Material 测量测试的父子职责分工；辅助夹具留在父模块，行为断言按测量语义交给子模块。
+
 use super::*;
 
 #[test]
@@ -24,6 +26,7 @@ fn runtime_15_ui_material_layout_tests_are_folder_backed() {
         ],
     );
     assert_eq!(
+        // BUG: [CR-UI-TEST-0206] 当前已跟踪的测量父模块已有一个源码守卫测试，此处仍要求零个，导致本结构测试恒失败。
         parent.matches("#[test]").count(),
         0,
         "ui/tests/material_layout.rs should only mount child test owners and shared helpers"
@@ -148,6 +151,7 @@ fn runtime_15_ui_material_layout_tests_are_folder_backed() {
         ("module convention doc", module_doc.as_str()),
         ("UI architecture doc", ui_doc.as_str()),
     ] {
+        // BUG: [CR-UI-TEST-0209] 本循环要求每份文档都有六项布局迁移针值；四份干净文档至少缺一项，当前已跟踪文档使本断言必败。
         assert_contains_all(
             label,
             source,

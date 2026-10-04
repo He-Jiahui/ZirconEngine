@@ -1,3 +1,4 @@
+// 为事件注销和整图替换提供两套一致的事件、模式、插件及处理器身份，供注册和提交助手复用。
 pub(crate) struct CleanupFixture {
     event_id: &'static str,
     event_display_name: &'static str,

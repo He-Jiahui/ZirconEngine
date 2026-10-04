@@ -1,3 +1,5 @@
+//! 高级光照的帧级数据和纯选择规则位于这里；资源驻留、通道编排及降级由 graphics 层消费后决定。
+//! 保持此边界可让场景提取和资产序列化不依赖 WGPU 资源生命周期。
 mod cookie;
 mod extract;
 mod irradiance_volume;

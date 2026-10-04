@@ -1,3 +1,4 @@
+// 经事件提交入口拒绝非有限时间，避免无效时间标识进入待分发调用。
 use super::support::{marker_invocation, register_marker_event};
 
 use super::super::super::*;

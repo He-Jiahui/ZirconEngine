@@ -1,3 +1,4 @@
+//! 将场景文件读取及反序列化放到共享后台任务，结果由宿主按票据和请求身份交接；工作不修改当前编辑场景，读取后的取消可以丢弃尚未激活的文档。
 use std::fmt;
 use std::time::Instant;
 
@@ -10,6 +11,7 @@ use crate::core::jobs::{
 
 use super::{ProjectAuthority, ProjectSceneDocument, SceneOpenRequest};
 
+/// 只交还加载结果及请求资源身份；当前场景是否接受结果由宿主按会话状态判断。
 pub struct ProjectSceneLoadTicket {
     ticket: JobTicket<ProjectSceneDocument>,
     scene_uri: AssetUri,

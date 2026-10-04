@@ -1,3 +1,4 @@
+//! 核对 retained UI 树到 ECS 投影及相邻帧 delta 的职责：调度掩码只由真实变化域驱动。
 use std::collections::BTreeMap;
 
 use crate::ui::surface::UiSurface;

@@ -1,3 +1,5 @@
+//! 把宿主主题快照拆为基本按钮、命令按钮和选中标签的调色板，避免模板画家各自取色。
+
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_palette, HostMaterialPalette,
 };

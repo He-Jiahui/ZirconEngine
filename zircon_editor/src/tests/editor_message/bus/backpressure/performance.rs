@@ -1,3 +1,4 @@
+//! 记录消息总线扇出与队列压力的分配和延迟证据，核对零路由发布不会无谓分配或预留交付序号。
 use crate::core::editor_message::{
     DocumentId, EditorMessage, EditorMessageBus, EditorMessageSchemaId, SelectionDomain,
 };

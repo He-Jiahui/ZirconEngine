@@ -1,3 +1,5 @@
+//! 表单、标签、装饰和基础输入分别声明组合槽与属性，使编写器可检查结构、模板编译器可识别字段。camelCase 名称保持目录契约，实例交互依赖各自角色的消费者。
+
 use super::shared::*;
 use zircon_runtime_interface::ui::component::UiPropSchema;
 

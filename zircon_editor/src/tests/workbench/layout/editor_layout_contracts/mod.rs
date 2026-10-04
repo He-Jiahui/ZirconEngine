@@ -1,3 +1,4 @@
+//! 布局契约测试共用生产类型和真实区域定义，叶子测试分别承担几何、断点和命令约束。
 use crate::ui::workbench::autolayout::{
     compact_bottom_height_limit, compact_side_width_limit, compute_workbench_shell_geometry,
     compute_workbench_shell_geometry_with_region_defaults,
@@ -23,6 +24,7 @@ use crate::ui::workbench::{
 };
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
+/// 给区域契约嵌入真实布局定义；叶子断言应检查解析结果与几何消费。
 pub(super) const SHELL_REGIONS_ASSET: &str =
     include_str!("../../../../../assets/ui/editor/layout/shell_regions.toml");
 

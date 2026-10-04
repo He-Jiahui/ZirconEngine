@@ -1,3 +1,5 @@
+//! 数值显示框保持独立于拇指焦点反馈的边线；按压时普通数值框使用填充色，范围端值框仍保持主题边线。
+
 use super::palette::WorkbenchSliderPalette;
 use super::state::is_unavailable_slider_state;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;

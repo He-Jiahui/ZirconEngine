@@ -1,4 +1,5 @@
 //! Static contracts for shared React/MUI Hub metric-section layout policy.
+//! 固定指标卡的展示职责及页面对业务数值的投影职责，并锁定不同页面指标网格的响应式约定。
 
 use std::{fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path))
@@ -24,6 +26,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path))
@@ -49,6 +52,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+/// 把指标的色调、图标和文字布局留给共享卡片，业务页面只提交已投影的数值与语义。
 #[test]
 fn metric_card_owns_shared_card_tone_icon_and_text_layout() {
     let metric = read_crate_file("web/src/components/data/MetricCard.tsx");
@@ -86,6 +90,7 @@ fn metric_card_owns_shared_card_tone_icon_and_text_layout() {
     );
 }
 
+/// 固定项目详情的四项指标由共享网格承载，并按容器宽度收缩，避免页面单独重复卡片布局。
 #[test]
 fn project_detail_uses_four_metric_cards_then_collapses_responsively() {
     let detail = read_crate_file("web/src/pages/ProjectDetailPage.tsx");
@@ -118,6 +123,7 @@ fn project_detail_uses_four_metric_cards_then_collapses_responsively() {
     );
 }
 
+/// 核对工作区页面使用三指标网格和共享卡片，页面根据自身 DTO 决定标签与状态。
 #[test]
 fn workspace_pages_use_shared_three_metric_grid_and_metric_card_atoms() {
     for (page, snippets) in [
@@ -174,6 +180,8 @@ fn workspace_pages_use_shared_three_metric_grid_and_metric_card_atoms() {
     }
 }
 
+// BUG: [CR-HUBTESTA-0010] Cloud 页把打包和安装历史汇入共享投影器，测试仍要求两项页面内投影片段；证据：CloudPage.tsx。
+/// 把历史筛选、分类统计和业务状态选择放在页面或其投影助手，指标卡只承担展示。
 #[test]
 fn metric_pages_keep_data_projection_in_pages_not_metric_card() {
     let builds = read_crate_file("web/src/pages/BuildsPage.tsx");
@@ -220,6 +228,7 @@ fn metric_pages_keep_data_projection_in_pages_not_metric_card() {
     );
 }
 
+/// 要求文档记录指标卡职责及不同页面网格口径，便于后续响应式调整连同测试更新。
 #[test]
 fn metric_section_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -253,6 +262,7 @@ fn metric_section_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn metric_section_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_metric_section_contract.rs");

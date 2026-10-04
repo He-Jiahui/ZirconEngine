@@ -319,6 +319,7 @@ fn world_sync_wire_tags_and_module_boundary_are_stable() {
         serde_json::json!({ "key": { "kind": "world_structure" } })
     );
 
+    // 守卫同时覆盖根重导出与三个实现文件，防止序列化标签或模块边界只在单层看似稳定。
     let crate_root = include_str!("../lib.rs");
     let contract_sources = concat!(
         include_str!("../world_sync/query.rs"),

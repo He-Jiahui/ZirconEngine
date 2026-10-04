@@ -1,3 +1,4 @@
+//! 可变查询先按组件和过滤条件建立访问摘要，供点访问拒绝别名并供系统调度判断冲突。
 use super::*;
 
 #[test]
@@ -61,6 +62,7 @@ fn query_state_get_mut_helpers_mutate_targets_and_reject_aliases() {
     assert_eq!(missing_error, QueryEntityError::NotSpawned(999));
 
     {
+        // 批量点访问返回可同时保留的借用；重复实体必须在取值前被拒绝。
         let healths = query.get_many_mut(&mut world, [ally, player]).unwrap();
         healths[0].0 += 2;
         healths[1].0 += 3;

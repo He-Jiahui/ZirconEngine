@@ -1,6 +1,7 @@
 use crate::core::framework::scene::EntityPath;
 use crate::scene::world::World;
 
+// 编译序列绑定时优先按稳定实体标识解析，再按场景路径回退；缺失目标由编译器保留为诊断。
 pub(super) fn resolve_sequence_target_id(
     world: &World,
     target_id: &str,

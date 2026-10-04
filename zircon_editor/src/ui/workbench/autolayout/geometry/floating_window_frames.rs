@@ -7,6 +7,7 @@ use super::super::ShellFrame;
 
 const EPSILON: f32 = 0.001;
 
+/// 从布局浮页投影logical几何，按稳定窗口ID供绘制和命中共用；未设置frame时采用级联默认。
 pub(super) fn build_floating_window_frames(
     layout: &WorkbenchLayout,
     document_frame: ShellFrame,

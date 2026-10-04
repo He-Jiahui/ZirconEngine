@@ -1,3 +1,4 @@
+//! 在模型导入票据上保留运行时提交回执的类型边界，供宿主轮询或限时等待后完成目录交接；结果只能由一个消费端取走。
 use std::fmt;
 use std::path::PathBuf;
 use std::time::Instant;

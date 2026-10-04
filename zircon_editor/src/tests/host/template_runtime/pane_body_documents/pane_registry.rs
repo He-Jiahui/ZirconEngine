@@ -1,3 +1,4 @@
+// 核对内置面板正文与描述符标识及运行时注册表一致。
 use super::support::*;
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;

@@ -3,6 +3,7 @@ use crate::core::extension::SaveReason;
 use crate::ui::host::{DirtyDocumentSaveOwner, DirtyDocumentSaveStart};
 
 impl RetainedEditorHost {
+    // 关闭按钮必须先排除并行文档保存；保存分支等异步完成回调再次核对脏状态后才真正关闭。
     pub(in crate::ui::retained_host::app) fn close_prompt_action_clicked(
         &mut self,
         action_id: &str,

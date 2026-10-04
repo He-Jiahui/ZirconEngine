@@ -1,3 +1,4 @@
+// 核对对话框开启、错误及禁用动作绘制和关闭态表面消耗。
 use std::rc::Rc;
 
 use crate::ui::retained_host::primitives::{ModelRc, VecModel};

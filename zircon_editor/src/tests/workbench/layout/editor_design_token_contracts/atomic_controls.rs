@@ -1,6 +1,8 @@
+//! 原子控件和样本继承共享视觉及密度；源码契约与TOML结构检查承担不同断言。
 use super::support::assert_tokenized_assets;
 use toml::Value;
 
+/// 为本文件测试嵌入真实资产字节，路径相对此测试源定位；不加载运行时资源目录。
 macro_rules! workbench_asset {
     ($path:literal) => {
         include_str!(concat!(
@@ -10,6 +12,7 @@ macro_rules! workbench_asset {
     };
 }
 #[test]
+/// 列明每类原子的主题输入并拒绝裸颜色，防止样式复制脱离统一token来源。
 fn atomic_controls_share_editor_visual_and_density_tokens() {
     assert_tokenized_assets(&[
         (
@@ -296,6 +299,7 @@ fn atomic_controls_share_editor_visual_and_density_tokens() {
 }
 
 #[test]
+/// 标签水平空间由父容器分配，控件本体不保留旧的局部固定宽度。
 fn workbench_tab_uses_tokenized_states_and_stretch_width() {
     let asset = workbench_asset!("primitives/inputs/workbench_tab.zui");
 
@@ -318,6 +322,7 @@ fn workbench_tab_uses_tokenized_states_and_stretch_width() {
 }
 
 #[test]
+/// 活动栏按钮沿两轴共用compact控制尺寸，避免视觉尺寸和命中面积分开漂移。
 fn workbench_rail_button_uses_shared_compact_control_geometry() {
     let asset = workbench_asset!("primitives/chrome/workbench_rail_button.zui");
 
@@ -341,6 +346,7 @@ fn workbench_rail_button_uses_shared_compact_control_geometry() {
 }
 
 #[test]
+/// 解析样本props以禁止覆盖原子外观；样本数量断言防止删样本绕过检查。
 fn component_drawer_button_samples_inherit_atomic_visuals_without_pixel_nudges() {
     let asset = workbench_asset!("shell/workbench_component_drawer.zui");
     let document = asset
@@ -402,6 +408,7 @@ fn component_drawer_button_samples_inherit_atomic_visuals_without_pixel_nudges()
 }
 
 #[test]
+/// 输入及选择样本只能展示状态，不能用样本局部度量掩盖原子控件的真实默认表现。
 fn component_drawer_input_samples_inherit_atomic_metrics_and_state_visuals() {
     let asset = workbench_asset!("shell/workbench_component_drawer.zui");
     let document = asset

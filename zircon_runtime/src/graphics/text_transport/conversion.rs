@@ -1,3 +1,5 @@
+//! UI 公共 DTO 与文本核心的值转换边界；布局调用方借此传递范围、方向和尺寸，而不把 UI 类型带入文本引擎。
+//! 此处只转换同构字段，不负责字体解析、自动渲染模式裁决或文本塑形。
 use crate::core::framework::text::{TextRenderMode, TextWritingMode};
 use crate::text::{RichTextFormat, TextAlign, TextFrame, TextRange, TextSize, TextWrap};
 use zircon_runtime_interface::ui::{

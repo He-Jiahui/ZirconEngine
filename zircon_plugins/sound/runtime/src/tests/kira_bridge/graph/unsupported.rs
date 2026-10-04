@@ -1,3 +1,4 @@
+// 直接调用 compile_graph 核对前效果发送与效果映射的阶段限制，失败发生在后端资源申请前。
 use zircon_runtime::core::framework::sound::{
     SoundEffectDescriptor, SoundEffectId, SoundEffectKind, SoundGainEffect, SoundTrackId,
     SoundTrackSend,

@@ -34,12 +34,14 @@ pub enum RenderComponentFullReprojectionReason {
     RemovalHistoryLoss,
 }
 
+/// 投影器的重放模式；缺失连续增量或失去移除历史时必须交付完整基线。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RenderComponentProjectionMode {
     Incremental,
     Full(RenderComponentFullReprojectionReason),
 }
 
+/// 单个组件在增量投影中的三态契约；未变化与已移除不可合并。
 #[derive(Clone, Debug, PartialEq)]
 pub enum RenderComponentValue<T> {
     Unchanged,
@@ -162,6 +164,8 @@ impl RenderComponentChangeStats {
     }
 }
 
+/// 场景世界发布给渲染投影器的不可变变更代。
+/// 消费端先核对世界身份与源代，再按日志代连续重放；断代时要求完整投影。
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderComponentChangeArtifact {
     world: RenderComponentSourceWorldId,

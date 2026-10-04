@@ -1,3 +1,4 @@
+// 身份必填项缺失即使测试失败；其他字段按固定清单默认值建立测试签名。
 mod required;
 
 use super::super::super::super::types::{

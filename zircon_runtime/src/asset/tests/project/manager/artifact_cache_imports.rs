@@ -1,3 +1,5 @@
+//! 检查项目扫描从源文件、sidecar、注册表到 artifact 缓存的交付，并覆盖路径安全及扩展资产家族。
+
 use super::*;
 
 #[test]
@@ -170,6 +172,7 @@ fn project_manager_scan_rejects_an_internal_symlink_or_reparse_before_import() {
     let linked = paths
         .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
         .join("linked");
+    // TODO: [CR-ASSET-TEST-PROJECT-0003] 平台拒绝创建目录链接时测试直接成功返回，未覆盖扫描器的越界拒绝；需在有链接能力的 CI 门槛中验证该路径并记录跳过原因。
     if !create_directory_link(&outside, &linked) {
         let _ = fs::remove_dir_all(root);
         let _ = fs::remove_dir_all(outside);

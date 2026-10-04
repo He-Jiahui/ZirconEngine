@@ -1,3 +1,5 @@
+//! 快照记录独立于文档后缀的引擎schema身份；读取元数据时以当前schema验证，避免旧格式被当作可恢复快照。
+
 use serde::{Deserialize, Serialize};
 
 const AUTOSAVE_ENGINE_SCHEMA_ID: &str = "zircon_editor.autosave.snapshot";

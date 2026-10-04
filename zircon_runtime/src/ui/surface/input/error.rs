@@ -5,6 +5,7 @@ use zircon_runtime_interface::ui::{
 
 pub type UiSurfaceInputEffectResult<T> = std::result::Result<T, UiSurfaceInputEffectError>;
 
+/// effect 被拒绝的细分原因，由派发结果转换为拒绝回执；不会直接表示已完成的宿主动作。
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiSurfaceInputEffectError {
     #[error("invalid input owner {node_id:?}")]

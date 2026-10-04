@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。保存同组守卫使用的局部数据或辅助变换。
 use super::super::sources::OwnerBudgetSources;
 
 pub(super) fn assert_submit_context_budgets(sources: &OwnerBudgetSources) {

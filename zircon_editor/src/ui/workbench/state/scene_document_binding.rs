@@ -15,6 +15,7 @@ impl EditorState {
         self.active_scene_document = None;
     }
 
+    /// Edit使用已提交文档，Play仅使用活跃Play domain；切换未完成时不借用旧编辑历史。
     pub(crate) fn active_scene_history_context(&self) -> Option<HistoryContextId> {
         if self.is_playing() {
             return match self.viewport_controller.selection().active_domain() {

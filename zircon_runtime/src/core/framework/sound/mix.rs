@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::framework::audio::AudioChannelLayout;
 
+/// 跨后端传递的交错采样块；调用方必须同时保留采样率和扬声器布局语义。
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundMixBlock {
     pub sample_rate_hz: u32,

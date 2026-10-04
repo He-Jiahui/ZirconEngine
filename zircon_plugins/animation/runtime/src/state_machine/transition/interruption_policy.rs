@@ -1,3 +1,4 @@
+//! 作者中断策略到运行时枚举的映射；候选选择据当前或目标状态决定是否可打断。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum InterruptionPolicy {
     #[default]

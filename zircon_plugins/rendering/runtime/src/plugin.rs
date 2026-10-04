@@ -1,3 +1,4 @@
+//! 第一方目录与链接式导出通过 SDK 生成入口取得主包报告；原生打包另由 dist crate 提供 ABI。
 use crate::capability::{RENDERING_DECLARATION, RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME};
 use crate::{feature_manifest, module_descriptor, RENDERING_FEATURES};
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
@@ -13,12 +14,14 @@ const RENDERING_DIST_ENGINE_COMPAT: &str = ">=0.1, <0.2";
 const NATIVE_DESCRIPTOR_SYMBOL_V3: &str = "zircon_native_plugin_descriptor_v3";
 const NATIVE_ABI_VERSION_V3: u32 = 3;
 
+/// 描述渲染主包及其可选特性身份；此实例不持有 GPU 资源，也不代替各特性的注册提供者。
 #[derive(Clone, Debug)]
 pub struct RenderingRuntimePlugin {
     descriptor: zircon_runtime::plugin::RuntimePluginDescriptor,
 }
 
 impl RenderingRuntimePlugin {
+    /// 为一次清单或报告查询建立独立描述符；不因此安装十五个特性的贡献。
     pub fn new() -> Self {
         Self {
             descriptor: runtime_plugin_descriptor(),
@@ -37,6 +40,7 @@ impl zircon_runtime::plugin::RuntimePlugin for RenderingRuntimePlugin {
         &self.descriptor
     }
 
+    // 原生模块和分发信息供导出规划及动态加载检查；目标域须与运行时声明一致。
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
         manifest = manifest.with_native_module(
@@ -60,6 +64,7 @@ impl zircon_runtime::plugin::RuntimePlugin for RenderingRuntimePlugin {
     }
 }
 
+/// 向第一方目录声明可选特性；它们仍需项目选择和各自注册报告才能进入运行期目录。
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
     let mut builder = RENDERING_DECLARATION
         .runtime_declaration(RUNTIME_CRATE_NAME)
@@ -71,8 +76,10 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
     builder.into_descriptor()
 }
 
+// 统一生成实例、清单、项目选择和注册报告的 Rust 入口，每次调用按 trait 重新构造。
 zircon_plugin_sdk::runtime_plugin_exports!(RenderingRuntimePlugin);
 
+/// 返回主包声明的能力集合；查询结果不含运行时已选择的特性能力。
 pub fn runtime_capabilities() -> &'static [&'static str] {
     RUNTIME_CAPABILITIES
 }

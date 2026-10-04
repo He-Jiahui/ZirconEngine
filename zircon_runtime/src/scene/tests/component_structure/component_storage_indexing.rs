@@ -1,3 +1,6 @@
+//! 锁定 ECS 表列与稀疏存储的两种实体定位契约：组件查询走稳定索引，
+//! 行迁移时各列必须共享同一个实体行身份，避免后续 World 查询读到错列。
+
 #[test]
 fn component_storage_type_guards_use_entry_lookup() {
     let storage_source = include_str!("../../ecs/storage/component_storage/store.rs");

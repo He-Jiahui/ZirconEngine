@@ -61,6 +61,7 @@ impl BoundedLineDecoder {
     }
 }
 
+// 输出按 UTF-8 字符边界受字节上限约束；非法或无法完整呈现的源字节另计为有损/截断。
 fn decode_lossy_bounded(input: &[u8], byte_limit: usize) -> (String, bool, usize) {
     let mut output = String::with_capacity(input.len().min(byte_limit));
     let mut cursor = 0;

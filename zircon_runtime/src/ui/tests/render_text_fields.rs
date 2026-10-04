@@ -1,3 +1,4 @@
+//! 从文本控件渲染提取核对可编辑状态和保密文本的发布边界，包括绘制、字形产物与共享缓存。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     design_tokens::EditorTypographyTokens,

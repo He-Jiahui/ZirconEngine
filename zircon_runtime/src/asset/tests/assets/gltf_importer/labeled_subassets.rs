@@ -1,3 +1,6 @@
+//! 根模型只保留引用；纹理、材质、网格、场景、动画和皮肤由标签 URI 独立交付。
+//! 这些测试同时核对根依赖图，供项目导入与后续 artifact 发布按子资产追踪。
+
 use super::*;
 
 #[test]
@@ -200,6 +203,7 @@ fn gltf_material_subassets_move_material_payloads_after_collecting_dependencies(
     assert!(!source.contains("ImportedAsset::Material(asset.clone())"));
 }
 
+// 动画没有 glTF skin 时仍需生成层级骨架，确保轨道 target_id 可由运行时按节点路径绑定。
 #[test]
 fn importer_emits_synthetic_skeleton_for_node_animation_without_skin() {
     let root = unique_temp_project_root("gltf_node_animation_subassets");

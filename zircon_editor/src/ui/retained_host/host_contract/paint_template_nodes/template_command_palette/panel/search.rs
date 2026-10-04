@@ -1,3 +1,5 @@
+//! 搜索区只呈现节点已有的查询和焦点状态；输入、IME、过滤以及命令执行归宿主交互 owner。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::layout::search_rect;

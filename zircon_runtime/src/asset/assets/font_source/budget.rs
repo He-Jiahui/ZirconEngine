@@ -1,3 +1,5 @@
+//! 字体预算是导入入口与字体数据库共享的拒绝边界；声明长度、face 数和表规模必须在解码、复制或元数据投影前受限。
+
 const KIBIBYTE: usize = 1024;
 const MEBIBYTE: usize = KIBIBYTE * KIBIBYTE;
 

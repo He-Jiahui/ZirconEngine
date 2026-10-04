@@ -1,3 +1,4 @@
+//! 项目场景读写只允许项目拥有的完整场景资源；创建先准备暂存文档，再由上游事务发布或回滚，目录链租约必须覆盖该交接期间。
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -70,6 +71,7 @@ impl ProjectSceneDocument {
     }
 }
 
+// 暂存创建的所有者必须持有路径租约直到发布或回滚结束；丢弃会清理尚未交接的文件。
 /// Owns an unpublished scene staging file until the document route either commits or aborts it.
 pub(crate) struct PreparedSceneCreation {
     document: Option<ProjectSceneDocument>,

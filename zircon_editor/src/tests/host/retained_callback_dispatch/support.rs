@@ -1,3 +1,4 @@
+// 为保留式回调测试提供统一运行时、事件日志与界面状态夹具，避免不同入口比较时前置状态漂移。
 pub(super) use crate::core::editor_event::{
     EditorAssetEvent, EditorEvent, EditorEventTransient, EditorViewportEvent, InspectorFieldChange,
     MenuAction,

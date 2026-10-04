@@ -1,3 +1,4 @@
+//! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "module_families/animation_backlog.rs"]
 mod animation_backlog;
 #[path = "module_families/animation_status_json.rs"]

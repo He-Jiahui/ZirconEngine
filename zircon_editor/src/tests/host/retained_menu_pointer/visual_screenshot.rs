@@ -1,3 +1,4 @@
+// 汇集窗口组件视觉测试的共享类型、辅助模块和截图入口。
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

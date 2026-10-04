@@ -1,3 +1,6 @@
+//! 属性行先在标签与值区之间分配空间，再按摘要中的轴组数选择多轴或单值外观。
+//! 身份不符或没有正文时可继续通用 fallback；已识别但被裁剪的行仍表示已处理。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;

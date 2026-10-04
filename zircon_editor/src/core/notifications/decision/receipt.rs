@@ -1,5 +1,7 @@
+//! 把已线性化的操作者选择交还生产者；回执保留精确发布票据和序号，重复解析可复用同一回执，消费端按游标读取有限历史。
 use super::{DecisionOptionId, DecisionReceiptCursor, DecisionReceiptSequence, DecisionTicket};
 
+/// 已确认选择的不可变事实；生产者根据发布票据执行后续动作，不根据显示文字重建身份。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DecisionReceipt {
     pub(super) sequence: DecisionReceiptSequence,

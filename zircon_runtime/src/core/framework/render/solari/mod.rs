@@ -1,3 +1,5 @@
+//! Solari 实验路径的资格与退化报告；provider 实例和 pass 执行由 graphics 层管理。
+
 mod capability;
 mod settings;
 mod status;

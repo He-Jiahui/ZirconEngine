@@ -1,3 +1,4 @@
+// 通过工作台指针事件核对悬停、提示、按压和拖动预览，约束无显式绑定控件的状态反馈。
 use super::super::support::*;
 use super::support::{
     control_bool, control_center, control_component_pressed, control_float, control_string,

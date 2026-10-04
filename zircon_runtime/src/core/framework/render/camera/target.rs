@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::RenderCameraTargetKind;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 相机输出的逻辑目标；后端提交时才解析物理表面或纹理及可写格式。
 pub enum RenderCameraTarget {
     PrimarySurface,
     Texture(ResourceHandle<TextureMarker>),

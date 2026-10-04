@@ -1,3 +1,4 @@
+//! 覆盖事务作用域的嵌套、取消、合并与异常销毁：子命令按逆序回退，跨上下文嵌套和乱序消费留下明确错误。
 use std::sync::atomic::Ordering;
 
 use crate::core::editing::engine::{

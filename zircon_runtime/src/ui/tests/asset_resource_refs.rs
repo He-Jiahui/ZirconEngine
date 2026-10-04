@@ -1,3 +1,4 @@
+//! 验证资源引用在作者文档中保持类型与来源，并进入编译依赖和诊断报告。
 use std::path::Path;
 
 use crate::ui::template::{

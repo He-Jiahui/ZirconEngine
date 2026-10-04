@@ -1,3 +1,5 @@
+//! 集中公开内容下载 feature、状态 manager 与能力常量；宿主通过 feature 注册，测试可单独构造内存 manager。
+
 mod capability;
 mod feature;
 mod manager;

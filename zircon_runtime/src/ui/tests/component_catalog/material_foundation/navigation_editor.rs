@@ -1,3 +1,5 @@
+//! 编辑器导航组件带选择集合和上下文菜单语义；目录事件与默认状态是宿主适配的入口。
+
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{
     UiComponentDescriptor, UiComponentEventKind, UiHostCapability, UiValue,

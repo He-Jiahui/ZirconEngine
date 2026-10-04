@@ -1,3 +1,4 @@
+//! Blur 产品测试同时约束图 executor 顺序、临时纹理分配与最终像素差，避免只有 pass 名而无实际效果。
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;

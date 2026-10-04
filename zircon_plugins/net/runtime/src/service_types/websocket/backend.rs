@@ -1,3 +1,6 @@
+//! 从根 manager 共享状态取出可选 WebSocket 后端，并把未安装后端转换为稳定能力错误。
+//! 后端回调必须在 mutex 之外运行，以允许重入 manager。
+
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::net::NetError;

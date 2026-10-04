@@ -1,5 +1,6 @@
 use super::*;
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0122] 提供方注册、输入、更新和反馈的整体收敛的历史证据锚点与当前文档不符；需核对权威计划和归档责任，再决定更新断言或补正文档。
 #[test]
 fn runtime_15_no_duplicated_provider_boilerplate() {
     let provider_mod = read_runtime_src("graphics/runtime_provider/mod.rs");

@@ -1,3 +1,4 @@
+//! 场景提取入口串起相机规划、图上下文、provider 准备、原生提交及结果登记；失败即停止后续发布。
 use std::sync::{Arc, MutexGuard};
 use std::time::Instant;
 
@@ -35,6 +36,7 @@ use super::resolve_history_handle::resolve_history_handle;
 use super::update_particle_previous_state::update_particle_previous_state_after_success;
 use super::update_temporal_camera_history::update_temporal_camera_history_after_success;
 
+// 外部入口接受提取快照；相机展开后的每次提交各自拥有图和反馈。
 pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract(
     framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,

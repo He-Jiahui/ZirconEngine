@@ -1,3 +1,4 @@
+// 核对模板运行时已将内置数据与运行管线拆分为独立模块。
 #[test]
 fn editor_template_runtime_splits_builtin_data_from_runtime_pipeline() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

@@ -1,3 +1,5 @@
+//! 内置节点表只声明 ID、类别与语义；目录负责将其注册为可编译的实现槽位。
+
 mod composite;
 mod decorator;
 mod integration;

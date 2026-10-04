@@ -1,3 +1,5 @@
+//! 验证工作台宿主窗口 DTO 限定在 UI 边界。
+
 use super::*;
 
 fn block_imports_name(block: &str, name: &str) -> bool {

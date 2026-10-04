@@ -2,6 +2,7 @@ mod requirements;
 mod summary;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// 宿主统一的失效原因位域；调用方组合原因，由事务决定是重算布局、刷新展示还是仅重绘。
 pub(crate) struct HostInvalidationMask(u16);
 
 impl HostInvalidationMask {

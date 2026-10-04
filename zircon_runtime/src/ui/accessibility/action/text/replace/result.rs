@@ -38,6 +38,8 @@ pub(super) fn finish_read_only_replace_selected_text(
     )
 }
 
+// 先经文本事务提交，再发布 Change 组件事件；任何失败都不能把候选文本回显为成功。
+// 返回前让安全文本 owner 脱敏，避免诊断和组件事件泄漏口令内容。
 pub(super) fn finish_replace_selected_text_mutation(
     surface: &mut UiSurface,
     text_documents: Option<&mut UiTextDocumentSession>,

@@ -1,3 +1,5 @@
+//! 匹配标记反馈上游检索结果；只在 matched 状态绘制，禁用候选仍以禁用色保留检索提示。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneOptionData};
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

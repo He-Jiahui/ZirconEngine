@@ -1,3 +1,4 @@
+//! 管理系统参数的持久状态和调度访问集；仅显式实现封闭 WorldlessSystemParam 契约的参数可用于无 World 回调。
 mod events;
 mod local;
 mod messages;

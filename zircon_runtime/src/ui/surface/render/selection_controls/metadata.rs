@@ -4,6 +4,7 @@ use zircon_runtime_interface::ui::{
     tree::UiTemplateNodeMetadata,
 };
 
+/// 勾选、单选和开关的专用绘制分类，与共享 painter 家族保持对应；不负责同组互斥或修改绑定值。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum SelectionControlKind {
     Checkbox,
@@ -79,6 +80,7 @@ fn value_as_f32(value: &Value) -> Option<f32> {
     value.is_finite().then_some(value)
 }
 
+/// 接受绝对行高或字号比例，前者优先；业务属性与样式覆盖的读取策略由同模块 helper 统一。
 pub(super) fn line_height(
     metadata: &UiTemplateNodeMetadata,
     absolute_key: &str,

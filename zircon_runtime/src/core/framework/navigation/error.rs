@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+/// 把配置、缺失资源与后端失败分开，供脚本和编辑器决定重试、提示或停止路径请求。
 pub enum NavigationErrorKind {
     InvalidConfiguration,
     MissingNavMesh,

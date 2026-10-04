@@ -1,3 +1,4 @@
+//! 从滑块渲染提取核对单值/区间控件的状态、分数几何、刻度预算与样式覆写。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     design_tokens::EditorTypographyTokens,

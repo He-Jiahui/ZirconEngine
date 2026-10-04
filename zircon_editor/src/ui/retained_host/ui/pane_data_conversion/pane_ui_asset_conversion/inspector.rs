@@ -1,3 +1,4 @@
+//! UI 资产检查器将属性状态和语义字段一起交给宿主，编辑动作仍由资产实例身份确定。
 use crate::ui::asset_editor;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host as host_contract;

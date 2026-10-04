@@ -7,6 +7,8 @@ use crate::core::resource::ResourceRecord;
 ///
 /// A receipt exists only after source files, artifacts, metadata, registry state, and resources
 /// were committed under the same active project generation.
+///
+/// Editor 将该回执作为模型导入 job 的成功输出，并记录来源 URI、项目代序号和已提交记录数。
 #[derive(Clone, Debug)]
 pub struct ProjectImportReceipt {
     source_uri: AssetUri,

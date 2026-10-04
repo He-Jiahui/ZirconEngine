@@ -1,3 +1,4 @@
+// 目录注册后的投影必须出现在混音快照，供外部发现接口读到同一事件集合。
 use super::super::super::*;
 
 use super::support::register_impact_event;

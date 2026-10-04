@@ -1,4 +1,5 @@
 //! Static guardrail contracts for the React + Material UI Hub frontend.
+//! 扫描前端源码的组件归属、布局和外壳反馈边界，使新增页面进入同一组结构约束。
 
 use std::{
     fs,
@@ -20,6 +21,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path))
@@ -27,6 +29,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path))
@@ -34,6 +37,7 @@ fn read_repo_file(path: &str) -> String {
     )
 }
 
+/// 为全局结构守卫收集当前前端文本输入，新增页面自动纳入检查；稳定排序使违例证据可重复定位。
 fn web_files() -> Vec<PathBuf> {
     let mut files = Vec::new();
     collect_web_files(&crate_dir().join("web/src"), &mut files);
@@ -41,6 +45,7 @@ fn web_files() -> Vec<PathBuf> {
     files
 }
 
+/// 遍历由守卫指定的前端源码树，只把可检查的脚本与样式加入结构扫描，不扫描构建输出。
 fn collect_web_files(dir: &Path, files: &mut Vec<PathBuf>) {
     for entry in fs::read_dir(dir).unwrap_or_else(|error| panic!("failed to read {dir:?}: {error}"))
     {
@@ -61,6 +66,7 @@ fn collect_web_files(dir: &Path, files: &mut Vec<PathBuf>) {
     }
 }
 
+/// 将扫描结果投影为拥有者表使用的包内规范路径，让不同平台的目录分隔符不改变归属判断。
 fn display_path(path: &Path) -> String {
     path.strip_prefix(crate_dir())
         .unwrap_or(path)
@@ -69,6 +75,8 @@ fn display_path(path: &Path) -> String {
         .replace('\\', "/")
 }
 
+// TODO: [CR-HUBTESTA-0013] 确认跨行导入或别名导入是否绕过全局、输入和数据原语归属守卫；当前只扫描含库名的单行文本；下一步用定向样例验证。
+/// 供原语归属守卫识别单行导入中的完整符号；它只检查文本，不能证明编译后的实际依赖。
 fn imports_symbol(line: &str, symbol: &str) -> bool {
     if !line.contains("@mui/material") {
         return false;
@@ -77,6 +85,7 @@ fn imports_symbol(line: &str, symbol: &str) -> bool {
         .any(|token| token == symbol)
 }
 
+/// 定义每类受控原语的拥有者边界；扩展组件职责时应先审查此归属表再修改调用方。
 fn material_primitive_owner_allowed(path: &str, primitive: &str) -> bool {
     match primitive {
         "Button" => path == "web/src/components/inputs/HubButton.tsx",
@@ -132,6 +141,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+/// 将新增页面纳入共享组件使用约束，累计列出越过组件家族边界的导入或标签以便一次修正。
 #[test]
 fn pages_are_composition_surfaces_not_raw_material_owner_layers() {
     let mut violations = Vec::new();
@@ -213,6 +223,8 @@ fn pages_are_composition_surfaces_not_raw_material_owner_layers() {
     );
 }
 
+// BUG: [CR-HUBTESTA-0006] 窗口真实关闭失败反馈导入并使用警报组件，但允许拥有者表只认可反馈目录；证据：HubWindow.tsx 当前导入与分支。
+/// 扫描整个前端的受控原语导入，再按拥有者表核对责任边界；这是一项架构守卫而非运行权限检查。
 #[test]
 fn material_primitive_ownership_stays_in_matching_component_families() {
     let guarded_primitives = [
@@ -260,6 +272,7 @@ fn material_primitive_ownership_stays_in_matching_component_families() {
     );
 }
 
+/// 把视口尺寸和绝对定位留给外壳层，页面布局应随容器流动，避免窗口缩放后出现脱离内容流的区域。
 #[test]
 fn page_layouts_avoid_absolute_positioning_and_viewport_arithmetic() {
     let mut violations = Vec::new();
@@ -294,6 +307,7 @@ fn page_layouts_avoid_absolute_positioning_and_viewport_arithmetic() {
     );
 }
 
+/// 核对顶层承接后端状态和错误反馈、窗口负责路由的分工，使页面无需另建加载或事件订阅链。
 #[test]
 fn app_and_shell_keep_state_loading_routing_and_feedback_boundaries() {
     let app = read_crate_file("web/src/App.tsx");
@@ -361,6 +375,7 @@ fn app_and_shell_keep_state_loading_routing_and_feedback_boundaries() {
     );
 }
 
+/// 检查截图工具覆盖项目与视觉状态矩阵的接线和文档入口；脚本存在不代表已经取得桌面截图证据。
 #[test]
 fn hub_window_capture_scripts_cover_tauri_visual_state_matrix() {
     let capture = read_repo_file(
@@ -474,6 +489,7 @@ fn hub_window_capture_scripts_cover_tauri_visual_state_matrix() {
     );
 }
 
+/// 将字体、媒体和全局样式归属固定在共享来源，避免页面局部覆盖使实际窗口偏离统一视觉语义。
 #[test]
 fn typography_visual_assets_and_global_css_stay_centralized() {
     let theme = read_crate_file("web/src/theme/muiTheme.ts");
@@ -534,6 +550,7 @@ fn typography_visual_assets_and_global_css_stay_centralized() {
     );
 }
 
+/// 要求交接文档描述当前前端扫描范围、组件归属和外壳布局限制，使新页面也沿用同一规则。
 #[test]
 fn global_rules_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -566,6 +583,7 @@ fn global_rules_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn global_rules_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_global_rules_contract.rs");

@@ -1,3 +1,6 @@
+//! 可用性计算的共享索引层：先归一化描述符与提供者，再投影选择和结果。
+//! 索引只借用描述符/注册报告；生成行不得活得比这些输入更久。
+
 use std::collections::{HashMap, HashSet};
 
 use crate::builtin::RuntimePluginId;
@@ -31,6 +34,7 @@ pub(crate) struct RuntimePluginAvailabilityProjection<'descriptor, 'provider> {
     metrics: RuntimePluginAvailabilityProjectionMetrics,
 }
 
+// 包成员身份按调用方持有方式选择拥有或借用，统一以 package ID 查询。
 enum RuntimePluginProviderMembership<'a> {
     Owned(HashSet<String>),
     BorrowedSet(&'a HashSet<String>),
@@ -65,6 +69,7 @@ impl RuntimePluginProviderMembership<'_> {
 }
 
 impl<'descriptor> RuntimePluginAvailabilityProjection<'descriptor, 'static> {
+    /// 独立 API 拥有提供者包 ID，避免调用方临时迭代器结束后留下借用。
     pub fn new(
         descriptors: impl IntoIterator<Item = &'descriptor RuntimePluginDescriptor>,
         linked_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
@@ -111,6 +116,7 @@ impl<'descriptor> RuntimePluginAvailabilityProjection<'descriptor, 'static> {
 }
 
 impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'provider> {
+    /// 组合层已有 linked 集合时直接借用，native ID 仅建立借用索引。
     pub fn from_descriptors_with_provider_membership(
         descriptors: impl IntoIterator<Item = &'descriptor RuntimePluginDescriptor>,
         linked_plugin_ids: &'provider HashSet<String>,
@@ -157,6 +163,7 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
         }
     }
 
+    /// 导出计划沿目录注册行建立描述符视图，避免再生成完整描述符目录。
     pub fn from_catalog_with_provider_membership(
         catalog: &'descriptor RuntimePluginCatalog,
         linked_plugin_ids: &'provider HashSet<String>,
@@ -205,6 +212,7 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
         }
     }
 
+    /// 启动时只统计当前目标启用的注册包，并按打包方式区分提供者。
     pub fn from_registration_reports(
         descriptors: impl IntoIterator<Item = &'descriptor RuntimePluginDescriptor>,
         registrations: impl IntoIterator<Item = &'provider RuntimePluginRegistrationReport>,
@@ -231,6 +239,8 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
         let mut linked_provider_rows = 0;
         #[cfg(test)]
         let mut native_dynamic_provider_rows = 0;
+        // BUG: [CR-PLUGIN-BOUNDARY-0303] 带诊断的失败注册仍可被计为提供者，
+        // 必需项可能被误判已满足；证据：本循环只检查选择开关和目标，未检查注册状态。
         for registration in registrations {
             if !registration.project_selection.enabled
                 || !registration.project_selection.supports_target(target)

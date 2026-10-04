@@ -1,3 +1,5 @@
+//! 约束菜单组的持久化身份，使插件贡献与内建分组能可靠合并；反序列化走同一校验，标签翻译不参与相等或排序。
+
 use std::borrow::Borrow;
 use std::fmt::{Display, Formatter};
 

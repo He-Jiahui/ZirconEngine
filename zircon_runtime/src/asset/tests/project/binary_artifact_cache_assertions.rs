@@ -1,8 +1,11 @@
+//! 复用 artifact manifest、内容块和路径后缀的持久格式断言，供项目导入与重启恢复测试调用。
+
 use std::fs;
 use std::path::Path;
 
 use crate::asset::AssetUri;
 
+/// 调用方先从 Ready 记录取得 artifact URI；这里验证其可持久读取且采用版本化 manifest 与 chunk 目录。
 pub(crate) fn assert_binary_artifact_cache(artifact_cache_root: &Path, artifact_uri: &AssetUri) {
     let artifact = artifact_uri.to_string();
     assert!(
@@ -24,6 +27,7 @@ pub(crate) fn assert_binary_artifact_cache(artifact_cache_root: &Path, artifact_
     );
 }
 
+/// 扫描整个缓存树，防止导入器在受管理 artifact 根中旁路发布旧格式文件。
 pub(crate) fn assert_artifact_cache_files_are_zassets(path: &Path) {
     for entry in fs::read_dir(path).unwrap() {
         let entry = entry.unwrap();

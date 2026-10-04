@@ -1,3 +1,4 @@
+// 由当前宿主主题快照产生静态表面/刻度与动态采样点颜色；选中样本沿用全局强调色，文字仍用宿主文本槽位。
 use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
 const GRID_LINE_ALPHA: u8 = 150;
@@ -23,6 +24,7 @@ pub(super) fn sample_grid_palette() -> SampleGridPalette {
     sample_grid_palette_from_host(current_host_palette())
 }
 
+/// 用于绘制入口与主题投影测试；显式 host 参数使各视觉角色能独立验证，运行时入口传当前主题。
 pub(super) fn sample_grid_palette_from_host(host: HostMaterialPalette) -> SampleGridPalette {
     SampleGridPalette {
         outer_surface: host.surface,

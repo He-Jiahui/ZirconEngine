@@ -1,3 +1,6 @@
+//! 提供组件声明、快照发布、兴趣过滤、调度和客户端 delta 应用的内存 facade。
+//! 调用者负责决定权威角色、World 实体映射、网络序列化及 per-session 出站发送。
+
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::net::{

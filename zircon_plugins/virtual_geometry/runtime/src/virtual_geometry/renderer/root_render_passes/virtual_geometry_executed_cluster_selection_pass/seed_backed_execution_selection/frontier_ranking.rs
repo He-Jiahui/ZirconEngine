@@ -17,6 +17,7 @@ pub(super) fn seed_backed_frontier_rank_for_cluster(
         return 0;
     }
 
+// 驻留页固定为零；未解决页按首次出现分配 rank，同一页后续簇复用它。
     *frontier_ranking
         .unresolved_page_rank_by_page
         .entry(page_id)

@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// 共用的三角形夹具同时包含材质、纹理、形变、skin 和动画；导入测试据此核对标签依赖与载荷分离。
 pub(in super::super) fn write_triangle_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("triangle.bin");
     let gltf_path = root.join("triangle.gltf");
@@ -141,6 +142,7 @@ pub(in super::super) fn write_triangle_gltf(root: &Path) -> PathBuf {
     gltf_path
 }
 
+/// 用合法 Lines 原语隔离导入器的拓扑准入规则，避免把格式解析失败误判为模式拒绝。
 pub(in super::super) fn write_line_gltf(root: &Path) -> PathBuf {
     let buffer_path = root.join("line.bin");
     let gltf_path = root.join("line.gltf");

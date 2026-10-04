@@ -1,3 +1,6 @@
+//! 依据一帧准备报告选择原生图集绘制、空帧、透明占位或退化。
+//! 判定顺序保留可替换的完整帧计划；缺像素、预算拒绝及子像素背景不完整时禁止把部分成功当完整文字。
+
 use super::report::NativeBitmapAtlasPrepareReport;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -32,6 +35,8 @@ pub(crate) enum NativeBitmapAtlasFirstFrameDegradation {
     TransparentPlaceholder,
 }
 
+/// 由 UI 文字渲染准备路径在提交纹理前调用；报告须来自同一个完整帧计划。
+/// 纯离屏缺失不迫使可见空帧退化，可见占位与预算溢出则按优先级决定后续绘制策略。
 pub(crate) fn native_bitmap_atlas_handoff_for_report(
     report: &NativeBitmapAtlasPrepareReport,
 ) -> NativeBitmapAtlasHandoff {

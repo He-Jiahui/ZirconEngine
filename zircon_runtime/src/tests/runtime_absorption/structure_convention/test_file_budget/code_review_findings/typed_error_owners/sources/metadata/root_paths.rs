@@ -1,3 +1,4 @@
+//! 为类型化错误审查集中声明路径、子模块与锚点清单；消费者把这些值用于源码检查，清单中的名称不证明对应行为已执行。
 pub(in super::super) const TYPED_ERROR_SOURCE_INVENTORY_METADATA_ROOT_PATHS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/root_paths.rs";
 pub(in super::super) const TYPED_ERROR_SOURCE_INVENTORY_METADATA_CHILD_INVENTORY_PATHS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/child_inventory_paths.rs";
 pub(in super::super) const TYPED_ERROR_SOURCE_INVENTORY_METADATA_DELEGATION_PATHS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/delegation_paths.rs";

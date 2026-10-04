@@ -3,6 +3,7 @@ use super::super::super::super::menu_popup_metrics::{
     menu_popup_outer_padding, menu_popup_row_stride, MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_HEIGHT,
 };
 
+// 绘制行框采用菜单共享步距与滚动偏移；输入路径按相同指标独立计算行命中框。
 pub(in crate::ui::retained_host::host_contract) fn menu_popup_row_frame(
     popup: &FrameRect,
     row: usize,

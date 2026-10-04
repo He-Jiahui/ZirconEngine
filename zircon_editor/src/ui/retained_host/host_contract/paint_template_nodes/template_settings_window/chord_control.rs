@@ -1,3 +1,6 @@
+//! 快捷键设置在捕获模式下使用焦点轮廓；普通文字焦点不会误显示为等待按键。
+//! 只负责持久值的呈现，捕获输入、提交与取消由设置窗口输入链处理。
+
 use super::super::super::data::{FrameRect, HostTextInputFocusData};
 use super::super::super::paint_theme::{HostControlMetrics, HostMaterialPalette};
 use super::super::render_commands::HostPaintCommand;

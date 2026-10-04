@@ -139,6 +139,7 @@ pub(super) fn descriptors(manager: &DefaultAiManager) -> Vec<AiBehaviorTreeDescr
         .collect()
 }
 
+// 先阻止该 owner 的新执行并等待在途租约，再移除节点及依赖它们的树和代理状态。
 pub(super) fn revoke_node_owner(
     manager: &DefaultAiManager,
     owner: zircon_runtime::plugin::PluginModuleId,

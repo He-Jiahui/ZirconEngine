@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use super::runtime_state::VirtualGeometryRuntimeState;
 
+/// 当前热点转为最近热点后的冷却帧数，淘汰排序据此保留短暂前沿保护。
 pub(crate) const HOT_FRONTIER_COOLING_FRAME_COUNT: u8 = 2;
 
 impl VirtualGeometryRuntimeState {

@@ -1,3 +1,5 @@
+//! 按已编译拓扑顺序传播图的权重、加法和掩码上下文，产出稳定的剪辑贡献列表。
+//! 帧管线随后分别以此列表采样姿态和事件；参数覆盖仅接受有限值。
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -12,6 +14,7 @@ use super::types::{
 };
 
 impl CompiledAnimationGraph {
+    /// 求出剪辑贡献而不加载剪辑或写回场景；同帧姿态与事件消费者应共享此结果。
     pub fn evaluate(&self, overrides: &AnimationParameterMap) -> CompiledAnimationGraphEvaluation {
         let mut weights_by_node = (0..self.nodes.len())
             .map(|_| GraphContextWeights::default())

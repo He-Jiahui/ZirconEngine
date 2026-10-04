@@ -1,3 +1,4 @@
+//! 模块约定门禁的结构测试入口；子模块对审计脚本输出、文档元数据和债务分类做静态校验。
 #[path = "module_convention_gate/debt_boundary.rs"]
 mod debt_boundary;
 #[path = "module_convention_gate/helpers.rs"]

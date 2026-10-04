@@ -1,3 +1,5 @@
+//! 分隔线完全接管通用文字、图片和背景，依据已安排的框架、方向、变体输出一条装饰命令。
+//! 几何保留逻辑像素的小数，像素对齐交给后端；此模块不生成独立交互区域或改变父容器布局。
 use std::sync::OnceLock;
 
 use toml::Value;
@@ -13,6 +15,7 @@ use zircon_runtime_interface::ui::{
 
 use super::painter_state::UiRenderPainterStateSource;
 
+/// 设计令牌与有效节点覆盖组成的绘制度量；方向与 inset 变体随后决定这些度量如何作用于可用框架。
 #[derive(Clone, Copy, Debug)]
 struct DividerVisual {
     separator: UiRgbaColor,

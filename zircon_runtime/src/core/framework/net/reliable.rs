@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 可靠 UDP 的发送/重组约束；管理器用 MTU 拆包，并用超时、重试上限和接收窗口控制在途状态。
 pub struct ReliableDatagramConfig {
     pub mtu_bytes: usize,
     pub resend_timeout_ms: u64,
@@ -115,6 +116,7 @@ impl ReliableDatagramRecoveryReport {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 同一 sequence 的片段组成一个逻辑消息；通道与片段计数必须在重组和确认路径保持一致。
 pub struct ReliableDatagramPacket {
     pub sequence: u64,
     pub channel: String,
@@ -142,6 +144,7 @@ impl ReliableDatagramPacket {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 发送队列本轮交付和丢弃的投影；recovery 用于区分重试中与最终断开状态。
 pub struct ReliableDatagramDeliveryReport {
     pub delivered_packets: Vec<ReliableDatagramPacket>,
     pub dropped_packets: Vec<ReliableDatagramPacket>,

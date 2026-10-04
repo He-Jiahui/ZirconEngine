@@ -1,6 +1,7 @@
 use crate::graphics::scene::scene_renderer::overlay::begin_line_pass_for_region;
 use crate::graphics::types::ViewportRenderRegion;
 
+/// 绘制 CPU 准备的选中几何线框，并保留已有场景附件；不是后处理轮廓提取。
 pub(crate) struct SelectionOutlinePass;
 
 impl SelectionOutlinePass {

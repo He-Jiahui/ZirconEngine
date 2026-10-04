@@ -37,6 +37,7 @@ impl HybridGiResolveRuntime {
             .contains(&probe_id)
     }
 
+    /// 缺少质量记录时按完整质量处理；是否确实来自场景真值须另查 includes_scene_truth。
     pub fn hierarchy_irradiance_scene_truth_quality(&self, probe_id: u32) -> f32 {
         self.probe_scene_driven_hierarchy_irradiance_quality_q8
             .get(&probe_id)
@@ -53,6 +54,7 @@ impl HybridGiResolveRuntime {
             .unwrap_or(1.0)
     }
 
+    /// 缺少修订记录返回 0；调用方不能仅凭此值判定场景真值是否存在。
     pub fn hierarchy_irradiance_scene_truth_revision(&self, probe_id: u32) -> u32 {
         self.probe_scene_driven_hierarchy_irradiance_revision
             .get(&probe_id)

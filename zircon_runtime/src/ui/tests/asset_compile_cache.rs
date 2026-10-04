@@ -1,3 +1,4 @@
+//! 验证编译缓存键包含文档、导入、资源和描述符版本，缓存命中仍须遵守编译前置校验。
 use crate::ui::component::UiComponentDescriptorRegistry;
 use crate::ui::template::{
     UiAssetCompileCache, UiAssetLoader, UiCompiledArtifactKey, UiCompiledArtifactStore,

@@ -1,3 +1,5 @@
+//! 滚轮改变表格可见窗口并发布范围事件；边界和禁用状态不应制造空事务，基准样本覆盖大列表。
+
 use super::*;
 
 const VIRTUAL_WINDOW_PERF_SAMPLE_COUNT: usize = 31;
@@ -201,6 +203,7 @@ fn table_virtual_window_1000_wheel_benchmark_reports_bounded_work_across_logical
     }
 }
 
+// 只改变逻辑行总数，三条已挂载行与命中节点保持固定，用于隔离虚拟窗口更新的工作量。
 fn set_table_logical_count(surface: &mut UiSurface, logical_count: i64) {
     let metadata = surface
         .tree

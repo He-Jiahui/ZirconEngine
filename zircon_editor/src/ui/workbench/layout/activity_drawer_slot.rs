@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+/// 活动窗口内的逻辑停靠槽；同侧上下两槽共享展示区域。
 pub enum ActivityDrawerSlot {
     LeftTop,
     LeftBottom,
@@ -22,6 +23,7 @@ impl ActivityDrawerSlot {
         self == Self::Bottom
     }
 
+    /// 决定激活抽屉时应折叠哪些兄弟；不比较跨窗口归属。
     pub fn shares_region(self, other: Self) -> bool {
         matches!(
             (self, other),

@@ -1,3 +1,5 @@
+//! 验证运行时 ZUI 样本的语义金样与模板语义一致性。
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 

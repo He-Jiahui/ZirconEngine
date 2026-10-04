@@ -1,3 +1,6 @@
+//! 以对象+组件索引描述符、快照、序号、session 兴趣和调度时间，并按组件清理插值样本。
+//! 共享 Mutex 只保护本地算法状态，不绑定 World 生命周期或远端 session generation。
+
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::net::{

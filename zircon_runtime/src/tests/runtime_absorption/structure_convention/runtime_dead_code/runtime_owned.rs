@@ -1,6 +1,7 @@
 use super::super::assert_contains_all;
 use super::{read_runtime_src, DEAD_CODE_ALLOW_ATTRIBUTE};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0136] 运行时生产资源与诊断的活跃消费证据的静态源码锚点与当前归属不符；需追踪实际调用和新归属，判断契约回归还是守卫过时。
 #[test]
 fn runtime_15_runtime_owned_dead_code_suppression_cleanup() {
     let asset_worker_pool = read_runtime_src("asset/pipeline/worker_pool.rs");

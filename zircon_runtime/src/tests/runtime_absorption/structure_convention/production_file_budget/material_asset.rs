@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0038] 材质资源父文件在值与就绪投影拆分守卫中超过旧预算；需分别核对投影辅助函数及管理记录归属，避免仅放宽共同父文件的门槛。
 #[test]
 fn runtime_15_material_asset_value_readiness_helpers_are_child_owners() {
     let parent = read_runtime_src("asset/assets/material/material_asset.rs");
@@ -136,6 +137,7 @@ fn runtime_15_material_asset_value_readiness_helpers_are_child_owners() {
     }
 }
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0037] 材质资源父文件在管理记录拆分守卫中超过旧预算；需检查记录责任是否已迁移、父文件新增职责是否合理后调整边界或门槛。
 #[test]
 fn runtime_15_material_asset_management_records_are_child_owner() {
     let parent = read_runtime_src("asset/assets/material/material_asset.rs");

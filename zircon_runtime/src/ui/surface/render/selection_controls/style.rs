@@ -11,6 +11,8 @@ use super::{
     state::SelectionRenderState,
 };
 
+/// 勾选、单选与开关共用的角色色/度量快照；深色令牌提供默认，各状态角色再按有效覆盖选择。
+/// 保留“选中真值”和“指针活动”两个条件，使焦点边框与选中表面可以按家族独立表达。
 #[derive(Clone, Copy, Debug)]
 pub(super) struct SelectionVisual {
     pub(super) label: UiRgbaColor,

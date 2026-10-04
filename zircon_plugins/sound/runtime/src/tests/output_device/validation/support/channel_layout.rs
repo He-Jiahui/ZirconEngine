@@ -1,3 +1,4 @@
+// 故意组合环绕布局与双声道数量，供设备描述符校验识别布局不一致。
 use super::super::super::super::*;
 use super::descriptor::software_test_descriptor;
 

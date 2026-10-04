@@ -1,3 +1,5 @@
+/// 完整场景后处理在设备初始化时构造的管线集合，供每帧图执行按节点复用。
+/// 构造时确定输出格式、深度采样模式和 WGSL 入口；重建设备或目标格式后须重建。
 pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) struct PipelineBundle
 {
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) bloom_pipeline:

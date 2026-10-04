@@ -22,6 +22,7 @@ pub struct UiCompileCacheKey {
 }
 
 impl UiCompileCacheKey {
+    /// 把缓存身份中的全部修订投影给失效图；新增编译输入时，键与快照必须同步扩展。
     pub fn invalidation_snapshot(&self) -> UiInvalidationSnapshot {
         UiInvalidationSnapshot {
             document: self.root_document,

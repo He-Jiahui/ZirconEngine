@@ -1,3 +1,4 @@
+//! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。集中挂载下级测试；所有行为断言留在被挂载模块。
 #[path = "shared/abi.rs"]
 pub(super) mod abi;
 #[path = "shared/behavior.rs"]

@@ -1,3 +1,5 @@
+//! 按钮族的焦点与按下状态需经公开归约器保留，同时提交事件仍应交给通用值通道。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventKind, UiComponentState, UiValue,

@@ -1,3 +1,4 @@
+// 核对 UI 资源编辑器集合、详情和紧急动作的通用宿主分发。
 #[test]
 fn ui_asset_editor_host_genericizes_collection_event_dispatch() {
     let wiring = include_str!(concat!(

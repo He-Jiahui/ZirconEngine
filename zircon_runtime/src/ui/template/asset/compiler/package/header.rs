@@ -3,6 +3,7 @@ use zircon_runtime_interface::ui::template::{
     UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
 };
 
+// 包头同时保留源格式、编译器与包 schema；这些版本承担不同兼容边界，不能只凭资产版本判断可复用。
 pub(super) fn compiled_asset_header_from_cache_key(
     asset: UiAssetHeader,
     cache_key: UiCompileCacheKey,

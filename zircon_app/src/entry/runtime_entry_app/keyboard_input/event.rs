@@ -1,3 +1,6 @@
+//! 目标窗口键盘事件进入动态 Runtime 的同步派发边界。
+//! 文本只借用到会话事件调用返回，不能把 ABI 字节视图留在宿主队列中。
+
 use winit::event::KeyEvent;
 use winit::event_loop::ActiveEventLoop;
 use zircon_runtime_interface::{ZrRuntimeEventV1, ZIRCON_RUNTIME_ABI_VERSION_V1};

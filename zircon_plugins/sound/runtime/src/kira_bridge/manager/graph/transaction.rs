@@ -1,3 +1,4 @@
+//! 增量结构事务先建新轨道与发送句柄，再替换持有表；调用方已完成拓扑校验与容量预检。
 use std::collections::{HashMap, HashSet};
 
 use kira::{backend::Backend, track::SendTrackBuilder};

@@ -1,9 +1,11 @@
+/// 内嵌特性的来源数组；相同行号在可选特性与扩展特性数组中指向不同声明。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(in crate::plugin::runtime_plugin) enum EmbeddedFeatureKind {
     Optional,
     Extension,
 }
 
+/// 重复行的原清单坐标，只记录首个同域身份之后的出现位置。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(super) enum DuplicateOccurrence {
     PackageCapability(usize),

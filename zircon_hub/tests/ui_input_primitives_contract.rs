@@ -1,4 +1,5 @@
 //! Static contracts for React + Material UI low-level input primitives.
+//! 固定输入包装器对底层控件、共享密度和只读状态的归属，禁止页面绕过包装器另建输入样式。
 
 use std::{fs, path::PathBuf};
 
@@ -17,6 +18,7 @@ fn normalize_newlines(source: String) -> String {
     source.replace("\r\n", "\n")
 }
 
+/// 读取相对 Hub 包根的受审源码作为结构证据；调用方依赖仓库检出完整，读取失败应暴露契约来源缺失。
 fn read_crate_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(crate_dir().join(path))
@@ -24,6 +26,7 @@ fn read_crate_file(path: &str) -> String {
     )
 }
 
+/// 读取仓库级交接文档或工具证据；约定 Hub 包位于仓库根下一层，不能依赖测试启动时的工作目录。
 fn read_repo_file(path: &str) -> String {
     normalize_newlines(
         fs::read_to_string(repo_dir().join(path))
@@ -49,6 +52,7 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
     }
 }
 
+/// 检查所有基础输入包装器从稳定出口可用，避免页面依赖底层库私有 API。
 #[test]
 fn input_barrel_exports_every_low_level_react_wrapper() {
     let index = read_crate_file("web/src/components/inputs/index.ts");
@@ -71,6 +75,8 @@ fn input_barrel_exports_every_low_level_react_wrapper() {
     );
 }
 
+// BUG: [CR-HUBTESTA-0008] 组合框已增加显式标签透传，测试仍要求旧渲染片段而失败；证据：HubComboBox.tsx 当前输入回调。
+/// 固定文本和选项输入的受控回调、清除行为及统一密度，调用方只处理选项值和业务文案。
 #[test]
 fn text_search_select_and_combo_wrap_mui_text_entry_primitives() {
     let search = read_crate_file("web/src/components/inputs/HubSearchField.tsx");
@@ -135,6 +141,7 @@ fn text_search_select_and_combo_wrap_mui_text_entry_primitives() {
     );
 }
 
+/// 约束点击和导航控件在包装器层统一状态样式与无障碍标签，页面不重复实现选中态。
 #[test]
 fn button_icon_toggle_and_tabs_wrap_mui_click_targets_with_shared_tokens() {
     let button = read_crate_file("web/src/components/inputs/HubButton.tsx");
@@ -204,6 +211,7 @@ fn button_icon_toggle_and_tabs_wrap_mui_click_targets_with_shared_tokens() {
     );
 }
 
+/// 检查缺少写入回调时呈现只读控件，并共同维护标签和详情行，避免用户看到无法生效的编辑入口。
 #[test]
 fn checkbox_and_switch_use_mui_form_controls_for_label_detail_rows() {
     let checkbox = read_crate_file("web/src/components/inputs/HubCheckbox.tsx");
@@ -249,6 +257,7 @@ fn checkbox_and_switch_use_mui_form_controls_for_label_detail_rows() {
     );
 }
 
+/// 核对各路由页面及共享表单消费输入包装器，禁止绕过家族边界直接建立底层表单原语。
 #[test]
 fn routed_pages_consume_input_wrappers_instead_of_raw_material_inputs() {
     for (path, expected_wrappers) in [
@@ -341,6 +350,7 @@ fn routed_pages_consume_input_wrappers_instead_of_raw_material_inputs() {
     }
 }
 
+/// 要求文档记录输入组件系统与页面消费边界，保留当前验证目标供后续调整。
 #[test]
 fn input_primitives_documentation_records_react_mui_contract_cutover() {
     let shell_doc = read_repo_file("docs/zircon_hub/ui/tauri-react-shell.md");
@@ -374,6 +384,7 @@ fn input_primitives_documentation_records_react_mui_contract_cutover() {
     );
 }
 
+/// 自读测试源码核对受审目标仍指向当前前端；禁用词分段构造，新增注释也不能携带其完整旧引用。
 #[test]
 fn input_primitives_contract_is_cut_over_to_react_sources() {
     let contract = read_crate_file("tests/ui_input_primitives_contract.rs");

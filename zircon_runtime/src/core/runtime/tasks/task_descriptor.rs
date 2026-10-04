@@ -6,8 +6,7 @@ use super::{TaskCancellationPolicy, TaskId, TaskPoolKind};
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TaskDescriptor {
     pub id: TaskId,
-    /// Logical workload class for the shared TaskGraph scheduler. This is not
-    /// a physical pool selector.
+    /// Runtime-owned execution domain selected during TaskGraph admission.
     pub kind: TaskPoolKind,
     pub label: String,
     pub cancellation_policy: TaskCancellationPolicy,

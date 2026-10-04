@@ -1,3 +1,4 @@
+//! 聚合生产文件职责拆分的结构测试；子测试检查源码和文档锚点，不执行被读取的生产路径。
 use super::{assert_contains_all, assert_contains_all_exact, repo_path, runtime_src_path};
 
 #[path = "production_file_budget/asset_cache_payload.rs"]

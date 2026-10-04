@@ -1,3 +1,4 @@
+// 核对原生模板短标签保持可辨认的字形像素分布。
 use std::rc::Rc;
 
 use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};

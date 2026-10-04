@@ -1,3 +1,5 @@
+//! 节标题图标仅把已识别的工作台语义映射到资源名、尺寸和主题色；节点内容与布局由标题绘制器负责。
+
 mod identity;
 mod metrics;
 mod shapes;

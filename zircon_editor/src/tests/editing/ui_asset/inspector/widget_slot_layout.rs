@@ -1,3 +1,4 @@
+//! 核对 widget、slot 与 layout 三类检查器字段的投影和回写，避免编辑目标或槽位属性在界面与文档间串位。
 use super::super::support::*;
 
 #[test]

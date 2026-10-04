@@ -1,3 +1,4 @@
+//! 验证模型上下文层按继承、覆盖和清除解析，继承输入仍需重新校验注册表身份。
 use crate::ui::binding::{UiModelSchemaRegistrationError, UiModelSchemaRegistry};
 use zircon_runtime_interface::ui::{
     binding::{

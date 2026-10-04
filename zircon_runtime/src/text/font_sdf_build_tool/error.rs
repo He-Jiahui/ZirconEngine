@@ -1,8 +1,11 @@
+//! 构建工具的对外错误边界，区分字体解码、字型面提取、字符选择、页面容量与产物构建失败；CLI 可报告失败阶段而无需理解 runtime 内部错误。
+
 //! Typed failures produced by offline font distance-field tooling.
 
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+/// 公开构建和检查 API 的失败契约；缺失字符可在 bake 阶段跳过，但最终无可见字形会成为 NoGeneratedGlyphs。
 pub enum FontSdfBakeError {
     #[error("decode font source: {0}")]
     DecodeFont(String),

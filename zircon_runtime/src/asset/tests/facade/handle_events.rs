@@ -1,3 +1,5 @@
+//! typed handle 和事件是 ResourceManager 记录的受限视图；订阅者只应收到本类型的完整生命周期事件。
+
 use super::*;
 
 #[test]
@@ -50,6 +52,7 @@ fn assets_get_acquire_release_and_kind_filtering_use_resource_manager_storage() 
     assert!(textures.get(texture_handle).is_none());
 }
 
+// Removed 发出时记录已从注册表消失，过滤器仍须依据事件携带的 kind 保留本类型通知。
 #[test]
 fn typed_asset_events_filter_by_asset_kind_including_removed_events() {
     let manager = ResourceManager::new();

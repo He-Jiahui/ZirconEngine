@@ -1,3 +1,6 @@
+//! 表格行先处理不可用、按压、持久选择和热态，再回到表头/表尾身份及普通声明色。
+//! 表头背景优先于普通声明色，表尾在没有声明背景时使用宿主表格基色。
+
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

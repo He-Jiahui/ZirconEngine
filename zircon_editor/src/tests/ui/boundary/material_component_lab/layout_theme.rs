@@ -1,3 +1,5 @@
+//! 验证瀑布流布局样例的描述符与主题选择器。
+
 use std::{collections::BTreeSet, fs};
 
 use toml::Value;

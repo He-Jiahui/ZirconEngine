@@ -1,3 +1,6 @@
+//! 将 NetManager TCP API 路由到单一 worker，并在 manager 表中保存公共状态查询索引。
+//! 调用线程同步等待回执；发送返回值可能短于 payload，调用者需按实际字节数处理。
+
 use zircon_runtime::core::framework::net::{
     NetConnectionId, NetConnectionState, NetEndpoint, NetError, NetListenerId,
 };

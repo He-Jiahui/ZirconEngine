@@ -1,3 +1,5 @@
+//! 回复效果矩阵检验宿主请求与保留状态的共同结果；拒绝回执要保留原效果索引和原因。
+
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     component::{UiComponentEvent, UiValue},

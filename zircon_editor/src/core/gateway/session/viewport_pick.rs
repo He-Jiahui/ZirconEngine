@@ -7,6 +7,7 @@ use super::gateway::SessionGateway;
 use super::protocol::ensure_status;
 
 impl SessionGateway {
+    /// ABI 请求前验证视口选择参数；返回票据必须有效且只在本会话消费。
     pub(super) fn request_viewport_pick(
         &self,
         request: ZrRuntimeViewportPickRequestV1,
@@ -34,6 +35,7 @@ impl SessionGateway {
         Ok(ticket)
     }
 
+    /// 拒绝与提交票据不一致的运行时结果；上层固定路由继续核对原请求身份。
     pub(super) fn poll_viewport_pick(
         &self,
         ticket: ZrRuntimeViewportPickTicket,

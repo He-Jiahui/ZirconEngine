@@ -1,3 +1,4 @@
+//! 独占页身份、窗口模板与聚焦文档类型的chrome投影契约；直接构造材料，不创建原生窗口。
 use zircon_runtime_interface::math::UVec2;
 
 use crate::core::commands::DocumentKind;
@@ -15,6 +16,7 @@ use crate::ui::workbench::view::{
 };
 
 #[test]
+/// 页面引用的实例与描述符共同决定独占视图及其模板；验证的是快照身份传递。
 fn chrome_builder_marks_exclusive_activity_window_pages() {
     let asset_browser = ViewInstance {
         instance_id: ViewInstanceId::new("editor.asset_browser#1"),
@@ -90,6 +92,7 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
 }
 
 #[test]
+/// 固定组件实验室描述符到内容类型的映射，防止独占页降为缺失占位。
 fn chrome_builder_resolves_material_component_lab_as_showcase_content() {
     let material_lab = ViewInstance {
         instance_id: ViewInstanceId::new("editor.material_component_lab#1"),
@@ -133,6 +136,7 @@ fn chrome_builder_resolves_material_component_lab_as_showcase_content() {
 }
 
 #[test]
+/// 聚焦实例的typed描述符决定命令上下文文档类型；标题和实例字符串不代替该类型。
 fn chrome_builder_projects_document_kind_from_the_focused_typed_descriptor() {
     let focused_view = ViewInstanceId::new("editor.animation_sequence#1");
     let descriptor = ViewDescriptor::new(
@@ -178,6 +182,7 @@ fn chrome_builder_projects_document_kind_from_the_focused_typed_descriptor() {
     );
 }
 
+/// 为独占页与聚焦类型测试隔离空数据输入；Welcome会话标记不表示已执行启动流程。
 fn empty_editor_data() -> EditorDataSnapshot {
     EditorDataSnapshot {
         scene_entries: Default::default(),

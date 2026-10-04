@@ -13,6 +13,7 @@ pub(super) struct PendingRemoteCleanup {
 }
 
 impl EditorRuntimeEventConsumerHost {
+    /// 终止、能力收缩和贡献撤销共用此退役路径；本地释放后仍须结清原端点订阅。
     pub(super) fn retire_active_consumer(
         &self,
         identity: &ActiveConsumerIdentity,
@@ -22,6 +23,8 @@ impl EditorRuntimeEventConsumerHost {
             return Ok(());
         };
         self.release_pending_bytes(consumer.pending_retained_bytes);
+        // BUG: [CR-EDITOR-SERVICES-0004] 先移除本地条目后若远端取消失败，此处只返回错误，未存入 pending_remote_cleanup；
+        // shutdown/reconcile 后续没有该订阅可重试，旧运行时可能继续保留订阅。
         let remote_cleanup = unsubscribe_consumer(
             &consumer.origin,
             &identity.consumer_id,
@@ -80,6 +83,7 @@ impl EditorRuntimeEventConsumerHost {
         first_error
     }
 
+    /// BeginSession 回调异常的远端清理失败会暂存原端点，供后续 reconcile 或 shutdown 重试。
     pub(super) fn defer_remote_cleanup(
         &self,
         consumer_id: &str,

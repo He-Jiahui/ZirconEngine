@@ -1,3 +1,4 @@
+//! 产品测试的速度图导出辅助：将 RG16Float 回读的半浮点位模式做可视化映射；PNG 只供人工检查，数值断言来自原始回读。
 use std::{fs, path::PathBuf};
 
 use image::{ImageBuffer, ImageFormat, Rgba};

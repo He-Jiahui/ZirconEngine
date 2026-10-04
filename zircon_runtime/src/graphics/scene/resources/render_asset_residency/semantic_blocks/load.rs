@@ -14,6 +14,7 @@ use super::contract::{
     RenderAssetSemanticBlockLoadError,
 };
 
+/// 单批语义块的票据与已解码结果保留原计划顺序，直到整批可交付给 GPU 驻留计划。
 struct ActiveSemanticBlockBatch {
     tickets: RenderArtifactBlockTicketBatch,
     blocks: Vec<Option<RenderArtifactDecodedBlock>>,
@@ -78,6 +79,8 @@ impl RenderAssetSemanticBlockLoad {
         Ok(load)
     }
 
+    /// 推进当前异步票据批次；未完成时归还自身以供下一帧续轮询，
+    /// 准入失败为 Deferred，已完成的块仍保留而无需重新发起 I/O。
     pub(crate) fn advance(
         mut self,
         loader: &RenderArtifactBlockLoader,

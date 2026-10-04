@@ -1,3 +1,5 @@
+//! 将 zircon_script 元数据编译成框架 trait 实现：反射注册信息与脚本类型投影分别进入 ZirconScriptType 的两个方法。
+
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::spanned::Spanned;
@@ -94,6 +96,7 @@ pub(crate) fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<
     })
 }
 
+// 每个字段只解析一次属性，再同时生成反射字段与宿主投影；skip 会同时排除两侧。
 fn field_tokens(
     fields: &Fields,
     type_identity: &str,

@@ -1,3 +1,5 @@
+//! 验证欢迎页项目入口的共享 token 和响应式列权重。
+
 const WELCOME_TEMPLATE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/assets/ui/editor/welcome.zui"

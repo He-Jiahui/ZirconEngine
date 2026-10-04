@@ -1,3 +1,4 @@
+// 仅在能力状态表内解释三项对照字段；其他清单字段由各自的测试投影处理。
 mod bevy_references;
 mod capability;
 mod status;

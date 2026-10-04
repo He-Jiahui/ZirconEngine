@@ -8,6 +8,7 @@ pub enum PickingAxis {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+/// 运行时与编辑器共同使用的可选取身份；轴柄、场景 gizmo 和普通可渲染体按交互优先级排序。
 pub enum HitTarget {
     HandleAxis { owner: EntityId, axis: PickingAxis },
     SceneGizmo { owner: EntityId },

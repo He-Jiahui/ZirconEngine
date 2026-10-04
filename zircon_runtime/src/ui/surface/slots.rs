@@ -7,6 +7,8 @@ use zircon_runtime_interface::ui::{
 use super::{UiInvalidationReason, UiSurface};
 
 impl UiSurface {
+    /// 调整已有 Overlay 父子 slot 的堆叠顺序；只改变绘制与命中，不改节点自身 z_index。
+    /// 返回是否发生变化，父子节点及指定类型的 slot 均须已存在。
     pub fn set_overlay_slot_z_order(
         &mut self,
         parent_id: UiNodeId,
@@ -16,6 +18,8 @@ impl UiSurface {
         self.set_layering_slot_z_order(parent_id, child_id, UiSlotKind::Overlay, z_order)
     }
 
+    /// 调整已有 Canvas slot 的堆叠顺序，供排布后的绘制和命中共同采用。
+    /// 调用后由正常的脏帧重建发布结果，方法本身不重建布局。
     pub fn set_canvas_slot_z_order(
         &mut self,
         parent_id: UiNodeId,
@@ -25,6 +29,7 @@ impl UiSurface {
         self.set_layering_slot_z_order(parent_id, child_id, UiSlotKind::Canvas, z_order)
     }
 
+    /// 为已有 Free slot 更新相对父容器的放置约束；后续布局重建计算新的几何。
     pub fn set_free_slot_canvas_placement(
         &mut self,
         parent_id: UiNodeId,
@@ -34,6 +39,7 @@ impl UiSurface {
         self.set_slot_canvas_placement(parent_id, child_id, UiSlotKind::Free, placement)
     }
 
+    /// 为已有 Canvas slot 更新锚点、偏移和枢轴约束，并使该子节点布局失效。
     pub fn set_canvas_slot_canvas_placement(
         &mut self,
         parent_id: UiNodeId,

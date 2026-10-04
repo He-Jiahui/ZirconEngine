@@ -1,3 +1,5 @@
+//! 面板、卡片、检查器行等组合构件声明内容槽和编写默认值，供目录与模板检查。property_path 将编辑器行连接到宿主字段目标，value/editor_kind 描述展示和编辑契约。
+
 use super::shared::*;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {

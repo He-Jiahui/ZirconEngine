@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::framework::scene::EntityId;
 
+/// 查询同步碰撞体时的筛选条件；默认排除传感器，实体排除集可避免感知射线命中自身。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PhysicsQueryFilter {
     pub collision_mask: Option<u32>,

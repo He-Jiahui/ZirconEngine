@@ -1,3 +1,5 @@
+//! 分隔线按交互状态调整而不改变区域身份；普通状态保留区域要求的强、弱层级。
+
 use super::palette::WorkbenchChromePalette;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

@@ -1,3 +1,5 @@
+//! 模板文字样式到共享渲染枚举的解析边界；接受约定的 ASCII 别名，未知值交由调用者选择默认。
+//! 这里只解释作者配置，不负责字体准入、布局或后端可用性判断。
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiRichTextFormat, UiTextAlign, UiTextDirection, UiTextOverflow,
     UiTextRenderMode, UiTextWrap, UiTextWritingMode,
@@ -144,6 +146,8 @@ pub(super) fn parse_text_overflow(value: &str) -> Option<UiTextOverflow> {
     }
 }
 
+/// 仅在调用方已选择限制字号溢出策略后补齐其区间；缺省端点取共享默认字号。
+/// 端点合法性及最终文字布局策略由后续文字布局层处理，这一步不重新解释其他 overflow 选项。
 pub(super) fn clamp_font_size_overflow(min_px: Option<f32>, max_px: Option<f32>) -> UiTextOverflow {
     let min_px = min_px.unwrap_or(UiResolvedStyle::DEFAULT_FONT_SIZE);
     let max_px = max_px.unwrap_or(UiResolvedStyle::DEFAULT_FONT_SIZE);

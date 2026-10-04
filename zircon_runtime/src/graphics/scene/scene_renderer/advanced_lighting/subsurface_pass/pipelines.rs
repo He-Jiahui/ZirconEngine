@@ -11,6 +11,8 @@ pub(super) const SETUP_SHADER: &str = include_str!("shaders/setup.wgsl");
 pub(super) const SCATTER_SHADER: &str = include_str!("shaders/scatter.wgsl");
 pub(super) const RECOMBINE_SHADER: &str = include_str!("shaders/recombine.wgsl");
 
+/// 同一设备世代下统一缓存 setup、scatter 与 recombine 管线，各阶段使用与自身 shader 对应的资源布局。
+/// 管线由图执行器通过原生资源工厂构造，目标格式变动会重建缓存。
 pub(super) struct SubsurfacePipelines {
     setup_layout: wgpu::BindGroupLayout,
     setup: wgpu::ComputePipeline,
@@ -130,6 +132,8 @@ impl SubsurfacePipelines {
         params: wgpu::BufferBinding<'_>,
         dispatch: [u32; 3],
     ) {
+        // 间接派发计数必须在 setup 前归零；否则下一帧会追加旧 tile，
+        // scatter 将读取超出本帧活动列表的工作组。
         context.command_encoder().clear_buffer(
             indirect_args.buffer,
             indirect_args.offset,

@@ -1,3 +1,5 @@
+//! 同时识别语义 component_role 与模板 role，使专用反馈在通用表面前获得绘制所有权。
+
 use super::super::super::super::data::TemplatePaneNodeData;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_material_progress_node(

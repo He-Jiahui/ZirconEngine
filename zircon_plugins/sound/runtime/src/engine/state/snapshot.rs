@@ -1,3 +1,4 @@
+//! 对外快照以当前运行注册表覆盖图里的可编辑声明，使编辑器看到已分配的声源 ID、绑定和事件目录。
 use zircon_runtime::core::framework::sound::SoundMixerSnapshot;
 
 use super::SoundEngineState;

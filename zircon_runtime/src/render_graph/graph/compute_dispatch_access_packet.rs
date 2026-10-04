@@ -65,6 +65,7 @@ pub(super) fn build_compute_dispatch_access_packets(
         // Generic-compute metadata is the opt-in contract. Other executors may
         // carry a workload for scheduling or diagnostics without generic WGPU
         // resource binding.
+        // 只有携带 metadata 的 live pass 才生成 packet，执行器据此拒绝按名字猜测资源。
         if pass.compute_pass_metadata.is_none() {
             continue;
         }
@@ -272,6 +273,7 @@ fn validate_indirect_dispatch_access(
         &RenderGraphResourceDeclaration,
     >,
 ) -> Result<(), RenderGraphError> {
+    // 间接 dispatch 必须覆盖 offset 开始的 12 字节参数窗口，避免把更宽的读范围当作命令参数。
     let declaration = declarations_by_resource
         .get(&access.resource)
         .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {

@@ -1,3 +1,4 @@
+/// 与 TAA resolve 参数上传共享的稳定档位编号；画质配置可在解析后保留该偏好。
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TaaQualityPreset {

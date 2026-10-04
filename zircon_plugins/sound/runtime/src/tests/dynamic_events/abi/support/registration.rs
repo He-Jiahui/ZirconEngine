@@ -1,3 +1,4 @@
+// 汇集本组测试共享的有效描述符和入口调用，保证多个断言从一致的初始状态出发。
 use super::super::super::*;
 
 use super::detail::{EVENT_ID, PAYLOAD_SCHEMA};

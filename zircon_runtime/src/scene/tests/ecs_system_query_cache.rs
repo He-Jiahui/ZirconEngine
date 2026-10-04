@@ -1,3 +1,5 @@
+//! QueryState 在系统多次运行间复用原型计划，忽略无关成员变化，同时保持 World 的稳定实体顺序。
+
 use crate::scene::components::{MeshRenderer, Name};
 use crate::scene::ecs::{Changed, Component, QueryState, SystemState};
 use crate::scene::{EntityId, NodeKind, World};

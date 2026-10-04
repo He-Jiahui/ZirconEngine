@@ -1,3 +1,5 @@
+//! 正文按占位标志选择文字角色，步进器与分隔线保持独立；禁用或加载统一使用不可用配方。
+
 use super::palette::workbench_text_field_palette;
 use super::state::is_unavailable_text_field_state;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;

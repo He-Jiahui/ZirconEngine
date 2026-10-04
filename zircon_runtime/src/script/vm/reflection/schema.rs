@@ -1,3 +1,4 @@
+//! 插件状态结构只把公开的 VM component 投影到场景反射表；普通状态类型仍可迁移，但不会自动获得世界组件访问权限。
 use zircon_runtime_interface::reflect::{ReflectScriptVisibility, ReflectTypeRegistration};
 
 use crate::scene::{TypeRegistry, VmTypeBacking};

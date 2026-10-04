@@ -14,6 +14,7 @@ pub struct UiInvalidationReport {
 }
 
 impl UiInvalidationReport {
+    /// 缓存命中没有新的输入差异，因此以空变更、阶段和诊断构造默认报告。
     pub fn cache_hit() -> Self {
         Self::default()
     }

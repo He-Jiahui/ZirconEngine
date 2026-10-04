@@ -1,3 +1,4 @@
+//! 依赖解析索引合并包与两类特性声明的能力；这里检查可声明来源，不做项目启用或实际提供者准入。
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::super::{

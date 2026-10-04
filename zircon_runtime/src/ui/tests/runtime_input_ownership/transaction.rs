@@ -1,9 +1,12 @@
+//! 一组输入效果要么一起提交，要么恢复触及的全部状态；拒绝回执保留原索引，单效果走轻量路径。
+
 use super::*;
 use zircon_runtime_interface::ui::dispatch::{
     UiInputDispatchResult, UiInputRoutePolicy, UiPopupEffectKind,
 };
 use zircon_runtime_interface::ui::text::UiRichLinkTarget;
 
+// 对照原效果序列确认整体拒绝，不可只检查最后失败项；无宿主或组件事件泄漏是同一事务契约。
 fn assert_transaction_rejected(
     result: &UiInputDispatchResult,
     effects: &[UiDispatchEffect],

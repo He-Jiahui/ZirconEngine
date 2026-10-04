@@ -20,6 +20,7 @@ pub(crate) fn has_obstacle_worlds(manager: &DefaultNavigationManager) -> bool {
     !manager.lock_state().obstacle_worlds.is_empty()
 }
 
+// 查询前把世界障碍同步到对应网格的 TileCache，使动态雕刻对本次路径查询可见。
 pub(crate) fn find_path_with_runtime_obstacles(
     manager: &DefaultNavigationManager,
     handle: NavMeshHandle,

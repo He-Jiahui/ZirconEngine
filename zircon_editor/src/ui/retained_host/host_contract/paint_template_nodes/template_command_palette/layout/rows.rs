@@ -1,3 +1,6 @@
+//! 把完整候选索引映射到面板行，再为标题和辅助说明提供文本区域。
+//! 行位置与可见行筛选共享密度指标；调用方负责裁剪，不在此重排行或执行分页。
+
 use super::super::super::super::data::FrameRect;
 use super::common::symmetric_extent;
 use super::metrics::command_palette_metrics;
@@ -19,6 +22,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn row_rec
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn row_label_rect(
     row_rect: &FrameRect,
 ) -> FrameRect {
+    // BUG: [CR-EDITOR-PAINT-OVERLAY-0001] 标题区域延伸至行右侧，与辅助说明区域重叠；
+    // 两者由同一行入口同时绘制且没有列间裁剪，长标题会进入快捷键/说明列。应按实际辅助内容预留列宽并补长标题 fixture。
     let metrics = command_palette_metrics();
     FrameRect {
         x: row_rect.x + metrics.row_text_x,

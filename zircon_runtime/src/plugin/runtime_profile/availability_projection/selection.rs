@@ -1,3 +1,5 @@
+//! 将显式项目清单压成一次有序选择，供报告和轻量生成代共用。
+
 use std::collections::HashMap;
 
 use crate::builtin::RuntimePluginId;
@@ -27,6 +29,7 @@ pub(super) struct RuntimePluginManifestSelectionProjection {
     pub(super) metrics: RuntimePluginAvailabilitySelectionMetrics,
 }
 
+/// 仅采纳目标启用且能解析为运行时插件的项目行；未知项不进入此投影，装配调用方需另行诊断。
 pub(super) fn project_manifest_plugin_selections(
     profile: &RuntimeProfileDescriptor,
     manifest: &ProjectPluginManifest,
@@ -71,6 +74,7 @@ pub(super) fn project_manifest_plugin_selections(
     }
 }
 
+/// 同一插件可能由多条项目声明引用；保留首次位置并合并必需性。
 /// Preserves the first selection position while merging required state across every occurrence.
 /// Both profile-default and manifest entry points use this one operation so their availability
 /// generation and indexed lookup semantics cannot drift.

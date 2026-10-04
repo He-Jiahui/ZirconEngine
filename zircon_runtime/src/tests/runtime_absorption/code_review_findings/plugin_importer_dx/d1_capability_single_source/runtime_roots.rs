@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。保存同组守卫使用的局部数据或辅助变换。
 const D1_RUNTIME_CAPABILITY_ROOTS: &[(&str, &str, &str, &str, &str)] = &[
     (
         "ai",

@@ -1,3 +1,5 @@
+//! 覆盖重启后的缓存恢复、失效重导入、单文件失败隔离、迁移元数据清理与依赖诊断。
+
 use super::*;
 
 #[test]
@@ -24,6 +26,7 @@ fn project_manager_restores_ready_artifacts_from_meta_after_restart() {
     }
     fs::write(&data_path, r#"{ "answer": 42 }"#).unwrap();
 
+    // 重启管理器没有注册测试导入器；这个计数本意是验证 Ready artifact 能从 sidecar 恢复而无需再次执行导入。
     COUNTED_IMPORT_CALLS.store(0, Ordering::SeqCst);
     let uri = AssetUri::parse("res://data/settings.counted").unwrap();
     let mut manager = ProjectManager::open(&root).unwrap();
@@ -136,6 +139,7 @@ fn project_manager_reimports_material_when_ready_artifact_payload_is_stale() {
 }
 
 #[test]
+// 单个源导入失败应留可诊断的 Error 记录，同时让无关 shader 进入 Ready，供编辑器展示部分项目。
 fn project_manager_records_failed_imports_and_continues_scanning() {
     let root = unique_temp_project_root("project_manager_failed_import");
     let paths = ProjectPaths::from_root(&root).unwrap();

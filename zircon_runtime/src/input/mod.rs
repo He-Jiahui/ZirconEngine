@@ -1,5 +1,6 @@
 //! Runtime input subsystem and protocol types.
 
+//! 输入协议由 core framework 定义，运行时实现负责帧状态、动作求值和回放；宿主只负责投递事件及执行请求。
 pub mod camera_controller;
 mod module;
 pub mod prelude;

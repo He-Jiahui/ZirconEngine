@@ -1,5 +1,7 @@
 use crate::text::TextLayoutSessionDiagnostics;
 
+/// 将已完成的 Core 文字会话汇总投影到固定诊断计数器，供 Runtime 性能/回退原因观察。
+/// 仅上报次数和路径统计，不保存内容或节点身份，也不能根据这些计数重新执行 shaping 或判断成功。
 pub(super) fn record_text_layout_session_profile(diagnostics: TextLayoutSessionDiagnostics) {
     for (name, value) in [
         (

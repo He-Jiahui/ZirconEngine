@@ -1,3 +1,4 @@
+// 活跃 Kira 下的自动化执行仍受阶段能力门槛约束；测试只确认明确拒绝而非静默接受。
 use zircon_runtime::core::framework::sound::SoundError;
 
 use crate::automation::target::ensure_automation_execution_available;

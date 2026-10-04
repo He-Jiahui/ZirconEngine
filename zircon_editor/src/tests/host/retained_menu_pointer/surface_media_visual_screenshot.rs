@@ -1,3 +1,4 @@
+// 核对分层表面、图像预览与间距在原生绘制中的布局及像素契约。
 use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;

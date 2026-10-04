@@ -26,6 +26,7 @@ use zircon_runtime::scene::{NodeKind, World};
 use crate::behavior_tree::RuntimeBehaviorIntegrationHost;
 use crate::DefaultAiManager;
 
+// 通过真实导航组件与集成宿主检查 MoveTo 的运行中、到达和无路径状态映射。
 #[test]
 fn move_to_maps_arrival_and_failure_to_node_result() {
     let manager = DefaultAiManager::default();

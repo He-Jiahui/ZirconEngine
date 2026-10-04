@@ -8,6 +8,7 @@ use super::declarations::{
 pub(in crate::hybrid_gi) struct HybridGiTraceCapabilityGraph;
 
 impl HybridGiTraceCapabilityGraph {
+    // 路由按可用能力排列求交后端；命中后的光照来源按后端选择，未命中则使用独立的回退来源。
     pub(in crate::hybrid_gi) fn select(
         self,
         request: HybridGiTraceRequest,

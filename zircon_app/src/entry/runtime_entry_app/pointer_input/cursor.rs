@@ -1,3 +1,5 @@
+//! 窗口指针进入/离开通知，触摸离开额外终止该触点的 Runtime 生命周期。
+
 use winit::dpi::PhysicalPosition;
 use winit::event::PointerKind;
 use winit::event_loop::ActiveEventLoop;

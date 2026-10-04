@@ -1,6 +1,8 @@
 use super::super::super::super::super::resources::depth_sampling_mode::PostProcessDepthSamplingMode;
 use super::super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
 
+/// 共享 29 槽 ABI 的资源映射，供独立效果和最终组合复用；缺失资源使用各通道中性视图。
+/// 深度占位受后端模式控制，须与 shader 改写一致；None 也用于避免采样当前写入附件。
 #[allow(clippy::too_many_arguments)]
 pub(super) fn bind_group_entries<'a>(
     resources: &'a ScenePostProcessResources,

@@ -28,6 +28,8 @@ mod text_state;
 mod value;
 mod value_target;
 
+// 每次动作以当前快照检查目标，避免仅凭外部传来的 node_id 绕过隐藏、失效和 disabled 状态。
+// 具体写入委托表面属性/焦点/文本 owner；回复是处理结果，不能把它当作独立的状态存储。
 pub(crate) fn dispatch_accessibility_action(
     surface: &mut UiSurface,
     event: UiAccessibilityInputEvent,

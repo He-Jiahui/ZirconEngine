@@ -1,3 +1,4 @@
+//! 特性描述符声明通道、资源扩展和启用条件；图编译消费它，原生 WGPU 资源由后端持有。
 use crate::graphics::FrameHistoryBinding;
 
 use super::super::render_feature_capability_requirement::RenderFeatureCapabilityRequirement;
@@ -21,6 +22,7 @@ pub(crate) enum RenderFeatureGraphMutation {
     RequireAdvancedLightingSubsurface,
 }
 
+/// 特性提交的静态图契约；通道替换与资源扩展在编译阶段验证。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderFeatureDescriptor {
     pub name: String,

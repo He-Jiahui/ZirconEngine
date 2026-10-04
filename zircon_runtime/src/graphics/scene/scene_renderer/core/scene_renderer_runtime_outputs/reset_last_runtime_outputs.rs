@@ -1,5 +1,6 @@
 use super::super::scene_renderer::SceneRenderer;
 
+/// 新帧开始时清空旧提交回执和插件结果，防止失败帧向 Runtime 暴露上一帧输出。
 pub(in crate::graphics::scene::scene_renderer::core) fn reset_last_runtime_outputs(
     renderer: &mut SceneRenderer,
 ) {

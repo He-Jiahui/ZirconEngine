@@ -1,3 +1,6 @@
+//! 表头显示设置操作，数据行在标记或热态显示更多操作；按钮槽与图标只有完整落在行内才绘制。
+//! 这里只生成外观命令，操作事件仍由宿主控件处理。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;

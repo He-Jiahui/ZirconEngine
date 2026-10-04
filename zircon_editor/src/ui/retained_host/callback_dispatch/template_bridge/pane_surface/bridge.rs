@@ -11,6 +11,7 @@ use super::super::project_builtin_surface;
 use super::super::{binding_for_control, project_builtin_surface_with_runtime};
 use super::error::BuiltinPaneSurfaceTemplateBridgeError;
 
+// 面板操作先解析模板路由的真实绑定 ID，再交给宿主操作分发器处理。
 pub(crate) struct BuiltinPaneSurfaceTemplateBridge {
     bindings_by_id: HashMap<String, EditorUiBinding>,
     host_projection: RetainedUiHostProjection,
@@ -55,6 +56,7 @@ impl BuiltinPaneSurfaceTemplateBridge {
         self.bindings_by_id.get(binding_id)
     }
 
+    // 允许面板动作使用模板绑定原 ID 或规范化动作名；找不到路由时不合成新绑定。
     pub(crate) fn binding_id_for_action_id(&self, action_id: &str) -> Option<String> {
         if self.binding_by_id(action_id).is_some() {
             return Some(action_id.to_string());

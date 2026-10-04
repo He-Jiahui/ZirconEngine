@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// 资产导入与模板组装共用的类型判别；只有 Surface 参与材质变体，Include 仅作为模块依赖。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ShaderAssetKind {

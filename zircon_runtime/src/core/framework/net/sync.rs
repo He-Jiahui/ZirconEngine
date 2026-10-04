@@ -55,6 +55,7 @@ impl SyncFieldDescriptor {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 按组件类型注册的复制策略；权限、更新频率、优先级和兴趣组共同决定后续调度。
 pub struct SyncComponentDescriptor {
     pub component_type: String,
     pub authority: SyncAuthority,
@@ -106,6 +107,7 @@ impl SyncComponentDescriptor {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 单次会话复制的容量约束；零表示无限制，调度器只在预算允许时将快照标记为已发送。
 pub struct SyncReplicationBudget {
     /// `SYNC_REPLICATION_UNBOUNDED_BUDGET` keeps the snapshot count unlimited for local tests and tooling.
     pub max_snapshots: usize,
@@ -200,6 +202,7 @@ impl SyncFieldValue {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 某个网络对象的一份组件状态；调度器按权限和兴趣组筛选后再产生会话输出。
 pub struct SyncObjectSnapshot {
     pub object: NetObjectId,
     pub component_type: String,
@@ -225,6 +228,7 @@ impl SyncObjectSnapshot {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 连续状态的增量消息；despawn 是删除墓碑，不应与普通字段合并。
 pub struct SyncDelta {
     pub object: NetObjectId,
     pub component_type: String,
@@ -267,6 +271,7 @@ impl SyncDelta {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 会话兴趣过滤器；未分组的快照始终允许，分组快照只对显式加入的组开放。
 pub struct SyncInterestDescriptor {
     pub session: NetSessionId,
     /// Sorted and duplicate-free so per-snapshot membership checks stay logarithmic.

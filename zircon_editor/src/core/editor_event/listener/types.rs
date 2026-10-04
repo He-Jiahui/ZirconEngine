@@ -16,6 +16,7 @@ pub struct EditorEventListenerDescriptor {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// 监听器收到的一条结果观察；投递游标属于该收件箱，用于分页与确认，全局事件序号用于关联原执行。
 pub struct EditorEventListenerDelivery {
     pub listener_id: String,
     pub delivery_cursor: u64,
@@ -59,6 +60,7 @@ pub struct EditorEventListenerDeliveryPage {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 收件箱当前保留状态及累计淘汰诊断；存在丢失或合并时，客户端应按业务需要查询权威状态。
 pub struct EditorEventListenerStatus {
     pub listener_id: String,
     pub descriptor: EditorEventListenerDescriptor,
@@ -75,6 +77,7 @@ pub struct EditorEventListenerStatus {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 监听器控制协议；读取页面和确认已处理页面是两个独立步骤，客户端需先消费再提交确认游标。
 pub enum EditorEventListenerControlRequest {
     Register {
         listener_id: String,

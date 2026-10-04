@@ -1,3 +1,4 @@
+//! 集中处理页晋升、淘汰和槽位复用，维持驻留映射与待处理请求一致。
 mod clear_pending_request;
 mod evict_page;
 mod page_in_slot;

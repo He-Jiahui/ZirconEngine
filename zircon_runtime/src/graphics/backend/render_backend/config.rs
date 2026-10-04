@@ -1,3 +1,4 @@
+//! 后端启动时一次性解析 WGPU 环境覆写，后续设备选择和帧提交使用固定实例配置。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct RenderBackendConfig {
     pub(crate) backends: wgpu::Backends,

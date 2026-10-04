@@ -1,3 +1,6 @@
+//! 向诊断层报告本帧的绑定、别名和物化校验结果。
+//! 视图数与 backing 数是不同维度，不能把逻辑别名数解释为物理分配数。
+
 use crate::core::framework::render::{
     RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
     RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
@@ -55,6 +58,7 @@ impl RenderGraphExecutionResources {
         super::super::materialization_validation::validate_materialized_graph_resources(self, graph)
     }
 
+    /// 展示逻辑名到物理 backing 的关系，供资源池与图别名诊断使用。
     pub fn resource_alias_report(&self) -> RenderGraphExecutionAliasReport {
         let mut texture_aliases = self
             .owned_texture_backings

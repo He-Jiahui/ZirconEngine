@@ -9,6 +9,7 @@ use crate::plugin::{PluginEventCatalogManifest, PluginOptionManifest};
 
 use super::super::RuntimeExtensionRegistry;
 
+// 只暴露描述符视图；调用方在合并或构建世界时读取，不应把这些切片当成可跨热重载的快照。
 impl RuntimeExtensionRegistry {
     pub fn components(&self) -> &[ComponentTypeDescriptor] {
         self.components.values()
@@ -33,6 +34,7 @@ impl RuntimeExtensionRegistry {
     }
 
     #[cfg(feature = "graphics")]
+    // 目录合并必须同时保留 owner，才能按目标模块筛选并在卸载时撤销图形扩展。
     pub(in crate::plugin) fn geometry_source_entries(
         &self,
     ) -> impl Iterator<Item = (PluginModuleId, &GeometrySourceDescriptor)> {

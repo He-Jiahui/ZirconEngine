@@ -124,6 +124,7 @@ pub struct CpuMeshPayload {
 }
 
 #[derive(Clone, Debug)]
+/// IO 线程生成、主线程及其他订阅者共享的不可变 CPU 结果；失败也作为一次完成发布。
 pub enum CpuAssetPayload {
     Texture(CpuTexturePayload),
     Mesh(CpuMeshPayload),

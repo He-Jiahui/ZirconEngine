@@ -1,3 +1,4 @@
+// 核对性能与诊断面板正文的结构、原生槽位和命令命名空间。
 use std::fs;
 
 use super::support::pane_body_path;

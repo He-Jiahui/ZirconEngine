@@ -1,3 +1,5 @@
+//! 绑定执行前的类型与版本校验，以及执行后的来源/目标报告；真实模型访问和表面变更由各自 owner 完成。
+
 mod conversion_registry;
 mod model_schema_registry;
 mod update_report;

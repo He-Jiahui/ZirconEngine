@@ -1,3 +1,5 @@
+//! 表面、单元格与操作共用工作台表格状态选择器；列文字差异由样式定义，而不是在命令阶段再推断。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::style_selector::{select_workbench_table_row_style, WorkbenchTableRowStyle};
 

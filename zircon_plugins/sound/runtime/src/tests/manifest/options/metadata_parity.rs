@@ -1,3 +1,4 @@
+// 对照默认值、类型、枚举和能力门槛，避免静态导出接受与运行时注册不同的选项契约。
 use super::super::support::{
     option_manifest_tuple, option_manifests_from_plugin_toml, STATIC_SOUND_PLUGIN_MANIFEST,
 };

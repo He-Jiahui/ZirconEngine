@@ -1,3 +1,5 @@
+//! HTML 的可恢复作者诊断在此归一化；容量和双向文本准入错误仍由解析器作为终止错误返回。
+
 use crate::text::{
     RichTextAuthoringDiagnostic, RichTextAuthoringDiagnosticCode,
     RichTextAuthoringDiagnosticSeverity, RichTextAuthoringRecovery,

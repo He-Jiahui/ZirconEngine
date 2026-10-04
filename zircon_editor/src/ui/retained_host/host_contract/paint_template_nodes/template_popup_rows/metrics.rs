@@ -1,3 +1,5 @@
+//! 将宿主控件指标投影为菜单行内容与尾部标记共同预算；文本列和图标列必须消费同一metrics。
+
 use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]

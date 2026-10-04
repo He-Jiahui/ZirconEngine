@@ -1,3 +1,4 @@
+// 通过生产源码片段检查执行器服务职责归属；只核对预期标识存在，不执行公共声管理器。
 use super::super::support::{assert_source_contains, src_root};
 
 #[test]

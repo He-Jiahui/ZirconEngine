@@ -1,3 +1,5 @@
+//! 拖拽摘要诊断可省略可选轨迹，但须与完整诊断共享事件载荷和捕获来源；陈旧会话不能污染新会话。
+
 use super::*;
 
 #[test]
@@ -81,6 +83,8 @@ fn drag_drop_summary_shares_payload_authority_and_skips_optional_trace_projectio
         .as_ref()
         .and_then(|drag| drag.payload.as_ref())
         .expect("retained drag payload");
+    // 事件、reply effect、applied effect 与 retained session 应共享同一份载荷分配；
+    // 这里核对 Arc 身份，保护分发过程中的载荷共享约定。
     assert!(Arc::ptr_eq(
         summary_event.payload.as_ref().expect("event payload"),
         &payload,

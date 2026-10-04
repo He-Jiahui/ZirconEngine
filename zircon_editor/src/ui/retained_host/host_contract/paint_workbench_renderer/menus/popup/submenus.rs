@@ -13,6 +13,7 @@ use super::super::geometry::{
 use super::super::rows::draw_menu_popup_rows;
 use super::menu_popup_palette;
 
+// 按已打开的子菜单路径逐级扩展父项；缺失分支或不可见框立即终止，避免绘制不属于当前路径的层级。
 pub(super) fn draw_open_submenu_popups(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,

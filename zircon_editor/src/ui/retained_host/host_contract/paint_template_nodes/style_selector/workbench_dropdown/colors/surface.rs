@@ -1,3 +1,5 @@
+//! 动态表面取当前宿主主题色；声明背景只覆盖静态或无热态的纯焦点外观。
+
 use super::super::palette::workbench_dropdown_palette;
 use super::super::state::{
     dropdown_node_is_hot, dropdown_node_is_open, is_unavailable_dropdown_state,

@@ -1,3 +1,5 @@
+//! ProjectAssetManager 将资源注册表和 typed facade 连接；locator 查找、按需加载与共享 kind 的 payload 类型有不同约束。
+
 use super::*;
 
 #[test]
@@ -88,6 +90,7 @@ fn project_asset_manager_load_returns_typed_handle_and_state() {
     );
 }
 
+// UiV2ViewAsset 与 UiLayoutAsset 共用 UiLayout kind；调用 load 时还需验证实际 payload 类型。
 #[test]
 fn project_asset_manager_load_accepts_v2_ui_payload_under_ui_layout_kind() {
     let manager = ProjectAssetManager::default();

@@ -1,3 +1,6 @@
+//! 原生手柄宿主与动态 Runtime 的事件、震动适配边界。
+//! Gilrs 与运行中的效果由 App 持有，窗口退出路径负责主动停止效果。
+
 mod codes;
 mod events;
 mod host;

@@ -1,3 +1,5 @@
+//! 精确几何发布由调用方提供完整变更集合与拓扑代际；条件失效时必须退回完整发布，旧帧仍可供读者持有。
+
 use std::collections::BTreeSet;
 
 use super::*;

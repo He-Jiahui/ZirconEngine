@@ -1,3 +1,4 @@
+//! 运行时根公开面和图形别名的收敛结果需与架构文档一致。以结果断言检查当前接口或源码快照对应的边界。
 use super::inventory::{
     CORE_MOD_RS, INTERFACE_CONVERGENCE_DOC, ROOT_SURFACE_DOC, ROOT_SURFACE_M1_DOC,
 };

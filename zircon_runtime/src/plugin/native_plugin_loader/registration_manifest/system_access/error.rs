@@ -1,5 +1,8 @@
+//! 区分清单语法、宿主授权和 World 解析三个阶段的访问错误，供注册回放给出准确诊断。
+
 use super::{NativeSystemAccessDomain, NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY};
 
+/// 声明本身不能生成调度计划时的错误；在加载注册清单或解析 ABI V4 入参时产生。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::plugin::native_plugin_loader) enum NativeSystemAccessContractError {
     InvalidDeclaration {
@@ -57,6 +60,7 @@ impl std::fmt::Display for NativeSystemAccessContractError {
 
 impl std::error::Error for NativeSystemAccessContractError {}
 
+/// 声明可解析但不属于当前插件或缺少宿主授权时的拒绝原因。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::plugin::native_plugin_loader) enum NativeSystemAccessAuthorityError {
     WorkerSafeCapabilityNotGranted,
@@ -95,6 +99,7 @@ impl std::fmt::Display for NativeSystemAccessAuthorityError {
 
 impl std::error::Error for NativeSystemAccessAuthorityError {}
 
+/// World 绑定期间稳定 ID 缺失或与调度访问冲突时的错误。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::plugin::native_plugin_loader) enum NativeSystemAccessResolveError {
     UnknownComponent { stable_id: String },

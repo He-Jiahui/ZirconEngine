@@ -1,3 +1,4 @@
+//! 静态参考节点工厂：把视觉样本、输入状态与事件绑定统一表达为运行时UI节点。
 use std::collections::BTreeMap;
 
 use toml::Value;
@@ -336,6 +337,7 @@ fn values_map(values: Vec<(&str, Value)>) -> BTreeMap<String, Value> {
         .collect()
 }
 
+/// 以参考路径和事件种类形成稳定绑定身份，供命中和路由测试定位。
 fn binding(path: &str, event: UiEventKind) -> UiBindingRef {
     UiBindingRef {
         component_event: None,
@@ -348,6 +350,7 @@ fn binding(path: &str, event: UiEventKind) -> UiBindingRef {
     }
 }
 
+/// 默认交互状态供样本工厂复用；需要禁用的样本必须另行显式配置。
 fn pointer_state() -> UiStateFlags {
     UiStateFlags {
         visible: true,

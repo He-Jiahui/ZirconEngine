@@ -1,3 +1,4 @@
+//! 核对导入器、图编辑器和时间线描述符共用已验证资产类型 ID，反序列化不能恢复裸字符串类型。
 use crate::core::asset::AssetTypeId;
 use crate::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodePaletteDescriptor, TimelineEditorDescriptor,

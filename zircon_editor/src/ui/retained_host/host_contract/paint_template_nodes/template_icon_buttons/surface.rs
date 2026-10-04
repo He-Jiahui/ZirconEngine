@@ -1,3 +1,5 @@
+//! 仅为有背景或有效边框的图标按钮发出表面命令；纯图标空闲状态允许只有内容。
+
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchIconButtonStyle;

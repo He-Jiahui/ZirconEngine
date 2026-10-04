@@ -1,3 +1,6 @@
+//! 公开可靠数据报的分片、ACK、重发、排序和模拟投递 API；clone 共享单份内存状态。
+//! 调用者需要提供真实 UDP 发送/接收、时钟 tick、peer/session 隔离和丢失恢复驱动。
+
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::net::{

@@ -1,3 +1,5 @@
+//! 持久化索引只是可重建缓存；sidecar 身份与标签是恢复依据，原子写入失败不得破坏正式文件。
+
 use std::collections::BTreeSet;
 
 use crate::asset::registry::{AssetRegistryDiagnostic, AssetRegistryFilter, AssetRegistryIndex};
@@ -108,6 +110,7 @@ fn later_duplicate_guid_is_reminted_in_its_sidecar_with_typed_diagnostic() {
     std::fs::remove_dir_all(project).unwrap();
 }
 
+// 写入、同步、替换三个故障点都应保留可解析的旧正式索引，且不遗留临时文件。
 #[test]
 fn registry_atomic_write_faults_keep_formal_file_readable_and_unchanged() {
     let project = unique_root("registry_atomic_faults");

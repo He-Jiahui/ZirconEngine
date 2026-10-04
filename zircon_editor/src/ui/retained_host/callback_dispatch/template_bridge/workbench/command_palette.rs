@@ -62,6 +62,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         )
     }
 
+    // 命令目录和可访问性文案由调用端提供；本桥只把打开状态投影到内建弹层。
     pub(crate) fn open_command_palette_with_chrome(
         &mut self,
         state: WorkbenchCommandPaletteOpenState,
@@ -140,6 +141,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(true)
     }
 
+    // 查询结果、目录代数和虚拟窗口偏移必须一起发布，避免旧窗口请求消费新目录。
     fn apply_command_palette_query_state(
         &mut self,
         state: WorkbenchCommandPaletteOpenState,

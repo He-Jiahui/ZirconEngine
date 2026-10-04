@@ -1,3 +1,5 @@
+//! 轴值文字在 disabled 或 error 时优先显示状态色，其余接受声明 value_color，最后回退主题正文色。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 

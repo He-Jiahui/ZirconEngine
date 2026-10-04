@@ -1,3 +1,6 @@
+//! 树行按压、持久选择与热态决定表面；选中轮廓优先于普通焦点轮廓，不可用行不输出外壳。
+//! 宽度随轮廓是否存在同步给绘制端。
+
 use super::super::workbench_row_selection::selected_row_outline_color;
 use super::palette::{workbench_tree_row_palette, WorkbenchTreeRowPalette};
 use super::state::{is_hot, is_unavailable_tree_row_state, uses_focus_outline};

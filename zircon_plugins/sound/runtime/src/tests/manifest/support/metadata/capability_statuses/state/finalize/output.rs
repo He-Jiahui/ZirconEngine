@@ -1,3 +1,4 @@
+// 输入结束时提交最后一行；这是 metadata 对照测试取得完整静态状态列表的边界。
 use super::super::storage::CapabilityStatusParserState;
 
 impl CapabilityStatusParserState {

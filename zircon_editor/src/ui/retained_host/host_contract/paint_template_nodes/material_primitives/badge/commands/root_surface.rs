@@ -4,6 +4,7 @@ use super::super::style::{
     badge_root_background_color, badge_root_border_color, badge_root_border_width,
 };
 
+// 根表面由显式背景和边框样式决定；覆盖层在根标签之后另发命令，以保留独立绘制顺序。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_badge_root_surface(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

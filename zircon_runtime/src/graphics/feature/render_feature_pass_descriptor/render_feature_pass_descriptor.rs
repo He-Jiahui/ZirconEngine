@@ -1,3 +1,4 @@
+//! 通道资源声明把作者意图转为显式图依赖和物理资源约束，读者须指向正确的生产者版本。
 use crate::graphics::scene::RenderPassExecutorId;
 use crate::render_graph::{
     PassFlags, QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload,

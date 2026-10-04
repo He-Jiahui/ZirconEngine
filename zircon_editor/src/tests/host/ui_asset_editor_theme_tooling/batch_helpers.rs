@@ -1,3 +1,4 @@
+// 核对主题批处理采纳、重复项清理及批量重构辅助动作。
 use toml::Value;
 
 use crate::ui::host::module::EDITOR_MANAGER_NAME;

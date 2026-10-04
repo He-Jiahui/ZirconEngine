@@ -357,6 +357,7 @@ fn ui_layout_engine_selection_report_clone_retains_the_previous_segmented_snapsh
         })
         .collect();
     let mut current = UiLayoutEngineSelectionReport::from_selections(selections);
+    // 发布快照与当前报告共享分段存储；替换中间项后，旧快照必须保持原值，只复制受影响段。
     let published = current.clone();
     let replacement = UiLayoutEngineSelection::select(
         &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
@@ -518,6 +519,7 @@ fn ui_layout_engine_selection_report_counts_missing_fallback_reasons() {
 
 #[test]
 fn ui_layout_engine_selection_report_deserialization_recomputes_aggregate_counts() {
+    // 故意把旧汇总字段写成错误值；反序列化必须从 selections 重算，不能信任缓存统计。
     let stale_json = serde_json::json!({
         "selections": [
             {

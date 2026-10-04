@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 /// Result of draining fixed-timestep overstep for one outer update.
+/// 外层帧对固定步欠债的非破坏性执行计划；实际扣债由 World 的逐步提交完成，失败可保留欠债重试。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct FixedStepPlan {
     pub step_count: u32,

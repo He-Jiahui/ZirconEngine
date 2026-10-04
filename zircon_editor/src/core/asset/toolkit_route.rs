@@ -1,3 +1,4 @@
+//! 携带打开资源编辑器所需的定位器和类型化操作身份，供事件规范化与宿主派发交接；路由本身不创建编辑会话，也不授予写入权限。
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::resource::ResourceLocator;
 

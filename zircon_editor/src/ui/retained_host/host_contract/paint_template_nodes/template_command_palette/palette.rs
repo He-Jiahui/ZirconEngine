@@ -1,3 +1,6 @@
+//! 把宿主语义颜色映射到命令面板角色，避免专用 painter 自行选择另一套主题。
+//! 该快照只描述绘制颜色，选中、匹配和焦点状态仍由节点与选项提供。
+
 use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

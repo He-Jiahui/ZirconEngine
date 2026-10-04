@@ -1,3 +1,5 @@
+//! 状态栏图标复用集中资产加载，而非复制 SVG 绘制逻辑；映射仅允许明确支持的三种动作。
+
 mod kind;
 
 use super::super::super::data::FrameRect;

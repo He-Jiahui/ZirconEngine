@@ -6,6 +6,7 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// 管理器收发与连接生命周期的可排空事件；消费者应定期 drain_events，事件队列不是持久日志。
 pub enum NetEvent {
     UdpSocketBound {
         socket: NetSocketId,

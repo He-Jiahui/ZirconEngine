@@ -1,3 +1,5 @@
+//! 场景动画组件只保存对骨架、序列或图的身份与播放状态；加载侧按引用解析资源，运行时播放器拥有实际采样与状态推进。
+
 use crate::asset::AssetReference;
 use crate::core::framework::animation::AnimationParameterSet;
 use crate::core::math::Real;

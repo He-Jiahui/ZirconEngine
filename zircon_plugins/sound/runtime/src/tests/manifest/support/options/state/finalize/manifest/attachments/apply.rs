@@ -1,3 +1,4 @@
+// 附加字段也属于静态与运行时选项契约，不能在比较前丢弃。
 use super::{enum_values, required_capability};
 
 pub(in crate::tests::manifest::support::options::state::finalize::manifest) fn apply_option_manifest_attachments(

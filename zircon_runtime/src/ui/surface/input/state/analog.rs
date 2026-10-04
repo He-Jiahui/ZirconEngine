@@ -17,6 +17,7 @@ pub struct UiSurfaceAnalogNavigationState {
 }
 
 impl UiSurfaceInputState {
+    /// 保留有限模拟量并抑制小幅重复；返回值描述数值变化，导航重复门另由导航状态管理。
     pub fn update_analog_control(&mut self, control: &str, value: f32) -> bool {
         const ANALOG_REPEAT_EPSILON: f32 = 0.001;
 

@@ -1,3 +1,6 @@
+//! 文本框的表面与边线分开表达输入区域和交互反馈；验证错误边线、不可用状态与工具栏身份限制普通声明覆盖。
+//! 普通声明色只在 Normal 状态覆盖非工具栏且无错误的字段，保证动态边线保持其语义。
+
 use super::colors::declared_style_color;
 use super::palette::workbench_text_field_palette;
 use super::state::is_unavailable_text_field_state;

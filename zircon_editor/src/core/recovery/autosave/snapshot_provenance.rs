@@ -1,3 +1,5 @@
+//! 为快照记录源摘要、历史脏状态代次和引擎schema；当前日志覆盖范围明确为Unavailable，恢复与压缩不能推断已覆盖前缀。
+
 use serde::{Deserialize, Serialize};
 
 use super::{AutosaveEngineSchema, AutosaveJournalRange, AutosaveSourceDigest};

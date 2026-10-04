@@ -1,3 +1,5 @@
+//! 可选标题使用左侧预留车道并沿用选择器文字色；命令仍受节点 clip 限制。
+
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchSliderStyle;

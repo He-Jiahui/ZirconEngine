@@ -1,3 +1,4 @@
+//! 记录型生命周期共享调用序列供核心模块回归消费；夹具只提供本测试需要的描述符和成功回调，不实现领域行为。
 use std::sync::{Arc, Mutex};
 
 use crate::core::{CoreResult, ModuleContext, ModuleDescriptor, ModuleLifecycle};

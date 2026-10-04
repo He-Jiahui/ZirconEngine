@@ -1,3 +1,4 @@
+//! 对外设备状态是 Kira 生命周期和请求格式的快照；排队采样数当前没有后端回传。
 use zircon_runtime::core::framework::sound::SoundOutputDeviceStatus;
 
 use super::super::status::{latency_status_for_descriptor, push_status_diagnostic};

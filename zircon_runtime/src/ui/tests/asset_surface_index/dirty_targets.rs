@@ -1,3 +1,4 @@
+//! 验证热重载计划将资源变化投影到精确节点，无法精确映射时回退到表面根。
 use super::*;
 
 #[test]
@@ -158,6 +159,7 @@ fn mixed_surface_and_node_targets_fall_back_to_root_dirty() {
         .mark_target_surfaces_dirty(&plan, &mut surfaces)
         .unwrap();
 
+    // TODO: [CR-W12-UI-ASSET-0004] 确认混合主题与 SVG 批次的根回退合同；当前仅 SVG 映到节点也会返回节点报告并跳过根标记，需验证主题变化是否仍覆盖全表面。
     assert!(apply.node_dirty_reports.is_empty());
     assert_eq!(apply.dirty_reports.get(&main).unwrap().roots_marked, 1);
     let surface = surfaces.get(&main).unwrap();

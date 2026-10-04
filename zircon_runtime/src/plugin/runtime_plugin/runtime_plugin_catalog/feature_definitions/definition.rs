@@ -2,6 +2,7 @@ use crate::plugin::PluginFeatureBundleManifest;
 
 use super::key::feature_definition_key;
 
+// 同一特性标识可有多个提供者，目录内用特性与提供者组成的键区分定义。
 #[derive(Clone, Debug)]
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) struct FeatureDefinition {
     pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) key: String,

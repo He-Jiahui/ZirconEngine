@@ -6,6 +6,7 @@ use crate::graphics::pipeline::declarations::{
 };
 
 impl RenderPipelineAsset {
+    /// 构造默认 forward-plus Core3D 管线；feature 顺序供编译器建立前向与后处理依赖。
     pub fn default_forward_plus() -> Self {
         Self {
             handle: Self::DEFAULT_FORWARD_PLUS_HANDLE,

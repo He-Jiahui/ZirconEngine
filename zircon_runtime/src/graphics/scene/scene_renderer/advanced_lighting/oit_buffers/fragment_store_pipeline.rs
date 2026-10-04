@@ -41,6 +41,8 @@ fn fs_oit(input: SpriteVertexOutput) {
 }
 "#;
 
+/// 透明精灵阶段只将可见片元写入每像素的 OIT 存储，不直接混入场景颜色。
+/// 深度测试与计数缓冲由图执行通道配置，统一在 resolve 阶段合成。
 pub(in crate::graphics::scene::scene_renderer) struct OitFragmentStorePipeline {
     sprite_texture_layout: wgpu::BindGroupLayout,
     sprite_pipeline: wgpu::RenderPipeline,

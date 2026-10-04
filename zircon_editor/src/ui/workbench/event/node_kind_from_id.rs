@@ -1,3 +1,4 @@
+//! 菜单创建节点身份的反向映射；只接受已有节点种类，未知后缀由宿主绑定诊断拒绝。
 use zircon_runtime::scene::components::NodeKind;
 
 pub(super) fn node_kind_from_id(value: &str) -> Option<NodeKind> {

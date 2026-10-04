@@ -1,3 +1,6 @@
+//! 时间重建的速度、TAA 与历史写入共享本帧图访问和视图身份。
+//! 历史是否有效来自历史事务，不能仅凭持有上一帧纹理决定复用。
+
 use crate::core::framework::render::RenderPipelinePhase;
 use crate::graphics::scene::scene_renderer::history::SceneHistoryDomain;
 use crate::render_graph::{RenderGraphAttachmentOps, RenderGraphResourceAccessKind};

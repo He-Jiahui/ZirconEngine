@@ -1,6 +1,8 @@
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::PluginModuleManifest;
 
+/// 固定三种目标以位状态追踪当前模块的重复项，避免验证时分配额外集合。
+/// 调用端须从空状态开始，并把同一模块的全部目标行依次交给此规则。
 pub(super) fn validate_runtime_plugin_module_target_mode_uniqueness(
     manifest_label: &str,
     module: &PluginModuleManifest,

@@ -1,3 +1,4 @@
+// 内置事实通道的稳定名字，发布者与订阅者共同使用；改变名字需要同时核对桥接及宿主订阅。
 pub const TOPIC_DOCUMENT: &str = "editor.document";
 pub const TOPIC_TRANSACTION: &str = "editor.transaction";
 pub const TOPIC_MODE: &str = "editor.mode";

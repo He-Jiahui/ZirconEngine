@@ -2,6 +2,7 @@ use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 use crate::ui::surface::UiSurface;
 
+// 优先服从 widget 声明的 value alias，回退到已存在的 value/text；不凭动作请求创建不存在的可编辑属性。
 pub(super) fn set_value_property(surface: &UiSurface, target: UiNodeId) -> Option<String> {
     let metadata = surface
         .tree

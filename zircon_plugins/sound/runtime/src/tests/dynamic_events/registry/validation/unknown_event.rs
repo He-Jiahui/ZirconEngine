@@ -1,3 +1,4 @@
+// 提交目录中不存在的事件，核对 UnknownDynamicEvent 这一注册前置条件。
 use super::super::super::*;
 
 use super::support::marker_invocation;

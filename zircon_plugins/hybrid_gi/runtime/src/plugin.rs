@@ -43,6 +43,8 @@ impl zircon_runtime::plugin::RuntimePlugin for HybridGiRuntimePlugin {
         &self.descriptor
     }
 
+    // 分发 ABI 版本、描述符符号和 runtime entry 必须与 dist 宏实际导出保持一致，
+    // 否则打包清单指向的动态库入口无法按契约加载。
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = self.descriptor().package_manifest();
         manifest = manifest.with_native_module(

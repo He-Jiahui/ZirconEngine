@@ -1,3 +1,4 @@
+//! 文档入口用独立临时注册表收集内置描述符，因此生成宿主接口文档不需要启动 VM 管理器或场景。
 mod markdown;
 mod options;
 mod writer;

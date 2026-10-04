@@ -11,6 +11,7 @@ use crate::entry::EntryProfile;
 use super::{EntryConfig, ProductConfigSource, ProductRoleRequest};
 
 impl EntryConfig {
+    /// 旧式入口 profile 的便捷入口；角色映射后仍须调用 resolve 验证导出、插件和宿主能力。
     pub fn new(profile: EntryProfile) -> Self {
         Self::for_product_role(ProductRoleRequest::from_entry_profile(profile))
     }
@@ -32,6 +33,7 @@ impl EntryConfig {
         }
     }
 
+    /// 以 Runtime profile 为来源选择产品角色，使后续解析能够核对目标模式和插件默认集。
     pub fn for_runtime_profile(profile_id: RuntimeProfileId) -> Self {
         Self::for_product_role(ProductRoleRequest::from_runtime_profile(profile_id))
             .with_runtime_profile(profile_id)
@@ -52,6 +54,7 @@ impl EntryConfig {
         self
     }
 
+    /// 叠加非必需插件请求；重复配置与必需请求的冲突留给 resolve 在装配前拒绝。
     pub fn with_optional_runtime_plugins(mut self, plugins: impl AsRef<[RuntimePluginId]>) -> Self {
         self.optional_runtime_plugins
             .extend_from_slice(plugins.as_ref());
@@ -74,6 +77,7 @@ impl EntryConfig {
         self
     }
 
+    /// 标记插件选择来自导出配置，便于解析回执区分入口覆盖和导出来源。
     pub(in crate::entry) fn with_export_project_plugins(
         mut self,
         plugins: ProjectPluginManifest,

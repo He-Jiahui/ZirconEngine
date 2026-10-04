@@ -4,6 +4,7 @@ use std::sync::Arc;
 use super::{DocumentToolkitDescriptor, ToolkitInstanceId};
 
 #[derive(Clone, Debug)]
+/// Registry 增删后发布的只读目录；宿主可持有旧快照完成一次布局读取。
 pub struct DocumentToolkitSnapshot {
     generation: u64,
     descriptors: Arc<[DocumentToolkitDescriptor]>,

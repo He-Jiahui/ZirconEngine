@@ -1,3 +1,4 @@
+//! sRGB 目标按线性预乘色合成，非 sRGB 目标使用字节域备用入口；两路都维持预乘 alpha，上传与目标传递函数须匹配。
 use std::sync::Arc;
 
 pub(super) const UI_IMAGE_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;

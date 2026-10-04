@@ -37,6 +37,7 @@ impl GlobalSdfGpuResources {
             })
             .map(|disposition| disposition.request)
             .collect::<Vec<_>>();
+        // 终态回退先写入场景状态；即使本批没有可编码页，也不能把这些页留成脏页。
         scene.resolve_pages_to_fallback(&terminal_fallbacks);
         if inputs.pages.is_empty() {
             return GlobalSdfGpuBuildDispatch::without_pending(inputs.stats);

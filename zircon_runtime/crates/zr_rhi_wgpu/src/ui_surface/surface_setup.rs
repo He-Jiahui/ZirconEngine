@@ -1,3 +1,4 @@
+//! 表面协商确定目标格式、用途与呈现模式；本地设备请求也遵守公共能力配置。
 use std::num::NonZeroIsize;
 use std::sync::Arc;
 

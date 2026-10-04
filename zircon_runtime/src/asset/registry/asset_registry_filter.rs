@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use crate::asset::AssetKind;
 
+/// 离线查询条件；type、tag、package 与 path-prefix 必须同时满足。
 /// Offline registry filter mirroring class, tag, path-prefix, and package constraints.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AssetRegistryFilter {

@@ -1,3 +1,4 @@
+//! 窗口条目保留采样绑定；只有设备级共享图像带分配 pin，这些 pin 由准备集合转交在途提交。
 use super::super::shared_image_registry::WgpuUiImageSurfacePin;
 use super::super::WgpuUiExternalImage;
 

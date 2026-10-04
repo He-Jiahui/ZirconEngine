@@ -1,3 +1,4 @@
+//! 默认画布命令为绑定提供类型；反射是否公开某动作由动作清单和注册分派决定。
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
@@ -6,6 +7,7 @@ use crate::scene::viewport::{
 };
 use crate::ui::binding::ViewportCommand;
 
+/// 生成注册用有类型命令；支持的映射不等于当前全部可远程调用动作。
 pub(super) fn default_viewport_command(action_id: &str) -> Option<ViewportCommand> {
     match action_id {
         "workbench.viewport.pointer.move" => Some(ViewportCommand::PointerMoved { x: 0.0, y: 0.0 }),

@@ -1,3 +1,4 @@
+//! 从持久化图准备独立的声源、绑定和计量表；活动输出须先安装 Kira 图并重绑声源，停机则仅校验后切换服务注册表。
 use std::collections::HashMap;
 
 use zircon_runtime::core::framework::sound::{

@@ -3,6 +3,7 @@ use super::super::{
     SoundOutputDeviceDescriptor, SoundOutputDeviceInfo, SoundOutputDeviceStatus,
 };
 
+/// 输出设备配置与启动状态边界；实时回调由当前音频后端持有，状态快照供宿主查询。
 pub trait SoundOutputDeviceManager {
     fn configure_output_device(
         &self,

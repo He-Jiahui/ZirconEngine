@@ -1,3 +1,4 @@
+//! 验证默认交互行为来自已注册组件角色，作者显式行为仍可覆盖该默认值。
 use super::*;
 use zircon_runtime_interface::ui::widget::UiWidgetBehavior;
 

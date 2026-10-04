@@ -1,3 +1,5 @@
+//! 本模块以公开描述符注册表和状态事件入口约束编辑器组件目录；子测试分别负责目录、绑定和交互语义。
+
 mod catalog_inventory;
 mod complex_components;
 mod component_state;

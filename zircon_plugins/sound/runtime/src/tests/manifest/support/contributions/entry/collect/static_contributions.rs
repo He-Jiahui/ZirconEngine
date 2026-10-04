@@ -1,3 +1,4 @@
+// 汇合三种静态贡献，形成与包清单相同的对照面；runtime 模块单独过滤。
 use super::super::super::{
     dependencies::dependencies_from_plugin_toml, event_catalogs::event_catalogs_from_plugin_toml,
     modules::modules_from_plugin_toml, StaticSoundContributions,

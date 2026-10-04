@@ -1,6 +1,9 @@
+//! 轨道从可选标签车道起步，在可选值框前结束；实例 layout 偏移用于调整实际轨道跨度。
+
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::metrics::workbench_slider_metrics;
 
+/// 调用方需先计算可选尾部值框及标题是否存在；轨道据此让出两侧车道，再应用作者布局调整。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_track_rect(
     rect: &FrameRect,
     value_rect: Option<&FrameRect>,

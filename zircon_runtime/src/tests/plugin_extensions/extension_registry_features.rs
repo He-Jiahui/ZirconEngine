@@ -1,3 +1,4 @@
+//! 目录先登记基础插件再合并满足依赖的具体特性贡献；非法或重复登记保持最后有效状态，并检查禁用和卸载约束。
 use crate::core::framework::project::{
     ExportPackagingStrategy, ProjectPluginFeatureSelection, ProjectPluginManifest,
     ProjectPluginSelection,

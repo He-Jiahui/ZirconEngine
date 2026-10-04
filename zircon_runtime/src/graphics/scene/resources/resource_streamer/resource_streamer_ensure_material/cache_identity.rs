@@ -1,3 +1,6 @@
+//! 材质候选的缓存身份覆盖自身修订和 shader、texture、父材质依赖；
+//! 准备复用与发布前复核共用这套判定，避免把过期候选交给绘制代理。
+
 use crate::asset::TextureUploadSupport;
 
 use super::super::super::prepared::{PreparedMaterialBundle, PreparedMaterialCandidateIdentity};

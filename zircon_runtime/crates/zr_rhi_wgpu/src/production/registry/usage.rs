@@ -1,3 +1,4 @@
+//! 提交前标记命令直接资源与描述符传递依赖，防止逻辑销毁提前释放原生引用。
 use zr_rhi::{
     BindGroupEntryResource, BindGroupHandle, BindGroupLayoutHandle, BufferHandle,
     CommandListCommand, PipelineHandle, PipelineLayoutHandle, RenderPassTextureViewDesc, RhiError,
@@ -10,6 +11,7 @@ use super::WgpuResourceRegistry;
 impl WgpuResourceRegistry {
     /// Records all direct and descriptor-transitive resources retained by one
     /// encoded packet before that packet can reach the native queue.
+    // 登记必须发生在编码与入队前，才可覆盖失败清理和随后可能发生的资源销毁。
     pub(crate) fn mark_command_list_use(
         &mut self,
         ticket: SubmissionTicket,

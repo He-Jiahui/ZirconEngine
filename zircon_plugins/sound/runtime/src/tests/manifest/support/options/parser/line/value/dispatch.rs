@@ -1,3 +1,4 @@
+// 值类型、默认值与枚举域必须进入同一选项，供完整元数据对照发现声明分叉。
 use super::super::super::super::state::PendingOptionManifest;
 use super::{default_value, enum_values, value_type};
 

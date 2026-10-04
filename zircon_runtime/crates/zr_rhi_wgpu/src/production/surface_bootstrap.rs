@@ -1,3 +1,4 @@
+//! 主表面先参与适配器选择，再连同实例交给设备，保证表面与设备兼容。
 use zr_rhi::{AdapterSelectionPolicy, RenderAdapterCatalog, RenderSurfaceDescriptor, RhiError};
 
 use crate::wgpu_adapter_facts;

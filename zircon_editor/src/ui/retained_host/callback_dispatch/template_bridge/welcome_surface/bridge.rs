@@ -14,6 +14,7 @@ use super::super::{
 };
 use super::error::BuiltinWelcomeSurfaceTemplateBridgeError;
 
+// 欢迎页通过最小模板运行时解析入口绑定，使宿主可在完整工作台启动前响应选择。
 pub(crate) struct BuiltinWelcomeSurfaceTemplateBridge {
     bindings_by_id: HashMap<String, EditorUiBinding>,
     host_projection: RetainedUiHostProjection,

@@ -14,6 +14,7 @@ pub enum RenderVirtualGeometryDebugSnapshotReadbackStreamSection {
     VisBuffer64,
 }
 
+/// 将首个解码失败映射到分段大小，区分坏数据处于剔除、渲染或可视缓冲流。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderVirtualGeometryDebugSnapshotReadbackStreamDecodeDiagnostic {
     pub section: RenderVirtualGeometryDebugSnapshotReadbackStreamSection,

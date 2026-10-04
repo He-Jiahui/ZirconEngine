@@ -1,3 +1,4 @@
+// 根框、图标、正文和操作区域共享节点框及裁剪边界，由此模块汇总给 Alert 命令序列。
 mod action;
 mod icon;
 mod message;

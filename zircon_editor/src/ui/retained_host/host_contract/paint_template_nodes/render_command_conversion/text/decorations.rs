@@ -4,6 +4,7 @@ use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::style::{frame_from_ui, parse_style_color};
 
+/// 装饰图元沿用 Runtime 文本负载的几何，颜色解析失败时取类别默认色；它们按原层级前后围绕正文输出。
 pub(super) fn push_text_decorations(
     output: &mut Vec<HostPaintCommand>,
     text: &UiTextPaint,

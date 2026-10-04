@@ -1,3 +1,5 @@
+//! ResourceLease 决定运行时 payload 的驻留期；项目目录中的元数据仍允许租约结束后再次恢复。
+
 use super::*;
 
 #[test]

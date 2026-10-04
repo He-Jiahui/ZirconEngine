@@ -1,3 +1,5 @@
+//! 轴环由世界平面采样成屏幕线段，精确拾取与 Handle 栅格线共用；部分被裁掉的段不会连接成虚假跨屏线。
+
 use zircon_runtime_interface::math::{Vec2, Vec3};
 
 use crate::scene::viewport::projection::ViewportProjectionContext;

@@ -1,3 +1,5 @@
+//! 开关的标签放在左侧、轨道放在右侧，选中态只移动轨道内滑块；窄框可省略轨道但保留标签。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_selection_control_geometry::{
@@ -10,6 +12,7 @@ use super::style::{
     control_border_color, selection_text_color, toggle_thumb_color, toggle_track_color,
 };
 
+/// 标签和轨道独立检查容纳；非常窄时可保留标签而省略轨道，不改变上游已接管语义。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_toggle(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,

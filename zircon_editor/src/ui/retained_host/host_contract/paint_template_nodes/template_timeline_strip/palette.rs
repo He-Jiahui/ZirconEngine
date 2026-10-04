@@ -1,3 +1,4 @@
+// 时间轴视觉角色来自当前宿主主题；运行时换肤会同时影响轨道、刻度和游标，测试可注入主题哨兵。
 use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

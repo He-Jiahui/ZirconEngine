@@ -1,3 +1,4 @@
+//! 实体组件存储与标识能力吸收后，核心拥有者和文档锚点需一致。保存同组守卫使用的局部数据或辅助变换。
 pub(super) fn assert_component_storage_private_reexport_cleanup() {
     let mod_source = include_str!("../../../scene/ecs/storage/component_storage/mod.rs");
     assert!(

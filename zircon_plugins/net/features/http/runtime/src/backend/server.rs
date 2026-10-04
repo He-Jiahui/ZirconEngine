@@ -1,3 +1,6 @@
+//! 为根 manager 启动 HTTP/1 listener，把 socket 请求匹配到共享路由表，并在锁外执行动态 handler。
+//! 匹配请求限量收集 body；未匹配请求流式丢弃 body，以保持连接请求生命周期。
+
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;

@@ -1,3 +1,5 @@
+//! 本组测试守住 zmesh 文档、模型原语和 MeshAsset 之间的资产边界：导入后先校验与生成属性，再供渲染和管理视图读取。
+
 use std::collections::BTreeMap;
 use std::fs;
 
@@ -22,6 +24,7 @@ mod summaries;
 mod tangent_generation;
 mod validation;
 
+// TODO: [CR-ASSET-TEST-MESH-0006] 负向源码字符串检查未覆盖 UFCS 或空白变体；用语义或性能证据核验零拷贝约束。
 #[test]
 fn mesh_conversion_and_derived_attributes_borrow_source_index_buffers() {
     let mesh_asset = include_str!("../../assets/mesh/mesh_asset.rs");
@@ -35,6 +38,7 @@ fn mesh_conversion_and_derived_attributes_borrow_source_index_buffers() {
     assert!(!tangents.contains("to_u32_vec()"));
 }
 
+// 子模块共用带虚拟几何元数据的磁盘夹具，以暴露转换时丢失非顶点载荷的问题。
 fn sample_zmesh_document(indices: MeshIndices) -> ZMeshDocument {
     ZMeshDocument {
         version: crate::asset::ZMESH_DOCUMENT_VERSION,

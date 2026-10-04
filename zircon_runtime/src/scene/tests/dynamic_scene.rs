@@ -1,3 +1,6 @@
+//! 动态场景测试共享一套自定义反射资源适配器；注册、暂存克隆、预检转移
+//! 与槽位读写必须覆盖生产场景生成时使用的资源事务约束。
+
 use serde_json::json;
 use zircon_runtime_interface::reflect::{
     ReflectEditorHint, ReflectError, ReflectFieldId, ReflectFieldInfo, ReflectFieldValue,

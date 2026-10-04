@@ -17,6 +17,8 @@ pub(super) struct CompiledResourceWrite {
     writes: Vec<(u32, ReflectedValue)>,
 }
 
+// 预览和正式应用共享资源编译路径；目标模式、实体引用与资源创建能力在此先行确认。
+// TODO: [CR-SCENE-DYNAMIC-CORE-0002] 确认同一 type_path 的重复资源行应拒绝还是按顺序覆盖；当前场景校验只检查源实体和组件类型描述。
 pub(super) fn compile_resource_writes(
     scene: &DynamicScene,
     world: &World,
@@ -85,6 +87,7 @@ fn compile_resource_write(
     ))
 }
 
+// 编译为目标模式的稳定槽位写入；只发布同时允许序列化和编辑的字段，避免快照改写运行时私有状态。
 pub(super) fn compile_reflected_writes(
     world: &World,
     type_path: &str,
@@ -176,6 +179,7 @@ pub(super) fn apply_resource_writes_to_preflight(
 /// Detaches only the resources named by this scene from the preflight World.
 /// Every adapter has already validated and written its fields there; target
 /// commit receives these owned rows without calling an adapter a second time.
+// 同类资源的多行写入会保留多个转移适配器；重复 type_path 的准入与转移次数仍需按已有 CR-SCENE-DYNAMIC-CORE-0002 契约确认。
 pub(super) fn transfer_preflight_resource_writes(
     source: &mut World,
     artifact: &mut World,

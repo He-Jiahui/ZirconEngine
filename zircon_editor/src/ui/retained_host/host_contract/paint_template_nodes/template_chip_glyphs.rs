@@ -1,3 +1,5 @@
+//! chip 内容的箭头资产门面；占位测量由 chip 本体提供，使文字与 SVG 共用密度。
+
 mod chevron;
 mod identity;
 mod metrics;

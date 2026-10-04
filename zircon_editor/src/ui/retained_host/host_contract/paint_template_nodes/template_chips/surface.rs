@@ -1,3 +1,5 @@
+//! chip 归属和可见性由命令入口保证，表面域再对 clip 做防御性检查并输出圆角 quad。
+
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;

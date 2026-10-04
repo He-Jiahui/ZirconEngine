@@ -2,6 +2,8 @@ use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTreeError};
 
 use super::UiSurface;
 
+// 布局入口在开启文字会话前比较字体代次，令字体热加载即使没有作者属性变更也能使整树文字重新布局。
+// 记录值只应在本轮安排/提取成功发布后推进；保留操作开始的代次，避免把途中变化误认为已消费。
 impl UiSurface {
     pub(super) fn invalidate_for_changed_text_font_generation(
         &mut self,

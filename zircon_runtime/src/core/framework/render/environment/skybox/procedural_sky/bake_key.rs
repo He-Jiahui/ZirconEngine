@@ -4,6 +4,8 @@ use super::super::{IblBakeKey, SkyboxMode};
 use super::{ProceduralSkyParams, ResolvedProceduralSun};
 
 impl ProceduralSkyParams {
+    /// 以归一化后的有效太阳参数形成内容身份；无效或关闭的太阳不触发重烘焙。
+    /// 亮度缩放和整体旋转属于采样配置，应由消费阶段处理。
     pub fn ibl_bake_key(&self) -> IblBakeKey {
         let sun = self.resolved_sun();
         IblBakeKey {

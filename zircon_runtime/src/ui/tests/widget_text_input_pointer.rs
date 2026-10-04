@@ -1,3 +1,5 @@
+//! 指针文本编辑以命中位置决定光标、选区与上下文菜单，按下捕获和释放必须保持同一表面实例。
+
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,

@@ -10,6 +10,7 @@ pub enum PickingBackendCapability {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// 后端身份、能力与排序层级；合并器依据输出中的 order 协调多个命中来源。
 pub struct PickingBackendInfo {
     pub name: String,
     pub capabilities: Vec<PickingBackendCapability>,
@@ -40,6 +41,7 @@ impl PickingBackendInfo {
     }
 }
 
+/// 从共享 RayMap 产生每指针命中组的后端边界；管线负责跨后端排序、遮挡与事件派发。
 pub trait PickingBackend: Send + Sync {
     fn info(&self) -> PickingBackendInfo;
     fn collect_hits(&self, rays: &RayMap) -> Vec<PointerHits>;

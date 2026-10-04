@@ -228,6 +228,7 @@ fn disable_abort_probe_factory() -> Box<dyn BehaviorNodeRuntime> {
     Box::new(DisableAbortProbe)
 }
 
+// 记录跨 tick 的回调次数，保证低优先级抢占只通知仍活跃的外部节点。
 #[test]
 fn lower_priority_abort_timing_contract() {
     TIMING_ABORTS.store(0, Ordering::SeqCst);

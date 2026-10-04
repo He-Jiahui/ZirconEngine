@@ -1,3 +1,5 @@
+//! 允许 tooltip 的节点声明请求尺寸，再限定到主题的箭头/图标语义范围；最终容器不足时绘制器省略内容。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::template_tooltips::metrics::tooltip_metrics;
 

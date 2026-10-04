@@ -1,5 +1,7 @@
 use crate::graphics::scene::resources::{GpuMeshVertex, PipelineKey};
 
+/// 为透明命令创建写入 OIT 存储资源的片段管线。
+/// fs_oit 不输出颜色目标；调用方须另行绑定 OIT fragment-store 组。
 pub(in crate::graphics::scene::scene_renderer::mesh) fn create_oit_mesh_pipeline(
     device: &wgpu::Device,
     layout: &wgpu::PipelineLayout,

@@ -18,6 +18,7 @@ pub(super) const TICKET_CALLER_CANCELLED: u8 = 1;
 pub(super) const TICKET_EXPIRED: u8 = 2;
 pub(super) const TICKET_OWNER_CLOSED: u8 = 3;
 
+// 合并键共享一个清单读取结果；票据取消不应让仍在等待的请求失去结果。
 pub(super) struct RenderArtifactManifestEntry {
     key: RenderArtifactManifestRequestKey,
     retained_bytes: usize,
@@ -198,6 +199,7 @@ pub(super) struct RegistryTicket {
     pub(super) registration: Arc<TicketRegistration>,
 }
 
+// 保存代次内所有清单票据、截止时间及待派发顺序；close 必须使旧票据失效。
 pub(super) struct RenderArtifactManifestRegistry {
     pub(super) accepting: bool,
     pub(super) next_ticket_id: u64,

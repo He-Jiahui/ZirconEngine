@@ -1,3 +1,5 @@
+//! 材质测试跨越 zmaterial 作者文档、材质资产、着色器契约和渲染描述符；共享夹具使各层诊断可分别验证。
+
 use std::collections::BTreeMap;
 
 use crate::asset::{
@@ -19,6 +21,7 @@ mod override_validation;
 mod owned_descriptor;
 mod shader_readiness;
 
+// 该夹具先重新生成 shader 材质工件，使就绪测试验证契约差异，而非空工件造成的加载失败。
 fn shader_contract() -> ShaderAsset {
     let mut shader = ShaderAsset {
         uri: AssetUri::parse("res://shaders/mismatch.zshader").unwrap(),

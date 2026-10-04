@@ -1,3 +1,4 @@
+// 以真实界面资源会话执行绑定检查器与树编辑动作，约束相对载荷、建议和撤销后的选择。
 use std::fs;
 
 use crate::ui::asset_editor::UiAssetEditorMode;

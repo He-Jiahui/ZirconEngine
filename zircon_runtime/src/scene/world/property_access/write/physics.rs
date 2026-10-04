@@ -17,6 +17,7 @@ use super::super::value_conversion::{
 };
 
 impl World {
+    // 场景属性路径写入刚体配置时只修改 World 源状态；物理系统在下一步同步求解器对象。
     pub(super) fn set_rigid_body_property(
         &mut self,
         entity: EntityId,
@@ -236,6 +237,7 @@ impl World {
                 collider.material = Some(crate::core::resource::ResourceHandle::new(next));
             }
             [field, subfield] if field == "materialoverride" => {
+                // BUG: [CR-R02-runtime_world_property_binding-0001] override 为 None 时，未知子字段或非法值仍先插入默认配置，再返回 Err；证据：下方分支和读取器可观察 None 变 Some，入口无回滚。
                 let material_override = collider
                     .material_override
                     .get_or_insert_with(Default::default);
@@ -416,6 +418,7 @@ impl World {
             }
             [field, bound] if field == "limits" => {
                 let next = expect_scalar(value, property_path)?;
+                // BUG: [CR-R02-runtime_world_property_binding-0008] limits 为 None 时，未知边界仍先插入默认限制再返回 Err；首次 min=0 也返回 false 却变为 Some。证据：下方校验/等值分支与 entries/physics.rs 的可选投影。
                 let limits = joint.limits.get_or_insert([0.0, 0.0]);
                 let index = match bound.as_str() {
                     "min" => 0,

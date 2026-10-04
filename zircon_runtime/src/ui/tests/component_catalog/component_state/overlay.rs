@@ -1,3 +1,5 @@
+//! 弹层关闭受控件策略约束；明确要求动作的确认对话框不能被普通取消事件越权关闭。
+
 use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
 use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventKind, UiComponentKeyboardAction, UiComponentState, UiValue,

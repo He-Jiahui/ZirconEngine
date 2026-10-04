@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
     let plugin_id_source = include_str!(

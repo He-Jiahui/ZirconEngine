@@ -9,6 +9,8 @@ use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
 
 impl ParticleRenderer {
+    /// 将有可配对历史的深度测试精灵追加到 Rg16Float 速度附件，供 TAA/运动模糊消费。
+    /// graph 先完成基础速度写入，再以 load/store 调用本层；无历史顶点时保持附件原内容。
     pub(crate) fn record_velocity(
         &self,
         device: &wgpu::Device,

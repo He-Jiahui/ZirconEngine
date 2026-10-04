@@ -3,6 +3,7 @@ use crate::ui::workbench::snapshot::{EditorChromeSnapshot, ViewContentKind, View
 use super::empty_state::empty_state_for_tab;
 use super::pane_tab_model::PaneTabModel;
 
+/// 调用方提供本抽屉的选择态；构造不会把该标签变成全局焦点。
 pub(super) fn pane_tab_model(
     tab: &ViewTabSnapshot,
     active: bool,
@@ -20,6 +21,7 @@ pub(super) fn pane_tab_model(
     }
 }
 
+/// 显示关闭入口的内容策略；真正关闭仍须验证实例和宿主生命周期。
 pub(super) fn is_closeable_content_kind(kind: ViewContentKind) -> bool {
     matches!(
         kind,

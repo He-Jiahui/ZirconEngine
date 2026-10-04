@@ -1,3 +1,4 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 use super::runtime_crates::IMPORTER_RUNTIME_CRATES;
 
 #[test]

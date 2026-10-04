@@ -1,5 +1,6 @@
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
+// TODO: [CR-RUNTIME-TESTS-STRUCT-0067] 项目渲染质量与延迟管线产品测试 的测试归属断言与现行模块图不符；需定位迁移后的行为测试，再调整此守卫或补缺失覆盖。
 #[test]
 fn runtime_15_project_render_quality_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/tests/project_render.rs");

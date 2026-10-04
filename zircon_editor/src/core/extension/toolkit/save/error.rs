@@ -5,6 +5,7 @@ use crate::core::editor_message::DocumentId;
 use crate::core::extension::toolkit::ToolkitSaveFailure;
 
 #[derive(Debug, Error)]
+/// 文档级保存调度失败；宿主按类别决定重试或报告，失败不会自动移除文档注册。
 pub enum SaveError {
     #[error("document {document:?} has no open toolkit")]
     DocumentNotRegistered { document: DocumentId },

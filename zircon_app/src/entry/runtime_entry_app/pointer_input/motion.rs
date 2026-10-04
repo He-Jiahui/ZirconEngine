@@ -1,3 +1,5 @@
+//! 窗口物理指针位置到 Runtime 的派发，同时为滚轮 ABI 编码提供宿主位置缓存。
+
 use winit::dpi::PhysicalPosition;
 use winit::event::PointerSource;
 use winit::event_loop::ActiveEventLoop;

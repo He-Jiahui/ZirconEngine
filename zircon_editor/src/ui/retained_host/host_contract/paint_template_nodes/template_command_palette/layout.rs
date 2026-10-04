@@ -1,3 +1,5 @@
+//! 命令面板统一的几何入口；各子 painter 共享同一套宿主密度指标，保证搜索、行和空态相互对齐。
+
 mod common;
 mod indicator;
 mod metrics;

@@ -1,3 +1,4 @@
+//! 性能热点的结构守卫核对拥有者、文件预算和证据文档。通过源码文本核对父子路由、状态镜像和文件预算。
 use super::sources::{assert_contains_all, SplitLayoutSources};
 
 pub(super) fn assert_submit_context_split_layout(sources: &SplitLayoutSources) {

@@ -1,6 +1,7 @@
 use zircon_runtime_interface::ui::layout::UiSize;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 静态参考与模板初始几何的共同基线；实际窗口尺寸由宿主挂载时覆盖。
 pub struct EditorWorkbenchReferenceMetrics {
     pub target_width: f32,
     pub target_height: f32,

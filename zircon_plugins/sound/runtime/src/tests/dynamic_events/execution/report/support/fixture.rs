@@ -1,3 +1,4 @@
+// 组合已注册事件、处理器、执行器和待投递调用，供报告顺序与排空用例共用同一输入。
 use super::super::super::super::*;
 
 use std::sync::{Arc, Mutex};

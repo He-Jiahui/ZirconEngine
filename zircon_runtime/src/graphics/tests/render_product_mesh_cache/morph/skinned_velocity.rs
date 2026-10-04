@@ -1,3 +1,4 @@
+//! 蒙皮模型的两帧 morph 权重实验：同时约束 GPU 蒙皮路径与上一帧速度输入，导出测试只生成可视化证据。
 use super::*;
 
 const SKINNED_MORPH_VELOCITY_PNG_STATUS: &str =

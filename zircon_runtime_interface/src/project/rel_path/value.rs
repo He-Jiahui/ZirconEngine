@@ -5,6 +5,8 @@ use serde::Serialize;
 
 use super::RelPathError;
 
+/// Portable normalized relative path that cannot escape its owning project root.
+/// 上述英文描述只保证词法上不含越界片段；实际文件系统目标仍须由调用方检查。
 /// 用于清单、模板和资产引用的归一化项目相对路径；解析仅做词法检查，不保证实际目标位于项目根内。
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(transparent)]

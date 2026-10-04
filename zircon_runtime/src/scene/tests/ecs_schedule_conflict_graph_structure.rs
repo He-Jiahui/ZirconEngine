@@ -1,3 +1,5 @@
+//! 构图入口的源码守卫记录已审定的迭代器容量策略；冲突语义由同组行为测试检验。
+
 fn section_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
     source
         .split(start)

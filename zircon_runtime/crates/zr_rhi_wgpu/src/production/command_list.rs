@@ -1,3 +1,4 @@
+//! 命令列表是可延迟提交的中立记录；设备在实际编码前重新核验代际与资源存活性。
 use zr_rhi::{
     BindGroupHandle, BufferHandle, CommandList, CommandListCommand, DiagnosticPassQueryScope,
     IndexFormat, PipelineHandle, RenderPassColorAttachmentDesc,

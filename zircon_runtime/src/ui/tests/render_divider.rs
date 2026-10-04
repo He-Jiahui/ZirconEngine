@@ -1,3 +1,4 @@
+//! 从布局后的渲染命令核对分隔线方向、内边距和禁用态；像素取整由后续绘制策略决定。
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},

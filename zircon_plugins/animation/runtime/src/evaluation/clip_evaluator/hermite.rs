@@ -1,3 +1,4 @@
+//! 编译剪辑的 Hermite 通道插值支持；仅在通道校验完成后消费切线和键值。
 use zircon_runtime::core::framework::animation::{
     AnimationChannelKeyAsset, AnimationChannelValueAsset,
 };

@@ -1,3 +1,6 @@
+//! 锁定 device dispatch 的目录模块和声明边界，避免回到聚合单文件。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::sources::{
     runtime_app_source, runtime_device_events_root_source, runtime_entry_app_root,
 };

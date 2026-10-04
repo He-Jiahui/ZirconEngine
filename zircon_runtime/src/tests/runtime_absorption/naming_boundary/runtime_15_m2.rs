@@ -1,3 +1,4 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。保存同组守卫使用的局部数据或辅助变换。
 mod asset_dynamic;
 mod asset_schema;
 mod banned_names;

@@ -1,3 +1,5 @@
+//! 验证运行时动作策略及本地化报告进入 UI 资产编辑器面板。
+
 use super::support::open_design_session;
 
 const ACTION_POLICY_AND_LOCALIZATION_LAYOUT: &str = r##"

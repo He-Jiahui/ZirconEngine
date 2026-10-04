@@ -8,6 +8,7 @@ use zircon_runtime::core::math::Vec3;
 
 use crate::DefaultAiManager;
 
+// 从管理器写入走到观察者中止路径，验证数值条件变化才触发抢占。
 #[test]
 fn numeric_blackboard_conditions_preempt_with_explicit_policy() {
     let manager = DefaultAiManager::default();

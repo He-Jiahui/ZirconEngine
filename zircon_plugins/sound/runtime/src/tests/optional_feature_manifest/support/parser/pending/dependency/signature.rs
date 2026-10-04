@@ -1,3 +1,4 @@
+// 依赖签名保留插件 ID、能力与主依赖标志，供静态与运行时功能清单逐项比较。
 mod required;
 
 use super::super::super::super::types::OptionalFeatureDependencySignature;

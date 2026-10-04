@@ -1,3 +1,4 @@
+//! 将播放时间限制到剪辑持续时间；循环边界的最终键取样与事件跨度由各自消费者分别处理。
 use zircon_runtime::core::math::Real;
 
 pub(super) fn resolve_sample_time(

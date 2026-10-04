@@ -1,6 +1,10 @@
+//! 试图检查 monitor-aware 窗口创建、物理位置与全屏策略。
+//! 该守卫约束源级接线，仍需结合被调用实现理解运行时契约。
+
 use super::super::source_assertions::assert_source_order;
 use super::sources::runtime_application_handler_source;
 
+// BUG: [CR-APP-ENTRY-0008] 守卫仍要求旧的单参数显示器上下文入口与全量收集，当前实现需要窗口位置和模式并按索引选取，导致检查失败；证据：clean builder/monitor 与外部基线。
 #[test]
 fn runtime_entry_window_attributes_use_monitor_aware_creation_policy() {
     let runtime_handler_source = runtime_application_handler_source();

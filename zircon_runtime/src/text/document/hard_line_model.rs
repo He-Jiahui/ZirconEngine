@@ -3,6 +3,7 @@ use std::ops::Range;
 use super::{TextDocument, TextDocumentEditError};
 
 /// Stable identity for one source hard line within a retained document authority.
+/// 同一文档的局部编辑尽量保留未分裂硬行的身份；身份不表示排版后的视觉行序号。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct TextDocumentHardLineId {
     creation_revision: u64,
@@ -10,6 +11,7 @@ pub(crate) struct TextDocumentHardLineId {
 }
 
 /// Separator-aware source model retained independently from wrapped visual lines.
+/// 源分隔符与正文长度分开保留，使 CRLF 等结构编辑可在布局折行之前重判行边界。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct TextDocumentHardLineModel {
     id: TextDocumentHardLineId,
@@ -239,6 +241,8 @@ impl TextDocument {
         self.hard_line_models.lines()
     }
 
+    /// 在发布新版本前准备硬行变化；纯正文替换沿用行身份，触及分隔符时扩展邻行重新分析。
+    /// 编辑回执只记录受影响的硬行区间，供上层决定后续失效范围。
     pub(super) fn prepare_hard_line_edit(
         &self,
         dirty: Range<usize>,

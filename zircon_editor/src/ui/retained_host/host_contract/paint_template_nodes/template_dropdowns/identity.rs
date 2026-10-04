@@ -1,3 +1,5 @@
+//! 共享组件家族与工作台视觉语言同时成立时接管下拉框，避免误绘通用选择器。
+
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
     is_component_family, uses_workbench_visual_language, TemplateComponentFamily,

@@ -1,3 +1,4 @@
+//! 图标与活动栏控件的静止外观和状态反馈保持共享material声明。
 const WORKBENCH_ICON_BUTTON_ASSET: &str = include_str!(
     "../../../../assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui"
 );
@@ -6,6 +7,7 @@ const WORKBENCH_RAIL_BUTTON_ASSET: &str = include_str!(
 );
 
 #[test]
+/// 透明静止表面与hover、选中和强调token须共同保留；未模拟指针或焦点状态。
 fn text_icon_controls_keep_resting_material_quiet_and_state_feedback_explicit() {
     for (asset_name, asset) in [
         ("workbench_icon_button.zui", WORKBENCH_ICON_BUTTON_ASSET),

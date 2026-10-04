@@ -1,3 +1,5 @@
+//! 精确候选同时绑定路由、类别和屏幕形状，最终解析时必须保留这一身份，不能只按 UI 节点编号选择实体。
+
 use super::precision_shape::PrecisionShape;
 use crate::scene::viewport::pointer::viewport_pointer_route::ViewportPointerRoute;
 

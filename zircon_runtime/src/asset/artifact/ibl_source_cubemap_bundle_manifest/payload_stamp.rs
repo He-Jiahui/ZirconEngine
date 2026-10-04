@@ -1,3 +1,4 @@
+// bundle 清单对单个载荷的长度及内容承诺；完整读路径必须同时核对两者。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct IblSourceCubemapBundlePayloadStamp {
     encoded_len: u64,

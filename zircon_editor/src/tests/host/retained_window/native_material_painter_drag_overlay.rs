@@ -1,3 +1,4 @@
+// 核对拖动遮罩的预览与落点指示绘制及关闭态表面消耗。
 use std::rc::Rc;
 
 use crate::ui::retained_host::primitives::{ModelRc, VecModel};

@@ -230,6 +230,8 @@ fn high_frequency_cube_edge_source(face_size: u32, mip_count: u32) -> Vec<[f32; 
     decode_rgba16f_texels(&encode_rgba16f_texels(&source))
 }
 
+// 此辅助路径收集全图、边缘和接缝误差并检查统计有效性；
+// 它的通过条件是样本布局和有限值，低频数值容差由上面的专门测试约束。
 fn assert_iem_cpu_comparison_produces_finite_statistics(
     backend: &RenderBackend,
     source: &[[f32; 4]],

@@ -15,6 +15,7 @@ use crate::ui::layout::pass::{
     workspace::UiMasonryArrangeScratch,
 };
 
+/// Taffy 未接管该容器时的网格安排；输入 children 已按槽位顺序整理，显式跨度可扩展轨道数。
 pub(super) fn arrange_grid_children(
     tree: &mut UiTree,
     parent_id: UiNodeId,
@@ -50,6 +51,8 @@ pub(super) fn arrange_grid_children(
     Ok(())
 }
 
+/// 瀑布流由运行时安排并返回实际内容高度；Hidden 占位，Collapsed 子树清空几何。
+/// scratch 由当前递归层独占，顺序模式按活跃项轮转，平衡模式放入最短列。
 pub(super) fn arrange_masonry_children(
     tree: &mut UiTree,
     parent_id: UiNodeId,
