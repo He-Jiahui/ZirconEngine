@@ -11,7 +11,7 @@ use uploader_pipeline::create_uploader_pipeline;
 use super::VirtualGeometryGpuResources;
 
 impl VirtualGeometryGpuResources {
-// 旧渲染器 GPU 资源入口；当前正式 prepare 执行器另有实现，重新接线前需验证上传和读回契约。
+    // 旧渲染器 GPU 资源入口；当前正式 prepare 执行器另有实现，重新接线前需验证上传和读回契约。
     pub(in crate::virtual_geometry::renderer) fn new(device: &wgpu::Device) -> Self {
         let bind_group_layout = create_uploader_bind_group_layout(device);
         let pipeline = create_uploader_pipeline(device, &bind_group_layout);

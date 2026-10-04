@@ -32,7 +32,7 @@ impl VirtualGeometryGpuReadback {
         }
     }
 
-// 消耗 GPU 读回并仅交出流送完成所需的页表、分配与替换记录。
+    // 消耗 GPU 读回并仅交出流送完成所需的页表、分配与替换记录。
     pub(in crate::virtual_geometry::renderer) fn into_completion_parts(
         self,
     ) -> VirtualGeometryGpuReadbackCompletionParts {

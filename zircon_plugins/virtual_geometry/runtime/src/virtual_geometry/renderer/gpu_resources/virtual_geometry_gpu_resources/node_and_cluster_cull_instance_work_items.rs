@@ -8,7 +8,7 @@ use zircon_runtime::core::framework::render::{
 use super::VirtualGeometryGpuResources;
 
 impl VirtualGeometryGpuResources {
-// 从启动工作表生成 GPU 实例工作项；输出字数与 Rust 工作项布局、着色器步长必须一致。
+    // 从启动工作表生成 GPU 实例工作项；输出字数与 Rust 工作项布局、着色器步长必须一致。
     pub(in crate::virtual_geometry::renderer) fn create_node_and_cluster_cull_instance_work_item_buffer(
         &self,
         device: &wgpu::Device,
