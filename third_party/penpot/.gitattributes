@@ -1,0 +1,3 @@
+frontend/vendor/* linguist-vendored
+# ZirconEngine: preserve imported input bytes for provenance checks.
+* -text

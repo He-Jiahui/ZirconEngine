@@ -1,0 +1,208 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) KALEIDOS SUBSIDIARY SL
+
+@use "ds/typography.scss" as *;
+@use "ds/_borders.scss" as *;
+@use "ds/spacing.scss" as *;
+@use "ds/_sizes.scss" as *;
+@use "ds/_utils.scss" as *;
+@use "ds/z-index.scss" as *;
+
+// EXPORT MODAL
+.modal-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  inset-inline-start: 0;
+  inset-block-start: 0;
+  block-size: 100%;
+  inline-size: 100%;
+  z-index: var(--z-index-set);
+  background-color: var(--overlay-color);
+}
+
+.modal-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xxxl);
+  padding: var(--sp-xxxl);
+  border-radius: $br-8;
+  background-color: var(--color-background-primary);
+  border: $b-2 solid var(--color-background-quaternary);
+  min-block-size: $sz-192;
+  inline-size: $sz-512;
+  max-block-size: calc(10 * px2rem(80));
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-l);
+  margin-block-end: var(--sp-xxl);
+}
+
+.modal-content-extended {
+  gap: var(--sp-xxl);
+}
+
+.modal-title {
+  color: var(--color-foreground-primary);
+}
+
+.modal-close-btn {
+  position: absolute;
+  inset-block-start: var(--sp-m);
+  inset-inline-end: var(--sp-m);
+}
+
+.modal-msg {
+  color: var(--color-foreground-secondary);
+  margin: 0;
+}
+
+.option-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-message {
+  color: var(--color-foreground-primary);
+  font-style: italic;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-s);
+}
+
+.export-option {
+  display: flex;
+  align-items: flex-start;
+  inline-size: 100%;
+}
+
+.export-option-label {
+  --input-border-color: var(--input-checkbox-border-color-rest);
+  --input-icon-color: var(--color-background-primary);
+
+  display: flex;
+  align-items: flex-start;
+  gap: px2rem(6);
+  cursor: pointer;
+  color: var(--color-foreground-primary);
+
+  &:hover {
+    --input-border-color: var(--color-accent-primary-muted);
+  }
+
+  &:focus,
+  &:focus-within {
+    --input-border-color: var(--color-accent-primary);
+  }
+}
+
+.option-icon-wrapper {
+  --icon-display: none;
+  --background-color: var(--color-background-quaternary);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  inline-size: px2rem(16);
+  min-inline-size: px2rem(16);
+  block-size: px2rem(16);
+  margin-block-start: px2rem(10);
+  background-color: var(--background-color);
+  border: px2rem(1) solid var(--input-border-color);
+  border-radius: $br-circle;
+
+  &.checked {
+    --icon-display: block;
+    --input-border-color: var(--color-background-quaternary);
+    --input-icon-color: var(--color-background-primary);
+    --background-color: var(--color-accent-primary);
+  }
+
+  &:hover {
+    --input-border-color: var(--color-accent-primary-muted);
+  }
+
+  &:focus {
+    --input-border-color: var(--color-accent-primary);
+  }
+}
+
+.option-icon {
+  inline-size: px2rem(8);
+  block-size: px2rem(8);
+  display: var(--icon-display);
+  fill: var(--input-icon-color);
+}
+
+.option-input {
+  margin: 0;
+}
+
+.file-entry {
+  --file-entry-color: var(--color-foreground-secondary);
+
+  &.loading {
+    .file-name {
+      color: var(--color-foreground-secondary);
+    }
+  }
+
+  &.error {
+    .file-name {
+      color: var(--color-foreground-secondary);
+
+      .file-icon svg {
+        stroke: var(--color-foreground-secondary);
+      }
+    }
+  }
+
+  &.success {
+    .file-name {
+      color: var(--color-foreground-secondary);
+
+      .file-icon svg {
+        stroke: var(--color-foreground-secondary);
+      }
+    }
+  }
+}
+
+.file-name {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-m);
+
+  .file-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    block-size: px2rem(16);
+    inline-size: px2rem(16);
+    color: var(--color-foreground-secondary);
+  }
+
+  .file-name-label {
+    display: block;
+    max-inline-size: 99%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.icon-status-tick {
+  fill: none;
+  stroke: var(--color-accent-primary);
+}

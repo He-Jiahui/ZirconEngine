@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+# Usage: ./build [frontend|export] [extra cargo params...]
+#
+# With no target, builds both. Set BUILD_MODE=release (or NODE_ENV=production)
+# for an optimized build. See `_build_env` for what each target changes.
+
+_SCRIPT_DIR=$(dirname $0);
+
+# Each target needs its own `_build_env`, so re-enter per target.
+case "${1:-}" in
+    frontend|export)
+        ;;
+    *)
+        for _target in frontend export; do
+            "$_SCRIPT_DIR/build" "$_target" "$@" || exit $?;
+        done
+        exit 0;
+        ;;
+esac
+
+EMSDK_QUIET=1 . /opt/emsdk/emsdk_env.sh
+
+pushd $_SCRIPT_DIR;
+
+. ./_build_env
+
+set -ex;
+
+setup;
+build;
+copy_target_artifacts;
+
+exit $?;
+
+popd
