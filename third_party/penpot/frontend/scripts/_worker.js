@@ -51,7 +51,7 @@ function configureModulesProcessor(options) {
     generateScopedName: (selector, filename, css) => {
       const dir = ph.dirname(filename);
       const name = ph.basename(filename, ".css");
-      const parts = dir.split("/");
+      const parts = dir.split(/[\\/]/);
       const rootIdx = parts.findIndex((s) => s === ROOT_NAME);
       return parts.slice(rootIdx + 1).join("_") + "_" + name + "__" + selector;
     },

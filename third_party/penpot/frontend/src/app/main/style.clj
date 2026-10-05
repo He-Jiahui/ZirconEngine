@@ -25,7 +25,7 @@
   [fname]
   (let [file (io/file fname)
         parts
-        (->> (str/split (.getParent file) #"/")
+        (->> (str/split (.getParent file) #"[\\/]")
              (drop-while #(not= % ROOT-NAME))
              (rest)
              (str/join "_"))]

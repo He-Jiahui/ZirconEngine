@@ -229,8 +229,8 @@
                 (io/write* finput data)
                 (let [res (exec-font! system ["fontforge" "-lang=ff" "-c"
                                               (str/fmt "Open('%s'); Generate('%s')"
-                                                       (str finput)
-                                                       (str foutput))])]
+                                                       (clojure.string/replace (str finput) java.io.File/separator "/")
+                                                       (clojure.string/replace (str foutput) java.io.File/separator "/"))])]
                   (when (zero? (:exit res))
                     foutput))
                 (finally
@@ -243,8 +243,8 @@
                 (io/write* finput data)
                 (let [res (exec-font! system ["fontforge" "-lang=ff" "-c"
                                               (str/fmt "Open('%s'); Generate('%s')"
-                                                       (str finput)
-                                                       (str foutput))])]
+                                                       (clojure.string/replace (str finput) java.io.File/separator "/")
+                                                       (clojure.string/replace (str foutput) java.io.File/separator "/"))])]
                   (when (zero? (:exit res))
                     foutput))
                 (finally

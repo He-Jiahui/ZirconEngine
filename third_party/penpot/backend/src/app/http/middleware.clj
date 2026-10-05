@@ -35,7 +35,12 @@
 
 (def params
   {:name ::params
-   :compile (constantly ymw/wrap-params)})
+   :compile (constantly
+              (fn [handler]
+                (ymw/wrap-params handler
+                                  {:temp-dir (java.nio.file.Paths/get
+                                              (System/getProperty "java.io.tmpdir")
+                                              (into-array String ["undertow"]))})))})
 
 (defn- get-reader
   ^java.io.BufferedReader
