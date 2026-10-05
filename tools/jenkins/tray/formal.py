@@ -66,14 +66,19 @@ def status(config: FormalTrayConfig) -> dict:
             owner = bool(observed and observed.get("birth") == operation.get("creationTime") and observed.get("executable") == operation.get("executable"))
         except Exception: owner = False
     state = "ready" if probe.get("ready") else "stopped" if not probe.get("controller") else "degraded"
+    service_ready = bool(owner and operation and operation.get("state") == "running"
+                         and operation.get("controlPlaneOnly") is True
+                         and probe.get("controller") and probe.get("plugins"))
     owner_lost = bool(operation and operation.get("component") == "lifecycle-host"
                       and operation.get("state") in {"running", "starting", "stopping", "unknown-owner"}
                       and not owner and not probe.get("controller"))
     if owner_lost:
         state = "degraded"
+    message = ("Jenkins 管理服务已启动；构建执行暂停。" if service_ready else
+               "Jenkins 异常退出；启动将先核验恢复条件。" if owner_lost else None)
     return {"state": state, "url": config.url, "formal": True, "controller": probe,
         "operation": operation, "ownerKnown": owner, "ownerLost": owner_lost,
-        "message": "Jenkins 异常退出；启动将先核验恢复条件。" if owner_lost else None,
+        "serviceReady": service_ready, "message": message,
         "canStart": state in {"stopped", "degraded"} and not owner and not probe.get("controller"),
         "canStop": state in {"ready", "degraded"} and owner}
 

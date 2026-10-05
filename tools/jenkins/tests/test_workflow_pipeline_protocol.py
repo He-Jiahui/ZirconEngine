@@ -48,13 +48,26 @@ class PipelineProtocolTests(unittest.TestCase):
         self.assertIn("registeredFlow = true", flow)
         self.assertIn("invokeControl('flow', 'reconcile-patch'", flow)
 
+    def test_job_provisioning_requires_an_explicit_compiler_root(self):
+        from tools.jenkins.deployment.job_provisioning import _config
+        environment = {"ZIRCON_REPO_ROOT": str(Path(__file__).resolve().parents[3]),
+                       "JENKINS_PYTHON": "python.exe", "ZIRCON_SEALED_DRIVER": "driver",
+                       "ZIRCON_DRIVER_LAUNCHER": "launcher", "ZIRCON_DRIVER_DIGEST": "a" * 64,
+                       "ZIRCON_AGENT_LABEL": "agent-runtime", "ZIRCON_RUNTIME_OPERATION_ID": "start-test"}
+        with self.assertRaises(Exception):
+            _config("echo compiler root fixture", environment)
+        xml = _config("echo compiler root fixture", {**environment, "ZIRCON_BUILD_ROOT": r"D:\cargo-targets"})
+        self.assertNotIn(".jenkins/builds", xml)
+        self.assertIn("cargo-targets", xml)
+
     def test_job_parameter_declares_patch_request_reference(self):
         from tools.jenkins.deployment.job_provisioning import _config
         xml = _config("echo 'fixture'", {
             "ZIRCON_REPO_ROOT": str(Path(__file__).resolve().parents[3]),
             "JENKINS_PYTHON": "python.exe", "ZIRCON_SEALED_DRIVER": "driver",
             "ZIRCON_DRIVER_LAUNCHER": "launcher", "ZIRCON_DRIVER_DIGEST": "a" * 64,
-            "ZIRCON_BUILD_ROOT": str(Path(__file__).resolve().parents[3] / '.jenkins/builds'),
+            "ZIRCON_BUILD_ROOT": r"D:\cargo-targets", "ZIRCON_AGENT_LABEL": "agent-runtime",
+            "ZIRCON_RUNTIME_OPERATION_ID": "start-test",
         })
         self.assertIn('<name>PATCH_REQUEST_REF</name>', xml)
 

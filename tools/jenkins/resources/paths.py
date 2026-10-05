@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Iterable
 
 from ..contracts import JenkinsError
+from ..pilot.contracts import PilotError
+from ..pilot.native.portable_paths import normalize_portable_relative_path
 
 APPROVED_NAMES = {"D:\\cargo-targets", "E:\\cargo-targets", "F:\\cargo-targets"}
 _REPARSE = 0x0400
@@ -43,20 +45,12 @@ def _win32() -> ctypes.WinDLL:
 
 def _drive_identity(drive: str) -> str:
     """Return the DOS-device target, rejecting SUBST and mapped drives."""
-    k = _win32()
-    buf = ctypes.create_unicode_buffer(32768)
-    n = k.QueryDosDeviceW(f"{drive.upper()}:", buf, len(buf))
-    if not n:
-        raise _fail("physical_identity_unavailable", f"QueryDosDevice failed for {drive}:")
-    target = buf.value
-    # SUBST and mapped/alias drives resolve through a DOS path, rather than a
-    # local volume device.  Accept only local device namespace identities.
-    low = target.casefold()
-    if low.startswith(("\\??\\", "\\dosdevices\\")) or "\\mup\\" in low or "\\device\\lanmanredirector" in low:
-        raise _fail("build_root_alias", f"Drive {drive}: is a mapped or SUBST alias")
-    if not low.startswith("\\device\\"):
-        raise _fail("physical_identity_unavailable", f"Unrecognised drive identity: {target}")
-    return target
+    from ..pilot.native.paths import _verify_local_drive_mapping, StorageConfigurationError
+    try:
+        return _verify_local_drive_mapping(drive.upper() + ":")
+    except StorageConfigurationError as error:
+        raise _fail("build_root_alias", str(error)) from error
+
 
 
 def _attrs(path: str) -> int:
@@ -125,21 +119,22 @@ class ApprovedBuildRoot:
     volume_identity: str = ""
 
     def namespace(self) -> Path:
-        return self.path / "zircon-jenkins"
+        return self.path / "zircon-local" / "zircon-jenkins"
 
 
 def repository_build_root(repository_root: str | os.PathLike[str] | None = None) -> Path:
-    source = Path(__file__).absolute()
-    repo = repository_root or next((part.parent for part in source.parents if part.name.casefold() == '.jenkins'), source.parents[3])
-    return Path(repo).absolute() / '.jenkins' / 'builds'
+    # Retain the compatibility symbol without admitting repository-local products.
+    return Path(r"D:\cargo-targets")
+
 
 
 def canonical_build_root(path: str | os.PathLike[str] | None, *, default: str | None = None,
-                         repository_root: str | os.PathLike[str] | None = None) -> ApprovedBuildRoot:
+                         repository_root: str | os.PathLike[str] | None = None,
+                         allow_missing: bool = False) -> ApprovedBuildRoot:
     """Validate physical identity; formal write admission also checks the deployment policy.
 
-    Historical drive roots remain identifiable for old receipts and recovery.
-    New work defaults to the exact repository-local root, never to a drive fallback.
+    Compilation and cache roots are exclusively physical drive-root cargo-targets.
+    The repository_root parameter never expands write admission.
     """
     raw = (default or str(repository_build_root(repository_root))) if path is None else os.fspath(path)
     raw = str(raw).replace("/", "\\")
@@ -147,23 +142,23 @@ def canonical_build_root(path: str | os.PathLike[str] | None, *, default: str | 
     if len(drive) != 2 or drive[1] != ":" or not tail.startswith("\\") or tail.endswith("\\") or ntpath.normpath(raw) != raw:
         raise _fail("build_root_not_approved", f"Build root is not canonical: {raw}")
     normalized = drive.upper() + tail
-    approved_names = APPROVED_NAMES | {str(repository_build_root(repository_root))}
+    approved_names = APPROVED_NAMES
     if normalized.casefold() not in {x.casefold() for x in approved_names}:
         raise _fail("build_root_not_approved", f"Build root is not approved: {raw}")
     identity = _drive_identity(drive[0])
-    _check_components(normalized, allow_missing_leaf=False)
-    final = _final_path(normalized)
+    _check_components(normalized, allow_missing_leaf=allow_missing)
+    final = _final_path(normalized) if _attrs(normalized) != -1 else normalized
     if not _same_path(final, normalized):
         raise _fail("build_root_alias", f"Build root resolves to a different physical path: {final}")
     return ApprovedBuildRoot(Path(normalized), identity)
 
 
-def build_root_containing(path: str | os.PathLike[str]) -> ApprovedBuildRoot:
+def build_root_containing(path: str | os.PathLike[str], *, allow_missing_root: bool = False) -> ApprovedBuildRoot:
     """Resolve an existing or planned child through an exact approved root."""
     raw = str(os.fspath(path)).replace('/', '\\')
-    for name in sorted(APPROVED_NAMES | {str(repository_build_root())}, key=len, reverse=True):
+    for name in sorted(APPROVED_NAMES, key=len, reverse=True):
         if raw.casefold() == name.casefold() or raw.casefold().startswith(name.casefold() + '\\'):
-            root = canonical_build_root(name)
+            root = canonical_build_root(name, allow_missing=allow_missing_root)
             physical_path_under(root, raw)
             return root
     raise _fail('build_root_not_approved', 'Path has no approved physical build root')
@@ -171,11 +166,16 @@ def build_root_containing(path: str | os.PathLike[str]) -> ApprovedBuildRoot:
 
 def physical_path_under(root: ApprovedBuildRoot, path: str | os.PathLike[str], *, allow_missing: bool = True) -> Path:
     """Validate a path and all ancestors under a previously verified build root."""
+    if str(root.path).casefold() not in {name.casefold() for name in APPROVED_NAMES}:
+        raise _fail("build_root_not_approved", "Bound root is outside physical D/E/F cargo-targets")
     raw = str(os.fspath(path)).replace("/", "\\")
-    if ntpath.splitdrive(raw)[0] == "" or ntpath.normpath(raw) != raw or any(part in ("", ".", "..") for part in raw.split("\\")):
+    drive, tail = ntpath.splitdrive(raw)
+    if drive.upper() not in {"D:", "E:", "F:"} or not tail.startswith("\\"):
         raise _fail("namespace_escape", f"Path is not canonical: {raw}")
-    if any(":" in part for part in raw.split("\\")[1:]):
-        raise _fail("namespace_escape", f"Alternate data streams are not admitted: {raw}")
+    try:
+        normalize_portable_relative_path(tail[1:], code="namespace_escape", message="Invalid literal output path")
+    except PilotError as error:
+        raise _fail("namespace_escape", str(error)) from error
     base = str(root.path)
     candidate = ntpath.normpath(raw)
     try:

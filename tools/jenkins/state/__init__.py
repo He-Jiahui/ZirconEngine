@@ -54,10 +54,10 @@ class State:
         connection = sqlite3.connect(self.path, timeout=self.busy_timeout_ms / 1000,
                                      isolation_level=None)
         connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys=ON")
-        connection.execute("PRAGMA synchronous=FULL")
-        connection.execute(f"PRAGMA busy_timeout={self.busy_timeout_ms}")
         try:
+            connection.execute("PRAGMA foreign_keys=ON")
+            connection.execute("PRAGMA synchronous=FULL")
+            connection.execute(f"PRAGMA busy_timeout={self.busy_timeout_ms}")
             yield connection
         finally:
             connection.close()

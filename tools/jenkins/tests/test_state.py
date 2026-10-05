@@ -16,6 +16,16 @@ class StateTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.state = State(Path(self.temp.name) / "coordination.sqlite3")
 
+    def test_corrupt_database_initialization_does_not_keep_a_file_handle(self):
+        import sqlite3
+        path = Path(self.temp.name) / "corrupt.sqlite3"
+        path.write_bytes(b"not a SQLite database")
+        with self.assertRaises(sqlite3.DatabaseError):
+            State(path)
+        renamed = path.with_suffix(".owned-invalid")
+        path.rename(renamed)
+        renamed.unlink()
+
     def test_request_id_is_idempotent_and_payload_immutable(self):
         request = {"sessionId": "s1", "requestId": "r1", "repositoryId": "repo",
                    "ownedPaths": [], "requestedActions": []}

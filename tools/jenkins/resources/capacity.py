@@ -74,7 +74,7 @@ class ResourceManager:
             import time
             return self.state.put("capacity_inventory", generation, {"generation":generation,"cpu":capacity.cpu,"memoryBytes":capacity.memory_bytes,"diskBytes":capacity.disk_bytes,"complete":True,"observedAt":observed_at or time.time(),"buildRoot":build_root}, connection=conn)
 
-    def scan_inventory(self, build_root: str):
+    def capture_inventory(self, build_root: str):
         """Capture a fresh local snapshot; callers may apply policy limits later."""
         import os, time, multiprocessing
         disk = 0
@@ -93,7 +93,13 @@ class ResourceManager:
             disk = int(os.statvfs(build_root).f_bavail * os.statvfs(build_root).f_frsize); memory=int(os.sysconf('SC_PAGE_SIZE')*os.sysconf('SC_AVPHYS_PAGES'))
         generation = f"inventory-{time.time_ns()}"
         capacity = Capacity(max(1,multiprocessing.cpu_count()), memory, disk)
-        return self.publish_inventory(generation, capacity, build_root=str(build_root)), generation
+        return {"generation": generation, "cpu": capacity.cpu, "memoryBytes": capacity.memory_bytes,
+                "diskBytes": capacity.disk_bytes, "complete": True, "observedAt": time.time(), "buildRoot": str(build_root)}
+
+    def scan_inventory(self, build_root: str):
+        value = self.capture_inventory(build_root)
+        return self.publish_inventory(value["generation"], Capacity(value["cpu"], value["memoryBytes"], value["diskBytes"]),
+                                      observed_at=value["observedAt"], build_root=value["buildRoot"]), value["generation"]
 
     def admit(self, owner: str, amount: Capacity, *, inventory_generation: str = "", writer_key: str | None = None, max_age_seconds: float = 30.0, priority: int = 0, request_id: str | None = None, build_root: str = "", heavy_writer: bool = False):
         if min(amount.cpu, amount.memory_bytes, amount.disk_bytes) < 0:

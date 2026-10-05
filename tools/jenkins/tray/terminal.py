@@ -194,6 +194,8 @@ def observe_terminal(config: TrayConfig, client, binding: dict, journal) -> dict
 
 def cancel_bindings(config: TrayConfig, client, bindings: list[dict], deadline: float) -> dict:
     """Cancel only running builds; queued submissions are left untouched."""
+    if not isinstance(deadline, (int, float)) or deadline <= time.monotonic():
+        raise TrayError("停止对账期限已耗尽；原记录保留")
     operation = read_json(config.state_dir / "operation.json") or {}
     checkpoint = {"schemaVersion": 1, "rootIdentity": dict(config.root_identity), "bindings": bindings,
                   "operationId": operation.get("operationId"), "state": "cancelling", "createdAt": time.time()}

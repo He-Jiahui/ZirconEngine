@@ -82,7 +82,10 @@ def _compensate(state, root, intent, ref):
               if row['payload'].get('repositoryId') == repo}
     selected = canonical_build_root(intent['buildRoot'])
     object_root = physical_path_under(selected, patch.get('objectRoot', ''))
-    if object_root != selected.path / 'zircon-jenkins':
+    # New writes use the approved namespace; the operation journal retains
+    # the exact objectRoot so older records remain readable during recovery.
+    readable_namespaces = {selected.namespace(), selected.path / "zircon-jenkins"}
+    if object_root not in readable_namespaces:
         raise JenkinsError('object_root_mismatch', 'Original patch objects must retain their registered storage root')
     originals = {}
     observed = {}

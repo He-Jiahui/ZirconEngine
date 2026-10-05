@@ -30,7 +30,9 @@ def parseControlResult(String raw) {
 }
 
 def withControl(Closure body) {
-    node('zircon-windows') {
+    if (!env.ZIRCON_AGENT_LABEL || !env.ZIRCON_RUNTIME_OPERATION_ID) error('runtime agent fence is required')
+    if (env.RUNTIME_OPERATION_ID && env.RUNTIME_OPERATION_ID != env.ZIRCON_RUNTIME_OPERATION_ID) error('runtime operation mismatch')
+    node(env.ZIRCON_AGENT_LABEL) {
         if (!env.ZIRCON_SEALED_DRIVER || !env.ZIRCON_DRIVER_DIGEST) error('sealed driver environment is required')
         body(load(env.ZIRCON_SEALED_DRIVER))
     }

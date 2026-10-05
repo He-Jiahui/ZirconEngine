@@ -141,7 +141,7 @@ class RecipePlanningTests(unittest.TestCase):
         self.assertEqual(execution["INCLUDE"], self.environment["INCLUDE"])
         self.assertEqual(execution["PATH"], self.environment["Path"])
         self.assertEqual(execution["RUSTC_WRAPPER"], "")
-        self.assertIn(str(self.build_root / 'zircon-jenkins/preparations') + '\\', plan.recipe["preparationRoot"])
+        self.assertIn(str(self.build_root / 'zircon-local/zircon-jenkins/preparations') + '\\', plan.recipe["preparationRoot"])
 
     def test_environment_file_change_is_rejected(self):
         self.environment_file.write_text(json.dumps({**self.environment, "LIB": "foreign"}, sort_keys=True),

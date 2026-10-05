@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 
 sys.dont_write_bytecode = True
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from tools.jenkins.pilot.contracts import RequestIdentity
 from tools.jenkins.pilot.deployment import client, verify_driver
@@ -112,7 +112,7 @@ def require_active(repo_root):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[2])
     sub = parser.add_subparsers(dest="action", required=True)
     enabling = sub.add_parser("activate")
     enabling.add_argument("--config", type=Path, required=True)

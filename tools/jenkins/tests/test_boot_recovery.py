@@ -7,10 +7,56 @@ from tools.jenkins.contracts import JenkinsError
 from tools.jenkins.processes.boot import recover_previous_boot, boot_abort_evidence, windows_boot_filetime
 from tools.jenkins.resources import Capacity, ResourceManager
 from tools.jenkins.state import State
-from tools.jenkins.deployment.recovery import previous_boot_deployment_evidence, has_terminal_deployment_proofs
+from tools.jenkins.deployment.recovery import (previous_boot_deployment_evidence, has_terminal_deployment_proofs,
+                                                has_terminal_lifecycle_proofs)
 
 
 class BootRecoveryTests(unittest.TestCase):
+    def test_terminal_recovery_rejects_unbound_agent_and_noninteger_job_zero(self):
+        controller = {'pid': 2, 'creationTime': '120', 'executable': 'java.exe'}
+        proof = {'identity': controller, 'complete': True, 'childrenGone': True,
+                 'activeProcesses': 0, 'stdoutEof': True, 'stderrEof': True, 'processExitCode': 0}
+        operation = {'operationId': 'op', 'generation': 'op', 'homePath': 'home'}
+        host = {'operationId': 'op', 'generation': 'op', 'status': 'stopped',
+                'controllerIdentity': controller, 'nativeTerminationProof': proof,
+                'agentLaunchAttempted': False}
+        self.assertTrue(has_terminal_deployment_proofs(operation, host, 'home'))
+        for count in (False, 0.0):
+            with self.subTest(count=count):
+                self.assertFalse(has_terminal_deployment_proofs(operation,
+                    {**host, 'nativeTerminationProof': {**proof, 'activeProcesses': count}}, 'home'))
+        self.assertFalse(has_terminal_deployment_proofs(operation,
+            {**host, 'agentTerminationProof': proof}, 'home'))
+        self.assertFalse(has_terminal_deployment_proofs(operation,
+            {**host, 'agentIdentity': controller}, 'home'))
+        self.assertFalse(has_terminal_deployment_proofs(
+            {**operation, 'operationId': None}, {**host, 'operationId': None}, 'home'))
+
+    def test_controller_proof_does_not_prove_supervisor_departure(self):
+        controller = {"pid": 2, "creationTime": "120", "executable": "java.exe"}
+        proof = {"identity": controller, "complete": True, "childrenGone": True,
+                 "activeProcesses": 0, "stdoutEof": True, "stderrEof": True, "processExitCode": 0}
+        operation = {"operationId": "op", "generation": "op", "homePath": "home",
+                     "hostPid": 11, "pid": 11, "creationTime": "100"}
+        host = {"operationId": "op", "generation": "op", "hostPid": 11, "status": "stopped",
+                "controllerIdentity": controller, "nativeTerminationProof": proof, "agentLaunchAttempted": False}
+        self.assertTrue(has_terminal_deployment_proofs(operation, host, "home"))
+        absent = {"pid": 11, "expectedCreationTime": "100", "status": "absent"}
+        for observation in (None, {}, {**absent, "pid": 10}, {**absent, "expectedCreationTime": "90"},
+                            {**absent, "status": "inconclusive"}, {**absent, "status": "running"},
+                            {**absent, "status": "pid-reused", "observedIdentity": {}},
+                            {**absent, "status": "pid-reused", "observedIdentity": {"pid": 11, "creationTime": "100"}},
+                            {**absent, "status": "pid-reused", "observedIdentity": {"pid": 10, "creationTime": "999"}}):
+            with self.subTest(observation=observation):
+                self.assertFalse(has_terminal_lifecycle_proofs(operation, host, "home", observation))
+        self.assertTrue(has_terminal_lifecycle_proofs(operation, host, "home", absent))
+        reused = {**absent, "status": "pid-reused", "observedIdentity": {"pid": 11, "creationTime": "999"}}
+        self.assertTrue(has_terminal_lifecycle_proofs(operation, host, "home", reused))
+        self.assertFalse(has_terminal_lifecycle_proofs({**operation, "pid": 10}, host, "home", absent))
+        self.assertFalse(has_terminal_lifecycle_proofs(operation, {**host, "hostPid": 10}, "home", absent))
+        self.assertFalse(has_terminal_lifecycle_proofs(operation,
+            {**host, "nativeTerminationProof": {**proof, "stderrEof": False}}, "home", absent))
+
     def test_boot_query_treats_localized_failure_as_unavailable_and_accepts_only_decimal_evidence(self):
         import subprocess
         failed = subprocess.CompletedProcess([], 1, b'', b'\xbe\xdc\xbe\xf8')

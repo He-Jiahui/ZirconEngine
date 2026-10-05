@@ -9,12 +9,12 @@ from pathlib import Path
 from tools.jenkins.contracts import JenkinsError, digest
 from tools.jenkins.gitops import handle
 from tools.jenkins.state import State
+from tools.jenkins.resources import canonical_build_root
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 JENKINS_TMP = REPO_ROOT / ".jenkins" / "tmp"
-BUILD_ROOT = REPO_ROOT / ".jenkins" / "builds"
+BUILD_ROOT = Path(r"E:\cargo-targets")
 JENKINS_TMP.mkdir(parents=True, exist_ok=True)
-BUILD_ROOT.mkdir(parents=True, exist_ok=True)
 
 
 class GitFlowFixtureTests(unittest.TestCase):
@@ -92,7 +92,7 @@ class GitFlowFixtureTests(unittest.TestCase):
             state = State(root / "state.sqlite")
             repo_id, session, request = "repo-sha", "session-sha", "request-sha"
             state.authorize_session(repo_id, session, "fixture", ["owned.txt"], ["commit"], {"source": "user", "task": "sealed sha flow"})
-            object_root = BUILD_ROOT / "zircon-jenkins"
+            object_root = canonical_build_root(BUILD_ROOT).namespace()
             object_root.joinpath("inputs", "objects").mkdir(parents=True, exist_ok=True)
             data = b"after from sealed object\n"
             sha = hashlib.sha256(data).hexdigest()

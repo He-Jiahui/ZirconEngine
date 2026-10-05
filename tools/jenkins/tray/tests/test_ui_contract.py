@@ -24,7 +24,9 @@ class Config:
 
 class UiContractTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(dir="D:\\cargo-targets") if Path("D:\\").exists() else tempfile.TemporaryDirectory()
+        root = Path(r"E:/cargo-targets/zircon-local/jenkins-support-tests/tmp")
+        root.mkdir(parents=True, exist_ok=True)
+        self.tmp = tempfile.TemporaryDirectory(dir=str(root))
         self.app = TrayApp(Config(Path(self.tmp.name)))
 
     def tearDown(self):

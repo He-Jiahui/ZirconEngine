@@ -301,7 +301,7 @@ class ExecutionEngine:
                 validate_producer_receipt(receipt, output_root=receipt["outputClosure"]["root"],
                     expected={"sourceDigest": payload["sourceDigest"],
                     "coverageDigest": payload["coverageDigest"], "recipeDigest": payload["recipeRef"],
-                    "driverDigest": payload["driverDigest"], "stage": stage, "executionId": ref})
+                     "driverDigest": payload["driverDigest"], "stage": stage, "executionId": eid})
             discovery = next((p.get("discovery") for p in records if p.get("phase") == "list"), None)
             if not discovery or int(discovery.get("testCount", 0)) <= 0:
                 raise JenkinsError("cargo_tests_not_discovered", "Successful Cargo validation requires real test discovery")

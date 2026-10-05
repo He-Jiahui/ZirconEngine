@@ -46,14 +46,13 @@ def resolve_paths(spec: DeploymentSpec, build_root: str | Path | None = None) ->
     repo = spec.repository_root
     root = repo / ".jenkins"
     home = root / "jenkins_home"
-    selected_raw = Path(build_root) if build_root is not None else spec.build_root
-    selected_raw = Path(os.path.abspath(str(selected_raw)))
-    allowed_raw = {os.path.normcase(os.path.abspath(str(Path(x)))) for x in spec.storage["allowedPhysicalRoots"]}
-    if os.path.normcase(str(selected_raw)) not in allowed_raw:
-        raise JenkinsError("invalid_build_root", "buildRoot is outside the approved physical roots", details={"buildRoot": str(selected_raw)})
-    # Both repository and historical paths use the same physical identity
-    # checks. The selected deployment policy grants the exact current root.
-    approved = canonical_build_root(str(selected_raw), repository_root=repo)
+    selected_raw = str(build_root) if build_root is not None else str(spec.build_root)
+    normalized = lambda value: str(value).replace("/", "\\").casefold()
+    allowed_raw = {normalized(x) for x in spec.storage["allowedPhysicalRoots"]}
+    if normalized(selected_raw) not in allowed_raw:
+        raise JenkinsError("invalid_build_root", "buildRoot is outside the approved physical roots", details={"buildRoot": selected_raw})
+    # Admit original strings before Path normalization so aliases cannot disappear.
+    approved = canonical_build_root(selected_raw, repository_root=repo)
     selected = approved.path
     allowed = {str(_physical(Path(x))).casefold() for x in spec.storage["allowedPhysicalRoots"]}
     if str(selected).casefold() not in allowed:

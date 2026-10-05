@@ -33,7 +33,7 @@ class FormalTray:
         own = None
         try: own = __import__('tools.jenkins.tray.formal_native', fromlist=['identity']).identity(os.getpid())
         except Exception: own = None
-        value = {"schemaVersion": 1, "uiPid": os.getpid(), "uiBirth": (own or {}).get("birth") or (own or {}).get("creationTime"), "uiExecutable": (own or {}).get("executable", os.path.abspath(os.sys.executable)), "hwnd": self.hwnd, "state": self.status.get("state"), "url": self.config.url, "iconAdded": bool(getattr(self, "icon_added", False)), "ready": self.status.get("state") == "ready", "operation": op, "lastCommand": self.last_command}
+        value = {"schemaVersion": 1, "uiPid": os.getpid(), "uiBirth": (own or {}).get("birth") or (own or {}).get("creationTime"), "uiExecutable": (own or {}).get("executable", os.path.abspath(os.sys.executable)), "hwnd": self.hwnd, "state": self.status.get("state"), "url": self.config.url, "iconAdded": bool(getattr(self, "icon_added", False)), "ready": self.status.get("state") == "ready", "serviceReady": self.status.get("serviceReady") is True, "message": self.status.get("message"), "operation": op, "lastCommand": self.last_command}
         tmp = path.with_suffix('.tmp'); tmp.write_text(json.dumps(value, sort_keys=True), encoding='utf8'); tmp.replace(path)
 
     def open_logs(self):
@@ -52,7 +52,11 @@ class FormalTray:
         elif key == "logs": self.open_logs()
         elif key == "start": threading.Thread(target=self._mutate, args=(start,), daemon=True).start()
         elif key == "stop":
-            if self.status.get("state") in {"ready", "starting"}: threading.Thread(target=self._mutate, args=(stop,), daemon=True).start()
+            # A control-plane-only controller is intentionally degraded while
+            # its agent is paused.  Stop remains safe when the formal status
+            # has already proved ownership and exposes canStop.
+            if self.status.get("canStop") and self.status.get("ownerKnown"):
+                threading.Thread(target=self._mutate, args=(stop,), daemon=True).start()
         elif key == "restart": threading.Thread(target=self._restart, daemon=True).start()
         elif key == "exit": self.closed = True
         elif key == "startup":
@@ -73,7 +77,7 @@ class FormalTray:
 
     def _operation_error(self, exc):
         code = getattr(exc, "code", None)
-        message = ("请重启 Windows，再启动 Jenkins 以核验恢复状态。"
+        message = ("旧 Jenkins 进程的终止证据不足，已阻止操作；请先完成归属和终止核验后重试。"
                    if code == "deployment_termination_unproven" else str(exc))
         return {"state": "error", "message": message, "reasonCode": code, "url": self.config.url}
 
@@ -82,10 +86,14 @@ class FormalTray:
         if not self._single_instance(): return 2
         def callback(hwnd, message, wparam, lparam):
             if message == TRAY_MESSAGE:
-                if lparam in (nw.WM_RBUTTONUP, nw.WM_CONTEXTMENU):
+                # Shell_NotifyIcon version 4 packs the icon id in the high
+                # word and the mouse event in the low word.  Comparing the
+                # raw LPARAM drops right-click events for icon id 1.
+                event = int(lparam) & 0xffff
+                if event in (nw.WM_RBUTTONUP, nw.WM_CONTEXTMENU):
                     x, y = nw.cursor_position(); selected = nw.popup_menu(hwnd, menu_items(MenuState(self.status)), x, y)
                     if selected: self.command(selected)
-                elif lparam == nw.WM_LBUTTONDBLCLK: nw.open_url(self.config.url)
+                elif event == nw.WM_LBUTTONDBLCLK: nw.open_url(self.config.url)
                 return 0
             if message == nw.WM_COMMAND:
                 self.command(int(wparam)); return 0

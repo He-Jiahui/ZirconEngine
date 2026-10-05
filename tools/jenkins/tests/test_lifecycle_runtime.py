@@ -121,7 +121,11 @@ class LifecycleRuntimeTests(unittest.TestCase):
             lifecycle._launches = {"e": (job, registry)}
             launcher = root / "launcher.py"
             state.put("execution_launch", "e", {"status": "started", "executionId": "e",
-                "operationId": "op", "generation": "1", "guardNativeJobId": guard.native_job_id})
+                "operationId": "op", "generation": "1", "driverDigest": "d",
+                "guardNativeJobId": guard.native_job_id})
+            state.put("execution", "e", {"status": "running", "executionId": "e",
+                "operationId": "op", "generation": "1", "driverDigest": "d",
+                "driver": {"runtimeOperationId": "op", "generation": "1", "digest": "d"}})
             state.put("execution_host", "e", {"status": "terminal", "operationId": "op", "generation": "1"})
             try:
                 job.wait(timeout_seconds=10)
@@ -346,6 +350,158 @@ class LifecycleRuntimeTests(unittest.TestCase):
             with patch.object(manager, "health", return_value={"ready": True}):
                 result = manager.reconcile()
             self.assertEqual(result["state"], "unknown-owner")
+
+    def test_reconcile_does_not_treat_same_birth_different_executable_as_owned(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); state = root / "state"; state.mkdir()
+            paths = type("Paths", (), {"state": state, "logs": root, "repo": root})()
+            spec = type("Spec", (), {"controller": {"listenAddress": "127.0.0.1", "httpPort": 1},
+                                      "agent": {"name": "agent"}})()
+            manager = DeploymentManager(spec, paths, root / "java", root / "war")
+            manager._write({"operationId": "current", "generation": "current", "hostPid": 1,
+                            "pid": 999, "creationTime": "birth", "executable": str(root / "python.exe"),
+                            "state": "running"})
+            (state / "deployment").mkdir()
+            (state / "deployment" / "host.json").write_text(json.dumps({
+                "operationId": "current", "generation": "current", "hostPid": 1, "status": "running"
+            }), encoding="utf-8")
+            with patch("tools.jenkins.deployment.manager.identity", return_value={
+                    "pid": 999, "creationTime": "birth", "executable": str(root / "other.exe")}), \
+                 patch.object(manager, "health", return_value={"controller": True, "ready": True}):
+                result = manager.reconcile()
+            self.assertFalse(result["observedAlive"])
+            self.assertEqual(result["state"], "unknown-owner")
+            self.assertFalse(result["serviceReady"])
+
+    def test_start_blocks_healthy_endpoint_without_owned_host_binding(self):
+        """A foreign Jenkins on the configured port must not be adopted."""
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); state = root / "state"; state.mkdir()
+            paths = type("Paths", (), {"state": state, "home": root / "home",
+                "logs": root, "repo": root})()
+            spec = type("Spec", (), {"controller": {"listenAddress": "127.0.0.1", "httpPort": 1},
+                                      "agent": {"name": "agent"}})()
+            manager = DeploymentManager(spec, paths, root / "java", root / "war")
+            manager._write({"operationId": "current", "generation": "current", "state": "running",
+                            "hostPid": 1, "pid": 999999, "creationTime": "old", "homePath": str(paths.home.absolute())})
+            (state / "deployment").mkdir()
+            (state / "deployment" / "host.json").write_text(json.dumps({
+                "operationId": "other", "generation": "other", "hostPid": 2, "status": "running"
+            }), encoding="utf-8")
+            with patch("tools.jenkins.deployment.manager.identity", return_value=None), \
+                 patch.object(manager, "health", return_value={"controller": True, "agent": False,
+                                                                  "plugins": True, "ready": False}), \
+                 patch("tools.jenkins.deployment.manager.subprocess.Popen") as spawn:
+                with self.assertRaises(JenkinsError) as error:
+                    manager.start()
+            self.assertEqual("deployment_owner_unproven", error.exception.code)
+            self.assertTrue(error.exception.retryable)
+            spawn.assert_not_called()
+
+    def test_stopped_control_plane_restarts_without_enabling_agent(self):
+        import sys
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); state = root / "state"; state.mkdir()
+            deployment = state / "deployment"; deployment.mkdir()
+            paths = type("Paths", (), {"state": state, "home": root / "home",
+                "logs": root / "logs", "repo": root, "tmp": root / "tmp"})()
+            spec = type("Spec", (), {"path": root / "spec.json",
+                "controller": {"listenAddress": "127.0.0.1", "httpPort": 1},
+                "agent": {"name": "agent"}})()
+            manager = DeploymentManager(spec, paths, root / "java", root / "war")
+            home = str(paths.home.absolute())
+            controller = {"pid": 2, "creationTime": "120", "executable": str(root / "java"),
+                          "commandDigest": "b" * 64}
+            complete = {"identity": controller, "complete": True, "childrenGone": True,
+                        "activeProcesses": 0, "stdoutEof": True, "stderrEof": True,
+                        "processExitCode": 0}
+            old = {"schemaVersion": 2, "operationId": "old", "generation": "old",
+                   "state": "stopped", "component": "lifecycle-host", "hostPid": 1,
+                   "pid": 1, "creationTime": "100", "executable": str(root / "python"),
+                   "homePath": home, "controlPlaneOnly": True}
+            manager._write(old)
+            (deployment / "host.json").write_text(json.dumps({
+                "operationId": "old", "generation": "old", "hostPid": 1,
+                "status": "stopped", "controllerIdentity": controller,
+                "agentLaunchAttempted": False, "nativeTerminationProof": complete
+            }), encoding="utf-8")
+            (deployment / "driver.json").write_text(json.dumps({"driverDigest": "d"}), encoding="utf-8")
+            captured = {}
+
+            class FakeProcess:
+                pid = 303
+                def poll(self): return None
+
+            def fake_popen(args, **kwargs):
+                captured.update(kwargs)
+                captured["args"] = args
+                return FakeProcess()
+
+            def fake_health_wait(*args, **kwargs):
+                command = captured.get("args", [])
+                operation_id = command[command.index("--operation-id") + 1]
+                (deployment / "host.json").write_text(json.dumps({
+                    "operationId": operation_id, "generation": operation_id, "hostPid": 303,
+                    "status": "running", "controlPlaneOnly": True}), encoding="utf-8")
+                return True
+
+            identity_value = SimpleNamespace(to_dict=lambda: {
+                "pid": 303, "creationTime": "3030", "executable": str(root / "python"),
+                "commandDigest": "c" * 64})
+            with patch("tools.jenkins.deployment.startup_observations.observe_departed_identity",
+                       return_value={"pid": 1, "expectedCreationTime": "100", "status": "absent"}), \
+                 patch("tools.jenkins.deployment.manager.check_port_available"), \
+                 patch.object(manager, "_driver_env", return_value={
+                     "ZIRCON_DRIVER_LAUNCHER": str(root / "launcher.py"),
+                     "ZIRCON_DRIVER_DIGEST": "d", "JENKINS_PYTHON": sys.executable}), \
+                 patch("tools.jenkins.deployment.manager.subprocess.Popen", side_effect=fake_popen), \
+                 patch("tools.jenkins.deployment.manager.current_identity", return_value=identity_value), \
+                 patch("tools.jenkins.deployment.manager.wait_for_health", side_effect=fake_health_wait), \
+                 patch.object(manager, "health", return_value={"controller": True, "plugins": True,
+                                                                  "agent": False, "ready": False}), \
+                 patch.object(manager, "_credentials", return_value=("admin", "token")):
+                result = manager._start_locked(state / "deployment-start.lock")
+            try:
+                self.assertTrue(captured["env"]["ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY"] == "1")
+                self.assertTrue(result["controlPlaneOnly"])
+                self.assertTrue(result["state"] == "running")
+            finally:
+                entry = __import__("tools.jenkins.deployment.manager", fromlist=["_LIVE_JOBS"])._LIVE_JOBS.pop(303, None)
+                if entry:
+                    entry[1].close()
+
+    def test_control_plane_drain_ignores_proven_historical_execution(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            paths = type("Paths", (), {"state": root / "state", "home": root / "home", "logs": root / "logs", "repo": root})()
+            spec = type("Spec", (), {"controller": {"listenAddress": "127.0.0.1", "httpPort": 1}, "agent": {"name": "agent"}})()
+            manager = DeploymentManager(spec, paths, root / "java", root / "war")
+            operation = {"operationId": "current", "generation": "current", "controlPlaneOnly": True, "hostPid": 11, "pid": 11, "creationTime": "host", "executable": str(root / "host.exe")}
+            controller = {"pid": 12, "creationTime": "controller", "executable": str(root / "java.exe")}
+            host = {"operationId": "current", "generation": "current", "hostPid": 11, "controlPlaneOnly": True, "agentLaunchAttempted": False, "controllerIdentity": controller, "status": "running"}
+            identities = {11: {"creationTime": "host", "executable": str(root / "host.exe")}, 12: {"creationTime": "controller", "executable": str(root / "java.exe")}}
+            with patch("tools.jenkins.deployment.manager.identity", side_effect=lambda pid: identities[pid]), \
+                 patch.object(manager, "_active_execution_records", return_value=[{"key": "old", "payload": {"operationId": "old", "generation": "old"}}]), \
+                 patch.object(manager, "_request", side_effect=[(302, b""), (200, json.dumps({"computer": [{"displayName": "agent", "busyExecutors": 0, "offline": True}]}).encode()), (200, json.dumps({"jobs": [{"name": "old-job", "builds": [{"building": True}]}]}).encode())]):
+                result = manager._control_plane_drain(operation, host)
+            self.assertEqual("drained", result["status"])
+            self.assertTrue(result["proof"]["agentOffline"])
+
+    def test_control_plane_drain_blocks_current_generation_execution(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            paths = type("Paths", (), {"state": root / "state", "home": root / "home", "logs": root / "logs", "repo": root})()
+            spec = type("Spec", (), {"controller": {"listenAddress": "127.0.0.1", "httpPort": 1}, "agent": {"name": "agent"}})()
+            manager = DeploymentManager(spec, paths, root / "java", root / "war")
+            operation = {"operationId": "current", "generation": "current", "controlPlaneOnly": True, "hostPid": 11, "pid": 11, "creationTime": "host", "executable": str(root / "host.exe")}
+            controller = {"pid": 12, "creationTime": "controller", "executable": str(root / "java.exe")}
+            host = {"operationId": "current", "generation": "current", "hostPid": 11, "controlPlaneOnly": True, "agentLaunchAttempted": False, "controllerIdentity": controller}
+            identities = {11: {"creationTime": "host", "executable": str(root / "host.exe")}, 12: {"creationTime": "controller", "executable": str(root / "java.exe")}}
+            with patch("tools.jenkins.deployment.manager.identity", side_effect=lambda pid: identities[pid]), patch.object(manager, "_active_execution_records", return_value=[{"key": "current", "payload": {"operationId": "current", "generation": "1", "status": "started"}}]):
+                with self.assertRaises(JenkinsError) as error:
+                    manager._control_plane_drain(operation, host)
+            self.assertEqual("control_plane_execution_active", error.exception.code)
 
     def test_stop_rejects_journal_bound_to_different_home(self):
         with tempfile.TemporaryDirectory() as temp:

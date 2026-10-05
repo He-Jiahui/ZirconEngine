@@ -6,6 +6,7 @@ import argparse
 import importlib
 import json
 import sys
+import sqlite3
 from pathlib import Path
 import uuid
 
@@ -57,17 +58,17 @@ def normalized_payload(payload: dict) -> dict:
 def authorization_action(domain: str, action: str, payload: dict) -> str:
     if domain == "patch" and action in {"register", "submit", "prepare", "prepare-patch", "reconcile", "reconcile-patch", "cancel"}:
         return "implementation"
-    if domain == "deployment":
+    if domain == "deployment" or (domain == "admission" and action == "activate-policy"):
         return "deployment"
     if domain == "notification":
         return "notify"
-    if domain == "maintenance" and action in {"gc", "gc-maintenance", "cache-maintenance"}:
+    if domain in {"maintenance", "flow"} and action in {"gc", "gc-maintenance", "cache-maintenance"}:
         return "gc"
     if domain == "artifact" and action in {"gc", "delete", "collect"}:
         return "gc"
     if domain == "candidate" and action in {"claim", "apply", "patch", "compensate", "release", "release-claim"}:
         return "implementation"
-    if domain == "integration" and action in {"commit", "commit-flow", "integrate", "publish", "revert", "forward_revert", "forward-revert-flow", "repair"}:
+    if domain == "integration" and action in {"commit", "commit-flow", "integrate", "publish", "revert", "forward_revert", "forward-revert-flow", "repair", "commit_flow", "reconcile", "reconcile-flow", "reconcile_flow", "compensate", "forward_revert_flow"}:
         return "commit"
     if domain == "integration" and action == "push":
         return "push"
@@ -183,10 +184,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--input-file", type=Path)
     parser.add_argument("--output-file", type=Path)
     args = parser.parse_args(argv)
+    output = None
     try:
         repo = args.repository.absolute()
         if not repo.is_dir():
             raise JenkinsError("repository_missing", "The declared repository root does not exist")
+        if args.output_file:
+            output = runtime_path(repo, args.output_file, area="state/responses")
         state_path = runtime_path(repo, args.state or repo / ".jenkins/state/coordination.sqlite3", area="state")
         state = State(state_path)
         result = dispatch(args.domain, args.action, read_payload(args.input_file), state, repo)
@@ -195,14 +199,13 @@ def main(argv: list[str] | None = None) -> int:
         result = response("blocked" if error.retryable else "failed", reason_code=error.code,
                           retryable=error.retryable, message=str(error))
         exit_code = 2
-    except (OSError, ValueError, TypeError, KeyError):
+    except (OSError, ValueError, TypeError, KeyError, sqlite3.Error):
         result = response("failed", reason_code="invalid_control_input",
                           message="Control input or required file could not be read")
         exit_code = 2
     encoded = canonical_json(result) + b"\n"
-    if args.output_file:
+    if output is not None:
         try:
-            output = runtime_path(args.repository.absolute(), args.output_file)
             output.parent.mkdir(parents=True, exist_ok=True)
             temporary = output.with_name(output.name + ".pending-" + uuid.uuid4().hex)
             temporary.write_bytes(encoded)

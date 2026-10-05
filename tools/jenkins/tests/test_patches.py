@@ -12,6 +12,7 @@ from tools.jenkins.resources.paths import repository_build_root
 from tools.jenkins.source import _atomic_write, repository_id
 from tools.jenkins.state import State
 from tools.jenkins.state.locks import process_lock
+from tools.jenkins.workflow.handler import handle as workflow_handle
 
 DEFAULT_BUILD_ROOT = repository_build_root()
 
@@ -98,6 +99,18 @@ class PatchIntakeTests(unittest.TestCase):
             with self.assertRaises(JenkinsError) as caught:
                 self.prepare(ref)
         self.assertEqual('patch_checkout_busy', caught.exception.code)
+
+    def test_formal_reconcile_rejects_raw_driver_fallback(self):
+        marker = self.root / '.jenkins/state/deployment/driver.json'
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text('{"driverDigest":"old"}', encoding='utf-8')
+        payload = {'identity': self.identity, 'patchRequestRef': 'missing-patch',
+                   'driverDigest': 'd' * 64, 'stageImplementationDigest': 'd' * 64,
+                   'buildRoot': str(DEFAULT_BUILD_ROOT)}
+        with self.assertRaises(JenkinsError) as caught:
+            workflow_handle('reconcile-patch', payload, self.state, self.root)
+        self.assertIn(caught.exception.code, {'driver_binding_missing', 'active_driver_unavailable',
+                                               'driver_context_mismatch'})
         self.assertEqual(self.before.encode(), (self.root / 'src/lib.rs').read_bytes())
 
     def test_wrong_driver_or_owner_cannot_apply_registered_patch(self):
@@ -199,6 +212,35 @@ class PatchIntakeTests(unittest.TestCase):
         self.assertNotIn(b'unifiedPatch', requests[0].data)
         self.assertNotIn(b'SOURCE_INPUT_DIGEST', requests[0].data)
         self.assertEqual(self.before.encode(), (self.root / 'src/lib.rs').read_bytes())
+
+    def test_patch_dispatch_carries_runtime_operation_fence(self):
+        ref = self.register()['patchRequestRef']
+        requests = []
+
+        class Result:
+            status = 201
+            headers = {'Location': 'http://127.0.0.1:18080/queue/item/runtime/'}
+
+        def transport(request):
+            requests.append(request)
+            return Result()
+
+        with patch('tools.jenkins.patches._runtime_binding', return_value='runtime-1'):
+            submit_patch(self.state, self.root,
+                         {'identity': self.identity, 'patchRequestRef': ref}, transport=transport)
+        self.assertEqual(1, len(requests))
+        self.assertIn(b'RUNTIME_OPERATION_ID=runtime-1', requests[0].data)
+
+    def test_patch_dispatch_rejects_runtime_fence_mismatch(self):
+        marker = self.root / '.jenkins/state/deployment/driver.json'
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text('{}', encoding='utf-8')
+        with patch('tools.jenkins.deployment.driver.active_driver_binding',
+                   return_value={'runtimeOperationId': 'runtime-1', 'digest': 'd' * 64}):
+            with self.assertRaises(JenkinsError) as caught:
+                from tools.jenkins.patches import _runtime_binding
+                _runtime_binding(self.root, self.identity, {'runtimeOperationId': 'runtime-2'})
+        self.assertEqual('runtime_binding_mismatch', caught.exception.code)
 
     def test_old_request_identity_cannot_be_bypassed_by_new_patch_entry(self):
         self.state.submit_request({**self.identity, 'sourceInputDigest': 'a' * 64})

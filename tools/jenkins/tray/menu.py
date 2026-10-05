@@ -21,7 +21,7 @@ class MenuState:
     def enabled(self, key: str) -> bool:
         if key in {"status", "refresh", "exit"}: return True
         if self.operation and key in {"start", "stop", "restart", "startup"}: return False
-        if key == "open": return bool(self.status.get("url")) and (self.status.get("controller", {}).get("ready") is True or self.state in {"ready", "busy", "starting", "stopping"})
+        if key == "open": return bool(self.status.get("url")) and (self.status.get("serviceReady") is True or self.status.get("controller", {}).get("ready") is True or self.state in {"ready", "busy", "starting", "stopping"})
         if key == "start": return bool(self.status.get("canStart", self.state in {"stopped", "error"}))
         if key == "stop": return bool(self.status.get("canStop", self.state in {"ready", "busy"}))
         if key == "restart": return self.state in {"ready", "busy"} and bool(self.status.get("ownerKnown")) and bool(self.status.get("canStop"))
@@ -32,6 +32,8 @@ class MenuState:
 
 def label_for(status: dict) -> str:
     state = str(status.get("state", "degraded"))
+    if state == "degraded" and status.get("serviceReady") is True:
+        return "管理服务运行中（构建暂停）"
     return {"stopped": "已停止", "starting": "启动中", "ready": "就绪", "busy": "运行任务",
             "stopping": "停止中", "degraded": "异常", "error": "异常"}.get(state, state)
 

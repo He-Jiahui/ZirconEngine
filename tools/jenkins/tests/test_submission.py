@@ -29,6 +29,47 @@ class SubmissionTests(unittest.TestCase):
             self.assertEqual(len(calls), 1)
             self.assertFalse(first["formalAcceptance"])
 
+    def test_registered_dispatch_rejects_changed_form_identity_before_claim(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = State(Path(directory) / "state.sqlite3")
+            payload = {"repositoryId": "repo", "sessionId": "session", "requestId": "request",
+                       "patchRequestRef": "patch-a"}
+            for fields in ({"REQUEST_ID": "foreign"}, {"PATCH_REQUEST_REF": "patch-b"}):
+                with self.subTest(fields=fields), self.assertRaises(JenkinsError):
+                    dispatch_registered(state, payload, fields, transport=lambda _: self.fail("unexpected POST"))
+            self.assertIsNone(state.get("jenkins_submission", "repo:session:request:flow"))
+
+    def test_duplicate_dispatch_binds_target_and_exact_form(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = State(Path(directory) / "state.sqlite3")
+            payload = {"repositoryId": "repo", "sessionId": "session", "requestId": "request"}
+            calls = []
+            class Response:
+                status = 201
+                headers = {}
+            def transport(request):
+                calls.append(request)
+                return Response()
+            dispatch_registered(state, payload, {"GENERATION": "1"}, transport=transport)
+            for changes in ({"fields": {"GENERATION": "2"}}, {"job": "foreign-job"},
+                            {"base_url": "http://127.0.0.1:28080"}):
+                with self.subTest(changes=changes), self.assertRaises(JenkinsError):
+                    options = {"fields": {"GENERATION": "1"}, **changes}
+                    dispatch_registered(state, payload, transport=transport, **options)
+            self.assertEqual(1, len(calls))
+
+    def test_historical_marker_without_dispatch_binding_is_preserved(self):
+        from tools.jenkins.contracts import digest
+        with tempfile.TemporaryDirectory() as directory:
+            state = State(Path(directory) / "state.sqlite3")
+            payload = {"repositoryId": "repo", "sessionId": "session", "requestId": "request"}
+            original = state.put("jenkins_submission", "repo:session:request:flow",
+                                 {**payload, "payloadDigest": digest(payload), "delivery": "submitted"})
+            with self.assertRaises(JenkinsError) as raised:
+                dispatch_registered(state, payload, {}, transport=lambda _: self.fail("unexpected POST"))
+            self.assertEqual("delivery_unknown", raised.exception.code)
+            self.assertEqual(original, state.get("jenkins_submission", "repo:session:request:flow"))
+
     def test_missing_identity_is_rejected(self):
         with self.assertRaises(Exception):
             request_payload(repository_id="repo", session_id="session", request_id="request",

@@ -26,6 +26,8 @@ def handle(action, payload, state, repo_root, *, domain="deployment"):
     java = Path(payload.get("java") or spec.controller["java"]["executable"])
     war = Path(payload.get("war") or spec.controller["warPath"])
     manager = DeploymentManager(spec, paths, java, war)
+    if action == "recover-activation":
+        return manager.recover_activation(transition_digest=payload.get("transitionDigest"))
     if action in {"health", "start", "stop", "reconcile"}: return getattr(manager, action)()
     raise JenkinsError("operation_unknown", f"unknown deployment action: {action}")
 

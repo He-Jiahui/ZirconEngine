@@ -10,7 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.jenkins.tray.config import TrayError, absolute_plain_path, load_config, validate_runtime
+from tools.jenkins.tray.config import TrayConfig, TrayError, absolute_plain_path, validate_runtime
 from tools.jenkins.tray.operations import execute, operation_lock, read_operation
 from tools.jenkins.tray.persistence import read_json, write_json, safe_error
 
@@ -19,11 +19,36 @@ from tools.jenkins.tray.persistence import read_json, write_json, safe_error
 class ConfigAndOperationsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        repo = Path(__file__).resolve().parents[3]
-        cls.config = load_config(repo / ".codex/state/jenkins-tray/main.json")
+        cls.fixture_tmp = tempfile.TemporaryDirectory(
+            prefix="tray-config-", dir=r"E:\cargo-targets\zircon-local\jenkins-support-tests\tmp")
+        root = Path(cls.fixture_tmp.name)
+        repo = root / "repo"
+        (repo / "tools/jenkins_pilot").mkdir(parents=True)
+        pilot = root / "pilot"
+        pilot.mkdir()
+        state = root / "state"
+        state.mkdir()
+        python = root / "python.exe"; python.write_bytes(b"fixture-python")
+        pythonw = root / "pythonw.exe"; pythonw.write_bytes(b"fixture-pythonw")
+        cls._identity = {"fileId": "fixture-root"}
+        manifest = {"prepared": True, "repoRoot": str(repo), "pythonExecutable": str(python),
+                    "pythonSha256": __import__("hashlib").sha256(python.read_bytes()).hexdigest()}
+        cls.config = TrayConfig(repo, pilot, python, pythonw, root / "vsdevcmd.bat",
+                                root / "profile.json", state, cls._identity,
+                                manifest["pythonSha256"], __import__("hashlib").sha256(pythonw.read_bytes()).hexdigest())
+        backend = type("Backend", (), {"__enter__": lambda self: self,
+                                       "__exit__": lambda self, *args: None,
+                                       "read_bytes": lambda self, name, max_bytes=None: json.dumps(manifest).encode()})
+        cls._identity_patch = patch("tools.jenkins.tray.config.physical_identity", return_value=cls._identity)
+        cls._storage_patch = patch("tools.jenkins.tray.config.WorkerStorage", return_value=backend())
+        cls._identity_patch.start(); cls._storage_patch.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._storage_patch.stop(); cls._identity_patch.stop(); cls.fixture_tmp.cleanup()
 
     def setUp(self):
-        directory = Path(r"E:\cargo-targets\jenkins-tray-unit-tests")
+        directory = Path(r"E:\cargo-targets\zircon-local\jenkins-support-tests\tmp")
         directory.mkdir(parents=True, exist_ok=True)
         self.temporary = tempfile.TemporaryDirectory(prefix="contract-", dir=directory)
         self.addCleanup(self.temporary.cleanup)

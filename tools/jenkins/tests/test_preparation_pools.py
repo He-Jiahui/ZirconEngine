@@ -9,13 +9,13 @@ from pathlib import Path
 
 from tools.jenkins.contracts import JenkinsError
 from tools.jenkins.state import State
+from tools.jenkins.resources import canonical_build_root
 from tools.jenkins.workflow import pools
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 JENKINS_ROOT = REPO_ROOT / ".jenkins"
-BUILD_ROOT = JENKINS_ROOT / "builds"
-BUILD_NAMESPACE = BUILD_ROOT / "zircon-jenkins"
-BUILD_ROOT.mkdir(parents=True, exist_ok=True)
+BUILD_ROOT = Path(r"E:\cargo-targets")
+BUILD_NAMESPACE = canonical_build_root(BUILD_ROOT).namespace()
 BUILD_NAMESPACE.mkdir(parents=True, exist_ok=True)
 
 
@@ -35,7 +35,7 @@ def raises(typ):
 
 def _fixture(tmp_path: Path):
     root = BUILD_NAMESPACE
-    unique = root / "test-preparation-pools" / uuid.uuid4().hex
+    unique = tmp_path / "preparation"
     objects = root / "inputs" / "objects"
     objects.mkdir(parents=True, exist_ok=True)
     source = b"alpha\n"
@@ -183,11 +183,11 @@ class PreparationPoolTests(unittest.TestCase):
     """
     def _run(self, function):
         import tempfile
+        (BUILD_NAMESPACE / "test-preparation-pools").mkdir(parents=True, exist_ok=True)
         try:
-            with tempfile.TemporaryDirectory() as directory:
+            with tempfile.TemporaryDirectory(dir=BUILD_NAMESPACE / "test-preparation-pools") as directory:
                 function(Path(directory))
         finally:
-            shutil.rmtree(BUILD_NAMESPACE / "test-preparation-pools", ignore_errors=True)
             # _fixture uses local test seams; never let a test seam survive
             # into another test or a caller's interpreter.
             importlib.reload(pools)

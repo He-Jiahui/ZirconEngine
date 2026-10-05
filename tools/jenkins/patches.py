@@ -58,6 +58,41 @@ def _build_root(root: Path, requested=None) -> str:
     return str(canonical_build_root(selected).path)
 
 
+def _runtime_binding(root: Path, identity: Mapping, supplied: Mapping | None = None) -> str | None:
+    """Resolve the Jenkins runtime operation fence for a patch dispatch.
+
+    A deployed checkout must derive this value from the selected sealed driver;
+    accepting a caller-only value would let a patch enter a different runtime.
+    Isolated fixtures without a deployment selector may provide the value
+    explicitly so their transport tests remain bounded and offline.
+    """
+    supplied_value = None
+    for source in (supplied or {}, identity):
+        value = source.get("runtimeOperationId")
+        if value not in (None, ""):
+            supplied_value = str(value)
+            break
+    marker = root / ".jenkins/state/deployment/driver.json"
+    if marker.exists():
+        from .deployment.driver import active_driver_binding
+        try:
+            binding = active_driver_binding(root)
+        except Exception as error:
+            if isinstance(error, JenkinsError):
+                raise
+            raise JenkinsError("active_driver_unavailable", "The active driver is unavailable") from error
+        runtime = str(binding.get("runtimeOperationId") or "")
+        if not runtime:
+            raise JenkinsError("runtime_binding_missing", "The selected driver has no runtime operation binding")
+        driver_digest = str(binding.get("digest") or "")
+        if driver_digest != str(identity.get("stageImplementationDigest") or ""):
+            raise JenkinsError("driver_context_mismatch", "Patch identity differs from the selected driver")
+        if supplied_value is not None and supplied_value != runtime:
+            raise JenkinsError("runtime_binding_mismatch", "Patch runtime operation differs from the selected driver")
+        return runtime
+    return supplied_value
+
+
 def _head(root: Path) -> str | None:
     if not (root / '.git').exists():
         return None  # A bounded source fixture has no Git database.
@@ -255,7 +290,7 @@ def prepare_patch(state: State, repo_root: Path, payload: dict, *, trusted_drive
                 'coverage': intent['coverage'], 'baseHead': intent['baseHead'],
                 'declaredDependencies': intent['declaredDependencies'], 'externalInputs': intent['externalInputs'],
                 'patchOperationRefs': [operation_id], 'buildRoot': intent['buildRoot'],
-                'objectRoot': str(canonical_build_root(intent['buildRoot']).path / 'zircon-jenkins')}, state, root)
+                'objectRoot': str(canonical_build_root(intent['buildRoot']).namespace())}, state, root)
             _verify_sources(root, intent, after=True)
             record = state.get('sealed_input', sealed['sourceDigest'])
             final_identity = {**identity, 'sourceInputDigest': sealed['sourceDigest'],
@@ -293,15 +328,20 @@ def submit_patch(state: State, repo_root: Path, payload: dict, *, transport=None
     request = state.get_request(identity['repositoryId'], identity['sessionId'], identity['requestId'])
     if request and request['payload'].get('patchRequestRef') != payload['patchRequestRef']:
         raise JenkinsError('patch_request_conflict', 'Registered request belongs to a different source input')
+    runtime_operation_id = _runtime_binding(root, identity, payload)
     parameters = {'patchRequestRef': payload['patchRequestRef'], 'attemptId': identity['attemptId'],
                   'generation': str(identity['generation']), 'buildRoot': intent['buildRoot'],
                   'stageImplementationDigest': identity['stageImplementationDigest']}
+    if runtime_operation_id is not None:
+        parameters['runtimeOperationId'] = runtime_operation_id
     dispatch = {key: identity[key] for key in _IDENTITY[:3]}
     dispatch['parameters'] = parameters
     fields = {'REPOSITORY_ID': identity['repositoryId'], 'SESSION_ID': identity['sessionId'],
               'REQUEST_ID': identity['requestId'], 'ATTEMPT_ID': identity['attemptId'], 'GENERATION': '1',
               'PATCH_REQUEST_REF': payload['patchRequestRef'], 'BUILD_ROOT': intent['buildRoot'],
               'STAGE_IMPLEMENTATION_DIGEST': identity['stageImplementationDigest']}
+    if runtime_operation_id is not None:
+        fields['RUNTIME_OPERATION_ID'] = runtime_operation_id
     if manager is None and transport is None:
         from .deployment.spec import load_spec
         from .deployment.paths import resolve_paths

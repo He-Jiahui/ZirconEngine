@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "purpose": "Repository-local Jenkins deployment specification",
-  "state": "runtime-offline-recovery-pending",
+  "state": "applied-controller-online-execution-acceptance-pending",
   "applied": true,
   "workflowSpecification": ".jenkins/workflow-spec.json",
   "coordinationTopology": "single-host",
@@ -33,7 +33,7 @@
     "name": "zircon-windows-agent",
     "label": "zircon-windows",
     "transport": "websocket-inbound",
-    "executors": 2,
+    "executors": 1,
     "remoteRoot": "E:\\Git\\ZirconEngine\\.jenkins\\agent",
     "controllerRunsCompiler": false,
     "workDir": "E:\\Git\\ZirconEngine\\.jenkins\\agent\\remoting",
@@ -43,7 +43,9 @@
   },
   "storage": {
     "allowedPhysicalRoots": [
-      "E:\\Git\\ZirconEngine\\.jenkins\\builds"
+      "D:\\cargo-targets",
+      "E:\\cargo-targets",
+      "F:\\cargo-targets"
     ],
     "jenkinsCacheRoot": "E:\\Git\\ZirconEngine\\.jenkins\\cache",
     "jenkinsTempRoot": "E:\\Git\\ZirconEngine\\.jenkins\\tmp",
@@ -59,13 +61,13 @@
       "compilerCacheAllocation": "existing-managed-compiler-cache-layer",
       "compiledArtifactRegistry": "existing-managed-artifact-storage-layer"
     },
-    "buildRoot": "E:\\Git\\ZirconEngine\\.jenkins\\builds",
-    "buildNamespace": "zircon-jenkins",
+    "buildRoot": "D:\\cargo-targets",
+    "buildNamespace": "zircon-local/zircon-jenkins",
     "explicitBuildRootFallbackAllowed": false,
     "runtimeRoot": "E:\\Git\\ZirconEngine\\.jenkins",
     "runtimeAndCompilerPathDomainsSeparate": true,
     "resourcePolicy": {
-      "buildRoot": "E:\\Git\\ZirconEngine\\.jenkins\\builds",
+      "buildRoot": "D:\\cargo-targets",
       "cpuBudget": 3,
       "memoryBudget": 4294967296,
       "diskBudget": 8589934592,
@@ -85,10 +87,25 @@
       },
       "configurationScope": "temporary-acceptance-with-protected-failure-reservations",
       "allowedBuildRoots": [
-        "E:\\Git\\ZirconEngine\\.jenkins\\builds"
-      ]
+        "D:\\cargo-targets",
+        "E:\\cargo-targets",
+        "F:\\cargo-targets"
+      ],
+      "recipeEstimates": {
+        "default": {
+          "cpu": 1,
+          "memoryBytes": 1073741824,
+          "diskBytes": 1073741824
+        },
+        "tiny-fixture": {
+          "cpu": 1,
+          "memoryBytes": 268435456,
+          "diskBytes": 67108864
+        }
+      },
+      "recipeEstimateSource": "Explicit budgets carried from deployment-owned policy v7; bounded tiny-fixture acceptance retains one CPU and complete test coverage"
     },
-    "buildRootLayout": "repository-local"
+    "buildRootLayout": "drive-root"
   },
   "requiredBuildPolicy": {
     "soleSubmissionEntry": "Jenkins",
@@ -164,7 +181,7 @@
   },
   "runtimeStatus": {
     "ready": false,
-    "status": "offline-awaiting-boot-evidence",
+    "status": "controller-running-quiet-path-policy-update-not-loaded",
     "driver": {
       "driverDigest": "a71820c8fd7b298ff2f821f414500298f799bf092526cd2f34c3c30e785d6029",
       "root": "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\drivers\\a71820c8fd7b298ff2f821f414500298f799bf092526cd2f34c3c30e785d6029",
@@ -180,7 +197,8 @@
         "sha256": "20f23fcd42f181780e28e755e44182460bf9ec5fd0afb51e1eac1a56a0b8d2e6",
         "scope": "historical-repository-build-root-affected-regression"
       }
-    }
+    },
+    "serviceReady": true
   },
   "productionResourceDefaults": {
     "cpuBudget": 2,
@@ -188,9 +206,16 @@
     "activateAfter": "trusted recovery of all protected failures and explicit M6 acceptance-policy closeout"
   },
   "directoryPolicyAuthorization": {
-    "source": "user",
-    "date": "2026-10-04",
-    "scope": "Jenkins runtime and pipeline build data under repository .jenkins",
-    "supersedes": "previous Jenkins D/E/F drive-root layout"
+    "source": "user-current-AGENTS-and-standing-Jenkins-plan",
+    "date": "2026-10-05",
+    "scope": "Jenkins runtime under repository .jenkins; compiler products and caches under physical D/E/F drive-root cargo-targets",
+    "outputNamespace": "zircon-local/zircon-jenkins",
+    "permissionAuthority": ".codex/config.toml permissions.zircon-strict.filesystem",
+    "historicalPolicy": {
+      "source": "user",
+      "date": "2026-10-04",
+      "scope": "Jenkins runtime and pipeline build data under repository .jenkins",
+      "supersedes": "previous Jenkins D/E/F drive-root layout"
+    }
   }
 }

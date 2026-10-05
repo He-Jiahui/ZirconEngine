@@ -18,14 +18,14 @@ from tools.jenkins.contracts import JenkinsError, digest
 from tools.jenkins.gitops import CandidatePath, GitRepository
 from tools.jenkins.source import handle as source_handle
 from tools.jenkins.state import State
+from tools.jenkins.resources import canonical_build_root
 from tools.jenkins.validation.receipts import validate_acceptance_receipt
 from tools.jenkins.workflow.handler import handle
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 JENKINS_TMP = REPO_ROOT / ".jenkins" / "tmp"
-BUILD_ROOT = REPO_ROOT / ".jenkins" / "builds"
+BUILD_ROOT = Path(r"E:\cargo-targets")
 JENKINS_TMP.mkdir(parents=True, exist_ok=True)
-BUILD_ROOT.mkdir(parents=True, exist_ok=True)
 
 
 class RealLightAcceptanceTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class RealLightAcceptanceTests(unittest.TestCase):
         # The source authority currently derives the canonical object root
         # from buildRoot. Keep the fixture content unique by using a unique
         # Git source and remove only hashes created by this test.
-        self.object_root = self.build_root / "zircon-jenkins"
+        self.object_root = canonical_build_root(self.build_root).namespace()
         objects = self.object_root / "inputs" / "objects"
         objects.mkdir(parents=True, exist_ok=True)
         self._git("init", "-q")

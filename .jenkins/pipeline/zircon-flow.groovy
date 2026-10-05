@@ -2,7 +2,9 @@
 // resource waits happen outside node and release the executor.
 def invokeControl(String domain, String action, Map payload) {
     def result
-    node('zircon-windows') {
+    if (!params.RUNTIME_OPERATION_ID || !params.STAGE_IMPLEMENTATION_DIGEST) error('runtime identity parameters are required')
+    if (!env.ZIRCON_AGENT_LABEL || params.RUNTIME_OPERATION_ID != env.ZIRCON_RUNTIME_OPERATION_ID || params.STAGE_IMPLEMENTATION_DIGEST != env.ZIRCON_DRIVER_DIGEST) error('runtime identity fence failed')
+    node(env.ZIRCON_AGENT_LABEL) {
         if (!env.ZIRCON_SEALED_DRIVER || !env.ZIRCON_DRIVER_LAUNCHER || !env.ZIRCON_DRIVER_DIGEST) error('sealed driver environment is required')
         result = load(env.ZIRCON_SEALED_DRIVER).control(domain, action, payload)
     }

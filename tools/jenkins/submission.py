@@ -26,12 +26,14 @@ _PARAMETER_NAMES = {
     "coverageRef": "COVERAGE_REF", "coverageDigest": "COVERAGE_DIGEST",
     "recipeRef": "RECIPE_REF", "generation": "GENERATION", "attemptId": "ATTEMPT_ID",
     "executionId": "EXECUTION_ID", "buildRoot": "BUILD_ROOT",
+    "stageImplementationDigest": "STAGE_IMPLEMENTATION_DIGEST",
+    "runtimeOperationId": "RUNTIME_OPERATION_ID",
 }
 
 
 def _submission_fields(payload: Mapping[str, object]) -> dict[str, str]:
     identity_keys = ("repositoryId", "sessionId", "requestId", "sourceRef", "sourceDigest",
-                     "coverageRef", "coverageDigest")
+                     "coverageRef", "coverageDigest", "runtimeOperationId", "stageImplementationDigest")
     identity = {_PARAMETER_NAMES[key]: str(payload[key]) for key in identity_keys if key in payload}
     for key in ("patchRef", "patchRequestRef"):
         if key in payload:
@@ -87,7 +89,7 @@ def _marker_key(payload: Mapping[str, object]) -> str:
     return f"{payload['repositoryId']}:{payload['sessionId']}:{payload['requestId']}:{submission}"
 
 
-def _claim_dispatch(state: State, key: str, payload: Mapping[str, object]) -> dict:
+def _claim_dispatch(state: State, key: str, payload: Mapping[str, object], dispatch_digest: str) -> dict:
     """Claim the external Jenkins side effect under the State write lock."""
     from .contracts import digest
     expected = digest(dict(payload))
@@ -97,11 +99,15 @@ def _claim_dispatch(state: State, key: str, payload: Mapping[str, object]) -> di
             old = prior["payload"]
             if old.get("payloadDigest") != expected:
                 raise JenkinsError("submission_payload_mismatch", "Submission identity already has a different payload")
+            if old.get("dispatchDigest") is None:
+                raise JenkinsError("delivery_unknown", "Historical delivery has no exact target/form binding; reconcile before reuse", retryable=True)
+            if old["dispatchDigest"] != dispatch_digest:
+                raise JenkinsError("submission_dispatch_mismatch", "Submission target or Jenkins form differs from the original dispatch")
             if old.get("delivery") in {"submitted", "accepted", "completed"}:
                 return {"claim": False, "record": prior}
             if old.get("delivery") in {"dispatching", "unknown"}:
                 raise JenkinsError("delivery_unknown", "Jenkins delivery must be reconciled before retry", retryable=True)
-        value = {**dict(payload), "payloadDigest": expected, "delivery": "dispatching",
+        value = {**dict(payload), "payloadDigest": expected, "dispatchDigest": dispatch_digest, "delivery": "dispatching",
                  "queueUrl": None, "buildRef": None, "formalAcceptance": False}
         return {"claim": True, "record": state.put("jenkins_submission", key, value, connection=connection)}
 
@@ -162,9 +168,20 @@ def dispatch_registered(state: State, payload: Mapping[str, object], fields: Map
     if not isinstance(fields, Mapping):
         raise JenkinsError("submission_parameters_invalid", "Jenkins parameters must be an object")
     fields = {str(key): str(value) for key, value in fields.items()}
+    expected_fields = _submission_fields(payload)
+    for name, value in expected_fields.items():
+        if name not in _PARAMETER_NAMES.values():
+            continue
+        if name in fields and fields[name] != value:
+            raise JenkinsError("submission_identity_override", "Jenkins form cannot override the registered request identity")
+        fields[name] = value
+    identifier(job, "job")
+    from .contracts import digest
+    target = manager.base_url if manager is not None else base_url
+    dispatch_digest = digest({"baseUrl": target.rstrip("/"), "job": job, "fields": fields})
     recorded = registered_request if registered_request is not None else {"payload": dict(payload)}
     marker_key = _marker_key(payload)
-    claim = _claim_dispatch(state, marker_key, payload)
+    claim = _claim_dispatch(state, marker_key, payload, dispatch_digest)
     if not claim["claim"]:
         return {"request": recorded, **claim["record"]["payload"], "reused": True}
     body = urlencode(fields).encode()

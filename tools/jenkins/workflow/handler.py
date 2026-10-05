@@ -229,6 +229,14 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
         try:
             trusted = _trusted_driver(repo_root, partial)
         except JenkinsError:
+            marker = repo_root / ".jenkins" / "state" / "deployment" / "driver.json"
+            if marker.exists():
+                # A formal deployment must not recover by trusting an
+                # arbitrary caller digest after the selected driver becomes
+                # unavailable or changes.  Preserve the pending evidence and
+                # let the caller reconcile once the same sealed binding is
+                # restored.
+                raise
             trusted = partial.get("driverDigest") or partial.get("stageImplementationDigest")
         return reconcile_patch(state, repo_root, payload, trusted_driver_digest=trusted)
     identity = _identity(payload) if action not in {"inventory-maintenance", "gc-maintenance", "reconcile-maintenance"} else payload.get("identity", {})
@@ -547,6 +555,14 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
         recipe_ref = record["payload"].get("recipeRef")
         if not isinstance(recipe_ref, str):
             raise JenkinsError("recipe_plan_missing", "workflow recipe is missing")
+        supplied_runtime = payload.get("runtimeOperationId") or identity.get("runtimeOperationId")
+        supplied_driver = payload.get("driverDigest") or identity.get("driverDigest") or identity.get("stageImplementationDigest")
+        from ..deployment.driver import active_driver_binding
+        binding = active_driver_binding(repo_root)
+        if str(supplied_runtime or "") != str(binding.get("runtimeOperationId") or binding.get("generation")):
+            raise JenkinsError("runtime_binding_mismatch", "execution dispatch runtime operation differs from selected driver")
+        if str(supplied_driver or "") != str(binding["digest"]):
+            raise JenkinsError("driver_context_mismatch", "execution dispatch driver differs from selected driver")
         dispatch = _ensure_execution_job(state, identity={**identity, "executionId": execution},
             source_ref=record["payload"]["sourceDigest"], coverage_digest=record["payload"]["coverageDigest"],
             recipe_ref=recipe_ref, repo_root=repo_root)
@@ -713,8 +729,14 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
                 import json as _json
                 import time as _time
                 _flow = workflow["payload"]
-                _build_root = _flow.get("buildRoot") or str(repo_root / ".jenkins" / "builds" / "zircon-jenkins")
-                _failures_dir = Path(_build_root) / "failures"
+                _build_root = _flow.get("buildRoot")
+                if not _build_root:
+                    # A recovered flow must retain the same approved build
+                    # root it was registered with.  Never invent a
+                    # repository-local ``.jenkins/builds`` fallback.
+                    raise JenkinsError("build_root_missing", "Failed flow has no registered buildRoot")
+                from ..resources.paths import canonical_build_root
+                _failures_dir = canonical_build_root(_build_root).namespace() / "failures"
                 _failures_dir.mkdir(parents=True, exist_ok=True)
                 _evidence = {
                     "failedAt": _time.time(),

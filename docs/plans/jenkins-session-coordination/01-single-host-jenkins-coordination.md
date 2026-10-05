@@ -19,7 +19,7 @@ plan_sources:
 tests:
   - docs/plans/milestone-validation-policy.md
   - tools/jenkins/tests/
-  - tools/jenkins_tray/tests/
+  - tools/jenkins/tray/tests/
 doc_type: milestone-detail
 status: implementing
 created: 2026-10-02
@@ -29,20 +29,20 @@ created: 2026-10-02
 
 本计划交付一套以 Jenkins 为唯一构建提交入口的本机协调流程：多个 Session 共享 checkout 和兼容构建池，按改动范围选择校验、构建和测试，串行保护共享写入，在 CPU、内存和磁盘预算内尽快完成正式验收。
 
-当前正在实施，正式运行切换尚未验收；产品仓库 Git 提交、推送和外部通知仍分别核对动作授权。多机器、远程节点接入与跨机器产物传输暂缓。2026-10-04 用户最新要求将 Jenkins 流水线所有构建、临时、缓存、封存输入和产物固定在 `E:\Git\ZirconEngine\.jenkins\builds\zircon-jenkins`；该要求覆盖此前计划中的 D/E/F 盘根级默认值。历史 D 盘执行身份和回执仍保留为证据。
+当前正在实施，正式运行切换尚未验收；产品仓库 Git 提交、推送和外部通知仍分别核对动作授权。多机器、远程节点接入与跨机器产物传输暂缓。在线驱动仍绑定 2026-10-04 的历史规格，只运行控制器。工作树规格与准入已同步为真实驱动器根级 `D/E/F:\cargo-targets`，默认 `D:\cargo-targets`，命名空间为 `<buildRoot>\zircon-local\zircon-jenkins`；明确选根不得自动换盘。在线驱动尚未加载新版本，编译仍暂停。历史目录、执行身份和回执保留为证据。
 
-详细的模块职责、三类 Jenkins job、身份与状态模型、流程拼接、资源准入、Git 集成和恢复协议见[架构与实施方案](../../cli-and-tooling/jenkins-session-coordination-architecture.md)。本文拥有里程碑顺序与交付门槛，架构文档拥有具体设计。
+详细的模块职责、三类 Jenkins job、身份与状态模型、流程拼接、资源准入、Git 集成和恢复协议见[架构与实施方案](../../tooling/jenkins-session-coordination-architecture.md)。本文拥有里程碑顺序与交付门槛，架构文档拥有具体设计。
 
 ## 当前基线与实施约束
 
-部署规格当前为 `runtime-offline-recovery-pending`：Home、专用 JDK／WAR／Python、79 个已校验插件和 Windows agent 已迁入工程 `.jenkins`。三类 job、支持库和入口适配已实现，已有纯注释及三种真实 Cargo 流程回执。最新并行验收触发生命周期宿主错误，服务当前离线；修复后须完成真实 Windows 重启边界对账及运行复验。旧入口 `tools/dev/zircon-session.ps1` 与 `tools/session_coordinator/retirement.py` 明确拒绝启动、租约、验证与集成；旧服务不得恢复。以前的试点、状态数据库和源码保留为历史证据与迁移参考。
+当前控制器为 `controller-running-quiet`：Home、专用 JDK／WAR／Python、79 个已校验插件和 Windows agent 组件位于工程 `.jenkins`。管理页面与认证 API 已在 `http://127.0.0.1:18080/` 直接启动，没有重启 Windows。三类 job、支持库和入口适配已实现，已有纯注释及三种真实 Cargo 流程回执。前次尚未启动 agent 的失联部署已通过专用仅控制器恢复核验；agent 与执行 broker 暂停，遗留构建的预约及 writer 保护保留，运行验收尚未通过。实时状态见 `.jenkins/state/deployment/service-health.json`，规格中的历史离线标签不作为实时健康状态。旧入口 `tools/dev/zircon-session.ps1` 与 `tools/session_coordinator/retirement.py` 明确拒绝启动、租约、验证与集成；旧服务不得恢复。以前的试点、状态数据库和源码保留为历史证据与迁移参考。
 
 现有工程主包为 `zircon_app`、`zircon_runtime`、`zircon_editor`，构建仍受 workspace、lockfile、外部依赖及现有产品 profile 约束。本项属于 MVP 验收自动化，优先支撑构建与验收；不扩展引擎功能。验证范围遵循[里程碑验证政策](../milestone-validation-policy.md)。
 
 必须保持以下边界：
 
 - Jenkins Home、配置、用户、插件包、日志和协调状态放在工程 `.jenkins` 下；运行数据与密钥排除在 Git 之外。
-- Jenkins 所有编译产物、编译器缓存、构建 workspace、封存输入、临时目录和大型产物，真实位于 `E:\Git\ZirconEngine\.jenkins\builds\zircon-jenkins`。拒绝 D/E/F 盘根级 cargo-targets、C 盘、工程内其他 target、路径别名和 junction/symlink；历史 D 盘路径只作为旧执行证据保留。
+- Jenkins 运行组件及控制数据留在工程 `.jenkins`；编译产物、编译器缓存和构建工作集使用已登记的真实驱动器根级 `D/E/F:\cargo-targets`。拒绝 C 盘、工程内 target、路径别名和 junction/symlink；当前历史工程内构建规格尚待同步，编译保持暂停。
 - 不新增 Git worktree，不按 Session 或 build number 新建完整 target；采用有限、兼容性受管的构建池。
 - 源码归属、路径租约、资源预约、产物索引和验收各有一个权威。Jenkins 调度流程；新支持库拥有这些策略和状态，不恢复旧服务、旧工作队列或自动离线重放。
 - 每个重步骤使用不可变输入与真实进程回执；Jenkins SUCCESS、零退出码或 pending receipt 均不能单独代替正式验收。
@@ -96,7 +96,7 @@ flowchart TD
 | Pipeline 步骤和组合入口 | `.jenkins/pipeline/` | 步骤呈现、条件、依赖图、调用与回执对账 |
 | 支持库与 CLI | `tools/jenkins/` | 输入封存、归属、准入、进程生命周期、结果／产物登记、验收和 Git 操作 |
 | 协调状态 | `.jenkins/state/` | 事务化归属、reservation、幂等操作、attempt 和引用记录 |
-| 构建输入和产物池 | `E:\Git\ZirconEngine\.jenkins\builds\zircon-jenkins` | 少量稳定池、兼容增量状态与共享产物 |
+| 构建输入和产物池 | 合法 `buildRoot` 下的受管 namespace，编译产物及缓存限真实 D/E/F 盘根级 `cargo-targets` | 少量稳定池、兼容增量状态与共享产物；新配置待运行加载与验收 |
 
 Jenkins 自身拥有流程队列和执行调度；支持库提供短事务和受控执行操作，不另建常驻调度 daemon。等待资源不占 agent executor、CPU 预约或可变构建池 writer；已封存输入及必要引用保持可恢复。
 
@@ -150,13 +150,13 @@ M3 是首个轻量验收流程交付；M4 是按需编译验收交付。后续�
 
 **依赖：** M1；开始部署前重新核对原试点当前状态。
 
-**实现切片：** 实现部署规格加载、插件及二进制校验、受管启动／停止／状态检查。控制器保持零执行槽、loopback 和一个 Windows agent；Home 放工程目录，agent 控制目录、Java temp、WAR／plugin 解包缓存放工程 `.jenkins`；封存输入、编译 workspace、Cargo target、编译器缓存、构建临时目录及大型产物统一使用 `E:\Git\ZirconEngine\.jenkins\builds\zircon-jenkins`。迁移时先 drain 和证明 native terminal，再停控制器后复制一致 Home；保留用户、密钥和历史。
+**实现切片：** 实现部署规格加载、插件及二进制校验、受管启动／停止／状态检查。控制器保持零执行槽、loopback 和一个 Windows agent；Home 放工程目录，agent 控制目录、Java temp、WAR／plugin 解包缓存放工程 `.jenkins`；封存输入、编译 workspace、Cargo target、编译器缓存、构建临时目录及大型产物归属合法 `buildRoot` 下的受管 namespace，编译相关路径按当前工作约定核验真实 D/E/F 盘根级 `cargo-targets`。迁移时先 drain 和证明 native terminal，再停控制器后复制一致 Home；保留用户、密钥和历史。仅控制器启动不得隐式放行 agent 或解除历史执行保护。
 
 不把共享 checkout 作为自动 SCM 工作区覆盖；Pipeline 驱动代码从固定输入装载。为后续支持步骤登记可调用的受控 CLI 和版本身份。
 
 **测试阶段 M2-T：** 真实启动、认证访问、插件启用、agent 注册、所有有效路径核验；执行固定轻任务并核对回执，演练 controller／agent 启停与身份恢复。仅复制目录、成功安装插件或健康页面不构成本阶段通过。
 
-**验收：** 有稳定启动入口及运行身份；Home 和 Jenkins 构建根实际位于工程 `.jenkins`，编译相关路径无逃逸；历史和账号有效，尚未开放未完成的重步骤。
+**验收：** 有稳定启动入口及运行身份；Home 和 Jenkins 控制目录实际位于工程 `.jenkins`，编译相关路径符合当前驱动器根级目录约定且无逃逸；历史和账号有效，尚未开放未完成的重步骤。仅控制器健康记录与 agent／完整运行验收分开。
 
 **回退：** 恢复上一份已验证的 Jenkins 配置／Home 快照；无有效版本时停止新派发并保留 pending，不启动旧协调器。
 
@@ -210,7 +210,7 @@ M3 是首个轻量验收流程交付；M4 是按需编译验收交付。后续�
 
 **依赖：** M5。
 
-**实现切片：** 由历史实际耗时和空间增长估计候选完成时间：等待 + 输入准备 + 增量编译 + 测试 + 验收。优先完整结果命中，再评估 `E:\Git\ZirconEngine\.jenkins\builds\zircon-jenkins` 热池；综合兼容性、增量容量、CPU／内存余量和重建成本分配。当前 Jenkins 不跨盘选择构建根。
+**实现切片：** 由历史实际耗时和空间增长估计候选完成时间：等待 + 输入准备 + 增量编译 + 测试 + 验收。优先完整结果命中，再评估请求指定合法 `buildRoot` 内的热池；综合兼容性、增量容量、CPU／内存余量和重建成本分配。请求明确指定构建根后不得自动跨盘。
 
 将执行并发、Cargo jobs、测试线程、峰值链接内存和预计磁盘增长纳入统一预算；调整发生在启动与输入封存前，不中途隐式修改构建环境。多任务开始时原子复核并占用预算，等待不持有 executor 或 CPU reservation。延续公平优先级与老化，避免普通任务长期饥饿。
 
@@ -273,10 +273,12 @@ controller／agent 重启、网络中断、取消和迟到回执均先恢复原 
 
 ## 状态与产出记录
 
-M0 基线、M3 纯注释及 M4 有界真实 Cargo 流程已有权威回执；M1 支持层完成源码绑定的回归核对，共覆盖 217 项，216 项通过、1 项环境跳过，包含已登记请求转发身份、托管 API 认证和历史未知发送保护。该结果由完整发现与受影响模块复验组成，原始失败日志保留。M2 最新部署需恢复后复验；M5 已验证同输入单执行者和后续消费者重新测试，但仍需真实源码变化后的增量验收；M6–M7 的并行、联合输入及宿主故障恢复尚未关闭，M8 唯一入口约束未启用。资源策略当前包含受保护失败预约的临时验收预算，不是生产并发默认值。
+M0 基线、M3 纯注释及 M4 有界真实 Cargo 流程已有历史权威回执。2026-10-05 的 M1 完整支持层发现覆盖 297 项，零失败／错误、1 项因 Windows 无法创建目录 symlink 而跳过，测试前后源码／配置哈希一致；对应驱动已直接启动仅控制器模式，79 个插件复验通过。详情及回执见[直接启动记录](01/2026-10-05-controller-direct-start.md)。M2 仍待 agent、托盘运行及完整部署复验；M5 的真实增量补丁与源码变化后的增量、M6–M7 的并行／联合输入／宿主故障恢复、M8 的唯一入口切换均未关闭。遗留执行保护和目录准入修订仍阻断编译，控制器上线不构成这些阶段的验收。资源策略中的临时验收预算不是生产并发默认值。
 
 M8 的源码审计已刷新 22 处已知调用面，移除了旧清单中的过时 API 阻塞描述。主要转发适配存在，但特性矩阵、产品／Export／Tauri 子执行和 hosted CI 仍有迁移及运行核验缺口；当前入口清单明确保持未完成、未激活。其审计证据不能替代所有调用方的运行接受、回退和等价输入性能比较。
 
 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 已接受结果的单一记录见 [01/里程碑记录](01/2026-10-03-accepted-milestones.md)；完整机器证据索引位于 `.jenkins/state/migration-baseline/acceptance-index.json`，包含原 driver、真实回执及失败尝试。历史通过结果不能替代新驱动的运行验收。
+
+新目录规格、严格 broker 隔离和请求绑定的工作树回归已完成：329 项收集，328 通过、1 项 symlink 检查跳过，零失败或错误；候选驱动已准备但未选择，在线服务保留原实例。详情见[目录与隔离记录](01/2026-10-05-drive-root-and-quarantine.md)。这批支持层证据不关闭 M2 或 M5–M8 运行门槛。

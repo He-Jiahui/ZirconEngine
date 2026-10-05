@@ -5,6 +5,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 from .spec import JenkinsError
+from .driver import runtime_agent_label, runtime_agent_name
 
 
 class JenkinsBootstrap:
@@ -22,13 +23,18 @@ class JenkinsBootstrap:
                   "def old=Jenkins.get().getItem('zircon-pilot'); if(old!=null){old.setDisabled(true); old.save()}" % self.spec.controller["httpPort"])
         self._post_script(script)
         node = self.spec.agent
+        selected = json.loads((self.paths.state / "deployment" / "driver.json").read_text(encoding="utf-8"))
+        runtime_operation_id = selected.get("runtimeOperationId")
+        agent_name = runtime_agent_name(str(node["name"]), str(runtime_operation_id))
+        agent_label = runtime_agent_label(str(node.get("label", node["name"])), str(runtime_operation_id))
         node_xml = ("<hudson.slaves.DumbSlave>"
-                    f"<name>{escape(str(node['name']))}</name><nodeDescription>Zircon Jenkins agent</nodeDescription>"
+                    f"<name>{escape(agent_name)}</name><nodeDescription>Zircon Jenkins runtime agent</nodeDescription>"
                     f"<remoteFS>{escape(str(self.paths.agent))}</remoteFS><numExecutors>{int(node.get('executors', 1))}</numExecutors>"
-                    f"<label>{escape(str(node.get('label', 'zircon-windows')))}</label><mode>NORMAL</mode><retentionStrategy class='hudson.slaves.RetentionStrategy$Always'/>"
+                    f"<label>{escape(agent_label)}</label><mode>EXCLUSIVE</mode><retentionStrategy class='hudson.slaves.RetentionStrategy$Always'/>"
                     "<launcher class='hudson.slaves.JNLPLauncher'><webSocket>true</webSocket></launcher></hudson.slaves.DumbSlave>")
-        self._post_node(node["name"], node_xml)
-        return {"bootstrapApplied": True, "executors": 0, "agentConfigured": True, "authenticated": True}
+        self._post_node(agent_name, node_xml)
+        return {"bootstrapApplied": True, "executors": 0, "agentConfigured": True, "authenticated": True,
+                "agentName": agent_name, "agentLabel": agent_label, "runtimeOperationId": str(runtime_operation_id)}
 
     def _post_script(self, script: str) -> None:
         import urllib.parse

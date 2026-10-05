@@ -37,8 +37,31 @@ class FormalSafetyTests(unittest.TestCase):
         with patch('tools.jenkins.tray.formal.DeploymentManager.health', return_value={'controller':True,'agent':True,'plugins':True,'ready':True}), patch('tools.jenkins.tray.formal.identity', return_value=None):
             result=status(C())
         self.assertFalse(result['canStop'])
+        self.assertFalse(result['serviceReady'])
 
     def test_startup_value_name_is_formal(self):
         self.assertEqual(VALUE, 'ZirconFormalJenkinsTray')
+
+    def test_owned_control_plane_is_service_ready_but_build_degraded(self):
+        import json
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'deployment-operation.json').write_text(json.dumps({
+                'component': 'lifecycle-host', 'state': 'running', 'hostPid': 1,
+                'creationTime': 'birth', 'executable': 'python.exe',
+                'controlPlaneOnly': True}))
+            config = type('C', (), {'url': 'http://127.0.0.1:53748/',
+                'paths': type('P', (), {'state': root})(), 'spec': object(),
+                'java': root / 'java', 'war': root / 'war'})()
+            with patch('tools.jenkins.tray.formal.DeploymentManager.health', return_value={
+                    'controller': True, 'plugins': True, 'agent': False, 'ready': False}), \
+                 patch('tools.jenkins.tray.formal.identity', return_value={
+                     'birth': 'birth', 'executable': 'python.exe'}):
+                result = status(config)
+            self.assertEqual('degraded', result['state'])
+            self.assertTrue(result['serviceReady'])
+            self.assertFalse(result['controller']['ready'])
+            self.assertIn('构建执行暂停', result['message'])
+            self.assertTrue(result['canStop'])
 
 if __name__ == '__main__': unittest.main()

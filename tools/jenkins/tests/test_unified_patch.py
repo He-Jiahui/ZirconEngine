@@ -15,7 +15,7 @@ def sha(data: bytes) -> str:
 
 class UnifiedPatchTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(dir=Path(".jenkins/builds/zircon-jenkins/support-tests/tmp"))
+        self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         (self.root / "src").mkdir()
 

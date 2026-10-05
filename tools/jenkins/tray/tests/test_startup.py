@@ -7,7 +7,7 @@ from tools.jenkins.tray.config import TrayError
 
 def config(tmp_path: Path):
     repo = tmp_path / "repo folder"
-    (repo / "tools" / "jenkins_tray").mkdir(parents=True)
+    (repo / "tools" / "jenkins" / "tray").mkdir(parents=True)
     (repo / "tools" / "jenkins" / "install-jenkins-tray-startup.ps1").write_text("# test", encoding="utf-8")
     return SimpleNamespace(repo_root=repo, pilot_root=tmp_path / "pilot", config_path=repo / "profile.json")
 
@@ -17,7 +17,7 @@ def key_for(cfg):
 
 class StartupTests(unittest.TestCase):
     def test_install_contract(self):
-        with tempfile.TemporaryDirectory(dir=r"D:\cargo-targets") as folder:
+        with tempfile.TemporaryDirectory(dir=r"E:\cargo-targets\zircon-local\jenkins-support-tests\tmp") as folder:
             cfg, seen = config(Path(folder)), {}
             def fake(args, **kwargs):
                 seen.update(args=args, kwargs=kwargs)
@@ -29,7 +29,7 @@ class StartupTests(unittest.TestCase):
             self.assertEqual(startup._value_name(cfg), key_for(cfg)); self.assertNotIn("--start", seen["args"])
 
     def test_mismatched_key_does_not_leak_output(self):
-        with tempfile.TemporaryDirectory(dir=r"D:\cargo-targets") as folder:
+        with tempfile.TemporaryDirectory(dir=r"E:\cargo-targets\zircon-local\jenkins-support-tests\tmp") as folder:
             cfg, secret = config(Path(folder)), "agent-secret-do-not-return"
             old = startup.subprocess.run; startup.subprocess.run = lambda *a, **k: SimpleNamespace(returncode=0, stdout=json.dumps({"action":"Query","key":"foreign","password":secret}), stderr=secret)
             try:
@@ -38,7 +38,7 @@ class StartupTests(unittest.TestCase):
             self.assertNotIn(secret, str(raised.exception))
 
     def test_nonzero_result_is_rejected(self):
-        with tempfile.TemporaryDirectory(dir=r"D:\cargo-targets") as folder:
+        with tempfile.TemporaryDirectory(dir=r"E:\cargo-targets\zircon-local\jenkins-support-tests\tmp") as folder:
             cfg = config(Path(folder)); old = startup.subprocess.run
             startup.subprocess.run = lambda *a, **k: SimpleNamespace(returncode=1, stdout="", stderr="bad")
             try:

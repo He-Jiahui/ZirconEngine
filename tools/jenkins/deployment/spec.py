@@ -48,7 +48,7 @@ class DeploymentSpec:
 
     @property
     def build_root(self) -> Path:
-        return Path(self.storage.get("buildRoot", self.repository_root / '.jenkins/builds'))
+        return Path(self.storage.get("buildRoot", r"D:\cargo-targets"))
 
 
 def load_spec(path: str | Path) -> DeploymentSpec:
@@ -71,11 +71,29 @@ def _validate(raw: dict[str, Any], path: Path) -> None:
     if controller.get("executors") != 0 or controller.get("listenAddress") not in {"127.0.0.1", "localhost"}:
         raise JenkinsError("invalid_controller_policy", "controller must be loopback and have zero executors")
     home = str(controller.get("jenkinsHome", ""))
-    if not home.replace("/", "\\").lower().endswith(r"\.jenkins\jenkins_home"):
-        raise JenkinsError("invalid_home", "Jenkins Home must be repository-local .jenkins\\jenkins_home")
-    roots = raw["storage"].get("allowedPhysicalRoots", [])
+    expected_home = str(DeploymentSpec(raw, path).repository_root / ".jenkins" / "jenkins_home")
+    normalized = lambda value: str(value).replace("/", "\\").casefold()
+    if normalized(home) != normalized(expected_home):
+        raise JenkinsError("invalid_home", "Jenkins Home must match this repository's .jenkins\\jenkins_home")
+    storage = raw["storage"]
+    if not isinstance(storage, dict):
+        raise JenkinsError("invalid_build_roots", "Storage policy must be an object")
+    roots = storage.get("allowedPhysicalRoots", [])
     canonical_roots = {r"d:\cargo-targets", r"e:\cargo-targets", r"f:\cargo-targets"}
-    repository_build_root = str(DeploymentSpec(raw, path).repository_root / '.jenkins/builds').replace('/', '\\').lower()
-    canonical_roots.add(repository_build_root)
-    if not roots or any(str(root).replace("/", "\\").lower() not in canonical_roots for root in roots):
-        raise JenkinsError("invalid_build_roots", "allowed physical roots must match the exact repository build root or a historical store")
+    if (not isinstance(roots, list) or not roots
+            or any(not isinstance(root, str) or normalized(root) not in canonical_roots for root in roots)):
+        raise JenkinsError("invalid_build_roots", "Build roots must be exact drive-root D/E/F:\\cargo-targets")
+    selected = storage.get("buildRoot", r"D:\cargo-targets")
+    if not isinstance(selected, str) or normalized(selected) not in {normalized(root) for root in roots}:
+        raise JenkinsError("invalid_build_root", "Default buildRoot must be one of the approved physical roots")
+    policy = storage.get("resourcePolicy")
+    if policy is not None:
+        if not isinstance(policy, dict):
+            raise JenkinsError("invalid_resource_policy", "Resource policy must be an object")
+        if normalized(policy.get("buildRoot", selected)) != normalized(selected):
+            raise JenkinsError("invalid_resource_policy", "Resource policy buildRoot must match deployment")
+        policy_roots = policy.get("allowedBuildRoots", roots)
+        if (not isinstance(policy_roots, list) or not policy_roots
+                or any(not isinstance(root, str) or normalized(root) not in {normalized(r) for r in roots}
+                       for root in policy_roots)):
+            raise JenkinsError("invalid_resource_policy", "Resource roots must be selected from deployment roots")

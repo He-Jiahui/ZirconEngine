@@ -7,16 +7,17 @@ import json
 
 from tools.jenkins.state import State
 from tools.jenkins.workflow.handler import handle
+from tools.jenkins.resources.paths import canonical_build_root
 
 from tools.jenkins.workflow.orchestrator import (
     EXECUTION_JOB, FLOW_JOB, MAINTENANCE_JOB, build_dag, run_control,
+    submit_execution, validate_pipeline_identity,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 JENKINS_TMP = REPO_ROOT / ".jenkins" / "tmp"
-BUILD_ROOT = REPO_ROOT / ".jenkins" / "builds"
+BUILD_ROOT = Path(r"E:\cargo-targets")
 JENKINS_TMP.mkdir(parents=True, exist_ok=True)
-BUILD_ROOT.mkdir(parents=True, exist_ok=True)
 
 
 IDENTITY = {
@@ -49,7 +50,7 @@ class WorkflowOrchestratorTests(unittest.TestCase):
                                   "before_hash":current_claim["payload"]["beforeHash"], "version":current_claim["version"]}]}
             objroot = root / "objects"; objroot.mkdir()
             build_root = BUILD_ROOT
-            object_root = build_root / "zircon-jenkins"
+            object_root = canonical_build_root(build_root).namespace()
             sealed = source_handle("seal", {"repositoryId":"repo", "sessionId":"session-1", "owner":"attempt-1", "buildRoot":str(build_root), "claims":claim["claims"], "objectRoot":str(object_root), "coverage":{"selectedTests":1}, "patchOperationRefs":["patch-1"], "baseHead":subprocess.run(["git","rev-parse","HEAD"],cwd=root,capture_output=True,text=True,check=True).stdout.strip()}, state, root)
             identity = dict(IDENTITY); identity["sourceInputDigest"] = sealed["sourceDigest"]
             identity["coverageDigest"] = state.get("sealed_input", sealed["sourceDigest"])["payload"]["coverageDigest"]
@@ -79,6 +80,22 @@ class WorkflowOrchestratorTests(unittest.TestCase):
                 return {"status": "waiting", "observedGeneration": payload["generation"]}
         result = run_control("observe", {"generation": 3}, cli=Authority())
         self.assertEqual(result["observedGeneration"], 3)
+
+    def test_pipeline_identity_is_normalized_before_submission(self):
+        normalized = validate_pipeline_identity({
+            "repositoryId": "repo", **IDENTITY}, build_root="D:/cargo-targets")
+        self.assertEqual(normalized["buildRoot"], "D:/cargo-targets")
+        self.assertEqual(len(normalized["identityDigest"]), 64)
+
+    def test_submit_execution_requires_authoritative_ids(self):
+        # Python cannot spell a hyphenated method; use the injected adapter's
+        # actual control name to verify the response contract.
+        authority = type("Authority", (), {"submit_execution": lambda self, payload:
+            {"status": "pending", "executionId": "e-1", "recipeRef": "r-1"}})()
+        result = submit_execution(authority, {"repositoryId": "repo", **IDENTITY},
+                                  template="module_unit", sealed_input_ref="sealed-1",
+                                  build_root="D:/cargo-targets")
+        self.assertEqual(result["recipeRef"], "r-1")
 
     def test_handler_requires_sealed_inputs_and_composes_dag(self):
         with tempfile.TemporaryDirectory(dir=str(JENKINS_TMP)) as temp:
@@ -113,7 +130,8 @@ class WorkflowOrchestratorTests(unittest.TestCase):
         flow = (root / ".jenkins/pipeline/zircon-flow.groovy").read_text(encoding="utf8")
         self.assertIn("ZIRCON_SEALED_DRIVER", flow)
         self.assertIn("sleep(time:", flow)
-        self.assertGreaterEqual(flow.count("node('zircon-windows')"), 1)
+        self.assertGreaterEqual(flow.count("node(env.ZIRCON_AGENT_LABEL)"), 1)
+        self.assertIn("params.RUNTIME_OPERATION_ID != env.ZIRCON_RUNTIME_OPERATION_ID", flow)
         self.assertIn("def waitControl", flow)
 
     def test_execution_rejects_unregistered_recipe_and_zero_tests(self):

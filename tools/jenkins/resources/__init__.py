@@ -4,6 +4,14 @@ from .paths import ApprovedBuildRoot, canonical_build_root, build_namespace, phy
 from .capacity import Capacity, Reservation, ReservationBook, ResourceManager
 from ..contracts import JenkinsError
 def handle(action, payload, state, repo_root, *, domain="resources"):
+    if action == "query" and payload.get("view") == "policy":
+        from ..contracts import response
+        return response("observed", result={"policy": state.get("resource_policy", "default"),
+                        "registrations": state.list("managed_storage_registration")})
+    if action == "activate-policy":
+        from .activation import activate_policy
+        from ..contracts import response
+        return response("accepted", operation_id=payload.get("operationId"), result=activate_policy(state, repo_root, payload))
     from .paths import canonical_build_root
     root=canonical_build_root(payload.get("buildRoot"))
     policy=state.get("resource_policy", "default")

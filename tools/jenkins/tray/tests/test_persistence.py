@@ -12,9 +12,8 @@ from tools.jenkins.tray.persistence import read_json, write_json
 
 class PersistenceTests(unittest.TestCase):
     def setUp(self):
-        root = Path("D:/cargo-targets")
-        if not root.is_dir():
-            root = Path(tempfile.gettempdir())
+        root = Path(r"E:/cargo-targets/zircon-local/jenkins-support-tests/tmp")
+        root.mkdir(parents=True, exist_ok=True)
         self.temp = tempfile.TemporaryDirectory(dir=str(root))
         self.path = Path(self.temp.name) / "record.json"
 

@@ -21,6 +21,12 @@ class MenuTests(unittest.TestCase):
     self.assertFalse(state.enabled("open"))
     self.assertFalse(state.enabled("stop"))
 
+  def test_control_plane_service_can_open_while_builds_are_paused(self):
+    state = MenuState({"state": "degraded", "serviceReady": True,
+                       "url": "http://127.0.0.1:18080/"})
+    self.assertTrue(state.enabled("open"))
+    self.assertIn("构建暂停", __import__("tools.jenkins.tray.menu", fromlist=["label_for"]).label_for(state.status))
+
 
   def test_running_operation_serializes_mutations(self):
     state = MenuState({"state": "ready", "canStart": True, "canStop": True}, operation=True)

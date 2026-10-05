@@ -48,8 +48,11 @@ def _store_for_build_root(build_root) -> "ArtifactStore":
     # ``canonical_build_root``.  Revalidate it before touching the CAS; Path
     # values remain supported for portable unit fixtures on non-Windows hosts.
     approved = _approved_root(build_root)
-    root = approved.path.absolute() if approved else _build_path(build_root)
-    return ArtifactStore(root / "zircon-jenkins" / "artifacts")
+    # New writes belong to the approved namespace.  Keep ``buildRoot`` itself
+    # as the persisted identity so older bundles remain readable, while the
+    # mutable CAS path follows the current namespace contract.
+    root = approved.namespace() if approved else _build_path(build_root) / "zircon-jenkins"
+    return ArtifactStore(root / "artifacts")
 
 
 def _identity_from_execution(state, execution_id: str, execution_key: str | None = None) -> dict:

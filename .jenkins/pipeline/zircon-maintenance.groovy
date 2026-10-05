@@ -18,7 +18,8 @@ def cleanupScope(String text) {
             maxBytes: value.maxBytes as long, maxObjects: value.maxObjects as int]
 }
 def scope = cleanupScope(params.CLEANUP_SCOPE_JSON)
-def payload = [identity: identity, buildRoot: params.BUILD_ROOT ?: env.ZIRCON_BUILD_ROOT,
+if (!params.RUNTIME_OPERATION_ID || !params.STAGE_IMPLEMENTATION_DIGEST || !env.ZIRCON_AGENT_LABEL || params.RUNTIME_OPERATION_ID != env.ZIRCON_RUNTIME_OPERATION_ID || params.STAGE_IMPLEMENTATION_DIGEST != env.ZIRCON_DRIVER_DIGEST) error('runtime identity fence failed')
+def payload = [identity: identity, runtimeOperationId: params.RUNTIME_OPERATION_ID, buildRoot: params.BUILD_ROOT ?: env.ZIRCON_BUILD_ROOT,
                operationId: params.OPERATION_ID, cleanupScope: scope]
 stage('Inventory') { invokeControl('inventory', payload) }
 stage('Bounded garbage collection') { invokeControl('gc', payload) }

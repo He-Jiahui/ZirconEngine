@@ -4,7 +4,8 @@ import tempfile
 import unittest
 
 from tools.jenkins.contracts import JenkinsError
-from tools.jenkins.deployment.driver import seal_driver, verify_driver, driver_environment
+from tools.jenkins.deployment.driver import (seal_driver, verify_driver, driver_environment,
+                                              runtime_agent_name, runtime_agent_label)
 
 
 class DriverTests(unittest.TestCase):
@@ -69,6 +70,17 @@ class DriverTests(unittest.TestCase):
             seal_driver(self.root)
         self.assertEqual("driver_syntax_invalid", rejected.exception.code)
         self.assertFalse((self.root / ".jenkins/runtime/drivers").exists())
+
+    def test_runtime_agent_fence_is_operation_specific(self):
+        first = runtime_agent_name("zircon-windows", "start-123456789012345")
+        second = runtime_agent_label("zircon-windows", "start-9999912345")
+        self.assertEqual(len(first.rsplit('-', 1)[1]), 16)
+        self.assertEqual(len(second.rsplit('-', 1)[1]), 16)
+        self.assertNotEqual(first, second)
+        with self.assertRaises(JenkinsError):
+            runtime_agent_name("bad label", "start-1")
+        with self.assertRaises(JenkinsError):
+            runtime_agent_name("zircon-windows", "runtime op with spaces")
 
 
 if __name__ == "__main__":

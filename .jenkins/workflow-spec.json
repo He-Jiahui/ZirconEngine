@@ -19,18 +19,16 @@
   },
   "objective": "Minimize time to formal acceptance within CPU, memory and disk budgets while reducing duplicate artifacts.",
   "storage": {
-    "buildRoot": "E:\\Git\\ZirconEngine\\.jenkins\\builds",
-    "namespace": "zircon-jenkins",
-    "absoluteBuildRoot": "E:\\Git\\ZirconEngine\\.jenkins\\builds\\zircon-jenkins",
+    "buildRoot": "D:\\cargo-targets",
+    "namespace": "zircon-local/zircon-jenkins",
+    "absoluteBuildRoot": "D:\\cargo-targets\\zircon-local\\zircon-jenkins",
     "runtimeRoot": "E:\\Git\\ZirconEngine\\.jenkins",
     "home": "E:\\Git\\ZirconEngine\\.jenkins\\jenkins_home",
-    "policyVersion": "2026-10-04-user-selected-project-local-build-root",
+    "policyVersion": "2026-10-05-drive-root-cargo-targets-current-write-grants",
     "historicalRoots": [
-      "D:\\cargo-targets",
-      "E:\\cargo-targets",
-      "F:\\cargo-targets"
+      "E:\\Git\\ZirconEngine\\.jenkins\\builds"
     ],
-    "historicalRootsUse": "preserved evidence only; never admit new Jenkins work"
+    "historicalRootsUse": "preserved historical identities; no new compiler execution"
   },
   "stageContract": {
     "executionLibrary": "Scripted Pipeline with sealed-version workflow-cps load",
@@ -393,23 +391,30 @@
   },
   "localResourcePolicy": {
     "allowedPhysicalRoots": [
-      "E:\\Git\\ZirconEngine\\.jenkins\\builds"
-    ],
-    "historicalAllowedRoots": [
       "D:\\cargo-targets",
       "E:\\cargo-targets",
       "F:\\cargo-targets"
     ],
+    "historicalAllowedRoots": [
+      "E:\\Git\\ZirconEngine\\.jenkins\\builds"
+    ],
     "rootAdmission": {
-      "requireExactNamespace": "E:\\Git\\ZirconEngine\\.jenkins\\builds\\zircon-jenkins",
+      "requireExactNamespace": "<selected D/E/F drive-root cargo-targets>\\zircon-local\\zircon-jenkins",
       "reject": [
         "C:",
         "repository-local target",
-        "D/E/F drive-root cargo-targets",
+        "repository-local .jenkins/builds",
+        "D/E/F:\\targets",
+        "D/E/F:\\ZirconBuilds",
         "junction",
         "symlink",
+        "SUBST/mapped drive",
+        "duplicate volume alias",
         "nested lookalike",
-        "path alias"
+        "path alias",
+        "device names",
+        "alternate data streams",
+        "trailing dot/space"
       ],
       "noAutomaticDriveFallback": true
     },
@@ -491,19 +496,19 @@
   "architectureVersion": 1,
   "ownerBindingsImplemented": true,
   "buildRootPolicy": {
-    "defaultFrom": "storage.absoluteBuildRoot",
+    "defaultFrom": "storage.buildRoot",
     "requestOverride": "buildRoot",
     "allowedPhysicalRoots": [
-      "E:\\Git\\ZirconEngine\\.jenkins\\builds"
-    ],
-    "requiredNamespace": "zircon-jenkins",
-    "exactDefault": "E:\\Git\\ZirconEngine\\.jenkins\\builds\\zircon-jenkins",
-    "historicalRoots": [
       "D:\\cargo-targets",
       "E:\\cargo-targets",
       "F:\\cargo-targets"
     ],
-    "historicalRootsUse": "evidence-only",
+    "requiredNamespace": "zircon-local/zircon-jenkins",
+    "exactDefault": "D:\\cargo-targets\\zircon-local\\zircon-jenkins",
+    "historicalRoots": [
+      "E:\\Git\\ZirconEngine\\.jenkins\\builds"
+    ],
+    "historicalRootsUse": "preserved evidence only; no new compiler work",
     "explicitRootFallbackAllowed": false,
     "automaticDriveSelection": false
   },
@@ -517,12 +522,23 @@
     "pipelinePreparation": "apply owned patch and seal before registering the final build request",
     "completeJournalParameter": "PATCH_OPERATION_REF",
     "sealedInputParameter": "SEALED_INPUT_REF",
-    "checks": ["immutable request and driver", "session action and path authorization", "exact before hashes", "Git HEAD and declared dependency hashes", "shared checkout process lock", "complete after hashes"],
+    "checks": [
+      "immutable request and driver",
+      "session action and path authorization",
+      "exact before hashes",
+      "Git HEAD and declared dependency hashes",
+      "shared checkout process lock",
+      "complete after hashes"
+    ],
     "conflicts": "block without fuzz or guessed three-way resolution",
     "partialFailure": "block sealing and build; reconcile owned hashes before a new request",
     "preparedDispatchWindow": "retain source until the workflow dispatch is reconciled",
     "gitCommit": "separate explicit authorization",
-    "tests": ["tools.jenkins.tests.test_unified_patch", "tools.jenkins.tests.test_patches", "tools.jenkins.tests.test_submission"]
+    "tests": [
+      "tools.jenkins.tests.test_unified_patch",
+      "tools.jenkins.tests.test_patches",
+      "tools.jenkins.tests.test_submission"
+    ]
   },
   "pluginCapabilities": {
     "engine": "scripted",

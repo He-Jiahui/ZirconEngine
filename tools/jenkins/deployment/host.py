@@ -23,10 +23,11 @@ from .spec import load_spec, JenkinsError
 from .manager import DeploymentManager
 from ..state import State
 from tools.jenkins.processes.identity import current_identity, identity_from_popen, process_alive
-from .driver import active_driver_binding
+from .driver import active_driver_binding, runtime_agent_name
 from ..processes.job import NativeJob
 from ..processes.registry import ProcessRegistry
 from ..contracts import digest
+from .quarantine import QuarantineBinding, classify_launch, matches_binding
 from uuid import uuid4
 
 
@@ -89,7 +90,8 @@ class LifecycleHost:
             manager = DeploymentManager(self.spec, self.paths, self.java, self.war)
             manager.bootstrap()
             manager.register_jobs()
-            self._start_agent()
+            if os.environ.get("ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY") != "1":
+                self._start_agent()
         except Exception as exc:
             # Startup is all-or-nothing.  Never leave a controller running when
             # bootstrap or the inbound-agent handshake fails; persist both
@@ -132,13 +134,12 @@ class LifecycleHost:
         value["controllerIdentity"] = self.job.identity.to_dict()
         value["agentIdentity"] = self.agent_job.identity.to_dict() if self.agent_job else None
         value["agentLaunchAttempted"] = self.agent_launch_attempted
-        # The controller and agent have both passed startup checks at this
-        # point. Persist the lifecycle state as running so stop/maintenance
-        # receipts and tray status describe the same generation the manager
-        # has accepted.
+        value["controlPlaneOnly"] = os.environ.get("ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY") == "1"
+        # A control-plane recovery serves the UI/API while the agent and
+        # execution broker remain stopped. Do not mark full runtime readiness.
         value["status"] = "running"
         value["healthProof"] = {"controller": True, "agent": self.agent_job is not None,
-                                "ready": True}
+                                "ready": self.agent_job is not None}
         self._save(value)
         return value
 
@@ -150,6 +151,11 @@ class LifecycleHost:
 
     def _start_agent(self) -> None:
         node = self.spec.agent
+        binding = active_driver_binding(self.paths.repo)
+        runtime_operation_id = str(binding.get("runtimeOperationId") or binding.get("generation") or "")
+        if not runtime_operation_id:
+            raise JenkinsError("runtime_binding_missing", "agent startup requires selected runtime operation")
+        node = dict(node, name=runtime_agent_name(str(node["name"]), runtime_operation_id))
         jar = self.paths.cache / "remoting" / "agent.jar"
         jar.parent.mkdir(parents=True, exist_ok=True)
         req = urllib.request.Request(f"http://{self.spec.controller['listenAddress']}:{self.spec.controller['httpPort']}/jnlpJars/agent.jar", headers=self._auth_headers())
@@ -223,6 +229,37 @@ class LifecycleHost:
                 return current
             raise JenkinsError("native_handle_missing", "host has no live controller handle")
         controller_identity = self.job.identity.to_dict()
+        agent_identity = self.agent_job.identity.to_dict() if self.agent_job is not None else None
+        # Only carry lifecycle flags forward from a durable record when that
+        # record is bound to this exact operation/generation.  A stale record
+        # must never turn an unknown agent state into a false negative proof.
+        durable = {}
+        state_path = getattr(self, "state", None)
+        if state_path is not None and state_path.exists():
+            try:
+                candidate = json.loads(state_path.read_text(encoding="utf-8"))
+                if (candidate.get("operationId") == self.operation_id and
+                        candidate.get("generation") == self.operation_id):
+                    durable = candidate
+            except (OSError, ValueError, TypeError):
+                durable = {}
+        attempted = getattr(self, "agent_launch_attempted", None)
+        if self.agent_job is not None:
+            attempted = True
+        elif not isinstance(attempted, bool):
+            recorded_attempted = durable.get("agentLaunchAttempted")
+            attempted = recorded_attempted if isinstance(recorded_attempted, bool) else None
+        control_env = os.environ.get("ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY")
+        if control_env == "1":
+            control_plane_only = True
+        elif isinstance(durable.get("controlPlaneOnly"), bool):
+            control_plane_only = durable["controlPlaneOnly"]
+        else:
+            control_plane_only = None
+        # A known controller-only launch is proof that no agent launch was
+        # attempted.  For every other missing value retain explicit unknown.
+        if attempted is None and control_plane_only is True:
+            attempted = False
         agent_proof = None
         if self.agent_job is not None:
             if self.agent_job.process.poll() is None:
@@ -238,6 +275,9 @@ class LifecycleHost:
             proof = self.job.proof(requested=False)
         result = {"status": "stopped", "operationId": self.operation_id,
                   "generation": self.operation_id, "identity": controller_identity,
+                  "controllerIdentity": controller_identity, "agentIdentity": agent_identity,
+                   "hostPid": os.getpid(), "agentLaunchAttempted": attempted,
+                   "controlPlaneOnly": control_plane_only,
                   "nativeTerminationProof": proof.to_dict(), "agentTerminationProof": agent_proof, "stoppedAt": time.time()}
         self.job.close(); self.job = None; self._save(result)
         return result
@@ -249,6 +289,10 @@ class LifecycleHost:
         the record version and the selected execution bindings, so retries are
         idempotent and stale generations fail closed.
         """
+        # A control-plane recovery deliberately preserves old launches and
+        # reservations. It provides the UI/API without resuming compilation.
+        if os.environ.get("ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY") == "1":
+            return
         if not self.launch_state.exists():
             return
         state = State(self.launch_state)
@@ -279,13 +323,26 @@ class LifecycleHost:
             payload = row["payload"]
             key = row["key"]
             status = payload.get("status")
+            execution_id = str(payload.get("executionId", ""))
+            execution = state.get("execution", execution_id)
+            ep = execution["payload"] if execution else None
+            attempt_generation = (str(ep.get("generation"))
+                                  if isinstance(ep, dict) and ep.get("generation") is not None else "")
+            quarantine_binding = (QuarantineBinding(selected_operation, attempt_generation, selected_digest)
+                                  if attempt_generation else None)
+            eligible = (quarantine_binding is not None
+                        and classify_launch(payload, ep, quarantine_binding) == "eligible")
+            if status != "requested":
+                # Started/launching rows are never repaired from a partial
+                # legacy binding.  Require the immutable payload, execution,
+                # and sealed driver identities to agree exactly.
+                eligible = bool(isinstance(ep, dict) and matches_binding(
+                    payload, ep, selected_digest, selected_operation))
+            if not eligible:
+                continue
             if status == "requested":
-                execution_id = str(payload.get("executionId", ""))
-                execution = state.get("execution", execution_id)
-                ep = execution["payload"] if execution else {}
-                binding_ok = self._execution_launch_binding(payload, ep, selected_digest, selected_operation)
+                binding_ok = matches_binding(payload, ep, selected_digest, selected_operation)
                 if not binding_ok:
-                    state.put("execution_launch", key, {**payload, "status": "failed", "reasonCode": "launch_binding_mismatch"}, expected_version=row["version"])
                     continue
                 claimed = {**payload, "status": "launching", "claimedAt": time.time(),
                            "brokerPid": os.getpid(), "brokerGeneration": self.operation_id,
