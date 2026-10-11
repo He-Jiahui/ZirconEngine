@@ -1541,6 +1541,11 @@ class WindowsStorage:
         from .compiled_products import compiled_inventory
         return compiled_inventory(self, relative_directory, allowed_directories=allowed_directories)
 
+    def compiled_file_fact(self, relative: str, *, allowed_directories: tuple[str, ...]) -> tuple[str, int]:
+        """Hash one owned Cargo artifact with complete native hardlink proof."""
+        from .compiled_products import compiled_file_fact
+        return compiled_file_fact(self, relative, allowed_directories=allowed_directories)
+
     def set_mtime(
         self,
         relative: os.PathLike[str] | str,

@@ -157,15 +157,18 @@ class AtomicJobProcess:
     def terminate(self) -> None:
         self.kill()
 
-    def close(self) -> None:
+    def close(self, *, close_streams: bool = True) -> None:
+        # A separate retained owner can own the streams. Skipping stream close
+        # never establishes EOF, reader settlement or native completion.
         if self._closed:
             return
         self._closed = True
-        for stream in (self.stdout, self.stderr):
-            try:
-                stream.close()
-            except OSError:
-                pass
+        if close_streams:
+            for stream in (self.stdout, self.stderr):
+                try:
+                    stream.close()
+                except OSError:
+                    pass
         if self._handle:
             _close_handle(self._handle)
             self._handle = 0
@@ -327,6 +330,17 @@ def resume_popen_process(process: subprocess.Popen[object] | AtomicJobProcess) -
 def close_process_job(handle: int | None) -> None:
     if handle:
         _close_handle(handle)
+
+
+def terminate_process_job(handle: int) -> None:
+    """Terminate a caller-retained Job without closing its waiter's handle."""
+    if os.name != "nt" or not handle:
+        raise OSError("retained Windows Job handle unavailable")
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.TerminateJobObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    kernel32.TerminateJobObject.restype = ctypes.c_bool
+    if not kernel32.TerminateJobObject(handle, 1):
+        raise OSError(ctypes.get_last_error(), "TerminateJobObject failed")
 
 
 def terminate_and_close_process_job(

@@ -9,17 +9,23 @@ $DryRun = $false
 $JenkinsIdentityFile = $null
 $PythonInterpreter = $null
 $IndependentPreview = $false
+$EvidenceDirectory = $null
+$EvidenceInputManifest = $null
+$EvidenceTimeoutSeconds = $null
 $argumentIndex = 0
 while ($argumentIndex -lt $localArguments.Count) {
     $option = [string]$localArguments[$argumentIndex]
     if ($option -eq '-DryRun') { $DryRun = $true; $argumentIndex++; continue }
     if ($option -eq '-IndependentPreview') { $IndependentPreview = $true; $argumentIndex++; continue }
-    if ($option -in @('-RepoRoot', '-TargetDir', '-JenkinsIdentityFile', '-PythonInterpreter')) {
+    if ($option -in @('-RepoRoot', '-TargetDir', '-JenkinsIdentityFile', '-PythonInterpreter', '-EvidenceDirectory', '-EvidenceInputManifest', '-EvidenceTimeoutSeconds')) {
         if ($argumentIndex + 1 -ge $localArguments.Count) { throw "$option requires a value" }
         $argumentIndex++
         if ($option -eq '-RepoRoot') { $RepoRoot = [string]$localArguments[$argumentIndex] }
         elseif ($option -eq '-TargetDir') { $TargetDir = [string]$localArguments[$argumentIndex] }
         elseif ($option -eq '-PythonInterpreter') { $PythonInterpreter = [string]$localArguments[$argumentIndex] }
+        elseif ($option -eq '-EvidenceDirectory') { $EvidenceDirectory = [string]$localArguments[$argumentIndex] }
+        elseif ($option -eq '-EvidenceInputManifest') { $EvidenceInputManifest = [string]$localArguments[$argumentIndex] }
+        elseif ($option -eq '-EvidenceTimeoutSeconds') { $EvidenceTimeoutSeconds = [string]$localArguments[$argumentIndex] }
         else { $JenkinsIdentityFile = [string]$localArguments[$argumentIndex] }
         $argumentIndex++
         continue
@@ -37,6 +43,9 @@ if ($JenkinsIdentityFile) { $pythonArguments += @('--jenkins-identity-file', $Je
 if (-not [string]::IsNullOrWhiteSpace($TargetDir)) { $pythonArguments += @('--target-dir', $TargetDir) }
 if ($DryRun) { $pythonArguments += '--dry-run' }
 if ($IndependentPreview) { $pythonArguments += '--independent-preview' }
+if ($null -ne $EvidenceDirectory) { $pythonArguments += @('--evidence-directory', $EvidenceDirectory) }
+if ($null -ne $EvidenceInputManifest) { $pythonArguments += @('--evidence-input-manifest', $EvidenceInputManifest) }
+if ($null -ne $EvidenceTimeoutSeconds) { $pythonArguments += @('--evidence-timeout-seconds', $EvidenceTimeoutSeconds) }
 $pythonArguments += @('--') + @($CargoArguments)
 Push-Location -LiteralPath $resolvedRepo
 try {
