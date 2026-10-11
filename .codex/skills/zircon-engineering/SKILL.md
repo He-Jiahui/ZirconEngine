@@ -33,6 +33,15 @@ Use this entry for delivery policy and milestone planning. Complete the user's a
 
 Agents must not create source snapshots or backup copies for this project, including in outbox or temporary directories. Edit authorized canonical files directly and hand off scoped patches and hashes. The independent Jenkins coordinator owns source baseline, candidate and bundle preparation under the [source ownership policy](../jenkins-coordination/references/incremental-patch-validation.md). If a verified handoff is unavailable, keep the required coordinator acceptance pending.
 
+Jenkins owns version operations, worktrees and their merges, file-generation
+workflows, builds, artifact reuse and all output cleanup, including scheduled
+maintenance. Follow the [management standard](../../../docs/tools/agent-artifact-management.md).
+Agents edit explicitly authorized canonical files and hand off incremental
+inputs; they do not create alternate trees, local generation/build runs or
+cleanup jobs. Use [Artifact Management](../zircon-artifact-management/SKILL.md)
+for directory inventories and lifecycle handoff; retain pending receipts with
+their original identities. Explicit user exceptions remain authoritative.
+
 ## Select the needed guidance
 
 | Current need | Owner |

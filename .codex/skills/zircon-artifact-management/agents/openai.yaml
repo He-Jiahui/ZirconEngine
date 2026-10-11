@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zircon Artifact Management"
+  short_description: "Audit Zircon outputs and route lifecycle to Jenkins"
+  default_prompt: "Use $zircon-artifact-management to audit permitted directories and route version, generation and cleanup operations through Jenkins."

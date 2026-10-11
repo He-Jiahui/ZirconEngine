@@ -4,6 +4,12 @@ The local coordinator, its tickets and `validate-matrix.ps1` managed workflow ar
 
 ## Environment and output
 
+- Jenkins owns compilation, generation, artifact reuse and cleanup under the
+  [management standard](../../../../docs/tools/agent-artifact-management.md).
+  Submit the affected package/feature/test coverage through the verified
+  incremental interface; reconcile its original request. The local wrapper and
+  commands below require an explicit user-authorized local exception and never
+  replace a pending Jenkins operation or supply Jenkins acceptance.
 - Prefer Windows PowerShell. Use WSL only for a concrete Linux-specific failure, tool, CI reproduction or explicit platform requirement; select [Linux tooling guidance](../../zircon-project-skills/evidence-driven-wsl-validation/guide.md) only for that exception.
 - Every target, build directory, compiler cache and temporary compiler output must physically be below the drive-root `D:\cargo-targets`, `E:\cargo-targets` or `F:\cargo-targets` (their matching `/mnt/d`, `/mnt/e`, `/mnt/f` mounts in WSL). Other drives, repository targets, home/profile paths, legacy roots and aliases are forbidden.
 - Use `tools/dev/local-cargo.ps1` or `python -B -m tools.dev.local_cargo` for independent local command evidence. The wrapper checks physical paths and a 35 GiB free-space reserve, sets target/build/cache/temporary paths, retains Cargo's native locks and returns the actual Cargo exit code. No service or session registration is used.

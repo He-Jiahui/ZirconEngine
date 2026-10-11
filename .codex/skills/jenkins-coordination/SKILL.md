@@ -7,6 +7,25 @@ description: Run functional Jenkins coordinator tests or submit bounded commands
 
 Use the independent Jenkins pilot and current tray as the only operational path. The retired local coordinator, service, tray, scheduled tasks, leases, attribution APIs, and queue must remain untouched.
 
+## Lifecycle ownership
+
+Jenkins owns all version operations, branch/worktree lifecycle and multi-worktree
+merges, source preparation, file-generation recipes, builds/tests, artifact reuse,
+task cleanup and scheduled cleanup. Agents read, edit explicitly authorized
+canonical files and hand off scoped inputs; they do not run substitute local
+Git/generation/build/cleanup workflows without an explicit user exception.
+Use the [management standard](../../../docs/tools/agent-artifact-management.md).
+
+For the current formal flow, inspect the selected
+`.jenkins/state/deployment/driver.json`, its immutable implementation and actual
+runtime evidence. The existing `zircon-flow`, `zircon-execution` and
+`zircon-maintenance` jobs own input/integration, execution/reuse and maintenance.
+[The incremental entry](../../../tools/dev/jenkins_validate.py) supports scoped
+handoff; verify its selected-driver capability before use. The pilot enablement
+and bundle interface below apply to that pilot, not as a substitute for the
+formal incremental route. A job/specification alone does not prove activation
+of multi-worktree operations or scheduled cleanup.
+
 ## Incremental validation
 
 For engineering validation, use the user's [source ownership and incremental patch workflow](references/incremental-patch-validation.md): agents edit the authorized checkout and hand off scoped patches and hashes; the independent Jenkins coordinator prepares and reuses the source baseline, applies patches and runs the relevant build and tests. Agents must not create source snapshots, backups or source bundles. Keep required acceptance pending while continuing independent work and reconciling the original request.

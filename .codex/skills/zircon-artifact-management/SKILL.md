@@ -1,0 +1,70 @@
+---
+name: zircon-artifact-management
+description: Audit ZirconEngine Codex write directories and route Git, worktree, generation, artifact reuse and cleanup lifecycle operations through Jenkins.
+---
+
+# Zircon Artifact Management
+
+Use for directory disorder, legacy source copies, generated outputs, or planning
+and closing Jenkins-owned Git/worktree and artifact operations. Read the relevant
+sections of the [management standard](../../../docs/tools/agent-artifact-management.md).
+Use the user's [Artifact Lifecycle](D:/CodexData/.codex/skills/artifact-lifecycle/SKILL.md)
+for its manifest and retention schema; in ZirconEngine, Jenkins performs its
+generation, plan execution and cleanup. Its generic local-build/cleanup defaults
+do not replace the user's Jenkins ownership requirement.
+
+## Ownership
+
+Jenkins owns all version-management and file-generation workflows: branches,
+worktrees, multi-worktree merges, commits/reverts/pushes, source baselines and
+candidates, generated code/resources/exports, builds/tests, artifact reuse,
+post-task cleanup and scheduled cleanup. Respect any explicit user-authorized
+exception; a writable directory or a failed Jenkins request supplies none.
+
+Agents may read, design, edit explicitly authorized canonical source/doc/skill
+files, prepare scoped incremental inputs, and reconcile actual receipts. Do not
+create ad hoc output trees, source copies, worktrees, private targets, local build
+or generation runs, cleanup commands or independent scheduled jobs. Follow the
+[source ownership policy](../jenkins-coordination/references/incremental-patch-validation.md).
+
+## Audit and route
+
+- Read the current `.codex/config.toml`; distinguish explicit write grants from
+  actual ownership and sandbox enforcement. Do not change grants during cleanup.
+- Inspect current selected Jenkins driver/runtime, the relevant job, shared
+  changes and chat/handoff notes. Use existing `zircon-flow`, `zircon-execution`
+  and `zircon-maintenance` responsibilities. Verify implementation, activation
+  and actual acceptance separately. Missing capabilities stay pending; do not
+  substitute a local workflow, captured bundle or retired coordinator.
+- For inventory, run `python -B -X utf8 -m tools.dev.artifact_inventory` from the
+  repository root. It reads directories and emits JSON to stdout; Jenkins owns
+  generated report files and archiving. An inventory is not authoritative GC
+  intake or a deletion/acceptance receipt.
+- Mark unclaimed legacy content for owner review. Check unique source changes,
+  retained references, process birth/termination and physical path identity
+  before proposing a bounded Jenkins maintenance request. Protect source/control
+  files, shared caches, Jenkins state, locks and retired historical resources.
+- Bind operations to their original request/attempt, exact input hashes, source
+  and coverage, artifact generation and runtime/driver identities. Reconcile an
+  uncertain result before retrying. Multi-worktree merge acceptance covers its
+  actual result tree; source claims and version actions remain owner-scoped.
+- At closeout, verify delivery and Jenkins maintenance results, including native
+  process/Job termination and EOF. Report actual deletions, retained paths and
+  pending acceptance accurately. Do not independently delete owned build or
+  generated artifacts because the task ended.
+
+Keep all compiler products/caches physically inside approved drive-root
+`D/E/F:\cargo-targets` namespaces. Report logical bytes as logical bytes; neither
+directory age nor a missing manifest establishes safe reclamation.
+
+## Explicit transition exception
+
+The user authorized daily file/health review and temporary merge takeover on
+2026-10-11. Follow the [transition protocol](../../../docs/tools/jenkins-transition-monitor.md)
+for that authorization: the Windows task records read-only observations and
+locally notifies only changed findings; reviewed operator batches integrate
+exact paths with current evidence. Record health and merge blockers separately.
+This exception does not authorize automatic commits, source copies, cleanup,
+service adoption/restart, pushes, or restoration of the retired coordinator.
+Retire the temporary scheduler after the actual Jenkins lifecycle handoff has
+been recorded. Jenkins Ready alone does not satisfy that handoff.

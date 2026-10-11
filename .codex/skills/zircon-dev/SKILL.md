@@ -18,7 +18,16 @@ Inspect the current Cargo manifest and touched code to identify ownership. `zirc
 | Run Cargo or report a build/test result | [Validation](validation/guide.md) |
 | Report broader acceptance or pending evidence | [Reporting](reporting.md) |
 
-Ordinary implementation slices use formatting and structural checks. Run the scoped Cargo batch when its validation gate is due, or earlier for the exceptions in [the validation policy](../../../docs/plans/milestone-validation-policy.md). Use `tools/dev/local-cargo.ps1`; Windows is the default. Compilation products and compiler caches must physically remain below drive-root `D:\cargo-targets`, `E:\cargo-targets`, or `F:\cargo-targets`.
+Ordinary implementation slices use read-only formatting and structural checks.
+When scoped compilation or generated output is due under
+[the validation policy](../../../docs/plans/milestone-validation-policy.md),
+hand off to Jenkins. Jenkins owns branches/worktrees/merges, generation, builds,
+artifact reuse and cleanup under the
+[management standard](../../../docs/tools/agent-artifact-management.md).
+The independent local Cargo wrapper remains available only for an explicitly
+authorized local exception; it is not a fallback for a pending Jenkins request.
+Compilation products and compiler caches must physically remain below drive-root
+`D:\cargo-targets`, `E:\cargo-targets`, or `F:\cargo-targets`.
 
 Source snapshots and backup copies follow the [coordinator ownership policy](../jenkins-coordination/references/incremental-patch-validation.md): agents hand off patches and hashes; the independent Jenkins coordinator prepares the sources.
 
