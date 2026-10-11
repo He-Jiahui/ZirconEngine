@@ -1,3 +1,6 @@
+//! current 保存本次抽取的权重快照，previous 只随上一成功场景帧推进。
+//! 稳定 Arc 身份让未变化实例复用快照；稳定实例键本身不描述 mesh 或 target schema 的代次。
+
 use std::{collections::HashMap, sync::Arc};
 
 use super::gpu_scene::GpuScene;
@@ -16,6 +19,7 @@ impl GpuScene {
             .map(Arc::as_ref)
     }
 
+    /// 非空切片（包括全零）保留为本帧历史；None 或空切片移除本帧状态。
     pub(crate) fn stage_current_morph_weights(
         &mut self,
         stable_instance_key: u64,
@@ -69,6 +73,7 @@ fn roll_previous_morph_weight_snapshots(
         true
     });
 
+    // 上面的 retain 已使 previous 的键成为 current 的子集；只有长度较小时才可能缺少新键。
     if previous.len() < current.len() {
         previous.reserve(current.len() - previous.len());
         for (key, weights) in current {

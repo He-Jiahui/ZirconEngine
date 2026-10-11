@@ -98,6 +98,7 @@ impl RandomServiceCheckpoint {
     /// Maximum number of persisted streams accepted by the v2 checkpoint contract.
     pub const MAX_STREAMS: usize = 65_536;
 
+    /// 生成可持久化的 v2 检查点；流必须在容量上限内、按键严格递增，并与 `service` 的种子代次及算法一致。
     pub fn try_new(
         service: RandomServiceState,
         streams: Vec<RandomStreamCheckpoint>,

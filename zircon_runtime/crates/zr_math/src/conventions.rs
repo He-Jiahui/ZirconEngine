@@ -1,3 +1,5 @@
+//! 定义跨模块交换坐标、单位和精度时使用的词汇；这些标签本身不执行坐标转换或数值校验。
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Axis3 {
     X,
@@ -75,6 +77,7 @@ pub enum TimeUnit {
     Second,
 }
 
+/// 供边界契约记录标量存储精度；选择 F64 不会切换当前的运行时数学别名。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ScalarPrecision {
     F32,

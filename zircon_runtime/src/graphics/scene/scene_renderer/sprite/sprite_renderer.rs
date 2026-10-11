@@ -115,6 +115,7 @@ impl SpriteRenderer {
         Self { pipeline }
     }
 
+    /// 将指定阶段的连续贴图批次写入有效视口的图附件；空阶段不创建 pass，首末批次分别承接传入的 load/store。
     pub(crate) fn record(
         &self,
         device: &wgpu::Device,
@@ -187,6 +188,7 @@ impl SpriteRenderer {
         }
     }
 
+    /// 向调用方已配置附件和视口的 pass 追加精灵；本调用会替换管线、绑定组 0/1 和顶点槽 0，外部重放器须失效相应缓存状态。
     pub(crate) fn record_vertices_in_pass<'pass>(
         &'pass self,
         pass: &mut wgpu::RenderPass<'pass>,

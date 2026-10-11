@@ -18,6 +18,17 @@ use super::writer::ConfigFileWriter;
 pub(super) type ConfigSnapshotSource = Arc<dyn Fn() -> HashMap<String, Value> + Send + Sync>;
 
 const WORKER_THREAD_NAME: &str = "zr-config-persist";
+/// 把配置脏请求合并为整文件写入，并提供等待目标确认及关闭回收的服务。
+///
+/// # 所有权与生命周期
+///
+/// 服务 clone 通过 Arc 共享此 worker；线程只持有共享工作状态，不持有 worker 本身。
+/// 最后一个 owner 释放时请求终态刷新，预算耗尽后取消尚未获准的提交，然后仍 join 线程。
+/// 已获准的文件提交可能继续完成，不能将关闭预算解释为析构截止时间。
+///
+/// # 参考
+///
+/// 请求和确认分别由 [Self::request_persistence] 与 [Self::flush] 承担；发布约束见 [ConfigFileWriter]。
 pub(super) struct ConfigPersistenceWorker {
     shared: Arc<ConfigPersistenceShared>,
     thread: Mutex<Option<JoinHandle<()>>>,
@@ -86,6 +97,21 @@ impl ConfigPersistenceWorker {
         }
     }
 
+    /// 等待进入本次调用时的 dirty 目标获得成功确认。
+    ///
+    /// # 参数
+    ///
+    /// - `timeout`：本次等待预算；其他线程仍可更新配置并产生更晚的目标。
+    ///
+    /// # 返回与错误
+    ///
+    /// 目标已确认即成功。只有覆盖目标的尝试已结束且无排队或在途重试，才回传最近写入错误；
+    /// worker 退出单独报错。不能把尚可重试的旧错误提前当作目标终态。
+    ///
+    /// # 生命周期与参考
+    ///
+    /// 超时只结束等待，不撤销内存更新或后台已请求的 I/O。
+    /// 参见 [ConfigPersistenceState::complete_attempt] 和 [ConfigManagerError]。
     pub(super) fn flush(&self, timeout: Duration) -> Result<(), ConfigManagerError> {
         let started = Instant::now();
         let mut state = self.shared.lock_state();
@@ -174,6 +200,8 @@ impl Drop for ConfigPersistenceWorker {
         let shutdown_error = (state.dirty_generation > state.persisted_generation)
             .then(|| state.last_error.clone())
             .flatten();
+        // 预算耗尽后只能取消尚未获准的提交；已通过 fence 检查的闭包仍可能落盘。
+        // 释放状态锁后仍会 join 工作线程，shutdown_timeout 并非整个 Drop 的耗时上限。
         let commit_in_progress = !worker_exited && self.shared.commit_fence.cancel();
         drop(state);
 
@@ -227,6 +255,8 @@ fn run_worker(shared: Arc<ConfigPersistenceShared>) {
             None => return,
         };
         let started = Instant::now();
+        // target 在取快照前已从状态机取得；当前快照可能包含更晚的变化及直接写入 Core 的键。
+        // 本次成功只确认 target，期间新增的 dirty generation 仍会安排下一次尝试。
         let snapshot = (shared.snapshot)();
         let serialized = serde_json::to_vec_pretty(&snapshot);
         let serialized_bytes = serialized.as_ref().map_or(0, |bytes| bytes.len());

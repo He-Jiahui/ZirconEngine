@@ -32,6 +32,7 @@ impl<'de> Deserialize<'de> for RandomState {
 }
 
 impl RandomState {
+    /// 供快照恢复和反序列化校验使用；`increment` 必须为奇数，以保留 PCG 的 63 位序列身份。
     pub fn new(
         algorithm: RandomAlgorithmId,
         state: u64,

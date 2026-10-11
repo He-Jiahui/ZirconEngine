@@ -41,6 +41,7 @@ impl ResourceManager {
             .clone())
     }
 
+    /// 移除目录记录与当前驻留槽，定位符缺失时返回 None；已有租约仍持有取得时的载荷。
     pub fn remove_by_locator(
         &self,
         locator: &ResourceLocator,

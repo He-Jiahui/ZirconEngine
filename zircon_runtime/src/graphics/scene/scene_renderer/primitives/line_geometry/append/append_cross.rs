@@ -4,6 +4,7 @@ use crate::graphics::scene::scene_renderer::primitives::LineVertex;
 
 pub(crate) const CROSS_VERTEX_CAPACITY: usize = 4;
 
+/// 沿调用方提供的 right/up 写两条交叉线段；单位基向量和有限 size 下，世界空间半长为 size 的绝对值。
 pub(crate) fn append_cross(
     vertices: &mut Vec<LineVertex>,
     position: Vec3,

@@ -85,6 +85,8 @@ pub enum DurableCommitDisposition {
     CleanupDeferred,
 }
 
+/// 发布带恢复日志的文件批次；非空批次要求绝对 UTF-8 路径、合法 tag，并先恢复该 owner 的待处理日志。
+/// CommitRecoveryDeferred 表示提交点尚待恢复裁定；CleanupDeferred 表示新代已持久化，只剩恢复证据清理。
 pub fn commit_prepared_files(
     journal_directory: &Path,
     tag: &str,

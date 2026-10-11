@@ -48,6 +48,7 @@ pub struct PendingAtomicWrite {
 }
 
 impl PendingAtomicWrite {
+    /// 显式发布暂存内容；发布后的同步或备份清理也可能报错，不能仅凭 Err 推断目标仍是旧内容。
     pub fn commit(self) -> io::Result<()> {
         let path = self.target.as_path();
         let staging_path = self.staging_path.as_path();
@@ -80,6 +81,7 @@ impl PendingAtomicWrite {
         commit_replace(path, staging_path, &backup_path, self.fault)
     }
 
+    /// 以排他方式发布新目标；已有目标不被覆盖，发布后的清理或同步失败仍可能返回 Err。
     pub fn commit_new(self) -> io::Result<()> {
         let path = self.target.as_path();
         let staging_path = self.staging_path.as_path();
@@ -415,6 +417,7 @@ impl StagedPublicationError {
     }
 }
 
+// target_existed 来自暂存阶段；先保留 rollback_required 再转成 io::Error，避免丢失“可能已发布”的回滚依据。
 pub(crate) fn publish_staged_file_for_transaction(
     staging: &Path,
     target: &Path,

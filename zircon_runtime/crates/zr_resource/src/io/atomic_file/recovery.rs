@@ -12,6 +12,8 @@ use std::fs;
 #[cfg(windows)]
 use std::path::PathBuf;
 
+/// Windows 上为缺失目标恢复名称匹配且唯一的普通文件备份；非文件目标或备份歧义返回错误。
+/// 已有普通文件、没有匹配备份或其他平台返回 false。
 pub fn recover_missing_target_from_backup(path: &Path) -> io::Result<bool> {
     match path_entry(path)? {
         PathEntry::Missing => recover_missing_target_from_backup_platform(path),

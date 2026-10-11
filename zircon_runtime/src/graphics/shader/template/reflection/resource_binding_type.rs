@@ -17,6 +17,7 @@ pub(super) fn shader_binding_resource_type(
     }
 }
 
+// 返回 Naga 类型的逻辑最小绑定尺寸，供资源契约比较；实际绑定长度、对齐与设备限制仍由后续布局和设备验证。
 pub(super) fn shader_min_buffer_binding_size(
     module: &naga::Module,
     global: &naga::GlobalVariable,

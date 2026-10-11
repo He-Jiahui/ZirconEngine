@@ -71,6 +71,7 @@ impl<'de> Deserialize<'de> for RandomSeedReceipt {
 }
 
 impl RandomSeedReceipt {
+    /// 记录一次连续的种子代次迁移；`generation` 必须恰为 `previous_generation` 的下一代，溢出或跳代会被拒绝。
     pub const fn try_new(
         previous_seed: u64,
         seed: u64,

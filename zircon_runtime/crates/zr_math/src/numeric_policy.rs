@@ -34,12 +34,14 @@ pub struct NumericPolicyThresholds {
 
 impl NumericPolicy {
     // No implicit epsilon: existing f32 behavior treats only exact zero as degenerate.
+    /// 所有下限均为零；退化判断比较计算出的范数平方、缩放绝对值或行列式绝对值，不含隐式 epsilon。
     pub const STRICT: Self = Self {
         minimum_normalized_length_squared: 0.0,
         minimum_scale_absolute: 0.0,
         minimum_matrix_determinant_absolute: 0.0,
     };
 
+    /// 从外部阈值构造策略时使用，要求每个下限有限且非负；各运算仍分别检查输入和计算结果。
     pub fn try_new(thresholds: NumericPolicyThresholds) -> Result<Self, NumericPolicyError> {
         validate_policy_minimum(
             thresholds.normalized_length_squared,

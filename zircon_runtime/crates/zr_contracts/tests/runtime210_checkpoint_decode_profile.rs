@@ -26,6 +26,7 @@ thread_local! {
     static REQUESTED_ALLOCATION_BYTES: Cell<u64> = const { Cell::new(0) };
 }
 
+// SAFETY: Layout、原指针和 realloc 新大小按 GlobalAlloc 调用契约原样交给 System；统计代码只判断返回指针是否为空并累加请求大小，不解引用或保存分配指针。
 unsafe impl GlobalAlloc for CountingAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let pointer = unsafe { System.alloc(layout) };

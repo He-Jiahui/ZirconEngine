@@ -1,3 +1,4 @@
+//! 用源码、manifest 和错误值核对模块依赖展开、self::material 注入锚点与未知模块处理；本文件不调用 WGSL 或设备验证器。
 use crate::core::framework::render::{
     RenderShaderDefinitionValue, ShaderPassType, GENERATED_MATERIAL_MODULE_IMPORT_PATH,
 };

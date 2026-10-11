@@ -458,6 +458,7 @@ fn render_shader_template_projects_advanced_pbr_features() {
 fn render_shader_template_marks_standard_material_normal_texture_feature() {
     let static_mesh = static_mesh_descriptor();
     let mut material = standard_material_descriptor();
+    // 此资源 URI 只触发 normal texture 的 feature 与绑定声明，夹具不加载贴图；实际采样结果需设备级验证。
     material.normal_texture = Some(AssetReference::from_locator(
         ResourceLocator::parse("res://textures/material-normal.png").expect("normal locator"),
     ));

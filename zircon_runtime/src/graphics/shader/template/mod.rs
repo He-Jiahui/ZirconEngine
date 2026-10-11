@@ -1,3 +1,6 @@
+//! 汇合材质、几何、pass 与着色模型来源，并保留有序模块身份和诊断分段。
+//! 运行时渲染和 IDE 共用装配结果；Naga 验证及目标设备布局检查由后续入口完成。
+
 mod assemble;
 mod deferred_gbuffer;
 mod material_surface;

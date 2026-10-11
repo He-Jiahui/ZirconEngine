@@ -10,6 +10,7 @@ use super::super::line_geometry::{
 
 const LINE_VERTEX_CAPACITY: usize = 2;
 
+// 预留量按正常拓扑取上界；退化箭头或圆环会少写顶点，绘制数量仍以 Vec.len() 为准。
 fn handle_element_vertex_capacity(element: &HandleElementExtract) -> usize {
     match element {
         HandleElementExtract::AxisLine { .. } => {
@@ -23,6 +24,7 @@ fn handle_element_vertex_capacity(element: &HandleElementExtract) -> usize {
     }
 }
 
+/// 把本帧已提取的世界空间手柄转成 LineList；轴标识和拾取半径不参与这里的顶点生成。
 pub(crate) fn build_handle_vertices(frame: &ViewportRenderFrame) -> Vec<LineVertex> {
     let vertex_capacity = frame
         .overlays()

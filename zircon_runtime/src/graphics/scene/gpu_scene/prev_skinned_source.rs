@@ -1,3 +1,6 @@
+//! 为 CPU morph 后仍由 GPU skinning 的路径保留上一成功帧的源 mesh。
+//! Arc 让旧 vertex buffer 保持存活；形状变化且历史兼容时，velocity draw 将它绑定为独立旧顶点输入。
+
 use std::sync::Arc;
 
 use crate::graphics::scene::resources::GpuMeshResource;

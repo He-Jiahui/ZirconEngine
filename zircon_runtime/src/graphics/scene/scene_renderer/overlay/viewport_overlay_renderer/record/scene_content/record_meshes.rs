@@ -10,6 +10,7 @@ use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::types::ViewportRenderFrame;
 
 impl ViewportOverlayRenderer {
+    /// 复用天空阶段已初始化的颜色和深度附件，由基础 pass 按显示模式与管线准入结果重放网格。
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn record_meshes(
         &mut self,

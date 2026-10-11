@@ -27,6 +27,8 @@ pub(crate) fn validate_material_shader_template_assembly(
     validate_material_shader_template_wgsl_with_segments(&assembly.wgsl_source, &assembly.segments)
 }
 
+/// 解析源码并用当前 Naga 设置验证，成功后才反射同一模块。
+/// 此处不验收目标设备功能和布局；消费者随后完成设备模块与管线校验。
 pub(crate) fn validate_material_shader_template_wgsl_with_segments(
     wgsl_source: &str,
     segments: &[ShaderAssemblySegment],
@@ -76,6 +78,7 @@ pub(crate) fn validate_shader_variant_prewarm_wgsl(
     validate_material_shader_template_wgsl(wgsl_source)
 }
 
+// 保留原诊断，只按当前段表追加模块和本地行；无位置或未命中段时不推测来源。
 fn remap_shader_diagnostic_message(
     mut message: String,
     location: Option<(u32, u32)>,

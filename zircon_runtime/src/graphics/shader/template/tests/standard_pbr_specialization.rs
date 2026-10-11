@@ -1,3 +1,4 @@
+//! 比较 builtin base/advanced 与 custom Forward 的组装闭包；include hash 表示源码和依赖身份，数值 helper 仅供 Rust 参考端点断言。validate 调用的通过结果须另有执行记录。
 use super::*;
 
 fn include_content_hash<'a>(
@@ -794,6 +795,7 @@ fn custom_surface_without_a_shading_descriptor_keeps_the_full_pbr_closure() {
 
 #[test]
 fn custom_environment_only_surface_keeps_the_generic_forward_closure() {
+    // custom entry 不满足 builtin selector；ENVIRONMENT_ONLY_PBR 位在此 fixture 中仍应保留 generic Forward 与 local provider。
     let custom = assemble_material_shader_template(
         material_template_request(static_mesh_descriptor(), ShaderPassType::Forward).with_features(
             ShaderFeatureBits::new(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR),

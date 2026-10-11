@@ -1,3 +1,4 @@
+// 间隙阈值以元素行为单位；合并时重传其中的干净行，以减少写入条目。
 pub(crate) const GPU_SCENE_DIRTY_RANGE_MERGE_GAP: u32 = 8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -78,6 +79,8 @@ impl GpuSceneUpdateQueue {
         self.light_upload_ranges_stride = None;
     }
 
+    /// 立即消费脏区，供允许丢弃待确认状态的测试或调试入口使用。
+    /// 帧上传先 prepare 保留重试范围，配套提交被接收后再 discard。
     pub(crate) fn drain_primitive_upload_ranges(&mut self, stride: u64) -> &[GpuSceneUploadRange] {
         self.prepare_primitive_upload_ranges(stride);
         self.dirty_primitives.clear();

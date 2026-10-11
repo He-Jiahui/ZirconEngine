@@ -8,6 +8,7 @@ use crate::{
 use super::resource_manager::ResourceManager;
 
 impl ResourceManager {
+    /// 同时检查句柄种类与载荷类型，并为当前驻留身份建立租约；重载或失败时仍可租用最后有效载荷。
     pub fn acquire<TMarker, TData>(
         &self,
         handle: ResourceHandle<TMarker>,
@@ -60,6 +61,7 @@ impl ResourceManager {
             return;
         }
         drop(lease_identity);
+        // 当前代只剩槽位自身时才可卸载；重载与失败时保留最后有效载荷供回退。
         if Arc::strong_count(&slot.lease_identity) == 1 && !preserve_last_good {
             slot.state = RuntimeResourceState::Unloaded;
             authority.payloads.remove(&id);
@@ -67,6 +69,7 @@ impl ResourceManager {
         }
     }
 
+    /// 统计当前驻留身份的租约，不计载荷 Arc 或旧代租约；已登记但无运行槽为零，目录缺失为 None。
     pub fn ref_count(&self, id: ResourceId) -> Option<usize> {
         let authority = self.lock_authority_read();
         authority

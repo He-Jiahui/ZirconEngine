@@ -24,6 +24,8 @@ const MATERIAL_SURFACE_MODULE_ID: &str = "self::surface";
 const RESERVED_MATERIAL_SYMBOL_PREFIXES: &[&str] =
     &["zr_", "ZR_OPT_", "ZrMaterial", "fetch_", "shade_"];
 
+/// 提供一次材质变体装配所需的来源与特性；绑定数组容量必须与 BINDLESS 功能位配套。
+/// 表面模块名标识诊断来源，调用方须同时提供对应几何和着色模型契约。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct MaterialShaderTemplateRequest {
     pub(crate) geometry_source: GeometrySourceDescriptor,
@@ -145,6 +147,8 @@ impl MaterialShaderTemplateRequest {
     }
 }
 
+/// 保存最终 WGSL、按首次注入顺序对应的模块身份及诊断段。
+/// 消费者继续验证源码；运行时缓存另将完整 WGSL 的散列加入身份。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct MaterialShaderTemplateAssembly {
     pub(crate) wgsl_source: String,
@@ -272,6 +276,8 @@ pub(crate) enum ShaderTemplateAssemblyError {
     },
 }
 
+/// 为运行时或 IDE 将请求来源装配成一个材质变体，并记录可供诊断定位的段。
+/// 请求特性须与容量及入口契约一致；成功后仍须完成 Naga 和目标设备校验。
 pub(crate) fn assemble_material_shader_template(
     request: MaterialShaderTemplateRequest,
 ) -> Result<MaterialShaderTemplateAssembly, ShaderTemplateAssemblyError> {
@@ -285,6 +291,7 @@ pub(crate) fn assemble_material_shader_template(
     if !bindless_material_requested && request.bindless_material_slot_capacity.is_some() {
         return Err(ShaderTemplateAssemblyError::UnexpectedBindlessMaterialSlotCapacity);
     }
+    // 未传自定义模型描述符且入口采用标准 PBR 名称时才走内置裁剪；扩展模型可能仍依赖完整支持 API。
     let uses_builtin_standard_pbr = request.shading_model_descriptor.is_none()
         && request.material_surface_entry == STANDARD_MATERIAL_SURFACE_ENTRY_POINT;
     let pass_template = pass_template_for_shading_model(
@@ -400,6 +407,8 @@ pub(super) fn push_include_chunk(
     }
 }
 
+// 按依赖后序加入表面来源需要的模块，同一 token 在整个装配中只保留首次来源。
+// 解析器跳过全部 self:: token；生成材质等请求专属来源由装配器另行注入。
 pub(super) fn push_source_module_includes(
     registry: &mut ShaderTemplateIncludeRegistry,
     builder: &mut ShaderAssemblyBuilder,
@@ -541,6 +550,7 @@ fn format_definition_value(define: &RenderShaderDefinitionValue) -> String {
     }
 }
 
+// 按入口声明的固定文本拼写匹配并改写一次；最终语法、重复符号和类型由后续解析验证负责。
 pub(super) fn rename_material_surface_entry(
     source: &str,
     entry: &str,

@@ -36,6 +36,7 @@ fn unique_sibling_path_with_sequence(
     }
 }
 
+// 回退名仅用于同目录临时产物；实际目标保留原 Path，不能用该名推断目标身份。
 pub(super) fn target_file_name(target: &Path) -> &str {
     target
         .file_name()

@@ -26,6 +26,7 @@ pub(super) enum FilePresence {
     Present,
 }
 
+// 这里取得新内容和旧文件备份的摘要；进入 Active 前再次核对 live 内容，拒绝准备期间发生的目标或退休源变动。
 pub(super) fn stage_file(
     write: PreparedFileWrite,
     intent: JournalIntent,

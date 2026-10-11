@@ -36,6 +36,7 @@ impl GpuSceneBufferUploadBatchBuilder {
         self.push_bytes(buffer, offset, bytemuck::cast_slice(values))
     }
 
+    /// 收集元素范围；调用方须提供此 Pod 类型的行宽，并保证每个范围仍落在当前阴影数组内。
     pub(super) fn push_upload_ranges<T: Pod>(
         &mut self,
         buffer: &wgpu::Buffer,

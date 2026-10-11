@@ -58,6 +58,7 @@ pub(super) fn sync_new_directory(
     created_here: bool,
     fault: AtomicWriteFault,
 ) -> io::Result<()> {
+    // 屏障失败时只尝试清理由本次 create_dir 创建的目录；并发已存在的目录保留并直接返回错误。
     let barrier = sync_created_directory_with_fault(directory, fault)
         .and_then(|()| sync_parent_directory(directory));
     match barrier {

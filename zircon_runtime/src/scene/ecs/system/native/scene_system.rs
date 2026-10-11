@@ -9,6 +9,9 @@ use crate::scene::World;
 pub type BoxedSceneSystem = Box<dyn SceneSystem>;
 
 pub trait SceneSystem: Send + 'static {
+    /// Graph identity, ordering, tick policy, execution capabilities and access
+    /// are commitments for this registration's lifetime. Changing them requires
+    /// retirement and registration.
     fn metadata(&self) -> &SceneSystemMetadata;
     fn access(&self) -> &SystemParamAccess;
     fn run(&mut self, world: &mut World);

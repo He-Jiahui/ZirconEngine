@@ -159,6 +159,7 @@ impl GpuScene {
             }
         }
 
+        // 以下把 copy 编入调用方 encoder；返回的 staging 写入须与这些命令配对并按准备顺序提交。
         let staging_upload = self.staging_ring.encode_upload(
             &backend.device,
             encoder,
@@ -182,6 +183,7 @@ impl GpuScene {
         )
     }
 
+    // 选路预算只统计核心 primitive、instance、light 范围；附加 payload 和计数参数不参与此阈值。
     fn pending_upload_byte_len(&mut self) -> u64 {
         let primitive_bytes = if self.force_full_primitive_upload {
             u64::from(self.primitive_ids.high_water()) * GPU_PRIMITIVE_DATA_STRIDE as u64

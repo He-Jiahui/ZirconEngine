@@ -156,6 +156,8 @@ impl ShaderTemplateReflection {
         })
     }
 
+    /// 只核对与 callback 提供的 target 配对的片元输出；callback 返回 None 的输出不参与此接口检查。
+    /// 此处比较数值类型，完整 render target 与设备契约由下游处理。
     pub(crate) fn validate_fragment_output_stage_interface(
         &self,
         fragment_entry_name: &str,
@@ -215,6 +217,7 @@ pub(super) fn reflect_stage_io_numeric_type(
     Some(ShaderStageIoNumericType { dimension, scalar })
 }
 
+// 两侧 location 已由入口反射按绑定排序；因此可以只向前移动 vertex 输出游标，为每个 fragment 输入查找同一位置。
 fn validate_stage_locations(
     vertex_entry: &ShaderEntryPointReflection,
     fragment_entry: &ShaderEntryPointReflection,

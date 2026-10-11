@@ -43,6 +43,8 @@ impl GpuScenePreparedUpload {
         self.report
     }
 
+    /// 移交写入后保留本对象，供配套资源批次和绘制提交被接收后确认 CPU 状态。
+    /// 内部 batch 为空只证明写入已移交，不能单独证明提交已被接收。
     pub(crate) fn append_to(
         &mut self,
         gpu_scene: &GpuScene,

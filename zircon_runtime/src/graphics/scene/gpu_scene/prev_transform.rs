@@ -1,3 +1,6 @@
+//! 在场景提交成功链中，把待滚动实例的当前变换保存为下一帧历史。
+//! 这里只更新 CPU 镜像并标记后续上传；GPU 等待及场景日志游标由各自拥有者维护。
+
 use super::gpu_scene::GpuScene;
 use super::layout::GPU_INSTANCE_DATA_STRIDE;
 use super::update_queue::GpuSceneUpdateQueue;
@@ -12,6 +15,8 @@ pub(crate) struct GpuScenePrevTransformRollReport {
 }
 
 impl GpuScene {
+    /// 从已滚动的 entry 读取首个实例的历史变换；当前 mesh 同步注册单实例条目。
+    /// 尚未滚动时由调用方使用当前矩阵回退，并另行判断变形历史是否可用。
     pub(crate) fn previous_world_from_local(
         &self,
         entry: super::gpu_scene::GpuSceneEntry,
@@ -24,6 +29,8 @@ impl GpuScene {
             .map(|instance| instance.prev_world_from_local)
     }
 
+    /// 当前上传先确认并清脏，再消费注册或当前变换变化时加入的待滚动键。
+    /// 改变的实例跨度重新进入脏队列，供下次准备上传；本调用不会提交 GPU 工作。
     pub(crate) fn roll_prev_transforms_after_success(&mut self) -> GpuScenePrevTransformRollReport {
         let live_instance_count = self.stats().instance_count;
         let mut pending = std::mem::take(&mut self.pending_prev_transform_rolls);
@@ -82,6 +89,7 @@ fn roll_prev_transforms_for_keys(
                     report.rolled_instance_count += 1;
                 }
             }
+            // 首次成功帧即使两帧矩阵相同也要标记历史有效；内容未变则无需新增上传。
             entry.has_rolled_previous_transform = true;
             if span_changed {
                 updates.mark_instances(start, entry.instance_count);

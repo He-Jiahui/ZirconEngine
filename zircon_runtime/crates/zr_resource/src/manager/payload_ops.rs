@@ -9,6 +9,7 @@ use super::resource_manager::ResourceManager;
 
 // 元数据可以先于载荷存在；按需加载只填充已声明的版本，缓存消费则按具体类型取回共享载荷。
 impl ResourceManager {
+    /// 发布记录与载荷；调用端须使内容身份与载荷一致，内容变化时更新身份字段，相同身份不会自动递增内容版本。
     pub fn register_ready<TData>(
         &self,
         record: ResourceRecord,

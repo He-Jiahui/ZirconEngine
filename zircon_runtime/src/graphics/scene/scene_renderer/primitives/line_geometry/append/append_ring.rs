@@ -5,6 +5,7 @@ use crate::graphics::scene::scene_renderer::primitives::LineVertex;
 const RING_SEGMENTS: usize = 48;
 pub(crate) const RING_VERTEX_CAPACITY: usize = RING_SEGMENTS * 2;
 
+/// 将世界平面圆环离散成 48 段独立线段；法线退化时不追加，正常输出共 96 个顶点。
 pub(crate) fn append_ring(
     vertices: &mut Vec<LineVertex>,
     center: Vec3,

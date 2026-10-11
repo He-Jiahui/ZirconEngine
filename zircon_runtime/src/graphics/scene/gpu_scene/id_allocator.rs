@@ -91,6 +91,8 @@ impl GpuSceneIdAllocator {
     /// GPUScene ids may be referenced by in-flight command buffers. Deferring
     /// the merge prevents a newly registered primitive from aliasing an id
     /// that the current frame can still read.
+    /// 延迟回收仍存活且尚未释放的连续段；调用方须保证归属和仅释放一次。
+    /// 生产注销先移除 entry，再登记回收，避免同一准备过程重复释放。
     pub(crate) fn free_span(&mut self, start: u32, len: u32) {
         if len == 0 {
             return;
@@ -108,6 +110,8 @@ impl GpuSceneIdAllocator {
             .push(GpuSceneIdSpan::new(start, len));
     }
 
+    /// 配套资源写入和绘制提交被接收后发布待回收段，允许后续分配复用。
+    /// 这是 CPU 回收边界，GPU 写入与绘制的执行顺序仍由后端提交链保证。
     pub(crate) fn commit_pending_frees(&mut self) {
         if self.pending_free_spans.is_empty() {
             return;

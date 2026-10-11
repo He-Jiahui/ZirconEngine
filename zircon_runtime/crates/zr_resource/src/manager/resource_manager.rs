@@ -174,6 +174,7 @@ impl ResourceAuthority {
     }
 }
 
+/// 持有整个资源权威的读锁；提交变更或执行耗时加载前，先克隆所需记录并释放守卫。
 #[derive(Debug)]
 pub struct ResourceRegistryReadGuard<'a> {
     guard: RwLockReadGuard<'a, ResourceAuthority>,
@@ -222,6 +223,7 @@ impl ResourceProjectionSnapshot {
     }
 }
 
+/// 克隆共享资源权威、发布串行锁和事件流，不复制目录或取得载荷驻留租约。
 #[derive(Clone, Debug, Default)]
 pub struct ResourceManager {
     pub(super) authority: Arc<RwLock<ResourceAuthority>>,
@@ -242,6 +244,7 @@ impl ResourceManager {
         self.events.diagnostics()
     }
 
+    /// 在同一权威读锁内捕获管理与就绪视图；返回后可保留这对不可变视图独立读取。
     pub fn projection_snapshot(&self) -> ResourceProjectionSnapshot {
         let authority = self
             .authority

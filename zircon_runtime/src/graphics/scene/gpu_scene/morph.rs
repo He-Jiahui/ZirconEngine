@@ -1,3 +1,6 @@
+//! 管理 GPUScene 的 morph payload、delta 和 weight 上传事务。
+//! shadow 记录后端已接受的数组；上一成功场景帧的权重由独立历史链滚动。
+
 use super::gpu_scene::{
     create_storage_buffer, grow_capacity, GpuScene, GPU_SCENE_INITIAL_MORPH_CAPACITY,
 };
@@ -71,6 +74,8 @@ impl Drop for GpuSceneMorphPreparationReservation {
 }
 
 impl GpuScene {
+    /// 调用方须按 target → vertex → 四行属性打包 delta，并把当前 target_count 个权重
+    /// 与上一帧同数量权重相邻存放；本方法只准备 storage 写入，不校验形变 schema。
     pub(crate) fn prepare_morph_buffers(
         &mut self,
         device: &wgpu::Device,
@@ -95,6 +100,7 @@ impl GpuScene {
         let delta_buffer_replaced = required_delta_capacity > self.morph_deltas_capacity;
         let weight_buffer_replaced = required_weight_capacity > self.morph_weights_capacity;
 
+        // 新 buffer 即使本次准备被丢弃也仍会保留；full 标志要留到提交，保证重试填满有效前缀。
         if payload_buffer_replaced {
             self.morph_payloads_require_full_upload = true;
             self.morph_payloads_capacity =

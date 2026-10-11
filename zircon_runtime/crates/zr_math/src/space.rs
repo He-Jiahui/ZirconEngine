@@ -1,3 +1,6 @@
+//! 为位置、向量和法向携带空间标签；受检算术要求标签相同，并检查运算后的有限性。
+//! 标签不会执行坐标或单位转换，跨空间操作须由调用者先提供相应变换。
+
 use super::{is_finite_vec3, NumericError, NumericPolicy, SpaceKind, UnitDirection3, Vec3};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use thiserror::Error;
@@ -93,6 +96,7 @@ pub struct Normal3 {
 }
 
 impl Normal3 {
+    /// 保存法向时使用 STRICT 下限归一化；输入及计算出的范数须有效，space 只记录所属空间。
     pub fn try_new(value: Vec3, space: SpaceKind) -> Result<Self, SpatialError> {
         let direction = UnitDirection3::try_new(value, NumericPolicy::STRICT)
             .map_err(|source| SpatialError::InvalidNormal { source })?;

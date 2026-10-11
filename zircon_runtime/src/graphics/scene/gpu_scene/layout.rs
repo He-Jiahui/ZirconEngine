@@ -58,6 +58,7 @@ pub(crate) const GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX: u32 = 4;
 /// The explicit 16-byte stride is the shader ABI: instance-index rendering,
 /// indirect submission, and later VG/HGI scene consumers must all observe the
 /// same field offsets.
+/// 完整 storage 行为 96 字节、按 16 字节对齐；末尾显式补齐使数组步长与 WGSL 一致。
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
 pub(crate) struct GpuPrimitiveData {
@@ -92,6 +93,8 @@ impl GpuPrimitiveData {
 ///
 /// Transforms stay in instance data so a draw can advance by `instance_index`
 /// without rebinding per-object model uniforms.
+/// 两帧矩阵按 WGSL 列序布局存储，历史来源由抽取调用方选择。
+/// 生产同步在尚无已滚动历史时使用当前矩阵，速度计算是否可用另由 primitive 标志表达。
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
 pub(crate) struct GpuInstanceData {
@@ -119,6 +122,7 @@ impl GpuInstanceData {
         }
     }
 
+    /// 调用方先按实例选择光照消费契约中的有效槽，并传入该契约的完整 64 位代数。
     pub(crate) fn set_lightmap(
         &mut self,
         slot: crate::core::framework::render::LightmapInstanceSlot,
@@ -139,6 +143,8 @@ impl GpuInstanceData {
 /// `delta_base` indexes `GpuMorphDelta` rows, `weight_base` indexes
 /// `GpuMorphWeight` rows, and the shader walks `target_count * vertex_count`
 /// rows using the incoming vertex index.
+/// base 均以元素计：每个 target 的每个顶点占四行 delta，依次为位置、法线、切线和颜色。
+/// weight_base 后连续存放当前与历史两段权重，每段长度为 target_count。
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Pod, Zeroable)]
 pub(crate) struct GpuMorphPayload {
@@ -165,6 +171,7 @@ impl GpuMorphPayload {
 }
 
 /// A 16-byte morph target delta row consumed by `zr_morph_deltas`.
+/// XYZ delta 的 w 标记属性存在；颜色行的 w 保存 alpha，消费方须按行种类解释。
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
 pub(crate) struct GpuMorphDelta {

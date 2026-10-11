@@ -1,3 +1,5 @@
+//! 在运行时值进入渲染数据前检查有限性和标量范围；向量、矩阵逐分量转换，空间语义保持不变。
+
 use super::{
     Mat4, Quat, Real, RenderMat4, RenderScalar, RenderVec2, RenderVec3, RenderVec4, UVec2, Vec2,
     Vec3, Vec4,
@@ -125,6 +127,7 @@ pub fn to_render_vec4(value: Vec4) -> Option<RenderVec4> {
     ))
 }
 
+/// 按原列数组顺序检查并转换 16 个分量；任一分量失败即返回 None，不验证矩阵是否可逆或属于某个空间。
 pub fn to_render_mat4(value: Mat4) -> Option<RenderMat4> {
     let cols = value.to_cols_array();
     Some(RenderMat4::from_cols_array(&[

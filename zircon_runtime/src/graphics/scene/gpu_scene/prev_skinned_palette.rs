@@ -1,3 +1,6 @@
+//! 保留骨架兼容性元数据和 CPU palette 快照，并转接共享 GPU palette arena。
+//! 场景成功时 CPU previous 与 arena 的 committed slot 一起推进，供后续 velocity draw 取同一代历史。
+
 use zr_rhi_wgpu::WgpuBufferUploadBatch;
 
 use crate::graphics::scene::scene_renderer::SkinnedMeshJointPaletteStorage;
@@ -6,6 +9,7 @@ use super::gpu_scene::GpuScene;
 
 /// 保存某稳定实例的骨骼姿态签名和调色板快照，供下一帧运动向量判定历史是否可复用。
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 上游 signature 来自骨架资源标识，用于兼容性筛选；实际姿态矩阵保存在 storage。
 pub(crate) struct GpuSceneSkinnedJointPaletteState {
     pub(crate) signature: u64,
     pub(crate) morph_shape_signature: Option<u64>,

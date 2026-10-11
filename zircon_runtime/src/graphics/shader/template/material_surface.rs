@@ -5,6 +5,8 @@ use crate::core::framework::render::{
 pub(crate) const STANDARD_MATERIAL_SURFACE_ENTRY_POINT: &str = "standard_material_surface";
 const NORMAL_INCLUDE_DIRECTIVE: &str = "#include <zr_normal.wgsl>\n";
 
+// 此 uniform 与 GPU 材质打包共用 256 字节布局；UV 旋转参数按 [cos, sin] 读取。
+// clearcoat normal 的 cos 位于 data12.w，sin 位于 data15.z；调整字段时须同步 CPU 打包与对应夹具。
 const STANDARD_MATERIAL_SURFACE_SOURCE: &str = r#"
 struct StandardMaterialPropertyUniform {
     data0: vec4<f32>,
@@ -412,6 +414,8 @@ pub(crate) fn standard_material_surface_source(
 }
 
 /// 运行时已有特征位时复用同一 surface 合同；alpha cutoff 在生成前收敛为有效 WGSL 常量。
+/// 按 feature 同时裁剪绑定、helper 与使用点；未启用 normal texture 时不生成 normal UV 段。
+/// AssetReference 与 feature 只决定源码声明，实际纹理资源与设备兼容性由后续绑定契约检查。
 pub(crate) fn standard_material_surface_source_for_features(
     features: ShaderFeatureBits,
     alpha_cutoff: f32,

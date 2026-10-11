@@ -4,6 +4,7 @@ use crate::graphics::scene::scene_renderer::primitives::LineVertex;
 
 pub(crate) const ARROW_HEAD_VERTEX_CAPACITY: usize = 4;
 
+/// 追加两条箭头头部线段；主杆由调用方写入，头部随杆长缩放，方向退化时不追加顶点。
 pub(crate) fn append_arrow_head(
     vertices: &mut Vec<LineVertex>,
     start: Vec3,

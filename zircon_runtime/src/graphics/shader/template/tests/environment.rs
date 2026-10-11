@@ -1,3 +1,4 @@
+//! 环境 shader 的源码契约测试共享工具；这里只去注释并按花括号抽取函数，不解析 WGSL，也不证明 Naga 或 GPU 验证通过。
 use crate::core::framework::render::{ShaderFeatureBits, ShaderPassType};
 
 use super::{
@@ -6,6 +7,7 @@ use super::{
     MaterialShaderTemplateRequest,
 };
 
+/// 去掉注释后返回首个匹配签名的闭合函数体；调用者仍须确认模块身份和实际消费入口。
 fn environment_pbr_composition_source(source: &str) -> String {
     wgsl_function_source(source, "fn zr_environment_pbr_components_from_reflection(")
 }

@@ -32,6 +32,7 @@ impl GpuScene {
         let mut report = GpuSceneUploadReport::default();
         let mut uploads = GpuSceneBufferUploadBatchBuilder::new();
 
+        // 完整刷新覆盖历史位置上界；存活 ID 可能位于回收孔洞之后，不能按 live 数量截断阴影数组。
         if self.force_full_primitive_upload {
             let active_len = self.primitive_ids.high_water() as usize;
             let uploaded = uploads.push_pod_slice(
@@ -179,6 +180,7 @@ impl GpuScene {
         ]
     }
 
+    // uploaded_bytes 只累计场景数据；同批次的两份计数参数写入不计入此报告。
     pub(super) fn append_scene_data_count_param_uploads(
         &self,
         uploads: &mut GpuSceneBufferUploadBatchBuilder,

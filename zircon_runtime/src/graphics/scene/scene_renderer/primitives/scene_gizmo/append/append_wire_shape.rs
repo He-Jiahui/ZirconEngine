@@ -9,6 +9,7 @@ use super::super::super::line_geometry::{
 const ARROW_LINE_VERTEX_CAPACITY: usize = 2;
 const FRUSTUM_VERTEX_CAPACITY: usize = 24;
 
+// 仅用于预留容量：视锥固定 24 顶点，箭头上界为 6；退化方向会省去 4 个头部顶点。
 pub(in crate::graphics::scene::scene_renderer::primitives::scene_gizmo) fn wire_shape_vertex_capacity(
     shape: &OverlayWireShape,
 ) -> usize {

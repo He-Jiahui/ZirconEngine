@@ -95,6 +95,7 @@ pub(super) fn append_sprite_image_vertices(
     vertices: &mut Vec<SpriteVertex>,
 ) {
     let base_rect = sprite_base_rect(sprite);
+    // 在切片遍历前构造一次世界变换，所有 tiled/sliced 子块共用它。
     let transform = sprite.transform.matrix();
     visit_sprite_image_slices(sprite.image_mode, base_rect, size, |slice| {
         append_sprite_quad_vertices(sprite, size, slice, &transform, vertices);

@@ -289,6 +289,8 @@ impl ResourceReadinessProjection {
         affected
     }
 
+    // 依赖版本追踪指纹变化，采用饱和递增；整行相等时复用旧行 Arc。
+    // 整个受影响集合均未变化时保留 generation 身份，供轮询识别无变化。
     fn publish_affected(&mut self, affected: HashSet<ResourceId>) {
         let mut ordered_affected = affected.iter().copied().collect::<Vec<_>>();
         ordered_affected.sort_unstable();
@@ -465,6 +467,8 @@ impl ResourceReadinessProjection {
         ));
     }
 
+    // 聚合使用显式遍历栈；自环和多节点环的递归依赖先视为 Failed，再向依赖者传播。
+    // 长链不消耗递归调用栈，闭环也不能互相证明 Loaded。
     fn compute_aggregates(
         &self,
         ordered_affected: &[ResourceId],

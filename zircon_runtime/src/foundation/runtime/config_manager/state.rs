@@ -124,6 +124,17 @@ impl ConfigPersistenceState {
     }
 }
 
+/// 从固定诊断窗口计算 nearest-rank 时延，供报告生成使用。
+///
+/// # 参数
+///
+/// - `samples`：纳秒样本，调用者须保持数量不超过 MAX_FLUSH_LATENCY_SAMPLES。
+/// - `percentile`：有效百分位整数；当前报告调用传入 95。
+///
+/// # 返回与参考
+///
+/// 空窗口返回 0.0，否则返回对应排名样本的毫秒值；排序只修改局部栈缓冲。
+/// 参见 [ConfigPersistenceState::report]。
 fn percentile_ms(samples: &VecDeque<u64>, percentile: usize) -> f64 {
     if samples.is_empty() {
         return 0.0;

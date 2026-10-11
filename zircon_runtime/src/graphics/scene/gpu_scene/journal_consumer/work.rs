@@ -104,6 +104,8 @@ impl<'journal> GpuSceneJournalRetirement<'journal> {
 
 /// 将一个已封存场景日志整理为按句柄槽位排序的驻留写入与退休清单。
 /// 后续 GPU 同步据 dirty 域决定是否重写变换或局部包围盒，避免把材质变更当作全量几何上传。
+/// 当前 renderer 的成员暂存只消费退休与驻留清单，具体 GPU 行仍由 mesh 准备比较镜像后上传。
+/// 域计数描述日志计划，不能用来判断对应 GPU 上传是否已被接受。
 #[derive(Debug)]
 pub(super) struct GpuSceneJournalWorkSet<'journal> {
     resident_writes: Vec<GpuSceneJournalResidentWrite<'journal>>,

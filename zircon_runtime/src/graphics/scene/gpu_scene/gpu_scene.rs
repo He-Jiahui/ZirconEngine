@@ -32,6 +32,8 @@ const GPU_SCENE_VISIBLE_INSTANCE_REMAP_FALLBACK_BYTES: u64 = 4;
 const GPU_SCENE_MORPH_FALLBACK_BYTES: u64 = 16;
 const GPU_SCENE_VIRTUAL_GEOMETRY_FALLBACK_BYTES: u64 = 16;
 
+/// 稳定键在当前场景中的索引与实例跨度副本；只在该注册仍有效时供写入和绘制使用。
+/// 跨度变化会退休旧注册，此值没有代数校验，调用方须取得当前 entry。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GpuSceneEntry {
     pub(crate) stable_instance_key: u64,
@@ -42,6 +44,8 @@ pub(crate) struct GpuSceneEntry {
     pub(crate) has_rolled_previous_transform: bool,
 }
 
+/// 保存最近一次刷新得到的存活数量与容量；分配高水位和可复用空闲跨度各有独立含义。
+/// dirty_entry_count 由刷新调用方传入，成功提交记录的是清脏前批次数量。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GpuSceneStats {
     pub(crate) primitive_count: u32,
@@ -71,6 +75,8 @@ impl GpuSceneUploadPath {
     }
 }
 
+/// 范围数统计 primitive、instance 和 light 三表，字节数可附加骨骼、morph 与 VG 上传。
+/// 有效计数 uniform 另行发送，未计入这些三表范围和字节统计。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GpuSceneUploadReport {
     pub(crate) upload_path: GpuSceneUploadPath,
@@ -93,6 +99,8 @@ impl GpuSceneUploadReport {
 /// unregister. Uploads use coordinator-batched range writes for small merged
 /// ranges and a persistent staging-copy ring for large frames; callers can
 /// feed full-frame extracts every frame without re-uploading unchanged entries.
+/// 准备上传仍保留脏状态，匹配批次被接受后才提交清理和延迟回收。
+/// 矩阵、骨骼及变形历史另在场景帧成功后滚动，供下一帧消费。
 pub(crate) struct GpuScene {
     pub(super) primitive_buffer: wgpu::Buffer,
     pub(super) instance_buffer: wgpu::Buffer,
@@ -158,6 +166,7 @@ impl GpuScene {
         initial_skinned_joint_palette_arena_buffer: Arc<wgpu::Buffer>,
         skinned_joint_palette_min_binding_size: wgpu::BufferSize,
     ) -> Self {
+        // 空场景也保留合法资源绑定；物理备用缓冲与有效行数分开维护，morph 初始逻辑容量仍为零。
         let primitive_buffer = create_storage_buffer(
             device,
             "zircon-gpu-scene-primitive-data",
@@ -307,6 +316,8 @@ impl GpuScene {
         }
     }
 
+    /// 为非零实例跨度建立稳定索引；同键同数量复用注册，数量变化则退休旧跨度再分配。
+    /// 新行进入待上传及历史初始化集合，尚未提交的释放槽位不会立即复用。
     pub(crate) fn register(
         &mut self,
         device: &wgpu::Device,
@@ -357,6 +368,8 @@ impl GpuScene {
         entry
     }
 
+    /// 退休注册及其矩阵、骨骼和变形历史；槽位在上传提交边界后才进入可复用集合。
+    /// 原始行不会清零，后续绘制必须按当前成员集取得索引。
     pub(crate) fn unregister(&mut self, stable_instance_key: u64) -> Option<GpuSceneEntry> {
         let entry = self.entries.remove(&stable_instance_key)?;
         self.pending_prev_transform_rolls
@@ -378,6 +391,7 @@ impl GpuScene {
         Some(entry)
     }
 
+    /// 用完整 draw 集合清理兼容抽取路径；journal 已接管驻留成员时，调用方跳过此清理。
     pub(crate) fn retain_registered_keys(&mut self, live_keys: &HashSet<u64>) {
         let stale_keys = self
             .entries
@@ -402,6 +416,8 @@ impl GpuScene {
             .retain(|key, _| live_keys.contains(key));
     }
 
+    /// 对已预检 journal 先退休再注册驻留成员，使临时不可见对象仍保有场景归属。
+    /// 真实 journal 游标由 renderer 在匹配场景提交凭据通过校验后发布。
     pub(crate) fn apply_journal_membership(
         &mut self,
         device: &wgpu::Device,
@@ -433,6 +449,7 @@ impl GpuScene {
         }
     }
 
+    /// entry 须仍属当前注册；写入时以已分配跨度校正业务行，只有值变化才标记上传。
     pub(crate) fn write_primitive(&mut self, entry: GpuSceneEntry, mut data: GpuPrimitiveData) {
         data.first_instance_index = entry.first_instance_index;
         data.instance_count = entry.instance_count;
@@ -444,6 +461,8 @@ impl GpuScene {
         }
     }
 
+    /// 输入须覆盖 entry 的完整实例跨度；写入校正 primitive 索引，保留调用方提供的历史矩阵。
+    /// 任何行变化都会标脏，只有当前世界矩阵变化才加入成功帧后的历史滚动集合。
     pub(crate) fn write_instances(&mut self, entry: GpuSceneEntry, data: &[GpuInstanceData]) {
         assert_eq!(
             data.len() as u32,
@@ -541,10 +560,12 @@ impl GpuScene {
         &self.scene_bind_group_layout
     }
 
+    /// 取本帧准备槽对应的绑定组，保持当前与历史骨骼缓冲方向一致。
     pub(crate) fn scene_bind_group(&self) -> &wgpu::BindGroup {
         &self.scene_bind_groups[self.skinned_palette_arena.staged_slot()]
     }
 
+    /// 为压缩执行绑定可见索引和 remap 模式，同时沿用本帧准备槽的两帧骨骼资源。
     pub(crate) fn create_scene_bind_group_for_visible_instance_remap(
         &self,
         device: &wgpu::Device,
@@ -584,6 +605,7 @@ impl GpuScene {
                 required_primitive_capacity,
                 GPU_SCENE_INITIAL_PRIMITIVE_CAPACITY,
             );
+            // 替换缓冲后须补写全部镜像；绑定组也要改指新资源，避免继续读取旧缓冲。
             self.primitive_buffer = create_storage_buffer(
                 device,
                 "zircon-gpu-scene-primitive-data",

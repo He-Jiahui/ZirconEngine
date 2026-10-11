@@ -26,6 +26,8 @@ struct GpuSceneStagedCopy {
 ///
 /// All copies in one frame reference a single immutable staging blob, so a
 /// later queue write cannot overwrite bytes needed by an earlier encoded copy.
+/// 复用 GPU 槽位和 copy 容器；encode 将本次 bytes 移入不可变 Arc，由上传批次持有。
+/// 三槽轮转不提供完成栅栏，调用方须维持 staging 写入与配套命令的提交顺序。
 pub(super) struct GpuSceneStagingRing {
     slots: Vec<wgpu::Buffer>,
     capacity_bytes: u64,
@@ -143,6 +145,7 @@ impl GpuSceneStagingRing {
                 .checked_mul(2)
                 .expect("gpu scene staging capacity overflowed u64");
         }
+        // 扩容只替换 ring 的 handle；之前的批次和命令继续持有克隆的旧 buffer，直到后端消费。
         self.slots.clear();
         for _ in 0..GPU_SCENE_STAGING_RING_SLOT_COUNT {
             self.slots

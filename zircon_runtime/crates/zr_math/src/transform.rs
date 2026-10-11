@@ -7,6 +7,7 @@ use thiserror::Error;
 
 const LOOK_AT_COLLINEAR_DOT_LIMIT: Real = 1.0 - 4.0 * Real::EPSILON;
 
+/// 可直接编辑的平移、旋转和缩放数据；需要拒绝无效 TRS 的调用者可用 validate 获得受检值。
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Transform {
     pub translation: Vec3,
@@ -93,6 +94,7 @@ impl Transform {
     /// Builds a camera transform and selects a deterministic orthogonal axis when the requested
     /// forward or up direction cannot define a basis. Use [`Self::try_looking_at`] when invalid
     /// input must be reported instead of recovered.
+    /// 相机便利构造在方向失败或共线时采用确定性基轴；eye 仍作为平移原样保存。
     pub fn looking_at(eye: Vec3, target: Vec3, up: Vec3) -> Self {
         let forward = (target - eye).try_normalize().unwrap_or(Vec3::NEG_Z);
         let requested_up = up.try_normalize().unwrap_or(Vec3::Y);
@@ -117,6 +119,7 @@ impl Transform {
         }
     }
 
+    /// 在无效相机输入必须报告时使用；按策略检查眼点、目标、方向、正交基和旋转的有限性与范数下限。
     pub fn try_looking_at(
         eye: Vec3,
         target: Vec3,
@@ -188,6 +191,7 @@ pub fn transform_to_mat4(transform: Transform) -> Mat4 {
     compose_trs(transform.translation, transform.rotation, transform.scale)
 }
 
+/// 对调用者已确认可逆的矩阵直接求逆；需要有限性、仿射形式和行列式检查时使用受检求逆入口。
 pub fn affine_inverse(matrix: Mat4) -> Mat4 {
     matrix.inverse()
 }
@@ -265,6 +269,8 @@ impl<'de> Deserialize<'de> for UnitQuaternion {
 pub struct ValidatedTransform(Transform);
 
 impl ValidatedTransform {
+    /// 在 TRS 进入受检边界时验证平移和缩放有限、每轴缩放超过策略下限，并归一化旋转。
+    /// 接纳后的值不等于矩阵求逆已通过，求逆仍需它自己的检查。
     pub fn try_new(transform: Transform, policy: NumericPolicy) -> Result<Self, NumericError> {
         if !is_finite_vec3(transform.translation) {
             return Err(NumericError::NonFinite {

@@ -1,3 +1,6 @@
+//! 维护场景表及变形、几何辅助表的 CPU 镜像、上传准备和成功帧后的历史状态。
+//! 绑定槽与行布局须和共享 WGSL 的 group 3 一致；资源及提交边界由各子模块协作维护。
+
 mod binding;
 mod bindless_material_payload;
 mod direct_upload;

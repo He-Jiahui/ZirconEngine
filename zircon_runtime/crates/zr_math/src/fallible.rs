@@ -87,6 +87,8 @@ impl ValidatedPerspective {
     }
 }
 
+/// 在需要报告求逆失败时使用：输入必须有限并精确满足仿射齐次行，行列式绝对值须超过策略下限。
+/// 成功只表示这些检查及逆矩阵有限性成立，不提供条件数或逆乘残差的误差界。
 pub fn try_affine_inverse(matrix: Mat4, policy: NumericPolicy) -> Result<Mat4, AffineInverseError> {
     if !is_finite_mat4(matrix) {
         return Err(AffineInverseError::NonFiniteInput);
@@ -120,6 +122,8 @@ fn is_affine_matrix(matrix: Mat4) -> bool {
         && matrix.w_axis.w == 1.0
 }
 
+/// 便利投影入口，仅把 aspect 和 near 限制到至少 0.001；调用者需保证 FOV、far 和结果符合相机契约。
+/// 需要拒绝非有限或退化输入时使用 [`try_perspective`]。
 pub fn perspective(fov_y_radians: Real, aspect_ratio: Real, z_near: Real, z_far: Real) -> Mat4 {
     Mat4::perspective_rh(
         fov_y_radians,
@@ -129,6 +133,8 @@ pub fn perspective(fov_y_radians: Real, aspect_ratio: Real, z_near: Real, z_far:
     )
 }
 
+/// 在输入来自可失败边界时构造常规透视矩阵：四个输入须有限，FOV 在 (0, PI) 内，aspect 和 near 为正且 far > near。
+/// 成功结果有限；该入口使用有限远平面的近到远深度约定。
 pub fn try_perspective(
     fov_y_radians: Real,
     aspect_ratio: Real,

@@ -1,3 +1,7 @@
+//! 准备 resident page table 与 cluster vec4 words 的上传事务。
+//! primitive 的 payload slot 索引 submission slot，page base 则索引 word 元素；每顶点占四个 word。
+//! 本帧有效数量须与这些写入同批更新，shader 据此排除 grow-only buffer 的旧尾部。
+
 use super::gpu_scene::{
     create_storage_buffer, grow_capacity, GpuScene, GPU_SCENE_INITIAL_VIRTUAL_GEOMETRY_CAPACITY,
 };
@@ -40,6 +44,7 @@ impl GpuScenePreparedVirtualGeometryUpload {
         self.report
     }
 
+    /// 返回本次候选数组的逻辑数量，供同一 prepared frame 写入 direct/remapped 参数；这不提交 shadow。
     pub(crate) const fn scene_data_counts(&self) -> [u32; 2] {
         [self.report.page_count, self.report.cluster_word_count]
     }
@@ -89,6 +94,7 @@ impl GpuScene {
         let cluster_buffer_replaced =
             required_cluster_capacity > self.virtual_geometry_clusters_capacity;
 
+        // 放弃准备不会恢复旧 handle；保留 full 标志，直到重试把新 buffer 的有效前缀提交。
         if page_buffer_replaced {
             self.virtual_geometry_pages_require_full_upload = true;
             self.virtual_geometry_pages_capacity = grow_capacity(

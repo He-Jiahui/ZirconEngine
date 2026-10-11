@@ -81,6 +81,7 @@ impl GpuSceneVisibleInstanceRemapParams {
     }
 }
 
+/// 创建实际场景使用的布局；骨骼缓冲的最小绑定大小须由资源拥有者提供。
 pub(crate) fn create_gpu_scene_bind_group_layout(
     device: &wgpu::Device,
     skinned_joint_palette_min_binding_size: wgpu::BufferSize,
@@ -91,6 +92,7 @@ pub(crate) fn create_gpu_scene_bind_group_layout(
     })
 }
 
+/// 组合完整场景绑定；调用者须提供同一准备槽对应的当前、历史骨骼缓冲及所需 remap 模式。
 pub(crate) fn create_gpu_scene_bind_group(
     device: &wgpu::Device,
     layout: &wgpu::BindGroupLayout,
@@ -145,6 +147,8 @@ pub(crate) fn create_gpu_scene_bind_group(
     })
 }
 
+/// 为实际布局和着色器契约投影提供同一份槽表。
+/// 实际骨骼容量由资源拥有者约束，管线投影会另行清除这两槽的最小绑定大小。
 pub(crate) fn gpu_scene_bind_group_layout_entries(
     skinned_joint_palette_min_binding_size: wgpu::BufferSize,
 ) -> [wgpu::BindGroupLayoutEntry; 12] {

@@ -11,6 +11,7 @@ use super::schema::{JournalDocument, JournalPhase, JournalState, TransactionFaul
 use super::stage::{copy_and_sync_hash, remove_reserved_if_exists, StagedFile};
 use crate::io::{publish_staged_file_for_transaction, replace_staged_file, sync_parent_directory};
 
+// 替换成功或可能已生效时才标记 committed；后续 retirement 删除或目录同步失败仍须回滚目标。
 pub(super) fn commit_file(
     staged: &mut StagedFile,
     fault: TransactionFault,

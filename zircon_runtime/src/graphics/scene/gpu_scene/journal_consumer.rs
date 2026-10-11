@@ -1,3 +1,6 @@
+//! 按 world 维护已接受的场景日志代数和句柄槽位身份；预检与暂存不发布这些状态。
+//! 槽位身份由 CPU 场景维护，设备行地址、上传和两帧历史分别由 GPUScene 与 renderer 管理。
+
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
@@ -284,6 +287,8 @@ impl<'journal, StageOutput> GpuSceneJournalStagedTransaction<'journal, StageOutp
     }
 }
 
+/// 在正式游标发布前持有日志，提交时按当前消费者重新预检。
+/// renderer 先在副本上投影待处理日志，匹配场景提交凭据校验后才发布正式游标。
 #[derive(Debug)]
 pub(crate) struct GpuSceneJournalOwnedStagedTransaction {
     journal: RenderSceneChangeJournal,
@@ -450,6 +455,8 @@ impl GpuSceneJournalConsumer {
         let mut projected_resident_count = self.resident_count;
         let mut direct_slot_validation_count = 0usize;
 
+        // 先投影退休槽，同一日志的新增对象才能以递增的 generation 复用旧槽。
+        // 饱和代数对应上游 CPU 场景中永不复用的退休槽，这里只保存投影后的身份。
         for removal in journal.removals() {
             let handle = removal.handle();
             let stable_instance_key = removal.primitive().stable_instance_key();

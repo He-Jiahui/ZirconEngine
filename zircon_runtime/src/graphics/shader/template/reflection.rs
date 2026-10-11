@@ -117,6 +117,8 @@ impl ShaderStageVisibility {
     }
 }
 
+/// module 与 module_info 必须来自同一次成功验证；每个入口记录自身可达资源及采样配对。
+/// 模块资源再合并 stage 可见性，供后续阶段接口和设备布局检查使用。
 pub(crate) fn reflect_validated_shader_module(
     module: &naga::Module,
     module_info: &naga::valid::ModuleInfo,
@@ -286,6 +288,7 @@ fn reflect_entry_point(
     }
 }
 
+// 有 binding 的值作为接口叶子，未绑定结构递归展开成员；这些信息共同供阶段连接和布局检查使用。
 fn reflect_stage_io(
     module: &naga::Module,
     name: Option<&str>,
@@ -409,6 +412,7 @@ fn hash_stage_io_slice(hasher: &mut blake3::Hasher, values: &[ShaderStageIoRefle
     }
 }
 
+// 使用的纹理与采样器配对也参与入口身份；相同绑定声明的 textureLoad 与过滤采样需要不同布局约束。
 fn shader_entry_resource_layout_hash(entry_point: &ShaderEntryPointReflection) -> [u8; 32] {
     let mut hasher = reflection_hasher(ENTRY_RESOURCE_LAYOUT_HASH_DOMAIN);
     hash_bytes(&mut hasher, entry_point.name.as_bytes());
@@ -456,6 +460,8 @@ fn hash_resource_binding_identity(
     hash_bool(hasher, identity.type_layout_requires_specialization);
 }
 
+// 缓存只属于当前模块，结构身份保留成员名、偏移、步长和资源类别。
+// pending 大小记录尚未特化的 override 身份；实际管线常量值仍须进入精确管线身份。
 fn shader_type_layout_hash(
     module: &naga::Module,
     handle: naga::Handle<naga::Type>,

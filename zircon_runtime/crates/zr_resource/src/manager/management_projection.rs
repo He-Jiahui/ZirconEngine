@@ -57,6 +57,8 @@ impl ResourceManagementProjection {
         self.generation.clone()
     }
 
+    // 同一批次按资源 ID 合并相对已发布行的最终差异；移除后还原会抵消变更。
+    // 最终差异为空时不发布新 generation，旧 Arc 身份保持不变。
     pub(super) fn apply_delta<'a>(
         &mut self,
         removed_ids: impl IntoIterator<Item = ResourceId>,
@@ -259,6 +261,8 @@ fn apply_projection_plan(
     ))
 }
 
+// 排序键未变时才进入此路径；未触及的页和行继续共享 Arc。
+// 两个分支只在查找成本上取舍，均保持原页内顺序。
 fn replace_ordered_page_rows(
     generation: &ResourceManagementGeneration,
     changes: &HashMap<ResourceId, ProjectedResourceChange>,
@@ -419,6 +423,8 @@ fn rebuild_id_shards(
     .into()
 }
 
+// 每个受影响分片先移除全部旧映射，再写入新映射；定位符交换或复用
+// 因而不依赖变更 HashMap 的遍历次序。
 fn sparse_locator_shards(
     generation: &ResourceManagementGeneration,
     changes: &HashMap<ResourceId, ProjectedResourceChange>,

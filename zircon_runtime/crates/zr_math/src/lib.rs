@@ -2,6 +2,9 @@
 
 //! Canonical math primitives, policies, and checked operations for Zircon.
 
+//! 提供共享数学值、数值阈值与受检运算；版本化的坐标、单位和精度契约由接口层定义。
+//! 当前运行时和渲染别名都使用 f32，各产品通过自己的数学公开入口使用这些定义。
+
 mod conventions;
 mod fallible;
 mod numeric_policy;
@@ -38,6 +41,7 @@ pub use transform::{
 
 pub use glam::{EulerRot, UVec2};
 
+/// 当前运行时标量采用 f32；精度枚举描述边界元数据，不会改变此别名的存储类型。
 pub type Real = f32;
 pub type Vec2 = glam::Vec2;
 pub type Vec3 = glam::Vec3;

@@ -1,3 +1,7 @@
+//! 将不同稳定实例的活动关节矩阵紧密打包到共享双缓冲。
+//! 实例参数使用矩阵元素基址与数量；shader 先用 instance index 取这段范围，再查 joint index。
+//! 有上一成功槽时 staging 选其另一槽；首次使用槽 0，成功后才推进 committed 身份与 spans。
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -78,6 +82,8 @@ impl GpuSceneSkinnedPaletteArena {
         self.staged_matrices.clear();
     }
 
+    /// storage 存在时先保留活动矩阵，再决定是否向当前 draw 暴露范围；
+    /// previous 使用上一成功帧自己的基址，不能沿用当前 packing 的 offset。
     pub(super) fn stage_palette(
         &mut self,
         stable_instance_key: u64,
@@ -127,6 +133,7 @@ impl GpuSceneSkinnedPaletteArena {
             );
         }
 
+        // 只上传活动矩阵前缀；from_bytes 会复制字节，因此下一次 begin_frame 重用 Vec 不会改变已准备批次。
         let mut batch = WgpuBufferUploadBatch::new();
         if required_bytes > 0 {
             batch.push(WgpuBufferUpload::from_bytes(
@@ -174,6 +181,7 @@ fn stage_palette_span(
     stable_instance_key: u64,
     storage: &SkinnedMeshJointPaletteStorage,
 ) -> SkinnedPaletteSpan {
+    // 同一帧相同稳定 key 的多个 draw 必须共用同一姿态；这里仅校验关节数量并复用首次写入的 span。
     if let Some(span) = staged_spans.get(&stable_instance_key).copied() {
         assert_eq!(
             span.joint_count,

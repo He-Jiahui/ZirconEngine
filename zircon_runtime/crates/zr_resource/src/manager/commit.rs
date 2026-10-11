@@ -147,6 +147,7 @@ impl ResourceManager {
             let authority = self.lock_authority_read();
             preflight(&authority.registry, batch.operations())?
         };
+        // 先按净变化数检查事件序列范围；预检只做准入，放弃批次不会消耗可用序列。
         let events = events_for_staged(&staged);
         let event_publish_permit = self.events.prepare_publish(events.len())?;
         Ok(PreparedResourceMutation {
@@ -427,6 +428,7 @@ fn effective_record(
         .unwrap_or_else(|| registry.get(id).cloned())
 }
 
+// 删除后保留最后有效记录作为再登记基线，延续同批次版本与显式重载准入。
 fn upsert_baseline_record(
     registry: &ResourceRegistry,
     staged: &StagedResources,
@@ -570,6 +572,7 @@ fn events_for_staged(staged: &StagedResources) -> Vec<ResourceEvent> {
         .collect()
 }
 
+// 事件只描述批次前后目录记录的净差异；仅替换载荷或改变驻留不会自动产生目录事件。
 fn event_for_staged_resource(entry: &StagedResource) -> Option<ResourceEvent> {
     let (kind, record, previous_locator) = match (&entry.before, &entry.record) {
         (None, Some(record)) => (ResourceEventKind::Added, record, None),
