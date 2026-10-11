@@ -51,6 +51,7 @@ fn render_rejects_a_manifest_that_weakens_a_required_provider() {
         .find(|entry| entry.path == "zircon-project.toml")
         .expect("embedded template manifest");
     let source = std::str::from_utf8(manifest.bytes).unwrap();
+    // 首个 required 字段属于 rendering；只弱化这一项，以触达必需 provider 的准入检查。
     let weakened = source.replacen("required = true", "required = false", 1);
 
     assert!(matches!(

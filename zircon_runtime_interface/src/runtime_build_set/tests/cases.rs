@@ -1,3 +1,6 @@
+//! 部分拒绝路径夹具重算内容摘要并由清单构造 expected，以越过前置检查、检查后续条件。
+//! 这里的自洽输入不能替代生产 Host 从可信构建来源取得的独立源码身份。
+
 use std::collections::BTreeSet;
 
 use super::{

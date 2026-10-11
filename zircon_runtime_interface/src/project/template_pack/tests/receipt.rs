@@ -1,3 +1,6 @@
+//! 校验 receipt 的身份保真、schema 严格性和创建引擎兼容。
+//! fixture 自行构造操作身份与 BuildSet，仅以这些值核对签发和解码契约。
+
 use uuid::Uuid;
 
 use crate::project::{

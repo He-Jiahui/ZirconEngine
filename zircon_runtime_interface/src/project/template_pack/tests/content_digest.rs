@@ -1,3 +1,6 @@
+//! 固定模板原始路径与字节的内容身份、声明顺序独立性和持久 hex 表示。
+//! 项目名称与 GUID 改写在渲染阶段进行，描述符仍引用改写前的嵌入包摘要。
+
 use super::ProjectTemplateContentDigest;
 
 #[test]

@@ -1,12 +1,34 @@
 use serde::{Deserialize, Serialize};
 
 /// 将编译期资源标记绑定到线格式资源种类，供类型化句柄和运行时种类校验共用。
+/// 把静态资源类型关联到记录使用的种类标签，供类型化句柄和载荷入口共同使用。
+///
+/// # 实现者责任
+///
+/// 实现者须满足 Send、Sync 与静态生命周期，并提供 `KIND`。该常量应与调用端提交的记录种类配对；它不是具体载荷类型的运行时证明。
+///
+/// # 调用者责任
+///
+/// 句柄转换可以比较种类标签；读取载荷时仍需管理器核对记录种类及实际载荷类型。多个具体资产类型可能共用同一 marker，不能只靠标签区分它们。
+///
+/// # 参考
+///
+/// [`crate::resource::ResourceKind`]、[`crate::resource::ResourceHandle`]、[`crate::resource::UntypedResourceHandle::typed`]。
 pub trait ResourceMarker: Send + Sync + 'static {
     const KIND: ResourceKind;
 }
 
 /// 注册表、资源事件和非类型化句柄之间传递的资源种类判别值。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// 为记录、事件和静态 marker 提供同一组资源种类标签。
+///
+/// # 使用与验证边界
+///
+/// 该枚举表达接口已声明的种类集合，不包含任意扩展类型的注册机制。种类相同不意味着具体载荷类型相同；共享 marker 的载荷仍由读取端作类型检查。
+///
+/// # 参考
+///
+/// [`crate::resource::ResourceMarker`]、[`crate::resource::ResourceRecord`]、[`crate::resource::ResourceEvent`]。
 pub enum ResourceKind {
     Data,
     Model,

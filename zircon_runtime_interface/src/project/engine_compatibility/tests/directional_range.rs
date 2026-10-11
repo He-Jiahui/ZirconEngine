@@ -1,3 +1,6 @@
+//! 直接检验方向分类的 caret 边界和上界溢出退让。
+//! 正常准入先由 VersionReq::matches 判定；这里绕过该入口调用内部辅助函数。
+
 use semver::{Version, VersionReq};
 
 use super::{caret_range, classify_incompatible_requirement};

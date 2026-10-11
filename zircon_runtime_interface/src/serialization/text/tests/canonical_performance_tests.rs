@@ -1,3 +1,6 @@
+//! 比较已解析 JSON Value 的规范化，并在计时前检查新旧结果相等。
+//! 输入克隆在计时外，计时包含结果析构；日志中的集合和改写次数是固定说明。
+
 use std::hint::black_box;
 use std::time::Instant;
 
