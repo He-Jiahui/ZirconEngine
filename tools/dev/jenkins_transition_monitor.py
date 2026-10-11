@@ -283,6 +283,15 @@ def issue_delta(previous: list[dict], current: list[dict]) -> dict:
     return {"notify": bool(changed or resolved), "newOrChanged": changed, "resolved": resolved}
 
 
+def reconcile_manifest(existing: dict | None, fresh: dict) -> dict:
+    """A new audit cannot erase pending ownership or scheduler handoff metadata."""
+    if existing is None:
+        return fresh
+    if any(existing.get(key) != fresh[key] for key in ("task_id", "owner", "source_root", "output_roots")):
+        raise ValueError("Existing report directory has a different task or owner")
+    return {**existing, "status": "active"}
+
+
 def run(repo: Path, output: Path | None = None, *, deep=False) -> dict:
     repo = inventory.physical_literal(repo)
     _, grants, config_hash = inventory.load_grants(repo)
@@ -298,7 +307,10 @@ def run(repo: Path, output: Path | None = None, *, deep=False) -> dict:
                               "depends_on": [str(repo / ".codex/config.toml")],
                               "review_after": (now + timedelta(days=30)).isoformat()}],
                 "unknown": [], "cleanup": {"deleted_files": 0, "deleted_bytes": 0}}
-    write_json(root / "artifacts.json", manifest, replace=True)
+    manifest_path = root / "artifacts.json"
+    manifest = reconcile_manifest(read_json(manifest_path) if manifest_path.exists() else None, manifest)
+    manifest["last_audit_started_at_utc"] = now.isoformat()
+    write_json(manifest_path, manifest, replace=True)
     report = {"schemaVersion": 1, "taskId": TASK_ID, "runId": run_id, "owner": OWNER,
               "observedAtUtc": now.isoformat(), "observedAtBeijing": now.astimezone(BEIJING).isoformat(),
               "repository": str(repo), "configSha256": config_hash, "mode": "deep" if deep else "fast",

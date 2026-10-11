@@ -62,6 +62,21 @@ class TransitionAuditTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 monitor.report_root(Path('E:/Git/ZirconEngine'), {'E:/cargo-targets/zircon-local': 'write'})
 
+    def test_next_run_preserves_unresolved_ownership_and_original_review_date(self):
+        base = {'task_id': monitor.TASK_ID, 'owner': monitor.OWNER, 'source_root': 'repo', 'output_roots': ['reports']}
+        old = {**base, 'unknown': [{'path': 'pending', 'reason': 'needs review'}],
+               'retained': [{'review_after': 'original-date'}], 'scheduler': {'task_name': 'registered-task'}}
+        fresh = {**base, 'unknown': [], 'retained': [{'review_after': 'new-date'}]}
+        result = monitor.reconcile_manifest(old, fresh)
+        self.assertEqual(result['unknown'], old['unknown'])
+        self.assertEqual(result['retained'], old['retained'])
+        self.assertEqual(result['scheduler'], old['scheduler'])
+
+    def test_existing_foreign_task_is_never_overwritten(self):
+        fresh = {'task_id': monitor.TASK_ID, 'owner': monitor.OWNER, 'source_root': 'repo', 'output_roots': ['reports']}
+        with self.assertRaises(ValueError):
+            monitor.reconcile_manifest({**fresh, 'owner': 'another-chat'}, fresh)
+
 
 if __name__ == '__main__':
     unittest.main()
