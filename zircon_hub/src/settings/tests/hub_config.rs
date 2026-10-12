@@ -1,6 +1,16 @@
 use super::*;
 use crate::state::HubMessage;
 
+#[cfg(windows)]
+#[test]
+fn first_launch_and_missing_output_setting_use_managed_build_storage() {
+    let expected = PathBuf::from("E:/cargo-targets/zircon-local/hub-build");
+    assert_eq!(HubSettings::default().default_build_output_dir, expected);
+
+    let config: HubConfig = toml::from_str("[settings]\n").unwrap();
+    assert_eq!(config.settings.default_build_output_dir, expected);
+}
+
 #[test]
 fn hub_config_round_trips_settings_and_engines() {
     let mut config = HubConfig::default();

@@ -30,6 +30,28 @@ fn runtime877_skeleton_path_borrowed_segments_preserves_exact_paths() {
 }
 
 #[test]
+fn runtime_skeleton_path_rejects_parent_cycles_and_out_of_range_indices() {
+    let cyclic = AnimationSkeletonAsset {
+        name: None,
+        bones: vec![bone("a", Some(1)), bone("b", Some(0))],
+    };
+    assert_eq!(skeleton_bone_path(&cyclic, 0), None);
+    assert_eq!(skeleton_bone_path(&cyclic, 1), None);
+
+    let self_parented = AnimationSkeletonAsset {
+        name: None,
+        bones: vec![bone("self", Some(0))],
+    };
+    assert_eq!(skeleton_bone_path(&self_parented, 0), None);
+
+    let invalid_parent = AnimationSkeletonAsset {
+        name: None,
+        bones: vec![bone("orphan", Some(u32::MAX))],
+    };
+    assert_eq!(skeleton_bone_path(&invalid_parent, 0), None);
+}
+
+#[test]
 #[ignore = "release percentile evidence; run through the managed Windows validation lane"]
 fn runtime877_skeleton_path_borrowed_segments_release_percentiles() {
     let skeleton = AnimationSkeletonAsset {

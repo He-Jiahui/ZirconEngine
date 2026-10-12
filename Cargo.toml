@@ -106,7 +106,9 @@ inherits = "release"
 opt-level = "z"
 lto = "fat"
 codegen-units = 1
-panic = "abort"
+# Native callbacks, task runners and systems report caught panics to the host.
+# Keep unwinding enabled so the shipping binaries retain those isolation guards.
+panic = "unwind"
 strip = "symbols"
 debug = false
 debug-assertions = false

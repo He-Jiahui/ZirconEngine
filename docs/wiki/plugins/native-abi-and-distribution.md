@@ -62,6 +62,8 @@ status: source-audited
 
 command manifest 当前 schema 为 `zircon.native.command-manifest/4`，registration manifest 为 `zircon.native.registration-manifest/3`。命令 slot 必须稠密且稳定；payload 是 borrowed byte slice，输出通过 `NativePluginOutputSinkV4` 写入。SDK 的 `callback_status` 返回 OK/ERROR/DENIED/PANIC 状态，`catch_native_callback_panic` 防止 Rust panic 穿越 C ABI。
 
+宿主的 `shipping` 和 `shipping-symbols` Cargo profile 使用 `panic = "unwind"`，保留插件回调、任务和系统的 panic 隔离。插件动态库也必须使用 unwind 策略：`catch_unwind` 无法截获以 abort 策略编译的 panic。回调应在 SDK 保护函数内执行，并将失败转成 ABI 状态，避免 unwind 穿越 `extern "C"` 边界。独立插件 workspace 的 profile 不继承宿主 workspace 的配置；发布插件时须核对它自己的实际编译策略。
+
 ## Bridge method
 
 `NativePluginBridgeMethodTableV3` 是一组 `NativePluginBridgeMethodV3`：每项声明 interface ID、method name、函数指针和 `user_data`。调用时 `NativePluginBridgeMethodCallV3` 带 interface/method slot、payload、输出缓冲引用及 user data。ABI 层只运输字节；序列化 schema、版本升级和上限检查由接口契约负责。

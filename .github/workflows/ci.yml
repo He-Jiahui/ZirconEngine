@@ -83,47 +83,35 @@ jobs:
   runtime-profile-feature-matrix:
     name: Runtime profile feature (${{ matrix.profile }})
     needs: runtime-profile-feature-matrix-plan
-    runs-on: ubuntu-latest
+    # Cargo output and toolchain caches must stay on the physical D: cargo root.
+    runs-on: [self-hosted, Windows, X64]
+    env:
+      CARGO_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\cargo-home
+      RUSTUP_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\rustup
+      TEMP: D:\\cargo-targets\\zircon-local\\tmp
+      TMP: D:\\cargo-targets\\zircon-local\\tmp
+      CARGO_TARGET_DIR: D:\\cargo-targets\\zircon-local\\ci\\profile-${{ matrix.profile }}\\target
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Linux system dependencies (runtime profile feature matrix)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libfontconfig-dev \
-            libudev-dev \
-            libinput-dev \
-            libdbus-1-dev \
-            libx11-dev \
-            libx11-xcb-dev \
-            libxcursor-dev \
-            libxcb1-dev \
-            libxcb-render0-dev \
-            libxcb-shape0-dev \
-            libxcb-xfixes0-dev \
-            libxkbcommon-dev \
-            libxkbcommon-x11-dev \
-            libwayland-dev \
-            xinput \
-            libasound2-dev
-
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo registry
-        uses: Swatinem/rust-cache@v2
+        uses: dtolnay/rust-toolchain@1.94.1
 
       - name: Check application profile preset
         run: cargo check -p zircon_app --lib --no-default-features --features "${{ matrix.cargo_feature }}" --locked --verbose
 
   runtime-domain-feature-matrix:
     name: Runtime additive domain (${{ matrix.feature }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Windows, X64]
+    env:
+      CARGO_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\cargo-home
+      RUSTUP_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\rustup
+      TEMP: D:\\cargo-targets\\zircon-local\\tmp
+      TMP: D:\\cargo-targets\\zircon-local\\tmp
+      CARGO_TARGET_DIR: D:\\cargo-targets\\zircon-local\\ci\\domain-${{ matrix.feature }}\\target
     strategy:
       fail-fast: false
       matrix:
@@ -154,7 +142,13 @@ jobs:
 
   rust:
     name: Rust build & test
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Windows, X64]
+    env:
+      CARGO_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\cargo-home
+      RUSTUP_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\rustup
+      TEMP: D:\\cargo-targets\\zircon-local\\tmp
+      TMP: D:\\cargo-targets\\zircon-local\\tmp
+      CARGO_TARGET_DIR: D:\\cargo-targets\\zircon-local\\ci\\rust\\target
     steps:
       - uses: actions/checkout@v5
 
@@ -162,28 +156,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install Linux system dependencies (winit / wgpu / retained UI)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libfontconfig-dev \
-            libudev-dev \
-            libinput-dev \
-            libdbus-1-dev \
-            libx11-dev \
-            libx11-xcb-dev \
-            libxcursor-dev \
-            libxcb1-dev \
-            libxcb-render0-dev \
-            libxcb-shape0-dev \
-            libxcb-xfixes0-dev \
-            libxkbcommon-dev \
-            libxkbcommon-x11-dev \
-            libwayland-dev \
-            xinput \
-            libasound2-dev
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@1.94.1
@@ -248,7 +220,13 @@ jobs:
 
   plugin-standalone-dist:
     name: Plugin standalone dist (${{ matrix.plugin_id }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Windows, X64]
+    env:
+      CARGO_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\cargo-home
+      RUSTUP_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\rustup
+      TEMP: D:\\cargo-targets\\zircon-local\\tmp
+      TMP: D:\\cargo-targets\\zircon-local\\tmp
+      CARGO_TARGET_DIR: D:\\cargo-targets\\zircon-local\\ci\\plugin-${{ matrix.plugin_id }}\\target
     strategy:
       fail-fast: false
       matrix:
@@ -339,10 +317,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo registry
-        uses: Swatinem/rust-cache@v2
+        uses: dtolnay/rust-toolchain@1.94.1
 
       - name: Check standalone dist package
         run: cargo check --manifest-path zircon_plugins/Cargo.toml -p ${{ matrix.package }} --no-default-features --features dist --locked --verbose
@@ -352,7 +327,13 @@ jobs:
 
   export-platform-contract:
     name: Export platform contract (${{ matrix.export-platform }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Windows, X64]
+    env:
+      CARGO_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\cargo-home
+      RUSTUP_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\rustup
+      TEMP: D:\\cargo-targets\\zircon-local\\tmp
+      TMP: D:\\cargo-targets\\zircon-local\\tmp
+      CARGO_TARGET_DIR: D:\\cargo-targets\\zircon-local\\ci\\export-${{ matrix.export-platform }}\\target
     strategy:
       fail-fast: false
       matrix:
@@ -360,33 +341,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Linux system dependencies (runtime export contract)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libfontconfig-dev \
-            libudev-dev \
-            libinput-dev \
-            libdbus-1-dev \
-            libx11-dev \
-            libx11-xcb-dev \
-            libxcursor-dev \
-            libxcb1-dev \
-            libxcb-render0-dev \
-            libxcb-shape0-dev \
-            libxcb-xfixes0-dev \
-            libxkbcommon-dev \
-            libxkbcommon-x11-dev \
-            libwayland-dev \
-            xinput \
-            libasound2-dev
-
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo registry
-        uses: Swatinem/rust-cache@v2
+        uses: dtolnay/rust-toolchain@1.94.1
 
       - name: Check export policy for ${{ matrix.export-platform }}
         env:

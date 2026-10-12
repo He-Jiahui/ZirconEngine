@@ -163,8 +163,14 @@ fn skeleton_bone_path(skeleton: &AnimationSkeletonAsset, index: usize) -> Option
     let bone = skeleton.bones.get(index)?;
     let mut segments = vec![bone.name.as_str()];
     let mut parent = bone.parent_index;
+    let mut visited = HashSet::with_capacity(skeleton.bones.len());
+    visited.insert(index);
     while let Some(parent_index) = parent {
-        let parent_bone = skeleton.bones.get(parent_index as usize)?;
+        let parent_index = usize::try_from(parent_index).ok()?;
+        if !visited.insert(parent_index) {
+            return None;
+        }
+        let parent_bone = skeleton.bones.get(parent_index)?;
         segments.push(parent_bone.name.as_str());
         parent = parent_bone.parent_index;
     }

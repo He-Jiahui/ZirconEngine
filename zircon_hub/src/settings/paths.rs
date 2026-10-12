@@ -13,8 +13,13 @@ pub fn default_source_dir() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("ZirconEngine"))
 }
 
-// BUG: [CR-HUBCORE-0001] Windows 默认值 USERPROFILE/ZirconBuilds 经 Hub 构建动作传为 `--out`，而 zircon_build.py 拒绝不在 D/E/F 盘根 cargo-targets 下的路径，首次构建直接失败；证据：hub_config.rs:312-336、build_actions.rs:121-136、tools/zircon_build.py:563-567。
 /// 源码构建的发布输出初始位置；必须与受管理构建根策略一致，调用方可在设置中覆盖。
+#[cfg(windows)]
+pub fn default_build_output_dir() -> PathBuf {
+    PathBuf::from("E:/cargo-targets/zircon-local/hub-build")
+}
+
+#[cfg(not(windows))]
 pub fn default_build_output_dir() -> PathBuf {
     user_home_dir()
         .map(|home| home.join("ZirconBuilds"))

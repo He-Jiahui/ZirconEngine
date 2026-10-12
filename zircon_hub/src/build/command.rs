@@ -26,6 +26,7 @@ impl BuildCommand {
             options
                 .source_dir
                 .join("tools")
+                .join("build")
                 .join("zircon_build.py")
                 .to_string_lossy()
                 .into_owned(),
