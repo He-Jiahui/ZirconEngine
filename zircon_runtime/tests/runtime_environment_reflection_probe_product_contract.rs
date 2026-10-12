@@ -25,6 +25,7 @@ use zircon_runtime::graphics::{
 };
 use zircon_runtime::render_graph::QueueLane;
 
+#[path = "support/mod.rs"]
 mod support;
 
 const OUTPUT_SIZE: UVec2 = UVec2::new(320, 240);

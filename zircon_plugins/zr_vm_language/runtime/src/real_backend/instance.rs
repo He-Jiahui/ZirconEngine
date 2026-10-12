@@ -1,3 +1,4 @@
+#[path = "state_encoding.rs"]
 mod state_encoding;
 
 pub(super) use state_encoding::ZrVmStateEncoding;

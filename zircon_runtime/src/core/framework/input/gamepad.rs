@@ -1,7 +1,12 @@
+#[path = "gamepad/axis/mod.rs"]
 mod axis;
+#[path = "gamepad/button/mod.rs"]
 mod button;
+#[path = "gamepad/device/mod.rs"]
 mod device;
+#[path = "gamepad/rumble/mod.rs"]
 mod rumble;
+#[path = "gamepad/value_scaling.rs"]
 mod value_scaling;
 
 pub use self::{

@@ -8,16 +8,16 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn workbench_shell_contract_is_rust_owned_and_asset_projected() {
-    let retained_host_mod = source("src/ui/retained_host/mod.rs");
-    let host_window = source("src/ui/retained_host/host_contract/window.rs");
-    let host_window_lifecycle = source("src/ui/retained_host/host_contract/window/lifecycle.rs");
-    let globals = source("src/ui/retained_host/host_contract/globals.rs");
-    let ui_context = source("src/ui/retained_host/host_contract/globals/ui_context.rs");
-    let pane_context = source("src/ui/retained_host/host_contract/globals/pane_context.rs");
-    let host_root = source("src/ui/retained_host/host_contract/data/host_root.rs");
-    let template_nodes = source("src/ui/retained_host/host_contract/data/template_nodes.rs");
+    let retained_host_mod = source("src/ui/retained/mod.rs");
+    let host_window = source("src/ui/retained/contract/window.rs");
+    let host_window_lifecycle = source("src/ui/retained/contract/window/lifecycle.rs");
+    let globals = source("src/ui/retained/contract/globals.rs");
+    let ui_context = source("src/ui/retained/contract/globals/ui_context.rs");
+    let pane_context = source("src/ui/retained/contract/globals/pane_context.rs");
+    let host_root = source("src/ui/retained/contract/data/host_root.rs");
+    let template_nodes = source("src/ui/retained/contract/data/nodes.rs");
     let template_node_data =
-        source("src/ui/retained_host/host_contract/data/template_nodes/node.rs");
+        source("src/ui/retained/contract/data/nodes/node.rs");
 
     let generated_include = [
         "crate::ui::retained_host::primitives::",
@@ -46,9 +46,9 @@ fn workbench_shell_assets_replace_deleted_shell_sources() {
                 "UiHostWindowRoot",
                 "WorkbenchBody",
                 "editor_workbench_strict.zui",
-                "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
-                "res://ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton",
-                "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem",
+                "res://ui/editor/workbench/primitives/inputs/icon_button.zui#WorkbenchIconButton",
+                "res://ui/editor/workbench/primitives/chrome/rail_button.zui#WorkbenchRailButton",
+                "res://ui/editor/workbench/primitives/feedback/status_item.zui#WorkbenchStatusItem",
                 "WorkbenchScaffold",
                 "StatusBarRoot",
             ] as &[_],

@@ -1,3 +1,4 @@
+#[path = "metrics.rs"]
 mod metrics;
 
 pub(crate) use metrics::{

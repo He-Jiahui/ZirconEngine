@@ -113,5 +113,5 @@ fn skeleton_bone_target_paths(
 }
 
 #[cfg(test)]
-#[path = "tests/target_path.rs"]
+#[path = "../tests/target_path.rs"]
 mod tests;

@@ -695,5 +695,5 @@ const fn default_renderer_data_document_version() -> u32 {
 }
 
 #[cfg(test)]
-#[path = "renderer_data_document/tests/borrowed_feature_name_tests.rs"]
+#[path = "tests/borrowed_feature_name.rs"]
 mod borrowed_feature_name_tests;

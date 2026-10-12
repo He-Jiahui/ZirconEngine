@@ -40,5 +40,5 @@ fn pass_type_from_token(token: &str) -> Option<ShaderPassType> {
 }
 
 #[cfg(test)]
-#[path = "pass_types/tests/borrowed_token_tests.rs"]
+#[path = "../../manifest/pass_types/tests/borrowed_token.rs"]
 mod borrowed_token_tests;

@@ -3,16 +3,19 @@ use std::collections::BTreeMap;
 use toml::Value;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiStyleSheet};
 
+#[path = "theme_authoring/action_projection.rs"]
 mod action_projection;
+#[path = "theme_authoring/merge.rs"]
 mod merge;
+#[path = "theme_authoring/promotion.rs"]
 mod promotion;
 
 #[cfg(test)]
-#[path = "theme_authoring/tests/refactor_label_cache_tests.rs"]
+#[path = "tests/refactor_label_cache.rs"]
 mod refactor_label_cache_tests;
 
 #[cfg(test)]
-#[path = "theme_authoring/tests/optimization_batch_je_editor644_tests.rs"]
+#[path = "tests/theme_authoring_perf.rs"]
 mod optimization_batch_je_editor644_tests;
 
 pub(crate) use promotion::{

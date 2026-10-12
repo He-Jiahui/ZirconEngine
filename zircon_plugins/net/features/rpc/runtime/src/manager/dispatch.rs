@@ -348,7 +348,7 @@ impl NetRpcRuntimeManager {
 }
 
 #[cfg(test)]
-#[path = "tests/dispatch_expiration_sweep_tests.rs"]
+#[path = "../tests/dispatch_expiration_sweep.rs"]
 mod expiration_sweep_tests;
 
 fn take_queued_invocations(
@@ -366,5 +366,5 @@ fn take_queued_invocations(
 }
 
 #[cfg(test)]
-#[path = "tests/dispatch_priority_queue_tests.rs"]
+#[path = "../tests/dispatch_priority_queue.rs"]
 mod priority_queue_tests;

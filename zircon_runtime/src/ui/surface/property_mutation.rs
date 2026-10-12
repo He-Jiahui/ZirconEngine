@@ -18,7 +18,9 @@ use crate::ui::binding::{
 
 use super::popup_stack::is_popup_stack_metadata;
 
+#[path = "property_mutation/metadata_batch.rs"]
 mod metadata_batch;
+#[path = "property_mutation/metadata_dirty.rs"]
 mod metadata_dirty;
 
 pub(crate) use self::metadata_batch::mutate_tree_metadata_properties;

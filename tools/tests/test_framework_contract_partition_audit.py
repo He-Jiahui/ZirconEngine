@@ -292,7 +292,7 @@ pub fn create() -> RuntimeService { RuntimeService }
         temp_parent = Path(__file__).resolve().parents[3]
         with tempfile.TemporaryDirectory(dir=temp_parent) as temp_directory:
             repo_root = Path(temp_directory)
-            framework_root = repo_root / "zircon_runtime/src/core/framework"
+            framework_root = repo_root / "zircon_runtime/src/core"
             graphics_root = repo_root / "zircon_runtime/src/graphics"
             framework_root.mkdir(parents=True)
             graphics_root.mkdir(parents=True)
@@ -343,7 +343,7 @@ pub fn create() -> RuntimeService { RuntimeService }
         temp_parent = Path(__file__).resolve().parents[3]
         with tempfile.TemporaryDirectory(dir=temp_parent) as temp_directory:
             repo_root = Path(temp_directory)
-            framework_root = repo_root / "zircon_runtime/src/core/framework"
+            framework_root = repo_root / "zircon_runtime/src/core"
             test_support_root = framework_root / "test_support"
             test_support_root.mkdir(parents=True)
             (framework_root / "mod.rs").write_text(

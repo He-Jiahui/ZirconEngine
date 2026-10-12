@@ -242,7 +242,7 @@ fn normalize_runtime_plugin_key(raw: &str) -> Option<Cow<'_, str>> {
 }
 
 #[cfg(test)]
-#[path = "plugin_id/tests/single_pass_normalization_tests.rs"]
+#[path = "../../ids/plugin_id/tests/single_pass_normalization.rs"]
 mod single_pass_normalization_tests;
 
 #[cfg(test)]

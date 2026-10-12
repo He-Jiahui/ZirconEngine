@@ -1,7 +1,12 @@
+#[path = "authoring_bindings.rs"]
 mod authoring_bindings;
+#[path = "capability.rs"]
 mod capability;
+#[path = "extension_ids.rs"]
 mod extension_ids;
+#[path = "live_output/mod.rs"]
 mod live_output;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use authoring_bindings::{

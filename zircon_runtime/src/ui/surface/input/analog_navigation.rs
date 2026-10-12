@@ -177,5 +177,5 @@ fn normalized_control_name(control: &str) -> Cow<'_, str> {
 }
 
 #[cfg(test)]
-#[path = "analog_navigation/tests/single_normalization_tests.rs"]
+#[path = "tests/single_normalization.rs"]
 mod single_normalization_tests;

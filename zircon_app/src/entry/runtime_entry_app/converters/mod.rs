@@ -1,8 +1,12 @@
 //! 宿主事件转换的叶模块出口；路由和失败策略由调用方持有。
 
+#[path = "abi.rs"]
 mod abi;
+#[path = "keyboard.rs"]
 mod keyboard;
+#[path = "pointer.rs"]
 mod pointer;
+#[path = "window.rs"]
 mod window;
 
 pub(super) use abi::{byte_slice, usize_to_u32};

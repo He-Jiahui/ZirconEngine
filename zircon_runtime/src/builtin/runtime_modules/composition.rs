@@ -1,5 +1,8 @@
+#[path = "composition/compiler.rs"]
 mod compiler;
+#[path = "composition/identity.rs"]
 mod identity;
+#[path = "composition/outcome.rs"]
 mod outcome;
 
 pub use compiler::RuntimeModuleCompositionCompiler;

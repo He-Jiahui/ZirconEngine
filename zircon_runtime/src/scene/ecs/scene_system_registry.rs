@@ -2,7 +2,9 @@ use std::{cmp::Ordering, fmt};
 
 use serde::{Deserialize, Serialize};
 
+#[path = "scene_system_registry/executable_returns.rs"]
 mod executable_returns;
+#[path = "scene_system_registry/runtime_system_slots.rs"]
 mod runtime_system_slots;
 
 pub(crate) use executable_returns::ExecutableReturnHandle;

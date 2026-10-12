@@ -1,6 +1,10 @@
+#[path = "trigger/event.rs"]
 mod event;
+#[path = "trigger/pair.rs"]
 mod pair;
+#[path = "trigger/point.rs"]
 mod point;
+#[path = "trigger/scan.rs"]
 mod scan;
 
 use zircon_runtime::core::framework::physics::{

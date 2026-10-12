@@ -30,11 +30,15 @@ use crate::graphics::{
 use super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
 
 const GPU_SCENE_TEST_WGSL: &str =
-    include_str!("../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+    include_str!("../scene/renderer/mesh/shaders/zr_gpu_scene.wgsl");
 
+#[path = "m4_behavior_layers/particles.rs"]
 mod particles;
+#[path = "m4_behavior_layers/postprocess.rs"]
 mod postprocess;
+#[path = "m4_behavior_layers/queue_override.rs"]
 mod queue_override;
+#[path = "m4_behavior_layers/transparent3d.rs"]
 mod transparent3d;
 
 #[test]

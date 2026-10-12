@@ -193,5 +193,5 @@ fn sort_assets_by_canonical_order(assets: &mut [AssetMutationAsset]) {
 }
 
 #[cfg(test)]
-#[path = "relocation_preflight/tests/optimization_batch_jg_runtime646_tests.rs"]
+#[path = "relocation_preflight/tests/perf.rs"]
 mod optimization_batch_jg_runtime646_tests;

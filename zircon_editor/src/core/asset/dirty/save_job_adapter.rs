@@ -303,7 +303,7 @@ fn first_completion_indices(
 }
 
 #[cfg(test)]
-#[path = "save_job_adapter/tests/indexed_completion_tests.rs"]
+#[path = "save_job_adapter/tests/indexed_completion.rs"]
 mod indexed_completion_tests;
 
 fn intent_estimated_bytes(intent: &SaveDirtyViewIntent) -> usize {

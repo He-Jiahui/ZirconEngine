@@ -286,7 +286,7 @@ fn unsupported_feature_reason(
 }
 
 #[cfg(test)]
-#[path = "compressed/tests/redundant_coverage_scan_tests.rs"]
+#[path = "../tests/redundant_coverage_scan.rs"]
 mod redundant_coverage_scan_tests;
 
 const fn mip_extent(value: u32, level: u32) -> u32 {

@@ -10,4 +10,4 @@ zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
 zircon_runtime = { workspace = true, features = ["graphics"] }
 
 [dev-dependencies]
-zircon_plugin_neural_post_process_runtime = { path = "../features/post_process/runtime" }
+zircon_plugin_neural_post_process_runtime = { path = "../features/post/runtime" }

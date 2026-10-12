@@ -22,11 +22,19 @@ use crate::scene::ecs::{
 };
 use crate::scene::{create_default_level, module_descriptor, NodeKind, World};
 
+#[path = "ecs_schedule/conflict_graph.rs"]
 mod conflict_graph;
+#[path = "ecs_schedule/fixed_update.rs"]
 mod fixed_update;
+#[path = "ecs_schedule/parallel_executor.rs"]
 mod parallel_executor;
+#[path = "ecs_schedule/render_extract.rs"]
 mod render_extract;
+#[path = "ecs_schedule/resources_events.rs"]
 mod resources_events;
+#[path = "ecs_schedule/schedule_plan.rs"]
 mod schedule_plan;
+#[path = "ecs_schedule/world_driver.rs"]
 mod world_driver;
+#[path = "ecs_schedule/world_time_controller.rs"]
 mod world_time_controller;

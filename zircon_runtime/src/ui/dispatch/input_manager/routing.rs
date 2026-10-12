@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::dispatch::UiInputRoutePolicy;
 
 #[cfg(test)]
-#[path = "routing/tests/route_stage_names_tests.rs"]
+#[path = "routing/tests/route_stage_names.rs"]
 mod route_stage_names_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

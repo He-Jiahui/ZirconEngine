@@ -1,0 +1,21 @@
+#[path = "../../../../../contract/pointer/tab_drag/payload/document/floating.rs"]
+mod floating;
+#[path = "document/root.rs"]
+mod root;
+
+use crate::ui::retained_host::host_contract::data::{HostWindowPresentationData, TabData};
+use crate::ui::retained_host::primitives::SharedString;
+
+use self::floating::floating_document_tab_drag_payload;
+use self::root::root_document_tab_drag_payload;
+
+pub(super) fn document_tab_drag_payload<'a>(
+    presentation: &'a HostWindowPresentationData,
+    surface_key: &SharedString,
+    index: usize,
+) -> Option<(&'a TabData, &'a SharedString)> {
+    if surface_key.as_str() == "document" || surface_key.as_str().starts_with("document:") {
+        return root_document_tab_drag_payload(presentation, surface_key.as_str(), index);
+    }
+    floating_document_tab_drag_payload(presentation, surface_key, index)
+}

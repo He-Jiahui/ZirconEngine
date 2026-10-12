@@ -16,19 +16,19 @@ const UI_PERSISTENT_SEQUENCE_DIRECTORY_FANOUT: usize = 32;
 const UI_PERSISTENT_SEQUENCE_MAX_DIRECTORY_DEPTH: usize = 16;
 
 #[cfg(test)]
-#[path = "persistent_sequence/tests/construction_performance_tests.rs"]
+#[path = "tests/construction_perf.rs"]
 mod construction_performance_tests;
 #[cfg(test)]
-#[path = "persistent_sequence/tests/deserialization_performance_tests.rs"]
+#[path = "tests/deserialization_perf.rs"]
 mod deserialization_performance_tests;
 #[cfg(test)]
-#[path = "persistent_sequence/tests/directory_performance_tests.rs"]
+#[path = "tests/directory_perf.rs"]
 mod directory_performance_tests;
 #[cfg(test)]
-#[path = "persistent_sequence/tests/extend_performance_tests.rs"]
+#[path = "persistent_sequence/tests/extend_perf.rs"]
 mod extend_performance_tests;
 #[cfg(test)]
-#[path = "persistent_sequence/tests/tail_segment_performance_tests.rs"]
+#[path = "tests/tail_segment_perf.rs"]
 mod tail_segment_performance_tests;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

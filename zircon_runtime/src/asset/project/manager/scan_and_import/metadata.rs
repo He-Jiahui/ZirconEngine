@@ -181,11 +181,11 @@ pub(super) fn importer_contract_matches(
 }
 
 #[cfg(test)]
-#[path = "metadata/tests/allocation_tests.rs"]
+#[path = "../metadata/tests/allocation.rs"]
 mod allocation_tests;
 
 #[cfg(test)]
-#[path = "tests/metadata_build_identity_tests.rs"]
+#[path = "../tests/metadata_build_identity.rs"]
 mod build_identity_tests;
 
 pub(super) fn build_identity_for_import(

@@ -131,5 +131,5 @@ fn attempt_descriptor_for_chunk(
 }
 
 #[cfg(test)]
-#[path = "tests/attempts_selected_attempt_url_tests.rs"]
+#[path = "../tests/attempt_url.rs"]
 mod selected_attempt_url_tests;

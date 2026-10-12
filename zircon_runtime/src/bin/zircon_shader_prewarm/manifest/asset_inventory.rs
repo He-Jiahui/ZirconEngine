@@ -1,6 +1,6 @@
-#[path = "asset_inventory/snapshot.rs"]
+#[path = "../../manifest/asset_inventory/snapshot.rs"]
 mod snapshot;
-#[path = "asset_inventory/traversal.rs"]
+#[path = "../../manifest/asset_inventory/traversal.rs"]
 mod traversal;
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -220,5 +220,5 @@ impl ShaderPrewarmAssetInventory {
 }
 
 #[cfg(test)]
-#[path = "asset_inventory/tests/cases.rs"]
+#[path = "../../manifest/asset_inventory/tests/cases.rs"]
 mod tests;

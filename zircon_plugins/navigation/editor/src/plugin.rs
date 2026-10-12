@@ -1,3 +1,4 @@
+#[path = "plugin/registration/mod.rs"]
 mod registration;
 
 use std::sync::{Arc, Mutex};

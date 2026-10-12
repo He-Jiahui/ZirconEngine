@@ -231,27 +231,27 @@ fn readback_no_private_map_async_source_scan() {
     let ordinary_consumers = [
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs"
+            "/../../src/graphics/scene/renderer/hzb/hzb_occlusion_culler.rs"
         )),
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs"
+            "/../../src/graphics/scene/mesh/mesh_pass/indirect_draw_execution.rs"
         )),
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/decode/read_buffer_u32s.rs"
+            "/../../../zircon_plugins/hybrid_gi/runtime/src/gi/renderer/decode/read_buffer_u32s.rs"
         )),
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/hybrid_gi_gpu_readback_future.rs"
+            "/../../../zircon_plugins/hybrid_gi/runtime/src/gi/hybrid_gi_gpu_readback_future.rs"
         )),
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/decode/read_buffer_u32s.rs"
+            "/../../../zircon_plugins/virtual_geometry/runtime/src/geometry/decode/read_buffer_u32s.rs"
         )),
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/pending_readback/collect.rs"
+            "/../../../zircon_plugins/virtual_geometry/runtime/src/geometry/pending_readback/collect.rs"
         )),
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -273,23 +273,23 @@ fn readback_no_private_map_async_source_scan() {
     let direct_storage_readback_sources = [
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/execute.rs"
+            "/../../../zircon_plugins/hybrid_gi/runtime/src/gi/renderer/gpu/execute/execute.rs"
         )),
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/mod.rs"
+            "/../../../zircon_plugins/hybrid_gi/runtime/src/gi/gpu/execute/create_buffers/mod.rs"
         )),
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs"
+            "/../../../zircon_plugins/hybrid_gi/runtime/src/gi/scene_prepare_trace_tiles.rs"
         )),
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/execute/execute.rs"
+            "/../../../zircon_plugins/virtual_geometry/runtime/src/geometry/gpu/execute/execute.rs"
         )),
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/execute_prepare/execute/create_buffers.rs"
+            "/../../../zircon_plugins/virtual_geometry/runtime/src/geometry/execute/create_buffers.rs"
         )),
     ];
     for source in direct_storage_readback_sources {

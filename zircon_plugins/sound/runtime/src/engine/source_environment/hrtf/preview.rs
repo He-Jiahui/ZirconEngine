@@ -1,5 +1,7 @@
 //! 找不到已加载配置时使用几何预览作为退路；预览依赖监听器声明的配置 ID，不能代替真实 HRIR。
+#[path = "preview/apply.rs"]
 mod apply;
+#[path = "../../hrtf/preview/profile.rs"]
 mod profile;
 
 use zircon_runtime::core::framework::sound::{SoundListenerDescriptor, SoundSourceDescriptor};

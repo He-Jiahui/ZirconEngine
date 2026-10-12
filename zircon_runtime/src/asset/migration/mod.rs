@@ -6,16 +6,27 @@
 //! artifacts; the normal preflight and idempotent migration pass then converges authoritative
 //! project files. Unprovable journals fail as [`AssetMigrationError::InvalidJournal`] before writes.
 
+#[path = "document.rs"]
 mod document;
+#[path = "error.rs"]
 mod error;
+#[path = "mode.rs"]
 mod mode;
+#[path = "options.rs"]
 mod options;
+#[path = "report.rs"]
 mod report;
+#[path = "resolver.rs"]
 mod resolver;
+#[path = "resolver_index.rs"]
 mod resolver_index;
+#[path = "run.rs"]
 mod run;
+#[path = "scan.rs"]
 mod scan;
+#[path = "sidecar.rs"]
 mod sidecar;
+#[path = "transaction.rs"]
 mod transaction;
 
 pub use error::{AssetMigrationError, AssetMigrationTransactionPhase};

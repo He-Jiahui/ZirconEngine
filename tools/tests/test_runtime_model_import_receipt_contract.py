@@ -30,11 +30,11 @@ class RuntimeModelImportReceiptContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         implementation = (
             REPO_ROOT
-            / "zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs"
+            / "zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs"
         ).read_text(encoding="utf-8")
         publication = (
             REPO_ROOT
-            / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/resource_publication.rs"
+            / "zircon_runtime/src/asset/pipeline/manager/assets/resource_publication.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("fn import_model_source", contract)
@@ -49,15 +49,15 @@ class RuntimeModelImportReceiptContractTests(unittest.TestCase):
     def test_model_transaction_suppresses_its_own_watcher_echoes(self) -> None:
         implementation = (
             REPO_ROOT
-            / "zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs"
+            / "zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs"
         ).read_text(encoding="utf-8")
         runtime = (
             REPO_ROOT
-            / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs"
+            / "zircon_runtime/src/asset/pipeline/manager/assets/runtime.rs"
         ).read_text(encoding="utf-8")
         echoes = (
             REPO_ROOT
-            / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/source_write_watch_echo.rs"
+            / "zircon_runtime/src/asset/pipeline/manager/assets/source_write_watch_echo.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("register_transaction_watch_echoes(source_watch_echoes)", implementation)
@@ -91,10 +91,10 @@ class RuntimeModelImportReceiptContractTests(unittest.TestCase):
 
     def test_retained_host_no_longer_stages_or_imports_models_directly(self) -> None:
         workspace = (
-            REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/workspace.rs"
+            REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/workspace.rs"
         ).read_text(encoding="utf-8")
         helpers = (
-            REPO_ROOT / "zircon_editor/src/ui/retained_host/app/helpers.rs"
+            REPO_ROOT / "zircon_editor/src/ui/retained/app/helpers.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("submit_model_import", workspace)
@@ -107,7 +107,7 @@ class RuntimeModelImportReceiptContractTests(unittest.TestCase):
 
     def test_committed_model_receipt_refreshes_the_editor_catalog_without_watcher_echoes(self) -> None:
         workspace = (
-            REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/workspace.rs"
+            REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/workspace.rs"
         ).read_text(encoding="utf-8")
         completion = workspace.split("fn complete_model_import(", 1)[1].split(
             "pub(in crate::ui::retained_host::app) fn sync_asset_workspace", 1
@@ -123,7 +123,7 @@ class RuntimeModelImportReceiptContractTests(unittest.TestCase):
 
     def test_import_owner_projects_terminal_results_to_the_import_log_channel(self) -> None:
         workspace = (
-            REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/workspace.rs"
+            REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/workspace.rs"
         ).read_text(encoding="utf-8")
         diagnostics = (
             REPO_ROOT / "zircon_editor/src/core/asset/import_flow/diagnostics.rs"
@@ -160,10 +160,10 @@ class RuntimeModelImportReceiptContractTests(unittest.TestCase):
 
     def test_project_close_defers_release_until_model_import_reaches_terminal_state(self) -> None:
         workspace = (
-            REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/workspace.rs"
+            REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/workspace.rs"
         ).read_text(encoding="utf-8")
         project_close = (
-            REPO_ROOT / "zircon_editor/src/ui/retained_host/app/project_close.rs"
+            REPO_ROOT / "zircon_editor/src/ui/retained/app/project_close.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("fn cancel_pending_model_import", workspace)
@@ -183,7 +183,7 @@ class RuntimeModelImportReceiptContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         manager = (
             REPO_ROOT
-            / "zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/mod.rs"
+            / "zircon_editor/src/ui/host/assets/manager/assets/mod.rs"
         ).read_text(encoding="utf-8")
         job = (
             REPO_ROOT / "zircon_editor/src/core/asset/import_flow/job.rs"

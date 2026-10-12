@@ -1,5 +1,8 @@
+#[path = "contract.rs"]
 mod contract;
+#[path = "noop.rs"]
 mod noop;
+#[path = "report.rs"]
 mod report;
 
 pub use contract::{PlayBackend, SharedPlayBackend};

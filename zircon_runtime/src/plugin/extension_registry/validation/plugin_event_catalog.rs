@@ -120,5 +120,5 @@ fn invalid_plugin_event_catalog<T>(message: String) -> Result<T, RuntimeExtensio
 }
 
 #[cfg(test)]
-#[path = "tests/plugin_event_catalog_optimization_tests.rs"]
+#[path = "../../validation/tests/event_catalog_perf.rs"]
 mod optimization_tests;

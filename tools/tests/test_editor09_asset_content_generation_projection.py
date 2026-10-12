@@ -14,7 +14,7 @@ class Editor09AssetContentGenerationProjectionContract(unittest.TestCase):
         activity = self.read("zircon_editor/src/ui/layouts/views/assets_activity.rs")
         browser = self.read("zircon_editor/src/ui/layouts/views/asset_browser.rs")
         composition = self.read(
-            "zircon_editor/src/ui/layouts/views/view_projection/"
+            "zircon_editor/src/ui/layouts/views/"
             "projection_composition.rs"
         )
 
@@ -33,11 +33,11 @@ class Editor09AssetContentGenerationProjectionContract(unittest.TestCase):
 
     def test_painter_consumers_do_not_scan_or_parse_the_model(self) -> None:
         projector = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs"
         )
         scrollbar = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/native_panes/scrollbar/asset.rs"
         ).split("#[cfg(test)]", 1)[0]
 
@@ -73,18 +73,18 @@ class Editor09AssetContentGenerationProjectionContract(unittest.TestCase):
 
     def test_old_painter_owned_identity_parser_is_deleted(self) -> None:
         identity = ROOT / (
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/docks/pane/template_nodes/asset_content/identity.rs"
         )
         self.assertFalse(identity.exists())
 
     def test_draw_pipeline_supports_exact_generation_row_visits(self) -> None:
         transform = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_template_nodes/template_node_pipeline/transform.rs"
         )
         draw = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_template_nodes/template_node_pipeline/draw.rs"
         )
 
@@ -117,7 +117,7 @@ class Editor09AssetContentGenerationProjectionContract(unittest.TestCase):
         activity = self.read("zircon_editor/src/ui/layouts/views/assets_activity.rs")
         browser = self.read("zircon_editor/src/ui/layouts/views/asset_browser.rs")
         projector = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs"
         )
         evidence_gate = self.read("tools/profiling/ui/ui-profile-counter-evidence.ps1")

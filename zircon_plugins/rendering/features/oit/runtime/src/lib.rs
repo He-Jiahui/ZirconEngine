@@ -6,7 +6,9 @@ use zircon_runtime::graphics::{
 };
 use zircon_runtime::render_graph::{QueueLane, RenderGraphAttachmentOps};
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};

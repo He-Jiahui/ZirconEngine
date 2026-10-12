@@ -1,41 +1,77 @@
 //! Dynamic runtime session composition and owner routing.
 
+#[path = "session/composition_receipt.rs"]
 mod composition_receipt;
+#[path = "session/construction.rs"]
 mod construction;
+#[path = "session/diagnostics.rs"]
 mod diagnostics;
+#[path = "session/editor_transform.rs"]
 mod editor_transform;
+#[path = "session/error.rs"]
 mod error;
+#[path = "session/event_mirror.rs"]
 mod event_mirror;
+#[path = "session/events.rs"]
 mod events;
+#[path = "session/extract.rs"]
 mod extract;
+#[path = "session/extract_cache.rs"]
 mod extract_cache;
+#[path = "session/extract_stats.rs"]
 mod extract_stats;
+#[path = "session/ffi.rs"]
 mod ffi;
+#[path = "session/highlight_set.rs"]
 mod highlight_set;
+#[path = "session/host_requests.rs"]
 mod host_requests;
+#[path = "session/hud.rs"]
 mod hud;
+#[path = "session/ime_composition_configuration.rs"]
 mod ime_composition_configuration;
+#[path = "session/ime_composition_generation.rs"]
 mod ime_composition_generation;
+#[path = "session/ime_composition_route.rs"]
 mod ime_composition_route;
+#[path = "session/input_events.rs"]
 mod input_events;
+#[path = "session/linked_plugins.rs"]
 mod linked_plugins;
+#[path = "session/linked_session.rs"]
 mod linked_session;
+#[path = "session/menu.rs"]
 mod menu;
+#[path = "session/operation.rs"]
 mod operation;
+#[path = "session/preview.rs"]
 mod preview;
+#[path = "session/profile.rs"]
 mod profile;
+#[path = "session/project.rs"]
 mod project;
+#[path = "session/registry/mod.rs"]
 mod registry;
+#[path = "session/runtime_ui.rs"]
 mod runtime_ui;
+#[path = "session/scene_asset_reload_diagnostics.rs"]
 mod scene_asset_reload_diagnostics;
+#[path = "session/script_systems.rs"]
 mod script_systems;
+#[path = "session/shutdown.rs"]
 mod shutdown;
+#[path = "session/state.rs"]
 mod state;
+#[path = "session/status.rs"]
 mod status;
 #[cfg(test)]
+#[path = "session/tests/mod.rs"]
 mod tests;
+#[path = "session/ui_extract_cache.rs"]
 mod ui_extract_cache;
+#[path = "session/viewport_pick.rs"]
 mod viewport_pick;
+#[path = "session/world_sync.rs"]
 mod world_sync;
 
 use zircon_runtime_interface::{

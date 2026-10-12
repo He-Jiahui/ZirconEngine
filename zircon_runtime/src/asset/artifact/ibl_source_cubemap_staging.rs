@@ -18,6 +18,7 @@ use crate::core::resource::io::transaction::{
     DurableCommitReport, DurableTransactionError, PreparedFileWrite, TransactionFault,
 };
 
+#[path = "ibl_source_cubemap_staging/bundle_recovery.rs"]
 mod bundle_recovery;
 
 use bundle_recovery::{

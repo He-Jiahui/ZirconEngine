@@ -4,8 +4,8 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / "zircon_editor/src/ui/retained_host/host_contract/data/welcome.rs"
-APPLY = ROOT / "zircon_editor/src/ui/retained_host/ui/apply_presentation.rs"
+DATA = ROOT / "zircon_editor/src/ui/retained/contract/data/welcome.rs"
+APPLY = ROOT / "zircon_editor/src/ui/retained/ui/apply_presentation.rs"
 PAINT = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome"
 )

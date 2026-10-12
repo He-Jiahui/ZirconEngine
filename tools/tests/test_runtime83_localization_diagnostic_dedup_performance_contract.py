@@ -50,7 +50,7 @@ class Runtime83LocalizationDiagnosticDedupPerformanceContractTests(unittest.Test
         second_insert = dependency.rindex("emitted_diagnostics.insert(identity)")
         self.assertLess(valid_return, second_insert)
         self.assertIn("diagnostics.sort();", source)
-        performance = (ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve/tests/performance_tests.rs").read_text(encoding="utf-8")
+        performance = (ROOT / "zircon_runtime/src/ui/template/asset/localization/resolve/tests/perf.rs").read_text(encoding="utf-8")
         self.assertIn("legacy_diagnostic_constructions={}", performance)
         self.assertIn("optimized_diagnostic_constructions=1", performance)
 

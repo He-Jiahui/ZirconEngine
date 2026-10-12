@@ -245,5 +245,5 @@ impl RenderMaterialTextureSlotState {
 mod tests;
 
 #[cfg(test)]
-#[path = "texture_slot_summary/tests/dimension_kind_tests.rs"]
+#[path = "tests/dimension_kind.rs"]
 mod dimension_kind_tests;

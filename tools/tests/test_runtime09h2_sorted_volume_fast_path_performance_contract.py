@@ -4,7 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 EVALUATOR_RS = ROOT / (
-    "zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs"
+    "zircon_runtime/src/core/framework/render/post/volume_evaluator.rs"
 )
 SCENE_PRODUCER_RS = ROOT / (
     "zircon_runtime/src/scene/world/render_post_process.rs"

@@ -1,5 +1,8 @@
+#[path = "mesh.rs"]
 mod mesh;
+#[path = "output.rs"]
 mod output;
+#[path = "texture.rs"]
 mod texture;
 
 pub use mesh::{

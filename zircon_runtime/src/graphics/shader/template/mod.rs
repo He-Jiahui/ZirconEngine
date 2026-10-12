@@ -1,13 +1,21 @@
 //! 汇合材质、几何、pass 与着色模型来源，并保留有序模块身份和诊断分段。
 //! 运行时渲染和 IDE 共用装配结果；Naga 验证及目标设备布局检查由后续入口完成。
 
+#[path = "assemble.rs"]
 mod assemble;
+#[path = "deferred_gbuffer.rs"]
 mod deferred_gbuffer;
+#[path = "material_surface.rs"]
 mod material_surface;
+#[path = "module_registry.rs"]
 mod module_registry;
+#[path = "pass_specialization.rs"]
 mod pass_specialization;
+#[path = "reflection.rs"]
 mod reflection;
+#[path = "taa_reactive_mask.rs"]
 mod taa_reactive_mask;
+#[path = "validation.rs"]
 mod validation;
 
 #[cfg(test)]

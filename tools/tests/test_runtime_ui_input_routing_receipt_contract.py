@@ -23,7 +23,7 @@ DYNAMIC_RUNTIME_UI = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui.r
 DYNAMIC_RUNTIME_UI_INPUT_ROUTING = (
     ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs"
 )
-EDITOR_SHELL = ROOT / "zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs"
+EDITOR_SHELL = ROOT / "zircon_editor/src/ui/retained/shell_pointer/bridge.rs"
 SURFACE_ROUTING = ROOT / "zircon_runtime/src/ui/surface/surface/event_routing.rs"
 
 

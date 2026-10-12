@@ -6,7 +6,7 @@ from tools.analysis.performance.editor.editor_interactive_frame_commit_pressure 
 
 
 ROOT = Path(__file__).resolve().parents[2]
-EDITOR = ROOT / "zircon_editor/src/ui/retained_host"
+EDITOR = ROOT / "zircon_editor/src/ui/retained"
 HOST = EDITOR / "host_contract"
 
 

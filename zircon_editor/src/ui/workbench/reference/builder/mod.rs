@@ -1,5 +1,7 @@
 //! 构造可比较的静态工作台参考树；区域、控件身份和路径供布局及命中测试复用。
+#[path = "nodes.rs"]
 mod nodes;
+#[path = "panels.rs"]
 mod panels;
 
 use zircon_runtime::ui::surface::UiSurface;

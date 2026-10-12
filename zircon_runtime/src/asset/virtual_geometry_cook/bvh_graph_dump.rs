@@ -111,5 +111,5 @@ fn write_line(graph: &mut String, args: std::fmt::Arguments<'_>) {
 }
 
 #[cfg(test)]
-#[path = "bvh_graph_dump/tests/capacity_tests.rs"]
+#[path = "bvh_graph_dump/tests/capacity.rs"]
 mod capacity_tests;

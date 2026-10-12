@@ -1,3 +1,4 @@
+#[path = "runtime/shutdown.rs"]
 mod shutdown;
 
 pub use shutdown::ModuleShutdownReport;

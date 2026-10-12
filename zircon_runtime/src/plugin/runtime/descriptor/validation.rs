@@ -1,0 +1,45 @@
+#[path = "validation/crate_name.rs"]
+mod crate_name;
+#[path = "validation/display.rs"]
+mod display;
+#[path = "validation/target_modes.rs"]
+mod target_modes;
+
+use super::super::{
+    package_validation::{
+        validate_runtime_plugin_default_packaging, validate_runtime_plugin_package_id,
+    },
+    RuntimePlugin,
+};
+use crate::core::framework::platform::RuntimeTargetMode;
+
+// 注册报告先校验描述符身份与默认策略，再校验其投影出的包清单；诊断累积而不在首错处中断。
+pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_descriptor(
+    plugin: &dyn RuntimePlugin,
+    diagnostics: &mut Vec<String>,
+) {
+    let descriptor = plugin.descriptor();
+    validate_runtime_plugin_package_id(
+        "runtime plugin descriptor",
+        "package_id",
+        &descriptor.package_id,
+        diagnostics,
+    );
+    display::validate_runtime_plugin_display_field(
+        "display_name",
+        &descriptor.display_name,
+        diagnostics,
+    );
+    crate_name::validate_runtime_plugin_descriptor_crate_name(&descriptor.crate_name, diagnostics);
+    target_modes::validate_runtime_plugin_descriptor_target_modes(
+        &descriptor.target_modes,
+        diagnostics,
+    );
+    validate_runtime_plugin_default_packaging(
+        "descriptor",
+        &descriptor.default_packaging,
+        diagnostics,
+    );
+}
+
+pub(super) type DescriptorTargetMode = RuntimeTargetMode;

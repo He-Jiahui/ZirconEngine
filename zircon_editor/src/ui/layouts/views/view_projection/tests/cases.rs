@@ -608,7 +608,7 @@ fn agent_chat_view_projection_preserves_authored_messages_for_native_painter() {
     projection_cache::clear_for_tests();
     let nodes = build_view_template_nodes(
         "view.v2.mui_x_agent_chat.message_projection",
-        "/assets/ui/editor/material_components/mui_x/material_mui_x_agent_chat.zui",
+        "/assets/ui/editor/material_components/mui_x/agent_chat.zui",
         &[],
         UiSize::new(360.0, 520.0),
         &BTreeMap::new(),

@@ -1,10 +1,11 @@
 //! 专用 worker 的 socket 所有者，单线程串行处理 TCP/UDP 命令，内部 Tokio runtime 只执行实际 I/O。
 //! 与 HTTP/WS 共用 manager 拥有的 Tokio I/O driver；feature 不直接触摸 worker socket 表。
 
+#[path = "transport_runtime/dispatch.rs"]
 mod dispatch;
 
 #[cfg(test)]
-#[path = "transport_runtime/tests/performance_tests.rs"]
+#[path = "transport_runtime/tests/perf.rs"]
 mod performance_tests;
 
 use std::collections::HashMap;

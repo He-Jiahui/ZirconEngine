@@ -2,8 +2,8 @@
 related_code:
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/module/level_manager_project_io.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/read.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/write.rs
+  - zircon_runtime/src/scene/dynamic/document/read.rs
+  - zircon_runtime/src/scene/dynamic/document/write.rs
   - zircon_runtime/src/asset/project/manager/durable_transaction.rs
   - zircon_runtime/src/core/resource/io/mod.rs
 implementation_files:
@@ -13,7 +13,7 @@ plan_sources:
   - user: 2026-09-09 场景序列化、持久化与崩溃恢复详解
 tests:
   - zircon_runtime/src/scene/tests/component_structure/project_serialization.rs
-  - zircon_runtime/src/asset/project/manifest/save/tests/borrowed_serialization_tests.rs
+  - zircon_runtime/src/asset/project/manifest/save/tests/borrowed_serialization.rs
 doc_type: workflow-detail
 ---
 

@@ -36,7 +36,7 @@ class Editor04PlayHierarchyDomainContractTests(unittest.TestCase):
         self.assertNotIn("EditorState.world", route + projection)
 
     def test_retained_tick_ticks_runtime_before_domain_hierarchy_sync(self) -> None:
-        tick = read("zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs")
+        tick = read("zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs")
         runtime_tick = tick.index("self.runtime.pump_runtime_event_consumers()")
         hierarchy_sync = tick.index("self.sync_active_hierarchy_world();")
 
@@ -45,7 +45,7 @@ class Editor04PlayHierarchyDomainContractTests(unittest.TestCase):
 
     def test_terminal_paths_retire_play_world_watches_before_backend_retirement(self) -> None:
         runtime_consumers = read(
-            "zircon_editor/src/ui/host/editor_host_event_controller/runtime_event_consumers.rs"
+            "zircon_editor/src/ui/editor_host_event_controller/runtime_event_consumers.rs"
         )
         terminal = runtime_consumers.index("self.shutdown_play_world_sync();")
         detach = runtime_consumers.index("self.detach_terminal_play_gateway()")
@@ -63,10 +63,10 @@ class Editor04PlayHierarchyDomainContractTests(unittest.TestCase):
 
     def test_failed_play_projection_remains_retryable(self) -> None:
         watch = read(
-            "zircon_editor/src/ui/retained_host/app/hierarchy_world_watch.rs"
+            "zircon_editor/src/ui/retained/app/hierarchy_world_watch.rs"
         )
         refresh = read(
-            "zircon_editor/src/ui/retained_host/app/host_lifecycle/scene_hierarchy_refresh.rs"
+            "zircon_editor/src/ui/retained/app/host_lifecycle/scene_hierarchy_refresh.rs"
         )
 
         self.assertIn("projection_pending: bool", watch)

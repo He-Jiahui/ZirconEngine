@@ -658,5 +658,5 @@ impl AoHistoryKey {
 }
 
 #[cfg(test)]
-#[path = "ambient_occlusion/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

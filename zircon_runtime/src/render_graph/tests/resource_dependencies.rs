@@ -6,8 +6,11 @@ use crate::render_graph::{
 };
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
 
+#[path = "resource_dependencies/texture_aspects.rs"]
 mod texture_aspects;
+#[path = "texture_view_alias_roots.rs"]
 mod texture_view_alias_roots;
+#[path = "typed_external_roots.rs"]
 mod typed_external_roots;
 
 fn non_cullable() -> PassFlags {

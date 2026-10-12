@@ -20,5 +20,5 @@ impl ViewRegistry {
 }
 
 #[cfg(test)]
-#[path = "view_registry_register_view/tests/entry_tests.rs"]
+#[path = "registry_register_view/tests/entry.rs"]
 mod entry_tests;

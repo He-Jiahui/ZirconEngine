@@ -130,5 +130,5 @@ impl AssetSourceAuthority {
 }
 
 #[cfg(test)]
-#[path = "source_authority/tests/fixed_root_classification_tests.rs"]
+#[path = "source_authority/tests/fixed_root_classification.rs"]
 mod fixed_root_classification_tests;

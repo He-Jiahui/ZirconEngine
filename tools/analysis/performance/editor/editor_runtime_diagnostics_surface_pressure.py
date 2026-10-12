@@ -16,11 +16,11 @@ from typing import Any
 
 
 SOURCE_PATHS = (
-    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs",
-    "zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/surface.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/node.rs",
+    "zircon_editor/src/ui/retained/ui/data/runtime_diagnostics.rs",
+    "zircon_editor/src/ui/retained/ui/apply_presentation/pane_conversion.rs",
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/node.rs",
+    "zircon_editor/src/ui/retained/contract/node/surface_frame_builder/surface.rs",
+    "zircon_editor/src/ui/retained/contract/node/surface_frame_builder/node.rs",
     "dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/FastUpdate/SlateInvalidationRoot.cpp",
 )
 

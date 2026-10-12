@@ -109,5 +109,5 @@ impl EditorRuntimeEventConsumerHost {
 }
 
 #[cfg(test)]
-#[path = "tests/contribution_lifecycle.rs"]
+#[path = "../../host/tests/contribution_lifecycle.rs"]
 mod tests;

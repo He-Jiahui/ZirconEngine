@@ -137,5 +137,5 @@ fn runtime_modules_for_manifest_and_availability(
 }
 
 #[cfg(test)]
-#[path = "tests/target_modules_optimization_tests.rs"]
+#[path = "tests/target_modules_perf.rs"]
 mod optimization_tests;

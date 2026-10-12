@@ -158,5 +158,5 @@ fn close_sessions_for_connections(
 }
 
 #[cfg(test)]
-#[path = "tests/session_batched_transport_close_tests.rs"]
+#[path = "../tests/session_batched_transport.rs"]
 mod batched_transport_close_tests;

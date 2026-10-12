@@ -9,12 +9,19 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+#[path = "../source_cubemap/irradiance_sh9.rs"]
 mod irradiance_sh9;
+#[path = "source_cubemap/mipmap.rs"]
 mod mipmap;
+#[path = "source_cubemap/pmrem.rs"]
 mod pmrem;
+#[path = "../source_cubemap/pmrem_layout.rs"]
 mod pmrem_layout;
+#[path = "../source_cubemap/projection.rs"]
 mod projection;
+#[path = "source_cubemap/rebuild.rs"]
 mod rebuild;
+#[path = "source_cubemap/sampling.rs"]
 mod sampling;
 
 use irradiance_sh9::source_cubemap_irradiance_sh9_from_texels;
@@ -774,5 +781,5 @@ fn average_last_mip_faces(texels: &mut [[Real; 4]], face_size: u32, mip_count: u
 }
 
 #[cfg(test)]
-#[path = "source_cubemap/tests/cases.rs"]
+#[path = "../tests/source_cubemap_cases.rs"]
 mod tests;

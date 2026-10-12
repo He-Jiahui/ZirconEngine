@@ -680,5 +680,5 @@ pub(super) fn validate_plugin_system_id(id: &str) -> Result<(), RuntimeExtension
 }
 
 #[cfg(test)]
-#[path = "system_registration/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

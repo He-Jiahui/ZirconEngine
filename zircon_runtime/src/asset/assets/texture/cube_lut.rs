@@ -232,5 +232,5 @@ fn float_to_unorm8(value: f32) -> u8 {
 mod tests;
 
 #[cfg(test)]
-#[path = "cube_lut/tests/optimization_batch_jb_runtime641_tests.rs"]
+#[path = "cube_lut/tests/perf.rs"]
 mod optimization_batch_jb_runtime641_tests;

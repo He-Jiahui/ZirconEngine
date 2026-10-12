@@ -13,7 +13,7 @@ use zircon_runtime::scene::LevelSystem;
 use super::AnimationEvaluationPipeline;
 
 #[cfg(test)]
-#[path = "sequences/tests/performance_tests.rs"]
+#[path = "sequences/tests/perf.rs"]
 mod optimization_batch_20260830cq_tests;
 
 #[derive(Debug)]

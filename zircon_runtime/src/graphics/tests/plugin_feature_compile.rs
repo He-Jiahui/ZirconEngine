@@ -19,6 +19,7 @@ use crate::render_graph::{
     RenderGraphResourceAccessKind,
 };
 
+#[path = "plugin_feature_compile/particle.rs"]
 mod particle;
 
 const TEST_PLUGIN_CONTROL_BUFFER_BYTES: u64 = 16;

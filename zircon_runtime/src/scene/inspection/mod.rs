@@ -1,8 +1,12 @@
 //! Runtime world inspection snapshots built from ECS hierarchy and reflection state.
 
+#[path = "artifact/mod.rs"]
 mod artifact;
+#[path = "hierarchy.rs"]
 mod hierarchy;
+#[path = "snapshot.rs"]
 mod snapshot;
+#[path = "subscription.rs"]
 mod subscription;
 
 #[cfg(test)]

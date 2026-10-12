@@ -4,7 +4,7 @@ use std::sync::{Arc, Condvar, Mutex};
 use zircon_runtime::plugin::PluginModuleId;
 
 #[cfg(test)]
-#[path = "execution_gate/tests/canonical_owner_tests.rs"]
+#[path = "execution_gate/tests/canonical_owner.rs"]
 mod canonical_owner_tests;
 
 #[derive(Clone, Debug, Default)]

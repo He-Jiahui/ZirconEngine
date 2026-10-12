@@ -465,5 +465,5 @@ fn merge_render_patch_ranges(ranges: &mut Vec<Range<usize>>) {
 }
 
 #[cfg(test)]
-#[path = "tests/frame_publication_optimization_tests.rs"]
+#[path = "tests/frame_publication_perf.rs"]
 mod optimization_tests;

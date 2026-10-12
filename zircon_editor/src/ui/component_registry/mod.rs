@@ -1,3 +1,4 @@
+#[path = "registry.rs"]
 mod registry;
 
 pub(crate) use registry::retained_component_registry;

@@ -1,3 +1,4 @@
+#[path = "boolean/raw.rs"]
 mod raw;
 
 pub(in super::super) fn bool_from_plugin_toml(value: &str) -> bool {

@@ -1,13 +1,22 @@
 //! Bounded decoding, ownership, metrics, and protocol state for runtime-owned outputs.
 
+#[path = "budget.rs"]
 mod budget;
+#[path = "decode.rs"]
 mod decode;
+#[path = "error.rs"]
 mod error;
+#[path = "item_count.rs"]
 mod item_count;
+#[path = "kind.rs"]
 mod kind;
+#[path = "metrics.rs"]
 mod metrics;
+#[path = "owned_buffer.rs"]
 mod owned_buffer;
+#[path = "policy.rs"]
 mod policy;
+#[path = "state.rs"]
 mod state;
 
 pub use budget::{RuntimeForeignOutputBudget, RUNTIME_FOREIGN_OUTPUT_JSON_MAX_NESTING_DEPTH};

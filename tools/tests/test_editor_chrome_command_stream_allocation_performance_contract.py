@@ -7,18 +7,18 @@ from tools.analysis.performance.editor.editor_chrome_command_stream_allocation_p
 
 ROOT = Path(__file__).resolve().parents[2]
 CHROME_STREAM = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs"
+    "zircon_editor/src/ui/retained/contract/chrome_command_stream/mod.rs"
 )
 EXTRACTION = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "chrome_command_stream/extraction/entry.rs"
 )
 STREAM_MODEL = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "chrome_command_stream/stream/model.rs"
 )
 STREAM_TESTS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "chrome_command_stream/tests/stream_model.rs"
 )
 
@@ -80,7 +80,7 @@ class EditorChromeCommandStreamAllocationPerformanceContractTests(unittest.TestC
 
         push = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/"
+            / "zircon_editor/src/ui/retained/contract/"
             "chrome_command_stream/stream/push/command.rs"
         ).read_text(encoding="utf-8")
         append = push.split("fn push_command", 1)[1]

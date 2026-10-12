@@ -141,7 +141,7 @@ fn editor_host_build_does_not_compile_or_stage_retained_sources() {
 fn retained_host_module_exports_rust_owned_contracts_without_generated_modules() {
     let host_module = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/mod.rs"
+        "/src/ui/retained/mod.rs"
     ));
 
     assert!(
@@ -165,19 +165,19 @@ fn retained_host_module_exports_rust_owned_contracts_without_generated_modules()
 fn rust_owned_host_contract_declares_window_globals_and_projection_data() {
     let window = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/host_contract/window.rs"
+        "/src/ui/retained/contract/window.rs"
     ));
     let globals = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/host_contract/globals.rs"
+        "/src/ui/retained/contract/globals.rs"
     ));
     let host_components = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/host_contract/data/host_components.rs"
+        "/src/ui/retained/contract/data/host_components.rs"
     ));
     let host_root = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/host_contract/data/host_root.rs"
+        "/src/ui/retained/contract/data/host_root.rs"
     ));
 
     for required in [
@@ -230,7 +230,7 @@ fn rust_owned_host_contract_declares_window_globals_and_projection_data() {
 fn rust_owned_host_window_run_uses_native_event_loop() {
     let window = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/host_contract/window.rs"
+        "/src/ui/retained/contract/window.rs"
     ));
 
     for required in [
@@ -257,7 +257,7 @@ fn rust_owned_host_window_run_uses_native_event_loop() {
 fn rust_owned_host_window_wait_cycle_does_not_unconditionally_request_redraw() {
     let window = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/host_contract/window.rs"
+        "/src/ui/retained/contract/window.rs"
     ));
     let about_to_wait = window
         .split("fn about_to_wait")
@@ -320,7 +320,7 @@ fn generic_host_catalog_uses_shared_runtime_component_names() {
     let forbidden = [legacy_icon_button, legacy_label];
     let scanned_roots = [
         manifest_dir.join("assets/ui/editor/host"),
-        manifest_dir.join("src/ui/template_runtime/retained_adapter.rs"),
+        manifest_dir.join("src/ui/runtime/retained_adapter.rs"),
         manifest_dir.join("src/tests/host/template_runtime"),
         manifest_dir.join("src/tests/ui/template"),
     ];
@@ -344,7 +344,7 @@ fn builtin_host_runtime_exposes_only_generic_host_window_document_id() {
     let legacy_constant = ["LEGACY_HOST_WINDOW", "DOCUMENT_ID"].join("_");
     let forbidden = [legacy_document_id, legacy_constant];
     let scanned_roots = [
-        manifest_dir.join("src/ui/template_runtime"),
+        manifest_dir.join("src/ui/runtime"),
         manifest_dir.join("src/tests/host/template_runtime"),
         manifest_dir.join("src/tests/ui/template"),
     ];

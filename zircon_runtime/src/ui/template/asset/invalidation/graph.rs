@@ -141,5 +141,5 @@ fn full_rebuild_stages() -> BTreeSet<UiInvalidationStage> {
 }
 
 #[cfg(test)]
-#[path = "graph/tests/full_rebuild_tests.rs"]
+#[path = "graph/tests/full_rebuild.rs"]
 mod full_rebuild_tests;

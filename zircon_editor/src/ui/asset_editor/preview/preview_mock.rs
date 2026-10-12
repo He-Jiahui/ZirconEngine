@@ -8,6 +8,7 @@ use toml::Value;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiNodeDefinition};
 
+#[path = "preview_mock/entries.rs"]
 mod entries;
 #[path = "mock_expression.rs"]
 mod mock_expression;

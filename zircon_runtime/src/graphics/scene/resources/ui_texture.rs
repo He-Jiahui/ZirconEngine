@@ -11,6 +11,7 @@ use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiVisualAssetRef};
 
 use super::{GpuTextureResource, ResourceStreamer};
 
+#[path = "ui_texture/prepare_receipt.rs"]
 mod prepare_receipt;
 
 pub(in crate::graphics::scene) use prepare_receipt::UiTexturePrepareReceipt;

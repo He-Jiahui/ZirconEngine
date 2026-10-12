@@ -82,9 +82,9 @@ REQUIRED_COUNTERS = (
 )
 
 CRITICAL_SOURCE_FILES = (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/image.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/text/segment_cache.rs",
 )
 
 

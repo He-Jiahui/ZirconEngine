@@ -12,7 +12,7 @@ use super::{
 };
 
 #[cfg(test)]
-#[path = "property_uniform/tests/override_index_tests.rs"]
+#[path = "tests/override_index.rs"]
 mod override_index_tests;
 
 // CPU-side material property bytes are prepared once during resource streaming

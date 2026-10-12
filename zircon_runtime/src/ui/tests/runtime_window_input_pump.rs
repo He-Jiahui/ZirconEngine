@@ -24,8 +24,11 @@ use zircon_runtime_interface::ui::{
     },
 };
 
+#[path = "runtime_window_input_pump/lifecycle.rs"]
 mod lifecycle;
+#[path = "runtime_window_input_pump/metrics_dirty.rs"]
 mod metrics_dirty;
+#[path = "runtime_window_input_pump/pointer_routes.rs"]
 mod pointer_routes;
 
 fn route_surface() -> UiSurface {

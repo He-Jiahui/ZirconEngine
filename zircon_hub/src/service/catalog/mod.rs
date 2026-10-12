@@ -9,6 +9,7 @@ use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::Path};
 
+#[path = "artifacts.rs"]
 pub mod artifacts;
 
 #[derive(Deserialize)]

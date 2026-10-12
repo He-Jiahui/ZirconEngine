@@ -1,0 +1,19 @@
+//! 对话框与动作的语义颜色出口，供容器、正文和动作提交共享使用。
+
+#[path = "colors/actions.rs"]
+mod actions;
+#[path = "colors/border.rs"]
+mod border;
+#[path = "colors/surface.rs"]
+mod surface;
+#[path = "colors/text.rs"]
+mod text;
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use actions::{
+    cancel_action_paint, confirm_action_paint, dialog_action_paint, DialogActionPaint,
+};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use border::dialog_border_color;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use surface::dialog_surface_color;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use text::{
+    dialog_body_color, dialog_title_color,
+};

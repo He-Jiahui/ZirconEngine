@@ -738,7 +738,7 @@ pub(super) fn runtime_api_supports_viewport_surface_present(
 }
 
 #[cfg(all(test, target_os = "windows", feature = "dynamic-api"))]
-#[path = "loaded_runtime/tests/surface_teardown_fixture.rs"]
+#[path = "../loaded_runtime/tests/surface_teardown_fixture.rs"]
 pub(in crate::entry) mod surface_teardown_fixture;
 
 #[cfg(test)]

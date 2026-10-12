@@ -5,7 +5,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::time::Duration;
 
+#[path = "sink/metrics.rs"]
 mod metrics;
+#[path = "sink/worker.rs"]
 mod worker;
 
 pub use metrics::DiagnosticLogSinkSnapshot;
@@ -789,4 +791,5 @@ fn sanitize_channel_name(channel: String) -> String {
 }
 
 #[cfg(test)]
+#[path = "sink/tests/mod.rs"]
 mod tests;

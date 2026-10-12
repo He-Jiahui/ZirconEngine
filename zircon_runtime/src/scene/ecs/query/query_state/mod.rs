@@ -1,13 +1,23 @@
 // QueryState 子模块分别负责计划、缓存、访问模式和系统参数；本文件只汇总公开入口。
+#[path = "archetype_plan.rs"]
 mod archetype_plan;
+#[path = "cache.rs"]
 mod cache;
+#[path = "cached_direct.rs"]
 mod cached_direct;
+#[path = "many_item_array.rs"]
 mod many_item_array;
+#[path = "mutable.rs"]
 mod mutable;
+#[path = "read_only.rs"]
 mod read_only;
+#[path = "read_only_cached.rs"]
 mod read_only_cached;
+#[path = "state.rs"]
 mod state;
+#[path = "stats.rs"]
 mod stats;
+#[path = "system_param.rs"]
 mod system_param;
 
 pub(crate) use archetype_plan::{

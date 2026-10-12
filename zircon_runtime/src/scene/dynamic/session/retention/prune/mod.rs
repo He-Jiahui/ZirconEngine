@@ -1,0 +1,15 @@
+#[path = "global/mod.rs"]
+mod global;
+#[path = "planning.rs"]
+mod planning;
+#[path = "tag/mod.rs"]
+mod tag;
+
+pub(in crate::scene::dynamic_scene::session) use global::{preview_prune_slots, prune_slots};
+pub use planning::RuntimeSessionArchivePrunePlan;
+pub(in crate::scene::dynamic_scene::session) use planning::{
+    prepare_prune_slots, prepare_prune_slots_with_tag, preview_matching_slots_after_upsert,
+};
+pub(in crate::scene::dynamic_scene::session) use tag::{
+    preview_prune_slots_with_tag, prune_slots_with_tag,
+};

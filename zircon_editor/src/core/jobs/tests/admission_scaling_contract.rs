@@ -7,7 +7,11 @@ pub(super) use super::super::{
     EditorJobSpec, JobCategory, JobContext, JobError, JobPriority, JobSubmitError,
 };
 
+#[path = "admission_scaling_contract/indexed.rs"]
 mod indexed;
+#[path = "admission_scaling_contract/keyed.rs"]
 mod keyed;
+#[path = "admission_scaling_contract/reservation.rs"]
 mod reservation;
+#[path = "admission_scaling_contract/support.rs"]
 mod support;

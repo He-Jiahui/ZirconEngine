@@ -10,6 +10,7 @@ use crate::text::{FontFaceId, InstancedFaceId};
 
 use super::{shared_font_collection_service, FontCollectionService};
 
+#[path = "handle_registry/resolver_snapshot.rs"]
 mod resolver_snapshot;
 pub(crate) use resolver_snapshot::{
     font_handle_resolver_snapshot, resolve_font_handle_batch_from_snapshot,

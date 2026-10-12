@@ -268,5 +268,5 @@ fn default_functional_windows() -> Vec<EditorFunctionalWindowPreset> {
 mod tests;
 
 #[cfg(test)]
-#[path = "design_stack/tests/default_panel_index_tests.rs"]
+#[path = "design_stack/tests/default_panel_index.rs"]
 mod default_panel_index_tests;

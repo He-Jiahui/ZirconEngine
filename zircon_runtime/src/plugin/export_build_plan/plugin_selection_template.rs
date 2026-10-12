@@ -12,7 +12,7 @@ use super::{ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};
 use crate::plugin::PluginPackageRole;
 
 #[cfg(test)]
-#[path = "plugin_selection_template/tests/direct_string_vec_tests.rs"]
+#[path = "tests/direct_string_vec.rs"]
 mod direct_string_vec_tests;
 
 pub(super) fn plugin_selection_template(

@@ -11,23 +11,23 @@ fn graphics_surface_keeps_viewport_frame_and_icon_source_internal() {
     let graphics_scene_mod_source =
         std::fs::read_to_string(runtime_root.join("src/graphics/scene/mod.rs")).unwrap_or_default();
     let scene_renderer_mod_source =
-        std::fs::read_to_string(runtime_root.join("src/graphics/scene/scene_renderer/mod.rs"))
+        std::fs::read_to_string(runtime_root.join("src/graphics/scene/renderer/mod.rs"))
             .unwrap_or_default();
     let overlay_mod_source = std::fs::read_to_string(
-        runtime_root.join("src/graphics/scene/scene_renderer/overlay/mod.rs"),
+        runtime_root.join("src/graphics/scene/renderer/overlay/mod.rs"),
     )
     .unwrap_or_default();
     let icon_source_mod_source = std::fs::read_to_string(
-        runtime_root.join("src/graphics/scene/scene_renderer/overlay/icon_source/mod.rs"),
+        runtime_root.join("src/graphics/scene/renderer/overlay/icon_source/mod.rs"),
     )
     .unwrap_or_default();
     let icon_source_trait_source = std::fs::read_to_string(
         runtime_root
-            .join("src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs"),
+            .join("src/graphics/scene/overlay/icon_source/viewport_icon_source.rs"),
     )
     .unwrap_or_default();
     let new_with_icon_source_source = std::fs::read_to_string(runtime_root.join(
-        "src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs",
+        "src/graphics/scene_renderer_construct/new_with_icon_source.rs",
     ))
     .unwrap_or_default();
 

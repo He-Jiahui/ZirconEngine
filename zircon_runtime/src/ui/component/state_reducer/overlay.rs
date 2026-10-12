@@ -3,10 +3,10 @@ use zircon_runtime_interface::ui::component::{
 };
 
 #[cfg(test)]
-#[path = "overlay/tests/borrowed_confirm_action_tests.rs"]
+#[path = "../overlay/tests/borrowed_confirm_action.rs"]
 mod borrowed_confirm_action_tests;
 #[cfg(test)]
-#[path = "overlay/tests/borrowed_state_key_tests.rs"]
+#[path = "../overlay/tests/borrowed_state_key.rs"]
 mod borrowed_state_key_tests;
 
 pub(super) fn open_popup(

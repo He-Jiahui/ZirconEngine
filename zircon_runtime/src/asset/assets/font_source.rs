@@ -13,6 +13,7 @@ use budget::{
     validate_woff2_declared_decoded_bytes, FontSourceBudget, FONT_SOURCE_BUDGET,
 };
 
+#[path = "font_source/budget.rs"]
 mod budget;
 
 const SFNT_CHECKSUM_MAGIC: u32 = 0xB1B0_AFBA;

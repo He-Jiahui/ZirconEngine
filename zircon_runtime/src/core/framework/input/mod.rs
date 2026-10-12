@@ -1,27 +1,49 @@
 //! 定义平台输入经运行时归一化后的共享数据和服务契约：事件进入管理器，帧快照供动作求值与回放读取。
 //! 设备采样、队列保留及动作求值的状态所有权位于 `crate::input::runtime`。
 
+#[path = "button_input_state.rs"]
 mod button_input_state;
+#[path = "cursor.rs"]
 mod cursor;
+#[path = "event_retention/mod.rs"]
 mod event_retention;
+#[path = "file_drag_drop.rs"]
 mod file_drag_drop;
+#[path = "gamepad.rs"]
 mod gamepad;
+#[path = "ime.rs"]
 mod ime;
+#[path = "input_action.rs"]
 mod input_action;
+#[path = "input_action_context.rs"]
 mod input_action_context;
+#[path = "input_action_manager.rs"]
 mod input_action_manager;
+#[path = "input_action_map.rs"]
 mod input_action_map;
+#[path = "input_action_state.rs"]
 mod input_action_state;
+#[path = "input_binding.rs"]
 mod input_binding;
+#[path = "input_button.rs"]
 mod input_button;
+#[path = "input_event.rs"]
 mod input_event;
+#[path = "input_event_record.rs"]
 mod input_event_record;
+#[path = "input_frame_snapshot.rs"]
 mod input_frame_snapshot;
+#[path = "input_manager.rs"]
 mod input_manager;
+#[path = "input_snapshot.rs"]
 mod input_snapshot;
+#[path = "module_identity.rs"]
 mod module_identity;
+#[path = "mouse_wheel.rs"]
 mod mouse_wheel;
+#[path = "touch.rs"]
 mod touch;
+#[path = "window_status.rs"]
 mod window_status;
 
 pub use button_input_state::ButtonInputState;

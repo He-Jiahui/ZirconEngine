@@ -1,8 +1,14 @@
+#[path = "font/mod.rs"]
 pub mod font;
+#[path = "geometry.rs"]
 mod geometry;
+#[path = "rich.rs"]
 pub mod rich;
+#[path = "shaped_run.rs"]
 pub mod shaped_run;
+#[path = "shaping_receipt.rs"]
 mod shaping_receipt;
+#[path = "style.rs"]
 mod style;
 
 pub use geometry::TextRange;

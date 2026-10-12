@@ -1,25 +1,46 @@
 //! 反射公共层承载类型、字段和值的可传输契约；运行时目录和对象适配器负责接纳与执行。
 
+#[path = "editor_hint.rs"]
 mod editor_hint;
+#[path = "error.rs"]
 mod error;
+#[path = "field_id.rs"]
 mod field_id;
+#[path = "field_id_parse_error.rs"]
 mod field_id_parse_error;
+#[path = "field_info.rs"]
 mod field_info;
+#[path = "numeric_range.rs"]
 mod numeric_range;
+#[path = "object_address.rs"]
 mod object_address;
+#[path = "read_write.rs"]
 mod read_write;
+#[path = "reflected_value.rs"]
 mod reflected_value;
+#[path = "schema.rs"]
 mod schema;
+#[path = "schema_catalog/mod.rs"]
 mod schema_catalog;
+#[path = "script_visibility.rs"]
 mod script_visibility;
+#[path = "type_info.rs"]
 mod type_info;
+#[path = "type_kind.rs"]
 mod type_kind;
+#[path = "type_path.rs"]
 mod type_path;
+#[path = "type_registration.rs"]
 mod type_registration;
+#[path = "type_role.rs"]
 mod type_role;
+#[path = "value_budget.rs"]
 mod value_budget;
+#[path = "value_validation.rs"]
 mod value_validation;
+#[path = "zr_reflect.rs"]
 mod zr_reflect;
+#[path = "zr_reflect_value.rs"]
 mod zr_reflect_value;
 
 pub use editor_hint::{ReflectEditorHint, ReflectEnumOption};

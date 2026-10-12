@@ -29,5 +29,5 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
 }
 
 #[cfg(test)]
-#[path = "tests/volumetric_fog.rs"]
+#[path = "../tests/volumetric_fog.rs"]
 mod tests;

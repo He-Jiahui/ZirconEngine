@@ -1,9 +1,13 @@
 //! Runtime input subsystem and protocol types.
 
 //! 输入协议由 core framework 定义，运行时实现负责帧状态、动作求值和回放；宿主只负责投递事件及执行请求。
+#[path = "camera_controller/mod.rs"]
 pub mod camera_controller;
+#[path = "module/mod.rs"]
 mod module;
+#[path = "prelude.rs"]
 pub mod prelude;
+#[path = "runtime/mod.rs"]
 mod runtime;
 
 pub use crate::core::framework::input::INPUT_MODULE_NAME;
@@ -34,4 +38,5 @@ pub use runtime::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

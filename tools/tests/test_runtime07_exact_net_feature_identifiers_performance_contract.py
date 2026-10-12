@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/net_features/manifest.rs"
+    / "zircon_runtime/src/plugin/runtime/builtin_catalog/net_features/manifest.rs"
 )
 
 # 读取实现源码约束精确网络特性标识符：标识符连接预分配借用部分，并运行时 ID 应为 built 先于特性所有权转移。

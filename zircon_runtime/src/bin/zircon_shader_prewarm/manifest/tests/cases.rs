@@ -15,7 +15,7 @@ mod asset_scan_errors;
 mod geometry_sources;
 #[path = "io.rs"]
 mod io;
-#[path = "module_dependencies.rs"]
+#[path = "../../../manifest/tests/module_dependencies.rs"]
 mod module_dependencies;
 #[path = "raw_revision.rs"]
 mod raw_revision;

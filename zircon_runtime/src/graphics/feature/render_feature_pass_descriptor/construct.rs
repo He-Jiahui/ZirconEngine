@@ -679,5 +679,5 @@ fn render_feature_resource_for_shader_binding(
 }
 
 #[cfg(test)]
-#[path = "tests/construct.rs"]
+#[path = "../render_feature_pass_desc/tests/construct.rs"]
 mod tests;

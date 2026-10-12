@@ -45,5 +45,5 @@ fn dependency_entries(
 
 // 源码形状门槛约束已审查的容量路径；ignored 计时只比较合成行收集成本，包语义回归由外层资产包测试负责。
 #[cfg(test)]
-#[path = "tests/manifest_performance_tests.rs"]
+#[path = "tests/manifest_perf.rs"]
 mod performance_tests;

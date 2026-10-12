@@ -19,7 +19,7 @@ CURRENT_LAYOUT_WORDING_TARGETS = {
         "asset browser v2 asset",
         "v2 asset browser",
     ],
-    "zircon_editor/src/tests/ui/boundary/workbench_projection_cutover": [
+    "zircon_editor/src/tests/ui/boundary/projection_cutover": [
         "hard_cut_to_v2",
     ],
     "zircon_editor/src/tests/host/retained_window/native_host_contract": [

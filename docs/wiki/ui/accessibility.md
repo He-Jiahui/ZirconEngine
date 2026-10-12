@@ -10,8 +10,8 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine UI Wiki
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_accessibility.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_accessibility_widget_actions.rs
+  - zircon_runtime/src/tests/contracts/structure/test_size/ui_accessibility.rs
+  - zircon_runtime/src/tests/structure/test_size/ui_accessibility_widget_actions.rs
   - zircon_runtime/src/ui/accessibility/accesskit/tests/performance_tests.rs
 doc_type: module-detail
 ---

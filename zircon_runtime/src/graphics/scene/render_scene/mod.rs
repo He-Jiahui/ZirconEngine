@@ -1,13 +1,22 @@
 //! Persistent CPU render-scene ownership and incremental change publication.
 
+#[path = "change_journal.rs"]
 mod change_journal;
+#[path = "component_projector/mod.rs"]
 mod component_projector;
+#[path = "deformation.rs"]
 mod deformation;
+#[path = "journal_cursor.rs"]
 mod journal_cursor;
+#[path = "mesh_source.rs"]
 mod mesh_source;
+#[path = "primitive.rs"]
 mod primitive;
+#[path = "registry.rs"]
 mod registry;
+#[path = "resource_dependencies.rs"]
 mod resource_dependencies;
+#[path = "scene.rs"]
 mod scene;
 
 pub(crate) use change_journal::{

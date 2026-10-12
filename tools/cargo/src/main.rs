@@ -9,6 +9,7 @@ use cargo_zircon::plugin::manifest_sync::{synchronize_workspace_manifests, SyncM
 use cargo_zircon::plugin::scaffold::{scaffold_plugin, NewPluginOptions, PluginKind};
 use cargo_zircon::plugin::validate::{validate_native_artifact, validate_plugin_manifest};
 
+#[path = "product_receipt_cli/mod.rs"]
 mod product_receipt_cli;
 
 fn main() -> ExitCode {

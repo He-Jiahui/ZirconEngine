@@ -272,5 +272,5 @@ fn stricter_maximum(
 }
 
 #[cfg(test)]
-#[path = "tests/directional_range.rs"]
+#[path = "../tests/directional_range.rs"]
 mod tests;

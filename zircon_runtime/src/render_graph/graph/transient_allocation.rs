@@ -607,7 +607,7 @@ fn texture_residency_key(residency: TextureResidency) -> u64 {
 }
 
 #[cfg(test)]
-#[path = "transient_allocation/tests/capacity_tests.rs"]
+#[path = "transient_allocation/tests/capacity.rs"]
 mod capacity_tests;
 
 const fn resource_kind_sort_key(kind: RenderGraphResourceKind) -> u8 {

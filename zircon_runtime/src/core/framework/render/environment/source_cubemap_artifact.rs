@@ -342,5 +342,5 @@ fn decode_irradiance_cube(
 }
 
 #[cfg(test)]
-#[path = "tests/source_cubemap_artifact.rs"]
+#[path = "../tests/source_cubemap_artifact.rs"]
 mod tests;

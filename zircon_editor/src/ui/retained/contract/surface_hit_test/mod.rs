@@ -1,0 +1,22 @@
+#[path = "surface_frame.rs"]
+mod surface_frame;
+#[path = "node.rs"]
+mod template_node;
+
+pub(crate) use template_node::{
+    build_pane_template_surface_frame, rebuild_pane_template_hit_artifacts,
+};
+pub(in crate::ui::retained_host::host_contract) use template_node::{
+    hit_test_pane_template_node, hit_test_pane_template_node_borrowed,
+    hit_test_workbench_window_template_node_for_pointer_move_with_index, HostPaneTemplateHitIndex,
+    TemplateNodePointerHit, TemplateNodePointerMoveHit, TemplateNodePointerMoveKind,
+    TemplateNodePointerRouteHit,
+};
+#[cfg(not(test))]
+pub(in crate::ui::retained_host::host_contract) use template_node::{
+    hit_test_workbench_window_template_node_with_index, HostWorkbenchHitIndex,
+};
+#[cfg(test)]
+pub(in crate::ui::retained_host) use template_node::{
+    hit_test_workbench_window_template_node_with_index, HostWorkbenchHitIndex,
+};

@@ -1,5 +1,8 @@
+#[path = "graph.rs"]
 mod graph;
+#[path = "sequence.rs"]
 mod sequence;
+#[path = "state_machine.rs"]
 mod state_machine;
 
 use zircon_runtime::core::framework::animation::AnimationTrackPath;

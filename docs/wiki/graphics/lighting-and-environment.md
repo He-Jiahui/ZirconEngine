@@ -2,12 +2,12 @@
 related_code:
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/environment/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/mod.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow
+  - zircon_runtime/src/graphics/scene/renderer/lighting
+  - zircon_runtime/src/graphics/scene/renderer/shadow
   - zircon_runtime/src/graphics/scene/scene_renderer/environment
   - zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler
 plan_sources:

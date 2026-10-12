@@ -6,7 +6,7 @@ use super::support::source;
 
 #[test]
 fn rust_owned_template_node_contract_keeps_retained_widget_state() {
-    let template_nodes = source("src/ui/retained_host/host_contract/data/template_nodes/node.rs");
+    let template_nodes = source("src/ui/retained/contract/data/nodes/node.rs");
 
     for required in [
         "pub(crate) struct TemplatePaneNodeData",
@@ -58,7 +58,7 @@ fn rust_owned_template_node_contract_keeps_retained_widget_state() {
 #[test]
 fn workbench_projection_uses_editor_assets_without_generated_host_dto_imports() {
     let root =
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/layouts/windows/workbench_host_window");
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/layouts/windows/window");
 
     for path in collect_rust_files(&root) {
         let text =

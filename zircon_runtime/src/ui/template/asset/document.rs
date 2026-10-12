@@ -9,6 +9,7 @@ use validation::{
     validate_stylesheet_ids,
 };
 
+#[path = "document/validation.rs"]
 mod validation;
 
 #[cfg(test)]

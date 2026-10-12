@@ -1,8 +1,14 @@
+#[path = "watcher/budget.rs"]
 mod budget;
+#[path = "watcher/diagnostics.rs"]
 mod diagnostics;
+#[path = "watcher/host.rs"]
 mod host;
+#[path = "watcher/ingress.rs"]
 mod ingress;
+#[path = "watcher/path_identity.rs"]
 mod path_identity;
+#[path = "watcher/service.rs"]
 mod service;
 
 #[cfg(test)]

@@ -126,5 +126,5 @@ pub(in crate::manager) fn validate_perception_snapshot(
 }
 
 #[cfg(test)]
-#[path = "runtime_inputs/tests/indexed_entry_tests.rs"]
+#[path = "tests/indexed_entry.rs"]
 mod indexed_entry_tests;

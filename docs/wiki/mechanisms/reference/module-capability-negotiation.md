@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs
   - zircon_runtime/src/core/runtime/descriptors/module_order.rs
   - zircon_runtime/src/core/runtime/handle/resolution.rs
-  - zircon_runtime/src/builtin/runtime_modules
+  - zircon_runtime/src/builtin
 implementation_files:
   - zircon_runtime/src/core/runtime/descriptors
   - zircon_runtime/src/core/runtime/handle/registration
@@ -11,7 +11,7 @@ plan_sources:
   - docs/wiki/core-runtime/service-registry-and-dependencies.md
 tests:
   - zircon_runtime/src/core/runtime/tests/registration/behavior
-  - zircon_runtime/src/core/runtime/tests/resolution/behavior
+  - zircon_runtime/src/core/runtime/tests/behavior
   - zircon_runtime/src/builtin/runtime_modules/tests
 doc_type: mechanism-case-study
 ---
@@ -41,7 +41,7 @@ flowchart TD
 
 `ModuleDescriptor::new(name, description)` 建立稳定模块身份；`with_lifecycle` 附加 build/ready/finish/cleanup 回调。`ModuleDependencySpec` 表达硬依赖和匹配规则；排序器同时检查 module cycle 与 service cycle。descriptor 的名字是诊断、拓扑和 handle identity 的一部分，不能在运行时随意拼接。
 
-能力报告应至少包含：module 名、required/optional、目标 target、候选 provider、拒绝原因、最终选择和 composition identity。builtin profile 组装入口在 `zircon_runtime/src/builtin/runtime_modules`，因此产品层应消费它的报告而不是自己重排模块。
+能力报告应至少包含：module 名、required/optional、目标 target、候选 provider、拒绝原因、最终选择和 composition identity。builtin profile 组装入口在 `zircon_runtime/src/builtin`，因此产品层应消费它的报告而不是自己重排模块。
 
 ## API 调用形状
 

@@ -11,7 +11,7 @@ plan_sources:
   - user: 2026-09-09 完善 ManagerResolver 与类型化句柄接口
 tests:
   - zircon_runtime/src/core/manager/tests/cases.rs
-  - zircon_runtime/src/core/runtime/tests/resolution
+  - zircon_runtime/src/core/runtime/tests
 doc_type: module-detail
 ---
 

@@ -27,12 +27,19 @@ use crate::core::resource::ResourceState;
 // BUG: [CR-ASSET-TEST-PROJECT-0001] 默认并行测试中，多个测试复用此全局计数导入器；重启恢复测试将计数重置并断言精确值时会被其他测试的导入调用干扰。证据：full_generation、relocation、targeted_import 与 restore_failure_migration 均注册 counted_data_importer。
 static COUNTED_IMPORT_CALLS: AtomicUsize = AtomicUsize::new(0);
 
+#[path = "manager/artifact_cache_imports.rs"]
 mod artifact_cache_imports;
+#[path = "manager/catalog_input_generation.rs"]
 mod catalog_input_generation;
+#[path = "manager/full_generation.rs"]
 mod full_generation;
+#[path = "manager/relocation.rs"]
 mod relocation;
+#[path = "manager/restore_failure_migration.rs"]
 mod restore_failure_migration;
+#[path = "manager/subassets_errors.rs"]
 mod subassets_errors;
+#[path = "manager/targeted_import.rs"]
 mod targeted_import;
 
 fn counted_data_importer() -> FunctionAssetImporter {

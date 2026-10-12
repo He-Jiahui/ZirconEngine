@@ -3,25 +3,45 @@ use zircon_runtime_interface::ui::component::{
     UiComponentState, UiValidationState, UiValue, UiValueKind,
 };
 
+#[path = "state_reducer/button.rs"]
 mod button;
+#[path = "state_reducer/collection.rs"]
 mod collection;
+#[path = "state_reducer/command_palette.rs"]
 mod command_palette;
+#[path = "state_reducer/disclosure.rs"]
 mod disclosure;
+#[path = "state_reducer/interaction.rs"]
 mod interaction;
+#[path = "state_reducer/keyboard.rs"]
 mod keyboard;
+#[path = "state_reducer/notification_center.rs"]
 mod notification_center;
+#[path = "state_reducer/numeric.rs"]
 mod numeric;
+#[path = "state_reducer/overlay.rs"]
 mod overlay;
+#[path = "state_reducer/reference.rs"]
 mod reference;
+#[path = "state_reducer/selection.rs"]
 mod selection;
+#[path = "state_reducer/slider.rs"]
 mod slider;
+#[path = "state_reducer/state_model.rs"]
 mod state_model;
+#[path = "state_reducer/table.rs"]
 mod table;
+#[path = "state_reducer/text_input.rs"]
 mod text_input;
+#[path = "state_reducer/text_search.rs"]
 mod text_search;
+#[path = "state_reducer/toast.rs"]
 mod toast;
+#[path = "state_reducer/tree_view.rs"]
 mod tree_view;
+#[path = "state_reducer/windowing.rs"]
 mod windowing;
+#[path = "state_reducer/world.rs"]
 mod world;
 
 pub use state_model::{

@@ -2,10 +2,10 @@
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
 const DIALOG_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/primitives/feedback/workbench_dialog.zui"
+    "../../../../assets/ui/editor/workbench/primitives/feedback/dialog.zui"
 );
 const CONFIRM_DIALOG_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/primitives/feedback/workbench_confirm_dialog.zui"
+    "../../../../assets/ui/editor/workbench/primitives/feedback/confirm_dialog.zui"
 );
 
 #[test]

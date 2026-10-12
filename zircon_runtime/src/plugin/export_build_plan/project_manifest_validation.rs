@@ -1,10 +1,17 @@
 //! 清单诊断与清理的唯一组合入口；from_project_manifest 在生成包、注册代码前先执行这些约束。
+#[path = "manifest/crates.rs"]
 mod crates;
+#[path = "manifest/duplicates.rs"]
 mod duplicates;
+#[path = "manifest/identity.rs"]
 mod identity;
+#[path = "manifest/projection.rs"]
 mod projection;
+#[path = "manifest/provider.rs"]
 mod provider;
+#[path = "manifest/target_modes.rs"]
 mod target_modes;
+#[path = "manifest/tokens.rs"]
 mod tokens;
 
 pub(super) use crates::{

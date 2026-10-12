@@ -2,8 +2,11 @@
 //! 查询入口保存的是 Core 弱引用和版本化身份，实际服务在指定运行时中重新解析。
 //! Stable engine-facing manager handles, service names, and resolver helpers.
 
+#[path = "resolver.rs"]
 mod resolver;
+#[path = "service.rs"]
 mod service;
+#[path = "service_names.rs"]
 mod service_names;
 
 pub use service::register_manager_alias;

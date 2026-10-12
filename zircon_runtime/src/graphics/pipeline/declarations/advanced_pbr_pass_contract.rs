@@ -52,5 +52,5 @@ pub(crate) fn transmission_mesh_step_index(executor_id: &str) -> Option<usize> {
 }
 
 #[cfg(test)]
-#[path = "tests/advanced_pbr_pass_contract.rs"]
+#[path = "../tests/advanced_pbr_pass_contract.rs"]
 mod tests;

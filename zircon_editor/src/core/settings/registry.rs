@@ -33,7 +33,7 @@ pub enum SettingsError {
 }
 
 #[cfg(test)]
-#[path = "registry/tests/optimization_batch_hz_editor609_tests.rs"]
+#[path = "registry/tests/perf.rs"]
 mod optimization_batch_hz_editor609_tests;
 
 #[derive(Clone, Default)]

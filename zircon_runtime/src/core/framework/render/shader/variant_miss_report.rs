@@ -722,5 +722,5 @@ fn accumulate_dimensions(
 }
 
 #[cfg(test)]
-#[path = "variant_miss_report/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

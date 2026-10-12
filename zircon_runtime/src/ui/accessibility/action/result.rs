@@ -8,6 +8,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::surface::UiPropertyMutationReport;
 
+#[path = "result/binding.rs"]
 mod binding;
 
 pub(in crate::ui::accessibility::action) fn append_binding_report_diagnostic(
@@ -99,7 +100,7 @@ pub(super) fn action_note(
 }
 
 #[cfg(test)]
-#[path = "result/tests/single_buffer_action_note_tests.rs"]
+#[path = "../../action/result/tests/single_buffer_action_note.rs"]
 mod single_buffer_action_note_tests;
 
 fn status_label(status: UiAccessibilityActionStatus) -> &'static str {

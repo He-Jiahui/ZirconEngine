@@ -4,6 +4,7 @@
 use gilrs::EventType;
 use winit::event_loop::ActiveEventLoop;
 
+#[path = "polling/drain_budget.rs"]
 mod drain_budget;
 
 use self::drain_budget::GamepadDrainBudget;

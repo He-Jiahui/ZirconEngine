@@ -1,3 +1,4 @@
+#[path = "line_box/profile.rs"]
 mod profile;
 
 use crate::text::layout::{

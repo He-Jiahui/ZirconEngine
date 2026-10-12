@@ -1,0 +1,144 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。通过源码文本核对父子路由、状态镜像和文件预算。
+use super::{
+    D1_FOLDER_BACKED_GUARD, D1_FOLDER_BACKED_SLICE, D1_FOLDER_BACKED_STATUS, D1_FRAMEWORKS_STATUS,
+};
+
+const D1_PARENT_PATH: &str =
+    "code_review_findings/plugin_importer_dx/d1_capability_single_source.rs";
+const D1_CHILD_PATHS: &[&str] = &[
+    "code_review_findings/plugin_importer_dx/d1_capability_single_source/runtime_roots.rs",
+    "code_review_findings/plugin_importer_dx/d1_capability_single_source/audit_surfaces.rs",
+    "code_review_findings/plugin_importer_dx/d1_capability_single_source/sdk_builder.rs",
+    "code_review_findings/plugin_importer_dx/d1_capability_single_source/status_docs.rs",
+    "code_review_findings/plugin_importer_dx/d1_capability_single_source/support.rs",
+    "code_review_findings/plugin_importer_dx/d1_capability_single_source/split_layout.rs",
+];
+
+#[test]
+fn runtime_15_plugin_importer_d1_capability_guard_is_folder_backed() {
+    let parent = include_str!("../../plugin_importer_dx/d1_capability_single_source.rs");
+    let runtime_roots = include_str!("runtime_roots.rs");
+    let audit_surfaces = include_str!("audit_surfaces.rs");
+    let sdk_builder = include_str!("sdk_builder.rs");
+    let status_docs = include_str!("status_docs.rs");
+    let support = include_str!("../../contracts/review/d1_capability_single_source/support.rs");
+    let split_layout = include_str!("split_layout.rs");
+    let docs = [
+        include_str!(
+            "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+        ),
+        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+        include_str!(
+            "../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
+        ),
+        include_str!("../../../../../docs/plans/engine-code-structure-convention.md"),
+        include_str!(
+            "../../../../../docs/plans/engine-code-review-findings-2026-06.md"
+        ),
+        include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
+        crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
+    ]
+    .join("\n");
+
+    for mount in [
+        "mod audit_surfaces;",
+        "mod runtime_roots;",
+        "mod sdk_builder;",
+        "mod split_layout;",
+        "mod status_docs;",
+        "mod support;",
+    ] {
+        assert!(
+            parent.contains(mount),
+            "D1 route parent should mount `{mount}`"
+        );
+    }
+    for moved_anchor in [
+        "FIRST_PARTY_RUNTIME_CAPABILITY_ROOTS",
+        "audit_plugin_capability_conformance",
+        "PluginFeatureBundleBuilder",
+        "let d1_row = review_findings",
+        "fn assert_contains_all",
+    ] {
+        assert!(
+            !parent.contains(moved_anchor),
+            "D1 route parent should not retain moved body anchor `{moved_anchor}`"
+        );
+    }
+    for (source, anchors) in [
+        (
+            runtime_roots,
+            &[
+                "D1_RUNTIME_CAPABILITY_ROOTS",
+                "assert_runtime_capability_roots_use_single_source",
+                "15",
+            ][..],
+        ),
+        (
+            audit_surfaces,
+            &[
+                "assert_capability_audit_surfaces_are_wired",
+                "audit_plugin_capability_conformance",
+                "plugins_12_capability_single_source_conformance",
+            ],
+        ),
+        (
+            sdk_builder,
+            &[
+                "assert_sdk_builder_mirrors_capabilities",
+                "PluginFeatureBundleBuilder",
+                "feature_bundle_builder_projects_capability_to_feature_and_modules",
+            ],
+        ),
+        (
+            status_docs,
+            &[
+                "assert_d1_status_docs_are_synced",
+                "D1_FOLDER_BACKED_SLICE",
+                "D1_FOLDER_BACKED_STATUS",
+            ],
+        ),
+        (support, &["assert_contains_all"]),
+        (split_layout, &[D1_FOLDER_BACKED_GUARD]),
+    ] {
+        for anchor in anchors {
+            assert!(
+                source.contains(anchor),
+                "D1 child should contain `{anchor}`"
+            );
+        }
+    }
+    for source in [
+        parent,
+        runtime_roots,
+        audit_surfaces,
+        sdk_builder,
+        status_docs,
+        support,
+    ] {
+        assert!(
+            source.lines().count() < 220,
+            "D1 split files should stay focused; got {} lines",
+            source.lines().count()
+        );
+    }
+    assert!(
+        split_layout.lines().count() < 260,
+        "D1 split-layout guard should stay focused"
+    );
+
+    for anchor in [
+        D1_FOLDER_BACKED_SLICE,
+        D1_FOLDER_BACKED_STATUS,
+        D1_FRAMEWORKS_STATUS,
+        D1_FOLDER_BACKED_GUARD,
+        D1_PARENT_PATH,
+        D1_CHILD_PATHS[0],
+        D1_CHILD_PATHS[5],
+    ] {
+        assert!(
+            docs.contains(anchor),
+            "D1 docs/session should contain `{anchor}`"
+        );
+    }
+}

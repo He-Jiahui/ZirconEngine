@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 EXTRACT_RS = ROOT / (
-    "zircon_runtime/src/core/framework/render/post_process/volume_extract.rs"
+    "zircon_runtime/src/core/framework/render/post/volume_extract.rs"
 )
 
 

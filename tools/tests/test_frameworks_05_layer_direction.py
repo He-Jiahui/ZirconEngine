@@ -112,7 +112,7 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
         ).read_text(encoding="utf-8")
         graphics_registration_source = (
             REPO_ROOT
-            / "zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/mod.rs"
+            / "zircon_runtime/src/graphics/runtime/framework/register_pipeline_asset/mod.rs"
         ).read_text(encoding="utf-8")
 
         self.assertNotIn("crate::graphics", framework_source)
@@ -132,9 +132,9 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
         self.assertFalse(retired_owner.exists())
 
         for relative_path in (
-            "zircon_runtime/src/scene/dynamic_scene/scene/capture.rs",
-            "zircon_runtime/src/scene/dynamic_scene/scene/mod.rs",
-            "zircon_runtime/src/scene/dynamic_scene/scene/validation.rs",
+            "zircon_runtime/src/scene/dynamic/scene/capture.rs",
+            "zircon_runtime/src/scene/dynamic/scene/mod.rs",
+            "zircon_runtime/src/scene/dynamic/scene/validation.rs",
             "zircon_runtime/src/scene/reflect/dynamic_component.rs",
             "zircon_runtime/src/scene/world/component_type_registry.rs",
             "zircon_runtime/src/scene/world/dynamic_components.rs",
@@ -162,7 +162,7 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
         ).read_text(encoding="utf-8")
         graphics_descriptor = (
             REPO_ROOT
-            / "zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs"
+            / "zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs"
         ).read_text(encoding="utf-8")
 
         self.assertTrue(neutral_owner.is_file())
@@ -438,7 +438,7 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
         self.assertNotIn("scene_hook", world_driver)
         self.assertNotIn("scene_hook", sdk_registration)
 
-        for path in (REPO_ROOT / "zircon_runtime/src/core/runtime").rglob("*.rs"):
+        for path in (REPO_ROOT / "zircon_runtime/src/core").rglob("*.rs"):
             source = path.read_text(encoding="utf-8")
             self.assertNotIn("SceneRuntimeHookRegistration", source)
             self.assertNotIn("SceneRuntimeHookSet", source)
@@ -480,7 +480,7 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
         )
         plugin_adapter = (
             REPO_ROOT
-            / "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs"
+            / "zircon_runtime/src/plugin/runtime/catalog/bridge_lifecycle_state.rs"
         ).read_text(encoding="utf-8")
         self.assertTrue(observer_owner.is_file())
         self.assertIn("impl RuntimeModuleLifecycleObserver", plugin_adapter)
@@ -718,8 +718,8 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
             "zircon_runtime/src/dynamic_api/session.rs",
             "zircon_runtime/src/dynamic_api/session/state.rs",
             "zircon_runtime/src/dynamic_api/runtime_loop.rs",
-            "zircon_editor/src/ui/retained_host/app.rs",
-            "zircon_editor/src/ui/retained_host/viewport/viewport_state.rs",
+            "zircon_editor/src/ui/retained/app.rs",
+            "zircon_editor/src/ui/retained/viewport/viewport_state.rs",
             "zircon_plugins/net/features/content_download/runtime/src/manager/state.rs",
         )
         for relative_path in storage_paths:
@@ -773,7 +773,7 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
 
         project_access_source = (
             REPO_ROOT
-            / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs"
+            / "zircon_runtime/src/asset/pipeline/manager/assets/access.rs"
         ).read_text(encoding="utf-8")
         self.assertIn(
             "pub struct ProjectAssetManagerAccess {\n    core: CoreWeak",
@@ -858,7 +858,7 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
 
     def test_editor_manager_consumers_keep_explicit_versioned_resolution(self) -> None:
         retained_assets = (
-            REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets.rs"
+            REPO_ROOT / "zircon_editor/src/ui/retained/app/assets.rs"
         ).read_text(encoding="utf-8")
         self.assertIn("use super::RetainedEditorHost;", retained_assets)
         self.assertIn(

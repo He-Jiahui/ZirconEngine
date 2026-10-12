@@ -641,5 +641,5 @@ fn visit_module_iterative(
 mod tests;
 
 #[cfg(test)]
-#[path = "module_order/tests/optimization_batch_im_runtime623_tests.rs"]
+#[path = "module_order/tests/perf.rs"]
 mod optimization_batch_im_runtime623_tests;

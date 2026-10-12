@@ -3,11 +3,11 @@ related_code:
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
+  - zircon_runtime/src/graphics/runtime/framework/mod.rs
+  - zircon_runtime/src/graphics/graphics/mod.rs
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/create.rs
+  - zircon_runtime/src/graphics/runtime/wgpu_render_framework_construct/construct.rs
+  - zircon_runtime/src/graphics/runtime/framework/create_viewport/create.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
   - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface
 plan_sources:
@@ -15,7 +15,7 @@ plan_sources:
   - docs/rendering/render-framework-architecture.md
 tests:
   - zircon_runtime/src/graphics/tests/render_product_submit
-  - zircon_runtime/src/graphics/tests/render_product_camera_targets
+  - zircon_runtime/src/graphics/tests
   - zircon_runtime/src/graphics/tests/surface_targets
 doc_type: workflow-detail
 ---

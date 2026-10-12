@@ -1,14 +1,24 @@
 //! Editor-owned boundary for in-process and serialized runtime access.
 
+#[path = "capabilities.rs"]
 mod capabilities;
+#[path = "contract.rs"]
 mod contract;
+#[path = "detached.rs"]
 mod detached;
+#[path = "error.rs"]
 mod error;
+#[path = "handle.rs"]
 mod handle;
+#[path = "highlight_set.rs"]
 mod highlight_set;
+#[path = "in_process.rs"]
 mod in_process;
+#[path = "operation_route.rs"]
 mod operation_route;
+#[path = "session/mod.rs"]
 mod session;
+#[path = "viewport_pick_route.rs"]
 mod viewport_pick_route;
 
 pub use capabilities::{

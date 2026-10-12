@@ -68,5 +68,5 @@ impl PoseBuffer {
 }
 
 #[cfg(test)]
-#[path = "tests/storage_optimization_tests.rs"]
+#[path = "../tests/storage_perf.rs"]
 mod optimization_tests;

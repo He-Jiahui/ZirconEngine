@@ -24,8 +24,11 @@ use state::{
 };
 use visibility::EffectiveHiddenIndex;
 
+#[path = "extract/resolution.rs"]
 mod resolution;
+#[path = "extract/state.rs"]
 mod state;
+#[path = "extract/visibility.rs"]
 mod visibility;
 
 pub(crate) fn accessibility_snapshot(surface: &UiSurface) -> UiAccessibilityTreeSnapshot {

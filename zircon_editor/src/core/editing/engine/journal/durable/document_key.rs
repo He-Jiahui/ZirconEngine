@@ -69,5 +69,5 @@ pub enum JournalDocumentKeyError {
 }
 
 #[cfg(test)]
-#[path = "tests/document_key_optimization_batch_hv_editor604_tests.rs"]
+#[path = "tests/document_key_perf.rs"]
 mod optimization_batch_hv_editor604_tests;

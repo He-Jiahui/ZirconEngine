@@ -14,7 +14,7 @@ LEGACY_THEME_ASSET_ALLOWLIST = {
     "product_binding_fixture.zui",
 }
 CHROME_PROJECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "chrome_template_projection.rs"
 )
 MENU_POINTER_PROJECTION = REPO_ROOT / (
@@ -22,31 +22,31 @@ MENU_POINTER_PROJECTION = REPO_ROOT / (
     "build_host_menu_pointer_layout.rs"
 )
 ACTIVITY_RAIL_PROJECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "chrome_template_projection/activity_rail.rs"
 )
 DOCK_HEADER_PROJECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "chrome_template_projection/dock_header.rs"
 )
 SIDE_DOCK_HEADER_PROJECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "chrome_template_projection/dock_header/side.rs"
 )
 MENU_CHROME_PROJECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "chrome_template_projection/menu_chrome.rs"
 )
 PAGE_TAB_PROJECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "chrome_template_projection/page_tabs.rs"
 )
 RETAINED_SURFACE_VARIANTS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_style/colors/surface/variants.rs"
 )
 MENU_POPUP_CONTRACT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/menu_popup_contract.rs"
+    "zircon_editor/src/ui/retained/menu_popup_contract.rs"
 )
 
 HOST_CHROME_CLASSES = {

@@ -1,5 +1,6 @@
 //! EditorState保留UI选择，资产管理器提供不可变catalog/details/resource代次；同步不能代替资源加载。
 
+#[path = "../../editor_state_asset_workspace/content_browser_sync.rs"]
 mod content_browser_sync;
 use crate::core::asset::AssetTypeId;
 use zircon_runtime::asset::AssetUri;

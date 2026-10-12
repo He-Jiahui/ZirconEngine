@@ -869,7 +869,7 @@ fn validate_component_slots(
 }
 
 #[cfg(test)]
-#[path = "component_instancer/tests/optimization_batch_ho_runtime596_tests.rs"]
+#[path = "component_instancer/tests/perf.rs"]
 mod optimization_batch_ho_runtime596_tests;
 
 enum VisitFrame {

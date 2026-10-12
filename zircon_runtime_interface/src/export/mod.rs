@@ -1,8 +1,12 @@
 //! Stable export-pipeline contracts shared by editor, runtime, and plugins.
 
+#[path = "artifact.rs"]
 mod artifact;
+#[path = "preset.rs"]
 mod preset;
+#[path = "report.rs"]
 mod report;
+#[path = "stage.rs"]
 mod stage;
 
 pub use artifact::{ExportArtifactRef, ExportDigest, ExportStageIo};

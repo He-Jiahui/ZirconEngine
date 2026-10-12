@@ -5,14 +5,14 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INSPECTOR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_inspector_panel.zui"
 )
 WORKBENCH_BRIDGE = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench"
 )
 CONTROL_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs"
+    "zircon_editor/src/ui/retained/dispatch/workbench/control.rs"
 )
 
 
@@ -119,11 +119,11 @@ class EditorZuiInspectorFilterContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         preview_actions = (
             REPO_ROOT
-            / "zircon_editor/src/ui/retained_host/workbench_preview_actions.rs"
+            / "zircon_editor/src/ui/retained/preview_actions.rs"
         ).read_text(encoding="utf-8")
         bindings = (
             REPO_ROOT
-            / "zircon_editor/src/ui/template_runtime/builtin/"
+            / "zircon_editor/src/ui/runtime/builtin/"
             "workbench_window_template_bindings.rs"
         ).read_text(encoding="utf-8")
 

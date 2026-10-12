@@ -86,7 +86,7 @@ fn hybrid_gi_authored_probe_trace_surface_is_hard_cut() {
 
     let hybrid_gi_extract_source = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/core/framework/render/scene_extract/hybrid_gi/extract.rs"
+        "/src/core/framework/render/scene_extract/gi/extract.rs"
     ));
     for forbidden_field in [
         "pub probe_budget:",

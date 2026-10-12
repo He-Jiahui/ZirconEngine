@@ -13,7 +13,7 @@ def source(relative_path: str) -> str:
 class EditorUiDevicePixelAaContractTests(unittest.TestCase):
     def test_product_semantic_glyphs_do_not_fall_back_to_manual_primitives(self):
         glyph_root = REPO_ROOT / (
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes"
+            "zircon_editor/src/ui/retained/contract/paint"
         )
         allowed_analytic_glyphs = {
             Path("template_status_glyphs/signals/base.rs"),
@@ -35,13 +35,13 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
         )
         for relative_path in svg_backed_glyphs:
             glyph = source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 f"paint_template_nodes/{relative_path}"
             )
             self.assertIn("push_icon_asset_pixels", glyph, relative_path)
 
         material_alert_close = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "material_primitives/alert/action/close.rs"
         )
         self.assertIn(
@@ -55,7 +55,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
         self.assertNotIn("alert_close_dot", material_alert_close)
 
         material_chip_delete = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "material_primitives/chip/delete/entry.rs"
         )
         self.assertIn(
@@ -69,7 +69,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
         self.assertNotIn("chip_delete_dot", material_chip_delete)
 
         material_alert_icon = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "material_primitives/alert/icon.rs"
         )
         self.assertIn("template_alert_glyphs::push_alert_mark", material_alert_icon)
@@ -80,7 +80,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
         self.assertNotIn("HostPaintCommand::quad", material_alert_icon)
 
         material_chip_icon = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "material_primitives/chip/leading.rs"
         )
         self.assertIn("push_icon_asset_pixels", material_chip_icon)
@@ -95,11 +95,11 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
         self.assertNotIn("HostPaintCommand::quad", material_chip_icon_body)
 
         scale_link = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_axis_labels/scale_link/mod.rs"
         )
         scale_link_geometry = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_axis_labels/scale_link/geometry.rs"
         )
         self.assertIn("push_icon_asset_pixels", scale_link)
@@ -111,7 +111,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
         self.assertNotIn("HostPaintCommand::quad", scale_link)
 
         material_avatar_glyph = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "material_primitives/avatar/glyph.rs"
         )
         self.assertIn("push_icon_asset_pixels", material_avatar_glyph)
@@ -147,7 +147,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
             "lifecycle.rs"
         )
         gpu_present = source(
-            "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/"
+            "zircon_editor/src/ui/retained/contract/presenter/gpu/"
             "present.rs"
         )
         draw_list = source(
@@ -170,7 +170,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_resize_snapshot_cannot_become_the_ordinary_surface_baseline(self):
         gpu_present = source(
-            "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/"
+            "zircon_editor/src/ui/retained/contract/presenter/gpu/"
             "present.rs"
         )
         ordinary_present = gpu_present.split(
@@ -213,10 +213,10 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_native_resize_projection_is_at_least_the_current_physical_target(self):
         lifecycle = source(
-            "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/lifecycle.rs"
+            "zircon_editor/src/ui/retained/contract/presenter/gpu/lifecycle.rs"
         )
         present = source(
-            "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/present.rs"
+            "zircon_editor/src/ui/retained/contract/presenter/gpu/present.rs"
         )
 
         self.assertIn(".max(self.size.0)", lifecycle)
@@ -240,10 +240,10 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
             "zircon_runtime/src/ui/surface/surface/rebuild.rs"
         )
         runtime_render = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
         )
         runtime_plan_cache = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs"
         )
         icon_atlas = source("zircon_runtime/src/ui/icon_atlas/atlas.rs")
         normalized = extract.split("pub fn normalized_raster_scale", 1)[1].split(
@@ -334,7 +334,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
             "workbench/bridge.rs"
         )
         mount = source(
-            "zircon_editor/src/ui/retained_host/ui/workbench_window_projection/mount.rs"
+            "zircon_editor/src/ui/retained/ui/windows/mount.rs"
         )
         self.assertIn(
             "physical_shell_size.width / self.presentation_scale_factor", bridge
@@ -354,14 +354,14 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
             "ui_material.wgsl"
         )
         runtime_shader = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/"
+            "zircon_runtime/src/graphics/scene/renderer/ui/shaders/"
             "screen_space_ui.wgsl"
         )
         runtime_geometry = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/geometry.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/render/geometry.rs"
         )
         runtime_renderer = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
         )
         geometry = source(
             "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs"
@@ -442,41 +442,41 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
     def test_editor_rounded_fill_and_border_surfaces_use_one_coverage_path(self):
         combined_only_surfaces = [
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/docks/pane/fallback/empty_state.rs"
             ),
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/menus/popup.rs"
             ),
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/menus/popup/submenus.rs"
             ),
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/welcome/main_column/form/preview.rs"
             ),
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/welcome/recent_projects/list.rs"
             ),
         ]
         mixed_shape_surfaces = [
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/scene_layers/overlay/dock_overflow.rs"
             ),
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/scene_layers/overlay/page_overflow.rs"
             ),
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/welcome/main_column/hero.rs"
             ),
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/welcome/recent_projects/rows/surface.rs"
             ),
         ]
@@ -490,45 +490,45 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_retained_menu_uses_scaled_small_control_and_panel_radius_tiers(self):
         metrics = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_theme/"
+            "zircon_editor/src/ui/retained/contract/paint_theme/"
             "metrics.rs"
         )
         root_popup = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/menus/popup.rs"
         )
         submenus = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/menus/popup/submenus.rs"
         )
         rows = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/menus/rows.rs"
         )
         overflow_surfaces = [
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/scene_layers/overlay/page_overflow.rs"
             ),
             source(
-                "zircon_editor/src/ui/retained_host/host_contract/"
+                "zircon_editor/src/ui/retained/contract/"
                 "paint_workbench_renderer/scene_layers/overlay/dock_overflow.rs"
             ),
         ]
         settings_color_controls = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_template_nodes/template_settings_window/color_controls.rs"
         )
         settings_enum_controls = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_template_nodes/template_settings_window/enum_controls.rs"
         )
         settings_commands = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_template_nodes/template_settings_window/commands.rs"
         )
         template_popup_background = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_template_nodes/template_popup_rows/surface/background/style.rs"
         )
 
@@ -623,7 +623,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_square_border_keeps_fractional_width_for_software_coverage(self):
         command_border = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "render_commands/draw/border.rs"
         )
         pixel_border = source(
@@ -700,7 +700,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
             "template_section_titles/geometry.rs",
         )
         root = (
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_template_nodes/"
         )
 
@@ -717,7 +717,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_svg_search_glyph_keeps_fractional_post_dpi_origin(self):
         glyph = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_template_nodes/template_fields/search/glyph.rs"
         )
 
@@ -731,7 +731,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_software_shape_blending_uses_the_shared_linear_light_lut(self):
         color = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_color.rs"
+            "zircon_editor/src/ui/retained/contract/paint_color.rs"
         )
         span = source(
             "zircon_editor/src/ui/retained_host/host_contract/paint_primitives/"
@@ -750,7 +750,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_software_scaled_images_sample_and_composite_in_linear_light(self):
         color = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_color.rs"
+            "zircon_editor/src/ui/retained/contract/paint_color.rs"
         )
         image_pixel = source(
             "zircon_editor/src/ui/retained_host/host_contract/paint_primitives/"
@@ -771,7 +771,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
             "image/raster/pixel.rs"
         )
         text_blend = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs"
+            "zircon_editor/src/ui/retained/contract/paint_text/blend.rs"
         )
 
         self.assertIn("blend_srgb_pixel_linear", image_pixel)
@@ -782,7 +782,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_viewport_overlay_uses_shared_linear_source_over(self):
         overlay = source(
-            "zircon_editor/src/ui/retained_host/host_contract/data/"
+            "zircon_editor/src/ui/retained/contract/data/"
             "viewport_image/overlay.rs"
         )
         blend_path = overlay.split("fn blend_source_over", 1)[1].split(
@@ -859,29 +859,29 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_local_raster_quality_is_bounded_and_target_aware(self):
         vector_target = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "visual_assets/target.rs"
         )
         vector_pixels = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "visual_assets/svg/pixels.rs"
         )
         render_command = source(
             "zircon_runtime_interface/src/ui/surface/render/command.rs"
         )
         image_conversion = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "render_command_conversion/image.rs"
         )
         wgpu_pipeline = source(
             "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/pipeline.rs"
         )
         text_layout_artifact = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/"
+            "zircon_editor/src/ui/retained/contract/paint_text/draw/"
             "layout/artifact.rs"
         )
         text_glyph_draw = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs"
+            "zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs.rs"
         )
         text_request = source(
             "zircon_runtime/src/core/framework/text/glyph_raster/request.rs"
@@ -924,7 +924,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_vector_cache_bucketing_cannot_change_non_square_aspect(self):
         vector_target = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "visual_assets/target.rs"
         ).split("#[cfg(test)]", 1)[0]
         cache_bucket = vector_target.split("fn vector_cache_bucket(", 1)[1].split(
@@ -937,10 +937,10 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_svg_resolve_is_alpha_aware_and_linear_light(self):
         color = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_color.rs"
+            "zircon_editor/src/ui/retained/contract/paint_color.rs"
         )
         vector_pixels = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "visual_assets/svg/pixels.rs"
         )
 
@@ -956,7 +956,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_avatar_rounding_uses_local_coverage_and_cannot_bypass_the_mask(self):
         avatar_mask = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "material_primitives/avatar/mask.rs"
         )
 
@@ -967,7 +967,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_circular_progress_raster_preserves_analytic_edge_coverage(self):
         circular_progress = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_material_feedback/circular_progress/pixels.rs"
         )
 
@@ -980,7 +980,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_missing_icon_fallback_resolves_local_edge_samples(self):
         missing_icon = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "visual_assets/loading/missing.rs"
         )
 
@@ -993,15 +993,15 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_sample_and_timeline_diamonds_share_cached_local_coverage(self):
         diamond = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_diamond_glyph.rs"
         )
         sample_points = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_sample_grid/points.rs"
         )
         timeline_keys = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_timeline_strip/keys.rs"
         )
 
@@ -1017,27 +1017,27 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_cached_diamonds_keep_fractional_physical_extent_and_native_source_resolution(self):
         diamond = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_diamond_glyph.rs"
         )
         timeline_metrics = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_timeline_strip/metrics.rs"
         )
         sample_metrics = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_sample_grid/metrics.rs"
         )
         sample_points = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_sample_grid/points.rs"
         )
         sample_grid = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_sample_grid.rs"
         )
         sample_geometry = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_sample_grid/geometry.rs"
         )
 
@@ -1060,7 +1060,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_circular_progress_keeps_fractional_target_geometry_and_native_source_resolution(self):
         circular_root = (
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_material_feedback/circular_progress/"
         )
         entry = source(circular_root + "entry.rs")
@@ -1083,11 +1083,11 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_asset_thumbnail_svg_keeps_fractional_target_and_ceils_local_raster_source(self):
         thumbnail = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_asset_placeholder_visuals.rs"
         )
         tests = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals/tests/cases.rs"
+            "zircon_editor/src/ui/retained/contract/paint/tests/cases.rs"
         )
 
         self.assertIn("fn thumbnail_icon_target_edge", thumbnail)
@@ -1108,7 +1108,7 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_cached_chart_bitmaps_resolve_local_samples_in_linear_light(self):
         raster_root = (
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "mui_x_primitives/charts/raster/"
         )
         model = source(raster_root + "model.rs")
@@ -1126,19 +1126,19 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_visual_profile_publishes_text_aa_evidence_from_one_command_stream(self):
         export = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "profiling_artifacts/export.rs"
         )
         geometry = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "profiling_artifacts/geometry.rs"
         )
         geometry_schema = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "profiling_artifacts/schema/geometry.rs"
         )
         text_schema = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "profiling_artifacts/schema/text.rs"
         )
         oracle = source("tools/visual/zircon_editor_ui_visual_oracle.py")
@@ -1156,23 +1156,23 @@ class EditorUiDevicePixelAaContractTests(unittest.TestCase):
 
     def test_visual_profile_publishes_resolved_rounded_shape_geometry(self):
         export = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "profiling_artifacts/export.rs"
         )
         geometry = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "profiling_artifacts/geometry.rs"
         )
         geometry_schema = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "profiling_artifacts/schema/geometry.rs"
         )
         rounded_schema = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "profiling_artifacts/schema/rounded.rs"
         )
         rounded_geometry = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "profiling_artifacts/geometry/rounded_shapes.rs"
         )
         oracle = source("tools/visual/zircon_editor_ui_visual_oracle.py")

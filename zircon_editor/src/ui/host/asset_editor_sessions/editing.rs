@@ -1,9 +1,16 @@
+#[path = "editing/binding.rs"]
 mod binding;
+#[path = "editing/inspector.rs"]
 mod inspector;
+#[path = "editing/navigation.rs"]
 mod navigation;
+#[path = "editing/node_ops.rs"]
 mod node_ops;
+#[path = "editing/palette.rs"]
 mod palette;
+#[path = "editing/source.rs"]
 mod source;
+#[path = "editing/style.rs"]
 mod style;
 
 use std::path::PathBuf;

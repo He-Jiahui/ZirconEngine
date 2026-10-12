@@ -1,11 +1,20 @@
+#[path = "backend.rs"]
 mod backend;
+#[path = "layout.rs"]
 mod layout;
+#[path = "neutral_buffers.rs"]
 mod neutral_buffers;
+#[path = "planner.rs"]
 mod planner;
+#[path = "program.rs"]
 mod program;
+#[path = "readback.rs"]
 mod readback;
+#[path = "runtime_owner.rs"]
 mod runtime_owner;
+#[path = "shaders.rs"]
 mod shaders;
+#[path = "transparent.rs"]
 mod transparent;
 
 pub use backend::{

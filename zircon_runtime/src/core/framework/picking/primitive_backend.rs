@@ -128,5 +128,5 @@ fn ray_sphere_hit(ray: &PointerRay, center: Vec3, radius: Real) -> Option<(Real,
 }
 
 #[cfg(test)]
-#[path = "tests/primitive_backend_optimization_batch_20260830ce_runtime_tests.rs"]
+#[path = "tests/primitive_backend_perf.rs"]
 mod optimization_batch_20260830ce_runtime_tests;

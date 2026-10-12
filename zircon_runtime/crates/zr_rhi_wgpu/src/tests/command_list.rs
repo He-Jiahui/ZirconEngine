@@ -211,8 +211,13 @@ fn create_raster_vertex_input_layout() -> VertexInputLayoutDesc {
     ])
 }
 
+#[path = "command_list/basic_commands.rs"]
 mod basic_commands;
+#[path = "command_list/bind_groups.rs"]
 mod bind_groups;
+#[path = "command_list/indirect_commands.rs"]
 mod indirect_commands;
+#[path = "command_list/raster_draws.rs"]
 mod raster_draws;
+#[path = "command_list/vertex_index_state.rs"]
 mod vertex_index_state;

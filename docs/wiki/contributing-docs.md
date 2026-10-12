@@ -41,7 +41,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 <request summary>
 tests:
-  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/tests
 doc_type: module-detail
 ---
 ```

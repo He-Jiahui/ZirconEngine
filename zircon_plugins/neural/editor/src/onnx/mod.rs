@@ -1,5 +1,8 @@
+#[path = "convert.rs"]
 mod convert;
+#[path = "executable_contract.rs"]
 mod executable_contract;
+#[path = "reader.rs"]
 mod reader;
 
 use std::collections::BTreeMap;

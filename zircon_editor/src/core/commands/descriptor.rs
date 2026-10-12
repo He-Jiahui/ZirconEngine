@@ -423,5 +423,5 @@ mod tests;
 mod optimization_tests;
 
 #[cfg(test)]
-#[path = "descriptor/tests/optimization_batch_hu_editor603_tests.rs"]
+#[path = "descriptor/tests/perf.rs"]
 mod optimization_batch_hu_editor603_tests;

@@ -3,9 +3,13 @@ use serde::{Deserialize, Serialize};
 use super::capabilities::{RenderOperation, RenderQueueClass};
 use super::texture_copy::TextureCopyRegion;
 
+#[path = "device/error.rs"]
 mod error;
+#[path = "device/handles.rs"]
 mod handles;
+#[path = "device/render_device.rs"]
 mod render_device;
+#[path = "device/render_pass.rs"]
 mod render_pass;
 
 pub use self::error::RhiError;

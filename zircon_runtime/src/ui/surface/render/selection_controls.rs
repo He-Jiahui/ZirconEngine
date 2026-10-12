@@ -1,10 +1,18 @@
+#[path = "selection_controls/checkbox.rs"]
 mod checkbox;
+#[path = "selection_controls/commands.rs"]
 mod commands;
+#[path = "selection_controls/geometry.rs"]
 mod geometry;
+#[path = "selection_controls/metadata.rs"]
 mod metadata;
+#[path = "selection_controls/radio.rs"]
 mod radio;
+#[path = "selection_controls/state.rs"]
 mod state;
+#[path = "selection_controls/style.rs"]
 mod style;
+#[path = "selection_controls/toggle.rs"]
 mod toggle;
 
 use zircon_runtime_interface::ui::{

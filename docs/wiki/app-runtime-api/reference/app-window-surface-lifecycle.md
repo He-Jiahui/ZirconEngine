@@ -4,13 +4,13 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/window_attributes
   - zircon_app/src/entry/runtime_entry_app/window_lifecycle
   - zircon_app/src/entry/runtime_entry_app/window_surface
-  - zircon_app/src/entry/runtime_entry_app/surface_present
+  - zircon_app/src/entry/surface_present
   - zircon_app/src/entry/tests/runtime_entry_window_lifecycle_guards
   - zircon_app/src/entry/tests/runtime_entry_surface_present_guards
 implementation_files:
   - zircon_app/src/entry/runtime_entry_app/window_creation.rs
   - zircon_app/src/entry/runtime_entry_app/window_surface
-  - zircon_app/src/entry/runtime_entry_app/surface_present
+  - zircon_app/src/entry/surface_present
 plan_sources:
   - user: 2026-09-09 扩展 zircon_app 公开接口、机制案例、教程和最佳实践
 tests:

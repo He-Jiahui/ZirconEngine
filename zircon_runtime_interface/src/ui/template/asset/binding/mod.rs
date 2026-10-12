@@ -1,6 +1,10 @@
+#[path = "diagnostic.rs"]
 mod diagnostic;
+#[path = "expression.rs"]
 mod expression;
+#[path = "schema.rs"]
 mod schema;
+#[path = "target.rs"]
 mod target;
 
 pub use diagnostic::{

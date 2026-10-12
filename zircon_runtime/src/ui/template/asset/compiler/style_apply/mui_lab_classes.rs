@@ -139,5 +139,5 @@ fn has_opposite_content(node: &UiTemplateNode) -> bool {
 }
 
 #[cfg(test)]
-#[path = "mui_lab_classes/tests/borrowed_tab_value_tests.rs"]
+#[path = "../tests/borrowed_tab_value.rs"]
 mod borrowed_tab_value_tests;

@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime_interface/src/ui/focus.rs
   - zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs
 implementation_files:
-  - zircon_runtime/src/ui/surface
+  - zircon_runtime/src/ui
   - zircon_app/src/entry/runtime_entry_app/event_dispatch.rs
 plan_sources:
   - user: 2026-09-09 扩充公开 UI 接口、机制案例与教程

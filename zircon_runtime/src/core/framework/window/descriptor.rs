@@ -168,5 +168,5 @@ impl Default for WindowDescriptor {
 }
 
 #[cfg(test)]
-#[path = "descriptor/tests/optional_value_format_tests.rs"]
+#[path = "tests/optional_value_format.rs"]
 mod optional_value_format_tests;

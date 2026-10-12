@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 MODULE = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/workbench_window_projection"
+    "zircon_editor/src/ui/retained/ui/windows"
 )
 
 

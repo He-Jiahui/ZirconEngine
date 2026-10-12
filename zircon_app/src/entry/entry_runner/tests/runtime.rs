@@ -565,12 +565,7 @@ mod runtime_session_create_cleanup {
 
     fn create_failure(runtime: LoadedRuntime) -> RuntimeSessionCreateFailure {
         match RuntimeSession::create_with_profile_and_project(
-            runtime,
-            b"runtime",
-            None,
-            None,
-            None,
-            None,
+            runtime, b"runtime", None, None, None, None,
         ) {
             Err(failure) => failure,
             Ok(mut session) => {

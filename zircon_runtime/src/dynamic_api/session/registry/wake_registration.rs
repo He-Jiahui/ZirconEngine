@@ -164,5 +164,5 @@ impl Drop for WakeCallbackGuard {
 }
 
 #[cfg(test)]
-#[path = "tests/wake_registration_optimization_tests.rs"]
+#[path = "tests/wake_registration_perf.rs"]
 mod optimization_tests;

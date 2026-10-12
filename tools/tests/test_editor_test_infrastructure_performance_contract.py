@@ -43,7 +43,7 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         inventory_root = (
             ROOT
-            / "zircon_editor/src/tests/ui/boundary/material_component_lab/inventory"
+            / "zircon_editor/src/tests/ui/boundary/inventory"
         )
         inventory = "\n".join(
             path.read_text(encoding="utf-8")
@@ -69,7 +69,7 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         lab_theme_root = (
             ROOT
-            / "zircon_editor/src/tests/ui/boundary/material_component_lab/lab_theme"
+            / "zircon_editor/src/tests/ui/boundary/lab_theme"
         )
         lab_theme = "\n".join(
             path.read_text(encoding="utf-8")
@@ -92,7 +92,7 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
 
     def test_zui_governance_documents_are_parsed_once_per_test_process(self) -> None:
         governance_root = (
-            ROOT / "zircon_editor/src/tests/ui/boundary/zui_asset_governance"
+            ROOT / "zircon_editor/src/tests/ui/zui_asset_governance"
         )
         support = (governance_root / "support.rs").read_text(encoding="utf-8")
 
@@ -161,7 +161,7 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
     def test_pane_body_specs_do_not_rebuild_the_editor_runtime_per_lookup(self) -> None:
         source = (
             ROOT
-            / "zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs"
+            / "zircon_editor/src/tests/host/runtime/pane_payload_projection.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn(
@@ -177,7 +177,7 @@ class EditorTestInfrastructurePerformanceContractTests(unittest.TestCase):
         ]:
             source = (
                 ROOT
-                / "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge"
+                / "zircon_editor/src/tests/host/callbacks/templates"
                 / relative
             ).read_text(encoding="utf-8")
             start = source.index("fn template_contract_node")

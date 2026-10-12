@@ -8,7 +8,9 @@ use zircon_runtime::asset::{
 };
 use zircon_runtime::core::math::{Vec2, Vec3};
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

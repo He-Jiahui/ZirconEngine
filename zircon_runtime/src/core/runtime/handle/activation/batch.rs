@@ -12,6 +12,7 @@ use super::service_lifecycle::{
     validate_reactivation_services,
 };
 
+#[path = "batch/transaction_set.rs"]
 pub(super) mod transaction_set;
 
 use self::transaction_set::LifecycleTransactionSet;

@@ -1,14 +1,23 @@
 //! 编辑器导入入口按资源身份与源摘要共享同一代任务，合并触发原因并保留有界完成结果；后端负责实际运行时导入，调用端通过票据观察，不自行接管导入标记。
 //! Editor-owned orchestration for runtime asset imports.
 
+#[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "error.rs"]
 mod error;
+#[path = "flight.rs"]
 mod flight;
+#[path = "job.rs"]
 mod job;
+#[path = "lock.rs"]
 mod lock;
+#[path = "model_submit.rs"]
 mod model_submit;
+#[path = "model_ticket.rs"]
 mod model_ticket;
+#[path = "state.rs"]
 mod state;
+#[path = "submit.rs"]
 mod submit;
 
 use std::fmt;

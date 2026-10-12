@@ -31,8 +31,8 @@ JOB_SYSTEM_MODULES = (
 )
 EXPECTED_JOB_SYSTEM_GUARD_FILE_COUNT = 2
 JOB_SYSTEM_GUARD_FILES = (
-    "zircon_runtime/src/tests/runtime_absorption/job_system.rs",
-    "zircon_runtime/src/tests/runtime_absorption/job_system/mirror_docs.rs",
+    "zircon_runtime/src/tests/contracts/job_system.rs",
+    "zircon_runtime/src/tests/contracts/job_system/mirror_docs.rs",
 )
 RAYON_CLASSIFICATIONS = {
     "zircon_runtime/src/core/runtime/tasks/pool.rs": "core-task-pool-rayon-owner",

@@ -1,13 +1,13 @@
 // 通过源文本核对资产宿主服务入口，约束运行时解析器不泄漏成通用依赖。
 #[test]
 fn retained_host_asset_services_do_not_leak_a_generic_runtime_resolver() {
-    let app_source = include_str!("../../ui/retained_host/app.rs");
-    let assets_source = include_str!("../../ui/retained_host/app/assets.rs");
+    let app_source = include_str!("../../ui/retained/app.rs");
+    let assets_source = include_str!("../../ui/retained/app/assets.rs");
     let startup_managers_source =
-        include_str!("../../ui/retained_host/app/host_lifecycle/startup/resources/managers.rs");
+        include_str!("../../ui/retained/app/host_lifecycle/startup/resources/managers.rs");
     let startup_bundle_source =
-        include_str!("../../ui/retained_host/app/host_lifecycle/startup/resources/bundle.rs");
-    let access_source = include_str!("../../ui/retained_host/app/asset_runtime_access.rs");
+        include_str!("../../ui/retained/app/host_lifecycle/startup/resources/bundle.rs");
+    let access_source = include_str!("../../ui/retained/app/asset_runtime_access.rs");
 
     for forbidden in [
         "resource_manager_resolver: ManagerResolver",

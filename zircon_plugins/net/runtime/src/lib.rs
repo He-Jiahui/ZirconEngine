@@ -1,15 +1,28 @@
+#[path = "capability.rs"]
 mod capability;
+#[path = "config.rs"]
 mod config;
+#[path = "http.rs"]
 mod http;
+#[path = "module.rs"]
 mod module;
+#[path = "package.rs"]
 mod package;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "poison_recovery.rs"]
 mod poison_recovery;
+#[path = "runtime_state.rs"]
 mod runtime_state;
+#[path = "runtime_system.rs"]
 mod runtime_system;
+#[path = "service_types.rs"]
 mod service_types;
+#[path = "transport/mod.rs"]
 mod transport;
+#[path = "websocket.rs"]
 mod websocket;
+#[path = "worker/mod.rs"]
 mod worker;
 
 pub use capability::{
@@ -49,4 +62,5 @@ pub use websocket::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

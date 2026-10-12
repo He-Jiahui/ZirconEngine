@@ -6,7 +6,7 @@ use zircon_runtime::core::math::Real;
 use super::sampling::animation_parameter_value_is_finite;
 
 #[cfg(test)]
-#[path = "parameters/tests/performance_tests.rs"]
+#[path = "parameters/tests/perf.rs"]
 mod optimization_batch_20260830cr_tests;
 
 pub(super) fn parameter_defaults(graph: &AnimationGraphAsset) -> AnimationParameterMap {

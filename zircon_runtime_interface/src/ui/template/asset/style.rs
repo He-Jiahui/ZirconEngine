@@ -217,13 +217,13 @@ fn skip_whitespace(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> bool
 }
 
 #[cfg(test)]
-#[path = "style/tests/selector_token_performance_tests.rs"]
+#[path = "../../asset/style/tests/selector_token_perf.rs"]
 mod selector_token_performance_tests;
 
 #[cfg(test)]
-#[path = "style/tests/selector_parse_performance_tests.rs"]
+#[path = "../../asset/style/tests/selector_parse_perf.rs"]
 mod selector_parse_performance_tests;
 
 #[cfg(test)]
-#[path = "style/tests/selector_capacity_performance_tests.rs"]
+#[path = "../../asset/style/tests/selector_capacity_perf.rs"]
 mod selector_capacity_performance_tests;

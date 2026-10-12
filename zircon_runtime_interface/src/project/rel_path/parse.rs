@@ -7,7 +7,7 @@ pub(super) fn parse(value: &str) -> Result<RelPath, RelPathError> {
     }
 
     let portable = value.replace('\\', "/");
-    if portable.starts_with('/') || has_platform_prefix(&portable) {
+    if portable.starts_with('/') || portable.split('/').any(is_windows_unsafe_component) {
         return Err(RelPathError::AbsoluteOrPrefixed {
             path: value.to_string(),
         });
@@ -31,10 +31,21 @@ pub(super) fn parse(value: &str) -> Result<RelPath, RelPathError> {
     Ok(RelPath(normalized.join("/")))
 }
 
-// BUG: [CR-PROJECT-0001] 仅检查首段会放过 safe/C:/outside；Windows PathBuf 将其转为
-// C:outside，join_to 因而逸出项目根。清单资产根随后会交给 create_dir_all。
-fn has_platform_prefix(value: &str) -> bool {
-    let first = value.split('/').next().unwrap_or_default();
-    let bytes = first.as_bytes();
-    bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':'
+// Windows treats a colon in any path component as a drive/alternate-stream marker, and
+// device names remain reserved even when followed by an extension (for example, CON.txt).
+fn is_windows_unsafe_component(component: &str) -> bool {
+    if component.contains(':') {
+        return true;
+    }
+
+    // Windows strips trailing spaces and periods before resolving a path component.
+    let normalized = component.trim_end_matches([' ', '.']);
+    let device_stem = normalized.split('.').next().unwrap_or_default();
+    let device_stem = device_stem.to_ascii_uppercase();
+    matches!(device_stem.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
+        || ["COM", "LPT"].iter().any(|prefix| {
+            device_stem.strip_prefix(prefix).is_some_and(|suffix| {
+                matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³")
+            })
+        })
 }

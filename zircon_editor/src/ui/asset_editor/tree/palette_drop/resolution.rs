@@ -20,6 +20,7 @@ use crate::ui::asset_editor::palette::{
     UiAssetPaletteInsertionPlacement,
 };
 
+#[path = "resolution/title_case.rs"]
 mod title_case;
 
 use self::title_case::title_case_identifier;
@@ -934,5 +935,5 @@ pub(crate) fn table_value(entries: &[(&str, Value)]) -> Value {
 }
 
 #[cfg(test)]
-#[path = "resolution/tests/hash_membership_tests.rs"]
+#[path = "../../../tree/palette_drop/resolution/tests/hash_membership.rs"]
 mod hash_membership_tests;

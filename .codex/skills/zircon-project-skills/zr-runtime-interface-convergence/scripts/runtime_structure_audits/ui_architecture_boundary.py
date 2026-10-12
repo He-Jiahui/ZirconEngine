@@ -63,8 +63,8 @@ SOURCE_FILES = (
     "zircon_runtime/src/ui/surface/property_mutation.rs",
     "zircon_runtime/src/ui/surface/surface/default_interactions.rs",
     "zircon_runtime/src/ui/accessibility/extract.rs",
-    "zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs",
-    "zircon_runtime/src/tests/runtime_absorption/ui_architecture/mirror_docs.rs",
+    "zircon_runtime/src/tests/contracts/ui_architecture.rs",
+    "zircon_runtime/src/tests/contracts/ui_architecture/mirror_docs.rs",
     "docs/zircon_runtime/ui/architecture.md",
     "docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md",
     "docs/plans/zircon_runtime/runtime/index.md",
@@ -413,7 +413,7 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
     )
     surface_entries = _top_level_entry_names(
         root,
-        "zircon_runtime/src/ui/surface",
+        "zircon_runtime/src/ui",
         include_root_mod=True,
     )
 
@@ -446,13 +446,13 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
     interface_v2_source = _read_text(interface_v2) if interface_v2.exists() else ""
 
     guard_paths = (
-        root / "zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs",
+        root / "zircon_runtime/src/tests/contracts/ui_architecture.rs",
         root
-        / "zircon_runtime/src/tests/runtime_absorption/ui_architecture/architecture_boundaries.rs",
+        / "zircon_runtime/src/tests/contracts/ui_architecture/architecture_boundaries.rs",
         root
-        / "zircon_runtime/src/tests/runtime_absorption/ui_architecture/legacy_renames.rs",
+        / "zircon_runtime/src/tests/contracts/ui_architecture/legacy_renames.rs",
         root
-        / "zircon_runtime/src/tests/runtime_absorption/ui_architecture/mirror_docs.rs",
+        / "zircon_runtime/src/tests/contracts/ui_architecture/mirror_docs.rs",
     )
     guard_sources = tuple(_read_text(path) for path in guard_paths if path.exists())
     guard_test_names = {

@@ -7,10 +7,15 @@ use zircon_runtime::core::framework::net::{
     NetError, NetHttpRequestDescriptor, NetHttpResponseDescriptor, NetRouteId,
 };
 
+#[path = "backend/client.rs"]
 mod client;
+#[path = "backend/http1_client_policy.rs"]
 mod http1_client_policy;
+#[path = "backend/method.rs"]
 mod method;
+#[path = "backend/security.rs"]
 mod security;
+#[path = "backend/server.rs"]
 mod server;
 
 #[derive(Clone, Debug, Default)]

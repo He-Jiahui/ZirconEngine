@@ -1,4 +1,6 @@
+#[path = "decision.rs"]
 mod decision;
+#[path = "policy.rs"]
 mod policy;
 
 #[cfg(test)]

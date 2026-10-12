@@ -3,16 +3,16 @@ related_code:
   - tools/cargo/src/plugin/scaffold/mod.rs
   - tools/cargo/src/plugin/check.rs
   - tools/cargo/src/plugin/validate.rs
-  - zircon_runtime/src/plugin/runtime_plugin
+  - zircon_runtime/src/plugin/runtime
 implementation_files:
   - tools/cargo/src/plugin/scaffold
   - tools/cargo/src/plugin/check.rs
-  - zircon_runtime/src/plugin/runtime_plugin
+  - zircon_runtime/src/plugin/runtime
 plan_sources:
   - user: 2026-09-09 扩充 ZirconEngine 公开接口教程、机制案例与最佳实践
 tests:
   - tools/cargo/tests/plugin_commands.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/tests/cases.rs
+  - zircon_runtime/src/plugin/runtime/feature_validation/tests/cases.rs
 doc_type: workflow-detail
 ---
 

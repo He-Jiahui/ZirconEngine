@@ -1,15 +1,25 @@
 pub const PHYSICS_SETTINGS_CONFIG_KEY: &str = "physics.settings";
 pub const PHYSICS_EVENT_NAMESPACE: &str = "physics.events";
 
+#[path = "backend/mod.rs"]
 mod backend;
+#[path = "capability.rs"]
 mod capability;
+#[path = "constraint/mod.rs"]
 mod constraint;
+#[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "manager.rs"]
 mod manager;
+#[path = "module.rs"]
 mod module;
+#[path = "overlay_frame.rs"]
 mod overlay_frame;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "runtime_system.rs"]
 mod runtime_system;
+#[path = "skeletal/mod.rs"]
 mod skeletal;
 
 pub use backend::builtin::integrate_builtin_physics_steps;

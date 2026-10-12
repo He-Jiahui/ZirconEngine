@@ -2,6 +2,7 @@
 
 #[path = "script/argument_views.rs"]
 mod argument_views;
+#[path = "script/behavior_bridge.rs"]
 mod behavior_bridge;
 #[path = "script/call_frame.rs"]
 mod call_frame;

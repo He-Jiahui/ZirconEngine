@@ -792,5 +792,5 @@ fn parse_entity_value(value: &str) -> Result<Option<NodeId>, InspectorEditError>
 }
 
 #[cfg(test)]
-#[path = "tests/editor_state_selection_performance_tests.rs"]
+#[path = "tests/editor_state_selection_perf.rs"]
 mod performance_tests;

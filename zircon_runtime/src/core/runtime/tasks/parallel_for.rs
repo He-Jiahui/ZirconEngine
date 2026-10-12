@@ -42,7 +42,7 @@ where
 }
 
 #[cfg(test)]
-#[path = "parallel_for/tests/optimization_batch_jt_runtime659_tests.rs"]
+#[path = "parallel_for/tests/perf.rs"]
 mod optimization_batch_jt_runtime659_tests;
 
 impl ParallelSliceExecutor for TaskPool {

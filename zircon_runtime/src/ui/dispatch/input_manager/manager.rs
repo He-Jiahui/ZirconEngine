@@ -1,3 +1,4 @@
+#[path = "manager/toast_timer_queue.rs"]
 mod toast_timer_queue;
 
 use std::time::Duration;

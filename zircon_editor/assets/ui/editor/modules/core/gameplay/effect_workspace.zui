@@ -1,0 +1,344 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/modules/core/gameplay/effect_workspace.zui"
+version = 2
+display_name = "Workbench Effect Workspace"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton",
+  "res://ui/editor/workbench/primitives/inputs/dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/components/workbench/primitives/inputs/field.zui#WorkbenchField",
+  "res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput",
+  "res://ui/editor/workbench/inputs/property_editor_row.zui#WorkbenchPropertyEditorRow",
+  "res://ui/editor/components/workbench/primitives/data/list_row.zui#WorkbenchListRow",
+  "res://ui/editor/workbench/primitives/data/property_row.zui#WorkbenchPropertyRow",
+  "res://ui/editor/components/workbench/primitives/data/caption.zui#WorkbenchCaption",
+  "res://ui/editor/workbench/primitives/chrome/section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/workbench/primitives/data/table_row.zui#WorkbenchTableRow",
+]
+styles = []
+
+[components.WorkbenchEffectWorkspace]
+root = "effect_workspace"
+default_classes = ["workbench-module-body"]
+
+[nodes.effect_workspace]
+component = "Overlay"
+control_id = "WorkbenchModuleEffectWorkspace"
+classes = ["workbench-module-body"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "effect_workspace_main" },
+  { node = "effect_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+]
+
+[nodes.effect_workspace_main]
+component = "HorizontalGroup"
+classes = ["workbench-module-layout-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "effect_rail_gap" }, { node = "effect_left" }, { node = "effect_center" }, { node = "effect_right_reserve" }]
+
+[nodes.effect_right_reserve]
+component = "Container"
+classes = ["workbench-module-details-reserve"]
+props = { responsive_min_tier = "wide" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+[nodes.effect_rail_gap]
+component = "Container"
+control_id = "WorkbenchEffectRailGap"
+props = { responsive_min_tier = "narrow" }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.effect_left]
+component = "VerticalGroup"
+control_id = "WorkbenchEffectLeftPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+props = { responsive_min_tier = "narrow" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "effect_title" }, { node = "effect_left_content" }]
+
+[nodes.effect_left_content]
+component = "ScrollableBox"
+control_id = "WorkbenchEffectLeftContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "effect_asset_search" }, { node = "effect_health_regen_row" }, { node = "effect_damage_fire_row" }, { node = "effect_search_empty" }, { node = "effect_stack_row" }, { node = "effect_cue_row" }]
+
+[nodes.effect_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchEffectTitle"
+classes = ["workbench-section-title"]
+props = { text = "Gameplay Effect" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.effect_asset_search]
+component = "WorkbenchSearchInput"
+control_id = "WorkbenchEffectAssetSearch"
+props = { query = "", placeholder = "Search effects" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/EffectSearchEdit", event = "Change", route = "workbench.module.effect.search.edit" },
+  { id = "WorkbenchModule/EffectSearchCommit", event = "Submit", route = "workbench.module.effect.search.commit" },
+]
+
+[nodes.effect_health_regen_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchEffectHealthRegenRow"
+classes = ["workbench-list-row"]
+props = { text = "GE_HealthRegen", value = "ge_health_regen" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectHealthRegenRow", event = "Click", route = "workbench.module.effect.asset.health_regen" }]
+
+[nodes.effect_damage_fire_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchEffectDamageFireRow"
+classes = ["workbench-list-row"]
+props = { text = "GE_DamageFire", value = "ge_damage_fire" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectDamageFireRow", event = "Click", route = "workbench.module.effect.asset.damage_fire" }]
+
+[nodes.effect_search_empty]
+component = "WorkbenchCaption"
+control_id = "WorkbenchEffectSearchEmpty"
+props = { text = "No matching effects", visibility = "collapsed" }
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.effect_stack_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchEffectStackRow"
+classes = ["workbench-list-row"]
+props = { text = "Stacking Rules", value = "effect_stack" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectStackRow", event = "Click", route = "workbench.module.effect.stack" }]
+
+[nodes.effect_cue_row]
+component = "WorkbenchListRow"
+control_id = "WorkbenchEffectCueRow"
+classes = ["workbench-list-row"]
+props = { text = "Gameplay Cues", value = "effect_cues" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectCueRow", event = "Click", route = "workbench.module.effect.cues" }]
+
+[nodes.effect_center]
+component = "VerticalGroup"
+control_id = "WorkbenchEffectCenterPanel"
+classes = ["workbench-panel", "workbench-module-center"]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "effect_center_header" }, { node = "effect_canvas" }, { node = "effect_output" }]
+
+[nodes.effect_center_header]
+component = "HorizontalGroup"
+control_id = "WorkbenchEffectCenterHeader"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
+children = [{ node = "effect_center_title" }, { node = "effect_header_fill" }, { node = "effect_apply_button" }]
+
+[nodes.effect_center_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchEffectCenterTitle"
+classes = ["workbench-section-title"]
+props = { text = "GE_HealthRegen" }
+layout = { width = { min = 180.0, preferred = 180.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.effect_header_fill]
+component = "Container"
+control_id = "WorkbenchEffectHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.effect_apply_button]
+component = "WorkbenchButton"
+control_id = "WorkbenchEffectApplyButton"
+classes = ["workbench-control-button", "workbench-module-command"]
+props = { text = "Apply", button_variant = "filled", button_color = "accent" }
+layout = { width = { min = 76, preferred = 76, max = 86, stretch = "Fixed" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectApply", event = "Click", route = "workbench.module.effect.apply" }]
+
+[nodes.effect_canvas]
+component = "ScrollableBox"
+control_id = "WorkbenchEffectCanvas"
+classes = ["workbench-panel", "workbench-module-canvas"]
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.regular", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "effect_duration_row" }, { node = "effect_period_row" }, { node = "effect_policy_row" }, { node = "effect_mod_table" }, { node = "effect_mod_health_row" }, { node = "effect_mod_healing_row" }, { node = "effect_mod_cap_row" }, { node = "effect_graph_title" }, { node = "effect_graph_row" }]
+
+[nodes.effect_duration_row]
+component = "WorkbenchPropertyRow"
+control_id = "WorkbenchEffectDurationRow"
+classes = ["workbench-property-row"]
+props = { text = "Duration", value = "10.0 s" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectDurationRow", event = "Click", route = "workbench.module.effect.duration" }]
+
+[nodes.effect_period_row]
+component = "WorkbenchPropertyRow"
+control_id = "WorkbenchEffectPeriodRow"
+classes = ["workbench-property-row"]
+props = { text = "Period", value = "1.0 s" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectPeriodRow", event = "Click", route = "workbench.module.effect.period" }]
+
+[nodes.effect_policy_row]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchEffectPolicyDropdown"
+classes = ["workbench-field", "workbench-dropdown"]
+props = { value = "has_duration", value_text = "Has Duration", options = ["instant|label=Instant", "has_duration|label=Has Duration", "infinite|label=Infinite"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/EffectPolicyEdit", event = "Change", route = "workbench.module.effect.policy.edit" },
+  { id = "WorkbenchModule/EffectPolicyCommit", event = "Submit", route = "workbench.module.effect.policy.commit" },
+]
+
+[nodes.effect_mod_table]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchEffectModifierTable"
+classes = ["workbench-table-row", "workbench-table-header"]
+props = { text = "Attribute     Op       Value       Source", value = "modifier", options = ["Health", "Add", "+5.0", "Periodic"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.effect_mod_health_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchEffectModifierHealthRow"
+classes = ["workbench-table-row"]
+props = { text = "HealthRegen     Health        Additive       Scalable Float", value = "health_regen", options = ["HealthRegen", "Health", "Additive", "Scalable Float"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectModifierHealth", event = "Click", route = "workbench.module.effect.modifier.health_regen" }]
+
+[nodes.effect_mod_healing_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchEffectModifierHealingRow"
+classes = ["workbench-table-row"]
+props = { text = "IncomingHealing Healing       Multiply       Scalable Float", value = "incoming_healing", options = ["IncomingHealing", "Healing", "Multiply", "Scalable Float"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectModifierHealing", event = "Click", route = "workbench.module.effect.modifier.incoming_healing" }]
+
+[nodes.effect_mod_cap_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchEffectModifierCapRow"
+classes = ["workbench-table-row"]
+props = { text = "MaxHealthCap    Max Health    Additive       Captured Attribute", value = "max_health_cap", options = ["MaxHealthCap", "Max Health", "Additive", "Captured Attribute"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectModifierCap", event = "Click", route = "workbench.module.effect.modifier.max_health_cap" }]
+
+[nodes.effect_graph_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchEffectGraphTitle"
+classes = ["workbench-section-title"]
+props = { text = "Dependency Graph" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.effect_graph_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchEffectGraphRow"
+classes = ["workbench-table-row"]
+props = { text = "Source HealthRegen  ->  Health Attribute  ->  Clamp Health", value = "effect_graph", options = ["Source HealthRegen", "Health Attribute", "Clamp Health"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectGraphSelect", event = "Click", route = "workbench.module.effect.graph.select" }]
+
+[nodes.effect_output]
+component = "WorkbenchListRow"
+control_id = "WorkbenchEffectOutputRow"
+classes = ["workbench-list-row"]
+props = { text = "Simulation Output: +50 health over 10 seconds", value = "effect_output", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.effect_right]
+component = "VerticalGroup"
+control_id = "WorkbenchEffectRightPanel"
+classes = ["workbench-panel", "workbench-module-side"]
+props = { responsive_min_tier = "wide", responsive_compact_drawer = "module_details" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "effect_details_title" }, { node = "effect_right_content" }]
+
+[nodes.effect_right_content]
+component = "ScrollableBox"
+control_id = "WorkbenchEffectRightContent"
+props = { input_hoverable = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "effect_name_property_row" }, { node = "effect_tag_property_row" }, { node = "effect_stack_property_row" }, { node = "effect_magnitude_property_row" }, { node = "effect_attribute_preview_row" }]
+
+[nodes.effect_details_title]
+component = "WorkbenchSectionTitle"
+control_id = "WorkbenchEffectDetailsTitle"
+classes = ["workbench-section-title"]
+props = { text = "Details" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.effect_name_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchEffectNamePropertyRow"
+props = { text = "Name" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "effect_name_field", slot = { name = "value" } }]
+
+[nodes.effect_name_field]
+component = "WorkbenchField"
+control_id = "WorkbenchEffectNameField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "GE_HealthRegen" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/EffectNameEdit", event = "Change", route = "workbench.module.effect.name.edit" },
+  { id = "WorkbenchModule/EffectNameCommit", event = "Submit", route = "workbench.module.effect.name.commit" },
+]
+
+[nodes.effect_tag_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchEffectTagPropertyRow"
+props = { text = "Gameplay Tag" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "effect_tag_field", slot = { name = "value" } }]
+
+[nodes.effect_tag_field]
+component = "WorkbenchField"
+control_id = "WorkbenchEffectTagField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Effect.Health.Regen" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/EffectTagEdit", event = "Change", route = "workbench.module.effect.tag.edit" },
+  { id = "WorkbenchModule/EffectTagCommit", event = "Submit", route = "workbench.module.effect.tag.commit" },
+]
+
+[nodes.effect_stack_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchEffectStackPropertyRow"
+props = { text = "Stacking" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "effect_stack_field", slot = { name = "value" } }]
+
+[nodes.effect_stack_field]
+component = "WorkbenchField"
+control_id = "WorkbenchEffectStackField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "Aggregate by Source" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/EffectStackEdit", event = "Change", route = "workbench.module.effect.stack.edit" },
+  { id = "WorkbenchModule/EffectStackCommit", event = "Submit", route = "workbench.module.effect.stack.commit" },
+]
+
+[nodes.effect_magnitude_property_row]
+component = "WorkbenchPropertyEditorRow"
+control_id = "WorkbenchEffectMagnitudePropertyRow"
+props = { text = "Magnitude" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "effect_magnitude_field", slot = { name = "value" } }]
+
+[nodes.effect_magnitude_field]
+component = "WorkbenchField"
+control_id = "WorkbenchEffectMagnitudeField"
+classes = ["workbench-field", "workbench-component-field"]
+props = { value = "10.0" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
+events = [
+  { id = "WorkbenchModule/EffectMagnitudeEdit", event = "Change", route = "workbench.module.effect.magnitude.edit" },
+  { id = "WorkbenchModule/EffectMagnitudeCommit", event = "Submit", route = "workbench.module.effect.magnitude.commit" },
+]
+
+[nodes.effect_attribute_preview_row]
+component = "WorkbenchTableRow"
+control_id = "WorkbenchEffectAttributePreviewRow"
+classes = ["workbench-table-row"]
+props = { text = "Preview Level 1       Health +10.0", value = "attribute_preview", options = ["Preview Level 1", "Health +10.0"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/EffectAttributePreview", event = "Click", route = "workbench.module.effect.attribute_preview" }]

@@ -3,8 +3,10 @@
 use std::path::{Path, PathBuf};
 
 #[cfg(all(feature = "graphics", feature = "script"))]
+#[path = "example_vampire/manifest_scene_imports.rs"]
 mod manifest_scene_imports;
 #[cfg(feature = "graphics")]
+#[path = "../example_vampire/third_person_render_extract.rs"]
 mod third_person_render_extract;
 
 // TODO: [CR-ASSET-TEST-PROJECT-0002] 两项测试共用仓库示例根并分别执行完整扫描；需确认并发写入与示例源文件的隔离保证，下一步用并行测试及扫描前后文件摘要验证。

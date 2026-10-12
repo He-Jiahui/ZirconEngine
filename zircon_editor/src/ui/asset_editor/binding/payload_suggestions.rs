@@ -5,7 +5,7 @@ use crate::ui::asset_editor::value_path::{
 };
 
 #[cfg(test)]
-#[path = "payload_suggestions/tests/borrowed_root_tests.rs"]
+#[path = "tests/borrowed_root.rs"]
 mod borrowed_root_tests;
 
 pub(super) fn contextual_binding_payload_suggestions(

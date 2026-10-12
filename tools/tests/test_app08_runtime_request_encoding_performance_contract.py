@@ -9,7 +9,7 @@ REQUEST_ENCODING = (
     / "zircon_app/src/entry/runtime_library/runtime_session/request_encoding.rs"
 )
 PERFORMANCE_TESTS = (
-    ROOT / "zircon_app/src/entry/runtime_library/runtime_session/request_encoding/tests/performance_tests.rs"
+    ROOT / "zircon_app/src/entry/runtime_library/runtime_session/tests/perf.rs"
 )
 
 

@@ -293,5 +293,5 @@ fn binding_schema_default_literal(value: &Value) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/schema_projection_optimization_tests.rs"]
+#[path = "tests/schema_projection_perf.rs"]
 mod optimization_tests;

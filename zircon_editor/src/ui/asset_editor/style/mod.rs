@@ -1,8 +1,16 @@
+#[path = "inspector_fields.rs"]
 pub(crate) mod inspector_fields;
+#[path = "inspector_semantics.rs"]
 pub(crate) mod inspector_semantics;
+#[path = "matched_rule_inspection.rs"]
 pub(crate) mod matched_rule_inspection;
+#[path = "style_rule_declarations.rs"]
 pub(crate) mod style_rule_declarations;
+#[path = "theme_authoring.rs"]
 pub(crate) mod theme_authoring;
+#[path = "theme_cascade_inspection.rs"]
 pub(crate) mod theme_cascade_inspection;
+#[path = "theme_compare.rs"]
 pub(crate) mod theme_compare;
+#[path = "theme_summary.rs"]
 pub(crate) mod theme_summary;

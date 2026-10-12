@@ -35,8 +35,13 @@ fn expect_query_error<T>(result: Result<T, QueryEntityError>) -> QueryEntityErro
     }
 }
 
+#[path = "ecs_query/cached_queries.rs"]
 mod cached_queries;
+#[path = "ecs_query/fixed_ticks.rs"]
 mod fixed_ticks;
+#[path = "ecs_query/iter_many.rs"]
 mod iter_many;
+#[path = "ecs_query/mutation_access.rs"]
 mod mutation_access;
+#[path = "ecs_query/read_items.rs"]
 mod read_items;

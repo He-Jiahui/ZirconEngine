@@ -30,11 +30,11 @@ fn deferred_gbuffer_test_shader() -> String {
 fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
     let geometry_shader = deferred_gbuffer_test_shader();
     let lighting_shader = concat!(
-        include_str!("../../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl"),
+        include_str!("../../scene/renderer/mesh/shaders/zr_gpu_scene.wgsl"),
         "\n",
-        include_str!("../../scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl"),
+        include_str!("../../scene/renderer/lighting/shaders/zr_light_grid.wgsl"),
         "\n",
-        include_str!("../../scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
+        include_str!("../../scene/renderer/shadow/shaders/zr_shadow.wgsl"),
         "\n",
         include_str!("../../shader/includes/zr_pbr_common.wgsl"),
         "\n",
@@ -52,7 +52,7 @@ fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
         "\n",
         include_str!("../../shader/wgsl/zr_shade_deferred_unlit.wgsl"),
         "\n",
-        include_str!("../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl")
+        include_str!("../../scene/deferred/shaders/deferred_lighting.wgsl")
     );
     for (name, shader) in [
         (

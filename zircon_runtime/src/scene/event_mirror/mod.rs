@@ -1,6 +1,9 @@
 //! 为显式注册的可序列化事件提供独立的有界镜像队列，供外部订阅分页排空；普通 ECS 事件队列按自身代际发布。
+#[path = "error.rs"]
 mod error;
+#[path = "registration.rs"]
 mod registration;
+#[path = "subscription.rs"]
 mod subscription;
 
 pub use error::RuntimeEventMirrorError;

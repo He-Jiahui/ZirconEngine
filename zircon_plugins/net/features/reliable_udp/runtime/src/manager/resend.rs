@@ -173,5 +173,5 @@ impl super::state::NetReliableUdpRuntimeState {
 }
 
 #[cfg(test)]
-#[path = "tests/resend_grouped_due_packet_tests.rs"]
+#[path = "../tests/resend_grouped_due.rs"]
 mod grouped_due_packet_tests;

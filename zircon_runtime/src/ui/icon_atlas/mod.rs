@@ -1,5 +1,8 @@
+#[path = "atlas.rs"]
 mod atlas;
+#[path = "builtins.rs"]
 mod builtins;
+#[path = "svg.rs"]
 mod svg;
 
 pub use atlas::{

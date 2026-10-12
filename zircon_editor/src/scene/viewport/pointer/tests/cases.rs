@@ -66,7 +66,7 @@ fn pointer_module_keeps_runtime_route_adapter_as_authoritative_resolver() {
         dispatcher.contains("resolve_runtime_route"),
         "viewport overlay dispatcher should resolve through runtime picking"
     );
-    let event = include_str!("../overlay_router/viewport_overlay_pointer_router_event.rs");
+    let event = include_str!("../overlay_router/event.rs");
     assert!(
         !event.contains("self.debug_feed_at(point)"),
         "pointer dispatch must reuse the route pass for its debug feed"
@@ -201,7 +201,7 @@ fn overlay_router_dispatch_keeps_route_and_debug_feed_for_release_and_scroll() {
 fn viewport_pointer_dispatch_does_not_expose_synthetic_runtime_input() {
     let dispatch = include_str!("../viewport_pointer_dispatch.rs");
     let adapter = include_str!("../runtime_picking_adapter.rs");
-    let event = include_str!("../overlay_router/viewport_overlay_pointer_router_event.rs");
+    let event = include_str!("../overlay_router/event.rs");
 
     assert!(!dispatch.contains("PointerInput"));
     assert!(!dispatch.contains("runtime_input"));

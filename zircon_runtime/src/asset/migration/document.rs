@@ -430,5 +430,5 @@ fn invalid(path: &Path, message: String) -> AssetMigrationIssue {
 mod metrics_tests;
 
 #[cfg(test)]
-#[path = "document/tests/single_pass_material_reference_tests.rs"]
+#[path = "../document/tests/single_pass_material_reference.rs"]
 mod single_pass_material_reference_tests;

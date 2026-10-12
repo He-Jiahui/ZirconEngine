@@ -202,5 +202,5 @@ fn string_value(value: &UiValue) -> Option<&str> {
 }
 
 #[cfg(test)]
-#[path = "tree_view_reparent/tests/borrowed_traversal_tests.rs"]
+#[path = "../tests/borrowed_traversal.rs"]
 mod borrowed_traversal_tests;

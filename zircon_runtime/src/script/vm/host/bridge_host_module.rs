@@ -198,5 +198,5 @@ where
 }
 
 #[cfg(test)]
-#[path = "bridge_host_module/tests/capability_insert_tests.rs"]
+#[path = "bridge_host_module/tests/capability_insert.rs"]
 mod capability_insert_tests;

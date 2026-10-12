@@ -1,5 +1,10 @@
+#[path = "catalog.rs"]
 pub(crate) mod catalog;
+#[path = "default.rs"]
 pub(crate) mod default;
+#[path = "locators.rs"]
 pub(crate) mod locators;
+#[path = "music_sfx.rs"]
 pub(crate) mod music_sfx;
+#[path = "spatial_room.rs"]
 pub(crate) mod spatial_room;

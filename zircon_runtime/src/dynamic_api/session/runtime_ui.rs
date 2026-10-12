@@ -27,11 +27,17 @@ use zircon_runtime_interface::ui::dispatch::UiInputTimestamp;
 
 use super::error::{RuntimeProjectError, RuntimeProjectResult};
 
+#[path = "runtime_ui/action_requests.rs"]
 mod action_requests;
+#[path = "runtime_ui/font_admission.rs"]
 mod font_admission;
+#[path = "runtime_ui/host_request_drain.rs"]
 mod host_request_drain;
+#[path = "runtime_ui/host_requests.rs"]
 mod host_requests;
+#[path = "runtime_ui/input_publication.rs"]
 mod input_publication;
+#[path = "runtime_ui/input_routing.rs"]
 mod input_routing;
 
 use action_requests::RuntimeUiActionRequestQueue;

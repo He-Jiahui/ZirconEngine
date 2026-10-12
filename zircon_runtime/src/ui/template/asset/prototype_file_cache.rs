@@ -312,9 +312,9 @@ fn looks_like_flat_prototype_source(source: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "prototype_file_cache/tests/resource_alias_single_buffer_tests.rs"]
+#[path = "tests/resource_alias_single_buffer.rs"]
 mod resource_alias_single_buffer_tests;
 
 #[cfg(test)]
-#[path = "prototype_file_cache/tests/canonical_revalidation_tests.rs"]
+#[path = "tests/canonical_revalidation.rs"]
 mod canonical_revalidation_tests;

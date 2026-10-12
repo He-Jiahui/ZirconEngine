@@ -1,7 +1,12 @@
+#[path = "column.rs"]
 mod column;
+#[path = "error.rs"]
 mod error;
+#[path = "preflighted_row.rs"]
 mod preflighted_row;
+#[path = "table.rs"]
 mod table;
+#[path = "taken_row.rs"]
 mod taken_row;
 
 #[cfg(test)]

@@ -3,25 +3,45 @@
 //!
 //! 描述符提供声明，CoreHandle 持有可变状态；宿主通过 CoreRuntime 驱动外帧与模块阶段。
 
+#[path = "clock_source.rs"]
 mod clock_source;
+#[path = "config_store.rs"]
 mod config_store;
+#[path = "contexts/mod.rs"]
 mod contexts;
+#[path = "descriptors/mod.rs"]
 mod descriptors;
+#[path = "diagnostics/mod.rs"]
 pub mod diagnostics;
+#[path = "error.rs"]
 pub(super) mod error;
+#[path = "events.rs"]
 mod events;
+#[path = "frame_clock.rs"]
 mod frame_clock;
+#[path = "handle/mod.rs"]
 mod handle;
+#[path = "lifecycle.rs"]
 mod lifecycle;
+#[path = "module_lifecycle_observer.rs"]
 mod module_lifecycle_observer;
+#[path = "modules/mod.rs"]
 pub mod modules;
+#[path = "random/mod.rs"]
 pub mod random;
+#[path = "runtime.rs"]
 mod runtime;
+#[path = "shutdown.rs"]
 mod shutdown;
+#[path = "state/mod.rs"]
 mod state;
+#[path = "state_machine/mod.rs"]
 pub mod state_machine;
+#[path = "tasks/mod.rs"]
 pub mod tasks;
+#[path = "time.rs"]
 mod time;
+#[path = "weak.rs"]
 mod weak;
 
 pub use clock_source::{ClockSource, ManualClockSource, ManualClockSourceError};

@@ -18,11 +18,17 @@ use crate::core::jobs::{
     EditorJobSpec, JobCategory, JobContext, JobError, MutexGroup,
 };
 
+#[path = "admission.rs"]
 mod admission;
+#[path = "completion.rs"]
 mod completion;
+#[path = "outcomes.rs"]
 mod outcomes;
+#[path = "scheduling.rs"]
 mod scheduling;
+#[path = "shutdown.rs"]
 mod shutdown;
+#[path = "support.rs"]
 mod support;
 
 use support::{

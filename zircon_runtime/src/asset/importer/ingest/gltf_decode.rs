@@ -10,9 +10,13 @@ use super::super::{
 use super::auxiliary_source::AuxiliarySourceResolver;
 use super::gltf_meshopt::decode_meshopt_views;
 
+#[path = "gltf_decode/budget.rs"]
 mod budget;
+#[path = "gltf_decode/buffers.rs"]
 mod buffers;
+#[path = "gltf_decode/images.rs"]
 mod images;
+#[path = "gltf_decode/sources.rs"]
 mod sources;
 
 #[cfg(test)]
@@ -211,5 +215,5 @@ pub(crate) fn snapshot_external_gltf_sources(
 }
 
 #[cfg(test)]
-#[path = "tests/gltf_decode_plugins07_deferred_buffer_diagnostic_tests.rs"]
+#[path = "../../../tests/gltf_decode_plugins07_deferred_buffer_diagnostic.rs"]
 mod plugins07_deferred_buffer_diagnostic_tests;

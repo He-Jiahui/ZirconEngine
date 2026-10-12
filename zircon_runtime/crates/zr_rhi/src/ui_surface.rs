@@ -1,8 +1,12 @@
 use std::collections::BTreeSet;
 
+#[path = "ui_surface/compact_styles.rs"]
 mod compact_styles;
+#[path = "ui_surface/font_snapshot.rs"]
 mod font_snapshot;
+#[path = "ui_surface/image_resources.rs"]
 mod image_resources;
+#[path = "ui_surface/text_layout.rs"]
 mod text_layout;
 pub use font_snapshot::{UiSurfaceFontSnapshot, UiSurfaceFontSource};
 pub use text_layout::{

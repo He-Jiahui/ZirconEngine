@@ -196,11 +196,11 @@ fn title_case_identifier(value: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "build/tests/title_case_tests.rs"]
+#[path = "build/tests/title_case.rs"]
 mod title_case_tests;
 
 #[cfg(test)]
-#[path = "build/tests/field_capacity_tests.rs"]
+#[path = "../build/tests/field_capacity.rs"]
 mod field_capacity_tests;
 
 fn build_toolbar_state(

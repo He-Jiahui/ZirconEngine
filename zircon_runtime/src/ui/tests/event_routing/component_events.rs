@@ -7,8 +7,11 @@ use zircon_runtime_interface::ui::template::{
     UiActionRef, UiBindingMissingValuePolicy, UiBindingTarget, UiBindingTargetAssignment,
 };
 
+#[path = "component_events/missing_policy.rs"]
 mod missing_policy;
+#[path = "component_events/performance.rs"]
 mod performance;
+#[path = "component_events/scroll_defaults.rs"]
 mod scroll_defaults;
 
 #[test]

@@ -24,12 +24,19 @@ use crate::asset::{
 };
 use crate::core::framework::render::RenderMeshTopology;
 
+#[path = "artifact_store/artifact_cache_assets.rs"]
 mod artifact_cache_assets;
+#[path = "artifact_store/binary_payloads.rs"]
 mod binary_payloads;
+#[path = "artifact_store/bounded_read.rs"]
 mod bounded_read;
+#[path = "artifact_store/lazy_residency.rs"]
 mod lazy_residency;
+#[path = "artifact_store/material_data.rs"]
 mod material_data;
+#[path = "artifact_store/scene_components.rs"]
 mod scene_components;
+#[path = "artifact_store/scene_script.rs"]
 mod scene_script;
 
 #[derive(serde::Serialize, serde::Deserialize)]

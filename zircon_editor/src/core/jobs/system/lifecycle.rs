@@ -190,5 +190,5 @@ fn into_pending_cancel_metadata(spec: EditorJobSpec) -> PendingCancelMetadata {
 }
 
 #[cfg(test)]
-#[path = "lifecycle/tests/owned_cancel_metadata_tests.rs"]
+#[path = "lifecycle/tests/owned_cancel_metadata.rs"]
 mod owned_cancel_metadata_tests;

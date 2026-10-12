@@ -1,7 +1,12 @@
+#[path = "ibl_bake_key.rs"]
 mod ibl_bake_key;
+#[path = "mode.rs"]
 mod mode;
+#[path = "../../skybox/procedural_sky/mod.rs"]
 mod procedural_sky;
+#[path = "settings.rs"]
 mod settings;
+#[path = "cubemap/mod.rs"]
 mod source_cubemap_environment;
 #[cfg(test)]
 #[path = "tests/cases.rs"]

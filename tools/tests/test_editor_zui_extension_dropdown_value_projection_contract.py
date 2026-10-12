@@ -6,7 +6,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKBENCH_ASSET_ROOT = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench"
+    "zircon_editor/assets/ui/editor/workbench"
 )
 EXTENSION_WORKSPACE_ROOT = WORKBENCH_ASSET_ROOT / "modules/extensions"
 UI_ASSET_EDITOR_MARKERS = ("ui_asset", "asset_editor")

@@ -24,7 +24,7 @@ use crate::manager::parameters::{
 };
 
 #[cfg(test)]
-#[path = "integration/tests/property_path_cache_tests.rs"]
+#[path = "tests/property_path_cache.rs"]
 mod property_path_cache_tests;
 
 static NAV_DESTINATION_PROPERTY_PATH: OnceLock<Result<ComponentPropertyPath, String>> =
@@ -471,5 +471,5 @@ fn squared_distance(left: [f32; 3], right: [f32; 3]) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "tests/integration_ai_effect_tests.rs"]
+#[path = "tests/integration_ai_effect.rs"]
 mod ai_effect_tests;

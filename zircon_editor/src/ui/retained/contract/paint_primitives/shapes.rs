@@ -1,0 +1,11 @@
+#[path = "shapes/borders.rs"]
+mod borders;
+#[path = "shapes/rects.rs"]
+mod rects;
+
+pub(in crate::ui::retained_host::host_contract) use borders::{
+    draw_border, draw_border_clipped, draw_rounded_border_clipped, draw_rounded_box_clipped,
+};
+pub(in crate::ui::retained_host::host_contract) use rects::{
+    draw_rect, draw_rect_clipped, draw_rounded_rect_clipped,
+};

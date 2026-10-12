@@ -95,5 +95,5 @@ fn push_lower_hex_byte(output: &mut String, value: u8) {
 }
 
 #[cfg(test)]
-#[path = "tests/commands_optimization_batch_et_tests.rs"]
+#[path = "tests/commands_perf.rs"]
 mod optimization_batch_et_tests;

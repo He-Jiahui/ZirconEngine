@@ -65,5 +65,5 @@ fn collect_direct_references<'a, T, K: Eq + Hash + 'a>(
 mod tests;
 
 #[cfg(test)]
-#[path = "dependency_set/tests/optimization_batch_hy_runtime608_tests.rs"]
+#[path = "dependency_set/tests/perf.rs"]
 mod optimization_batch_hy_runtime608_tests;

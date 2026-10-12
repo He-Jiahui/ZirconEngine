@@ -49,5 +49,5 @@ pub(crate) fn build_instance_upload_plan(
 }
 
 #[cfg(test)]
-#[path = "tests/build_instance_upload_plan_optimization_tests.rs"]
+#[path = "../../planning/tests/build_instance_upload_plan_perf.rs"]
 mod optimization_tests;

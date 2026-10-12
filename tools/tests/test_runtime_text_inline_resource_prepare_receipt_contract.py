@@ -10,21 +10,21 @@ RECEIPT = (
 )
 STREAMER = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs"
+    / "zircon_runtime/src/graphics/scene/resource_streamer/resource_streamer.rs"
 )
 RESOURCES_MOD = ROOT / "zircon_runtime/src/graphics/scene/resources/mod.rs"
 SCENE_PREPARE = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs"
+    / "zircon_runtime/src/graphics/scene/resource_streamer/ensure_scene_resources.rs"
 )
 TEXTURE_PREPARE = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs"
+    / "zircon_runtime/src/graphics/scene/resources/resource_streamer/ensure_texture.rs"
 )
-IMAGE = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs"
+IMAGE = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/image.rs"
 IMAGE_GEOMETRY = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/image/geometry.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/image/geometry.rs"
 )
 
 

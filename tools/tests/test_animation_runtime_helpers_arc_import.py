@@ -7,7 +7,7 @@ class AnimationRuntimeHelpersArcImportTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         source = (
             repo_root
-            / "zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs"
+            / "zircon_plugins/animation/runtime/tests/runtime_helpers.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("use std::sync::Arc;", source)
@@ -20,7 +20,7 @@ class AnimationRuntimeHelpersArcImportTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         source = (
             repo_root
-            / "zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs"
+            / "zircon_plugins/animation/runtime/tests/physics_tick.rs"
         ).read_text(encoding="utf-8")
 
         self.assertNotIn(

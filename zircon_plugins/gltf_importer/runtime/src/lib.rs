@@ -1,7 +1,10 @@
+#[path = "capability.rs"]
 mod capability;
 #[cfg(feature = "runtime")]
+#[path = "plugin.rs"]
 mod plugin;
 #[cfg(feature = "runtime")]
+#[path = "subassets.rs"]
 mod subassets;
 #[cfg(all(test, feature = "runtime"))]
 #[path = "tests/test_fixtures.rs"]

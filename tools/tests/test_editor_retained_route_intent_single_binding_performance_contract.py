@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "zircon_editor/src/ui/retained_host/route_intent/map.rs"
+SOURCE = ROOT / "zircon_editor/src/ui/retained/route_intent/map.rs"
 
 
 def function_body(source: str, start: str, end: str) -> str:

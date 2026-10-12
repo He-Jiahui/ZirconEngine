@@ -29,5 +29,5 @@ pub(crate) fn import_zmesh(
 }
 
 #[cfg(test)]
-#[path = "tests/import_mesh_plugins07_zmesh_source_tests.rs"]
+#[path = "../../ingest/tests/import_mesh_plugins07_zmesh_source.rs"]
 mod plugins07_zmesh_source_tests;

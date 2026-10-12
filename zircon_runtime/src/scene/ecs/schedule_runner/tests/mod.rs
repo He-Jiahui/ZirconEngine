@@ -16,12 +16,19 @@ use crate::scene::{EntityId, LevelMetadata, World};
 
 use super::*;
 
+#[path = "support.rs"]
 mod support;
 use support::{register_timed_external_system, run_test_stage, test_level};
 
+#[path = "admission.rs"]
 mod admission;
+#[path = "owner_replacement.rs"]
 mod owner_replacement;
+#[path = "panic_recovery.rs"]
 mod panic_recovery;
+#[path = "typed_worker_structural.rs"]
 mod typed_worker_structural;
+#[path = "worker_callback_order.rs"]
 mod worker_callback_order;
+#[path = "worker_dispatch.rs"]
 mod worker_dispatch;

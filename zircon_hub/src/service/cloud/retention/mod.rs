@@ -1,5 +1,8 @@
+#[path = "gc.rs"]
 pub(super) mod gc;
+#[path = "maintenance.rs"]
 mod maintenance;
+#[path = "policy.rs"]
 mod policy;
 
 pub use maintenance::{maintain, MaintenanceReport, MaintenanceRequest};

@@ -460,5 +460,5 @@ fn default_shadow_light_direction() -> Vec3 {
 mod tests;
 
 #[cfg(test)]
-#[path = "build_views/tests/capacity_tests.rs"]
+#[path = "../build_views/tests/capacity.rs"]
 mod capacity_tests;

@@ -18,7 +18,7 @@ tests:
   - zircon_runtime/src/script/vm/tests/plugin_runtime.rs
   - zircon_runtime/src/script/vm/tests/host_interfaces.rs
   - zircon_runtime/src/script/vm/tests/lifecycle_failures.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests
+  - zircon_runtime/src/script/vm/runtime/tests
 doc_type: module-detail
 ---
 

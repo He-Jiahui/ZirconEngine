@@ -2,6 +2,7 @@
 use std::error::Error;
 use std::fmt;
 
+#[path = "level/compiled.rs"]
 mod compiled;
 
 pub(crate) use compiled::CompiledDiagnosticLogFilter;

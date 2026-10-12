@@ -561,5 +561,5 @@ fn set_optional_int(
 mod scan_tests;
 
 #[cfg(test)]
-#[path = "toast/tests/borrowed_setting_tests.rs"]
+#[path = "toast/tests/borrowed_setting.rs"]
 mod borrowed_setting_tests;

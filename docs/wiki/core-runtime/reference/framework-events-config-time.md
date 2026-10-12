@@ -10,7 +10,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 完善事件、配置与时间公开接口说明
 tests:
-  - zircon_runtime/src/core/runtime/tests/events
+  - zircon_runtime/src/core/tests/events
   - zircon_runtime/src/core/framework/tests/cases.rs
 doc_type: module-detail
 ---

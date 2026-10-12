@@ -7,9 +7,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/motion.rs
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer/press.rs
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/prepare.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/state.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/target/dispatch.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/target/prepare.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/target/state.rs
   - zircon_editor/src/ui/retained_host/app/asset_surface_pointer_state.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces.rs
   - zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs
@@ -24,9 +24,9 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/motion.rs
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer/press.rs
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/prepare.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/state.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/target/dispatch.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/target/prepare.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/target/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

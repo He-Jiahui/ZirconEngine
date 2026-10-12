@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_BEHAVIOR = (
     ROOT
-    / "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs"
+    / "zircon_runtime/src/plugin/loader/live/runtime_behavior.rs"
 )
 
 

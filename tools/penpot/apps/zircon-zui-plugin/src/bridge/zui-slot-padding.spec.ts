@@ -102,7 +102,7 @@ describe('native slot padding projection', () => {
     const windowSourcePath =
       'zircon_editor/assets/ui/editor/windows/workbench_window.zui';
     const preferencesSourcePath =
-      'zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui';
+      'zircon_editor/assets/ui/editor/components/workbench/floating/preferences.zui';
     const template = document.nodes!['actions'];
     const expandedInstances = [
       {

@@ -3,7 +3,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "zircon_runtime/src/plugin/runtime_plugin/capability_view.rs"
+SOURCE = ROOT / "zircon_runtime/src/plugin/runtime/capability_view.rs"
 
 
 def function_body(source: str, signature: str) -> str:

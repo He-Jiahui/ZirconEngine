@@ -11,7 +11,7 @@ class Frameworks01RuntimeDiagnosticsBoundaryTests(unittest.TestCase):
         diagnostics_crate = REPO_ROOT / "zircon_runtime/crates/zr_diagnostics"
         kernel_crate = REPO_ROOT / "zircon_runtime/crates/zr_kernel"
         legacy_log_owner = REPO_ROOT / "zircon_runtime/src/diagnostic_log"
-        legacy_store_owner = REPO_ROOT / "zircon_runtime/src/core/runtime/diagnostics"
+        legacy_store_owner = REPO_ROOT / "zircon_runtime/src/core/runtime"
 
         if not diagnostics_crate.exists():
             self.assertTrue(legacy_log_owner.is_dir())
@@ -49,7 +49,7 @@ class Frameworks01RuntimeDiagnosticsBoundaryTests(unittest.TestCase):
         self.assertEqual([], violations)
 
     def test_manager_resolving_collectors_are_facade_owned(self) -> None:
-        core_diagnostics = REPO_ROOT / "zircon_runtime/src/core/runtime/diagnostics"
+        core_diagnostics = REPO_ROOT / "zircon_runtime/src/core/runtime"
         facade = REPO_ROOT / "zircon_runtime/src/runtime_diagnostics"
 
         self.assertFalse((core_diagnostics / "collect.rs").exists())

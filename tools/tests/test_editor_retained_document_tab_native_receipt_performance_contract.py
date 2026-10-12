@@ -85,7 +85,7 @@ class DocumentTabNativeReceiptPerformanceContract(unittest.TestCase):
             "host_document_tab_pointer_surface.rs"
         )
         pointer_layout = source(
-            "zircon_editor/src/ui/retained_host/app/pointer_layout/shell_chrome.rs"
+            "zircon_editor/src/ui/retained/app/pointer_layout/shell_chrome.rs"
         )
 
         self.assertNotIn("UiFrame", build)
@@ -96,7 +96,7 @@ class DocumentTabNativeReceiptPerformanceContract(unittest.TestCase):
 
     def test_callback_borrows_native_receipt_target_without_pointer_dispatch(self):
         callback = source(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/document_tab.rs"
+            "zircon_editor/src/ui/retained/dispatch/shared_pointer/document_tab.rs"
         )
         activate = source(
             "zircon_editor/src/ui/retained_host/document_tab_pointer/"

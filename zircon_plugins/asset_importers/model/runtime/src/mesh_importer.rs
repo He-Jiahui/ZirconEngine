@@ -394,5 +394,5 @@ fn collect_optional_vec2_candidates(
 }
 
 #[cfg(test)]
-#[path = "tests/mesh_importer_hotpath_tests.rs"]
+#[path = "tests/mesh_importer_hotpath.rs"]
 mod hotpath_tests;

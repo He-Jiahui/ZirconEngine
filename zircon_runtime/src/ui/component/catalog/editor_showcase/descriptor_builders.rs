@@ -433,5 +433,5 @@ pub(super) fn expanded_prop() -> UiPropSchema {
 }
 
 #[cfg(test)]
-#[path = "tests/descriptor_builders_optimization_tests.rs"]
+#[path = "../tests/descriptor_builders_perf.rs"]
 mod optimization_tests;

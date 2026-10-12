@@ -1,11 +1,17 @@
 //! Hub、Editor 与 Runtime 共用的轻量清单摘要和版本迁移入口。
 //! 摘要用于展示与预检；项目运行仍须通过 Runtime 的完整清单校验。
 
+#[path = "admission.rs"]
 mod admission;
+#[path = "error.rs"]
 mod error;
+#[path = "limits.rs"]
 mod limits;
+#[path = "migration.rs"]
 mod migration;
+#[path = "parse.rs"]
 mod parse;
+#[path = "summary.rs"]
 mod summary;
 
 pub use error::ProjectManifestSummaryError;

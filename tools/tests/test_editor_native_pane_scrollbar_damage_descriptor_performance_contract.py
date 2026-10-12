@@ -4,10 +4,10 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-LAYOUT = ROOT / "zircon_editor/src/ui/workbench/asset_content_layout"
+LAYOUT = ROOT / "zircon_editor/src/ui/workbench"
 NATIVE_PANES = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/host_contract"
+    / "zircon_editor/src/ui/retained/contract"
     / "paint_workbench_renderer/native_panes"
 )
 

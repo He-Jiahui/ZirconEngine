@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ADAPTER_ROOT = REPO_ROOT / "zircon_runtime/src/plugin/native_plugin_loader"
+ADAPTER_ROOT = REPO_ROOT / "zircon_runtime/src/plugin/loader"
 ADAPTER_PATH = ADAPTER_ROOT / "host_api_adapter.rs"
 ABI_DECODE_ROOT = ADAPTER_ROOT / "host_api_adapter/abi_decode"
 CONTEXT_HANDLES_ROOT = ADAPTER_ROOT / "host_api_adapter/context_handles"

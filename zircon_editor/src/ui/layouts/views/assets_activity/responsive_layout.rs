@@ -547,5 +547,5 @@ const REFERENCE_CONTROLS: &[&str] = &[
 mod tests;
 
 #[cfg(test)]
-#[path = "responsive_layout/tests/control_index_tests.rs"]
+#[path = "tests/control_index.rs"]
 mod control_index_tests;

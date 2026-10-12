@@ -1,0 +1,22 @@
+#[path = "language/classification.rs"]
+mod classification;
+#[path = "language/rows.rs"]
+mod rows;
+
+use super::rows::BuiltinCatalogRow;
+use super::BuiltinCatalogDescriptorBuilder;
+
+pub(super) fn is_language_descriptor(package_id: &str) -> bool {
+    classification::is_language_descriptor(package_id)
+}
+
+pub(super) fn classify_language_descriptor(
+    package_id: &str,
+    descriptor: BuiltinCatalogDescriptorBuilder,
+) -> BuiltinCatalogDescriptorBuilder {
+    classification::classify_language_descriptor(package_id, descriptor)
+}
+
+pub(super) fn language_builtin_catalog_rows() -> impl Iterator<Item = &'static BuiltinCatalogRow> {
+    rows::language_builtin_catalog_rows()
+}

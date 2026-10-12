@@ -6,7 +6,9 @@ use super::{
 use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+#[path = "invitation.rs"]
 mod invitation;
+#[path = "query.rs"]
 mod query;
 pub use query::{
     invitations, issued_invitations, list, members, projects, Invitation, IssuedInvitation, Member,

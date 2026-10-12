@@ -19,6 +19,7 @@
 ///
 /// # 参考
 /// 参见 [`crate::input::runtime::event_buffer::FrameEventBuffer`] 与 [`crate::input::DefaultInputManager`]。
+#[path = "frame.rs"]
 mod frame;
 /// 接入按可选配置保留原始事件、维护容量丢弃计数的私有实现。
 ///
@@ -27,6 +28,7 @@ mod frame;
 ///
 /// # 参考
 /// 参见 [`crate::input::runtime::event_buffer::InputEventRecorder`] 与 [`crate::input::InputRecordingFrame::capture_from_manager`]。
+#[path = "recorder.rs"]
 mod recorder;
 
 pub(super) use frame::FrameEventBuffer;

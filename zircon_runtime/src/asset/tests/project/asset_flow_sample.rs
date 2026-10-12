@@ -24,7 +24,11 @@ use crate::core::resource::ResourceState;
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::ResourceStreamer;
 
+#[path = "asset_flow_sample/assertions.rs"]
 mod assertions;
+#[path = "asset_flow_sample/end_to_end.rs"]
 mod end_to_end;
+#[path = "asset_flow_sample/fixtures.rs"]
 mod fixtures;
+#[path = "asset_flow_sample/importers.rs"]
 mod importers;

@@ -232,7 +232,7 @@ fn normalize_include_token(value: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "include_sources/tests/token_hoist_tests.rs"]
+#[path = "tests/token_hoist.rs"]
 mod token_hoist_tests;
 
 #[cfg(test)]

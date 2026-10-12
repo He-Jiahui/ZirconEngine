@@ -1,3 +1,4 @@
+#[path = "resource.rs"]
 mod gpu_material_uniform_resource;
 
 pub(crate) use gpu_material_uniform_resource::{

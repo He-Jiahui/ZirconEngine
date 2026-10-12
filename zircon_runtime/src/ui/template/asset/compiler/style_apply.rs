@@ -14,19 +14,29 @@ pub(super) use slot_contract::{
     apply_mui_child_slot_props, apply_mui_root_slot_props_to_node, mui_slot_name,
 };
 
+#[path = "../../../asset/compiler/style_apply/mui_collection_classes.rs"]
 mod mui_collection_classes;
+#[path = "../../../asset/compiler/style_apply/mui_display_surface_classes.rs"]
 mod mui_display_surface_classes;
+#[path = "style_apply/mui_form_classes.rs"]
 mod mui_form_classes;
+#[path = "style_apply/mui_lab_classes.rs"]
 mod mui_lab_classes;
+#[path = "style_apply/mui_layout_classes.rs"]
 mod mui_layout_classes;
+#[path = "../../../asset/compiler/style_apply/mui_navigation_classes.rs"]
 mod mui_navigation_classes;
+#[path = "../../../asset/compiler/style_apply/mui_selection_classes.rs"]
 mod mui_selection_classes;
+#[path = "../../../asset/compiler/style_apply/mui_surface_child_classes.rs"]
 mod mui_surface_child_classes;
+#[path = "style_apply/mui_x_classes.rs"]
 mod mui_x_classes;
+#[path = "style_apply/slot_contract.rs"]
 mod slot_contract;
 
 #[cfg(test)]
-#[path = "style_apply/tests/token_map_sharing_tests.rs"]
+#[path = "tests/token_map_sharing.rs"]
 mod token_map_sharing_tests;
 
 #[derive(Clone)]

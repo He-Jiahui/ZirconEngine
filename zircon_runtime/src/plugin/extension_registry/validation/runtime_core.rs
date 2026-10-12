@@ -42,5 +42,5 @@ fn module_field_is_valid(value: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "runtime_core/tests/single_trim_tests.rs"]
+#[path = "../../validation/runtime_core/tests/single_trim.rs"]
 mod single_trim_tests;

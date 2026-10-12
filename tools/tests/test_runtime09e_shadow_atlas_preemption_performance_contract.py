@@ -4,9 +4,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 ALLOCATOR = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/allocator.rs"
+    "zircon_runtime/src/graphics/scene/renderer/shadow/atlas/allocator.rs"
 )
-ALLOCATOR_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/allocator/tests/cases.rs"
+ALLOCATOR_TESTS = ROOT / "zircon_runtime/src/graphics/scene/renderer/shadow/atlas/allocator/tests/cases.rs"
 
 
 def function_region(source: str, start: str, end: str) -> str:

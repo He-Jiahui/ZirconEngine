@@ -1,6 +1,10 @@
+#[path = "list.rs"]
 mod list;
+#[path = "shared.rs"]
 mod shared;
+#[path = "table.rs"]
 mod table;
+#[path = "tree.rs"]
 mod tree;
 
 use zircon_runtime_interface::ui::{

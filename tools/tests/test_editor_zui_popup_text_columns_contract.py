@@ -5,7 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 POPUP_ROWS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_popup_rows"
 )
 

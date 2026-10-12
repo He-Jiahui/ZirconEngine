@@ -8,7 +8,7 @@ import { LayoutDependencies } from './zui-layout-dependencies';
 
 export async function verifyFieldTextEdits(page: Page, plugin: FrameLocator) {
   const repo = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../', import.meta.url)));
-  const sourcePath = 'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui';
+  const sourcePath = 'zircon_editor/assets/ui/editor/workbench/primitives/inputs/search_input.zui';
   const theme = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
   const original = parseZuiDocument(await readFile(resolve(repo, sourcePath), 'utf8')).document;
   original.asset.display_name = 'Field Browser Contract';

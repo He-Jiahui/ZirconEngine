@@ -13,6 +13,7 @@ use crate::text::{ShapedGlyph, ShapedGlyphBreakSafety, ShapedGlyphRun};
 
 use super::tab::tab_aligned_width_for_matching_graphemes;
 
+#[path = "measure/grapheme_projection.rs"]
 mod grapheme_projection;
 use grapheme_projection::{
     aligned_grapheme_span, validate_shaped_geometry_source, GraphemeProjectionCursor,

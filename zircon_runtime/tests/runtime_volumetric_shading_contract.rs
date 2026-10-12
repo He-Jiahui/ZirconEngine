@@ -1,16 +1,16 @@
 const VOLUMETRIC: &str = include_str!("../src/graphics/shader/wgsl/zr_volumetric.wgsl");
 const FORWARD: &str = concat!(
-    include_str!("../src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl"),
+    include_str!("../src/graphics/scene/renderer/mesh/shaders/zr_gpu_scene.wgsl"),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl"),
+    include_str!("../src/graphics/scene/renderer/lighting/shaders/zr_light_grid.wgsl"),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
+    include_str!("../src/graphics/scene/renderer/shadow/shaders/zr_shadow.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_volumetric.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/includes/zr_pbr_common.wgsl"),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"),
+    include_str!("../src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl"),
     "\n",
@@ -21,11 +21,11 @@ const FORWARD: &str = concat!(
     include_str!("../src/graphics/shader/wgsl/zr_environment.wgsl"),
 );
 const DEFERRED: &str = concat!(
-    include_str!("../src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl"),
+    include_str!("../src/graphics/scene/renderer/mesh/shaders/zr_gpu_scene.wgsl"),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl"),
+    include_str!("../src/graphics/scene/renderer/lighting/shaders/zr_light_grid.wgsl"),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
+    include_str!("../src/graphics/scene/renderer/shadow/shaders/zr_shadow.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_volumetric.wgsl"),
     "\n",
@@ -37,7 +37,7 @@ const DEFERRED: &str = concat!(
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_shade_deferred_unlit.wgsl"),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+    include_str!("../src/graphics/scene/deferred/shaders/deferred_lighting.wgsl"),
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl"),
     "\n",
@@ -52,23 +52,23 @@ const SKY: &str = concat!(
     "\n",
     include_str!("../src/graphics/shader/wgsl/zr_procedural_sky.wgsl"),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl"),
+    include_str!("../src/graphics/scene/renderer/shaders/skybox_procedural.wgsl"),
 );
 const LIGHT_SCATTER: &str = concat!(
     include_str!(
-        "../src/graphics/scene/scene_renderer/advanced_lighting/froxel/shaders/zr_froxel_reconstruct.wgsl"
+        "../src/graphics/scene/froxel/shaders/zr_froxel_reconstruct.wgsl"
     ),
     "\n",
     include_str!(
-        "../src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/shaders/types.wgsl"
+        "../src/graphics/scene/renderer/froxel/shaders/types.wgsl"
     ),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl"),
+    include_str!("../src/graphics/scene/renderer/lighting/shaders/zr_light_grid.wgsl"),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
+    include_str!("../src/graphics/scene/renderer/shadow/shaders/zr_shadow.wgsl"),
     "\n",
     include_str!(
-        "../src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/shaders/main.wgsl"
+        "../src/graphics/scene/renderer/froxel/shaders/main.wgsl"
     ),
 );
 

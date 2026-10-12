@@ -1,10 +1,18 @@
+#[path = "admission.rs"]
 mod admission;
+#[path = "async_compile.rs"]
 mod async_compile;
+#[path = "compile_options/mod.rs"]
 mod compile_options;
+#[path = "compiled_graph_cache.rs"]
 mod compiled_graph_cache;
+#[path = "declarations/mod.rs"]
 mod declarations;
+#[path = "pipeline_cache_gate.rs"]
 mod pipeline_cache_gate;
+#[path = "pipeline/mod.rs"]
 mod render_pipeline_asset;
+#[path = "validation/mod.rs"]
 mod validation;
 
 pub(crate) use admission::{PipelineAdmission, PipelineAdmissionReason, PipelineUnavailable};

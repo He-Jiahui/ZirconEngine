@@ -359,5 +359,5 @@ impl WgpuDiagnosticReadbackMetrics {
 }
 
 #[cfg(test)]
-#[path = "tests/metrics.rs"]
+#[path = "../../readback/tests/metrics.rs"]
 mod tests;

@@ -5,7 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOLBAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_top_toolbar.zui"
 )
 THEME = REPO_ROOT / "zircon_editor/assets/ui/theme/editor_workbench_strict.zui"

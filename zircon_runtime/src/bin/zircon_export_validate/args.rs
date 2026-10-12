@@ -103,7 +103,7 @@ fn output_paths_alias(report: &Path, artifact: &Path) -> bool {
 }
 
 #[cfg(test)]
-#[path = "args/tests/lexical_alias_fast_path_tests.rs"]
+#[path = "../args/tests/lexical_alias_fast_path.rs"]
 mod lexical_alias_fast_path_tests;
 
 #[cfg(test)]

@@ -1,8 +1,13 @@
 //! 挂载需要操作者选择的决策、发布票据和不可变回执契约；生产者的后续变更通过消费回执完成。
+#[path = "center.rs"]
 mod center;
+#[path = "error.rs"]
 mod error;
+#[path = "id.rs"]
 mod id;
+#[path = "model.rs"]
 mod model;
+#[path = "receipt.rs"]
 mod receipt;
 
 #[cfg(test)]

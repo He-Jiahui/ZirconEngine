@@ -1,5 +1,8 @@
+#[path = "error.rs"]
 mod error;
+#[path = "source.rs"]
 mod source;
+#[path = "store.rs"]
 mod store;
 #[cfg(test)]
 #[path = "tests/cases.rs"]

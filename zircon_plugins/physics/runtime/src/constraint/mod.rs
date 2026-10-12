@@ -1,6 +1,9 @@
+#[path = "descriptor.rs"]
 mod descriptor;
+#[path = "params.rs"]
 mod params;
 #[cfg(feature = "backend-jolt")]
+#[path = "projection.rs"]
 mod projection;
 
 pub use descriptor::ConstraintDesc;

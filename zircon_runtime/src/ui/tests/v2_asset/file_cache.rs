@@ -398,7 +398,7 @@ control_id = "ActivityDrawerWindowRoot"
         .is_some());
     assert!(outcome
         .store
-        .get("res://ui/editor/components/workbench/shell/activity_drawer_window.zui")
+        .get("res://ui/editor/workbench/shell/activity_drawer_window.zui")
         .is_some());
     let root = outcome
         .compiled

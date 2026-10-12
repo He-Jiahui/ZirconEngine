@@ -226,9 +226,9 @@ fn phase_diagnostic_name(phases: &[RenderPhase]) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/phase_queue_summary.rs"]
+#[path = "../tests/phase_queue_summary.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "phase_queue_summary/tests/ordered_span_build_tests.rs"]
+#[path = "../tests/ordered_span_build.rs"]
 mod ordered_span_build_tests;

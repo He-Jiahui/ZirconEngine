@@ -561,5 +561,5 @@ fn animation_transaction_error(error: EditCommandError) -> EditorError {
 }
 
 #[cfg(test)]
-#[path = "tests/editing_performance_tests.rs"]
+#[path = "tests/editing_perf.rs"]
 mod performance_tests;

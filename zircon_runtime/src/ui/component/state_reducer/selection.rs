@@ -4,11 +4,11 @@ use zircon_runtime_interface::ui::component::{
 };
 
 #[cfg(test)]
-#[path = "selection/tests/borrowed_option_id_tests.rs"]
+#[path = "../selection/tests/borrowed_option_id.rs"]
 mod borrowed_option_id_tests;
 
 #[cfg(test)]
-#[path = "selection/tests/flags_capacity_tests.rs"]
+#[path = "selection/tests/flags_capacity.rs"]
 mod flags_capacity_tests;
 
 pub(super) fn apply_selection(

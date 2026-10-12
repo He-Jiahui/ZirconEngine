@@ -6,14 +6,14 @@ ROOT = Path(__file__).resolve().parents[2]
 COMMAND = ROOT / "zircon_runtime_interface/src/ui/surface/render/command.rs"
 HOST_CONVERSION = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    / "zircon_editor/src/ui/retained/contract/paint/"
     "render_command_conversion/commands/command.rs"
 )
 RUNTIME_RENDERER = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
 )
 PAINT_PROJECTION = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/paint_projection.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render/paint_projection.rs"
 )
 
 

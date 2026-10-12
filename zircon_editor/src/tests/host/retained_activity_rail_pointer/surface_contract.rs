@@ -5,19 +5,19 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn shared_activity_rail_surfaces_use_rust_callbacks_and_toml_projection() {
-    let globals = source("src/ui/retained_host/host_contract/globals/ui_context.rs");
-    let wiring = source("src/ui/retained_host/app/callback_wiring/host_shell/menu.rs");
-    let pointer_layout = source("src/ui/retained_host/app/pointer_layout/shell_chrome.rs");
+    let globals = source("src/ui/retained/contract/globals/ui_context.rs");
+    let wiring = source("src/ui/retained/app/callback_wiring/host_shell/menu.rs");
+    let pointer_layout = source("src/ui/retained/app/pointer_layout/shell_chrome.rs");
     let activity_rail_sync = pointer_layout
         .split("fn sync_activity_rail_pointer_layout")
         .nth(1)
         .and_then(|source| source.split("fn sync_host_page_pointer_layout").next())
         .expect("activity rail pointer sync function should exist");
     let activity_rail_layout = source(
-        "src/ui/retained_host/activity_rail_pointer/build_host_activity_rail_pointer_layout.rs",
+        "src/ui/build_host_activity_rail_pointer_layout.rs",
     );
     let chrome_projection =
-        source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
+        source("src/ui/layouts/windows/window/projection.rs");
     let activity_asset = source("assets/ui/editor/workbench_activity_rail.zui");
 
     assert!(globals.contains("on_activity_rail_pointer_clicked"));
@@ -51,10 +51,10 @@ fn shared_activity_rail_surfaces_use_rust_callbacks_and_toml_projection() {
 #[test]
 fn activity_rail_pointer_bridge_uses_route_intent_only() {
     let bridge =
-        source("src/ui/retained_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs");
-    let rebuild = source("src/ui/retained_host/activity_rail_pointer/rebuild_surface.rs");
-    let insert_strip = source("src/ui/retained_host/activity_rail_pointer/insert_strip.rs");
-    let dispatch = source("src/ui/retained_host/activity_rail_pointer/dispatch_event.rs");
+        source("src/ui/activity_rail_pointer/host_activity_rail_pointer_bridge.rs");
+    let rebuild = source("src/ui/retained/activity_rail_pointer/rebuild_surface.rs");
+    let insert_strip = source("src/ui/retained/activity_rail_pointer/insert_strip.rs");
+    let dispatch = source("src/ui/retained/activity_rail_pointer/dispatch_event.rs");
 
     assert!(bridge.contains("route_intents: EditorRouteIntentMap"));
     assert!(insert_strip.contains("EditorRouteIntent::ActivityRail"));
@@ -78,8 +78,8 @@ fn activity_rail_pointer_bridge_uses_route_intent_only() {
 
 #[test]
 fn activity_rail_pointer_bridge_publishes_retained_geometry_deltas() {
-    let sync = source("src/ui/retained_host/activity_rail_pointer/sync.rs");
-    let rebuild = source("src/ui/retained_host/activity_rail_pointer/rebuild_surface.rs");
+    let sync = source("src/ui/retained/activity_rail_pointer/sync.rs");
+    let rebuild = source("src/ui/retained/activity_rail_pointer/rebuild_surface.rs");
 
     assert!(sync.contains("surface_delta_for_layout"));
     assert!(rebuild.contains("publish_authored_geometry("));
@@ -89,10 +89,10 @@ fn activity_rail_pointer_bridge_publishes_retained_geometry_deltas() {
 
 #[test]
 fn window_metrics_activity_rail_sync_uses_geometry_only_semantics() {
-    let shell_chrome = source("src/ui/retained_host/app/pointer_layout/shell_chrome.rs");
-    let recompute = source("src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs");
+    let shell_chrome = source("src/ui/retained/app/pointer_layout/shell_chrome.rs");
+    let recompute = source("src/ui/retained/app/host_lifecycle/recompute_viewport.rs");
     let layout = source(
-        "src/ui/retained_host/activity_rail_pointer/build_host_activity_rail_pointer_layout.rs",
+        "src/ui/build_host_activity_rail_pointer_layout.rs",
     );
 
     assert!(recompute.contains("window_metrics_target"));
@@ -104,7 +104,7 @@ fn window_metrics_activity_rail_sync_uses_geometry_only_semantics() {
 
 #[test]
 fn window_metrics_recompute_reuses_geometry_free_pointer_receipts() {
-    let recompute = source("src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs");
+    let recompute = source("src/ui/retained/app/host_lifecycle/recompute_viewport.rs");
     let reuse_gate = recompute
         .split("if !window_metrics_target {")
         .nth(1)
@@ -120,8 +120,8 @@ fn window_metrics_recompute_reuses_geometry_free_pointer_receipts() {
 #[test]
 fn window_metrics_recompute_uses_welcome_recent_viewport_fast_path() {
     let pointer_surfaces =
-        source("src/ui/retained_host/app/host_lifecycle/recompute/pointer_surfaces.rs");
-    let welcome = source("src/ui/retained_host/app/pointer_layout/welcome_recent.rs");
+        source("src/ui/retained/app/host_lifecycle/recompute/pointer_surfaces.rs");
+    let welcome = source("src/ui/retained/app/pointer_layout/welcome_recent.rs");
 
     assert!(pointer_surfaces.contains("sync_welcome_recent_pointer_size()"));
     assert!(pointer_surfaces.contains("ui.window_metrics.welcome_recent_semantic_reuse_count"));

@@ -64,7 +64,7 @@ class Frameworks01ContractsKernelTestBoundaryTests(unittest.TestCase):
         self.assertEqual([], violations)
 
     def test_framework_contracts_do_not_import_runtime_kernel_implementations(self) -> None:
-        framework_root = REPO_ROOT / "zircon_runtime/src/core/framework"
+        framework_root = REPO_ROOT / "zircon_runtime/src/core"
         violations = []
 
         for path in framework_root.rglob("*.rs"):

@@ -6,8 +6,8 @@ related_code:
   - zircon_runtime/src/graphics/material/shading_models/mod.rs
   - zircon_runtime/src/plugin/mod.rs
 implementation_files:
-  - zircon_runtime/src/graphics/shader/template
-  - zircon_runtime/src/graphics/shader/invocation
+  - zircon_runtime/src/graphics/shader
+  - zircon_runtime/src/graphics/shader
   - zircon_runtime/src/graphics/shader/variant_cache
   - zircon_runtime/src/graphics/shader/ide_validation.rs
   - zircon_runtime/src/graphics/shader/ide_env_generation.rs

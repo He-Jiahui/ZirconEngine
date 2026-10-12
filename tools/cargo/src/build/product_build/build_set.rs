@@ -13,6 +13,7 @@ use crate::build::receipt::{canonical::upper_hex_matches, ProductReceiptError};
 use super::hex_digest;
 
 #[cfg(windows)]
+#[path = "build_set/namespace_lock.rs"]
 mod namespace_lock;
 #[cfg(windows)]
 use namespace_lock::{DirectoryLease, NamespaceJournal};

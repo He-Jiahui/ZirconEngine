@@ -17,7 +17,7 @@ class RuntimeShaderPrewarmTestStructureTests(unittest.TestCase):
         )
         combined_path = (
             repo_root
-            / "zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs"
+            / "zircon_runtime/src/graphics/shader/prewarm/tests/combined_validation.rs"
         )
 
         prewarm = prewarm_root.read_text(encoding="utf-8")

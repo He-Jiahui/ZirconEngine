@@ -297,5 +297,5 @@ impl UiSurfaceStyleKey {
 }
 
 #[cfg(test)]
-#[path = "tests/compact_styles_optimization_batch_20260830cr_runtime_tests.rs"]
+#[path = "tests/compact_styles_perf.rs"]
 mod optimization_batch_20260830cr_runtime_tests;

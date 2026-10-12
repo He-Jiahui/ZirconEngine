@@ -7,7 +7,7 @@ version = 2
 display_name = "Asset Browser"
 
 [imports]
-widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField", "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton", "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput", "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab", "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"]
+widgets = ["res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton", "res://ui/editor/workbench/primitives/inputs/dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/field.zui#WorkbenchField", "res://ui/editor/workbench/primitives/inputs/icon_button.zui#WorkbenchIconButton", "res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput", "res://ui/editor/components/workbench/primitives/inputs/tab.zui#WorkbenchTab", "res://ui/editor/workbench/primitives/data/table_row.zui#WorkbenchTableRow"]
 styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]

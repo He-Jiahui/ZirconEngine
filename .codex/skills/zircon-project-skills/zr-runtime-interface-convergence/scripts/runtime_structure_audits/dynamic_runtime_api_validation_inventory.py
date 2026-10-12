@@ -172,7 +172,7 @@ DOC_ANCHORS = (
         "host_request_payload_anchors = 38/38",
     ),
     (
-        "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs",
+        "zircon_runtime/src/tests/contracts/dynamic_api_session/mirror_docs.rs",
         MIRROR_DOCS_GUARD,
     ),
 )

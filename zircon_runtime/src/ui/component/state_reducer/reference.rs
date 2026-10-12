@@ -71,5 +71,5 @@ pub(super) fn ensure_reference_value(
 }
 
 #[cfg(test)]
-#[path = "reference/tests/owned_drag_payload_tests.rs"]
+#[path = "../reference/tests/owned_drag_payload.rs"]
 mod owned_drag_payload_tests;

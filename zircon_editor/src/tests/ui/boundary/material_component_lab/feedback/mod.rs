@@ -303,5 +303,7 @@ const EXPECTED_INTERACTION_FEEDBACK: &[(&str, &str, &str, &str)] = &[
     ),
 ];
 
+#[path = "events.rs"]
 mod events;
+#[path = "routes.rs"]
 mod routes;

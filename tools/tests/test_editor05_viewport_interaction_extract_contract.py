@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-VIEWPORT = ROOT / "zircon_editor/src/scene/viewport"
+VIEWPORT = ROOT / "zircon_editor/src/scene"
 
 
 class ViewportInteractionExtractContractTests(unittest.TestCase):

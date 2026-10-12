@@ -1,8 +1,14 @@
+#[path = "editable_text/document_transaction.rs"]
 mod document_transaction;
+#[path = "editable_text/ime_context.rs"]
 mod ime_context;
+#[path = "editable_text/mutation.rs"]
 mod mutation;
+#[path = "editable_text/profile.rs"]
 pub(super) mod profile;
+#[path = "editable_text/property_transaction.rs"]
 mod property_transaction;
+#[path = "editable_text/state_transition.rs"]
 mod state_transition;
 
 pub(in crate::ui) use document_transaction::{

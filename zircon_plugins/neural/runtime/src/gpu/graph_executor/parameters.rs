@@ -19,5 +19,5 @@ pub(super) fn elementwise_parameters(elements: u32) -> Vec<u8> {
 }
 
 #[cfg(test)]
-#[path = "parameters/tests/performance_tests.rs"]
+#[path = "parameters/tests/perf.rs"]
 mod performance_tests;

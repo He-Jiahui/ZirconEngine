@@ -1,10 +1,18 @@
+#[path = "management_policy/mod.rs"]
 mod management_policy;
+#[path = "state_migration.rs"]
 mod state_migration;
+#[path = "vm_plugin_instance.rs"]
 mod vm_plugin_instance;
+#[path = "vm_plugin_manifest.rs"]
 mod vm_plugin_manifest;
+#[path = "vm_plugin_package.rs"]
 mod vm_plugin_package;
+#[path = "vm_plugin_package_discovery.rs"]
 mod vm_plugin_package_discovery;
+#[path = "vm_plugin_package_source.rs"]
 mod vm_plugin_package_source;
+#[path = "vm_state_blob.rs"]
 mod vm_state_blob;
 
 pub use management_policy::{

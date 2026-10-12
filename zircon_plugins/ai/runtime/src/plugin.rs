@@ -19,6 +19,7 @@ use crate::{
     RUNTIME_CAPABILITIES,
 };
 
+#[path = "plugin/registration.rs"]
 mod registration;
 
 #[cfg(test)]

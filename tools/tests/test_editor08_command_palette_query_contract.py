@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 COMMANDS = ROOT / "zircon_editor/src/core/commands"
 HOST_ACTIONS = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/app/command_palette_actions.rs"
+    / "zircon_editor/src/ui/retained/app/command_palette_actions.rs"
 )
 
 

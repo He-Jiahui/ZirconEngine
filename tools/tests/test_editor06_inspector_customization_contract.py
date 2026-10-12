@@ -48,7 +48,7 @@ class Editor06InspectorCustomizationContractTests(unittest.TestCase):
         inspector = read("zircon_editor/src/core/extension/inspector.rs")
         runtime = read("zircon_editor/src/ui/host/editor_event_runtime_reflection.rs")
         adapter = read(
-            "zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs"
+            "zircon_editor/src/ui/runtime/component_adapter/component_drawer.rs"
         )
 
         self.assertIn("InspectorCustomizationDescriptor", registry)
@@ -73,10 +73,10 @@ class Editor06InspectorCustomizationContractTests(unittest.TestCase):
                 "zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs"
             ),
             read(
-                "zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs"
+                "zircon_editor/src/ui/layouts/windows/window/pane_payload.rs"
             ),
             read(
-                "zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/inspector.rs"
+                "zircon_editor/src/ui/layouts/windows/window/payloads/inspector.rs"
             ),
         )
         old_fields = (

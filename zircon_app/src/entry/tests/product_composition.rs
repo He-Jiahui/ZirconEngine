@@ -1,3 +1,4 @@
+#[path = "product_composition/close_owner.rs"]
 pub(super) mod close_owner;
 
 use zircon_runtime::builtin::RuntimePluginId;

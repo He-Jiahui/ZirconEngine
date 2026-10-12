@@ -268,5 +268,5 @@ fn append_f32(dump: &mut Vec<u8>, value: f32) {
 }
 
 #[cfg(test)]
-#[path = "binary_dump/tests/capacity_tests.rs"]
+#[path = "binary_dump/tests/capacity.rs"]
 mod capacity_tests;

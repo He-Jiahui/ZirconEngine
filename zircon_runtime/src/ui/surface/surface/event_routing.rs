@@ -1,3 +1,4 @@
+#[path = "event_routing/pointer_ownership.rs"]
 mod pointer_ownership;
 
 use std::collections::HashSet;

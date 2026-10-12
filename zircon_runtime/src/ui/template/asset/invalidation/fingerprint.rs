@@ -135,5 +135,5 @@ fn fingerprint_serialization_error(error: toml::ser::Error) -> UiAssetError {
 
 // 等价测试固定实际序列化输出；被忽略的 release 对照只度量中间输出字符串的消除。
 #[cfg(test)]
-#[path = "tests/fingerprint_performance_tests.rs"]
+#[path = "tests/fingerprint_perf.rs"]
 mod performance_tests;

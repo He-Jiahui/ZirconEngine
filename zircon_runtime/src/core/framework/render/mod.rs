@@ -1,59 +1,114 @@
 //! render 公共中立契约门面，汇聚图形、插件和编辑器共享的提取 DTO、容量计划、图执行报告及动态后端接口。
 //! 这些 re-export 描述跨模块状态与句柄，实际 GPU 资源和提交生命周期仍由 graphics 后端管理。
+#[path = "advanced/mod.rs"]
 mod advanced;
+#[path = "advanced_lighting/mod.rs"]
 mod advanced_lighting;
+#[path = "anti_alias/mod.rs"]
 mod anti_alias;
+#[path = "backend_types.rs"]
 mod backend_types;
+#[path = "camera.rs"]
 mod camera;
+#[path = "camera_ordering.rs"]
 mod camera_ordering;
+#[path = "camera_stack.rs"]
 mod camera_stack;
+#[path = "capture.rs"]
 mod capture;
+#[path = "core_pipeline/mod.rs"]
 mod core_pipeline;
+#[path = "environment/mod.rs"]
 mod environment;
+#[path = "environment_capture.rs"]
 mod environment_capture;
+#[path = "environment_capture_source_payload.rs"]
 mod environment_capture_source_payload;
+#[path = "frame_extract.rs"]
 mod frame_extract;
+#[path = "frame_phase_queue_summary.rs"]
 mod frame_phase_queue_summary;
+#[path = "frame_profile.rs"]
 mod frame_profile;
+#[path = "frame_submission_boundary_reason.rs"]
 mod frame_submission_boundary_reason;
+#[path = "frame_submission_failure_receipt.rs"]
 mod frame_submission_failure_receipt;
+#[path = "frame_submission_metrics.rs"]
 mod frame_submission_metrics;
+#[path = "frame_submission_producer_record.rs"]
 mod frame_submission_producer_record;
+#[path = "frame_submission_receipt.rs"]
 mod frame_submission_receipt;
+#[path = "frame_submission_transaction.rs"]
 mod frame_submission_transaction;
+#[path = "framework.rs"]
 mod framework;
+#[path = "framework_error.rs"]
 mod framework_error;
+#[path = "highlight_set.rs"]
 mod highlight_set;
+#[path = "image/mod.rs"]
 mod image;
+#[path = "light/mod.rs"]
 mod light;
+#[path = "material/mod.rs"]
 mod material;
+#[path = "mesh/mod.rs"]
 mod mesh;
+#[path = "module_identity.rs"]
 mod module_identity;
+#[path = "overlay.rs"]
 mod overlay;
+#[path = "plugin_renderer_outputs.rs"]
 mod plugin_renderer_outputs;
+#[path = "post/mod.rs"]
 mod post_process;
+#[path = "prepared_runtime_sidebands.rs"]
 mod prepared_runtime_sidebands;
+#[path = "profile.rs"]
 mod profile;
+#[path = "relevance.rs"]
 mod relevance;
+#[path = "renderer_common.rs"]
 mod renderer_common;
+#[path = "scene_extract.rs"]
 mod scene_extract;
+#[path = "scene_submission_completion.rs"]
 mod scene_submission_completion;
+#[path = "shader/mod.rs"]
 mod shader;
+#[path = "shadow.rs"]
 mod shadow;
+#[path = "solari/mod.rs"]
 mod solari;
+#[path = "sprite/mod.rs"]
 mod sprite;
+#[path = "submission.rs"]
 mod submission;
+#[path = "surface.rs"]
 mod surface;
+#[path = "temporal_jitter.rs"]
 mod temporal_jitter;
+#[path = "ui_submission.rs"]
 mod ui_submission;
+#[path = "view_family/mod.rs"]
 mod view_family;
+#[path = "view_matrix_pair.rs"]
 mod view_matrix_pair;
+#[path = "viewport_highlight_store.rs"]
 mod viewport_highlight_store;
+#[path = "viewport_pick.rs"]
 mod viewport_pick;
+#[path = "viewport_product.rs"]
 mod viewport_product;
+#[path = "virtual_geometry_debug_snapshot.rs"]
 mod virtual_geometry_debug_snapshot;
+#[path = "../../render/virtual_geometry_debug_snapshot_streams.rs"]
 mod virtual_geometry_debug_snapshot_streams;
+#[path = "virtual_geometry_execution_draw.rs"]
 mod virtual_geometry_execution_draw;
+#[path = "visible_spatial_query.rs"]
 mod visible_spatial_query;
 
 pub use advanced::{

@@ -1,15 +1,26 @@
 //! Runtime scene subsystem: level orchestration plus the core ECS world.
 
+#[path = "event_mirror/mod.rs"]
 mod event_mirror;
+#[path = "fixed_step_failure.rs"]
 mod fixed_step_failure;
+#[path = "level_system.rs"]
 mod level_system;
+#[path = "level_system_render_extract.rs"]
 mod level_system_render_extract;
+#[path = "module/mod.rs"]
 mod module;
+#[path = "navigation.rs"]
 mod navigation;
+#[path = "prelude.rs"]
 pub mod prelude;
+#[path = "runtime_extension/mod.rs"]
 mod runtime_extension;
+#[path = "runtime_level_traits.rs"]
 mod runtime_level_traits;
+#[path = "world_publication.rs"]
 mod world_publication;
+#[path = "world_time/mod.rs"]
 mod world_time;
 
 pub use event_mirror::{
@@ -58,14 +69,23 @@ pub(crate) enum WorldQueryBudgetError {
     Json(String),
 }
 
+#[path = "components/mod.rs"]
 pub mod components;
+#[path = "dynamic/mod.rs"]
 pub mod dynamic_scene;
+#[path = "ecs/mod.rs"]
 pub mod ecs;
+#[path = "inspection/mod.rs"]
 pub mod inspection;
+#[path = "reflect/mod.rs"]
 pub mod reflect;
+#[path = "render_extract/mod.rs"]
 mod render_extract;
+#[path = "semantics/mod.rs"]
 pub mod semantics;
+#[path = "serializer/mod.rs"]
 pub mod serializer;
+#[path = "world/mod.rs"]
 pub mod world;
 
 pub use dynamic_scene::{
@@ -144,4 +164,5 @@ pub(crate) use world::{RenderDirtyEntityJournal, RenderDirtyWorldId};
 pub type Scene = World;
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

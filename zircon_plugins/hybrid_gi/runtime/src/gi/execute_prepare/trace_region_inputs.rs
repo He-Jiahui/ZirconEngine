@@ -1,0 +1,42 @@
+use crate::hybrid_gi::types::{
+    HybridGiPrepareFrame, HybridGiResolveRuntime, HybridGiResolveTraceRegionSceneData,
+};
+
+use super::super::gpu_trace_region_input::GpuTraceRegionInput;
+use super::probe_quantization::scheduled_trace_region_scene_data_by_id;
+
+pub(super) fn trace_region_inputs(
+    prepare: &HybridGiPrepareFrame,
+    resolve_runtime: Option<&HybridGiResolveRuntime>,
+) -> Vec<GpuTraceRegionInput> {
+    scheduled_trace_region_scene_data_by_id(resolve_runtime, &prepare.scheduled_trace_region_ids)
+        .into_iter()
+        .map(|(region_id, scene_data)| {
+            trace_region_input_from_runtime_scene_data(region_id, scene_data)
+        })
+        .collect()
+}
+
+fn trace_region_input_from_runtime_scene_data(
+    region_id: u32,
+    scene_data: HybridGiResolveTraceRegionSceneData,
+) -> GpuTraceRegionInput {
+    GpuTraceRegionInput {
+        region_id,
+        center_x_q: scene_data.center_x_q(),
+        center_y_q: scene_data.center_y_q(),
+        center_z_q: scene_data.center_z_q(),
+        radius_q: scene_data.radius_q(),
+        coverage_q: scene_data.coverage_q(),
+        rt_lighting_rgb: pack_rgb8(scene_data.rt_lighting_rgb()),
+        _padding1: 0,
+    }
+}
+
+fn pack_rgb8(rgb: [u8; 3]) -> u32 {
+    u32::from(rgb[0]) | (u32::from(rgb[1]) << 8) | (u32::from(rgb[2]) << 16)
+}
+
+#[cfg(test)]
+#[path = "../gpu/tests/trace_region_inputs.rs"]
+mod tests;

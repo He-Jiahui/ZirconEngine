@@ -1,11 +1,19 @@
+#[path = "backend.rs"]
 mod backend;
+#[path = "call_site/mod.rs"]
 mod call_site;
+#[path = "capability.rs"]
 mod capability;
+#[path = "host_interface/mod.rs"]
 pub mod host_interface;
+#[path = "module.rs"]
 mod module;
+#[path = "plugin.rs"]
 mod plugin;
 #[cfg(feature = "backend-zr-vm")]
+#[path = "real_backend.rs"]
 mod real_backend;
+#[path = "reflection_host/mod.rs"]
 mod reflection_host;
 
 pub use backend::{ZrVmBackend, ZrVmBackendFamily};
@@ -41,4 +49,5 @@ pub use zircon_runtime::script::{
 pub const ZR_VM_PROJECT_BACKEND_SELECTOR: &str = "zr_vm:project";
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

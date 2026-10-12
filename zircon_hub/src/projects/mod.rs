@@ -1,14 +1,26 @@
+#[path = "cloud_binding.rs"]
 mod cloud_binding;
+#[path = "cover.rs"]
 mod cover;
+#[path = "create_project_request.rs"]
 mod create_project_request;
+#[path = "device_install.rs"]
 mod device_install;
+#[path = "install_receipt.rs"]
 mod install_receipt;
+#[path = "local_paths.rs"]
 mod local_paths;
+#[path = "metadata.rs"]
 mod metadata;
+#[path = "package.rs"]
 mod package;
+#[path = "recent_project.rs"]
 mod recent_project;
+#[path = "recycle_bin.rs"]
 mod recycle_bin;
+#[path = "shared_recent_projects.rs"]
 mod shared_recent_projects;
+#[path = "validation.rs"]
 mod validation;
 
 pub use cloud_binding::{CloudAccountScope, CloudBindingEnvironment, CloudProjectBinding};

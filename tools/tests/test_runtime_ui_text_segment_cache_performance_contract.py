@@ -5,58 +5,58 @@ from tools.analysis.performance.runtime.runtime_ui_text_prepare_cache_pressure i
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TEXT = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs"
+TEXT = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/text.rs"
 SEGMENT_CACHE = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/text/segment_cache.rs"
 )
 SEGMENT_RUN_INDEX = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache/run_index.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/text/segment_cache/run_index.rs"
 )
-RENDER = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+RENDER = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
 PLAN_CACHE = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs"
 )
-RECORD = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs"
+RECORD = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render/record.rs"
 AUTO_ROUTE = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches/auto_route.rs"
+    / "zircon_runtime/src/graphics/scene/ui/text/resolved_batches/auto_route.rs"
 )
 RESOLVED_BATCHES = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs"
 )
 TEXT_RENDER_STATE = ROOT / "zircon_runtime/src/text/render_state.rs"
 NATIVE_BITMAP_FRAME = ROOT / "zircon_runtime/src/text/native_bitmap_atlas/frame.rs"
-SDF_ATLAS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs"
+SDF_ATLAS = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas.rs"
 SDF_ATLAS_PREPARED_TEXTS = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/prepared_texts.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/prepared_texts.rs"
 )
 SDF_ATLAS_TEXT_KEYS = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/text_keys.rs"
 )
 SDF_CPU_FRAME = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_cpu_frame.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/text/sdf_cpu_frame.rs"
 )
 TEXT_PREPARE_REPORT = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs"
 )
-SDF_RENDER = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs"
+SDF_RENDER = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs"
 SDF_COMPILED_FRAME = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/compiled_frame.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/compiled_frame.rs"
 )
 SDF_DECORATIONS = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/decorations.rs"
 )
 SDF_VERTICES = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/vertices.rs"
 )
 SDF_MATERIAL = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/material.rs"
 )
 
 

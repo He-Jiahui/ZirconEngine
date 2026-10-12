@@ -121,5 +121,5 @@ pub struct RenderAmbientOcclusionExecutionReport {
 }
 
 #[cfg(test)]
-#[path = "tests/ambient_occlusion.rs"]
+#[path = "../tests/ambient_occlusion.rs"]
 mod tests;

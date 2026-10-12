@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HOST = ROOT / "zircon_editor/src/ui/retained_host"
+HOST = ROOT / "zircon_editor/src/ui/retained"
 GLOBALS = HOST / "host_contract/globals"
 
 

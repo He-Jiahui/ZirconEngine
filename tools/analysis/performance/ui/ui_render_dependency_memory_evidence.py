@@ -22,15 +22,15 @@ MIN_DELTA_CYCLES = 5
 MIN_QUIESCENCE_MS = 2_000
 
 REQUIRED_SOURCE_PATHS = (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/image.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/text/segment_cache.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs",
     "zircon_runtime/crates/zr_rhi/src/ui_surface.rs",
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs",
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache.rs",
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shared_image_registry.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs",
-    "zircon_editor/src/ui/retained_host/ui_perf.rs",
+    "zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs",
+    "zircon_editor/src/ui/retained/ui_perf.rs",
     "tools/analysis/profiling/ui/ui-profile-process-evidence.ps1",
 )
 

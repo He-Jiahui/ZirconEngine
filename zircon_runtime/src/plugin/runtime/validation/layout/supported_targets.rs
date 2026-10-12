@@ -1,0 +1,23 @@
+#[path = "supported_targets/state.rs"]
+mod state;
+#[path = "../../layout/supported_targets/uniqueness.rs"]
+mod uniqueness;
+
+use crate::plugin::PluginPackageManifest;
+
+use self::state::new_runtime_plugin_package_supported_target_state;
+
+// 包级目标模式是模块和嵌入特性覆盖检查的上界；重复项在进入子项检查前报告。
+pub(super) fn validate_runtime_plugin_package_supported_targets(
+    package_manifest: &PluginPackageManifest,
+    diagnostics: &mut Vec<String>,
+) {
+    let mut seen = new_runtime_plugin_package_supported_target_state();
+    for target_mode in package_manifest.supported_targets.iter().copied() {
+        uniqueness::validate_runtime_plugin_package_supported_target_uniqueness(
+            target_mode,
+            &mut seen,
+            diagnostics,
+        );
+    }
+}

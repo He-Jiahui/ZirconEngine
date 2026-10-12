@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::component::UiValue;
 
+#[path = "expression/evaluator.rs"]
 mod evaluator;
 
 pub use evaluator::UiBindingExpressionEvaluationError;
@@ -838,11 +839,11 @@ fn parse_error_from_token(token: &Token) -> UiBindingExpressionParseError {
 }
 
 #[cfg(test)]
-#[path = "expression/tests/integer_token_performance_tests.rs"]
+#[path = "../../../asset/binding/tests/integer_token_perf.rs"]
 mod integer_token_performance_tests;
 
 #[cfg(test)]
-#[path = "expression/tests/parser_token_performance_tests.rs"]
+#[path = "../../../asset/binding/tests/parser_token_perf.rs"]
 mod parser_token_performance_tests;
 
 #[cfg(test)]

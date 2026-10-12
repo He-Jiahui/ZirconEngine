@@ -297,7 +297,7 @@ plan_sources:
 tests:
   - tools/tests/test_frameworks_03_server_feature_boundary.py
   - zircon_runtime/tests/runtime_environment_ibl_source_import_staging_contract.rs
-  - zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs
+  - zircon_runtime/tests/cubemap_staging.rs
   - zircon_runtime/tests/runtime_texture_external_cubemap_source_only_contract.rs
   - docs/tests/runtime/render/plan08_skinning_gltf_importer_channels_after_vg_skinning_split_20260705.out.log (2026-07-05 Plan 08 skinning/VG split: current-source focused glTF skinning channel regression passed 1/1)
   - docs/tests/runtime/render/plan08_skinning_production_check_after_vg_skinning_split_20260705.err.log (2026-07-05 Plan 08 skinning/VG split: current-source production `cargo check -p zircon_runtime --lib` passed; exit stored beside the log)

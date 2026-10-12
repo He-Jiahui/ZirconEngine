@@ -586,9 +586,9 @@ fn push_error(
 }
 
 #[cfg(test)]
-#[path = "tests/graph_optimization_batch_20260830cn_runtime_tests.rs"]
+#[path = "tests/graph_perf.rs"]
 mod optimization_batch_20260830cn_runtime_tests;
 
 #[cfg(test)]
-#[path = "tests/graph_optimization_batch_hc_runtime584_tests.rs"]
+#[path = "tests/graph_refs_perf.rs"]
 mod optimization_batch_hc_runtime584_tests;

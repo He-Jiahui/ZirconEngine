@@ -6,17 +6,17 @@ related_code:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained/app.rs
 implementation_files:
   - zircon_app/src/entry
-  - zircon_runtime/src/core/runtime
-  - zircon_editor/src/ui/retained_host
+  - zircon_runtime/src/core
+  - zircon_editor/src/ui/retained
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/mvp/index.md
 tests:
   - zircon_app/src/tests
-  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/tests
   - zircon_editor/src/tests
   - .github/workflows/ci.yml
 doc_type: workflow-detail

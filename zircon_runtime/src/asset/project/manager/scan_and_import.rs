@@ -26,13 +26,21 @@ use crate::core::runtime::tasks::TaskPool;
 
 use super::ProjectManager;
 
+#[path = "../../manager/scan_and_import/dependency_resolution.rs"]
 mod dependency_resolution;
+#[path = "scan_and_import/full_generation.rs"]
 mod full_generation;
+#[path = "scan_and_import/metadata.rs"]
 mod metadata;
+#[path = "scan_and_import/projected_inventory.rs"]
 mod projected_inventory;
+#[path = "../../manager/scan_and_import/shader_import_dependencies.rs"]
 mod shader_import_dependencies;
+#[path = "scan_and_import/source_plan.rs"]
 mod source_plan;
+#[path = "scan_and_import/sources.rs"]
 mod sources;
+#[path = "scan_and_import/targeted.rs"]
 mod targeted;
 
 pub(super) use shader_import_dependencies::ShaderImportDependencyIndex;

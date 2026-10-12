@@ -102,5 +102,5 @@ impl AutosaveWriteJob {
 }
 
 #[cfg(test)]
-#[path = "tests/write_job_outcome_tests.rs"]
+#[path = "tests/write_job_outcome.rs"]
 mod outcome_tests;

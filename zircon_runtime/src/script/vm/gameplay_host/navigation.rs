@@ -136,5 +136,5 @@ pub(super) fn navigation_next_point(
 }
 
 #[cfg(test)]
-#[path = "tests/navigation_performance_contract_tests.rs"]
+#[path = "tests/navigation_perf_contract.rs"]
 mod performance_contract_tests;

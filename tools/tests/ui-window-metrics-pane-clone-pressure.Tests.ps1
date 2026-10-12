@@ -13,9 +13,9 @@ Describe "UI window-metrics semantic pane clone pressure" {
         $outputRoot = Join-Path $fixtureRoot "evidence"
         try {
             $scenePath = Join-Path $fixtureRoot `
-                "zircon_editor\src\ui\retained_host\ui\apply_presentation\scene_conversion.rs"
+                "zircon_editor\src\ui\retained\ui\apply_presentation\scene_conversion.rs"
             $hostRootPath = Join-Path $fixtureRoot `
-                "zircon_editor\src\ui\retained_host\host_contract\data\host_root.rs"
+                "zircon_editor\src\ui\retained\contract\data\host_root.rs"
             New-Item -ItemType Directory -Path (Split-Path -Parent $scenePath) -Force |
                 Out-Null
             New-Item -ItemType Directory -Path (Split-Path -Parent $hostRootPath) -Force |
@@ -73,9 +73,9 @@ fn apply_to(current: &HostWindowPresentationData) {
         $fixtureRoot = "E:\zircon-profiles\pester-ui-window-metrics-drift-$([guid]::NewGuid().ToString('N'))"
         try {
             $scenePath = Join-Path $fixtureRoot `
-                "zircon_editor\src\ui\retained_host\ui\apply_presentation\scene_conversion.rs"
+                "zircon_editor\src\ui\retained\ui\apply_presentation\scene_conversion.rs"
             $hostRootPath = Join-Path $fixtureRoot `
-                "zircon_editor\src\ui\retained_host\host_contract\data\host_root.rs"
+                "zircon_editor\src\ui\retained\contract\data\host_root.rs"
             New-Item -ItemType Directory -Path (Split-Path -Parent $scenePath) -Force |
                 Out-Null
             New-Item -ItemType Directory -Path (Split-Path -Parent $hostRootPath) -Force |

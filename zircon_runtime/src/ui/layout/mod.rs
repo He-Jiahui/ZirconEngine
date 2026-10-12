@@ -1,11 +1,17 @@
 //! 布局先把声明和响应式属性变成测量输入，再产出绘制与命中共用的几何。
 //! 通用布局交给 Taffy；滚动、虚拟化和引擎槽位语义保留在运行时控制。
 
+#[path = "constraints.rs"]
 mod constraints;
+#[path = "pass/mod.rs"]
 mod pass;
+#[path = "scroll.rs"]
 mod scroll;
+#[path = "style_mapping.rs"]
 mod style_mapping;
+#[path = "taffy_bridge/mod.rs"]
 mod taffy_bridge;
+#[path = "virtualization.rs"]
 mod virtualization;
 
 /// Upper bound for asset-authored track counts, slot coordinates/spans, and overscan.

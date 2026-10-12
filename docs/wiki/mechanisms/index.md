@@ -1,12 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/core/runtime
+  - zircon_runtime/src/core
   - zircon_runtime/src/asset
   - zircon_runtime/src/graphics
   - zircon_runtime/src/ui
   - zircon_runtime_interface/src
 implementation_files:
-  - zircon_runtime/src/core/runtime
+  - zircon_runtime/src/core
   - zircon_runtime/src/asset
   - zircon_runtime/src/graphics
   - zircon_runtime/src/ui

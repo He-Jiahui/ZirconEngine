@@ -26,9 +26,13 @@ use self::result::{
 };
 use self::text::prepare_text_input_set_value;
 
+#[path = "value/number_field.rs"]
 mod number_field;
+#[path = "value/payload.rs"]
 mod payload;
+#[path = "value/result.rs"]
 mod result;
+#[path = "value/text.rs"]
 mod text;
 
 pub(super) fn dispatch_set_value(

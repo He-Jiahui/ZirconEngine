@@ -1,19 +1,34 @@
 //! Runtime-owned scene reflection registry boundary.
 
+#[path = "builtin_reflection/mod.rs"]
 mod builtin_reflection;
+#[path = "conversion.rs"]
 mod conversion;
+#[path = "declared_value_type.rs"]
 mod declared_value_type;
+#[path = "derived/mod.rs"]
 mod derived;
+#[path = "dynamic_component.rs"]
 mod dynamic_component;
+#[path = "dynamic_json.rs"]
 mod dynamic_json;
+#[path = "json_document/mod.rs"]
 mod json_document;
+#[path = "reflect_component.rs"]
 mod reflect_component;
+#[path = "reflect_resource.rs"]
 mod reflect_resource;
+#[path = "registration.rs"]
 mod registration;
+#[path = "runtime_type_registration.rs"]
 mod runtime_type_registration;
+#[path = "type_registry.rs"]
 mod type_registry;
+#[path = "value_admission.rs"]
 mod value_admission;
+#[path = "vm_type_backing.rs"]
 mod vm_type_backing;
+#[path = "world_reflection.rs"]
 mod world_reflection;
 
 pub use conversion::{reflected_from_scene_value, scene_value_from_reflected};

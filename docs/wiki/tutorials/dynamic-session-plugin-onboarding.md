@@ -1,20 +1,20 @@
 ---
 related_code:
   - zircon_runtime/src/dynamic_api/session.rs
-  - zircon_runtime/src/dynamic_api/session
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
+  - zircon_runtime/src/dynamic_api
+  - zircon_runtime/src/plugin/runtime/catalog.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
   - zircon_editor/src/core/play/plugin_activation/mod.rs
 implementation_files:
-  - zircon_runtime/src/dynamic_api/session
-  - zircon_runtime/src/plugin/runtime_plugin
+  - zircon_runtime/src/dynamic_api
+  - zircon_runtime/src/plugin/runtime
   - zircon_editor/src/core/play/plugin_activation
 plan_sources:
   - user: 2026-09-09 扩展 ZirconEngine Wiki 教程与机制说明
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
 tests:
   - zircon_runtime/src/dynamic_api/tests
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/tests/cases.rs
+  - zircon_runtime/src/plugin/runtime/feature_validation/tests/cases.rs
   - zircon_editor/src/core/play/plugin_activation
 doc_type: workflow-detail
 ---

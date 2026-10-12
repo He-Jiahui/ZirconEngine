@@ -1,3 +1,4 @@
+#[path = "hzb_builder.rs"]
 mod hzb_builder;
 
 pub use hzb_builder::{HzbBuildPlan, HzbBuilder};

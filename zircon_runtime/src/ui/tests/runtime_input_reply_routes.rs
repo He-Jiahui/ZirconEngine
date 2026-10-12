@@ -39,22 +39,39 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
 
+#[path = "input/analog_navigation_routes.rs"]
 mod analog_navigation_routes;
+#[path = "input/drag_drop_routes.rs"]
 mod drag_drop_routes;
+#[path = "input/focus_text_accessibility_routes.rs"]
 mod focus_text_accessibility_routes;
+#[path = "input/gamepad_navigation_routes.rs"]
 mod gamepad_navigation_routes;
+#[path = "input/keyboard_activation_routes.rs"]
 mod keyboard_activation_routes;
+#[path = "input/keyboard_navigation_routes.rs"]
 mod keyboard_navigation_routes;
+#[path = "input/keyboard_popup_routes.rs"]
 mod keyboard_popup_routes;
+#[path = "input/pointer_bubble_routes.rs"]
 mod pointer_bubble_routes;
+#[path = "input/pointer_capture_routes.rs"]
 mod pointer_capture_routes;
+#[path = "input/pointer_hover_routes.rs"]
 mod pointer_hover_routes;
+#[path = "input/pointer_popup_routes.rs"]
 mod pointer_popup_routes;
+#[path = "input/popup_routes.rs"]
 mod popup_routes;
+#[path = "input/route_trace_routes.rs"]
 mod route_trace_routes;
+#[path = "input/table_pointer_routes.rs"]
 mod table_pointer_routes;
+#[path = "input/tooltip_timer_routes.rs"]
 mod tooltip_timer_routes;
+#[path = "input/touch_pointer_routes.rs"]
 mod touch_pointer_routes;
+#[path = "input/tree_view_pointer_routes.rs"]
 mod tree_view_pointer_routes;
 
 // 仅适用于下面固定的两层路由夹具；阶段数量属于该夹具的预览和目标处理契约。

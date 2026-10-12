@@ -1875,7 +1875,7 @@ Describe "Export platform contract validation" {
     }
 
     It "keeps runtime export policy test CI platform parsing aligned with the validator matrix" {
-        $exportPlanTestPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\tests\plugin_extensions\export_build_plan_platform.rs"
+        $exportPlanTestPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\tests\plugins\export_build_plan_platform.rs"
 
         Get-RustMatchStringArms `
             -RustPath $exportPlanTestPath `

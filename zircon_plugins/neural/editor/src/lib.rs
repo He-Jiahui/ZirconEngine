@@ -1,6 +1,8 @@
 //! Editor-side ONNX conversion and structured diagnostics for neural model assets.
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use zircon_plugin_neural_runtime::{NnModelAsset, NnOpCode};
@@ -13,6 +15,7 @@ pub use plugin::{
     package_manifest, plugin_registration, NeuralEditorPlugin,
 };
 
+#[path = "onnx/mod.rs"]
 pub mod onnx;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

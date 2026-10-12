@@ -3,12 +3,19 @@
 //! This module owns mailbox semantics only. Native-window attention remains at the retained host
 //! boundary, and project liveness remains exclusively owned by `recovery::SessionGuard`.
 
+#[path = "error.rs"]
 mod error;
+#[path = "focus_ack_bridge.rs"]
 mod focus_ack_bridge;
+#[path = "focus_binding.rs"]
 mod focus_binding;
+#[path = "focus_signal.rs"]
 mod focus_signal;
+#[path = "focus_watch.rs"]
 mod focus_watch;
+#[path = "handshake.rs"]
 mod handshake;
+#[path = "recent_writeback.rs"]
 mod recent_writeback;
 
 pub use error::HubFocusSignalError;

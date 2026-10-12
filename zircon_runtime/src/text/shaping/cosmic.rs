@@ -30,11 +30,16 @@ use super::vertical::{apply_vertical_layout, shape_vertical_request};
 use super::{TextShapingCompletion, TextShapingFailure, TextShapingFailureReceipt};
 
 #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+#[path = "cosmic/direct_profile.rs"]
 pub(super) mod direct_profile;
 #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+#[path = "cosmic/fallback_profile.rs"]
 mod fallback_profile;
+#[path = "cosmic/font_system_cache.rs"]
 mod font_system_cache;
+#[path = "cosmic/hard_lines.rs"]
 mod hard_lines;
+#[path = "cosmic/horizontal_recovery.rs"]
 mod horizontal_recovery;
 
 use super::{fallback_primary_face, fallback_text_spans_with_report, FallbackItemizationError};

@@ -10,19 +10,19 @@ TRANSPORT = REPO_ROOT / (
     "workbench_transport_controls.zui"
 )
 SCENE_TREE = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_scene_tree_panel.zui"
 )
 COMPONENT_DRAWER = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_component_drawer.zui"
 )
 WORKBENCH_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
+    "zircon_editor/src/ui/runtime/builtin/"
     "workbench_window_template_bindings.rs"
 )
 WORKBENCH_PREVIEW_ACTIONS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/workbench_preview_actions.rs"
+    "zircon_editor/src/ui/retained/preview_actions.rs"
 )
 
 

@@ -1,8 +1,14 @@
+#[path = "axis.rs"]
 mod axis;
+#[path = "basis_build.rs"]
 mod basis_build;
+#[path = "drag_math.rs"]
 mod drag_math;
+#[path = "overlay_builders.rs"]
 mod overlay_builders;
+#[path = "rotation_delta.rs"]
 mod rotation_delta;
+#[path = "selection.rs"]
 mod selection;
 
 pub(in crate::scene::viewport::handles) use axis::{

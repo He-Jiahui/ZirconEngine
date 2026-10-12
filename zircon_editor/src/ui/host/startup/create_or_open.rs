@@ -114,5 +114,5 @@ fn project_activation_action<'a>(
 mod tests;
 
 #[cfg(test)]
-#[path = "create_or_open/tests/single_buffer_activation_status_tests.rs"]
+#[path = "tests/single_buffer_activation_status.rs"]
 mod single_buffer_activation_status_tests;

@@ -275,9 +275,9 @@ pub(crate) fn compact_bottom_height_limit(available_height: f32) -> Option<f32> 
 mod tests;
 
 #[cfg(test)]
-#[path = "vertical_bands/tests/allocation_tests.rs"]
+#[path = "tests/vertical_bands_alloc.rs"]
 mod allocation_tests;
 
 #[cfg(test)]
-#[path = "vertical_bands/tests/priority_tests.rs"]
+#[path = "tests/priority.rs"]
 mod priority_tests;

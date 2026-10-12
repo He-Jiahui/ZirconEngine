@@ -295,5 +295,5 @@ fn write_submenu_string(state: &mut UiComponentState, property: &str, value: &st
 }
 
 #[cfg(test)]
-#[path = "submenu/tests/borrowed_current_option_tests.rs"]
+#[path = "../../../../keyboard/menu/submenu/tests/borrowed_current_option.rs"]
 mod borrowed_current_option_tests;

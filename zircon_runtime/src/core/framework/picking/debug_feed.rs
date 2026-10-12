@@ -122,5 +122,5 @@ impl PickingDebugPointerRow {
 }
 
 #[cfg(test)]
-#[path = "debug_feed/tests/indexed_metric_tests.rs"]
+#[path = "debug_feed/tests/indexed_metric.rs"]
 mod indexed_metric_tests;

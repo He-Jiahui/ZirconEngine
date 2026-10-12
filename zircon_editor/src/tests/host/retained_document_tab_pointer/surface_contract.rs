@@ -6,9 +6,9 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn shared_document_tab_callbacks_consume_the_committed_receipt_projection() {
-    let globals = source("src/ui/retained_host/host_contract/globals.rs");
-    let wiring = source("src/ui/retained_host/app/callback_wiring/host_shell/chrome.rs");
-    let pointer_layout = source("src/ui/retained_host/app/pointer_layout/shell_chrome.rs");
+    let globals = source("src/ui/retained/contract/globals.rs");
+    let wiring = source("src/ui/retained/app/callback_wiring/host_shell/chrome.rs");
+    let pointer_layout = source("src/ui/retained/app/pointer_layout/shell_chrome.rs");
     let document_tab_sync = pointer_layout
         .split("fn sync_document_tab_pointer_layout")
         .nth(1)
@@ -34,18 +34,18 @@ fn shared_document_tab_callbacks_consume_the_committed_receipt_projection() {
 #[test]
 fn document_tab_pointer_consumes_native_action_without_a_mirror_hit_surface() {
     let native_body = source(
-        "src/ui/retained_host/host_contract/native_pointer/routing/chrome/tabs/document/body.rs",
+        "src/ui/contract/pointer/routing/chrome/tabs/document/body.rs",
     );
     let native_close = source(
-        "src/ui/retained_host/host_contract/native_pointer/routing/chrome/tabs/document/close.rs",
+        "src/ui/contract/pointer/routing/chrome/tabs/document/close.rs",
     );
     let bridge =
-        source("src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs");
+        source("src/ui/document_tab_pointer/host_document_tab_pointer_bridge.rs");
     let activate = source(
-        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_activate.rs",
+        "src/ui/host_document_tab_pointer_bridge_activate.rs",
     );
     let close = source(
-        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_close.rs",
+        "src/ui/host_document_tab_pointer_bridge_close.rs",
     );
 
     assert!(native_body.contains("ChromePointerRoute::DocumentTab"));
@@ -72,9 +72,9 @@ fn document_tab_pointer_consumes_native_action_without_a_mirror_hit_surface() {
 #[test]
 fn document_tab_receipt_route_is_compact_and_identity_remains_typed() {
     let route =
-        source("src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_route.rs");
+        source("src/ui/document_tab_pointer/host_document_tab_pointer_route.rs");
     let item =
-        source("src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_item.rs");
+        source("src/ui/document_tab_pointer/host_document_tab_pointer_item.rs");
 
     assert!(route.contains("Clone, Copy"));
     assert!(!route.contains("String"));

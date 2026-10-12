@@ -31,7 +31,7 @@ BOUNDS_INDEX = (
 )
 SCALE_TESTS = (
     ROOT
-    / "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/tests/scale_and_cache.rs"
+    / "zircon_runtime/crates/zr_rhi_wgpu/src/batching/tests/scale_and_cache.rs"
 )
 
 # 读取 RHI 损伤候选索引与原生命令记录，验证计数器只记录真实访问并复用带版本的候选缓存。

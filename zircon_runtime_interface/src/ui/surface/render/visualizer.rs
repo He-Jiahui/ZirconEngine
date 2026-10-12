@@ -1,8 +1,10 @@
+#[path = "visualizer/overdraw.rs"]
 mod overdraw;
+#[path = "../../render/visualizer/resource_binding_index.rs"]
 mod resource_binding_index;
 
 #[cfg(test)]
-#[path = "visualizer/tests/overlay_performance_tests.rs"]
+#[path = "visualizer/tests/overlay_perf.rs"]
 mod overlay_performance_tests;
 
 use serde::{Deserialize, Serialize};

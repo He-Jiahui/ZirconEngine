@@ -119,7 +119,7 @@ fn render_gpu_scene_layout_matches_wgsl_offsets() {
 
 #[test]
 fn render_gpu_scene_wgsl_primitive_tail_preserves_the_rust_storage_stride() {
-    let source = include_str!("../../scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+    let source = include_str!("../../renderer/mesh/shaders/zr_gpu_scene.wgsl");
 
     assert!(source.contains("local_bounds_center: vec3<f32>,"));
     assert!(source.contains("local_bounds_radius: f32,"));
@@ -134,7 +134,7 @@ fn render_gpu_scene_wgsl_primitive_tail_preserves_the_rust_storage_stride() {
 
 #[test]
 fn render_gpu_scene_wgsl_flags_match_the_rust_abi() {
-    let source = include_str!("../../scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+    let source = include_str!("../../renderer/mesh/shaders/zr_gpu_scene.wgsl");
     let expected = [
         (
             "ZR_GPU_INSTANCE_FLAG_GENERAL_NORMAL_TRANSFORM",

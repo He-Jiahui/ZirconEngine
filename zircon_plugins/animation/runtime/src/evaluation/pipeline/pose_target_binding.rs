@@ -98,5 +98,5 @@ fn short_node_name(name: &str) -> &str {
 }
 
 #[cfg(test)]
-#[path = "tests/pose_target_binding.rs"]
+#[path = "../tests/pose_target_binding.rs"]
 mod tests;

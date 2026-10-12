@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+#[path = "convert/tensor_projection.rs"]
 mod tensor_projection;
 
 use tensor_projection::TensorProjection;

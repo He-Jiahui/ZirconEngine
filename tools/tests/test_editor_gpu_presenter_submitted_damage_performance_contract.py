@@ -5,7 +5,7 @@ import unittest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GPU_PRESENT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/present.rs"
+    "zircon_editor/src/ui/retained/contract/presenter/gpu/present.rs"
 )
 
 

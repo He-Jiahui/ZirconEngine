@@ -143,15 +143,15 @@ class EditorSvgGpuResidencyPressureTest(unittest.TestCase):
             source["relative_path"] for source in binding["critical_sources"]
         }
         self.assertIn(
-            "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs",
+            "zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs",
             critical_paths,
         )
         self.assertIn(
-            "zircon_editor/src/ui/retained_host/ui_perf.rs",
+            "zircon_editor/src/ui/retained/ui_perf.rs",
             critical_paths,
         )
         self.assertIn(
-            "zircon_editor/src/ui/retained_host/ui_perf/counter_catalog.rs",
+            "zircon_editor/src/ui/retained/ui_perf/counter_catalog.rs",
             critical_paths,
         )
         self.assertIn(
@@ -163,7 +163,7 @@ class EditorSvgGpuResidencyPressureTest(unittest.TestCase):
             critical_paths,
         )
         self.assertIn(
-            "zircon_runtime/crates/zr_rhi_wgpu/src/production/submission/"
+            "zircon_runtime/crates/zr_rhi_wgpu/src/submission/"
             "ui_image_retirement.rs",
             critical_paths,
         )

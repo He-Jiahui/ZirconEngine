@@ -30,14 +30,25 @@ use crate::ui::workbench::view::ViewDescriptorId;
 
 use super::support::{env_lock, EventRuntimeHarness};
 
+#[path = "animation_assets.rs"]
 mod animation_assets;
+#[path = "console.rs"]
 mod console;
+#[path = "error_propagation.rs"]
 mod error_propagation;
+#[path = "extensions_registration.rs"]
 mod extensions_registration;
+#[path = "extensions_validation.rs"]
 mod extensions_validation;
+#[path = "integration/mod.rs"]
 mod integration;
+#[path = "keymap_settings.rs"]
 mod keymap_settings;
+#[path = "listeners.rs"]
 mod listeners;
+#[path = "registry.rs"]
 mod registry;
+#[path = "stack_play.rs"]
 mod stack_play;
+#[path = "when_evaluation.rs"]
 mod when_evaluation;

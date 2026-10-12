@@ -12,8 +12,11 @@ use self::binding::scroll_state_offset;
 use self::payload::scroll_to_offset;
 use self::result::{finish_missing_scroll_to, finish_scroll_to_mutation};
 
+#[path = "scroll/binding.rs"]
 mod binding;
+#[path = "scroll/payload.rs"]
 mod payload;
+#[path = "scroll/result.rs"]
 mod result;
 
 // 滚动由树的 ScrollableBox/虚拟窗口规划器裁剪并设置脏域；此入口只验证公开动作和解析目标偏移。

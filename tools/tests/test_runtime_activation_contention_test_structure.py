@@ -11,7 +11,7 @@ class RuntimeActivationContentionTestStructureTests(unittest.TestCase):
         )
         contention_path = (
             repo_root
-            / "zircon_runtime/src/core/runtime/tests/activation/behavior/activation/contention.rs"
+            / "zircon_runtime/src/core/runtime/tests/behavior/activation/contention.rs"
         )
 
         activation = activation_path.read_text(encoding="utf-8")

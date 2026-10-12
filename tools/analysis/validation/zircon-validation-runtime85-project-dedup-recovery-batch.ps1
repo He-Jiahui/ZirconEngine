@@ -55,7 +55,7 @@ try {
     }
 
     & rustfmt +1.94.1 --edition 2024 --check `
-        zircon_runtime/src/asset/project/manager/scan_and_import/dependency_resolution.rs `
+        zircon_runtime/src/asset/manager/scan_and_import/dependency_resolution.rs `
         zircon_runtime/src/asset/project/package_asset_registry.rs `
         tools/analysis/performance/runtime/runtime85_project_root_dedup_model.rs
     if ($LASTEXITCODE -ne 0) {
@@ -68,7 +68,7 @@ try {
         tools/analysis/performance/runtime/runtime85_project_root_dedup_model.rs `
         tools/tests/test_runtime85_project_root_dedup_performance_contract.py `
         tools/analysis/validation/zircon-validation-runtime85-project-dedup-recovery-batch.ps1 `
-        zircon_runtime/src/asset/project/manager/scan_and_import/dependency_resolution.rs `
+        zircon_runtime/src/asset/manager/scan_and_import/dependency_resolution.rs `
         zircon_runtime/src/asset/project/package_asset_registry.rs `
         zircon_runtime/src/asset/tests/project/package_assets.rs
     if ($LASTEXITCODE -ne 0) {

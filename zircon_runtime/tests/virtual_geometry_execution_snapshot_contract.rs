@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+#[path = "support/mod.rs"]
 mod support;
 
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;

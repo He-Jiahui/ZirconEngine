@@ -1,10 +1,16 @@
 //! 按钮族的绘制入口：提取器先取消节点通用文字、图片，再由专用 painter 统一安排内容与状态。
 //! 输入处理和布局已经完成；此处只投影同一节点的渲染命令，不创建新的交互目标。
+#[path = "buttons/button.rs"]
 mod button;
+#[path = "buttons/commands.rs"]
 mod commands;
+#[path = "buttons/icon_button.rs"]
 mod icon_button;
+#[path = "buttons/metadata.rs"]
 mod metadata;
+#[path = "buttons/state.rs"]
 mod state;
+#[path = "buttons/style.rs"]
 mod style;
 
 use zircon_runtime_interface::ui::{

@@ -1,5 +1,8 @@
+#[path = "model_asset.rs"]
 mod model_asset;
+#[path = "primitive.rs"]
 mod primitive;
+#[path = "virtual_geometry.rs"]
 mod virtual_geometry;
 
 pub use model_asset::{

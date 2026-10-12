@@ -15,6 +15,7 @@ use super::{
     source_engine_validation_recovery, HubRuntimeSession,
 };
 
+#[path = "build_actions/staged_build.rs"]
 pub(super) mod staged_build;
 
 #[derive(Debug)]

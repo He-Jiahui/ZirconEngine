@@ -29,11 +29,11 @@ fn optional_extension_module_registration_keeps_current_owner_packages_explicit(
         );
         assert!(
             runtime_root
-                .join("src/core/framework")
+                .join("src/core")
                 .join(domain)
                 .join("mod.rs")
                 .exists(),
-            "runtime domain {domain} should keep its neutral framework contract under zircon_runtime/src/core/framework/{domain}"
+            "runtime domain {domain} should keep its neutral framework contract under zircon_runtime/src/core/{domain}"
         );
     }
 

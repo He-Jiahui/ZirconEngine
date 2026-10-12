@@ -331,5 +331,5 @@ impl EditorTransactionEngine {
 }
 
 #[cfg(test)]
-#[path = "tests/operation_group_performance_source_guards.rs"]
+#[path = "../../../engine/tests/operation_group_perf_source_guards.rs"]
 mod performance_source_guards;

@@ -1,4 +1,6 @@
+#[path = "registry.rs"]
 mod registry;
+#[path = "window_state_registry_error.rs"]
 mod window_state_registry_error;
 
 pub(crate) use registry::WindowStateRegistry;

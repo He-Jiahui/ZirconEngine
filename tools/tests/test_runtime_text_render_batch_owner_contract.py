@@ -3,22 +3,22 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-RENDER_ROOT = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+RENDER_ROOT = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
 TEXT_BATCHES = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_batches.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/render/text_batches.rs"
 )
 RESOLVED_LAYOUT = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/render/resolved_layout.rs"
 )
 RICH_TEXT = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs"
 )
 GLYPH_ARTIFACT_TESTS = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/glyph_artifacts.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/render/tests/glyph_artifacts.rs"
 )
 
 

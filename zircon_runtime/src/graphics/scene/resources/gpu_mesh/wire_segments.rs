@@ -36,5 +36,5 @@ pub(super) fn build_wire_segments(vertices: &[GpuMeshVertex], indices: &[u32]) -
 }
 
 #[cfg(test)]
-#[path = "wire_segments/tests/capacity_tests.rs"]
+#[path = "tests/capacity.rs"]
 mod capacity_tests;

@@ -1,0 +1,7 @@
+//! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。集中挂载下级测试；所有行为断言留在被挂载模块。
+#[path = "../../../../errors/loader/plugin_descriptor/descriptor_abi.rs"]
+mod descriptor_abi;
+#[path = "../plugin_descriptor/entry_abi.rs"]
+mod entry_abi;
+#[path = "../../../../errors/loader/plugin_descriptor/string_helpers.rs"]
+mod string_helpers;

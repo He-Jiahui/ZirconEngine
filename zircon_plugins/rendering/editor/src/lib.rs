@@ -1,5 +1,7 @@
 //! 渲染主包的编辑器公共面；能力查询与包清单用于宿主发现，可选特性由各自模块提供。
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID};

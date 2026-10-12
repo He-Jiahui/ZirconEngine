@@ -12,7 +12,7 @@ const folder = 'zircon_editor/assets/ui/editor/components/workbench/primitives/i
 const theme = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
 const dependencies = new LayoutDependencies();
 beforeAll(async () => dependencies.load(repo, [theme, ...['field', 'number_field', 'search_input'].map((name) => `${folder}/workbench_${name}.zui`),
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_component_property_row.zui']));
+  'zircon_editor/assets/ui/editor/workbench/data/component_property_row.zui']));
 async function load(name: string) {
   const sourcePath = `${folder}/workbench_${name}.zui`;
   const document = parseZuiDocument(await readFile(resolve(repo, sourcePath), 'utf8')).document;
@@ -23,7 +23,7 @@ async function load(name: string) {
 describe('native Editor text fields', () => {
 
   it('keeps a source-owned property label separate from the editable value and surface', async () => {
-    const sourcePath = 'zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_component_property_row.zui';
+    const sourcePath = 'zircon_editor/assets/ui/editor/workbench/data/component_property_row.zui';
     const document = parseZuiDocument(await readFile(resolve(repo, sourcePath), 'utf8')).document;
     dependencies.embed(document, sourcePath, theme);
     Object.assign(document.nodes!['root'].props!, { text: 'Far', value_text: '200' });

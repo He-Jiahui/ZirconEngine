@@ -10,7 +10,7 @@ PAINT = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer"
 )
 TEMPLATE_PAINT = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes"
+    "zircon_editor/src/ui/retained/contract/paint"
 )
 
 

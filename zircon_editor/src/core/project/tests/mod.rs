@@ -1,9 +1,15 @@
 //! 汇集项目创建、预检、身份和场景来源回归，共享夹具根随实际测试二进制解析，避免不同构建目录之间复用相同临时来源。
+#[path = "boundary.rs"]
 mod boundary;
+#[path = "directory_transaction.rs"]
 mod directory_transaction;
+#[path = "preflight.rs"]
 mod preflight;
+#[path = "root_resolution.rs"]
 mod root_resolution;
+#[path = "scene_document.rs"]
 mod scene_document;
+#[path = "template_creation.rs"]
 mod template_creation;
 
 use std::path::PathBuf;

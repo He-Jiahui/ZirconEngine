@@ -1,5 +1,8 @@
+#[path = "database.rs"]
 mod database;
+#[path = "face.rs"]
 mod face;
+#[path = "family.rs"]
 mod family;
 
 pub use crate::asset::assets::{

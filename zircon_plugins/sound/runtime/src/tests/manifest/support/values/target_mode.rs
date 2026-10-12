@@ -1,3 +1,4 @@
+#[path = "../../../support/values/target_mode/raw.rs"]
 mod raw;
 
 pub(in super::super) fn runtime_target_mode_from_plugin_toml(

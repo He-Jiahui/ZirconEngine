@@ -1,5 +1,8 @@
+#[path = "codec.rs"]
 mod codec;
+#[path = "control.rs"]
 mod control;
+#[path = "reflection.rs"]
 mod reflection;
 
 pub use codec::UiBindingCodec;

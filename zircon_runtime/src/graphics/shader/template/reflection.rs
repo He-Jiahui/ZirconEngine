@@ -7,12 +7,12 @@ mod resource_binding_type;
 #[path = "reflection/sampling_pairs.rs"]
 mod sampling_pairs;
 #[cfg(test)]
-#[path = "reflection/tests/sampling_pairs_tests.rs"]
+#[path = "reflection/tests/sampling_pairs.rs"]
 mod sampling_pairs_tests;
 #[path = "reflection/stage_interface.rs"]
 mod stage_interface;
 #[cfg(test)]
-#[path = "reflection/tests/stage_interface_tests.rs"]
+#[path = "reflection/tests/stage_interface.rs"]
 mod stage_interface_tests;
 use resource_binding_type::{shader_binding_resource_type, shader_min_buffer_binding_size};
 use sampling_pairs::reflect_entry_sampling_pairs;

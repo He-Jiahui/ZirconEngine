@@ -1,12 +1,19 @@
 //! 保留可编辑 UTF-8 源文档及其版本、硬行和字素索引；UI 会话经 Store 取得受预算约束的编辑与快照能力。
 //! 排版、整形和绘制只消费已提交的源或回执，不在此模块持有视觉行状态。
 
+#[path = "edit.rs"]
 mod edit;
+#[path = "hard_line_model.rs"]
 mod hard_line_model;
+#[path = "index.rs"]
 mod index;
+#[path = "index_profile.rs"]
 mod index_profile;
+#[path = "report.rs"]
 mod report;
+#[path = "storage.rs"]
 mod storage;
+#[path = "store.rs"]
 mod store;
 
 #[cfg(test)]

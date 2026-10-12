@@ -19,15 +19,19 @@ use zircon_runtime_interface::ui::{
 use super::{arranged_node_indexed, frame_hit_test::UiProjectedHitTestIndex, surface::UiSurface};
 
 #[cfg(feature = "profiling")]
+#[path = "navigation_index/profile.rs"]
 mod profile;
 #[cfg(feature = "profiling")]
 use profile::record_navigation_rebuild_profile;
+#[path = "navigation_index/candidate_buckets.rs"]
 mod candidate_buckets;
 use candidate_buckets::{
     clear_candidate_buckets, prune_empty_candidate_buckets, prune_first_group_candidates,
     push_group_candidate, reset_first_group_candidates, FirstGroupCandidate,
 };
+#[path = "navigation_index/geometry_patch.rs"]
 mod geometry_patch;
+#[path = "navigation_index/semantics.rs"]
 mod semantics;
 
 #[derive(Clone, Debug, Default)]

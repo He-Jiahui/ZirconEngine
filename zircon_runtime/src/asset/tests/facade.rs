@@ -13,14 +13,23 @@ use crate::core::resource::{
     ResourceState, TextureMarker, UntypedResourceHandle,
 };
 
+#[path = "facade/dependency_failures.rs"]
 mod dependency_failures;
+#[path = "facade/failure_reason.rs"]
 mod failure_reason;
+#[path = "facade/handle_events.rs"]
 mod handle_events;
+#[path = "facade/handle_lifecycle.rs"]
 mod handle_lifecycle;
+#[path = "facade/hot_reload.rs"]
 mod hot_reload;
+#[path = "facade/load_state_roots.rs"]
 mod load_state_roots;
+#[path = "facade/project_facade.rs"]
 mod project_facade;
+#[path = "facade/readiness_generation.rs"]
 mod readiness_generation;
+#[path = "facade/recursive_dependencies.rs"]
 mod recursive_dependencies;
 
 fn locator(value: &str) -> AssetUri {

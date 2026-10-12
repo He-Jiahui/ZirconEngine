@@ -1,19 +1,32 @@
 //! 富文本在这里将有版本的标记源转换为可共享的编译产物；布局、绘制、链接命中和语义读取共用同一解析结果。
 //! 解析器负责准入与中立的内嵌对象描述，UI 绑定和资源加载由后续消费端决定。
 
+#[path = "admission.rs"]
 mod admission;
+#[path = "artifact_handle.rs"]
 mod artifact_handle;
+#[path = "bbcode.rs"]
 mod bbcode;
+#[path = "bbcode_blocks.rs"]
 mod bbcode_blocks;
+#[path = "bbcode_table.rs"]
 mod bbcode_table;
+#[path = "compiled.rs"]
 mod compiled;
+#[path = "decorator.rs"]
 mod decorator;
+#[path = "emoji_shortcode.rs"]
 mod emoji_shortcode;
+#[path = "html_subset.rs"]
 mod html_subset;
+#[path = "inline_decorators.rs"]
 mod inline_decorators;
+#[path = "parser.rs"]
 mod parser;
 /// Crate-internal parse/cache bridge; public callers use `RichTextParser`.
+#[path = "parser_registry.rs"]
 pub(crate) mod parser_registry;
+#[path = "resource_admission.rs"]
 mod resource_admission;
 
 pub use admission::{RichParseBudget, RichTextContentTrust, RichTextParseError};

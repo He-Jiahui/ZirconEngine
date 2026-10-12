@@ -2,6 +2,7 @@
 
 use super::*;
 
+#[path = "modal_popup/control_anchored.rs"]
 mod control_anchored;
 
 #[test]

@@ -220,5 +220,5 @@ fn clamp_frame_to_bounds(frame: ShellFrame, bounds: ShellFrame) -> ShellFrame {
 }
 
 #[cfg(test)]
-#[path = "tests/compute_performance_tests.rs"]
+#[path = "tests/compute_perf.rs"]
 mod performance_tests;

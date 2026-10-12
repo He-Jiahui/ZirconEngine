@@ -1,13 +1,13 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/visibility/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/mod.rs
-  - zircon_runtime/src/core/framework/render/post_process/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/hzb/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/mod.rs
+  - zircon_runtime/src/core/framework/render/post/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/mod.rs
 implementation_files:
   - zircon_runtime/src/graphics/visibility
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb
+  - zircon_runtime/src/graphics/scene/renderer/hzb
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal
 plan_sources:
@@ -16,7 +16,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/graphics/tests/visibility
   - zircon_runtime/src/graphics/tests/render_product_post_process
-  - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain
+  - zircon_runtime/src/graphics/tests
 doc_type: module-detail
 ---
 

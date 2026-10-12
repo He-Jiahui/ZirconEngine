@@ -96,5 +96,5 @@ impl<T: StateSpec> StateHookIndex<T> {
 }
 
 #[cfg(test)]
-#[path = "hook_index/tests/optimization_batch_hu_runtime603_tests.rs"]
+#[path = "hook_index/tests/perf.rs"]
 mod optimization_batch_hu_runtime603_tests;

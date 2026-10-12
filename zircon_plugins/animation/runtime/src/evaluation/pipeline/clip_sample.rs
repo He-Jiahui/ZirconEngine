@@ -77,5 +77,5 @@ fn load_clip_snapshot(
 }
 
 #[cfg(test)]
-#[path = "tests/clip_sample_optimization_tests.rs"]
+#[path = "../tests/clip_sample_perf.rs"]
 mod optimization_tests;

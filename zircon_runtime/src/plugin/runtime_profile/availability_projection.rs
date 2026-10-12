@@ -12,8 +12,11 @@ use crate::plugin::{
 
 use super::RuntimeProfileDescriptor;
 
+#[path = "availability_projection/evaluation.rs"]
 mod evaluation;
+#[path = "availability_projection/generation.rs"]
 mod generation;
+#[path = "availability_projection/selection.rs"]
 mod selection;
 
 use generation::RuntimePluginAvailabilityDescriptorRef;

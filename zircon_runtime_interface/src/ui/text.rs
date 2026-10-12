@@ -6,8 +6,11 @@ use uuid::Uuid;
 use crate::ui::event_ui::UiNodeId;
 use crate::ui::surface::{UiTextByteRange, UiTextCaretAffinity};
 
+#[path = "text/model_update.rs"]
 mod model_update;
+#[path = "text/number_model_update.rs"]
 mod number_model_update;
+#[path = "text/rich_link_target.rs"]
 mod rich_link_target;
 
 pub use model_update::{

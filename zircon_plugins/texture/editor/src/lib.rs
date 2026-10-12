@@ -1,5 +1,8 @@
+#[path = "capability.rs"]
 mod capability;
+#[path = "extension_ids.rs"]
 mod extension_ids;
+#[path = "plugin.rs"]
 mod plugin;
 
 #[cfg(test)]

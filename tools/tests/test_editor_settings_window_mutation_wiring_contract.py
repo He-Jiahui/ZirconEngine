@@ -26,7 +26,7 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
 
     def test_dynamic_setting_rows_are_hit_tested_without_a_linear_scan(self) -> None:
         hit = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "surface_hit_test/template_node/popup_rows/settings.rs"
         )
 
@@ -76,11 +76,11 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
 
     def test_paint_projects_a_checkbox_and_reset_icon_for_supported_rows(self) -> None:
         paint = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/commands.rs"
         )
         enum_controls = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/enum_controls.rs"
         )
 
@@ -94,23 +94,23 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
 
     def test_settings_paint_owners_stay_below_the_production_soft_budget(self) -> None:
         root = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window.rs"
         )
         commands = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/commands.rs"
         )
         enum_controls = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/enum_controls.rs"
         )
         scrollbars = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/scrollbars.rs"
         )
         visible_rows = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/visible_rows.rs"
         )
 
@@ -172,11 +172,11 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
             "zircon_editor/src/ui/host/editor_event_runtime_access/settings_mutation.rs"
         )
         hit = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "surface_hit_test/template_node/popup_rows/settings.rs"
         )
         target = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "surface_hit_test/template_node/popup_rows/hit.rs"
         )
         dispatch = self.read(
@@ -184,15 +184,15 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
             "workbench_surface/edit.rs"
         )
         paint_root = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window.rs"
         )
         paint = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/text_control.rs"
         )
         paint_commands = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/commands.rs"
         )
 
@@ -226,11 +226,11 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
             "zircon_editor/src/ui/host/editor_event_runtime_access/settings_mutation.rs"
         )
         hit = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "surface_hit_test/template_node/popup_rows/settings.rs"
         )
         target = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "surface_hit_test/template_node/popup_rows/hit.rs"
         )
         keyboard = self.read(
@@ -238,7 +238,7 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
             "text_input/keyboard.rs"
         )
         focus = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/data/"
+            "zircon_editor/src/ui/retained/contract/data/"
             "host_interaction/text_focus.rs"
         )
         event_loop_input = self.read(
@@ -246,11 +246,11 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
             "event_loop/input.rs"
         )
         paint_root = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window.rs"
         )
         paint = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/chord_control.rs"
         )
         dispatch = self.read(
@@ -291,7 +291,7 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
             "pane_component_projection/settings_window/mod.rs"
         )
         node = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/data/"
+            "zircon_editor/src/ui/retained/contract/data/"
             "template_nodes/node.rs"
         )
         zui = self.read(
@@ -323,15 +323,15 @@ class EditorSettingsWindowMutationWiringContractTests(unittest.TestCase):
             "zircon_editor/src/ui/host/editor_event_runtime_access/settings_mutation.rs"
         )
         hit = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "surface_hit_test/template_node/popup_rows/settings.rs"
         )
         paint_root = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window.rs"
         )
         paint = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/color_controls.rs"
         )
 

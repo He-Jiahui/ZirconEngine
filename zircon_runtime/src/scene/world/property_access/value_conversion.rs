@@ -1,7 +1,12 @@
+#[path = "value_conversion/compiled.rs"]
 mod compiled;
+#[path = "value_conversion/domain.rs"]
 mod domain;
+#[path = "value_conversion/errors.rs"]
 mod errors;
+#[path = "value_conversion/identifiers.rs"]
 mod identifiers;
+#[path = "value_conversion/values.rs"]
 mod values;
 
 pub(super) use domain::{

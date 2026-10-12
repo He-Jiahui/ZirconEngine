@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-LOADER_ROOT = REPO_ROOT / "zircon_runtime/src/plugin/native_plugin_loader"
+LOADER_ROOT = REPO_ROOT / "zircon_runtime/src/plugin/loader"
 HARNESS_PATH = LOADER_ROOT / "tests/benchmark_harness.rs"
 CALLBACK_BENCHMARK_PATH = (
     LOADER_ROOT / "native_plugin_live_host/tests/callback_lease.rs"

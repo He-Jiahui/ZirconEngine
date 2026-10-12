@@ -66,5 +66,5 @@ fn apply_builtin_required_capabilities(descriptor: &mut ViewDescriptor) {
 }
 
 #[cfg(test)]
-#[path = "tests/builtin_view_descriptors_optimization_tests.rs"]
+#[path = "tests/builtin_view_descs_perf.rs"]
 mod optimization_tests;

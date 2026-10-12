@@ -171,5 +171,5 @@ fn play_mode_lifecycle_event(
 mod tests;
 
 #[cfg(test)]
-#[path = "tests/lifecycle_message_bridge_optimization_tests.rs"]
+#[path = "tests/lifecycle_message_bridge_perf.rs"]
 mod optimization_tests;

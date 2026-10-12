@@ -67,5 +67,5 @@ impl SpriteExtract {
 }
 
 #[cfg(test)]
-#[path = "sprite_extract/tests/optimization_batch_ht_runtime602_tests.rs"]
+#[path = "tests/perf.rs"]
 mod optimization_batch_ht_runtime602_tests;

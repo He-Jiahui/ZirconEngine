@@ -20,7 +20,9 @@ use zircon_runtime_interface::ui::{
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
 
+#[path = "widget_text_input_ime_context/focus_lifecycle.rs"]
 mod focus_lifecycle;
+#[path = "widget_text_input_ime_context/geometry.rs"]
 mod geometry;
 
 #[test]

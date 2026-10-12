@@ -18,6 +18,7 @@ use crate::graphics::{
 };
 use crate::render_graph::{QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload};
 
+#[path = "virtual_geometry_provider.rs"]
 mod virtual_geometry_provider;
 
 use virtual_geometry_provider::test_virtual_geometry_runtime_provider;

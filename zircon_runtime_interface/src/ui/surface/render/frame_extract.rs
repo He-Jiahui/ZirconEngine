@@ -14,15 +14,16 @@ use crate::ui::{
 
 use super::{UiPaintElement, UiRenderCommand, UiRenderExtract};
 
+#[path = "frame_extract/construction.rs"]
 mod construction;
 #[cfg(test)]
-#[path = "frame_extract/tests/construction_performance_tests.rs"]
+#[path = "tests/construction_perf.rs"]
 mod construction_performance_tests;
 #[cfg(test)]
-#[path = "frame_extract/tests/direct_append_tests.rs"]
+#[path = "tests/direct_append.rs"]
 mod direct_append_tests;
 #[cfg(test)]
-#[path = "frame_extract/tests/paint_element_capacity_tests.rs"]
+#[path = "tests/paint_element_capacity.rs"]
 mod paint_element_capacity_tests;
 
 pub const UI_RENDER_FRAME_COMMAND_SEGMENT_SIZE: usize = 64;

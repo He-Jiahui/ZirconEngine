@@ -237,9 +237,9 @@ fn remove_from_table(values: &mut Map<String, Value>, segments: &[String]) -> bo
 }
 
 #[cfg(test)]
-#[path = "style_rule_declarations/tests/path_buffer_tests.rs"]
+#[path = "tests/path_buffer.rs"]
 mod path_buffer_tests;
 
 #[cfg(test)]
-#[path = "style_rule_declarations/tests/optimization_batch_jc_editor642_tests.rs"]
+#[path = "style_rule_declarations/tests/perf.rs"]
 mod optimization_batch_jc_editor642_tests;

@@ -86,5 +86,5 @@ fn ime_surrounding_text(text: &UiInputMethodSurroundingText) -> Option<ImeSurrou
 }
 
 #[cfg(test)]
-#[path = "ime_host_requests/tests/reserve_capacity_tests.rs"]
+#[path = "tests/reserve_capacity.rs"]
 mod reserve_capacity_tests;

@@ -14,7 +14,7 @@ use super::activity_actions::activity_actions_for_tab;
 use super::name_mapping::content_kind_name;
 
 #[cfg(test)]
-#[path = "activity_collection/tests/single_pass_tests.rs"]
+#[path = "tests/single_pass.rs"]
 mod single_pass_tests;
 
 /// 将文档树中的标签按原布局顺序归入给定宿主；split仅分组，不创造活动身份。

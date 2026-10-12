@@ -259,5 +259,5 @@ fn project_resource_entries(
 mod tests;
 
 #[cfg(test)]
-#[path = "tests/global_pipeline_layout_optimization_batch_20260830cm_runtime390_tests.rs"]
+#[path = "tests/global_pipeline_layout_perf.rs"]
 mod optimization_batch_20260830cm_runtime390_tests;

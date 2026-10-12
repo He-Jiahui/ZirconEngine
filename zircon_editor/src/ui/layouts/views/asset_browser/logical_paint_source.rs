@@ -152,7 +152,7 @@ pub(super) fn selected_asset_item_indices(snapshot: &AssetWorkspaceSnapshot) -> 
 }
 
 #[cfg(test)]
-#[path = "logical_paint_source/tests/capacity_tests.rs"]
+#[path = "tests/capacity.rs"]
 mod capacity_tests;
 
 #[cfg(test)]

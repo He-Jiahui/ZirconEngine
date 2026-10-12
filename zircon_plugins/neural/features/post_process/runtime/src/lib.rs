@@ -1,6 +1,8 @@
 use zircon_plugin_neural_runtime::NnModelAsset;
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{FEATURE_ID, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
@@ -10,7 +12,7 @@ pub use plugin::{
 };
 
 #[cfg(test)]
-#[path = "tests/lib_registration_tests.rs"]
+#[path = "tests/register.rs"]
 mod registration_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq)]

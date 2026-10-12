@@ -438,7 +438,7 @@ fn is_native_dynamic_artifact(path: &Path) -> bool {
 }
 
 #[cfg(test)]
-#[path = "copy/tests/native_extension_tests.rs"]
+#[path = "../../materialize/copy/tests/native_extension.rs"]
 mod native_extension_tests;
 
 #[cfg(test)]

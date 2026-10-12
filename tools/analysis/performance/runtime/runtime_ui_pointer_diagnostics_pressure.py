@@ -24,7 +24,7 @@ IMPLEMENTATION_SOURCES = (
     "zircon_runtime/src/ui/surface/input/route_policy.rs",
     "zircon_runtime/src/ui/dispatch/input_manager/manager.rs",
     "zircon_runtime/src/dynamic_api/session/runtime_ui.rs",
-    "zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs",
+    "zircon_editor/src/ui/retained/shell_pointer/bridge.rs",
 )
 REFERENCE_SOURCES = (
     "dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Layout/WidgetPath.h",

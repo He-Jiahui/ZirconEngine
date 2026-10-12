@@ -6,7 +6,7 @@ use crate::core::framework::render::{
 };
 
 #[cfg(test)]
-#[path = "registry/tests/hash_token_tests.rs"]
+#[path = "registry/tests/hash_token.rs"]
 mod hash_token_tests;
 
 #[derive(Clone, Debug)]

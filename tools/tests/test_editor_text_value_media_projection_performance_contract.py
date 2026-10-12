@@ -9,12 +9,12 @@ VIEWS_MOD = ROOT / "zircon_editor/src/ui/layouts/views/mod.rs"
 VISUAL_ASSETS = ROOT / (
     "zircon_editor/src/ui/layouts/views/view_projection/visual_assets.rs"
 )
-ROOT_OVERLAY = ROOT / "zircon_editor/src/ui/retained_host/ui/root_template_overlay.rs"
+ROOT_OVERLAY = ROOT / "zircon_editor/src/ui/retained/ui/root_template_overlay.rs"
 WORKBENCH_PROJECTION = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs"
+    "zircon_editor/src/ui/retained/ui/windows.rs"
 )
 CHROME_PROJECTION = ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "chrome_template_projection.rs"
 )
 VALUE_MEDIA = ROOT / (
@@ -30,7 +30,7 @@ PANE_PREVIEW_FORWARDER = ROOT / (
     "pane_component_projection/preview_images.rs"
 )
 TEMPLATE_IMAGE_COMMAND = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_node_images/command.rs"
 )
 VALUE_TEXT = (

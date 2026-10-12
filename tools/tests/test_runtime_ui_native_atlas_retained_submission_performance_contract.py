@@ -12,7 +12,7 @@ SOURCE_CACHE = ROOT / "zircon_runtime/src/text/native_bitmap_atlas/source_cache.
 NATIVE_BITMAP_ATLAS = ROOT / "zircon_runtime/src/text/native_bitmap_atlas.rs"
 NATIVE_BITMAP_FRAME = ROOT / "zircon_runtime/src/text/native_bitmap_atlas/frame.rs"
 TEXT_SEGMENT_CACHE = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache.rs"
+    "zircon_runtime/src/graphics/scene/renderer/ui/text/segment_cache.rs"
 )
 NATIVE_DEPENDENCY_INDEX = ROOT / (
     "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache/"

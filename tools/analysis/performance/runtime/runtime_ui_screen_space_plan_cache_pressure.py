@@ -13,8 +13,8 @@ IMPLEMENTATION_SOURCES = (
     "zircon_runtime_interface/src/ui/surface/render/frame_extract.rs",
     "zircon_runtime/src/ui/surface/surface/frame_publication.rs",
     "zircon_runtime/src/core/framework/render/ui_submission.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/render.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs",
 )
 PRIMARY_REFERENCE_SOURCES = (
     "dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/FastUpdate/SlateInvalidationRoot.cpp",

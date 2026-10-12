@@ -1,10 +1,16 @@
 //! 场景抽取的中立载荷由世界构建，再由图形模块映射为可见性、材质和 GPU 工作。
 //! 这里记录场景身份与描述，不承担后端资源分配或命令提交。
+#[path = "scene_extract/gi/mod.rs"]
 mod hybrid_gi;
+#[path = "scene_extract/mesh/mod.rs"]
 mod mesh;
+#[path = "scene_extract/particle/mod.rs"]
 mod particle;
+#[path = "post_process_settings/mod.rs"]
 mod post_process_settings;
+#[path = "scene_extract/snapshot/mod.rs"]
 mod snapshot;
+#[path = "scene_extract/geometry/mod.rs"]
 mod virtual_geometry;
 
 pub use hybrid_gi::{

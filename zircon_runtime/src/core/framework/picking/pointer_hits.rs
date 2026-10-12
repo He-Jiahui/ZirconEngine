@@ -7,11 +7,11 @@ use crate::core::math::Real;
 use super::{HitRecord, PointerId};
 
 #[cfg(test)]
-#[path = "pointer_hits/tests/hash_grouping_tests.rs"]
+#[path = "pointer_hits/tests/hash_grouping.rs"]
 mod hash_grouping_tests;
 
 #[cfg(test)]
-#[path = "pointer_hits/tests/optimization_batch_iz_runtime638_tests.rs"]
+#[path = "pointer_hits/tests/perf.rs"]
 mod optimization_batch_iz_runtime638_tests;
 
 #[derive(Clone, Debug, PartialEq)]

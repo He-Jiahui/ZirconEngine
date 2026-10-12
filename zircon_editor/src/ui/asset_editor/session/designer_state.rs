@@ -216,5 +216,5 @@ fn build_preview_interact_dispatch(
 }
 
 #[cfg(test)]
-#[path = "designer_state/tests/borrowed_preview_node_tests.rs"]
+#[path = "tests/borrowed_preview_node.rs"]
 mod borrowed_preview_node_tests;

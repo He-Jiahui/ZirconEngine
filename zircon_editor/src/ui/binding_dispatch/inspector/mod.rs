@@ -1,7 +1,12 @@
+#[path = "apply.rs"]
 mod apply;
+#[path = "dispatch.rs"]
 mod dispatch;
+#[path = "field_value.rs"]
 mod field_value;
+#[path = "inspector_binding_batch.rs"]
 mod inspector_binding_batch;
+#[path = "subject_path.rs"]
 mod subject_path;
 
 pub use apply::apply_inspector_binding;

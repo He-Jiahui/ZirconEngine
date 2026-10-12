@@ -16,6 +16,7 @@ use self::preedit_mapping::{
 #[cfg(test)]
 #[path = "text_constraints/tests/optimization_tests.rs"]
 mod optimization_tests;
+#[path = "text_constraints/preedit_mapping.rs"]
 mod preedit_mapping;
 #[cfg(test)]
 #[path = "text_constraints/tests/cases.rs"]

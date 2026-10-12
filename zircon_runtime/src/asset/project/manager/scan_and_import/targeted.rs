@@ -807,5 +807,5 @@ pub(crate) fn refresh_runtime_dependency_closure(
 }
 
 #[cfg(test)]
-#[path = "targeted/tests/snapshot_failure_tests.rs"]
+#[path = "../targeted/tests/snapshot_failure.rs"]
 mod snapshot_failure_tests;

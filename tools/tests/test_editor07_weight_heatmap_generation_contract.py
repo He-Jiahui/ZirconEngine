@@ -5,9 +5,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 GENERATION = ROOT / "zircon_editor/src/ui/weight_heatmap/generation.rs"
-HOST_DATA = ROOT / "zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/weight_heatmap.rs"
-PAINTER = ROOT / "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_weight_heatmap.rs"
-FIELD = ROOT / "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_weight_heatmap/field.rs"
+HOST_DATA = ROOT / "zircon_editor/src/ui/retained/contract/data/nodes/weight_heatmap.rs"
+PAINTER = ROOT / "zircon_editor/src/ui/retained/contract/paint/weight_heatmap.rs"
+FIELD = ROOT / "zircon_editor/src/ui/retained/contract/paint/weight_heatmap/field.rs"
 
 
 class WeightHeatmapGenerationContractTests(unittest.TestCase):

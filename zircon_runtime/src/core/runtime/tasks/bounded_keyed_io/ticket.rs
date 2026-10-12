@@ -185,5 +185,5 @@ pub enum BoundedKeyedIoCancelError {
 }
 
 #[cfg(test)]
-#[path = "ticket/tests/astra_authority_tests.rs"]
+#[path = "../ticket/tests/astra_authority.rs"]
 mod astra_authority_tests;

@@ -80,5 +80,5 @@ fn page_table_entries_from_neutral_outputs(entries: Vec<u32>) -> Vec<(u32, u32)>
 }
 
 #[cfg(test)]
-#[path = "tests/gpu_completion.rs"]
+#[path = "../tests/gpu_completion.rs"]
 mod tests;

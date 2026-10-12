@@ -1,13 +1,24 @@
+#[path = "dispatcher.rs"]
 mod dispatcher;
+#[path = "hierarchy_host_event.rs"]
 mod hierarchy_host_event;
+#[path = "inspector_field_change.rs"]
 mod inspector_field_change;
+#[path = "journal.rs"]
 mod journal;
+#[path = "listener/mod.rs"]
 mod listener;
+#[path = "replay.rs"]
 mod replay;
+#[path = "retention.rs"]
 mod retention;
+#[path = "selection_host_event.rs"]
 mod selection_host_event;
+#[path = "service/mod.rs"]
 mod service;
+#[path = "types.rs"]
 mod types;
+#[path = "workbench/mod.rs"]
 mod workbench;
 
 pub use dispatcher::EditorEventDispatcher;

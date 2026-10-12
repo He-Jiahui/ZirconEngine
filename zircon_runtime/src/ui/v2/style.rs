@@ -21,9 +21,13 @@ use tokens::{
     style_token_path, style_token_sources_for_block,
 };
 
+#[path = "style/attribute_delta.rs"]
 mod attribute_delta;
+#[path = "style/rule_index.rs"]
 mod rule_index;
+#[path = "style/runtime_state.rs"]
 mod runtime_state;
+#[path = "style/tokens.rs"]
 mod tokens;
 
 #[cfg(test)]

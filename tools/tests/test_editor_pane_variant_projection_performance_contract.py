@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 PANE_PROJECTION = ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs"
+    "zircon_editor/src/ui/layouts/windows/window/pane_projection.rs"
 )
 
 

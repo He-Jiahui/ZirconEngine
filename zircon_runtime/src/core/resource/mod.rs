@@ -1,6 +1,7 @@
 //! 此处将资源基础 crate zr_resource 导出的 API 精选到 Runtime core 路径；资源登记、状态和管理视图仍由该 crate 实现，运行时子系统因此共用这些类型。
 //! Curated Runtime projection of the canonical Resource foundation.
 
+#[path = "io/mod.rs"]
 pub mod io;
 
 pub use zr_resource::ResourceData;

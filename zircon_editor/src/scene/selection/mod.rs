@@ -1,5 +1,8 @@
+#[path = "domain_selection.rs"]
 mod domain_selection;
+#[path = "selection_model.rs"]
 mod selection_model;
+#[path = "selection_mutation.rs"]
 mod selection_mutation;
 
 pub use crate::core::play::WorldDomain;

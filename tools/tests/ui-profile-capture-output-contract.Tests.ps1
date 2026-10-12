@@ -32,15 +32,15 @@ $script:ProfileCaptureSource = @(
 $script:ProfileNativeInteractionSource = Get-Content -LiteralPath $script:ProfileNativeInteraction -Raw
 $script:ProfileHierarchyFilterInputSource = Get-Content -LiteralPath $script:ProfileHierarchyFilterInput -Raw
 $script:ProfileHierarchyFilterMetricsSource = Get-Content -LiteralPath $script:ProfileHierarchyFilterMetrics -Raw
-$script:HierarchyPointerBridgeSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_bridge.rs') -Raw
-$script:HierarchyPointerLayoutSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_layout.rs') -Raw
-$script:HierarchyPointerRouteSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/hierarchy_pointer/route_at_point.rs') -Raw
-$script:NativeScrollDispatchSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/entry.rs') -Raw
-$script:HierarchyScrollDispatchSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/pane/native/hierarchy.rs') -Raw
-$script:WelcomeScrollDispatchSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/pane/native/welcome.rs') -Raw
-$script:WelcomePointerBridgeSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge.rs') -Raw
-$script:WelcomePointerRouteSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_project_route.rs') -Raw
-$script:UiPerfSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/ui_perf.rs') -Raw
+$script:HierarchyPointerBridgeSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/hierarchy_pointer/hierarchy_pointer_bridge.rs') -Raw
+$script:HierarchyPointerLayoutSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/hierarchy_pointer/hierarchy_pointer_layout.rs') -Raw
+$script:HierarchyPointerRouteSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/hierarchy_pointer/route_at_point.rs') -Raw
+$script:NativeScrollDispatchSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/contract/pointer/scroll/entry.rs') -Raw
+$script:HierarchyScrollDispatchSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/contract/pointer/scroll/pane/native/hierarchy.rs') -Raw
+$script:WelcomeScrollDispatchSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/contract/pointer/scroll/pane/native/welcome.rs') -Raw
+$script:WelcomePointerBridgeSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/welcome_recent_pointer/bridge.rs') -Raw
+$script:WelcomePointerRouteSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/welcome_recent_pointer/bridge_project_route.rs') -Raw
+$script:UiPerfSource = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/ui_perf.rs') -Raw
 if (Test-Path -LiteralPath $script:ProfileCapturePaths) {
     . $script:ProfileCapturePaths
 }
@@ -1596,9 +1596,9 @@ Describe "ui-profile-capture output contract" {
 
     It "bounds workbench pointer feedback publication to one commit per transaction" {
         $pointerSource = Get-Content -LiteralPath (
-            Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs') -Raw
+            Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/dispatch/workbench/pointer.rs') -Raw
         $feedbackSource = Get-Content -LiteralPath (
-            Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/pointer_feedback.rs') -Raw
+            Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/dispatch/templates/workbench/pointer_feedback.rs') -Raw
         foreach ($counterName in @(
                 'ui.workbench.pointer.transaction_count',
                 'ui.workbench.pointer.activation_coalesced_refresh_count',
@@ -1743,7 +1743,7 @@ Describe "ui-profile-capture output contract" {
             Should Be $false
 
         $surfaceFrameCacheSource = Get-Content -LiteralPath (
-            Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/surface_frame_cache.rs'
+            Join-Path $script:RepoRoot 'zircon_editor/src/ui/retained/dispatch/viewport_toolbar/surface_frame_cache.rs'
         ) -Raw
         foreach ($counterName in @(
                 'ui.viewport_toolbar.prelayout_surface_frame_cache_route_key_update_count',
@@ -2288,7 +2288,7 @@ Describe "ui-profile-capture output contract" {
     It "writes a source and binary bound manifest before capture" {
         $repoRoot = New-ProfileManifestTestRepository `
             -Root (Join-Path $TestDrive 'source-bound-manifest-repository')
-        $trackedSource = Join-Path $repoRoot 'zircon_editor\src\ui\retained_host\app\host_lifecycle\recompute.rs'
+        $trackedSource = Join-Path $repoRoot 'zircon_editor\src\ui\retained\app\host_lifecycle\recompute.rs'
         $nativeInteractionToolPath = Join-Path $repoRoot 'tools\analysis\profiling\ui\ui-profile-native-resize.ps1'
         $editorExe = Join-Path $TestDrive 'editor.exe'
         $runtimeDll = Join-Path $TestDrive 'runtime.dll'
@@ -2340,35 +2340,35 @@ Describe "ui-profile-capture output contract" {
             Should Be ((Get-FileHash -LiteralPath $nativeInteractionToolPath -Algorithm SHA256).Hash.ToLowerInvariant())
         $manifest.repository.critical_source_files.Count | Should Be 281
         $manifest.repository.critical_source_files[0].relative_path |
-            Should Be 'zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs'
+            Should Be 'zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs'
         $criticalSourcePaths = @($manifest.repository.critical_source_files.relative_path)
         foreach ($currentUiOptimizationSource in @(
-            'zircon_editor/src/ui/retained_host/app.rs',
-            'zircon_editor/src/ui/retained_host/app/committed_shell_state.rs',
-            'zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge/dirty_marking.rs',
-            'zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs',
-            'zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs',
-            'zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs',
-            'zircon_editor/src/ui/retained_host/ui/scoped_presentation.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events.rs',
+            'zircon_editor/src/ui/retained/app.rs',
+            'zircon_editor/src/ui/retained/app/committed_shell_state.rs',
+            'zircon_editor/src/ui/retained/app/invalidation_bridge/dirty_marking.rs',
+            'zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs',
+            'zircon_editor/src/ui/retained/app/runtime_diagnostics_visibility.rs',
+            'zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/movement.rs',
+            'zircon_editor/src/ui/retained/ui/scoped_presentation.rs',
+            'zircon_editor/src/ui/retained/app/asset_events.rs',
             'zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs',
             'zircon_editor/src/ui/asset_editor/binding/binding_inspector/payload_editing.rs',
             'zircon_editor/src/ui/asset_editor/binding/schema_projection.rs',
             'zircon_editor/src/ui/asset_editor/session/binding_state.rs',
-            'zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs',
-            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/pointer_feedback.rs',
-            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/search_clear_action.rs',
-            'zircon_editor/src/ui/retained_host/app/pane_surface_actions/click.rs',
-            'zircon_editor/src/ui/retained_host/primitives.rs',
-            'zircon_editor/src/ui/retained_host/persistent_row_patch_map.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/draw.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/transform.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/model.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_recording/record.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction/entry.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/console_output.rs',
-            'zircon_editor/src/ui/retained_host/console_output.rs',
+            'zircon_editor/src/ui/retained/dispatch/workbench/pointer.rs',
+            'zircon_editor/src/ui/retained/dispatch/templates/workbench/pointer_feedback.rs',
+            'zircon_editor/src/ui/retained/dispatch/workbench/search_clear_action.rs',
+            'zircon_editor/src/ui/retained/app/pane_surface_actions/click.rs',
+            'zircon_editor/src/ui/retained/primitives.rs',
+            'zircon_editor/src/ui/retained/persistent_row_patch_map.rs',
+            'zircon_editor/src/ui/retained/contract/paint/node_pipeline/draw.rs',
+            'zircon_editor/src/ui/retained/contract/paint/node_pipeline/transform.rs',
+            'zircon_editor/src/ui/retained/contract/chrome_command_stream/mod.rs',
+            'zircon_editor/src/ui/retained/contract/chrome_command_stream/stream/model.rs',
+            'zircon_editor/src/ui/retained/contract/paint_recording/record.rs',
+            'zircon_editor/src/ui/retained/contract/chrome_command_stream/extraction/entry.rs',
+            'zircon_editor/src/ui/retained/contract/docks/pane/nodes/console_output.rs',
+            'zircon_editor/src/ui/retained/console_output.rs',
             'zircon_runtime/src/ui/surface/surface/frame_publication.rs',
             'zircon_runtime_interface/src/ui/surface/render/frame_extract.rs',
             'zircon_runtime/src/ui/surface/surface.rs',
@@ -2382,9 +2382,9 @@ Describe "ui-profile-capture output contract" {
             'zircon_runtime/src/ui/tree/node/focus.rs',
             'zircon_runtime_interface/src/ui/surface/mod.rs',
             'zircon_runtime_interface/src/ui/surface/frame.rs',
-            'zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs',
-            'zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads.rs',
-            'zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads/workbench_panes.rs',
+            'zircon_editor/src/ui/retained/app/startup/state/construction/assembly.rs',
+            'zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads.rs',
+            'zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads/panes.rs',
             'zircon_editor/src/ui/layouts/views/asset_browser.rs',
             'zircon_editor/src/ui/layouts/views/asset_browser/logical_paint_source.rs',
             'zircon_editor/src/ui/workbench/asset_content_layout/browser_virtualization.rs',
@@ -2392,82 +2392,82 @@ Describe "ui-profile-capture output contract" {
             'zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_item_generation.rs',
             'zircon_editor/src/ui/host/editor_event_runtime_access/asset_access.rs',
             'zircon_editor/src/ui/workbench/shell_state.rs',
-            'zircon_editor/src/ui/retained_host/app/assets/refresh/apply.rs',
-            'zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs',
-            'zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/motion.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/pane/asset/content.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs',
+            'zircon_editor/src/ui/retained/app/assets/refresh/apply.rs',
+            'zircon_editor/src/ui/retained/app/assets/refresh/snapshots.rs',
+            'zircon_editor/src/ui/retained/app/asset_content_pointer/events/motion.rs',
+            'zircon_editor/src/ui/retained/contract/pointer/scroll/pane/asset/content.rs',
+            'zircon_editor/src/ui/contract/docks/pane/nodes/asset_content/projector.rs',
             'zircon_editor/src/ui/workbench/asset_content_layout/paint_metadata.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/binding/entry/lifecycle.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/binding/payload.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/binding/suggestions/action.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/binding/suggestions/payload.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/binding/suggestions/route.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/collection.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/component_adapter.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/palette.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/preview/nested.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/preview/suggestions.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/preview/value.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/source.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/structure/layout/semantic.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/structure/slot/semantic.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style/class.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style/rules/declaration.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style/rules/rule.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style/theme_source.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style/tokens.rs',
-            'zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/widget/promote.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/binding/entry/lifecycle.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/binding/payload.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/binding/suggestions/action.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/binding/suggestions/payload.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/binding/suggestions/route.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/collection.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/component_adapter.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/palette.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/preview/nested.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/preview/suggestions.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/preview/value.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/source.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/structure/layout/semantic.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/structure/slot/semantic.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/style/class.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/style/rules/declaration.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/style/rules/rule.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/style/theme_source.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/style/tokens.rs',
+            'zircon_editor/src/ui/retained/app/asset_events/widget/promote.rs',
             'zircon_editor/src/ui/layouts/views/view_projection/projection_cache.rs',
-            'zircon_editor/src/ui/layouts/views/view_projection/projection_cache/render_command_index.rs',
-            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_fragment.rs',
-            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_projection.rs',
-            'zircon_editor/src/ui/retained_host/app/host_lifecycle/scene_hierarchy_refresh.rs',
-            'zircon_editor/src/ui/retained_host/app/host_lifecycle/scene_hierarchy_refresh/hierarchy_row_patch.rs',
+            'zircon_editor/src/ui/layouts/views/projection_cache/render_command_index.rs',
+            'zircon_editor/src/ui/retained/dispatch/workbench/scene_hierarchy_fragment.rs',
+            'zircon_editor/src/ui/retained/dispatch/workbench/scene_hierarchy_project.rs',
+            'zircon_editor/src/ui/retained/app/host_lifecycle/scene_hierarchy_refresh.rs',
+            'zircon_editor/src/ui/retained/app/scene_hierarchy_refresh/hierarchy_row_patch.rs',
             'zircon_editor/src/ui/workbench/snapshot/data/scene_entry/entries.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/hierarchy.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/hierarchy/viewport.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/assets/frame.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/diagnostics.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/bar.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup/submenus.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/recent_projects/rows.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/rail.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/page_overflow.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/menu/entry.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/options/entry.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns/text.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls/options.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls/commands.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls/segments/body.rs'
+            'zircon_editor/src/ui/retained/contract/workbench/native_panes/hierarchy.rs',
+            'zircon_editor/src/ui/retained/contract/workbench/hierarchy/viewport.rs',
+            'zircon_editor/src/ui/retained/contract/workbench/native_panes/assets/frame.rs',
+            'zircon_editor/src/ui/retained/contract/workbench/native_panes/diagnostics.rs',
+            'zircon_editor/src/ui/retained/contract/workbench/menus/bar.rs',
+            'zircon_editor/src/ui/retained/contract/workbench/menus/rows.rs',
+            'zircon_editor/src/ui/retained/contract/workbench/menus/popup.rs',
+            'zircon_editor/src/ui/retained/contract/workbench/menus/popup/submenus.rs',
+            'zircon_editor/src/ui/retained/contract/workbench/welcome/recent_projects/rows.rs',
+            'zircon_editor/src/ui/retained/contract/workbench/docks/rail.rs',
+            'zircon_editor/src/ui/retained/contract/workbench/overlay/page_overflow.rs',
+            'zircon_editor/src/ui/retained/contract/paint/popup_rows/menu/entry.rs',
+            'zircon_editor/src/ui/retained/contract/paint/popup_rows/options/entry.rs',
+            'zircon_editor/src/ui/retained/contract/paint/dialogs/actions/labels.rs',
+            'zircon_editor/src/ui/retained/contract/paint/dropdowns/text.rs',
+            'zircon_editor/src/ui/retained/contract/paint/segmented_controls/options.rs',
+            'zircon_editor/src/ui/retained/contract/paint/segmented_controls/commands.rs',
+            'zircon_editor/src/ui/retained/contract/paint/segmented_controls/segments/body.rs'
         )) {
             ($criticalSourcePaths -contains $currentUiOptimizationSource) | Should Be $true
         }
         foreach ($path in @(
-                'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/input_outcome.rs',
-                'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/input.rs',
-                'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/pointer_move_mailbox.rs',
-                'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs',
-                'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/profile_capture.rs',
-                'zircon_editor/src/ui/retained_host/host_contract/window/metadata.rs',
-                'zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs',
-                'zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment.rs',
+                'zircon_editor/src/ui/retained/contract/window/event_loop/input_outcome.rs',
+                'zircon_editor/src/ui/retained/contract/window/event_loop/input.rs',
+                'zircon_editor/src/ui/retained/contract/window/event_loop/pointer_move_mailbox.rs',
+                'zircon_editor/src/ui/retained/contract/window/event_loop/platform_input.rs',
+                'zircon_editor/src/ui/retained/contract/window/event_loop/profile_capture.rs',
+                'zircon_editor/src/ui/retained/contract/window/metadata.rs',
+                'zircon_editor/src/ui/retained/contract/profiling_artifacts.rs',
+                'zircon_editor/src/ui/retained/contract/profiling_artifacts/environment.rs',
                 'zircon_runtime_interface/src/ui/dispatch/input/metadata.rs'
             )) {
             ($criticalSourcePaths -contains $path) | Should Be $true
         }
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/entry/body.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/pointer/motion/entry/body.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/app/profiling/snapshot_merge.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/app/profiling/snapshot_merge.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/scene/viewport/pointer/precision/renderer_visible_spatial_pick_source.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/scene/precision/renderer_visible_spatial_pick_source.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_visible_spatial_query.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/scene/viewport/pointer/overlay_router/visible_spatial_query.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/scene/modes/scene_mode_stack.rs') |
             Should Be $true
@@ -2477,7 +2477,7 @@ Describe "ui-profile-capture output contract" {
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/scene/selection/domain_selection.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/viewport/submit_extract.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/viewport/submit_extract.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/core/framework/render/framework.rs') |
             Should Be $true
@@ -2487,122 +2487,122 @@ Describe "ui-profile-capture output contract" {
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/dynamic_api/session/runtime_ui.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/runtime/render_framework/query_visible_spatial_snapshot/query_visible_spatial_snapshot.rs') |
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/runtime/query_visible_spatial_snapshot/snapshot.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visible_spatial_query.rs') |
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/runtime/viewport_record/visible_spatial_query.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/resources/ui_texture.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs') |
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/renderer/ui/render.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/render/background.rs') |
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/renderer/ui/render/background.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs') |
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs') |
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/renderer/ui/render/record.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout.rs') |
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/renderer/ui/render/resolved_layout.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs') |
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/scene/renderer/ui/screen_space_ui_renderer.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/types/viewport_render_frame.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/entry.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/pointer/scroll/entry.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_index.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/surface_hit_test/node/pane_index.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/loading/async_loader.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/paint/loading/async_loader.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/loading/pixels.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/paint/visual_assets/loading/pixels.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/mui_icons/rendering.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/paint/mui_icons/rendering.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/contract/chrome_command_stream/runtime_draw_list.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/cache.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/paint_text/draw/layout/cache.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/ui_perf/counter_batch.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/ui_perf/counter_batch.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs') |
             Should Be $true
         foreach ($assetPointerSource in @(
-            'zircon_editor/src/ui/retained_host/asset_pointer/common.rs',
-            'zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs',
-            'zircon_editor/src/ui/retained_host/asset_pointer/reference/bridge.rs',
-            'zircon_editor/src/ui/retained_host/asset_pointer/tree/bridge.rs'
+            'zircon_editor/src/ui/retained/asset_pointer/common.rs',
+            'zircon_editor/src/ui/retained/asset_pointer/content/bridge.rs',
+            'zircon_editor/src/ui/retained/asset_pointer/reference/bridge.rs',
+            'zircon_editor/src/ui/retained/asset_pointer/tree/bridge.rs'
         )) {
             ($criticalSourcePaths -contains $assetPointerSource) | Should Be $true
         }
         foreach ($menuPointerSource in @(
-            'zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge.rs',
-            'zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_dispatch_event.rs',
-            'zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs',
-            'zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_popup_items.rs',
-            'zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_project_route.rs',
-            'zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs',
-            'zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs',
-            'zircon_editor/src/ui/retained_host/menu_pointer/register_handled_pointer_node.rs'
+            'zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_bridge.rs',
+            'zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_dispatch_event.rs',
+            'zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs',
+            'zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_popup_items.rs',
+            'zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_project_route.rs',
+            'zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs',
+            'zircon_editor/src/ui/retained/menu_pointer/popup_layout.rs',
+            'zircon_editor/src/ui/retained/menu_pointer/register_handled_pointer_node.rs'
         )) {
             ($criticalSourcePaths -contains $menuPointerSource) | Should Be $true
         }
         foreach ($welcomePointerSource in @(
-            'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge.rs',
-            'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_handle_click.rs',
-            'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_handle_move.rs',
-            'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_handle_scroll.rs',
-            'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_project_route.rs',
-            'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_sync.rs',
-            'zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_layout.rs',
-            'zircon_editor/src/ui/retained_host/app/pointer_layout/welcome_recent.rs'
+            'zircon_editor/src/ui/retained/welcome_recent_pointer/bridge.rs',
+            'zircon_editor/src/ui/retained/welcome_recent_pointer/bridge_handle_click.rs',
+            'zircon_editor/src/ui/retained/welcome_recent_pointer/bridge_handle_move.rs',
+            'zircon_editor/src/ui/retained/welcome_recent_pointer/bridge_handle_scroll.rs',
+            'zircon_editor/src/ui/retained/welcome_recent_pointer/bridge_project_route.rs',
+            'zircon_editor/src/ui/retained/welcome_recent_pointer/bridge_sync.rs',
+            'zircon_editor/src/ui/retained/welcome_recent_pointer/layout.rs',
+            'zircon_editor/src/ui/retained/app/pointer_layout/welcome_recent.rs'
         )) {
             ($criticalSourcePaths -contains $welcomePointerSource) | Should Be $true
         }
         foreach ($profileGeometrySource in @(
-            'zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/pane_profile_controls.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/pane_frames/pane.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/schema/geometry.rs'
+            'zircon_editor/src/ui/retained/contract/profiling_artifacts/geometry.rs',
+            'zircon_editor/src/ui/retained/contract/geometry/pane_profile_controls.rs',
+            'zircon_editor/src/ui/retained/contract/geometry/pane_frames/pane.rs',
+            'zircon_editor/src/ui/retained/contract/profiling_artifacts/schema/geometry.rs'
         )) {
             ($criticalSourcePaths -contains $profileGeometrySource) | Should Be $true
         }
         foreach ($viewportToolbarSource in @(
-            'zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/click.rs',
-            'zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/pane_frame.rs',
-            'zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/viewport_toolbar.rs',
-            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs',
-            'zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/surface_frame_cache.rs',
-            'zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/handle_click.rs',
-            'zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/new.rs',
-            'zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs',
-            'zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync.rs',
-            'zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs',
-            'zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs'
+            'zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/click.rs',
+            'zircon_editor/src/ui/retained/app/surface_frames/pane_frame.rs',
+            'zircon_editor/src/ui/retained/dispatch/shared_pointer/viewport_toolbar.rs',
+            'zircon_editor/src/ui/retained/dispatch/templates/viewport_toolbar/bridge.rs',
+            'zircon_editor/src/ui/retained/dispatch/viewport_toolbar/surface_frame_cache.rs',
+            'zircon_editor/src/ui/retained/viewport_toolbar_pointer/handle_click.rs',
+            'zircon_editor/src/ui/retained/viewport_toolbar_pointer/new.rs',
+            'zircon_editor/src/ui/retained/viewport_toolbar_pointer/rebuild_surface.rs',
+            'zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync.rs',
+            'zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs',
+            'zircon_editor/src/ui/retained/viewport_toolbar_pointer/bridge.rs'
         )) {
             ($criticalSourcePaths -contains $viewportToolbarSource) | Should Be $true
         }
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/handle_scroll.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/hierarchy_pointer/handle_scroll.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_bridge.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/hierarchy_pointer/hierarchy_pointer_bridge.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/handle_click.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/hierarchy_pointer/handle_click.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/handle_move.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/hierarchy_pointer/handle_move.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_layout.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/hierarchy_pointer/hierarchy_pointer_layout.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/route_at_point.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/hierarchy_pointer/route_at_point.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/hierarchy_pointer/sync.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/hierarchy_pointer/sync.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/app/pointer_layout/hierarchy.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/app/pointer_layout/hierarchy.rs') |
             Should Be $true
         foreach ($shellDragSource in @(
-            'zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs',
-            'zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs',
-            'zircon_editor/src/ui/retained_host/shell_pointer/common.rs',
-            'zircon_editor/src/ui/retained_host/shell_pointer/drag_frames.rs',
-            'zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs',
-            'zircon_editor/src/ui/retained_host/shell_pointer/node_ids.rs'
+            'zircon_editor/src/ui/retained/app/host_lifecycle/recompute_viewport.rs',
+            'zircon_editor/src/ui/retained/shell_pointer/bridge.rs',
+            'zircon_editor/src/ui/retained/shell_pointer/common.rs',
+            'zircon_editor/src/ui/retained/shell_pointer/drag_frames.rs',
+            'zircon_editor/src/ui/retained/shell_pointer/drag_surface.rs',
+            'zircon_editor/src/ui/retained/shell_pointer/node_ids.rs'
         )) {
             ($criticalSourcePaths -contains $shellDragSource) | Should Be $true
         }
@@ -2647,41 +2647,41 @@ Describe "ui-profile-capture output contract" {
             ($criticalSourcePaths -contains $rhiDamageSource) | Should Be $true
         }
         foreach ($roundedBoxSource in @(
-            'zircon_runtime/src/graphics/scene/scene_renderer/ui/render/geometry.rs',
-            'zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/screen_space_ui.wgsl',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window/commands.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_section_titles/commands.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_section_titles/geometry.rs'
+            'zircon_runtime/src/graphics/scene/renderer/ui/render/geometry.rs',
+            'zircon_runtime/src/graphics/scene/renderer/ui/shaders/screen_space_ui.wgsl',
+            'zircon_editor/src/ui/retained/contract/paint/settings_window/commands.rs',
+            'zircon_editor/src/ui/retained/contract/paint/section_titles/commands.rs',
+            'zircon_editor/src/ui/retained/contract/paint/section_titles/geometry.rs'
         )) {
             ($criticalSourcePaths -contains $roundedBoxSource) | Should Be $true
         }
         ($criticalSourcePaths -contains 'zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/window/event_loop/redraw/present.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/window/event_wake.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/window/event_wake.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/lifecycle.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/presenter/gpu/lifecycle.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/presenter/factory.rs') |
             Should Be $true
         foreach ($presenterLifecycleSource in @(
-            'zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle/presenter.rs',
-            'zircon_editor/src/ui/retained_host/host_contract/presenter/runtime_factory.rs',
-            'zircon_editor/src/ui/retained_host/viewport/presenter_factory.rs'
+            'zircon_editor/src/ui/retained/contract/window/event_loop.rs',
+            'zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle/presenter.rs',
+            'zircon_editor/src/ui/retained/contract/presenter/runtime_factory.rs',
+            'zircon_editor/src/ui/retained/viewport/presenter_factory.rs'
         )) {
             ($criticalSourcePaths -contains $presenterLifecycleSource) | Should Be $true
         }
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/invalidation/decision.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/app/recompute/invalidation/decision.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/present.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/contract/presenter/softbuffer/present.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache/resource.rs') |
             Should Be $true
-        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/app/assets/refresh.rs') |
+        ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained/app/assets/refresh.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/ui/dispatch/pointer/dispatcher.rs') |
             Should Be $true

@@ -1,7 +1,12 @@
+#[path = "callback_registry.rs"]
 mod callback_registry;
+#[path = "callbacks.rs"]
 mod callbacks;
+#[path = "entry.rs"]
 mod entry;
+#[path = "id.rs"]
 mod id;
+#[path = "store.rs"]
 mod store;
 
 pub use id::ObserverId;

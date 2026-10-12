@@ -6,6 +6,7 @@ use crate::core::framework::render::{
 
 use super::{TextureAsset, TexturePayload};
 
+#[path = "external_source_cubemap/decode.rs"]
 mod decode;
 
 pub(crate) use decode::decode_external_source_cubemap_texels;
@@ -566,5 +567,5 @@ pub enum ExternalSourceCubemapContainerError {
 }
 
 #[cfg(test)]
-#[path = "tests/external_source_cubemap_plugins07_external_cubemap_probe_tests.rs"]
+#[path = "../../../tests/external_source_cubemap_plugins07_external_cubemap.rs"]
 mod plugins07_external_cubemap_probe_tests;

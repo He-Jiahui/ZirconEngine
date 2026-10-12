@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - docs/wiki/best-practices/rust-handles-errors-and-ownership.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/resolution
+  - zircon_runtime/src/core/runtime/tests
   - zircon_runtime/src/core/manager/tests/cases.rs
 doc_type: reference-guide
 ---
@@ -173,7 +173,7 @@ Unreal 的 `TWeakObjectPtr` 和模块生命周期通知强调对象失效检查�
 - `zircon_runtime/src/core/runtime/handle/service_identity.rs`：runtime/index/generation identity。
 - `zircon_runtime/src/core/manager/resolver.rs`：`ManagerResolver` 和契约句柄。
 - `zircon_runtime/src/core/runtime/error.rs`：结构化 `CoreError`。
-- `zircon_runtime/src/core/runtime/tests/resolution`：解析与代际回归。
+- `zircon_runtime/src/core/runtime/tests`：解析与代际回归。
 
 ## 公共接口审查问题
 

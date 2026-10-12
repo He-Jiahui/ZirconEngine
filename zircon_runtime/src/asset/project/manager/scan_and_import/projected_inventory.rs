@@ -138,9 +138,9 @@ fn merged_identity_changes<'a>(
 }
 
 #[cfg(test)]
-#[path = "projected_inventory/tests/optimization_batch_jl_runtime651_tests.rs"]
+#[path = "../tests/projected_inventory_perf.rs"]
 mod optimization_batch_jl_runtime651_tests;
 
 #[cfg(test)]
-#[path = "tests/projected_inventory.rs"]
+#[path = "../tests/projected_inventory.rs"]
 mod tests;

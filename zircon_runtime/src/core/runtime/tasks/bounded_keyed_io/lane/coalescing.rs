@@ -59,7 +59,7 @@ fn take_matching_entries<T>(
 }
 
 #[cfg(test)]
-#[path = "coalescing/tests/optimization_batch_ji_runtime648_tests.rs"]
+#[path = "../../lane/coalescing/tests/perf.rs"]
 mod optimization_batch_ji_runtime648_tests;
 
 // 若 active/queued 中已有更高代，当前项直接终结为 Superseded；否则线性分区移除同键同 epoch 的旧队列项并保留其余顺序。

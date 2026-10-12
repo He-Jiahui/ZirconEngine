@@ -7,17 +7,17 @@ WORKBENCH_BRIDGE = ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench"
 )
 HIERARCHY_REFRESH = ROOT / (
-    "zircon_editor/src/ui/retained_host/app/host_lifecycle/scene_hierarchy_refresh.rs"
+    "zircon_editor/src/ui/retained/app/host_lifecycle/scene_hierarchy_refresh.rs"
 )
 HIERARCHY_ROW_PATCH = ROOT / (
     "zircon_editor/src/ui/retained_host/app/host_lifecycle/"
     "scene_hierarchy_refresh/hierarchy_row_patch.rs"
 )
 HIERARCHY_RENAME = ROOT / (
-    "zircon_editor/src/ui/retained_host/app/hierarchy_rename.rs"
+    "zircon_editor/src/ui/retained/app/hierarchy_rename.rs"
 )
 HIERARCHY_DRAG_SOURCE = ROOT / (
-    "zircon_editor/src/ui/retained_host/app/hierarchy_pointer/drag_source.rs"
+    "zircon_editor/src/ui/retained/app/hierarchy_pointer/drag_source.rs"
 )
 
 

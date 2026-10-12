@@ -1,5 +1,8 @@
+#[path = "capabilities.rs"]
 mod capabilities;
+#[path = "presentation.rs"]
 mod presentation;
+#[path = "session.rs"]
 mod session;
 
 pub(crate) use crate::core::editing::animation_document::{

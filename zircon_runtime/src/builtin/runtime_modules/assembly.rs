@@ -1,13 +1,21 @@
 use crate::core::framework::project::{ProjectPluginManifest, RuntimeProfileId};
 use crate::plugin::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
+#[path = "assembly/compiled_plan.rs"]
 pub(super) mod compiled_plan;
+#[path = "assembly/extension_inputs.rs"]
 mod extension_inputs;
+#[path = "assembly/feature_reports.rs"]
 mod feature_reports;
+#[path = "assembly/profile_modules.rs"]
 mod profile_modules;
+#[path = "assembly/profile_selection.rs"]
 pub(super) mod profile_selection;
+#[path = "assembly/registration_inputs.rs"]
 mod registration_inputs;
+#[path = "assembly/registration_reports.rs"]
 mod registration_reports;
+#[path = "assembly/target_modules.rs"]
 mod target_modules;
 
 use super::load_report::RuntimeModuleLoadReport;

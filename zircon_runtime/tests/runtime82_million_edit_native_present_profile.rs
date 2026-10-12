@@ -45,6 +45,7 @@ use zircon_runtime_interface::ui::{
     widget::{UiWidgetBehavior, UiWidgetContract, UiWidgetEvent},
 };
 
+#[path = "support/mod.rs"]
 mod support;
 
 const DOCUMENT_CHARACTERS: usize = 1_000_000;

@@ -1,16 +1,30 @@
+#[path = "animation.rs"]
 mod animation;
+#[path = "asset.rs"]
 mod asset;
+#[path = "camera.rs"]
 mod camera;
+#[path = "component.rs"]
 mod component;
+#[path = "defaults.rs"]
 mod defaults;
+#[path = "entity.rs"]
 mod entity;
+#[path = "extensions.rs"]
 mod extensions;
+#[path = "lighting.rs"]
 mod lighting;
+#[path = "management.rs"]
 mod management;
+#[path = "mesh.rs"]
 mod mesh;
+#[path = "physics.rs"]
 mod physics;
+#[path = "post_process.rs"]
 mod post_process;
+#[path = "render2d.rs"]
 mod render2d;
+#[path = "transform.rs"]
 mod transform;
 
 pub use animation::{

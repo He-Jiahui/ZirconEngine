@@ -1,16 +1,30 @@
+#[path = "build_identity.rs"]
 mod build_identity;
+#[path = "contract.rs"]
 mod contract;
+#[path = "environment_ibl.rs"]
 mod environment_ibl;
+#[path = "error.rs"]
 mod error;
+#[path = "gltf_geometry.rs"]
 mod gltf_geometry;
+#[path = "gltf_material_extensions.rs"]
 mod gltf_material_extensions;
+#[path = "gltf_texture_semantics.rs"]
 mod gltf_texture_semantics;
+#[path = "gltf_texture_subassets.rs"]
 mod gltf_texture_subassets;
+#[path = "gltf_texture_transform.rs"]
 mod gltf_texture_transform;
+#[path = "image_decode.rs"]
 mod image_decode;
+#[path = "ingest/mod.rs"]
 mod ingest;
+#[path = "native.rs"]
 mod native;
+#[path = "registry.rs"]
 mod registry;
+#[path = "schema.rs"]
 mod schema;
 
 pub(crate) use build_identity::canonical_import_input_digest;

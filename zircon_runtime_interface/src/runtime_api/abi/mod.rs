@@ -1,5 +1,8 @@
+#[path = "api_shape.rs"]
 mod api_shape;
+#[path = "api_table.rs"]
 mod api_table;
+#[path = "host_api_shape.rs"]
 mod host_api_shape;
 
 pub use api_shape::{validate_runtime_api_v8_shape, ZrRuntimeApiV8ShapeError};

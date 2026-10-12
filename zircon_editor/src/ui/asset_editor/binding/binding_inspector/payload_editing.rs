@@ -747,9 +747,9 @@ pub(super) fn format_binding_item(binding: &UiBindingRef) -> String {
 }
 
 #[cfg(test)]
-#[path = "payload_editing/tests/optimization_batch_iv_editor632_tests.rs"]
+#[path = "../payload_editing/tests/perf.rs"]
 mod optimization_batch_iv_editor632_tests;
 
 #[cfg(test)]
-#[path = "tests/payload_editing.rs"]
+#[path = "../tests/payload_editing.rs"]
 mod tests;

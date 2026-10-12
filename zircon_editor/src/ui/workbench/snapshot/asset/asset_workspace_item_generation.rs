@@ -321,5 +321,5 @@ impl Index<usize> for AssetWorkspaceItemGeneration {
 }
 
 #[cfg(test)]
-#[path = "tests/asset_workspace_item_generation.rs"]
+#[path = "tests/workspace_item_generate.rs"]
 mod tests;

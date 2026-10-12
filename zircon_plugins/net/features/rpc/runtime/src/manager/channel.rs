@@ -81,5 +81,5 @@ fn drain_bounded_channel_messages(
 }
 
 #[cfg(test)]
-#[path = "tests/channel_bounded_channel_drain_tests.rs"]
+#[path = "../tests/channel_bounded_channel.rs"]
 mod bounded_channel_drain_tests;

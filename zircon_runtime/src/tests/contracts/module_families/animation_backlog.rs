@@ -1,0 +1,42 @@
+//! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。以结果断言检查当前接口或源码快照对应的边界。
+#[test]
+fn runtime_animation_backlog_boundary_requires_doc_update() {
+    let animation_source = include_str!("../../../animation/mod.rs");
+    assert!(
+        animation_source.contains("apply_compiled_sequence_to_world")
+            && animation_source.contains("compile_sequence_for_world")
+            && !animation_source.contains("apply_sequence_to_world"),
+        "animation root should expose only the public compiled sequence application hook"
+    );
+
+    let sequence_tests = include_str!("../../../animation/sequence/tests/cases.rs");
+    for required_sequence_anchor in [
+        "compiled_sequence_applies_mesh_renderer_morph_weight_track",
+        "MeshRenderer.morph_weights.1",
+    ] {
+        assert!(
+            sequence_tests.contains(required_sequence_anchor),
+            "animation sequence tests should keep morph-weight property-track evidence `{required_sequence_anchor}`"
+        );
+    }
+
+    let boundary_doc =
+        include_str!("../../../../../docs/crates/zircon_runtime/animation/runtime.md");
+    for required_anchor in [
+        "Runtime Animation Module",
+        "Root motion",
+        "Backlog debt",
+        "Morph targets",
+        "asset/scene property/sequence tracks",
+        "not as a dedicated animation-system morph solver",
+        "`render` and `graphics` own GPU skinning and draw submission",
+        "Editor authoring tools",
+        "future expansion must coordinate asset, render, and graphics owners",
+        "runtime_animation_backlog_boundary_requires_doc_update",
+    ] {
+        assert!(
+            boundary_doc.contains(required_anchor),
+            "animation runtime doc should record `{required_anchor}`"
+        );
+    }
+}

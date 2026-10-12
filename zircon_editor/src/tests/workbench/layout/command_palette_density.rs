@@ -2,7 +2,7 @@
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
 const COMMAND_PALETTE_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/primitives/feedback/workbench_command_palette.zui"
+    "../../../../assets/ui/editor/workbench/primitives/feedback/command_palette.zui"
 );
 
 #[test]

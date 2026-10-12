@@ -40,7 +40,7 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/simulated_pose_blend.rs
   - zircon_plugins/animation/runtime/src/evaluation/state_machine_layer_diagnostic.rs
   - zircon_runtime/src/core/framework/physics/skeletal_pose.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
+  - zircon_plugins/animation/runtime/tests/physics_tick.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs
@@ -147,14 +147,14 @@ tests:
   - zircon_plugins/animation/runtime/tests/animation_avatar_mask_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_blend_space_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_compiled_graph_contract.rs
-  - zircon_plugins/animation/runtime/tests/animation_compiled_state_machine_contract.rs
+  - zircon_plugins/animation/runtime/tests/state_machine.rs
   - zircon_plugins/animation/runtime/tests/animation_state_kind_asset_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_gpu_skinning_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_ik_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_pipeline_structure_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_pose_buffer_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_state_transition_contract.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
+  - zircon_plugins/animation/runtime/tests/physics_tick.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/animation_assets.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs

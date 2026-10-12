@@ -24,7 +24,7 @@ ASSET_ACCESS = ROOT / (
     "zircon_editor/src/ui/host/editor_event_runtime_access/asset_access.rs"
 )
 WORKBENCH_SHELL_STATE = ROOT / "zircon_editor/src/ui/workbench/shell_state.rs"
-UI_PERF = ROOT / "zircon_editor/src/ui/retained_host/ui_perf.rs"
+UI_PERF = ROOT / "zircon_editor/src/ui/retained/ui_perf.rs"
 PROFILE_COUNTER_EVIDENCE = ROOT / "tools/profiling/ui/ui-profile-counter-evidence.ps1"
 TABLE_NODES = ROOT / (
     "zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs"

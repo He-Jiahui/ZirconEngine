@@ -9,7 +9,7 @@ MODULE_ROOT = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/modules"
 )
 TOP_TOOLBAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_top_toolbar.zui"
 )
 RESPONSIVE_LAYOUT = REPO_ROOT / (
@@ -29,11 +29,11 @@ TOOLBAR_LAYOUT = REPO_ROOT / (
     "workbench/toolbar_layout.rs"
 )
 TEMPLATE_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
+    "zircon_editor/src/ui/runtime/builtin/"
     "workbench_window_template_bindings.rs"
 )
 PREVIEW_ACTIONS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/workbench_preview_actions.rs"
+    "zircon_editor/src/ui/retained/preview_actions.rs"
 )
 SCAN_ONLY_UI_ASSET_EDITOR = MODULE_ROOT / (
     "extensions/ui/workbench_extension_ui_asset_editor_workspace.zui"

@@ -356,5 +356,5 @@ fn read_capped_ledger_bytes(mut reader: impl Read) -> std::io::Result<Vec<u8>> {
 }
 
 #[cfg(test)]
-#[path = "tests/store_bounded_read_tests.rs"]
+#[path = "../tests/store_bounded_read.rs"]
 mod bounded_read_tests;

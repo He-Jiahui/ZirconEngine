@@ -1,8 +1,12 @@
 //! Rust-side access to the four capability-gated VM extension channels.
 
+#[path = "bt_node.rs"]
 mod bt_node;
+#[path = "editor_op.rs"]
 mod editor_op;
+#[path = "rpc.rs"]
 mod rpc;
+#[path = "system.rs"]
 mod system;
 
 pub use bt_node::register_bt_node;

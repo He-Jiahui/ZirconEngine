@@ -17,6 +17,7 @@ use crate::core::resource::{
 };
 use crate::graphics::WgpuRenderFramework;
 
+#[path = "render_product_shadow_captures/directional.rs"]
 mod directional;
 
 #[test]

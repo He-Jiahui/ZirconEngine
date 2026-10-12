@@ -57,5 +57,5 @@ impl RenderMaterialManagementQuerySelection {
 }
 
 #[cfg(test)]
-#[path = "tests/query_selection.rs"]
+#[path = "../tests/query_selection.rs"]
 mod tests;

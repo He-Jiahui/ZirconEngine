@@ -14,6 +14,7 @@ use crate::plugin::RuntimeExtensionRegistryError;
 
 use super::weak::WeakBridge;
 
+#[path = "table/reports.rs"]
 mod reports;
 
 pub use self::reports::{

@@ -12,8 +12,8 @@ from typing import Any
 
 
 CRITICAL_SOURCE_FILES = (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/image.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/text/segment_cache.rs",
 )
 
 

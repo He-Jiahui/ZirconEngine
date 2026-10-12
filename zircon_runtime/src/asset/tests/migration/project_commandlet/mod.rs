@@ -1,9 +1,16 @@
+#[path = "command_flow.rs"]
 mod command_flow;
+#[path = "crash_windows.rs"]
 mod crash_windows;
+#[path = "../../project_commandlet/document_migration.rs"]
 mod document_migration;
+#[path = "resolver_index.rs"]
 mod resolver_index;
+#[path = "scale_acceptance.rs"]
 mod scale_acceptance;
+#[path = "source_boundary.rs"]
 mod source_boundary;
+#[path = "../../project_commandlet/transaction_recovery.rs"]
 mod transaction_recovery;
 
 use std::fs;

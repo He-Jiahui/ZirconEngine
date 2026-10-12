@@ -801,9 +801,9 @@ fn css_color(color: UiRgbaColor) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/notification_center_performance_tests.rs"]
+#[path = "tests/notification_center_perf.rs"]
 mod performance_tests;
 
 #[cfg(test)]
-#[path = "tests/notification_center_content_contract_tests.rs"]
+#[path = "../../render/tests/notification_center_content_contract.rs"]
 mod content_contract_tests;

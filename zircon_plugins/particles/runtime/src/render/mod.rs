@@ -1,7 +1,12 @@
+#[path = "executors.rs"]
 mod executors;
+#[path = "extract.rs"]
 mod extract;
+#[path = "feature.rs"]
 mod feature;
+#[path = "gpu/mod.rs"]
 mod gpu;
+#[path = "runtime_prepare.rs"]
 mod runtime_prepare;
 
 pub use executors::{

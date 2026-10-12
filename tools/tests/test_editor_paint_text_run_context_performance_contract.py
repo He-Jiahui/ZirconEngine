@@ -4,7 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 GLYPHS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs"
+    "zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs.rs"
 )
 RASTER = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs"
@@ -16,7 +16,7 @@ RUNTIME_SERVICE = ROOT / (
     "zircon_runtime/src/text/raster/service/glyph_raster_service.rs"
 )
 ROW = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs"
+    "zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs/row.rs"
 )
 
 

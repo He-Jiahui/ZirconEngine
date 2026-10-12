@@ -6,7 +6,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SCROLL = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch"
+    / "zircon_editor/src/ui/retained/contract/pointer/scroll"
 )
 
 

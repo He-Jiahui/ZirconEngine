@@ -351,5 +351,5 @@ fn primary_teardown_destroy_failure_child() {
     );
 }
 
-#[path = "physical_window.rs"]
+#[path = "../../../../surface_present/lifecycle/tests/physical_window.rs"]
 mod physical_window;

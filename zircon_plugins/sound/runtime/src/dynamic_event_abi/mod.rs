@@ -1,5 +1,10 @@
+#[path = "callback.rs"]
 pub(crate) mod callback;
+#[path = "executor.rs"]
 pub(crate) mod executor;
+#[path = "request.rs"]
 pub(crate) mod request;
+#[path = "slice.rs"]
 pub(crate) mod slice;
+#[path = "status.rs"]
 pub(crate) mod status;

@@ -232,5 +232,5 @@ impl EditorUiHost {
 }
 
 #[cfg(test)]
-#[path = "tests/preview_refresh_performance_tests.rs"]
+#[path = "tests/preview_refresh_perf.rs"]
 mod performance_tests;

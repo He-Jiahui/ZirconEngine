@@ -12,7 +12,7 @@ use crate::ui::binding::reflected_property_update_with_source_kind;
 use super::metadata_dirty::metadata_attribute_dirty;
 
 #[cfg(test)]
-#[path = "metadata_batch/tests/optimization_tests.rs"]
+#[path = "metadata_batch/tests/perf.rs"]
 mod optimization_tests;
 
 #[derive(Clone, Debug, PartialEq)]

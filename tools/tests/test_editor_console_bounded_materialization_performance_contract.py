@@ -4,42 +4,42 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-CONSOLE_METADATA = ROOT / "zircon_editor/src/ui/retained_host/console_output.rs"
+CONSOLE_METADATA = ROOT / "zircon_editor/src/ui/retained/console_output.rs"
 CONSOLE_PROJECTION = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/console_projection.rs"
+    "zircon_editor/src/ui/retained/ui/data/console_projection.rs"
 )
 CONSOLE_PAINT = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/"
     "docks/pane/template_nodes/console_output.rs"
 )
 CONSOLE_HIT = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/"
     "template_node/hit.rs"
 )
-UI_PERF = ROOT / "zircon_editor/src/ui/retained_host/ui_perf.rs"
+UI_PERF = ROOT / "zircon_editor/src/ui/retained/ui_perf.rs"
 CONSOLE_SNAPSHOT = ROOT / (
     "zircon_editor/src/ui/workbench/snapshot/data/console_output_snapshot.rs"
 )
 CONSOLE_SNAPSHOT_GENERATION = ROOT / (
-    "zircon_editor/src/ui/workbench/snapshot/data/console_output_snapshot/generation.rs"
+    "zircon_editor/src/ui/snapshot/data/console_output_snapshot/generation.rs"
 )
 CONSOLE_HISTORY = ROOT / "zircon_editor/src/ui/workbench/state/console_history.rs"
 ACTIVITY_LOG_PROJECTION = ROOT / (
     "zircon_editor/src/ui/workbench/activity_log_console_projection.rs"
 )
 CONSOLE_PAYLOAD = ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs"
+    "zircon_editor/src/ui/layouts/windows/window/pane_payload.rs"
 )
 CONSOLE_PAYLOAD_BUILDER = ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "pane_payload_builders/console.rs"
 )
-RETAINED_HOST_APP = ROOT / "zircon_editor/src/ui/retained_host/app.rs"
+RETAINED_HOST_APP = ROOT / "zircon_editor/src/ui/retained/app.rs"
 APPLY_PRESENTATION = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/apply_presentation.rs"
+    "zircon_editor/src/ui/retained/ui/apply_presentation.rs"
 )
 CONSOLE_POINTER_LAYOUT = ROOT / (
-    "zircon_editor/src/ui/retained_host/app/pointer_layout/detail_scrolls.rs"
+    "zircon_editor/src/ui/retained/app/pointer_layout/detail_scrolls.rs"
 )
 
 

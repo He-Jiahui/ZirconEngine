@@ -79,5 +79,5 @@ impl fmt::Display for AssetTypeRegistryError {
 impl std::error::Error for AssetTypeRegistryError {}
 
 #[cfg(test)]
-#[path = "error/tests/single_pass_missing_fields_tests.rs"]
+#[path = "../error/tests/single_pass_missing_fields.rs"]
 mod single_pass_missing_fields_tests;

@@ -1,5 +1,8 @@
+#[path = "blackboard/layout.rs"]
 mod layout;
+#[path = "blackboard/observer.rs"]
 mod observer;
+#[path = "blackboard/store.rs"]
 mod store;
 
 pub use layout::{BlackboardLayout, BlackboardLayoutError, BlackboardSlot};

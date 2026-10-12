@@ -5,15 +5,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 RICH_RENDER = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs"
 )
 RICH_INLINE_TESTS = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_inline.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/render/tests/rich_inline.rs"
 )
 RICH_INLINE_PROFILE = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_inline_profile.rs"
+    / "zircon_runtime/src/graphics/scene/ui/render/tests/rich_inline_profile.rs"
 )
 PROFILE_PLAN = (
     ROOT

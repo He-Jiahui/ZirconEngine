@@ -136,21 +136,21 @@ class EditorPaneSurfaceRetentionPressureTests(unittest.TestCase):
         )
         paths = {source["relative_path"] for source in binding["critical_sources"]}
         self.assertIn(
-            "zircon_editor/src/ui/retained_host/host_contract/globals/state.rs",
+            "zircon_editor/src/ui/retained/contract/globals/state.rs",
             paths,
         )
         self.assertIn(
-            "zircon_editor/src/ui/retained_host/host_contract/data/"
+            "zircon_editor/src/ui/retained/contract/data/"
             "presentation_generation.rs",
             paths,
         )
         self.assertIn(
-            "zircon_editor/src/ui/retained_host/host_contract/data/"
+            "zircon_editor/src/ui/retained/contract/data/"
             "pane_presentation_patch.rs",
             paths,
         )
         self.assertIn(
-            "zircon_editor/src/ui/retained_host/host_contract/data/"
+            "zircon_editor/src/ui/retained/contract/data/"
             "presentation_paint_models.rs",
             paths,
         )
@@ -160,7 +160,7 @@ class EditorPaneSurfaceRetentionPressureTests(unittest.TestCase):
             paths,
         )
         self.assertIn(
-            "zircon_editor/src/ui/retained_host/app/native_windows/presentation.rs",
+            "zircon_editor/src/ui/retained/app/native_windows/presentation.rs",
             paths,
         )
         self.assertIn(
@@ -175,7 +175,7 @@ class EditorPaneSurfaceRetentionPressureTests(unittest.TestCase):
     def test_native_window_publisher_does_not_retain_generation_or_global_updater(self) -> None:
         source = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/app/native_windows/presentation.rs"
+            / "zircon_editor/src/ui/retained/app/native_windows/presentation.rs"
         ).read_text(encoding="utf-8")
         production = source.split("#[cfg(test)]", 1)[0]
         self.assertIn("ui.set_native_floating_window_presentation(", production)
@@ -186,7 +186,7 @@ class EditorPaneSurfaceRetentionPressureTests(unittest.TestCase):
     def test_scoped_transaction_does_not_reenter_the_global_hit_index_builder(self) -> None:
         state = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/globals/state.rs"
+            / "zircon_editor/src/ui/retained/contract/globals/state.rs"
         ).read_text(encoding="utf-8")
         transaction = state.split(
             "pub(crate) fn patch_host_presentation_panes(", 1
@@ -197,7 +197,7 @@ class EditorPaneSurfaceRetentionPressureTests(unittest.TestCase):
         self.assertNotIn("indexes_presentation", transaction)
 
         scoped = (
-            ROOT / "zircon_editor/src/ui/retained_host/ui/scoped_presentation.rs"
+            ROOT / "zircon_editor/src/ui/retained/ui/scoped_presentation.rs"
         ).read_text(encoding="utf-8")
         production = scoped.split("#[cfg(test)]\n#[derive(Default)]", 1)[0]
         self.assertIn("ui.patch_host_presentation_panes(", production)

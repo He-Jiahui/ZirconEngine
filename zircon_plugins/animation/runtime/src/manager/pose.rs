@@ -215,5 +215,5 @@ fn skeleton_bone_path(skeleton: &AnimationSkeletonAsset, index: usize) -> Option
 }
 
 #[cfg(test)]
-#[path = "tests/pose_optimization_batch_20260830cl_tests.rs"]
+#[path = "tests/pose_perf.rs"]
 mod optimization_batch_20260830cl_tests;

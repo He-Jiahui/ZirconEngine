@@ -181,5 +181,5 @@ pub(in crate::graphics::scene) const fn gpu_scene_shader_binding_contract(
 }
 
 #[cfg(test)]
-#[path = "tests/renderer_shader_layout_contract.rs"]
+#[path = "../tests/renderer_shader_layout_contract.rs"]
 mod tests;

@@ -306,6 +306,12 @@ async function openWorkspace(context: BrowserContext, workspaceUrl: string, host
     frame: ReturnType<Page['frameLocator']>; installation: RecordValue }> {
   const page = await context.newPage();
   page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    const text = message.text();
+    if (!text.startsWith('[zircon-import-error]')) return;
+    // Collect only this plugin's bounded failure stack; preserve the UI/save gates.
+    errors.push(text.slice(0, 8192).replace(/https?:\/\/[^\s)]+/g, safeDebuggerScriptURL));
+  });
   page.on('requestfailed', (request) => errors.push(`Request failed: ${request.url()} ${request.failure()?.errorText}`));
   let navigationUrl = workspaceUrl;
   if (process.argv.includes('--wasm-renderer')) {

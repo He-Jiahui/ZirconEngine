@@ -1,12 +1,22 @@
+#[path = "component_descriptor.rs"]
 mod component_descriptor;
+#[path = "component_model.rs"]
 mod component_model;
+#[path = "default_node_template.rs"]
 mod default_node_template;
+#[path = "fallback_policy.rs"]
 mod fallback_policy;
+#[path = "host_capability.rs"]
 mod host_capability;
+#[path = "option_descriptor.rs"]
 mod option_descriptor;
+#[path = "palette_metadata.rs"]
 mod palette_metadata;
+#[path = "prop_schema.rs"]
 mod prop_schema;
+#[path = "render_capability.rs"]
 mod render_capability;
+#[path = "slot_schema.rs"]
 mod slot_schema;
 
 pub use component_descriptor::UiComponentDescriptor;

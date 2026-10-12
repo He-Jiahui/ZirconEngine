@@ -7,8 +7,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools" / "performance" / "editor" / "editor_asset_pointer_generation_pressure.py"
-LAYOUT = ROOT / "zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs"
-BRIDGE = ROOT / "zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs"
+LAYOUT = ROOT / "zircon_editor/src/ui/retained/asset_pointer/content/layout.rs"
+BRIDGE = ROOT / "zircon_editor/src/ui/retained/asset_pointer/content/bridge.rs"
 GENERATION = ROOT / (
     "zircon_editor/src/ui/workbench/snapshot/asset/"
     "asset_workspace_item_generation.rs"

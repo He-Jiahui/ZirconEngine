@@ -1,18 +1,34 @@
+#[path = "alpha_mode.rs"]
 mod alpha_mode;
+#[path = "color_material.rs"]
 mod color_material;
+#[path = "dependency_set.rs"]
 mod dependency_set;
+#[path = "diagnostic_source.rs"]
 mod diagnostic_source;
+#[path = "fallback_policy.rs"]
 mod fallback_policy;
+#[path = "lighting_model.rs"]
 mod lighting_model;
+#[path = "management.rs"]
 mod management;
+#[path = "property_override_block.rs"]
 mod property_override_block;
+#[path = "property_uniform.rs"]
 mod property_uniform;
+#[path = "property_value.rs"]
 mod property_value;
+#[path = "readiness_report.rs"]
 mod readiness_report;
+#[path = "shading_model.rs"]
 mod shading_model;
+#[path = "standard_material.rs"]
 mod standard_material;
+#[path = "texture_slot_summary.rs"]
 mod texture_slot_summary;
+#[path = "texture_transform.rs"]
 mod texture_transform;
+#[path = "validation_error.rs"]
 mod validation_error;
 
 pub use alpha_mode::RenderMaterialAlphaMode;

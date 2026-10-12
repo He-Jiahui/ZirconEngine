@@ -3,7 +3,7 @@ import unittest
 
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-LOADER_ROOT = REPO_ROOT / "zircon_runtime/src/plugin/native_plugin_loader"
+LOADER_ROOT = REPO_ROOT / "zircon_runtime/src/plugin/loader"
 
 
 def _section(source: str, start: str, end: str) -> str:

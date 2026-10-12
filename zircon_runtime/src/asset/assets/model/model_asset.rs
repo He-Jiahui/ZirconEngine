@@ -263,5 +263,5 @@ fn collect_unique_references<'a>(
 mod performance_tests;
 
 #[cfg(test)]
-#[path = "tests/model_asset_optimization_batch_20260830cm_runtime_tests.rs"]
+#[path = "tests/model_asset_perf.rs"]
 mod optimization_batch_20260830cm_runtime_tests;

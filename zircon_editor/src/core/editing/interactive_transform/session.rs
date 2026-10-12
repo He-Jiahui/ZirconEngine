@@ -418,5 +418,5 @@ fn restore_latest(scene: &mut Scene, targets: &[FrozenTransformTarget]) -> Resul
 }
 
 #[cfg(test)]
-#[path = "tests/session_optimization_batch_20260830cn_editor_tests.rs"]
+#[path = "tests/session_perf.rs"]
 mod optimization_batch_20260830cn_editor_tests;

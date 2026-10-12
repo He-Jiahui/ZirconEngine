@@ -7,11 +7,11 @@ class RuntimeNativeRegistrationReplayErrorOwnerStructureTests(unittest.TestCase)
         repo_root = Path(__file__).resolve().parents[2]
         owner_path = (
             repo_root
-            / "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs"
+            / "zircon_runtime/src/plugin/loader/live/registration_replay.rs"
         )
         error_path = (
             repo_root
-            / "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay/error.rs"
+            / "zircon_runtime/src/plugin/loader/live/registration_replay/error.rs"
         )
 
         owner = owner_path.read_text(encoding="utf-8")
@@ -44,7 +44,7 @@ class RuntimeNativeRegistrationReplayErrorOwnerStructureTests(unittest.TestCase)
         repo_root = Path(__file__).resolve().parents[2]
         guard = (
             repo_root
-            / "zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime/registration_replay.rs"
+            / "zircon_runtime/src/tests/errors/loader/replay_and_runtime/registration_replay.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("registration_replay/error.rs", guard)

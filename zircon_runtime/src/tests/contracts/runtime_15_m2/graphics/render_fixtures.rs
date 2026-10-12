@@ -1,0 +1,267 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。以结果断言检查当前接口或源码快照对应的边界。
+use super::*;
+
+#[test]
+fn runtime_15_render_feature_fallback_capability_fixtures_use_current_names() {
+    let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let submission_features = read_text(
+        &manifest_root.join(
+            "src/graphics/extract/submission/resolve_enabled_features.rs",
+        ),
+        "render submission enabled-feature fixture source should be readable",
+    );
+    let runtime_features = read_text(
+        &manifest_root.join(
+            "src/graphics/scene/core/runtime_features/from_pipeline.rs",
+        ),
+        "scene renderer runtime-feature fixture source should be readable",
+    );
+    let runtime_15_plan = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
+    let module_doc = read_repo_text(
+        manifest_root,
+        "docs/zircon_runtime/structure/module-convention.md",
+    );
+    let render_product_doc = read_repo_text(
+        manifest_root,
+        "docs/zircon_runtime/graphics/render-product-submit.md",
+    );
+
+    assert_contains_all(
+        "render feature fallback capability fixture ids",
+        &(submission_features.clone() + "\n" + &runtime_features),
+        &[
+            "fallback-virtual-geometry-without-submission-capability",
+            "fallback.hybrid-gi.without-submission-capability",
+            "fallback-virtual-geometry-without-capability",
+            "fallback.hybrid-gi.without-capability",
+        ],
+    );
+    for retired_id in [
+        "legacy-virtual-geometry-without-submission-capability",
+        "legacy-hybrid-gi-without-submission-capability",
+        "legacy.virtual-geometry.without-submission-capability",
+        "legacy.hybrid-gi.without-submission-capability",
+        "legacy-virtual-geometry-without-capability",
+        "legacy-hybrid-gi-without-capability",
+        "legacy.virtual-geometry.without-capability",
+        "legacy.hybrid-gi.without-capability",
+    ] {
+        assert!(
+            !submission_features.contains(retired_id) && !runtime_features.contains(retired_id),
+            "render feature fallback capability fixtures should not retain retired `{retired_id}` IDs"
+        );
+    }
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan),
+        ("runtime index", runtime_index),
+        ("review findings", review_findings),
+        ("structure convention", structure_convention),
+        ("module convention doc", module_doc),
+        ("render product submit doc", render_product_doc),
+    ] {
+        assert_contains_all(
+            label,
+            &source,
+            &[
+                "Runtime 15 M2 render feature fallback capability naming hard cutover",
+                "runtime_15_render_feature_fallback_capability_naming_hard_cutover_static_passed_cargo_deferred",
+                "graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_enabled_features.rs",
+                "fallback-virtual-geometry-without-capability",
+                "runtime_15_render_feature_fallback_capability_fixtures_use_current_names",
+            ],
+        );
+    }
+}
+
+#[test]
+fn runtime_15_render_material_stale_texture_fixtures_use_current_names() {
+    let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let material_runtime = read_text(
+        &manifest_root
+            .join("src/graphics/scene/tests/material_runtime.rs"),
+        "render product material runtime fixture source should be readable",
+    );
+    let runtime_15_plan = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
+    let module_doc = read_repo_text(
+        manifest_root,
+        "docs/zircon_runtime/structure/module-convention.md",
+    );
+    let render_assets_doc =
+        read_repo_text(manifest_root, "docs/zircon_runtime/asset/render-assets.md");
+    let zmeta_doc = read_repo_text(
+        manifest_root,
+        "docs/zircon_runtime/asset/zmeta-shader-material.md",
+    );
+
+    assert_contains_all(
+        "render material stale texture fixture names",
+        &material_runtime,
+        &[
+            "let stale_texture_id =",
+            "res://textures/stale-base.png",
+            "render_product_streamer_shader_standard_alias_shadows_unresolved_stale_texture",
+            "res://textures/missing-stale-base.png",
+            "shader standard texture alias shadows stale schema texture",
+        ],
+    );
+    for retired_name in [
+        "legacy_texture_id",
+        "legacy-base.png",
+        "missing-legacy-base.png",
+        "unresolved_legacy_texture",
+        "stale legacy texture",
+    ] {
+        assert!(
+            !material_runtime.contains(retired_name),
+            "render material stale texture fixtures should not retain retired `{retired_name}` wording"
+        );
+    }
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan),
+        ("runtime index", runtime_index),
+        ("review findings", review_findings),
+        ("structure convention", structure_convention),
+        ("module convention doc", module_doc),
+        ("render assets doc", render_assets_doc),
+        ("zmeta shader material doc", zmeta_doc),
+    ] {
+        assert_contains_all(
+            label,
+            &source,
+            &[
+                "Runtime 15 M2 render material stale texture fixture naming hard cutover",
+                "runtime_15_render_material_stale_texture_fixture_naming_hard_cutover_static_passed_cargo_deferred",
+                "graphics/scene/render_product_streamer_tests/material_runtime.rs",
+                "unresolved_stale_texture",
+                "runtime_15_render_material_stale_texture_fixtures_use_current_names",
+            ],
+        );
+    }
+}
+
+#[test]
+fn runtime_15_render_graph_fallback_fixtures_use_current_names() {
+    let manifest_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let advanced_resources = read_text(
+        &manifest_root.join(
+            "src/graphics/core/core/resources/advanced_plugin_resources.rs",
+        ),
+        "advanced plugin resources fixture source should be readable",
+    );
+    let compute_workload = read_text(
+        &manifest_root.join(
+            "src/graphics/render_graph_execution_record/compute_workload.rs",
+        ),
+        "render graph compute workload fixture source should be readable",
+    );
+    let compute_workload_tests = read_text(
+        &manifest_root.join(
+            "src/graphics/scene/renderer/tests/compute_workload_cases.rs",
+        ),
+        "render graph compute workload test fixture source should be readable",
+    );
+    let runtime_15_plan = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo_text(
+        manifest_root,
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
+    let module_doc = read_repo_text(
+        manifest_root,
+        "docs/zircon_runtime/structure/module-convention.md",
+    );
+    let render_product_doc = read_repo_text(
+        manifest_root,
+        "docs/zircon_runtime/graphics/render-product-submit.md",
+    );
+    let render_graph_doc =
+        read_repo_text(manifest_root, "docs/zircon_runtime/render_graph/builder.md");
+
+    let render_graph_fixture_sources =
+        format!("{advanced_resources}\n{compute_workload}\n{compute_workload_tests}");
+    assert_contains_all(
+        "render graph fallback fixture names",
+        &render_graph_fixture_sources,
+        &[
+            "fallback-virtual-geometry-without-resource-capability",
+            "unexpected-compute",
+            "unexpected.executor",
+            "unexpected-pipeline",
+        ],
+    );
+    for retired_name in [
+        "legacy-virtual-geometry-without-resource-capability",
+        "legacy-compute",
+        "legacy.executor",
+        "legacy-pipeline",
+    ] {
+        assert!(
+            !render_graph_fixture_sources.contains(retired_name),
+            "render graph fallback fixtures should not retain retired `{retired_name}` wording"
+        );
+    }
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan),
+        ("runtime index", runtime_index),
+        ("review findings", review_findings),
+        ("structure convention", structure_convention),
+        ("module convention doc", module_doc),
+        ("render product submit doc", render_product_doc),
+        ("render graph builder doc", render_graph_doc),
+    ] {
+        assert_contains_all(
+            label,
+            &source,
+            &[
+                "Runtime 15 M2 render graph fallback fixture naming hard cutover",
+                "runtime_15_render_graph_fallback_fixture_naming_hard_cutover_static_passed_cargo_deferred",
+                "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload.rs",
+                "unexpected-compute",
+                "runtime_15_render_graph_fallback_fixtures_use_current_names",
+            ],
+        );
+    }
+}

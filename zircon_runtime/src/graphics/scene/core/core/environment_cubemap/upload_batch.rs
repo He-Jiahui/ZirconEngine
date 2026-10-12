@@ -1,0 +1,292 @@
+use std::fmt;
+use std::sync::Arc;
+
+use crate::core::framework::render::{
+    EnvironmentCubemapUploadReport, SourceCubemapUploadKey, SourceCubemapUploadMip,
+    SOURCE_CUBEMAP_FACE_COUNT,
+};
+use zr_rhi_wgpu::{WgpuBufferUpload, WgpuBufferUploadBatch};
+
+const INITIAL_STAGING_CAPACITY_BYTES: u64 = 64 * 1024;
+
+#[derive(Clone, Copy)]
+struct CubemapUploadCopy {
+    target_index: usize,
+    source_offset: u64,
+    mip_level: u32,
+    face_size: u32,
+    bytes_per_row: u32,
+}
+
+/// Reuses host and GPU staging storage for all prepared environment cubemap uploads in a frame.
+pub(super) struct CubemapUploadStagingArena {
+    buffer: Option<wgpu::Buffer>,
+    capacity_bytes: u64,
+    bytes: Vec<u8>,
+    copies: Vec<CubemapUploadCopy>,
+    statistics: CubemapUploadStagingStatistics,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct CubemapUploadStagingStatistics {
+    observation_epoch: u64,
+    last_scheduled_upload_bytes: u64,
+    last_scheduled_copy_count: u64,
+    peak_scheduled_upload_bytes: u64,
+    peak_scheduled_copy_count: u64,
+    cumulative_scheduled_upload_bytes: u64,
+    scheduled_upload_batch_count: u64,
+    host_staging_growth_batch_count: u64,
+    gpu_staging_growth_batch_count: u64,
+}
+
+impl CubemapUploadStagingStatistics {
+    fn begin_observation(&mut self) {
+        self.observation_epoch = self.observation_epoch.saturating_add(1);
+        self.last_scheduled_upload_bytes = 0;
+        self.last_scheduled_copy_count = 0;
+    }
+
+    fn record_host_capacity_growth(&mut self, previous: usize, current: usize) {
+        if current > previous {
+            self.host_staging_growth_batch_count =
+                self.host_staging_growth_batch_count.saturating_add(1);
+        }
+    }
+
+    fn record_gpu_capacity_growth(&mut self, previous: u64, current: u64) {
+        if current > previous {
+            self.gpu_staging_growth_batch_count =
+                self.gpu_staging_growth_batch_count.saturating_add(1);
+        }
+    }
+
+    fn record_scheduled_batch(&mut self, upload_bytes: u64, copy_count: u64) {
+        self.last_scheduled_upload_bytes = upload_bytes;
+        self.last_scheduled_copy_count = copy_count;
+        self.peak_scheduled_upload_bytes = self.peak_scheduled_upload_bytes.max(upload_bytes);
+        self.peak_scheduled_copy_count = self.peak_scheduled_copy_count.max(copy_count);
+        self.cumulative_scheduled_upload_bytes = self
+            .cumulative_scheduled_upload_bytes
+            .saturating_add(upload_bytes);
+        self.scheduled_upload_batch_count = self.scheduled_upload_batch_count.saturating_add(1);
+    }
+
+    fn report(
+        self,
+        committed_upload_key: SourceCubemapUploadKey,
+        pending_upload_key: Option<SourceCubemapUploadKey>,
+        host_staging_capacity_bytes: usize,
+        gpu_staging_capacity_bytes: u64,
+        resident_source_texture_bytes: u64,
+        resident_specular_texture_bytes: u64,
+        resident_irradiance_texture_bytes: u64,
+        resident_texture_bytes: u64,
+    ) -> EnvironmentCubemapUploadReport {
+        EnvironmentCubemapUploadReport {
+            observation_epoch: self.observation_epoch,
+            committed_upload_key,
+            pending_upload_key,
+            last_scheduled_upload_bytes: self.last_scheduled_upload_bytes,
+            last_scheduled_copy_count: self.last_scheduled_copy_count,
+            peak_scheduled_upload_bytes: self.peak_scheduled_upload_bytes,
+            peak_scheduled_copy_count: self.peak_scheduled_copy_count,
+            cumulative_scheduled_upload_bytes: self.cumulative_scheduled_upload_bytes,
+            scheduled_upload_batch_count: self.scheduled_upload_batch_count,
+            host_staging_capacity_bytes: u64::try_from(host_staging_capacity_bytes)
+                .unwrap_or(u64::MAX),
+            gpu_staging_capacity_bytes,
+            host_staging_growth_batch_count: self.host_staging_growth_batch_count,
+            gpu_staging_growth_batch_count: self.gpu_staging_growth_batch_count,
+            resident_source_texture_bytes,
+            resident_specular_texture_bytes,
+            resident_irradiance_texture_bytes,
+            resident_texture_bytes,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum CubemapUploadStagingError {
+    EmptyUpload,
+    OffsetOverflow,
+    ByteLengthOverflow,
+    CapacityOverflow,
+    MissingTarget,
+    InvalidUploadRange,
+}
+
+impl fmt::Display for CubemapUploadStagingError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::EmptyUpload => "environment cubemap staging upload is empty",
+            Self::OffsetOverflow => "environment cubemap staging offset overflowed",
+            Self::ByteLengthOverflow => "environment cubemap staging byte length overflowed",
+            Self::CapacityOverflow => "environment cubemap staging capacity overflowed",
+            Self::MissingTarget => "environment cubemap staging target is missing",
+            Self::InvalidUploadRange => "environment cubemap staging upload range is invalid",
+        })
+    }
+}
+
+impl Default for CubemapUploadStagingArena {
+    fn default() -> Self {
+        Self {
+            buffer: None,
+            capacity_bytes: 0,
+            bytes: Vec::new(),
+            copies: Vec::new(),
+            statistics: CubemapUploadStagingStatistics::default(),
+        }
+    }
+}
+
+impl CubemapUploadStagingArena {
+    pub(super) fn begin_observation(&mut self) {
+        self.statistics.begin_observation();
+    }
+
+    pub(super) fn report(
+        &self,
+        committed_upload_key: SourceCubemapUploadKey,
+        pending_upload_key: Option<SourceCubemapUploadKey>,
+        resident_source_texture_bytes: u64,
+        resident_specular_texture_bytes: u64,
+        resident_irradiance_texture_bytes: u64,
+        resident_texture_bytes: u64,
+    ) -> EnvironmentCubemapUploadReport {
+        self.statistics.report(
+            committed_upload_key,
+            pending_upload_key,
+            self.bytes.capacity(),
+            self.capacity_bytes,
+            resident_source_texture_bytes,
+            resident_specular_texture_bytes,
+            resident_irradiance_texture_bytes,
+            resident_texture_bytes,
+        )
+    }
+
+    pub(super) fn encode(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        uploads: &[Option<(&wgpu::Texture, &[SourceCubemapUploadMip])>],
+        frame_uploads: &mut WgpuBufferUploadBatch,
+    ) -> Result<(), CubemapUploadStagingError> {
+        let previous_host_capacity = self.bytes.capacity();
+        self.bytes.clear();
+        self.copies.clear();
+
+        for (target_index, upload) in uploads.iter().enumerate() {
+            let Some((_, mips)) = upload else {
+                continue;
+            };
+            for mip in *mips {
+                let source_offset = aligned_copy_offset(self.bytes.len())
+                    .ok_or(CubemapUploadStagingError::OffsetOverflow)?;
+                self.bytes.resize(source_offset, 0);
+                self.bytes.extend_from_slice(mip.bytes());
+                let source_offset = u64::try_from(source_offset)
+                    .map_err(|_| CubemapUploadStagingError::OffsetOverflow)?;
+                self.copies.push(CubemapUploadCopy {
+                    target_index,
+                    source_offset,
+                    mip_level: mip.mip_level(),
+                    face_size: mip.face_size(),
+                    bytes_per_row: mip.bytes_per_row(),
+                });
+            }
+        }
+        self.statistics
+            .record_host_capacity_growth(previous_host_capacity, self.bytes.capacity());
+
+        if self.copies.is_empty() {
+            return Err(CubemapUploadStagingError::EmptyUpload);
+        }
+        self.ensure_capacity(device)?;
+        let Some(buffer) = self.buffer.as_ref() else {
+            return Err(CubemapUploadStagingError::CapacityOverflow);
+        };
+        if self.copies.iter().any(|copy| {
+            uploads
+                .get(copy.target_index)
+                .and_then(Option::as_ref)
+                .is_none()
+        }) {
+            return Err(CubemapUploadStagingError::MissingTarget);
+        }
+
+        let payload: Arc<[u8]> = Arc::from(self.bytes.as_slice());
+        frame_uploads.push(
+            WgpuBufferUpload::new(buffer.clone(), 0, payload, 0..self.bytes.len())
+                .ok_or(CubemapUploadStagingError::InvalidUploadRange)?,
+        );
+        let upload_bytes = u64::try_from(self.bytes.len())
+            .map_err(|_| CubemapUploadStagingError::ByteLengthOverflow)?;
+        let copy_count = u64::try_from(self.copies.len()).unwrap_or(u64::MAX);
+        self.statistics
+            .record_scheduled_batch(upload_bytes, copy_count);
+        for copy in &self.copies {
+            let Some((texture, _)) = uploads.get(copy.target_index).and_then(Option::as_ref) else {
+                return Err(CubemapUploadStagingError::MissingTarget);
+            };
+            encoder.copy_buffer_to_texture(
+                wgpu::TexelCopyBufferInfo {
+                    buffer,
+                    layout: wgpu::TexelCopyBufferLayout {
+                        offset: copy.source_offset,
+                        bytes_per_row: Some(copy.bytes_per_row),
+                        rows_per_image: Some(copy.face_size),
+                    },
+                },
+                wgpu::TexelCopyTextureInfo {
+                    texture: *texture,
+                    mip_level: copy.mip_level,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                wgpu::Extent3d {
+                    width: copy.face_size,
+                    height: copy.face_size,
+                    depth_or_array_layers: SOURCE_CUBEMAP_FACE_COUNT as u32,
+                },
+            );
+        }
+        Ok(())
+    }
+
+    fn ensure_capacity(&mut self, device: &wgpu::Device) -> Result<(), CubemapUploadStagingError> {
+        let required_bytes = u64::try_from(self.bytes.len())
+            .map_err(|_| CubemapUploadStagingError::ByteLengthOverflow)?;
+        if required_bytes <= self.capacity_bytes {
+            return Ok(());
+        }
+
+        let capacity_bytes = required_bytes
+            .max(INITIAL_STAGING_CAPACITY_BYTES)
+            .checked_next_power_of_two()
+            .ok_or(CubemapUploadStagingError::CapacityOverflow)?;
+        self.buffer = Some(device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-scene-environment-cubemap-upload-staging"),
+            size: capacity_bytes,
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        }));
+        self.statistics
+            .record_gpu_capacity_growth(self.capacity_bytes, capacity_bytes);
+        self.capacity_bytes = capacity_bytes;
+        Ok(())
+    }
+}
+
+fn aligned_copy_offset(byte_len: usize) -> Option<usize> {
+    let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize;
+    byte_len
+        .checked_add(alignment - 1)
+        .map(|value| value / alignment * alignment)
+}
+
+#[cfg(test)]
+#[path = "../../../renderer/core/core/tests/upload_batch.rs"]
+mod tests;

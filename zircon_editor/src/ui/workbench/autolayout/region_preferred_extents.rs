@@ -30,5 +30,5 @@ impl<'a> LogicalRegionPreferredExtents<'a> {
 }
 
 #[cfg(test)]
-#[path = "region_preferred_extents/tests/allocation_tests.rs"]
+#[path = "tests/allocation.rs"]
 mod allocation_tests;

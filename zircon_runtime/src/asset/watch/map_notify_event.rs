@@ -80,5 +80,5 @@ where
 }
 
 #[cfg(test)]
-#[path = "tests/map_notify_event_optimization_batch_20260830bq_runtime_tests.rs"]
+#[path = "tests/map_notify_event_perf.rs"]
 mod optimization_batch_20260830bq_runtime_tests;

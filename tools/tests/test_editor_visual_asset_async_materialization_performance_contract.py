@@ -5,72 +5,72 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 LOADING = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/loading.rs"
 )
 PIXELS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/loading/pixels.rs"
 )
 ASYNC_LOADER = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/loading/async_loader.rs"
 )
 PIXEL_CACHE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/loading/cache.rs"
 )
-WINDOW = ROOT / "zircon_editor/src/ui/retained_host/host_contract/window.rs"
+WINDOW = ROOT / "zircon_editor/src/ui/retained/contract/window.rs"
 WINDOW_LIFECYCLE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs"
+    "zircon_editor/src/ui/retained/contract/window/lifecycle.rs"
 )
 WINDOW_REDRAW = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs"
+    "zircon_editor/src/ui/retained/contract/window/redraw.rs"
 )
 EVENT_LOOP_LIFECYCLE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs"
 )
 EVENT_WAKE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_wake.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_wake.rs"
 )
 STARTUP = ROOT / (
-    "zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs"
+    "zircon_editor/src/ui/retained/app/host_lifecycle/startup/with_viewport.rs"
 )
 JOB_LIMITS = ROOT / "zircon_editor/src/core/jobs/limits.rs"
 RENDER_COMMAND_IMAGE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "render_command_conversion/image.rs"
 )
 TEMPLATE_NODE_IMAGE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_node_images/command.rs"
 )
 THUMBNAIL_PREVIEW = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_asset_placeholder_visuals/preview_image.rs"
 )
 TEMPLATE_ICON_ASSETS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_icon_assets.rs"
 )
 PLACEHOLDER_VISUALS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_asset_placeholder_visuals.rs"
 )
 AVATAR_ICON = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "material_primitives/avatar/image/icon.rs"
 )
 AVATAR_PIXELS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "material_primitives/avatar/image/pixels.rs"
 )
 AVATAR_COMMANDS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "material_primitives/avatar/commands.rs"
 )
 AVATAR_CONTENT = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "material_primitives/avatar/commands/content.rs"
 )
 

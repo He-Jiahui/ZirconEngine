@@ -248,9 +248,9 @@ fn parent_of(tree: &CompiledBehaviorTree, node_index: u32) -> Option<u32> {
 }
 
 #[cfg(test)]
-#[path = "tests/abort_parent_index_contract_tests.rs"]
+#[path = "../tests/abort_parent_index_contract.rs"]
 mod parent_index_contract_tests;
 
 #[cfg(test)]
-#[path = "tests/abort_abort_request_performance_tests.rs"]
+#[path = "../tests/abort_abort_request_perf.rs"]
 mod abort_request_performance_tests;

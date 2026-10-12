@@ -10,8 +10,8 @@ pub(super) use zircon_runtime_host::foreign_output::{
 };
 
 #[cfg(test)]
-#[path = "foreign_output/tests/performance_tests.rs"]
+#[path = "../../runtime_session/foreign_output/tests/perf.rs"]
 mod performance_tests;
 #[cfg(test)]
-#[path = "foreign_output/tests/cases.rs"]
+#[path = "../../runtime_session/foreign_output/tests/cases.rs"]
 mod tests;

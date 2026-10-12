@@ -19,7 +19,11 @@ use zircon_runtime::core::manager::ManagerResolver;
 
 use super::support::*;
 
+#[path = "global_layout.rs"]
 mod global_layout;
+#[path = "session_startup.rs"]
 mod session_startup;
+#[path = "window_topology.rs"]
 mod window_topology;
+#[path = "workspace_restore.rs"]
 mod workspace_restore;

@@ -328,5 +328,5 @@ fn is_editing_text_property(property: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "editing/tests/borrowed_node_lookup_tests.rs"]
+#[path = "../../tree_view/editing/tests/borrowed_node_lookup.rs"]
 mod borrowed_node_lookup_tests;

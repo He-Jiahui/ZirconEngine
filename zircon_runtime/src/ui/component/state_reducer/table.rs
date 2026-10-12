@@ -262,9 +262,9 @@ fn normalize_sort_direction(value: &str) -> Option<&'static str> {
 }
 
 #[cfg(test)]
-#[path = "table/tests/in_place_width_tests.rs"]
+#[path = "table/tests/in_place_width.rs"]
 mod in_place_width_tests;
 
 #[cfg(test)]
-#[path = "table/tests/borrowed_sort_setting_tests.rs"]
+#[path = "../table/tests/borrowed_sort_setting.rs"]
 mod borrowed_sort_setting_tests;

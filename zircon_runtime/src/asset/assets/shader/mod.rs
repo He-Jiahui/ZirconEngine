@@ -1,12 +1,20 @@
 //! 着色器资产模块把导入模型、readiness 报告和 zshader 文档统一导出；消费者通过这些类型进入材质编译与运行时资源流。
 
+#[path = "dependency.rs"]
 mod dependency;
+#[path = "entry_point.rs"]
 mod entry_point;
+#[path = "language.rs"]
 mod language;
+#[path = "property_layout.rs"]
 mod property_layout;
+#[path = "readiness.rs"]
 mod readiness;
+#[path = "shader_asset.rs"]
 mod shader_asset;
+#[path = "source_contract.rs"]
 mod source_contract;
+#[path = "zshader.rs"]
 mod zshader;
 
 pub use dependency::ShaderDependencyAsset;

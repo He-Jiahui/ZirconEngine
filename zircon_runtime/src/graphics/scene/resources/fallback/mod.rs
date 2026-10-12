@@ -1,4 +1,6 @@
+#[path = "create_fallback_texture.rs"]
 mod create_fallback_texture;
+#[path = "fallback_shader_uri.rs"]
 mod fallback_shader_uri;
 
 #[cfg(test)]

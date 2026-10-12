@@ -1,3 +1,4 @@
+#[path = "kernel.rs"]
 mod kernel;
 
 use zircon_runtime::asset::{AssetImportError, TextureAsset, TexturePayload};

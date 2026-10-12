@@ -93,7 +93,7 @@ class Frameworks01PhysicsSettingsErrorBoundaryTests(unittest.TestCase):
         self.assertEqual([], compatibility_aliases)
 
         framework_core_error_consumers = []
-        for path in (REPO_ROOT / "zircon_runtime/src/core/framework").rglob("*.rs"):
+        for path in (REPO_ROOT / "zircon_runtime/src/core").rglob("*.rs"):
             source = path.read_text(encoding="utf-8")
             if "CoreError" in source:
                 framework_core_error_consumers.append(

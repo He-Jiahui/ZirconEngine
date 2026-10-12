@@ -4,7 +4,7 @@ use crate::asset::{MaterialAsset, ShaderAsset, ShaderMaterialPropertyAsset};
 use crate::core::framework::render::{MaterialPropertyKind, RenderMaterialPropertyValue};
 
 #[cfg(test)]
-#[path = "property_values/tests/schema_index_tests.rs"]
+#[path = "property_values/tests/schema_index.rs"]
 mod schema_index_tests;
 
 pub fn shader_property_values_for_shader(

@@ -8,7 +8,7 @@ param(
         "zircon_runtime/crates/zr_rhi/src/ui_surface.rs",
         "zircon_runtime/crates/zr_rhi/src/ui_surface",
         "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs",
-        "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface",
+        "zircon_runtime/crates/zr_rhi_wgpu/src",
         "zircon_runtime_interface/src/ui",
         "zircon_editor/src/ui"
     )
@@ -111,7 +111,7 @@ function Export-ZirconUiStructuralHotspotAudit {
             "zircon_runtime/crates/zr_rhi/src/ui_surface.rs",
             "zircon_runtime/crates/zr_rhi/src/ui_surface",
             "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs",
-            "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface",
+            "zircon_runtime/crates/zr_rhi_wgpu/src",
             "zircon_runtime_interface/src/ui",
             "zircon_editor/src/ui"
         )

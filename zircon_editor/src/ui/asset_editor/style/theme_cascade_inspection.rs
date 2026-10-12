@@ -283,9 +283,9 @@ fn push_rule_block_value(entries: &mut Vec<String>, path: String, value: &Value)
 }
 
 #[cfg(test)]
-#[path = "theme_cascade_inspection/tests/borrowed_definition_tests.rs"]
+#[path = "tests/borrowed_definition.rs"]
 mod borrowed_definition_tests;
 
 #[cfg(test)]
-#[path = "theme_cascade_inspection/tests/optimization_batch_jm_editor652_tests.rs"]
+#[path = "theme_cascade_inspection/tests/perf.rs"]
 mod optimization_batch_jm_editor652_tests;

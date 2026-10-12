@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OWNER = ROOT / "zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu"
+OWNER = ROOT / "zircon_editor/src/ui/retained/contract/context_menu"
 PATH = OWNER / "path.rs"
 PROVIDER = OWNER / "provider.rs"
 REQUEST = OWNER / "request.rs"

@@ -31,5 +31,5 @@ impl UiEventManager {
 }
 
 #[cfg(test)]
-#[path = "subscription/tests/owned_notification_fanout_tests.rs"]
+#[path = "tests/owned_notification_fanout.rs"]
 mod owned_notification_fanout_tests;

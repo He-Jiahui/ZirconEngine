@@ -97,5 +97,5 @@ pub(crate) fn import_obj(
 }
 
 #[cfg(test)]
-#[path = "tests/import_obj_plugins07_obj_snapshot_tests.rs"]
+#[path = "../../ingest/tests/import_obj_plugins07_obj_snapshot.rs"]
 mod plugins07_obj_snapshot_tests;

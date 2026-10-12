@@ -185,7 +185,7 @@ fn viewport_pointer_route_priority_matches_runtime_hit_target_order() {
 #[test]
 fn viewport_perspective_camera_navigation_uses_runtime_orbit_controller() {
     let navigation_source =
-        include_str!("../../scene/viewport/controller/scene_viewport_controller_navigation.rs");
+        include_str!("../../scene/viewport/controller/navigation.rs");
     let state_source = include_str!("../../scene/viewport/controller/scene_viewport_state.rs");
 
     assert!(state_source.contains("OrbitCameraController"));
@@ -201,7 +201,7 @@ fn viewport_perspective_camera_navigation_uses_runtime_orbit_controller() {
 #[test]
 fn viewport_controller_has_no_legacy_single_selection_accessors() {
     let accessors_source =
-        include_str!("../../scene/viewport/controller/scene_viewport_controller_accessors.rs");
+        include_str!("../../scene/viewport/controller/accessors.rs");
 
     assert!(!accessors_source.contains("fn selected_node("));
     assert!(!accessors_source.contains("fn set_selected_node("));

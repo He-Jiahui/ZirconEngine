@@ -1,0 +1,137 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。通过源码文本核对父子路由、状态镜像和文件预算。
+use super::{
+    assert_contains_all, CHILD_OWNER_GUARD, CHILD_OWNER_SLICE, CHILD_OWNER_STATUS, CHILD_PATHS,
+    PARENT_PATH, SPLIT_LAYOUT_FRAMEWORKS_STATUS, SPLIT_LAYOUT_GUARD, SPLIT_LAYOUT_SLICE,
+    SPLIT_LAYOUT_STATUS,
+};
+
+#[test]
+fn runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed() {
+    let route = include_str!("../../runtime_15_m2/core_scene/scene_ecs_owners.rs");
+    let observer = include_str!("../../../scene_ecs_owners/observer_callback_registry.rs");
+    let query_state = include_str!("../../../scene_ecs_owners/query_state_many_item_array.rs");
+    let component_storage = include_str!("../../../scene_ecs_owners/component_storage_component_results.rs");
+    let split_layout = include_str!("split_layout.rs");
+    let children = format!("{observer}\n{query_state}\n{component_storage}\n{split_layout}");
+
+    assert_contains_all(
+        "core-scene scene-ECS owner route mounts child owners",
+        route,
+        &[
+            "mod observer_callback_registry;",
+            "mod query_state_many_item_array;",
+            "mod component_storage_component_results;",
+            "mod split_layout;",
+        ],
+    );
+    assert_contains_all(
+        "core-scene scene-ECS owner route keeps status constants",
+        route,
+        &[
+            CHILD_OWNER_SLICE,
+            CHILD_OWNER_STATUS,
+            CHILD_OWNER_GUARD,
+            SPLIT_LAYOUT_SLICE,
+            SPLIT_LAYOUT_STATUS,
+            SPLIT_LAYOUT_GUARD,
+        ],
+    );
+
+    for moved_guard in [
+        "runtime_15_scene_ecs_observer_callback_registry_uses_owner_name",
+        "runtime_15_scene_ecs_query_state_many_item_array_uses_owner_name",
+        "runtime_15_scene_ecs_component_storage_component_results_uses_owner_name",
+    ] {
+        assert!(
+            !route.contains(&format!("fn {moved_guard}")),
+            "scene_ecs_owners route should not retain `{moved_guard}`"
+        );
+        assert!(
+            children.contains(&format!("fn {moved_guard}")),
+            "scene_ecs_owners children should retain `{moved_guard}`"
+        );
+    }
+
+    for (path, source, max_lines) in [
+        (PARENT_PATH, route, 45usize),
+        (CHILD_PATHS[0], observer, 160),
+        (CHILD_PATHS[1], query_state, 170),
+        (CHILD_PATHS[2], component_storage, 160),
+        (CHILD_PATHS[3], split_layout, 190),
+    ] {
+        let line_count = source.lines().count();
+        assert!(
+            line_count <= max_lines,
+            "{path} has {line_count} lines, expected <= {max_lines}"
+        );
+    }
+
+    let frameworks_output = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
+    );
+    let module_convention = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
+    );
+
+    for (label, source) in [
+        (
+            "Runtime 15 subplan",
+            crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
+        ),
+        (
+            "runtime index",
+            include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+        ),
+        (
+            "frameworks output",
+            frameworks_output,
+        ),
+        (
+            "engine code structure convention",
+            include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+        ),
+        (
+            "engine code review findings",
+            include_str!(
+                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+            ),
+        ),
+        (
+            "module convention doc",
+            module_convention,
+        ),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                SPLIT_LAYOUT_SLICE,
+                SPLIT_LAYOUT_STATUS,
+                SPLIT_LAYOUT_GUARD,
+            ],
+        );
+    }
+    assert_contains_all(
+        "frameworks output records split-layout ownership",
+        frameworks_output,
+        &[
+            SPLIT_LAYOUT_FRAMEWORKS_STATUS,
+            PARENT_PATH,
+            CHILD_PATHS[0],
+            CHILD_PATHS[1],
+            CHILD_PATHS[2],
+            CHILD_PATHS[3],
+        ],
+    );
+    assert_contains_all(
+        "module convention records split-layout ownership",
+        module_convention,
+        &[
+            PARENT_PATH,
+            CHILD_PATHS[0],
+            CHILD_PATHS[1],
+            CHILD_PATHS[2],
+            CHILD_PATHS[3],
+        ],
+    );
+}

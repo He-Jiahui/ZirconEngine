@@ -1,13 +1,24 @@
+#[path = "cache_key.rs"]
 mod cache_key;
+#[path = "cache_payload.rs"]
 mod cache_payload;
+#[path = "chunk_residency.rs"]
 mod chunk_residency;
+#[path = "ibl_bake_artifact_asset_derived.rs"]
 mod ibl_bake_artifact_asset_derived;
+#[path = "ibl_bake_artifact_cache.rs"]
 mod ibl_bake_artifact_cache;
+#[path = "ibl_bake_artifact_runtime_dispatch.rs"]
 mod ibl_bake_artifact_runtime_dispatch;
+#[path = "ibl_bake_artifact_runtime_writeback.rs"]
 mod ibl_bake_artifact_runtime_writeback;
+#[path = "ibl_source_cubemap_bundle_manifest/mod.rs"]
 mod ibl_source_cubemap_bundle_manifest;
+#[path = "ibl_source_cubemap_staging.rs"]
 mod ibl_source_cubemap_staging;
+#[path = "render_manifest/mod.rs"]
 mod render_manifest;
+#[path = "store.rs"]
 mod store;
 
 pub(crate) use ibl_source_cubemap_bundle_manifest::IblSourceImageIdentity;

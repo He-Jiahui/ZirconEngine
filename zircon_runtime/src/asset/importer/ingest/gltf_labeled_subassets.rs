@@ -6,12 +6,13 @@ use crate::asset::{
     SceneMeshPrimitiveBindingAsset, SceneMobilityAsset, TransformAsset,
 };
 
+#[path = "gltf_labeled_subassets/material.rs"]
 mod material;
 #[cfg(test)]
-#[path = "gltf_labeled_subassets/tests/optimization_batch_is_runtime629_tests.rs"]
+#[path = "gltf_labeled_subassets/tests/perf.rs"]
 mod optimization_batch_is_runtime629_tests;
 #[cfg(test)]
-#[path = "gltf_labeled_subassets/tests/texture_variant_tests.rs"]
+#[path = "tests/texture_variant.rs"]
 mod texture_variant_tests;
 
 pub(crate) use self::material::add_gltf_material_subassets;
@@ -332,5 +333,5 @@ pub(crate) fn gltf_label_uri(root_uri: &AssetUri, label: &str) -> AssetUri {
 }
 
 #[cfg(test)]
-#[path = "tests/gltf_labeled_subassets_plugins07_label_uri_tests.rs"]
+#[path = "../../tests/gltf_labeled_subassets_plugins07_label_uri.rs"]
 mod plugins07_label_uri_tests;

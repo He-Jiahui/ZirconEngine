@@ -13,10 +13,15 @@
 //! # 参考
 //!
 //! 参见 [`GamepadAxis`]、[`GamepadAxisInput`]、[`GamepadAxisSettings`]、[`GamepadAxisState`]、[`GamepadAxisTransition`]、[`crate::core::framework::input::InputManager::frame_snapshot()`]。
+#[path = "axis.rs"]
 mod axis;
+#[path = "input.rs"]
 mod input;
+#[path = "settings.rs"]
 mod settings;
+#[path = "state.rs"]
 mod state;
+#[path = "transition.rs"]
 mod transition;
 
 pub use self::{

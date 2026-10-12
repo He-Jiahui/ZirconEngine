@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::UiModelProviderKey;
 
 #[cfg(test)]
-#[path = "model_context/tests/resolve_performance_tests.rs"]
+#[path = "tests/resolve_perf.rs"]
 mod resolve_performance_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

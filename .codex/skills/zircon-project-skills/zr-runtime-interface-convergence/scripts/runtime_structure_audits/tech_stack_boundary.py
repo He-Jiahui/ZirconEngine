@@ -312,7 +312,7 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     editor_index = root / "docs/editor-and-tooling/index.md"
     tech_stack_guard = root / "zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs"
     tech_stack_mirror_guard = (
-        root / "zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs"
+        root / "zircon_runtime/src/tests/contracts/tech_stack/mirror_docs.rs"
     )
     text_shaper_tests = root / "zircon_runtime/src/ui/tests/text_shaper.rs"
     physics_contract_mod = (

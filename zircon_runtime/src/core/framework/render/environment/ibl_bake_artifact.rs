@@ -14,11 +14,13 @@ use super::{
 use crate::core::math::Real;
 use std::ops::{BitOr, BitOrAssign, Range};
 
+#[path = "../ibl_bake_artifact/header_wire.rs"]
 mod header_wire;
+#[path = "../ibl_bake_artifact/payload_codec.rs"]
 mod payload_codec;
 
 #[cfg(test)]
-#[path = "ibl_bake_artifact/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;
 
 use header_wire::{

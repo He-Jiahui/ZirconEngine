@@ -2,11 +2,17 @@
 //! 平台层的中立契约：装配和管理端只能读取事实快照，宿主驱动端负责提交状态转换。
 //! 原生事件循环、窗口对象与持久化后端由进程宿主持有，不经这些类型转交给运行时消费者。
 
+#[path = "application_lifecycle/mod.rs"]
 mod application_lifecycle;
+#[path = "event_loop_scheduler/mod.rs"]
 mod event_loop_scheduler;
+#[path = "host/mod.rs"]
 mod host;
+#[path = "module_identity.rs"]
 mod module_identity;
+#[path = "preferences/mod.rs"]
 mod preferences;
+#[path = "runtime_target_mode.rs"]
 mod runtime_target_mode;
 
 pub use application_lifecycle::{

@@ -2,16 +2,27 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::Instant;
 
+#[path = "component_type_descriptor/mod.rs"]
 mod component_type_descriptor;
+#[path = "entity_path.rs"]
 mod entity_path;
+#[path = "level_manager_error.rs"]
 mod level_manager_error;
+#[path = "level_summary.rs"]
 mod level_summary;
+#[path = "mobility.rs"]
 mod mobility;
+#[path = "module_identity.rs"]
 mod module_identity;
+#[path = "physics/mod.rs"]
 pub mod physics;
+#[path = "property_value.rs"]
 mod property_value;
+#[path = "resource.rs"]
 mod resource;
+#[path = "system_stage.rs"]
 mod system_stage;
+#[path = "world_handle.rs"]
 mod world_handle;
 
 pub type EntityId = u64;

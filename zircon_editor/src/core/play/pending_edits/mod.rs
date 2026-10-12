@@ -1,5 +1,8 @@
+#[path = "intent.rs"]
 mod intent;
+#[path = "queue.rs"]
 mod queue;
+#[path = "resolution.rs"]
 mod resolution;
 
 #[cfg(test)]

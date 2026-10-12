@@ -256,5 +256,5 @@ fn validate_event_manifest(
 }
 
 #[cfg(test)]
-#[path = "tests/event_registration.rs"]
+#[path = "../../register/tests/event_registration.rs"]
 mod tests;

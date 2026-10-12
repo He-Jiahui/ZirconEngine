@@ -22,9 +22,13 @@ const ROOT_ID: UiNodeId = UiNodeId::new(1);
 const BACK_ID: UiNodeId = UiNodeId::new(2);
 const FRONT_ID: UiNodeId = UiNodeId::new(3);
 
+#[path = "surface_frame_authority/arranged_authority.rs"]
 mod arranged_authority;
+#[path = "surface_frame_authority/taffy_flex.rs"]
 mod taffy_flex;
+#[path = "surface_frame_authority/taffy_wrap_grid.rs"]
 mod taffy_wrap_grid;
+#[path = "surface_frame_authority/zircon_fallback.rs"]
 mod zircon_fallback;
 
 fn overlapping_button_surface() -> UiSurface {

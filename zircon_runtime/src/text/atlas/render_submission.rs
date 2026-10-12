@@ -1,8 +1,14 @@
+#[path = "render_submission/frame_driver.rs"]
 mod frame_driver;
+#[path = "render_submission/frame_state.rs"]
 mod frame_state;
+#[path = "render_submission/placeholder.rs"]
 mod placeholder;
+#[path = "render_submission/plan.rs"]
 mod plan;
+#[path = "render_submission/report.rs"]
 mod report;
+#[path = "render_submission/retry.rs"]
 mod retry;
 
 pub(crate) use frame_driver::{

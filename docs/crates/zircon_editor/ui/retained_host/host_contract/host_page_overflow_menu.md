@@ -8,8 +8,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/page_overflow_menu.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/chrome/tabs/host_page.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/chrome_route.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/model.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/page_overflow.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/model.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/page_overflow.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay.rs
@@ -21,7 +21,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/host_page_overflow_menu.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/page_overflow.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/page_overflow_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/page_overflow.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/page_overflow.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/page_overflow.rs
   - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome/host_page.rs

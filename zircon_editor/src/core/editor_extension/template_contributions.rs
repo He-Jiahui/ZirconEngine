@@ -155,7 +155,7 @@ fn validate_ui_template_document(
 }
 
 #[cfg(test)]
-#[path = "template_contributions/tests/single_trim_tests.rs"]
+#[path = "contributions/tests/single_trim.rs"]
 mod single_trim_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

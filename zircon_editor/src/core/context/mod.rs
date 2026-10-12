@@ -1,5 +1,8 @@
+#[path = "builder.rs"]
 mod builder;
+#[path = "editor_context.rs"]
 mod editor_context;
+#[path = "tool_scheduler.rs"]
 mod tool_scheduler;
 
 pub use builder::EditorContextBuilder;

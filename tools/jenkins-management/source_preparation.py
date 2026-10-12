@@ -5,6 +5,7 @@ sealed-consumer and preparation-pool authorities; it never emits acceptance.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 import hashlib
 import json
 from pathlib import Path
@@ -176,15 +177,24 @@ def materialize_source(state, *, approved, owner, preparation_key_value, source_
     manifest = sealed["sourceManifest"]
     if digest(manifest) != sealed["sealedInputRef"]:
         raise ValueError("Sealed manifest digest differs")
-    normalized, desired = pools._manifest(manifest, objects, approved)
     destination = source
     if sources(manifest):
+        # Prefixing must not hide an invalid original engine schema or path.
+        entries = manifest.get("entries")
+        if not isinstance(entries, list):
+            raise pools._error("sealed_manifest_missing", "sealed input manifest entries are required")
+        for entry in entries:
+            if not isinstance(entry, Mapping):
+                raise pools._error("manifest_entry_invalid", "sealed input entry is not an object")
+            pools._relative(entry.get("path"))
         if source.name != "source":
             raise ValueError("Sibling dependency requires the fixed inputs/source layout")
         verify_objects(manifest, objects)
         destination = physical_path_under(approved, source.parent)
         normalized, desired = pools._manifest(flattened(manifest), objects, approved)
         pools._check_tree(destination)
+    else:
+        normalized, desired = pools._manifest(manifest, objects, approved)
     def prune_empty_owned_parents(paths):
         # File deletions may leave parents previously owned by this exact
         # manifest. Remove only those parents, only while physically empty.

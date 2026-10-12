@@ -1,8 +1,14 @@
+#[path = "fallback_query/geometry.rs"]
 mod geometry;
+#[path = "fallback_query/graph.rs"]
 mod graph;
+#[path = "fallback_query/path.rs"]
 mod path;
+#[path = "fallback_query/raycast.rs"]
 mod raycast;
+#[path = "fallback_query/sampling.rs"]
 mod sampling;
+#[path = "fallback_query/validation.rs"]
 mod validation;
 
 pub(crate) use self::path::find_path;

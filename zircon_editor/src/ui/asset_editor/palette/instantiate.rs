@@ -391,13 +391,13 @@ fn new_child_mount_for_parent(
 }
 
 #[cfg(test)]
-#[path = "instantiate/tests/control_id_index_tests.rs"]
+#[path = "instantiate/tests/control_id_index.rs"]
 mod control_id_index_tests;
 
 #[cfg(test)]
-#[path = "instantiate/tests/child_mount_validation_tests.rs"]
+#[path = "../../palette/instantiate/tests/child_mount_validation.rs"]
 mod child_mount_validation_tests;
 
 #[cfg(test)]
-#[path = "instantiate/tests/base_node_id_tests.rs"]
+#[path = "instantiate/tests/base_node_id.rs"]
 mod base_node_id_tests;

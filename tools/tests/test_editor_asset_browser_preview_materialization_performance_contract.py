@@ -9,31 +9,31 @@ THUMBNAIL_NODES = ROOT / (
     "zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs"
 )
 PIXEL_LOADER = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/loading/pixels.rs"
 )
 PIXEL_CACHE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/loading/cache.rs"
 )
 SVG_TREE_CACHE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/svg/cache.rs"
 )
 THUMBNAIL_PAINT = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_asset_placeholder_visuals/preview_image.rs"
 )
 PREVIEW_ARTIFACT = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/preview_artifact.rs"
 )
 CANDIDATE_QUERY = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/candidates/query.rs"
 )
 SHELL_PRESENTATION = ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs"
+    "zircon_editor/src/ui/layouts/windows/window/shell_presentation.rs"
 )
 VIEWS_MOD = ROOT / "zircon_editor/src/ui/layouts/views/mod.rs"
 EAGER_ASSET_PRESENTATION = ROOT / (

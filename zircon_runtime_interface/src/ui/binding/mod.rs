@@ -1,3 +1,4 @@
+#[path = "model/mod.rs"]
 mod model;
 
 pub use model::{

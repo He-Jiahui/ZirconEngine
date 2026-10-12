@@ -370,5 +370,5 @@ fn apply_meshopt_filter(destination: &mut [u8], job: &MeshoptDecodeJob) {
 }
 
 #[cfg(test)]
-#[path = "tests/gltf_meshopt_plugins07_meshopt_collection_tests.rs"]
+#[path = "../../ingest/tests/gltf_meshopt_plugins07_meshopt_collect.rs"]
 mod plugins07_meshopt_collection_tests;

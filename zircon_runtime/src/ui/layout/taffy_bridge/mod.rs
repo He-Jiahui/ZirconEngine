@@ -1,4 +1,6 @@
+#[path = "compute.rs"]
 mod compute;
+#[path = "product_cache.rs"]
 mod product_cache;
 
 use taffy::style::{Display, Style};

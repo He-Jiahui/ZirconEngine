@@ -13,7 +13,7 @@ use std::sync::{
 };
 
 #[cfg(test)]
-#[path = "line/tests/performance_tests.rs"]
+#[path = "../../source_map/line/tests/perf.rs"]
 mod performance_tests;
 
 const EXACT_ADVANCE_PREFIX_LINEAR_QUERY_LIMIT: u8 = 2;

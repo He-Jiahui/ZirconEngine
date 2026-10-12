@@ -65,7 +65,7 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
 
 #[test]
 fn particle_shader_preserves_sprite_alpha_for_transparent_blending() {
-    let shader = include_str!("../../scene/scene_renderer/particle/shaders/particle.wgsl");
+    let shader = include_str!("../../scene/renderer/particle/shaders/particle.wgsl");
 
     assert!(
         shader.contains("return input.color;"),

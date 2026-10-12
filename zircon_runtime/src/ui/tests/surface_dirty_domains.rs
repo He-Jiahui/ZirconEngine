@@ -22,12 +22,19 @@ use zircon_runtime_interface::ui::{
     tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
 };
 
+#[path = "surface_dirty_domains/authored_frames.rs"]
 mod authored_frames;
+#[path = "surface_dirty_domains/authored_geometry.rs"]
 mod authored_geometry;
+#[path = "surface_dirty_domains/incremental_layout.rs"]
 mod incremental_layout;
+#[path = "surface_dirty_domains/mutation_state.rs"]
 mod mutation_state;
+#[path = "surface_dirty_domains/patch_publication.rs"]
 mod patch_publication;
+#[path = "surface_dirty_domains/rebuild_domains.rs"]
 mod rebuild_domains;
+#[path = "surface_dirty_domains/render_domains.rs"]
 mod render_domains;
 
 #[test]

@@ -1,4 +1,6 @@
+#[path = "journal.rs"]
 mod journal;
+#[path = "state.rs"]
 mod state;
 
 pub(crate) use journal::{RenderDirtyEntityJournal, RenderDirtyWorldId};

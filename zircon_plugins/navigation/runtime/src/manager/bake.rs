@@ -1,18 +1,30 @@
+#[path = "bake/area_volume.rs"]
 mod area_volume;
+#[path = "bake/asset.rs"]
 mod asset;
+#[path = "bake/diagnostics.rs"]
 mod diagnostics;
+#[path = "bake/dirty.rs"]
 mod dirty;
+#[path = "bake/filter.rs"]
 mod filter;
+#[path = "bake/geometry.rs"]
 mod geometry;
+#[path = "bake/geometry_provider.rs"]
 mod geometry_provider;
+#[path = "bake/modifier.rs"]
 mod modifier;
+#[path = "bake/source_selection.rs"]
 mod source_selection;
+#[path = "bake/surface.rs"]
 mod surface;
+#[path = "bake/task_pool.rs"]
 pub(super) mod task_pool;
+#[path = "bake/tiled.rs"]
 mod tiled;
 
 #[cfg(test)]
-#[path = "bake/tests/geometry_provider_generation_tests.rs"]
+#[path = "../tests/geometry_provider_generate.rs"]
 mod geometry_provider_generation_tests;
 
 use std::any::Any;

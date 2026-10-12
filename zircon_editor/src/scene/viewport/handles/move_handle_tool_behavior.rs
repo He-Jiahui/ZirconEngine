@@ -95,5 +95,5 @@ impl HandleTool for MoveHandleTool {
 }
 
 #[cfg(test)]
-#[path = "move_handle_tool_behavior/tests/single_allocation_overlay_tests.rs"]
+#[path = "tests/single_alloc_overlay.rs"]
 mod single_allocation_overlay_tests;

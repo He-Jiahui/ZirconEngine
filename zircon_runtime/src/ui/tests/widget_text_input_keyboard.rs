@@ -19,12 +19,19 @@ use zircon_runtime_interface::ui::{
     widget::{UiWidgetBehavior, UiWidgetContract, UiWidgetEvent},
 };
 
+#[path = "widget_text_input_keyboard/basic_editing.rs"]
 mod basic_editing;
+#[path = "widget_text_input_keyboard/clipboard_newline.rs"]
 mod clipboard_newline;
+#[path = "widget_text_input_keyboard/edit_to_render_profile.rs"]
 mod edit_to_render_profile;
+#[path = "retained_document_session.rs"]
 mod retained_document_session;
+#[path = "widget_text_input_keyboard/selection_navigation.rs"]
 mod selection_navigation;
+#[path = "widget_text_input_keyboard/text_ime.rs"]
 mod text_ime;
+#[path = "widget_text_input_keyboard/word_shortcuts.rs"]
 mod word_shortcuts;
 
 fn assert_widget_binding_report(

@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 完善 CoreRuntime 公开接口说明
 tests:
-  - zircon_runtime/src/core/runtime/tests/activation
+  - zircon_runtime/src/core/runtime/tests
   - zircon_runtime/src/core/runtime/tests/tasks.rs
 doc_type: module-detail
 ---

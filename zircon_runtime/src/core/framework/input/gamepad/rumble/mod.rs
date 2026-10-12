@@ -15,7 +15,9 @@
 //! # 参考
 //!
 //! [`crate::core::framework::input::GamepadRumbleIntensity`]、[`crate::core::framework::input::GamepadRumbleRequest`]、[`crate::core::framework::input::InputEvent::GamepadRumbleRequest`]、[`crate::core::framework::input::InputManager::drain_gamepad_rumble_requests()`]
+#[path = "intensity.rs"]
 mod intensity;
+#[path = "request.rs"]
 mod request;
 
 pub use self::{intensity::GamepadRumbleIntensity, request::GamepadRumbleRequest};

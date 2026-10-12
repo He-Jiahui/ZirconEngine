@@ -192,5 +192,5 @@ fn disabled_output(input: PickingPipelineInput<'_>) -> PickingPipelineOutput {
 }
 
 #[cfg(test)]
-#[path = "tests/pipeline_optimization_batch_20260830ck_runtime_tests.rs"]
+#[path = "tests/pipeline_perf.rs"]
 mod optimization_batch_20260830ck_runtime_tests;

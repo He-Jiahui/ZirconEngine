@@ -1,5 +1,8 @@
+#[path = "agent_workflow.rs"]
 mod agent_workflow;
+#[path = "data_surfaces.rs"]
 mod data_surfaces;
+#[path = "shared.rs"]
 mod shared;
 
 use zircon_runtime_interface::ui::{

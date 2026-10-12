@@ -556,9 +556,9 @@ fn append_output_budget_diagnostics(
 }
 
 #[cfg(test)]
-#[path = "tests/output_performance_source_guards.rs"]
+#[path = "tests/output_perf_source_guards.rs"]
 mod performance_source_guards;
 
 #[cfg(test)]
-#[path = "output/tests/drain_all_capacity_tests.rs"]
+#[path = "output/tests/drain_all_capacity.rs"]
 mod drain_all_capacity_tests;

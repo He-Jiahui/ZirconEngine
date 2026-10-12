@@ -1,4 +1,6 @@
+#[path = "generation.rs"]
 mod generation;
+#[path = "impact.rs"]
 mod impact;
 
 pub(crate) use generation::UiAssetDependencyGeneration;

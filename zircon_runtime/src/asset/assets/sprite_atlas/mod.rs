@@ -1,4 +1,6 @@
+#[path = "layout.rs"]
 mod layout;
+#[path = "validation.rs"]
 mod validation;
 
 pub use layout::{

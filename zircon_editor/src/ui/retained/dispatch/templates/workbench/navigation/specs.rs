@@ -1,0 +1,116 @@
+#[path = "../../../workbench/specs/data_production.rs"]
+mod data_production;
+#[path = "../../../workbench/specs/gameplay_animation.rs"]
+mod gameplay_animation;
+#[path = "../../../workbench/specs/gameplay_state.rs"]
+mod gameplay_state;
+#[path = "../../../workbench/specs/online_sessions.rs"]
+mod online_sessions;
+#[path = "../../../workbench/specs/render_asset_vfx.rs"]
+mod render_asset_vfx;
+#[path = "../../../workbench/specs/runtime_state.rs"]
+mod runtime_state;
+#[path = "../../../workbench/specs/simulation_physics.rs"]
+mod simulation_physics;
+#[path = "../specs/types.rs"]
+mod types;
+#[path = "../../../workbench/specs/ui_diagnostics.rs"]
+mod ui_diagnostics;
+#[path = "../../../workbench/specs/world_building.rs"]
+mod world_building;
+
+pub(super) use types::{ActionControl, ExtensionNavigationSpec};
+
+pub(in super::super) const EXTENSION_MODULE_WORKSPACE_CONTROLS: &[&str] = &[
+    "WorkbenchExtensionShaderEditorWorkspace",
+    "WorkbenchExtensionLightingBakeWorkspace",
+    "WorkbenchExtensionPostProcessWorkspace",
+    "WorkbenchExtensionSequencerWorkspace",
+    "WorkbenchExtensionMontageEditorWorkspace",
+    "WorkbenchExtensionBlendSpaceWorkspace",
+    "WorkbenchExtensionPoseLibraryWorkspace",
+    "WorkbenchExtensionRetargetWorkspace",
+    "WorkbenchExtensionControlRigWorkspace",
+    "WorkbenchExtensionMotionMatchingWorkspace",
+    "WorkbenchExtensionAnimationCompressionWorkspace",
+    "WorkbenchExtensionTerrainEditorWorkspace",
+    "WorkbenchExtensionFoliageEditorWorkspace",
+    "WorkbenchExtensionLevelStreamingWorkspace",
+    "WorkbenchExtensionLevelVariantWorkspace",
+    "WorkbenchExtensionPrefabEditorWorkspace",
+    "WorkbenchExtensionScatterEditorWorkspace",
+    "WorkbenchExtensionVolumeEditorWorkspace",
+    "WorkbenchExtensionWeatherEditorWorkspace",
+    "WorkbenchExtensionSpawnRulesWorkspace",
+    "WorkbenchExtensionWorldStateWorkspace",
+    "WorkbenchExtensionCollisionProxyWorkspace",
+    "WorkbenchExtensionPhysicsCollisionWorkspace",
+    "WorkbenchExtensionNavmeshAiWorkspace",
+    "WorkbenchExtensionLobbyEditorWorkspace",
+    "WorkbenchExtensionMatchmakingEditorWorkspace",
+    "WorkbenchExtensionDataTableWorkspace",
+    "WorkbenchExtensionSourceControlWorkspace",
+    "WorkbenchExtensionBuildExportWorkspace",
+    "WorkbenchExtensionAutomationReportWorkspace",
+    "WorkbenchExtensionProjectOverviewWorkspace",
+    "WorkbenchExtensionPluginManagerWorkspace",
+    "WorkbenchExtensionSaveDataWorkspace",
+    "WorkbenchExtensionParticleLibraryWorkspace",
+    "WorkbenchExtensionUiAssetEditorWorkspace",
+    "WorkbenchExtensionUiBindingWorkspace",
+    "WorkbenchExtensionIconLibraryWorkspace",
+    "WorkbenchExtensionAccessibilityAuditWorkspace",
+    "WorkbenchExtensionMenuFlowWorkspace",
+    "WorkbenchExtensionFontAtlasWorkspace",
+    "WorkbenchExtensionConsoleDiagnosticsWorkspace",
+    "WorkbenchExtensionRuntimeDiagnosticsWorkspace",
+    "WorkbenchExtensionPerformanceWorkspace",
+    "WorkbenchExtensionTelemetryDashboardWorkspace",
+];
+
+pub(super) const EXTENSION_MODULE_NAVIGATION_SPECS: &[ExtensionNavigationSpec] = &[
+    world_building::TERRAIN_EDITOR_NAVIGATION_SPEC,
+    world_building::FOLIAGE_EDITOR_NAVIGATION_SPEC,
+    world_building::LEVEL_STREAMING_NAVIGATION_SPEC,
+    world_building::LEVEL_VARIANT_NAVIGATION_SPEC,
+    world_building::PREFAB_EDITOR_NAVIGATION_SPEC,
+    world_building::SCATTER_EDITOR_NAVIGATION_SPEC,
+    world_building::VOLUME_EDITOR_NAVIGATION_SPEC,
+    world_building::WEATHER_EDITOR_NAVIGATION_SPEC,
+    gameplay_state::SPAWN_RULES_NAVIGATION_SPEC,
+    gameplay_state::WORLD_STATE_NAVIGATION_SPEC,
+    gameplay_state::NAVMESH_AI_NAVIGATION_SPEC,
+    simulation_physics::COLLISION_PROXY_NAVIGATION_SPEC,
+    simulation_physics::PHYSICS_COLLISION_NAVIGATION_SPEC,
+    online_sessions::LOBBY_EDITOR_NAVIGATION_SPEC,
+    online_sessions::MATCHMAKING_EDITOR_NAVIGATION_SPEC,
+    gameplay_animation::SEQUENCER_NAVIGATION_SPEC,
+    gameplay_animation::MONTAGE_EDITOR_NAVIGATION_SPEC,
+    gameplay_animation::BLEND_SPACE_NAVIGATION_SPEC,
+    gameplay_animation::POSE_LIBRARY_NAVIGATION_SPEC,
+    gameplay_animation::RETARGET_NAVIGATION_SPEC,
+    gameplay_animation::CONTROL_RIG_NAVIGATION_SPEC,
+    gameplay_animation::MOTION_MATCHING_NAVIGATION_SPEC,
+    gameplay_animation::ANIMATION_COMPRESSION_NAVIGATION_SPEC,
+    render_asset_vfx::SHADER_EDITOR_NAVIGATION_SPEC,
+    render_asset_vfx::LIGHTING_BAKE_NAVIGATION_SPEC,
+    render_asset_vfx::POST_PROCESS_NAVIGATION_SPEC,
+    data_production::DATA_TABLE_NAVIGATION_SPEC,
+    data_production::SOURCE_CONTROL_NAVIGATION_SPEC,
+    data_production::BUILD_EXPORT_NAVIGATION_SPEC,
+    data_production::AUTOMATION_REPORT_NAVIGATION_SPEC,
+    data_production::PROJECT_OVERVIEW_NAVIGATION_SPEC,
+    data_production::PLUGIN_MANAGER_NAVIGATION_SPEC,
+    runtime_state::SAVE_DATA_NAVIGATION_SPEC,
+    render_asset_vfx::PARTICLE_LIBRARY_NAVIGATION_SPEC,
+    ui_diagnostics::UI_ASSET_EDITOR_NAVIGATION_SPEC,
+    ui_diagnostics::UI_BINDING_NAVIGATION_SPEC,
+    ui_diagnostics::ICON_LIBRARY_NAVIGATION_SPEC,
+    ui_diagnostics::ACCESSIBILITY_AUDIT_NAVIGATION_SPEC,
+    ui_diagnostics::MENU_FLOW_NAVIGATION_SPEC,
+    ui_diagnostics::FONT_ATLAS_NAVIGATION_SPEC,
+    ui_diagnostics::CONSOLE_DIAGNOSTICS_NAVIGATION_SPEC,
+    ui_diagnostics::RUNTIME_DIAGNOSTICS_NAVIGATION_SPEC,
+    ui_diagnostics::PERFORMANCE_NAVIGATION_SPEC,
+    ui_diagnostics::TELEMETRY_DASHBOARD_NAVIGATION_SPEC,
+];

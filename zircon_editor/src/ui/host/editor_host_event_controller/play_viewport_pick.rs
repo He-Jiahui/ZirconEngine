@@ -51,5 +51,5 @@ impl EditorHostEventController {
 }
 
 #[cfg(test)]
-#[path = "tests/play_viewport_pick.rs"]
+#[path = "../tests/play_viewport_pick.rs"]
 mod tests;

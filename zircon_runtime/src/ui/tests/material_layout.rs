@@ -8,10 +8,15 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
+#[path = "material_layout/asset_icon_roles.rs"]
 mod asset_icon_roles;
+#[path = "material_layout/button_icon_metrics.rs"]
 mod button_icon_metrics;
+#[path = "material_layout/constraints_children.rs"]
 mod constraints_children;
+#[path = "material_layout/field_values.rs"]
 mod field_values;
+#[path = "material_layout/row_label_metrics.rs"]
 mod row_label_metrics;
 
 // TODO: [CR-UI-TEST-0204] 确认是否需观测实际扫描次数；当前源码字符串守卫无法证明未换名重引入预扫描。

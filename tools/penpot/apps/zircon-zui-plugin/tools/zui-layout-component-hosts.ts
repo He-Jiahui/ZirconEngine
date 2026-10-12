@@ -20,17 +20,17 @@ import {
 } from './zui-layout-workbench-projection';
 
 const TAB_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui';
+  'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/tab.zui';
 const PANEL_TITLE_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui';
+  'zircon_editor/assets/ui/editor/workbench/primitives/chrome/section_title.zui';
 const PANEL_ACTION_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui';
+  'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui';
 const NUMBER_FIELD_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui';
+  'zircon_editor/assets/ui/editor/workbench/primitives/inputs/number_field.zui';
 const STATUS_ITEM_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui';
+  'zircon_editor/assets/ui/editor/workbench/primitives/feedback/status_item.zui';
 const ACTIVITY_WINDOW_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui';
+  'zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui';
 const UI_LAYOUT_EDITOR_WINDOW_SOURCE =
   'zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.zui';
 const ASSET_WINDOW_SOURCE =

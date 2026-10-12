@@ -42,5 +42,5 @@ pub fn validate_document_action_policy(
 }
 
 #[cfg(test)]
-#[path = "validate/tests/action_ref_tests.rs"]
+#[path = "validate/tests/action_ref.rs"]
 mod action_ref_tests;

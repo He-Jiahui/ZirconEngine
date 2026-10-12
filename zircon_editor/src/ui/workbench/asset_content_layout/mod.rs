@@ -1,14 +1,24 @@
 //! Shared visual and pointer geometry for editor asset content surfaces.
 
+#[path = "activity_virtualization.rs"]
 mod activity_virtualization;
+#[path = "browser_virtualization.rs"]
 mod browser_virtualization;
+#[path = "controls.rs"]
 mod controls;
+#[path = "identity.rs"]
 mod identity;
+#[path = "metrics.rs"]
 mod metrics;
+#[path = "paint_metadata.rs"]
 mod paint_metadata;
+#[path = "profile.rs"]
 mod profile;
+#[path = "text.rs"]
 mod text;
+#[path = "thumbnail_geometry.rs"]
 mod thumbnail_geometry;
+#[path = "thumbnail_grid.rs"]
 mod thumbnail_grid;
 
 pub(crate) use identity::{

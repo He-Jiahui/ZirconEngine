@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-APPLY = ROOT / "zircon_editor/src/ui/retained_host/ui/apply_presentation.rs"
+APPLY = ROOT / "zircon_editor/src/ui/retained/ui/apply_presentation.rs"
 
 
 class EditorWelcomeDispatchRowPatchPerformanceContractTests(unittest.TestCase):

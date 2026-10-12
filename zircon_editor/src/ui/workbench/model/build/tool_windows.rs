@@ -35,5 +35,5 @@ pub(super) fn build_tool_windows(
 }
 
 #[cfg(test)]
-#[path = "tests/tool_windows_optimization_batch_20260830bz_editor_tests.rs"]
+#[path = "tests/tool_windows_perf.rs"]
 mod optimization_batch_20260830bz_editor_tests;

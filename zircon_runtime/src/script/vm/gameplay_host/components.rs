@@ -225,5 +225,5 @@ pub(super) fn script_number_at_most(
 }
 
 #[cfg(test)]
-#[path = "tests/components_performance_contract_tests.rs"]
+#[path = "tests/components_perf_contract.rs"]
 mod performance_contract_tests;

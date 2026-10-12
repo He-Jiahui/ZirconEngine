@@ -1,12 +1,16 @@
 //! Authenticated package preparation and inventory publication, without activation.
 
+#[path = "admission.rs"]
 mod admission;
+#[path = "store.rs"]
 mod store;
 #[cfg(test)]
 #[path = "tests/cases.rs"]
 mod tests;
+#[path = "verify.rs"]
 mod verify;
 #[cfg(windows)]
+#[path = "windows.rs"]
 mod windows;
 
 use super::native::{NativePackageKeyPolicy, NativePluginArtifactTarget};

@@ -6,9 +6,9 @@ import { parseZuiDocument, type ZuiTable } from '../src/bridge/zui-document';
 import { bytesSha256 } from './zui-layout-evidence';
 
 const label =
-  'res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel';
+  'res://ui/editor/components/workbench/primitives/data/label.zui#WorkbenchLabel';
 const caption =
-  'res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption';
+  'res://ui/editor/components/workbench/primitives/data/caption.zui#WorkbenchCaption';
 const tokens = 'res://ui/editor/theme/editor_tokens.zui';
 const fixed = (height: number) => ({
   min: height,
@@ -190,7 +190,7 @@ async function main() {
   for (const entry of catalog.entries) {
     if (
       !entry.sourcePath.startsWith(
-        'zircon_editor/assets/ui/editor/material_components/',
+        'zircon_editor/assets/ui/editor/',
       )
     )
       continue;

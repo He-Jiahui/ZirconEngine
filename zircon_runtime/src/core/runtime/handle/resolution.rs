@@ -16,6 +16,7 @@ use super::super::state::ServiceEntryFactory;
 use super::super::weak::CoreWeak;
 use super::{CoreHandle, RegisteredServiceIdentity};
 
+#[path = "resolution/alias.rs"]
 mod alias;
 
 use alias::GuardService;

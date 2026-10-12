@@ -1,11 +1,18 @@
 //! Shared runtime text cache owners.
 
+#[path = "frame_dedup.rs"]
 mod frame_dedup;
+#[path = "hard_line_index.rs"]
 mod hard_line_index;
+#[path = "index.rs"]
 mod index;
+#[path = "layout_cache.rs"]
 mod layout_cache;
+#[path = "measure_cache.rs"]
 mod measure_cache;
+#[path = "rich_cache.rs"]
 mod rich_cache;
+#[path = "shaped_cache.rs"]
 mod shaped_cache;
 
 #[cfg(test)]

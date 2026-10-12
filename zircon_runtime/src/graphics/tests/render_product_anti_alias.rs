@@ -19,7 +19,9 @@ use crate::graphics::{
 };
 use crate::scene::world::World;
 
+#[path = "render_product_anti_alias/particle.rs"]
 mod particle;
+#[path = "render_product_anti_alias/reactive_mask.rs"]
 mod reactive_mask;
 
 const TAA_RESOLVE_EXECUTOR_ID: &str = "temporal.taa-resolve";

@@ -20,5 +20,5 @@ pub(crate) fn import_ui_theme_asset(
 }
 
 #[cfg(test)]
-#[path = "tests/import_ui_theme_asset_plugins07_ui_theme_source_tests.rs"]
+#[path = "../../../tests/import_ui_theme_asset_plugins07_ui_theme_source.rs"]
 mod plugins07_ui_theme_source_tests;

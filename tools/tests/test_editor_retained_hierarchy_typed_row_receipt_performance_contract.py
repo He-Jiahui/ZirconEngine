@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OWNER = ROOT / "zircon_editor/src/ui/retained_host/hierarchy_pointer"
+OWNER = ROOT / "zircon_editor/src/ui/retained/hierarchy_pointer"
 
 
 def source(relative: str) -> str:
@@ -14,7 +14,7 @@ def source(relative: str) -> str:
 class HierarchyTypedRowReceiptPerformanceContract(unittest.TestCase):
     def test_pointer_layout_keeps_only_scalar_hit_inputs(self):
         layout = source(
-            "zircon_editor/src/ui/retained_host/hierarchy_pointer/"
+            "zircon_editor/src/ui/retained/hierarchy_pointer/"
             "hierarchy_pointer_layout.rs"
         )
 
@@ -24,7 +24,7 @@ class HierarchyTypedRowReceiptPerformanceContract(unittest.TestCase):
 
     def test_route_is_copy_and_does_not_own_entity_text(self):
         route = source(
-            "zircon_editor/src/ui/retained_host/hierarchy_pointer/"
+            "zircon_editor/src/ui/retained/hierarchy_pointer/"
             "hierarchy_pointer_route.rs"
         )
 
@@ -35,7 +35,7 @@ class HierarchyTypedRowReceiptPerformanceContract(unittest.TestCase):
 
     def test_bridge_no_longer_owns_a_generic_mirror_hit_surface(self):
         bridge = source(
-            "zircon_editor/src/ui/retained_host/hierarchy_pointer/"
+            "zircon_editor/src/ui/retained/hierarchy_pointer/"
             "hierarchy_pointer_bridge.rs"
         )
 
@@ -64,7 +64,7 @@ class HierarchyTypedRowReceiptPerformanceContract(unittest.TestCase):
 
     def test_pointer_projection_reuses_the_committed_typed_row_arc(self):
         layout = source(
-            "zircon_editor/src/ui/retained_host/app/pointer_layout/hierarchy.rs"
+            "zircon_editor/src/ui/retained/app/pointer_layout/hierarchy.rs"
         )
         recompute = source(
             "zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/"
@@ -80,7 +80,7 @@ class HierarchyTypedRowReceiptPerformanceContract(unittest.TestCase):
 
     def test_pointer_handlers_use_direct_infallible_arithmetic_routing(self):
         handlers = "\n".join(
-            source(f"zircon_editor/src/ui/retained_host/hierarchy_pointer/{name}")
+            source(f"zircon_editor/src/ui/retained/hierarchy_pointer/{name}")
             for name in ["handle_click.rs", "handle_move.rs", "handle_scroll.rs"]
         )
 
@@ -95,7 +95,7 @@ class HierarchyTypedRowReceiptPerformanceContract(unittest.TestCase):
 
     def test_click_dispatch_resolves_one_typed_row_without_parse(self):
         callback = source(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/"
+            "zircon_editor/src/ui/retained/dispatch/shared_pointer/"
             "hierarchy.rs"
         )
 
@@ -107,10 +107,10 @@ class HierarchyTypedRowReceiptPerformanceContract(unittest.TestCase):
 
     def test_direct_route_preserves_o1_hit_and_visible_row_paint(self):
         route = source(
-            "zircon_editor/src/ui/retained_host/hierarchy_pointer/route_at_point.rs"
+            "zircon_editor/src/ui/retained/hierarchy_pointer/route_at_point.rs"
         )
         painter = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/native_panes/hierarchy.rs"
         )
 
@@ -121,7 +121,7 @@ class HierarchyTypedRowReceiptPerformanceContract(unittest.TestCase):
 
     def test_hierarchy_route_intent_mirror_binding_is_removed(self):
         route_intent = source(
-            "zircon_editor/src/ui/retained_host/route_intent/map.rs"
+            "zircon_editor/src/ui/retained/route_intent/map.rs"
         )
 
         self.assertNotIn("Hierarchy(HierarchyPointerRoute)", route_intent)

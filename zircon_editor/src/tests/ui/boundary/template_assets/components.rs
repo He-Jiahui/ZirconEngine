@@ -9,7 +9,7 @@ use super::support::source;
 fn imported_zui_components_are_single_component_assets() {
     for (relative, component) in [
         (
-            "assets/ui/editor/components/workbench/shell/activity_drawer_window.zui",
+            "assets/ui/editor/workbench/shell/activity_drawer_window.zui",
             "ActivityDrawerWindow",
         ),
         (
@@ -37,15 +37,15 @@ fn imported_zui_components_are_single_component_assets() {
             "ShowcaseInputSection",
         ),
         (
-            "assets/ui/editor/components/showcase/showcase_selection_section.zui",
+            "assets/ui/editor/components/showcase/selection_section.zui",
             "ShowcaseSelectionSection",
         ),
         (
-            "assets/ui/editor/components/showcase/showcase_collections_section.zui",
+            "assets/ui/editor/components/showcase/collections_section.zui",
             "ShowcaseCollectionsSection",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui",
+            "assets/ui/editor/components/workbench/primitives/inputs/button.zui",
             "WorkbenchButton",
         ),
         (
@@ -53,11 +53,11 @@ fn imported_zui_components_are_single_component_assets() {
             "UnrealLevelEditorMenus",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui",
+            "assets/ui/editor/workbench/primitives/inputs/checkbox.zui",
             "WorkbenchCheckbox",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/chrome/workbench_chip.zui",
+            "assets/ui/editor/components/workbench/primitives/chrome/chip.zui",
             "WorkbenchChip",
         ),
         (
@@ -65,19 +65,19 @@ fn imported_zui_components_are_single_component_assets() {
             "UnrealLevelEditorMenuPopups",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui",
+            "assets/ui/editor/workbench/primitives/inputs/dropdown.zui",
             "WorkbenchDropdown",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui",
+            "assets/ui/editor/components/workbench/primitives/inputs/field.zui",
             "WorkbenchField",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/data/workbench_icon.zui",
+            "assets/ui/editor/components/workbench/primitives/data/icon.zui",
             "WorkbenchIcon",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui",
+            "assets/ui/editor/workbench/primitives/inputs/search_input.zui",
             "WorkbenchSearchInput",
         ),
         (
@@ -85,19 +85,19 @@ fn imported_zui_components_are_single_component_assets() {
             "UnrealDetailsPanel",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui",
+            "assets/ui/editor/workbench/primitives/inputs/icon_button.zui",
             "WorkbenchIconButton",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui",
+            "assets/ui/editor/components/workbench/primitives/data/list_row.zui",
             "WorkbenchListRow",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/data/workbench_label.zui",
+            "assets/ui/editor/components/workbench/primitives/data/label.zui",
             "WorkbenchLabel",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui",
+            "assets/ui/editor/components/workbench/primitives/data/divider.zui",
             "WorkbenchDivider",
         ),
         (
@@ -105,31 +105,31 @@ fn imported_zui_components_are_single_component_assets() {
             "UnrealContentDrawer",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui",
+            "assets/ui/editor/workbench/primitives/inputs/number_field.zui",
             "WorkbenchNumberField",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui",
+            "assets/ui/editor/workbench/primitives/feedback/popup_menu.zui",
             "WorkbenchPopupMenu",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui",
+            "assets/ui/editor/workbench/primitives/feedback/progress_bar.zui",
             "WorkbenchProgressBar",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui",
+            "assets/ui/editor/workbench/primitives/data/property_row.zui",
             "WorkbenchPropertyRow",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_radio.zui",
+            "assets/ui/editor/components/workbench/primitives/inputs/radio.zui",
             "WorkbenchRadio",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui",
+            "assets/ui/editor/workbench/primitives/chrome/rail_button.zui",
             "WorkbenchRailButton",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui",
+            "assets/ui/editor/workbench/primitives/chrome/section_title.zui",
             "WorkbenchSectionTitle",
         ),
         (
@@ -137,23 +137,23 @@ fn imported_zui_components_are_single_component_assets() {
             "UnrealOutlinerPanel",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_segmented_control.zui",
+            "assets/ui/editor/workbench/primitives/inputs/segmented_control.zui",
             "WorkbenchSegmentedControl",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_slider.zui",
+            "assets/ui/editor/components/workbench/primitives/inputs/slider.zui",
             "WorkbenchSlider",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_range_slider.zui",
+            "assets/ui/editor/workbench/primitives/inputs/range_slider.zui",
             "WorkbenchRangeSlider",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui",
+            "assets/ui/editor/workbench/primitives/feedback/skeleton.zui",
             "WorkbenchSkeleton",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui",
+            "assets/ui/editor/workbench/primitives/feedback/status_item.zui",
             "WorkbenchStatusItem",
         ),
         (
@@ -161,19 +161,19 @@ fn imported_zui_components_are_single_component_assets() {
             "UnrealEditorStatusBar",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui",
+            "assets/ui/editor/components/workbench/primitives/inputs/tab.zui",
             "WorkbenchTab",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui",
+            "assets/ui/editor/workbench/primitives/inputs/tab_strip.zui",
             "WorkbenchTabStrip",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui",
+            "assets/ui/editor/workbench/primitives/data/table_row.zui",
             "WorkbenchTableRow",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/feedback/workbench_toast.zui",
+            "assets/ui/editor/workbench/primitives/feedback/toast.zui",
             "WorkbenchToast",
         ),
         (
@@ -181,7 +181,7 @@ fn imported_zui_components_are_single_component_assets() {
             "UnrealLevelEditorToolbar",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/inputs/workbench_toggle.zui",
+            "assets/ui/editor/components/workbench/primitives/inputs/toggle.zui",
             "WorkbenchToggle",
         ),
         (
@@ -189,7 +189,7 @@ fn imported_zui_components_are_single_component_assets() {
             "UnrealLevelViewport",
         ),
         (
-            "assets/ui/editor/components/workbench/primitives/data/workbench_tree_row.zui",
+            "assets/ui/editor/components/workbench/primitives/data/tree_row.zui",
             "WorkbenchTreeRow",
         ),
     ] {
@@ -359,7 +359,7 @@ fn imported_zui_components_are_single_component_assets() {
     }
 
     let selection_section = UiZuiAssetLoader::load_zui_str(&source(
-        "assets/ui/editor/components/showcase/showcase_selection_section.zui",
+        "assets/ui/editor/components/showcase/selection_section.zui",
     ))
     .expect("showcase selection section should load as .zui");
     for control_id in [
@@ -398,7 +398,7 @@ fn imported_zui_components_are_single_component_assets() {
     }
 
     let collections_section = UiZuiAssetLoader::load_zui_str(&source(
-        "assets/ui/editor/components/showcase/showcase_collections_section.zui",
+        "assets/ui/editor/components/showcase/collections_section.zui",
     ))
     .expect("showcase collections section should load as .zui");
     for control_id in [
@@ -454,8 +454,8 @@ fn component_showcase_is_hard_cut_to_zui_catalog_components() {
         "assets/ui/editor/component_showcase.zui",
         "assets/ui/editor/components/showcase/showcase_visual_section.zui",
         "assets/ui/editor/components/showcase/showcase_input_section.zui",
-        "assets/ui/editor/components/showcase/showcase_selection_section.zui",
-        "assets/ui/editor/components/showcase/showcase_collections_section.zui",
+        "assets/ui/editor/components/showcase/selection_section.zui",
+        "assets/ui/editor/components/showcase/collections_section.zui",
     ]
     .into_iter()
     .map(source)
@@ -513,8 +513,8 @@ fn component_showcase_is_hard_cut_to_zui_catalog_components() {
         "res://ui/editor/components/showcase/showcase_state_panel.zui#ShowcaseStatePanel",
         "res://ui/editor/components/showcase/showcase_visual_section.zui#ShowcaseVisualSection",
         "res://ui/editor/components/showcase/showcase_input_section.zui#ShowcaseInputSection",
-        "res://ui/editor/components/showcase/showcase_selection_section.zui#ShowcaseSelectionSection",
-        "res://ui/editor/components/showcase/showcase_collections_section.zui#ShowcaseCollectionsSection",
+        "res://ui/editor/components/showcase/selection_section.zui#ShowcaseSelectionSection",
+        "res://ui/editor/components/showcase/collections_section.zui#ShowcaseCollectionsSection",
         "component = \"ShowcaseCommandToolbar\"",
         "component = \"ShowcaseBottomLog\"",
         "component = \"ShowcaseCategoryNav\"",
@@ -578,12 +578,12 @@ fn material_meta_components_cover_retained_material_exports() {
 fn typed_component_event_product_assets_declare_lower_snake_routes() {
     let expectations = [
         (
-            "assets/ui/editor/components/showcase/showcase_collections_section.zui",
+            "assets/ui/editor/components/showcase/collections_section.zui",
             "UiComponentShowcase/GroupToggled",
             UiComponentEventKind::ToggleExpanded,
         ),
         (
-            "assets/ui/editor/components/showcase/showcase_collections_section.zui",
+            "assets/ui/editor/components/showcase/collections_section.zui",
             "UiComponentShowcase/ContextActionMenuOpenAt",
             UiComponentEventKind::OpenPopupAt,
         ),
@@ -608,17 +608,17 @@ fn typed_component_event_product_assets_declare_lower_snake_routes() {
             UiComponentEventKind::ValueChanged,
         ),
         (
-            "assets/ui/editor/components/showcase/showcase_selection_section.zui",
+            "assets/ui/editor/components/showcase/selection_section.zui",
             "UiComponentShowcase/SearchSelectQueryChanged",
             UiComponentEventKind::ValueChanged,
         ),
         (
-            "assets/ui/editor/components/showcase/showcase_selection_section.zui",
+            "assets/ui/editor/components/showcase/selection_section.zui",
             "UiComponentShowcase/AssetFieldDropHovered",
             UiComponentEventKind::DropHover,
         ),
         (
-            "assets/ui/editor/components/showcase/showcase_selection_section.zui",
+            "assets/ui/editor/components/showcase/selection_section.zui",
             "UiComponentShowcase/DropdownOpenPopup",
             UiComponentEventKind::OpenPopup,
         ),

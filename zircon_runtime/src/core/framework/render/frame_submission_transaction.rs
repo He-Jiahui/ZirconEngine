@@ -172,5 +172,5 @@ impl RenderFrameSubmissionTransaction {
 }
 
 #[cfg(test)]
-#[path = "frame_submission_transaction/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

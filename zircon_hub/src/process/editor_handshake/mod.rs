@@ -1,5 +1,8 @@
+#[path = "mailbox_path.rs"]
 mod mailbox_path;
+#[path = "read.rs"]
 mod read;
+#[path = "wait.rs"]
 mod wait;
 
 #[cfg(test)]

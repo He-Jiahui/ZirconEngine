@@ -239,5 +239,5 @@ fn validate_conversion_id(value: &str) -> Result<(), UiBindingConversionIdentity
 }
 
 #[cfg(test)]
-#[path = "conversion/tests/validation_performance_tests.rs"]
+#[path = "tests/validation_perf.rs"]
 mod validation_performance_tests;

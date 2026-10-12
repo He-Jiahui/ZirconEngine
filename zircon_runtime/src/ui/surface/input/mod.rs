@@ -1,37 +1,72 @@
+#[path = "accessibility.rs"]
 mod accessibility;
+#[path = "analog.rs"]
 mod analog;
+#[path = "analog_navigation.rs"]
 mod analog_navigation;
+#[path = "diagnostics_budget.rs"]
 mod diagnostics_budget;
+#[path = "dispatch.rs"]
 mod dispatch;
+#[path = "drag_drop.rs"]
 mod drag_drop;
+#[path = "editable_text.rs"]
 mod editable_text;
+#[path = "effect.rs"]
 mod effect;
+#[path = "error.rs"]
 mod error;
+#[path = "keyboard.rs"]
 mod keyboard;
+#[path = "keyboard_action.rs"]
 mod keyboard_action;
+#[path = "keyboard_clipboard.rs"]
 mod keyboard_clipboard;
+#[path = "keyboard_navigation.rs"]
 mod keyboard_navigation;
+#[path = "mouse_motion.rs"]
 mod mouse_motion;
+#[path = "navigation.rs"]
 mod navigation;
+#[path = "number_field.rs"]
 mod number_field;
+#[path = "owner_route.rs"]
 mod owner_route;
+#[path = "pointer.rs"]
 mod pointer;
+#[path = "pointer_reply.rs"]
 mod pointer_reply;
+#[path = "popup.rs"]
 mod popup;
+#[path = "rich_link.rs"]
 mod rich_link;
+#[path = "route_authority.rs"]
 mod route_authority;
+#[path = "route_policy.rs"]
 mod route_policy;
+#[path = "route_steps.rs"]
 mod route_steps;
+#[path = "state/mod.rs"]
 mod state;
+#[path = "submenu_hover_timer.rs"]
 mod submenu_hover_timer;
+#[path = "text_constraints.rs"]
 mod text_constraints;
+#[path = "text_keyboard.rs"]
 mod text_keyboard;
+#[path = "text_pointer.rs"]
 mod text_pointer;
+#[path = "text_state.rs"]
 mod text_state;
+#[path = "toast_timer.rs"]
 mod toast_timer;
+#[path = "tooltip_timer.rs"]
 mod tooltip_timer;
+#[path = "typeahead_timer.rs"]
 mod typeahead_timer;
+#[path = "validation.rs"]
 mod validation;
+#[path = "window_pump.rs"]
 mod window_pump;
 
 pub(crate) use dispatch::dispatch_input_event;

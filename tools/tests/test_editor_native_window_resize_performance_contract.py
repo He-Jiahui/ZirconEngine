@@ -5,14 +5,14 @@ import unittest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESIZE_EVENTS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/resize.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/events/resize.rs"
 )
 GPU_LIFECYCLE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/lifecycle.rs"
+    "zircon_editor/src/ui/retained/contract/presenter/gpu/lifecycle.rs"
 )
 WGPU_SURFACE = REPO_ROOT / "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs"
 EVENT_LOOP_LIFECYCLE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs"
 )
 
 

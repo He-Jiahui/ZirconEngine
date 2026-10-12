@@ -54,5 +54,5 @@ fn into_tooltip_dismiss_parts(result: UiInputDispatchResult) -> (UiInputEvent, V
 }
 
 #[cfg(test)]
-#[path = "tooltip/tests/owned_result_event_tests.rs"]
+#[path = "../../../action/popup/tooltip/tests/owned_result_event.rs"]
 mod owned_result_event_tests;

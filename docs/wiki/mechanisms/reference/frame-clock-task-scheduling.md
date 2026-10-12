@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/core/runtime/frame_clock.rs
   - zircon_runtime/src/core/runtime/time.rs
-  - zircon_runtime/src/core/runtime/tasks/task_graph
+  - zircon_runtime/src/core/runtime/tasks
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
 implementation_files:
   - zircon_runtime/src/core/runtime/runtime.rs
@@ -11,9 +11,9 @@ implementation_files:
 plan_sources:
   - docs/wiki/core-runtime/events-config-and-time.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/events
+  - zircon_runtime/src/core/tests/events
   - zircon_runtime/src/core/runtime/tests/tasks.rs
-  - zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests
+  - zircon_runtime/src/core/runtime/tasks/scope/tests
 doc_type: mechanism-case-study
 ---
 

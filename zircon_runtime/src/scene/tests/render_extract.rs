@@ -30,10 +30,15 @@ use crate::scene::{DefaultLevelManager, World};
 
 use super::support::{material_handle, model_handle};
 
+#[path = "render_extract/camera_order.rs"]
 mod camera_order;
+#[path = "render_extract/direct_sections.rs"]
 mod direct_sections;
+#[path = "render_extract/level_source_guards.rs"]
 mod level_source_guards;
+#[path = "render_extract/lighting_postprocess.rs"]
 mod lighting_postprocess;
+#[path = "render_extract/particles.rs"]
 mod particles;
 
 fn camera_descriptor_with_layers(mask: u32) -> CameraRenderDescriptor {

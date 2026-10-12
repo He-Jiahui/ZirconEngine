@@ -10,7 +10,11 @@ use crate::ui::host::EditorManager;
 
 use super::support::*;
 
+#[path = "../../../ui_asset_reference_and_promotion/component_promotion.rs"]
 mod component_promotion;
+#[path = "../../../ui_asset_reference_and_promotion/reference_navigation.rs"]
 mod reference_navigation;
+#[path = "theme.rs"]
 mod theme;
+#[path = "../../../tree_and_component_transforms.rs"]
 mod tree_and_component_transforms;

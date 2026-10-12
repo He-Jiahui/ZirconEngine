@@ -4,7 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SURFACE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/"
     "template_node/surface_frame_builder/surface.rs"
 )
 

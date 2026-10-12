@@ -1,4 +1,5 @@
 use super::{PackageError, Result};
+#[path = "windows/native.rs"]
 mod native;
 use std::{
     fs::File,

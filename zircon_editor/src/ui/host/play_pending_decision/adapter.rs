@@ -439,5 +439,5 @@ impl PlayPendingEditDecisionAdapter {
 }
 
 #[cfg(test)]
-#[path = "tests/adapter_publish_hook_lock_tests.rs"]
+#[path = "../tests/adapter_publish_hook_lock.rs"]
 mod publish_hook_lock_tests;

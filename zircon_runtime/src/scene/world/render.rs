@@ -22,6 +22,7 @@ use crate::scene::components::{
     MeshRendererPrimitiveBinding, PostProcessSettingsComponent, Sprite2dComponent,
 };
 
+#[path = "render/lights.rs"]
 mod lights;
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);

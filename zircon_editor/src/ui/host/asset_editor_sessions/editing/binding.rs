@@ -332,5 +332,5 @@ impl EditorUiHost {
 }
 
 #[cfg(test)]
-#[path = "tests/binding_performance_tests.rs"]
+#[path = "tests/binding_perf.rs"]
 mod performance_tests;

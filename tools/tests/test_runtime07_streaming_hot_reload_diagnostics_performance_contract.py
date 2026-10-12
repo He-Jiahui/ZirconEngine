@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs"
+    / "zircon_runtime/src/plugin/loader/live/hot_reload.rs"
 )
 
 

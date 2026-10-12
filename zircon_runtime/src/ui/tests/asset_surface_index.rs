@@ -35,11 +35,17 @@ type = "Label"
 props = { text = "Main" }
 "#;
 
+#[path = "asset_surface_index/binding_ownership.rs"]
 mod binding_ownership;
+#[path = "asset_surface_index/binding_ownership_performance.rs"]
 mod binding_ownership_performance;
+#[path = "asset_surface_index/dirty_targets.rs"]
 mod dirty_targets;
+#[path = "asset_surface_index/node_resources.rs"]
 mod node_resources;
+#[path = "asset_surface_index/surface_edges.rs"]
 mod surface_edges;
+#[path = "asset_surface_index/target_capacity.rs"]
 mod target_capacity;
 
 fn asset_ref(value: &str) -> AssetReference {

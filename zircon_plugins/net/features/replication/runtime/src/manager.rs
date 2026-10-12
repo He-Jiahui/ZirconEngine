@@ -9,15 +9,25 @@ use zircon_runtime::core::framework::net::{
     SyncReplicationScheduleReport,
 };
 
+#[path = "manager/apply.rs"]
 mod apply;
+#[path = "manager/budget.rs"]
 mod budget;
+#[path = "manager/collect.rs"]
 mod collect;
+#[path = "manager/interest.rs"]
 mod interest;
+#[path = "manager/lifecycle.rs"]
 mod lifecycle;
+#[path = "manager/registry.rs"]
 mod registry;
+#[path = "manager/schedule.rs"]
 mod schedule;
+#[path = "manager/snapshot.rs"]
 mod snapshot;
+#[path = "manager/state.rs"]
 mod state;
+#[path = "manager/table.rs"]
 mod table;
 
 pub use table::{NetReplicationTable, NetReplicationTableEntry};

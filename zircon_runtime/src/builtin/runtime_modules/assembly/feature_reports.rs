@@ -74,5 +74,5 @@ fn active_feature_registration_refs<'a>(
 }
 
 #[cfg(test)]
-#[path = "tests/feature_reports_optimization_tests.rs"]
+#[path = "../../assembly/tests/feature_reports_perf.rs"]
 mod optimization_tests;

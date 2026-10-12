@@ -144,7 +144,7 @@ pub(super) fn normalize_duplicate_guids(
 }
 
 #[cfg(test)]
-#[path = "rebuild/tests/optimization_batch_jh_runtime647_tests.rs"]
+#[path = "rebuild/tests/perf.rs"]
 mod optimization_batch_jh_runtime647_tests;
 
 #[cfg(test)]

@@ -21,13 +21,21 @@ use crate::graphics::{
     RenderPipelineCompileOptions, RendererFeatureAsset,
 };
 
+#[path = "pipeline_compile/compile_options.rs"]
 mod compile_options;
+#[path = "pipeline_compile/default_pipelines.rs"]
 mod default_pipelines;
+#[path = "pipeline_compile/dynamic_resolution.rs"]
 mod dynamic_resolution;
+#[path = "pipeline_compile/feature_descriptors.rs"]
 mod feature_descriptors;
+#[path = "pipeline_compile/plugin_features.rs"]
 mod plugin_features;
+#[path = "pipeline_compile/temporal_and_ops.rs"]
 mod temporal_and_ops;
+#[path = "pipeline_compile/validation_core.rs"]
 mod validation_core;
+#[path = "pipeline_compile/validation_descriptors.rs"]
 mod validation_descriptors;
 
 fn compiled_execution_stage_order(

@@ -9,25 +9,29 @@ use crate::scene::EntityId;
 
 use super::super::{SceneError, SceneResult, World};
 
+#[path = "../detached_entity_batch/preparation_owner.rs"]
 mod preparation_owner;
+#[path = "detached_entity_batch/prepared.rs"]
 mod prepared;
+#[path = "../detached_entity_batch/restore_parent_validate.rs"]
 mod restore_parent_validation;
+#[path = "../detached_entity_batch/root_normalization.rs"]
 mod root_normalization;
 
 pub(crate) use preparation_owner::DetachPreparationOwner;
 pub use prepared::PreparedEntitySubtrees;
 
 #[cfg(test)]
-#[path = "detached_entity_batch/tests/raw_cycle_tests.rs"]
+#[path = "tests/raw_cycle.rs"]
 mod raw_cycle_tests;
 #[cfg(test)]
-#[path = "detached_entity_batch/tests/restore_cycle_profile.rs"]
+#[path = "tests/restore_cycle_profile.rs"]
 mod restore_cycle_profile;
 #[cfg(test)]
-#[path = "detached_entity_batch/tests/restore_cycle_tests.rs"]
+#[path = "tests/restore_cycle.rs"]
 mod restore_cycle_tests;
 #[cfg(test)]
-#[path = "detached_entity_batch/tests/root_normalization_profile.rs"]
+#[path = "tests/root_normalization_profile.rs"]
 mod root_normalization_profile;
 #[cfg(test)]
 #[path = "detached_entity_batch/tests/cases.rs"]

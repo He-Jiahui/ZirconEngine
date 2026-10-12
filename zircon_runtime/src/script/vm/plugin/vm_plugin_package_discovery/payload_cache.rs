@@ -311,5 +311,5 @@ fn contained_regular_file(
 }
 
 #[cfg(test)]
-#[path = "tests/payload_cache.rs"]
+#[path = "../package_discovery/tests/payload_cache.rs"]
 mod tests;

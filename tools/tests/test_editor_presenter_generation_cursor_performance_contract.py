@@ -5,22 +5,22 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 PRESENTER_TRAIT = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/"
+    "zircon_editor/src/ui/retained/contract/presenter/"
     "host_chrome_presenter.rs"
 )
 REDRAW_PRESENT = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/"
     "redraw/present.rs"
 )
-GPU_IMPL = ROOT / "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs"
+GPU_IMPL = ROOT / "zircon_editor/src/ui/retained/contract/presenter/gpu.rs"
 GPU_PRESENT = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/present.rs"
+    "zircon_editor/src/ui/retained/contract/presenter/gpu/present.rs"
 )
 SOFTBUFFER_IMPL = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs"
+    "zircon_editor/src/ui/retained/contract/presenter/softbuffer.rs"
 )
 SOFTBUFFER_PRESENT = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/present.rs"
+    "zircon_editor/src/ui/retained/contract/presenter/softbuffer/present.rs"
 )
 
 

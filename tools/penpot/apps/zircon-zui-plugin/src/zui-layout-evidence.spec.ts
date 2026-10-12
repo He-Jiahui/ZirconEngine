@@ -611,7 +611,7 @@ describe('fail-closed dual evidence acceptance', () => {
       const source = [
         '[asset]',
         'kind = "component"',
-        'id = "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui"',
+        'id = "res://ui/editor/workbench/primitives/data/table_row.zui"',
         'version = 2',
         '[components.WorkbenchTableRow]',
         'root = "root"',
@@ -730,7 +730,7 @@ describe('fail-closed dual evidence acceptance', () => {
       const source = [
         '[asset]',
         'kind = "component"',
-        'id = "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui"',
+        'id = "res://ui/editor/workbench/primitives/inputs/dropdown.zui"',
         'version = 2',
         '[components.WorkbenchDropdown]',
         'root = "root"',

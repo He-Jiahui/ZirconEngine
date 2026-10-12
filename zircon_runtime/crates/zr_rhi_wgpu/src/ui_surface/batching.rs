@@ -12,7 +12,9 @@ use zr_rhi::{
     UiSurfaceDrawList, UiSurfacePresentStats, UiSurfacePresentStatsAccumulator, UiSurfaceRect,
 };
 
+#[path = "batching/bounds_index.rs"]
 mod bounds_index;
+#[path = "batching/dependency_depths.rs"]
 mod dependency_depths;
 
 use bounds_index::BoundsIndex;

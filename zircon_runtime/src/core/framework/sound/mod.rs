@@ -1,20 +1,36 @@
 //! Sound framework contracts for runtime audio graphs, scene components, and mixing.
 
+#[path = "acoustics.rs"]
 mod acoustics;
+#[path = "automation.rs"]
 mod automation;
+#[path = "components.rs"]
 mod components;
+#[path = "effects.rs"]
 mod effects;
+#[path = "emission.rs"]
 mod emission;
+#[path = "error.rs"]
 mod error;
+#[path = "events.rs"]
 mod events;
+#[path = "graph.rs"]
 mod graph;
+#[path = "ids.rs"]
 mod ids;
+#[path = "manager.rs"]
 mod manager;
+#[path = "mix.rs"]
 mod mix;
+#[path = "options.rs"]
 mod options;
+#[path = "output.rs"]
 mod output;
+#[path = "playback.rs"]
 mod playback;
+#[path = "preset.rs"]
 mod preset;
+#[path = "status.rs"]
 mod status;
 
 pub use acoustics::{

@@ -38,19 +38,19 @@ const MAX_SAMPLES: usize = 65_536;
 const GPU_FLUSH_FRAMES: usize = 8;
 const FRAME_PROFILES_FILE: &str = "render-frame-profiles.json";
 
-#[path = "text_baseline/continuous_text.rs"]
+#[path = "../text_baseline/continuous_text.rs"]
 mod continuous_text;
-#[path = "text_baseline/dpi_font_generation.rs"]
+#[path = "../text_baseline/dpi_font_generation.rs"]
 mod dpi_font_generation;
-#[path = "text_baseline/layout_cache_pressure.rs"]
+#[path = "../text_baseline/layout_cache_pressure.rs"]
 mod layout_cache_pressure;
-#[path = "text_baseline/localized_text_dirty.rs"]
+#[path = "../text_baseline/localized_text_dirty.rs"]
 mod localized_text_dirty;
-#[path = "text_baseline/multilingual_text.rs"]
+#[path = "../text_baseline/multilingual_text.rs"]
 mod multilingual_text;
-#[path = "text_baseline/queue_pressure.rs"]
+#[path = "../text_baseline/queue_pressure.rs"]
 mod queue_pressure;
-#[path = "text_baseline/scroll_turnover.rs"]
+#[path = "../text_baseline/scroll_turnover.rs"]
 mod scroll_turnover;
 #[path = "text_baseline/support.rs"]
 mod support;

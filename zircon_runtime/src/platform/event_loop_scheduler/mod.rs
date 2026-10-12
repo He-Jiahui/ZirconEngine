@@ -1,4 +1,6 @@
+#[path = "scheduler.rs"]
 mod scheduler;
+#[path = "snapshot.rs"]
 mod snapshot;
 
 pub(crate) use scheduler::{EventLoopDueSources, EventLoopScheduler};

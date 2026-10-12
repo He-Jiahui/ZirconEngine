@@ -20,7 +20,7 @@ fn ui_layout_editor_window_uses_activity_drawer_window_with_editor_content() {
         "res://ui/editor/windows/ui_layout_editor_window.zui"
     );
     assert!(source.contains(
-        "res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"
+        "res://ui/editor/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"
     ));
     assert!(source.contains("shell_preset = \"jetbrains_shell\""));
     assert!(source.contains("panel_preset = \"fyrox_panel\""));

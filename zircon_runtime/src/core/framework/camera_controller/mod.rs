@@ -4,9 +4,13 @@
 //! 调用方负责应用 [`CameraControllerOutput`] 并另行执行光标意图。
 //! Runtime-owned reusable camera controller contracts.
 
+#[path = "controller_output.rs"]
 mod controller_output;
+#[path = "free/mod.rs"]
 mod free;
+#[path = "orbit/mod.rs"]
 mod orbit;
+#[path = "pan/mod.rs"]
 mod pan;
 
 pub use controller_output::{CameraControllerOutput, CursorGrabIntent, CursorGrabMode};

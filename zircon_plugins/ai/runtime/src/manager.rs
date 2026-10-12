@@ -1,15 +1,26 @@
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 
+#[path = "manager/behavior_tree.rs"]
 mod behavior_tree;
+#[path = "manager/blackboard.rs"]
 mod blackboard;
+#[path = "manager/effects.rs"]
 mod effects;
+#[path = "manager/execution_gate.rs"]
 mod execution_gate;
+#[path = "manager/parameters.rs"]
 pub(crate) mod parameters;
+#[path = "manager/perception.rs"]
 mod perception;
+#[path = "manager/service.rs"]
 mod service;
+#[path = "manager/snapshot.rs"]
 mod snapshot;
+#[path = "manager/state.rs"]
 mod state;
+#[path = "manager/tick.rs"]
 mod tick;
+#[path = "manager/validation.rs"]
 pub(crate) mod validation;
 
 use execution_gate::BehaviorNodeExecutionGate;

@@ -76,5 +76,5 @@ fn push_separator(stem: &mut String) {
 }
 
 #[cfg(test)]
-#[path = "tests/style_rule_identity_optimization_tests.rs"]
+#[path = "tests/style_rule_identity_perf.rs"]
 mod optimization_tests;

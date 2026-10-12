@@ -65,5 +65,5 @@ fn update_index_hash(hasher: &mut blake3::Hasher, indices: &[u32]) {
 }
 
 #[cfg(test)]
-#[path = "tests/source_hash_optimization_tests.rs"]
+#[path = "tests/source_hash_perf.rs"]
 mod optimization_tests;

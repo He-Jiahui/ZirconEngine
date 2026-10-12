@@ -2,9 +2,9 @@ use super::*;
 
 #[test]
 fn transient_handoff_consumers_preserve_compiler_buffer_windows() {
-    let scene_depth = include_str!("../render_pass_executors/scene_depth_handoff.rs");
-    let trace_schedule = include_str!("../render_pass_executors/trace_schedule_handoff.rs");
-    let resolve = include_str!("../render_pass_executors/resolve_trace_handoff.rs");
+    let scene_depth = include_str!("../executors/scene_depth_handoff.rs");
+    let trace_schedule = include_str!("../executors/trace_schedule_handoff.rs");
+    let resolve = include_str!("../executors/resolve_trace_handoff.rs");
     let scene_depth_production = scene_depth
         .split_once("#[cfg(test)]")
         .map(|(source, _)| source)

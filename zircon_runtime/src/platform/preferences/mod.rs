@@ -1,6 +1,10 @@
+#[path = "atomic_file.rs"]
 mod atomic_file;
+#[path = "backend.rs"]
 mod backend;
+#[path = "persistence/mod.rs"]
 mod persistence;
+#[path = "unavailable.rs"]
 mod unavailable;
 
 pub use atomic_file::AtomicFilePreferenceStorageBackend;

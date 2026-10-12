@@ -6,11 +6,11 @@ fn source(relative: &str) -> String {
 #[test]
 fn host_side_activity_rails_use_projected_toml_template_nodes() {
     let host_components =
-        source("src/ui/retained_host/host_contract/data/host_components/docks.rs");
+        source("src/ui/retained/contract/data/host_components/docks.rs");
     let chrome_projection =
-        source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
+        source("src/ui/layouts/windows/window/projection.rs");
     let scene_projection =
-        source("src/ui/layouts/windows/workbench_host_window/scene_projection/dock_patch.rs");
+        source("src/ui/layouts/windows/window/scene_projection/dock_patch.rs");
     let activity_asset = source("assets/ui/editor/workbench_activity_rail.zui");
 
     for required in ["rail_nodes", "rail_button_frames", "rail_active_control_id"] {

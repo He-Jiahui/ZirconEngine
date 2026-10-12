@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs"
+    / "zircon_runtime/src/plugin/from_project_manifest/profile_projection.rs"
 )
 SIGNATURE = "fn from_feature_ids(feature_ids: &[String]) -> Self"
 

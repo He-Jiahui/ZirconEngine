@@ -1,10 +1,15 @@
 //! 集中导出 reliable UDP feature、内存 manager 和 wire header/packet DTO，供插件目录与调用者使用。
 //! wire 编解码与实际 socket 收发之间尚需明确连接层。
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "feature.rs"]
 mod feature;
+#[path = "manager.rs"]
 mod manager;
+#[path = "packet.rs"]
 mod packet;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{NET_RELIABLE_UDP_FEATURE_CAPABILITY, RUNTIME_CAPABILITIES};
@@ -20,4 +25,5 @@ pub use plugin::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

@@ -347,5 +347,5 @@ fn milliseconds(duration: Duration) -> f64 {
 }
 
 #[cfg(test)]
-#[path = "tests/diagnostics_optimization_batch_hs_runtime600_tests.rs"]
+#[path = "tests/diagnostics_perf.rs"]
 mod optimization_batch_hs_runtime600_tests;

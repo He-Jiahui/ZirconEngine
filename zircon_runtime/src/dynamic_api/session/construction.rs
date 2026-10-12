@@ -19,6 +19,7 @@ use super::ime_composition_route::RuntimeImeCompositionRoute;
 use super::project::{project_opened_log, RuntimePreparedProject, RuntimeProjectConfig};
 use super::ui_extract_cache::RuntimeUiExtractCache;
 
+#[path = "construction/cleanup.rs"]
 mod cleanup;
 
 use super::{

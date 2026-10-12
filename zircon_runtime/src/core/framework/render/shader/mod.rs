@@ -1,20 +1,36 @@
 //! 资产导入、模板组装和图形缓存共享的 shader 描述契约位于这里。
 //! 本层保存可序列化标识、资源声明及诊断，不拥有编译器或 GPU 对象。
+#[path = "asset_kind.rs"]
 mod asset_kind;
+#[path = "definition_value.rs"]
 mod definition_value;
+#[path = "dependency.rs"]
 mod dependency;
+#[path = "entry_point.rs"]
 mod entry_point;
+#[path = "geometry_source.rs"]
 mod geometry_source;
+#[path = "ide_env.rs"]
 mod ide_env;
+#[path = "material_property_layout.rs"]
 mod material_property_layout;
+#[path = "module_import.rs"]
 mod module_import;
+#[path = "pipeline_layout.rs"]
 mod pipeline_layout;
+#[path = "queue.rs"]
 mod queue;
+#[path = "render_state.rs"]
 mod render_state;
+#[path = "resource.rs"]
 mod resource;
+#[path = "stage.rs"]
 mod stage;
+#[path = "variant_key.rs"]
 mod variant_key;
+#[path = "variant_miss_report.rs"]
 mod variant_miss_report;
+#[path = "variant_prewarm.rs"]
 mod variant_prewarm;
 
 pub use asset_kind::ShaderAssetKind;

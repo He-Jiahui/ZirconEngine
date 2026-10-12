@@ -14,6 +14,7 @@ use crate::render_graph::{
 };
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
 
+#[path = "resources/transient_aliasing.rs"]
 mod transient_aliasing;
 
 #[test]

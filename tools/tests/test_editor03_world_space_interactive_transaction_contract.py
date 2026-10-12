@@ -31,7 +31,7 @@ class Editor03WorldSpaceInteractiveTransactionContractTests(unittest.TestCase):
             "zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs"
         )
         controller = self.read(
-            "zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs"
+            "zircon_editor/src/scene/viewport/controller/handle_interaction.rs"
         )
         state = self.read(
             "zircon_editor/src/ui/workbench/state/editor_state_viewport.rs"

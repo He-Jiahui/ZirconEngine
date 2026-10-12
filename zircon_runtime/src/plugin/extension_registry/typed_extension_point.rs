@@ -5,7 +5,7 @@ use std::hash::Hash;
 use super::owner::PluginModuleId;
 
 #[cfg(test)]
-#[path = "typed_extension_point/tests/cases.rs"]
+#[path = "../tests/typed_extension_point_cases.rs"]
 mod tests;
 
 /// 扩展键在暂存期可哈希索引，在冻结期可排序查找；两种表示须使用一致的相等语义。

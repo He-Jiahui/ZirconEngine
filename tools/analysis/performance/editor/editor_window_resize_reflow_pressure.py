@@ -14,9 +14,9 @@ import subprocess
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SOURCE_PATHS = (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/resize.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw.rs",
-    "zircon_editor/src/ui/retained_host/app/host_lifecycle/shell_metrics.rs",
+    "zircon_editor/src/ui/retained/contract/window/event_loop/events/resize.rs",
+    "zircon_editor/src/ui/retained/contract/window/event_loop/redraw.rs",
+    "zircon_editor/src/ui/retained/app/host_lifecycle/shell_metrics.rs",
     "dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Application/SlateApplication.cpp",
     "dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Widgets/SWindow.cpp",
 )

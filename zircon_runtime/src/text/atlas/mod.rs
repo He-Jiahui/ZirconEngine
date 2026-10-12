@@ -1,18 +1,32 @@
 //! Shared glyph atlas contracts for bitmap, SDF, MSDF, and color text pages.
 
+#[path = "bitmap_run.rs"]
 mod bitmap_run;
+#[path = "dirty.rs"]
 mod dirty;
+#[path = "page.rs"]
 mod page;
+#[path = "page_residency.rs"]
 mod page_residency;
+#[path = "page_shadow/mod.rs"]
 mod page_shadow;
+#[path = "raster_key/mod.rs"]
 mod raster_key;
+#[path = "render_batch.rs"]
 pub(crate) mod render_batch;
+#[path = "render_contract.rs"]
 pub(crate) mod render_contract;
+#[path = "render_gpu_plan.rs"]
 pub(crate) mod render_gpu_plan;
+#[path = "render_plan.rs"]
 pub(crate) mod render_plan;
+#[path = "render_submission.rs"]
 mod render_submission;
+#[path = "shelf_allocator.rs"]
 mod shelf_allocator;
+#[path = "slot_cache.rs"]
 mod slot_cache;
+#[path = "upload.rs"]
 mod upload;
 
 pub(crate) use bitmap_run::{

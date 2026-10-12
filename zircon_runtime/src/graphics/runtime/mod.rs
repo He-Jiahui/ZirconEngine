@@ -1,5 +1,8 @@
+#[path = "history/mod.rs"]
 mod history;
+#[path = "offline_bake/mod.rs"]
 mod offline_bake;
+#[path = "framework/mod.rs"]
 mod render_framework;
 
 pub(crate) use history::{FrameHistoryValidationKey, ViewportFrameHistory};

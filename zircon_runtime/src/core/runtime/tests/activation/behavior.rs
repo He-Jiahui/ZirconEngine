@@ -3,11 +3,17 @@ use std::sync::{Arc, Mutex};
 use super::super::super::*;
 use crate::core::{CoreError, CoreResult, ModuleContext, ModuleLifecycle};
 
+#[path = "behavior/activation.rs"]
 mod activation;
+#[path = "behavior/batch_transaction.rs"]
 mod batch_transaction;
+#[path = "behavior/cleanup_owner.rs"]
 mod cleanup_owner;
+#[path = "behavior/deactivation.rs"]
 mod deactivation;
+#[path = "behavior/module_lifecycle.rs"]
 mod module_lifecycle;
+#[path = "behavior/reactivation.rs"]
 mod reactivation;
 
 #[derive(Debug)]

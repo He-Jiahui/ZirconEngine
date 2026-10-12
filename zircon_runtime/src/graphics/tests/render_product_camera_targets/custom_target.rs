@@ -19,7 +19,11 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{UVec2, Vec3, Vec4};
 
+#[path = "../custom_target/composite.rs"]
 mod composite;
+#[path = "../custom_target/material_sampling.rs"]
 mod material_sampling;
+#[path = "../custom_target/ordering.rs"]
 mod ordering;
+#[path = "../custom_target/viewport.rs"]
 mod viewport;

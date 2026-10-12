@@ -46,5 +46,5 @@ impl TensorUseCounts {
 }
 
 #[cfg(test)]
-#[path = "tensor_use_counts/tests/performance_tests.rs"]
+#[path = "tests/perf.rs"]
 mod performance_tests;

@@ -141,5 +141,5 @@ impl EditorUiDeltaQueue {
 mod tests;
 
 #[cfg(test)]
-#[path = "editor_ui_delta/tests/hash_coalescing_tests.rs"]
+#[path = "editor_ui_delta/tests/hash_coalescing.rs"]
 mod hash_coalescing_tests;

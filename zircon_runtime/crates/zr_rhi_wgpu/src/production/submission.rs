@@ -16,11 +16,13 @@ use super::submission_metrics::{WgpuSubmissionMetrics, WgpuSubmissionMetricsSnap
 use super::translate::wgpu_texture_copy_aspect;
 use super::upload_batch::{WgpuTextureUpload, WgpuTextureUploadBatch};
 
+#[path = "submission/queued_work.rs"]
 mod queued_work;
+#[path = "../submission/ui_image_retirement.rs"]
 mod ui_image_retirement;
 
 #[cfg(test)]
-#[path = "submission/tests/retirement_tests.rs"]
+#[path = "submission/tests/retirement.rs"]
 mod retirement_tests;
 
 use queued_work::{queued_upload_stats, QueuedWgpuSubmission};

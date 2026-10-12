@@ -26,7 +26,7 @@ implementation_files:
 tests:
   - zircon_runtime/tests/runtime_texture_zcube_staged_ibl_bundle_contract.rs
   - zircon_runtime/tests/runtime_environment_ibl_source_import_staging_contract.rs
-  - zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs
+  - zircon_runtime/tests/cubemap_staging.rs
   - zircon_runtime/tests/runtime_texture_external_cubemap_source_only_contract.rs
 plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md

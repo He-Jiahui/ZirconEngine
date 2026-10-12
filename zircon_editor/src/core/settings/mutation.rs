@@ -14,6 +14,7 @@ use super::{
     SettingsPersistenceTicket, SettingsProjectLayerLoad, SettingsScope, SettingsStore,
 };
 
+#[path = "mutation/health.rs"]
 mod health;
 
 use health::SettingsPersistenceHealthAuthority;

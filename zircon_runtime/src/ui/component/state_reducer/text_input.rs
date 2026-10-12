@@ -14,11 +14,11 @@ const MIRROR_VALUE: [&str; 1] = ["value"];
 const MIRROR_VALUE_TEXT: [&str; 1] = ["value_text"];
 
 #[cfg(test)]
-#[path = "text_input/tests/property_borrow_tests.rs"]
+#[path = "../text_input/tests/property_borrow.rs"]
 mod property_borrow_tests;
 
 #[cfg(test)]
-#[path = "text_input/tests/timing_normalization_tests.rs"]
+#[path = "../text_input/tests/timing_normalization.rs"]
 mod timing_normalization_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

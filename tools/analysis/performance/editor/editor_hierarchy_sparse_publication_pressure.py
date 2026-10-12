@@ -32,7 +32,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/data/"
+        "zircon_editor/src/ui/retained/contract/data/"
         "pane_presentation_patch.rs",
         (
             "pub(crate) struct HostPresentationPatch",
@@ -42,7 +42,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/globals/state.rs",
+        "zircon_editor/src/ui/retained/contract/globals/state.rs",
         (
             "pub(crate) fn patch_host_presentation(&mut self, patch: HostPresentationPatch)",
             ".rebind_workbench_nodes(",
@@ -54,7 +54,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+        "zircon_editor/src/ui/retained/contract/surface_hit_test/"
         "template_node/index.rs",
         (
             "pub(crate) fn rebind_workbench_nodes(",

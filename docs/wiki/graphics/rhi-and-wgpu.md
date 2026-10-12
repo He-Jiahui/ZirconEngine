@@ -15,7 +15,7 @@ plan_sources:
   - docs/plans/zircon_runtime/render/20-hybrid-raster-raytracing-rhi.md
 tests:
   - zircon_runtime/crates/zr_rhi/src/tests
-  - zircon_runtime/crates/zr_rhi_wgpu/src/tests
+  - zircon_runtime/crates/zr_rhi_wgpu/tests
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/tests
 doc_type: module-detail
 ---

@@ -1,0 +1,516 @@
+use crate::core::framework::render::{
+    ShaderFeatureBits, ShaderPassType, ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest,
+};
+use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey, ResourceStreamer};
+
+use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
+use super::super::mesh_pipeline::{
+    create_depth_prepass_mesh_pipeline, create_gbuffer_mesh_pipeline,
+    create_hit_proxy_mesh_pipeline, create_mesh_pipeline, create_oit_mesh_pipeline,
+    create_shadow_mesh_pipeline, create_taa_reactive_mask_mesh_pipeline,
+    create_taa_reactive_material_mask_mesh_pipeline, create_velocity_mesh_pipeline,
+};
+use super::{MeshPipelineCache, MeshPipelineShaderSource, PipelineCreationTarget};
+
+#[path = "../prewarm_manifest/runtime_identity.rs"]
+mod runtime_identity;
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+/// 运行时 manifest 预热的逐请求结果；Ready 统计全部所需管线已命中或成功安装的请求，失败索引对应原 manifest 顺序。
+pub struct RuntimeShaderPipelinePrewarmReport {
+    requested_count: usize,
+    ready_count: usize,
+    cache_hit_count: usize,
+    failed_count: usize,
+    failures: Vec<RuntimeShaderPipelinePrewarmFailure>,
+}
+
+impl RuntimeShaderPipelinePrewarmReport {
+    pub const fn requested_count(&self) -> usize {
+        self.requested_count
+    }
+
+    pub const fn ready_count(&self) -> usize {
+        self.ready_count
+    }
+
+    pub const fn cache_hit_count(&self) -> usize {
+        self.cache_hit_count
+    }
+
+    pub const fn failed_count(&self) -> usize {
+        self.failed_count
+    }
+
+    pub fn failures(&self) -> &[RuntimeShaderPipelinePrewarmFailure] {
+        &self.failures
+    }
+
+    fn record_ready(&mut self, cache_hit: bool) {
+        self.ready_count += 1;
+        if cache_hit {
+            self.cache_hit_count += 1;
+        }
+    }
+
+    fn record_failure(&mut self, variant_index: usize, error: impl Into<String>) {
+        self.failed_count += 1;
+        self.failures.push(RuntimeShaderPipelinePrewarmFailure {
+            variant_index,
+            error: error.into(),
+        });
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RuntimeShaderPipelinePrewarmFailure {
+    variant_index: usize,
+    error: String,
+}
+
+impl RuntimeShaderPipelinePrewarmFailure {
+    pub const fn variant_index(&self) -> usize {
+        self.variant_index
+    }
+
+    pub fn error(&self) -> &str {
+        &self.error
+    }
+}
+
+impl MeshPipelineCache {
+    pub(crate) fn prewarm_manifest(
+        &mut self,
+        device: &wgpu::Device,
+        streamer: &mut ResourceStreamer,
+        manifest: &ShaderVariantPrewarmManifest,
+    ) -> RuntimeShaderPipelinePrewarmReport {
+        let mut report = RuntimeShaderPipelinePrewarmReport {
+            requested_count: manifest.variants.len(),
+            ..Default::default()
+        };
+        if manifest.schema_version != ShaderVariantPrewarmManifest::SCHEMA_VERSION {
+            for variant_index in 0..manifest.variants.len() {
+                report.record_failure(
+                    variant_index,
+                    format!(
+                        "shader pipeline prewarm manifest schema {} is not supported; expected {}",
+                        manifest.schema_version,
+                        ShaderVariantPrewarmManifest::SCHEMA_VERSION
+                    ),
+                );
+            }
+            return report;
+        }
+
+        for (variant_index, request) in manifest.variants.iter().enumerate() {
+            let Some(source) = manifest.source_for(request) else {
+                report.record_failure(
+                    variant_index,
+                    format!(
+                        "shader pipeline prewarm source {} is missing from the manifest",
+                        request.source_id.as_str()
+                    ),
+                );
+                continue;
+            };
+            let Some(geometry_source) =
+                self.geometry_source_descriptor(request.key.geometry_source)
+            else {
+                report.record_failure(
+                    variant_index,
+                    format!(
+                        "geometry source {} is not registered by the runtime renderer",
+                        request.key.geometry_source.value()
+                    ),
+                );
+                continue;
+            };
+            let pipeline_key = match runtime_identity::bind_runtime_prewarm_request(
+                streamer,
+                request,
+                source,
+                &geometry_source,
+            ) {
+                Ok(pipeline_key) => pipeline_key,
+                Err(error) => {
+                    report.record_failure(variant_index, error);
+                    continue;
+                }
+            };
+            let pipeline_kind = pipeline_kind_from_prewarm_request(request);
+            let pipeline_target = PipelineCreationTarget::MeshPass(pipeline_kind);
+            let source_hash = source.source_hash();
+            self.record_observed_shader_source(pipeline_target, &source_hash);
+            let variant_id = self.resolve_variant_for_geometry(
+                pipeline_kind,
+                &pipeline_key,
+                request.key.geometry_source,
+                request.key.quality,
+            );
+            let companion = (pipeline_kind == MeshPassPipelineKind::TaaReactiveMask).then(|| {
+                let kind = MeshPassPipelineKind::TaaReactiveMaterialMask;
+                let variant_id = self.resolve_variant_for_geometry(
+                    kind,
+                    &pipeline_key,
+                    request.key.geometry_source,
+                    request.key.quality,
+                );
+                self.record_observed_shader_source(
+                    PipelineCreationTarget::MeshPass(kind),
+                    &source_hash,
+                );
+                (kind, variant_id)
+            });
+            let primary_hit = self.has_pipeline(pipeline_kind, variant_id);
+            let companion_hit =
+                companion.is_none_or(|(kind, variant_id)| self.has_pipeline(kind, variant_id));
+            let requires_oit =
+                pipeline_kind == MeshPassPipelineKind::Base && pipeline_key.is_transparent();
+            let oit_hit =
+                !requires_oit || self.oit_mesh_variant_pipelines.contains_key(&variant_id);
+            if primary_hit && companion_hit && oit_hit {
+                report.record_ready(true);
+                continue;
+            }
+
+            let oit_source = if requires_oit && !oit_hit {
+                let source = MeshPipelineShaderSource {
+                    wgsl_source: source.wgsl_source.clone(),
+                    source_hash: source_hash.clone(),
+                    cache_content_hashes: source.include_content_hashes.clone(),
+                    template_revision: source.template_revision.clone(),
+                    segments: Vec::new(),
+                };
+                match source.into_oit_fragment_store_source() {
+                    Some(source) => {
+                        self.record_observed_shader_source(
+                            PipelineCreationTarget::Oit,
+                            &source.source_hash,
+                        );
+                        Some(source)
+                    }
+                    None => {
+                        report.record_failure(
+                            variant_index,
+                            "transparent Forward prewarm source cannot produce the OIT fragment-store entry",
+                        );
+                        continue;
+                    }
+                }
+            } else {
+                None
+            };
+
+            let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
+            let shader = if !primary_hit || !companion_hit {
+                let creation_started = std::time::Instant::now();
+                let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("zircon-runtime-shader-pipeline-prewarm-module"),
+                    source: wgpu::ShaderSource::Wgsl(source.wgsl_source.as_str().into()),
+                });
+                let creation_elapsed = creation_started.elapsed();
+                self.record_shader_module_creation(pipeline_target, creation_elapsed);
+                Some(shader)
+            } else {
+                None
+            };
+            let (primary_pipeline, companion_pipeline) = match shader.as_ref() {
+                Some(shader) => {
+                    let primary_pipeline = if !primary_hit {
+                        let creation_started = std::time::Instant::now();
+                        let pipeline = self.create_prewarmed_pipeline(
+                            device,
+                            shader,
+                            pipeline_kind,
+                            &pipeline_key,
+                        );
+                        let creation_elapsed = creation_started.elapsed();
+                        self.record_render_pipeline_creation(pipeline_target, creation_elapsed);
+                        Some(pipeline)
+                    } else {
+                        None
+                    };
+                    let companion_pipeline = if let Some((kind, variant_id)) = companion {
+                        if !companion_hit {
+                            let creation_started = std::time::Instant::now();
+                            let pipeline =
+                                self.create_prewarmed_pipeline(device, shader, kind, &pipeline_key);
+                            let creation_elapsed = creation_started.elapsed();
+                            self.record_render_pipeline_creation(
+                                PipelineCreationTarget::MeshPass(kind),
+                                creation_elapsed,
+                            );
+                            Some((kind, variant_id, pipeline))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
+                    (primary_pipeline, companion_pipeline)
+                }
+                None if primary_hit && companion_hit => (None, None),
+                None => {
+                    report.record_failure(
+                        variant_index,
+                        "missing pipeline prewarm shader module for an uncached standard pass",
+                    );
+                    continue;
+                }
+            };
+            let oit_pipeline = if let Some(source) = oit_source {
+                let shader_creation_started = std::time::Instant::now();
+                let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("zircon-runtime-oit-shader-pipeline-prewarm-module"),
+                    source: wgpu::ShaderSource::Wgsl(source.wgsl_source.as_str().into()),
+                });
+                let shader_creation_elapsed = shader_creation_started.elapsed();
+                self.record_shader_module_creation(
+                    PipelineCreationTarget::Oit,
+                    shader_creation_elapsed,
+                );
+                let pipeline_creation_started = std::time::Instant::now();
+                let pipeline = create_oit_mesh_pipeline(
+                    device,
+                    &self.oit_mesh_pipeline_layout,
+                    &shader,
+                    &pipeline_key,
+                    self.runtime_pipeline_cache.cache(),
+                );
+                let pipeline_creation_elapsed = pipeline_creation_started.elapsed();
+                self.record_render_pipeline_creation(
+                    PipelineCreationTarget::Oit,
+                    pipeline_creation_elapsed,
+                );
+                Some(pipeline)
+            } else {
+                None
+            };
+            if let Some(error) = pollster::block_on(error_scope.pop()) {
+                report.record_failure(variant_index, error.to_string());
+                continue;
+            }
+            if let Some(pipeline) = primary_pipeline {
+                self.insert_prewarmed_pipeline(pipeline_kind, variant_id, pipeline);
+            }
+            if let Some((kind, variant_id, pipeline)) = companion_pipeline {
+                self.insert_prewarmed_pipeline(kind, variant_id, pipeline);
+            }
+            if let Some(pipeline) = oit_pipeline {
+                self.oit_mesh_variant_pipelines.insert(variant_id, pipeline);
+            }
+            report.record_ready(false);
+        }
+        report
+    }
+
+    fn has_pipeline(
+        &self,
+        pipeline_kind: MeshPassPipelineKind,
+        variant_id: MeshPipelineVariantId,
+    ) -> bool {
+        match pipeline_kind {
+            MeshPassPipelineKind::Base => self.mesh_variant_pipelines.contains_key(&variant_id),
+            MeshPassPipelineKind::GBuffer => self.gbuffer_mesh_pipelines.contains_key(&variant_id),
+            MeshPassPipelineKind::DepthPrepass => {
+                self.depth_prepass_mesh_pipelines.contains_key(&variant_id)
+            }
+            MeshPassPipelineKind::HitProxy => {
+                self.hit_proxy_mesh_pipelines.contains_key(&variant_id)
+            }
+            MeshPassPipelineKind::ShadowDepth | MeshPassPipelineKind::ShadowDepthAlphaMask => {
+                self.shadow_mesh_pipelines.contains_key(&variant_id)
+            }
+            MeshPassPipelineKind::Velocity => {
+                self.velocity_mesh_pipelines.contains_key(&variant_id)
+            }
+            MeshPassPipelineKind::TaaReactiveMask => self
+                .taa_reactive_mask_mesh_pipelines
+                .contains_key(&variant_id),
+            MeshPassPipelineKind::TaaReactiveMaterialMask => self
+                .taa_reactive_material_mask_mesh_pipelines
+                .contains_key(&variant_id),
+        }
+    }
+
+    fn create_prewarmed_pipeline(
+        &self,
+        device: &wgpu::Device,
+        shader: &wgpu::ShaderModule,
+        pipeline_kind: MeshPassPipelineKind,
+        pipeline_key: &PipelineKey,
+    ) -> wgpu::RenderPipeline {
+        let pipeline_cache = self.runtime_pipeline_cache.cache();
+        match pipeline_kind {
+            // TODO: [CR-R02-runtime_wave12_graphics_mesh_pipeline-0006] 确认通用 manifest 是否允许环境专用 profile：注册表可返回专用 ID，但这里仍用通用布局，runtime_identity 也未加该 feature；尚缺此配置的生产调用证据，需核对调用约束并验证预热后的 Base 绘制。
+            MeshPassPipelineKind::Base => create_mesh_pipeline(
+                device,
+                &self.mesh_pipeline_layout,
+                shader,
+                self.target_format,
+                pipeline_key,
+                pipeline_cache,
+            ),
+            MeshPassPipelineKind::GBuffer => create_gbuffer_mesh_pipeline(
+                device,
+                &self.mesh_pipeline_layout,
+                shader,
+                pipeline_key,
+                pipeline_cache,
+            ),
+            MeshPassPipelineKind::DepthPrepass => create_depth_prepass_mesh_pipeline(
+                device,
+                &self.mesh_pipeline_layout,
+                shader,
+                pipeline_key,
+                pipeline_cache,
+            ),
+            MeshPassPipelineKind::HitProxy => create_hit_proxy_mesh_pipeline(
+                device,
+                &self.mesh_pipeline_layout,
+                shader,
+                pipeline_key,
+                pipeline_cache,
+            ),
+            MeshPassPipelineKind::ShadowDepth | MeshPassPipelineKind::ShadowDepthAlphaMask => {
+                create_shadow_mesh_pipeline(
+                    device,
+                    &self.mesh_pipeline_layout,
+                    shader,
+                    pipeline_kind,
+                    pipeline_key,
+                    pipeline_cache,
+                )
+            }
+            MeshPassPipelineKind::Velocity => create_velocity_mesh_pipeline(
+                device,
+                &self.mesh_pipeline_layout,
+                shader,
+                pipeline_key,
+                pipeline_cache,
+            ),
+            MeshPassPipelineKind::TaaReactiveMask => create_taa_reactive_mask_mesh_pipeline(
+                device,
+                &self.mesh_pipeline_layout,
+                shader,
+                pipeline_key,
+                pipeline_cache,
+            ),
+            MeshPassPipelineKind::TaaReactiveMaterialMask => {
+                create_taa_reactive_material_mask_mesh_pipeline(
+                    device,
+                    &self.mesh_pipeline_layout,
+                    shader,
+                    pipeline_key,
+                    pipeline_cache,
+                )
+            }
+        }
+    }
+
+    fn insert_prewarmed_pipeline(
+        &mut self,
+        pipeline_kind: MeshPassPipelineKind,
+        variant_id: MeshPipelineVariantId,
+        pipeline: wgpu::RenderPipeline,
+    ) {
+        match pipeline_kind {
+            MeshPassPipelineKind::Base => {
+                self.mesh_variant_pipelines.insert(variant_id, pipeline);
+            }
+            MeshPassPipelineKind::GBuffer => {
+                self.gbuffer_mesh_pipelines.insert(variant_id, pipeline);
+            }
+            MeshPassPipelineKind::DepthPrepass => {
+                self.depth_prepass_mesh_pipelines
+                    .insert(variant_id, pipeline);
+            }
+            MeshPassPipelineKind::HitProxy => {
+                self.hit_proxy_mesh_pipelines.insert(variant_id, pipeline);
+            }
+            MeshPassPipelineKind::ShadowDepth | MeshPassPipelineKind::ShadowDepthAlphaMask => {
+                self.shadow_mesh_pipelines.insert(variant_id, pipeline);
+            }
+            MeshPassPipelineKind::Velocity => {
+                self.velocity_mesh_pipelines.insert(variant_id, pipeline);
+            }
+            MeshPassPipelineKind::TaaReactiveMask => {
+                self.taa_reactive_mask_mesh_pipelines
+                    .insert(variant_id, pipeline);
+            }
+            MeshPassPipelineKind::TaaReactiveMaterialMask => {
+                self.taa_reactive_material_mask_mesh_pipelines
+                    .insert(variant_id, pipeline);
+            }
+        }
+    }
+}
+
+pub(super) fn pipeline_key_from_prewarm_request(
+    request: &ShaderVariantPrewarmRequest,
+) -> Result<PipelineKey, &'static str> {
+    let pipeline_state = request
+        .pipeline_state
+        .ok_or("runtime shader pipeline prewarm requires the exact pipeline_state descriptor")?;
+    let mut pipeline_key = default_pipeline_key();
+    pipeline_key.shader_id = request.key.material_shader;
+    pipeline_key.shader_revision = request.key.material_revision;
+    pipeline_key.material_layout_hash = request.key.material_layout_hash;
+    pipeline_key.material_option_bits = request.key.material_option_bits;
+    pipeline_key.double_sided = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::DOUBLE_SIDED);
+    pipeline_key.alpha_mask = request.key.features.contains(ShaderFeatureBits::ALPHA_TEST);
+    pipeline_key.alpha_blend = pipeline_state.alpha_blend;
+    pipeline_key.alpha_cutoff_bits = pipeline_state.alpha_cutoff_bits;
+    pipeline_key.receive_shadows = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::RECEIVE_SHADOWS);
+    pipeline_key.has_normal_texture = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE);
+    pipeline_key.unlit = pipeline_state.unlit;
+    pipeline_key.pbr_clearcoat = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::PBR_CLEARCOAT);
+    pipeline_key.pbr_anisotropy = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::PBR_ANISOTROPY);
+    pipeline_key.pbr_transmission = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::PBR_TRANSMISSION);
+    pipeline_key.volumetric_fog = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::VOLUMETRIC_FOG);
+    pipeline_key.shading_model_id = request.key.shading_model;
+    Ok(pipeline_key)
+}
+
+pub(super) fn pipeline_kind_from_prewarm_request(
+    request: &ShaderVariantPrewarmRequest,
+) -> MeshPassPipelineKind {
+    match request.key.pass_type {
+        ShaderPassType::Forward => MeshPassPipelineKind::Base,
+        ShaderPassType::GBuffer => MeshPassPipelineKind::GBuffer,
+        ShaderPassType::DepthPrepass => MeshPassPipelineKind::DepthPrepass,
+        ShaderPassType::HitProxy => MeshPassPipelineKind::HitProxy,
+        ShaderPassType::Shadow if request.key.features.contains(ShaderFeatureBits::ALPHA_TEST) => {
+            MeshPassPipelineKind::ShadowDepthAlphaMask
+        }
+        ShaderPassType::Shadow => MeshPassPipelineKind::ShadowDepth,
+        ShaderPassType::Velocity => MeshPassPipelineKind::Velocity,
+        ShaderPassType::TaaReactiveMask => MeshPassPipelineKind::TaaReactiveMask,
+    }
+}
+
+#[cfg(test)]
+#[path = "../../renderer/mesh/tests/prewarm_manifest.rs"]
+mod tests;

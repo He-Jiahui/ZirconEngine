@@ -1,13 +1,21 @@
 //! Feature-gated CPU timeline recorder shared by runtime and editor hosts.
 
+#[path = "counter_hotspot.rs"]
 mod counter_hotspot;
+#[path = "export.rs"]
 mod export;
+#[path = "hotspot.rs"]
 mod hotspot;
+#[path = "macros.rs"]
 mod macros;
+#[path = "recorder.rs"]
 mod recorder;
+#[path = "scope.rs"]
 mod scope;
 #[cfg(feature = "profiling-tracy")]
+#[path = "tracy.rs"]
 mod tracy;
+#[path = "ui_hotspot.rs"]
 mod ui_hotspot;
 
 use std::sync::atomic::{AtomicU64, Ordering};

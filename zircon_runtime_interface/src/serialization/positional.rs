@@ -5,6 +5,7 @@ use std::io::{self, Read, Write};
 
 use serde::{de::DeserializeOwned, Serialize};
 
+#[path = "positional/bounded_decode.rs"]
 mod bounded_decode;
 
 // Match the largest admitted cooked-artifact payload. Individual formats keep

@@ -29,9 +29,13 @@ use zircon_runtime_interface::ui::{
     },
 };
 
+#[path = "runtime_input_manager/route_matrix.rs"]
 mod route_matrix;
+#[path = "runtime_input_manager/route_order.rs"]
 mod route_order;
+#[path = "runtime_input_manager/touch_pointer.rs"]
 mod touch_pointer;
+#[path = "runtime_input_manager/window_timer.rs"]
 mod window_timer;
 
 fn route_matrix_surface() -> UiSurface {

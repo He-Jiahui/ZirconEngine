@@ -297,18 +297,18 @@ def _classify_editor_reference(
     if relative_path == "zircon_runtime/src/core/runtime/lifecycle.rs":
         return "runtime-profile-editor-host-target"
     if relative_path.startswith("zircon_runtime/src/plugin/") or relative_path.startswith(
-        "zircon_runtime/src/builtin/runtime_modules/"
+        "zircon_runtime/src/builtin/"
     ):
         return "runtime-profile-editor-host-target"
     if relative_path.startswith("zircon_runtime/src/dynamic_api/"):
         return "dynamic-api-editor-host-mode"
     if relative_path.startswith(
-        "zircon_runtime/src/ui/component/catalog/"
+        "zircon_runtime/src/ui/catalog/"
     ) or relative_path.startswith(
         "zircon_runtime/src/ui/component/state_reducer/"
     ) or relative_path.startswith("zircon_runtime/src/ui/v2/surface_tree/"):
         return "runtime-ui-component-catalog-editor-controls"
-    if relative_path.startswith("zircon_runtime/src/ui/template/"):
+    if relative_path.startswith("zircon_runtime/src/ui/"):
         return "runtime-ui-template-editor-profile"
     if (
         relative_path == "zircon_runtime/src/text/module.rs"
@@ -348,8 +348,8 @@ def _classify_editor_reference(
         return "runtime-ui-editor-host-contract"
     if relative_path.startswith("zircon_runtime/src/asset/"):
         return "runtime-asset-editor-metadata"
-    if relative_path.startswith("zircon_runtime/src/core/framework/") or relative_path.startswith(
-        "zircon_runtime/src/core/runtime/diagnostics/"
+    if relative_path.startswith("zircon_runtime/src/core/") or relative_path.startswith(
+        "zircon_runtime/src/core/runtime/"
     ):
         return "framework-editor-facing-descriptor"
     if relative_path.startswith("zircon_runtime/src/graphics/"):
@@ -429,7 +429,7 @@ def _classify_legacy_reference(
         return "legacy-runtime-graphics-debt"
     if relative_path == "zircon_runtime/src/asset/assets/texture/upload_support/dds.rs":
         return "legacy-runtime-dds-container-policy"
-    if relative_path.startswith("zircon_runtime/src/ui/template/"):
+    if relative_path.startswith("zircon_runtime/src/ui/"):
         return "legacy-runtime-ui-template-schema-debt"
     if relative_path.startswith("zircon_runtime/src/ui/layout/"):
         return "legacy-runtime-ui-layout-debt"
@@ -456,7 +456,7 @@ def _classify_legacy_reference(
         "zircon_runtime/src/core/framework/window/window_command/header.rs"
     ):
         return "curated-runtime-legacy-rejection-guard"
-    if relative_path.startswith("zircon_runtime/src/core/runtime/diagnostics/"):
+    if relative_path.startswith("zircon_runtime/src/core/runtime/"):
         return "curated-runtime-facade-legacy-reference"
     if relative_path in {
         "zircon_runtime/src/prelude.rs",

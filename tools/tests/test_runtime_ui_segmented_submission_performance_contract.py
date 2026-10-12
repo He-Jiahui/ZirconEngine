@@ -12,8 +12,8 @@ RUNTIME_UI = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui.rs"
 RUNTIME_UI_TESTS = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui/tests/cases.rs"
 VIEWPORT_FRAME = ROOT / "zircon_runtime/src/graphics/types/viewport_render_frame.rs"
 PUBLIC_RUNTIME_FRAME = ROOT / "zircon_runtime/src/ui/public_runtime_frame.rs"
-RENDERER = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
-RENDERER_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/cases.rs"
+RENDERER = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
+RENDERER_TESTS = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render/tests/cases.rs"
 RENDERER_CONTEXT_GUARDS = ROOT / (
     "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/"
     "render_pass_executor_registry/tests/renderer_context_guards.rs"
@@ -21,7 +21,7 @@ RENDERER_CONTEXT_GUARDS = ROOT / (
 UI_TEXTURE = ROOT / "zircon_runtime/src/graphics/scene/resources/ui_texture.rs"
 PROFILE_MANIFEST = ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
 PRODUCT_TEXT_RENDERERS = (
-    ROOT / "zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/product_renderer.rs",
+    ROOT / "zircon_runtime/tests/text_pixels/product_renderer.rs",
     ROOT / "zircon_runtime/tests/runtime_ui_text_render_contract.rs",
 )
 RUNTIME_UI_SOURCE_GUARDS = (
@@ -143,7 +143,7 @@ class RuntimeUiSegmentedSubmissionPerformanceContract(unittest.TestCase):
         manifest = PROFILE_MANIFEST.read_text(encoding="utf-8")
 
         for relative_path in (
-            "zircon_editor/src/ui/retained_host/viewport/submit_extract.rs",
+            "zircon_editor/src/ui/retained/viewport/submit_extract.rs",
             "zircon_runtime/src/core/framework/render/framework.rs",
             "zircon_runtime/src/core/framework/render/ui_submission.rs",
             "zircon_runtime/src/dynamic_api/session/runtime_ui.rs",

@@ -8,6 +8,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiTree, UiTreeError},
 };
 
+#[path = "focus/modal_scope.rs"]
 mod modal_scope;
 
 use super::input::{

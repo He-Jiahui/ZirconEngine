@@ -43,5 +43,5 @@ fn parse_stage(stage: &str) -> Option<RenderShaderStage> {
 }
 
 #[cfg(test)]
-#[path = "tests/entry_point_optimization_batch_gx_runtime579_tests.rs"]
+#[path = "tests/entry_point_perf.rs"]
 mod optimization_batch_gx_runtime579_tests;

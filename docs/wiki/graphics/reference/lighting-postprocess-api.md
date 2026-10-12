@@ -4,14 +4,14 @@ related_code:
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider
   - zircon_runtime/src/graphics/runtime/history
 implementation_files:
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/clustered_lighting.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/post.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
 plan_sources:
   - docs/wiki/graphics/lighting-and-environment.md
   - docs/wiki/graphics/visibility-and-post-processing.md
 tests:
-  - zircon_runtime/src/graphics/tests/render_product_advanced_lighting
+  - zircon_runtime/src/graphics/tests
   - zircon_runtime/src/graphics/tests/render_product_post_process
 doc_type: api-reference
 ---

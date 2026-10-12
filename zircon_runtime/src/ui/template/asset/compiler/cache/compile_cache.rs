@@ -7,11 +7,11 @@ use zircon_runtime_interface::ui::template::{
 };
 
 #[cfg(test)]
-#[path = "compile_cache/tests/hash_eviction_tests.rs"]
+#[path = "tests/hash_eviction.rs"]
 mod hash_eviction_tests;
 
 #[cfg(test)]
-#[path = "compile_cache/tests/eviction_capacity_tests.rs"]
+#[path = "tests/eviction_capacity.rs"]
 mod eviction_capacity_tests;
 
 #[derive(Clone, Debug, Default)]

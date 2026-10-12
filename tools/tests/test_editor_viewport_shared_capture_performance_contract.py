@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs"
+    "zircon_editor/src/ui/retained/contract/data/viewport_image.rs"
 )
 PAINTER = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/"

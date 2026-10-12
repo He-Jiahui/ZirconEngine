@@ -5,7 +5,7 @@ import unittest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     REPO_ROOT
-    / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs"
+    / "zircon_plugins/hybrid_gi/runtime/src/gi/apply_gpu_cache_entries.rs"
 )
 
 

@@ -68,5 +68,5 @@ pub(super) fn text_align_name(align: UiTextAlign) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "tests/metadata_optimization_batch_20260830cg_editor_tests.rs"]
+#[path = "tests/metadata_perf.rs"]
 mod optimization_batch_20260830cg_editor_tests;

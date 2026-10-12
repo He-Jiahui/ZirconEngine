@@ -3,9 +3,12 @@ use std::path::{Path, PathBuf};
 
 use zircon_runtime_interface::project::RelPath;
 
+#[path = "paths/identity.rs"]
 mod identity;
+#[path = "paths/lexical_identity.rs"]
 mod lexical_identity;
 #[cfg(windows)]
+#[path = "paths/windows.rs"]
 mod windows;
 
 pub use identity::ResolvedProjectPathIdentity;

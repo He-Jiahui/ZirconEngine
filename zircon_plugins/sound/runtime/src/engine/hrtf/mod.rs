@@ -1,8 +1,13 @@
 //! HRTF 状态按声源、监听器和配置身份分隔；源环境处理链负责使用它，Kira 实时输出尚未调用该处理链。
+#[path = "apply.rs"]
 mod apply;
+#[path = "key.rs"]
 mod key;
+#[path = "output_bed.rs"]
 mod output_bed;
+#[path = "prune.rs"]
 mod prune;
+#[path = "state.rs"]
 mod state;
 
 pub(crate) use apply::apply_loaded_hrtf_profile;

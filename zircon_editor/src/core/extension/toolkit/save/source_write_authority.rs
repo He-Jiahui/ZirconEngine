@@ -319,5 +319,5 @@ fn source_before_publication(path: &Path, replacement: &[u8]) -> SourceBeforePub
 }
 
 #[cfg(test)]
-#[path = "source_write_authority/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

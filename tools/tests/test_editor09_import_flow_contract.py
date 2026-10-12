@@ -103,9 +103,9 @@ class Editor09ImportFlowContractTests(unittest.TestCase):
             self.assertNotIn(forbidden, combined)
 
     def test_model_ingress_uses_the_runtime_gltf_subasset_generation(self) -> None:
-        workspace = read("zircon_editor/src/ui/retained_host/app/assets/workspace.rs")
-        helpers = read("zircon_editor/src/ui/retained_host/app/helpers.rs")
-        host = read("zircon_editor/src/ui/retained_host/app.rs")
+        workspace = read("zircon_editor/src/ui/retained/app/assets/workspace.rs")
+        helpers = read("zircon_editor/src/ui/retained/app/helpers.rs")
+        host = read("zircon_editor/src/ui/retained/app.rs")
         runtime_gltf = read("zircon_runtime/src/asset/importer/ingest/import_gltf.rs")
 
         for source in (workspace, helpers, host):

@@ -71,8 +71,11 @@ fn text_paint_projects_normalized_distance_field_effects_from_resolved_style() {
     assert!(paint.text_effects.glow.is_none());
 }
 
+#[path = "render_contracts/cache_generation.rs"]
 mod cache_generation;
+#[path = "render_contracts/rich_table.rs"]
 mod rich_table;
+#[path = "render_contracts/text_shape.rs"]
 mod text_shape;
 
 fn solid_command(node_id: u64, x: f32, clip_x: f32) -> UiRenderCommand {

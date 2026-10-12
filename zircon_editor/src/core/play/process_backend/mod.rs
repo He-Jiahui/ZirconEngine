@@ -7,9 +7,13 @@ use super::{
     PlayBackendStartReport, PlayBackendStopReport, PlaySnapshotStore, PlayStartRequest,
 };
 
+#[path = "child.rs"]
 mod child;
+#[path = "command.rs"]
 mod command;
+#[path = "error.rs"]
 mod error;
+#[path = "output.rs"]
 mod output;
 #[cfg(test)]
 #[path = "tests/cases.rs"]
@@ -329,5 +333,5 @@ impl Drop for ProcessPlayBackend {
 }
 
 #[cfg(test)]
-#[path = "tests/mod_performance_source_guards.rs"]
+#[path = "tests/mod_perf_source_guards.rs"]
 mod performance_source_guards;

@@ -19,7 +19,7 @@ plan_sources:
 tests:
   - zircon_editor/src/scene/selection/tests/cases.rs
   - zircon_editor/src/scene/modes/tests/cases.rs
-  - zircon_editor/src/tests/editing
+  - zircon_editor/src/tests
 doc_type: module-detail
 ---
 

@@ -196,5 +196,5 @@ fn collect_items_and_selection<'a, T>(
 }
 
 #[cfg(test)]
-#[path = "style/tests/single_pass_selection_tests.rs"]
+#[path = "../../../session/presentation/style/tests/single_pass_selection.rs"]
 mod single_pass_selection_tests;

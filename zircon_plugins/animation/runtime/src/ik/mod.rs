@@ -1,6 +1,9 @@
 //! 公开独立两骨链和注视求解 API；调用方自行决定何时把求解结果并入姿态管线。
+#[path = "error.rs"]
 mod error;
+#[path = "look_at.rs"]
 mod look_at;
+#[path = "two_bone.rs"]
 mod two_bone;
 
 pub use error::AnimationIkError;

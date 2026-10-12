@@ -41,5 +41,5 @@ pub(super) fn rebuild_ui_asset_session_from_source(
 }
 
 #[cfg(test)]
-#[path = "tests/normalize_performance_tests.rs"]
+#[path = "tests/normalize_perf.rs"]
 mod performance_tests;

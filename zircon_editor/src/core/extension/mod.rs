@@ -1,9 +1,14 @@
 //! Editor extension contracts shared by headless authoring and UI hosts.
 
+#[path = "inspector.rs"]
 mod inspector;
+#[path = "settings_page_projection.rs"]
 mod settings_page_projection;
+#[path = "slots.rs"]
 mod slots;
+#[path = "store.rs"]
 mod store;
+#[path = "toolkit/mod.rs"]
 mod toolkit;
 
 pub use inspector::{

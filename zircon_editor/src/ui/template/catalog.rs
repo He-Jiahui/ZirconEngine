@@ -448,5 +448,5 @@ impl EditorComponentCatalog {
 }
 
 #[cfg(test)]
-#[path = "catalog/tests/optimization_batch_it_editor630_tests.rs"]
+#[path = "catalog/tests/perf.rs"]
 mod optimization_batch_it_editor630_tests;

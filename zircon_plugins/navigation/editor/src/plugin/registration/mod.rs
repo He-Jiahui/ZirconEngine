@@ -1,6 +1,10 @@
+#[path = "assets.rs"]
 mod assets;
+#[path = "components.rs"]
 mod components;
+#[path = "operations.rs"]
 mod operations;
+#[path = "templates.rs"]
 mod templates;
 
 use std::sync::{Arc, Mutex};

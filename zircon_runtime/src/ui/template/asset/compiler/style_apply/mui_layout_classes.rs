@@ -330,7 +330,7 @@ impl ResponsiveClassOptions {
 }
 
 #[cfg(test)]
-#[path = "mui_layout_classes/tests/borrowed_collapse_tests.rs"]
+#[path = "../tests/borrowed_collapse.rs"]
 mod borrowed_collapse_tests;
 
 fn append_responsive_value_classes(

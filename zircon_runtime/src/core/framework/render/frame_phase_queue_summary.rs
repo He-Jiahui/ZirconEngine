@@ -242,5 +242,5 @@ fn phase_diagnostic_name(phases: &[RenderPhase]) -> String {
 mod tests;
 
 #[cfg(test)]
-#[path = "frame_phase_queue_summary/tests/cached_span_template_tests.rs"]
+#[path = "tests/cached_span_template.rs"]
 mod cached_span_template_tests;

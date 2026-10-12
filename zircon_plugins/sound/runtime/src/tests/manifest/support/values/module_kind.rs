@@ -1,3 +1,4 @@
+#[path = "../../../support/values/module_kind/raw.rs"]
 mod raw;
 
 pub(in super::super) fn plugin_module_kind_from_plugin_toml(

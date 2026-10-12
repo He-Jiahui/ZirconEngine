@@ -349,7 +349,7 @@ fn display_entry_name(name: &Option<String>) -> &str {
 }
 
 #[cfg(test)]
-#[path = "validation/tests/single_pass_uv_tests.rs"]
+#[path = "validation/tests/single_pass_uv.rs"]
 mod single_pass_uv_tests;
 
 #[cfg(test)]

@@ -9,12 +9,12 @@ related_code:
 implementation_files:
   - zircon_editor/src/ui/workbench/view
   - zircon_editor/src/ui/workbench/window_registry
-  - zircon_editor/src/ui/workbench/autolayout
+  - zircon_editor/src/ui/workbench
 plan_sources:
   - user: 2026-09-09 完善 ZirconEngine 公开接口、机制案例、教程与最佳实践
 tests:
-  - zircon_editor/src/ui/workbench
-  - zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs
+  - zircon_editor/src/ui
+  - zircon_editor/src/ui/retained/ui/tests/layout_frames.rs
 doc_type: module-detail
 ---
 
@@ -178,8 +178,8 @@ Unreal Slate tab manager 常以 tab id + layout config 工作；ZirconEngine 额
 
 - View：[zircon_editor/src/ui/workbench/view](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/workbench/view)
 - Window：[zircon_editor/src/ui/workbench/window_registry/editor_window_registry.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/ui/workbench/window_registry/editor_window_registry.rs)
-- Layout：[zircon_editor/src/ui/workbench/autolayout](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/workbench/autolayout)
-- Tests：[zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs)
+- Layout：[zircon_editor/src/ui/workbench](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/workbench/autolayout)
+- Tests：[zircon_editor/src/ui/retained/ui/tests/layout_frames.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs)
 
 ## Descriptor 与 instance 字段
 

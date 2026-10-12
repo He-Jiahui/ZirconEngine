@@ -388,5 +388,5 @@ fn texture_reference(
 }
 
 #[cfg(test)]
-#[path = "tests/material.rs"]
+#[path = "../tests/material.rs"]
 mod tests;

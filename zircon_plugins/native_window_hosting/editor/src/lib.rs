@@ -1,5 +1,7 @@
+#[path = "capability.rs"]
 mod capability;
 #[cfg(feature = "editor")]
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

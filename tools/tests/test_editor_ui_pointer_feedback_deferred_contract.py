@@ -8,10 +8,10 @@ POINTER_FEEDBACK = ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/"
     "pointer_feedback.rs"
 )
-TOOLTIP = ROOT / "zircon_editor/src/ui/retained_host/app/workbench_tooltip.rs"
-RECOMPUTE = ROOT / "zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs"
+TOOLTIP = ROOT / "zircon_editor/src/ui/retained/app/tooltip.rs"
+RECOMPUTE = ROOT / "zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs"
 DISPATCH_EFFECTS = ROOT / (
-    "zircon_editor/src/ui/retained_host/app/host_lifecycle/dispatch_effects.rs"
+    "zircon_editor/src/ui/retained/app/host_lifecycle/dispatch_effects.rs"
 )
 
 

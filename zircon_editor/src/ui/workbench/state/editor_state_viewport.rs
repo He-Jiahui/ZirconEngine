@@ -471,5 +471,5 @@ impl EditorState {
 }
 
 #[cfg(test)]
-#[path = "tests/editor_state_viewport_play_viewport_route_contract_tests.rs"]
+#[path = "../../tests/editor_state_viewport_play_viewport_route_contract.rs"]
 mod play_viewport_route_contract_tests;

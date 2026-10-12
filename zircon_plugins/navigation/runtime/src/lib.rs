@@ -12,16 +12,27 @@ use zircon_runtime::core::{
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name};
 use zircon_runtime::scene::{SceneNavigationRuntime, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME};
 
+#[path = "agent.rs"]
 mod agent;
+#[path = "capability.rs"]
 mod capability;
+#[path = "component_json.rs"]
 mod component_json;
+#[path = "components.rs"]
 mod components;
+#[path = "manager.rs"]
 mod manager;
+#[path = "off_mesh_connections.rs"]
 mod off_mesh_connections;
+#[path = "overlay_frame.rs"]
 mod overlay_frame;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "runtime_obstacles.rs"]
 mod runtime_obstacles;
+#[path = "settings_hash.rs"]
 mod settings_hash;
+#[path = "settings_validation.rs"]
 mod settings_validation;
 
 #[cfg(test)]
@@ -203,4 +214,5 @@ pub fn navigation_event_catalog() -> zircon_runtime::plugin::PluginEventCatalogM
 }
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

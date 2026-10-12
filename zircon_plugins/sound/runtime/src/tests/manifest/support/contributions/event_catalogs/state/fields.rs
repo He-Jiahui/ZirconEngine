@@ -1,2 +1,0 @@
-mod namespace;
-mod version;

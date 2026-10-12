@@ -20,7 +20,7 @@ use zircon_runtime_interface::ui::template::{
 use zircon_runtime_interface::ui::widget::UiWidgetContract;
 
 #[cfg(test)]
-#[path = "flat_nodes/tests/performance_tests.rs"]
+#[path = "flat_nodes/tests/perf.rs"]
 mod performance_tests;
 
 /// 仅供已经完成源版本接纳的迁移器调用；输出还须由迁移器验证树权威性。

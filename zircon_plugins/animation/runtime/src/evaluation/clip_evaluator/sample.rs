@@ -292,5 +292,5 @@ fn sampled_rotation(
 }
 
 #[cfg(test)]
-#[path = "tests/sample_optimization_tests.rs"]
+#[path = "../tests/sample_perf.rs"]
 mod optimization_tests;

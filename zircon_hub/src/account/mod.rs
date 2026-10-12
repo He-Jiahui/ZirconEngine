@@ -1,12 +1,22 @@
+#[path = "callback.rs"]
 mod callback;
+#[path = "catalog.rs"]
 mod catalog;
+#[path = "cloud/mod.rs"]
 pub(crate) mod cloud;
+#[path = "config.rs"]
 mod config;
+#[path = "credential.rs"]
 mod credential;
+#[path = "oidc.rs"]
 mod oidc;
+#[path = "operations.rs"]
 pub(crate) mod operations;
+#[path = "package.rs"]
 mod package;
+#[path = "recovery.rs"]
 mod recovery;
+#[path = "service.rs"]
 mod service;
 pub(crate) use package::{PackageActionSchemaV2, PackageRuntimeMode};
 pub use service::ServiceRequest;

@@ -2,13 +2,13 @@
 related_code:
   - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
-  - zircon_runtime/src/dynamic_api/session
+  - zircon_runtime/src/dynamic_api
   - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime_interface/src/buffer.rs
 implementation_files:
   - zircon_runtime/src/dynamic_api/exports.rs
-  - zircon_runtime/src/dynamic_api/session
+  - zircon_runtime/src/dynamic_api
   - zircon_runtime_interface/src/runtime_api
   - zircon_runtime_interface/src/buffer.rs
 plan_sources:

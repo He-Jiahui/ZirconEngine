@@ -18,6 +18,7 @@ use crate::core::resource::{
 };
 use crate::graphics::WgpuRenderFramework;
 
+#[path = "render_product_post_process/motion_blur.rs"]
 mod motion_blur;
 
 #[test]

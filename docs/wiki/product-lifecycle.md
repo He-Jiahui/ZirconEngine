@@ -9,7 +9,7 @@ related_code:
   - zircon_editor/src/core/document
   - zircon_runtime_interface/src/runtime_api
 implementation_files:
-  - zircon_runtime/src/core/runtime
+  - zircon_runtime/src/core
   - zircon_app/src/entry
   - zircon_editor/src/core/project
   - zircon_editor/src/core/document
@@ -18,7 +18,7 @@ plan_sources:
   - docs/plans/mvp/index.md
   - docs/architecture/runtime-interface-convergence.md
 tests:
-  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/tests
   - zircon_app/src/tests
   - zircon_editor/src/core/project/tests
   - zircon_runtime_interface/src/tests

@@ -1,0 +1,34 @@
+//! 注册报告的声明校验入口：能力声明满足命名与唯一性契约，依赖声明提供可解析的请求。
+//! 此阶段积累诊断；依赖提供者是否存在、是否满足请求由后续目录解析负责。
+
+#[path = "dependencies/capabilities.rs"]
+mod capabilities;
+#[path = "dependencies/dependencies.rs"]
+mod dependencies;
+
+use super::projection::RuntimePluginPackageValidationProjection;
+use crate::plugin::PluginPackageManifest;
+
+pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_package_capabilities(
+    package_manifest: &PluginPackageManifest,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
+    diagnostics: &mut Vec<String>,
+) {
+    capabilities::validate_runtime_plugin_package_capability_rows(
+        package_manifest,
+        projection,
+        diagnostics,
+    );
+}
+
+pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_package_dependencies(
+    package_manifest: &PluginPackageManifest,
+    projection: &RuntimePluginPackageValidationProjection<'_>,
+    diagnostics: &mut Vec<String>,
+) {
+    dependencies::validate_runtime_plugin_package_dependency_rows(
+        package_manifest,
+        projection,
+        diagnostics,
+    );
+}

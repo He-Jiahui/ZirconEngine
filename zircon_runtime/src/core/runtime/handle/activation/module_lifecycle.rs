@@ -138,5 +138,5 @@ fn module_ready_timeout(module_name: &str, ready_timeout: Duration) -> CoreError
 }
 
 #[cfg(test)]
-#[path = "tests/module_lifecycle_performance_tests.rs"]
+#[path = "tests/module_lifecycle_perf.rs"]
 mod performance_tests;

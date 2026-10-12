@@ -5,10 +5,10 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 PLAN = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/shadow/plan.rs"
 )
 TESTS = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan/tests/cases.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/shadow/plan/tests/cases.rs"
 )
 
 

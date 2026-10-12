@@ -53,5 +53,5 @@ impl InboundFragmentAssembly {
 }
 
 #[cfg(test)]
-#[path = "tests/assembly_moved_fragment_payload_tests.rs"]
+#[path = "../tests/assembly_moved.rs"]
 mod moved_fragment_payload_tests;

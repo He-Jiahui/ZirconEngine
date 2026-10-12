@@ -1,7 +1,10 @@
 //! UI-facing snapshots for editor data and workbench layout binding.
 
+#[path = "asset/mod.rs"]
 mod asset;
+#[path = "data/mod.rs"]
 mod data;
+#[path = "workbench/mod.rs"]
 mod workbench;
 
 #[allow(unused_imports)]

@@ -10,28 +10,28 @@ EDITOR_TOKENS = ROOT / "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
 EDITOR_MATERIAL = ROOT / "zircon_editor/assets/ui/theme/editor_material.zui"
 RUNTIME_TOKENS = ROOT / "zircon_runtime_interface/src/ui/design_tokens.rs"
 WELCOME_STYLE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "paint_workbench_renderer/welcome/style.rs"
 )
 WORKBENCH_RENDERER_STYLE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "paint_workbench_renderer/style.rs"
 )
 WORKBENCH_SPLITTER = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "paint_workbench_renderer/scene_layers/resize.rs"
 )
-ASSET_BROWSER_ICON_TEST = ROOT / "zircon_editor/src/ui/retained_host/ui/tests/asset_browser_icon_button_painter_tests.rs"
+ASSET_BROWSER_ICON_TEST = ROOT / "zircon_editor/src/ui/retained/ui/tests/asset_browser_icon_button_painter.rs"
 WORKBENCH_BUTTON_PALETTE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "style_selector/workbench_button/palette.rs"
 )
 WORKBENCH_BUTTON_NORMAL = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "style_selector/workbench_button/states/normal.rs"
 )
 WORKBENCH_BUTTON_INTERACTIVE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "style_selector/workbench_button/states/interactive.rs"
 )
 

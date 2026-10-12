@@ -2,6 +2,9 @@
 
 use super::*;
 
+#[path = "scroll_mutation/pointer_routes.rs"]
 mod pointer_routes;
+#[path = "scroll_mutation/property_mutation.rs"]
 mod property_mutation;
+#[path = "scroll_mutation/virtual_scroll.rs"]
 mod virtual_scroll;

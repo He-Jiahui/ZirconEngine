@@ -11,19 +11,19 @@ const WELCOME_LAYOUT_TOML: &str = include_str!(concat!(
 ));
 const WORKBENCH_BUTTON_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui"
+    "/assets/ui/editor/components/workbench/primitives/inputs/button.zui"
 ));
 const WORKBENCH_FIELD_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui"
+    "/assets/ui/editor/components/workbench/primitives/inputs/field.zui"
 ));
 const WELCOME_MAIN_COLUMN_RS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/main_column.rs"
+    "/src/ui/retained/contract/workbench/welcome/main_column.rs"
 ));
 const WELCOME_FORM_MODULE_RS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/main_column/form.rs"
+    "/src/ui/retained/contract/workbench/welcome/main_column/form.rs"
 ));
 
 fn numeric_prop(value: Option<&toml::Value>) -> Option<f64> {

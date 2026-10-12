@@ -414,7 +414,7 @@ fn take<T>(values: &mut [Option<T>], slot: BlackboardSlot) -> bool {
 }
 
 #[cfg(test)]
-#[path = "store/tests/synchronize_scratch_tests.rs"]
+#[path = "store/tests/synchronize_scratch.rs"]
 mod synchronize_scratch_tests;
 
 #[cfg(test)]

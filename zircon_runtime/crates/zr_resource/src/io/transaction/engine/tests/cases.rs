@@ -5,19 +5,19 @@ use std::fs;
 
 use super::*;
 
-#[path = "ambiguous_replace.rs"]
+#[path = "../../../engine/tests/ambiguous_replace.rs"]
 mod ambiguous_replace;
-#[path = "artifact_namespace.rs"]
+#[path = "../../../engine/tests/artifact_namespace.rs"]
 mod artifact_namespace;
-#[path = "durable_io_profile.rs"]
+#[path = "../../../engine/tests/durable_io_profile.rs"]
 mod durable_io_profile;
-#[path = "journal_namespace.rs"]
+#[path = "../../../engine/tests/journal_namespace.rs"]
 mod journal_namespace;
-#[path = "live_namespace.rs"]
+#[path = "../../../engine/tests/live_namespace.rs"]
 mod live_namespace;
-#[path = "namespace_profile.rs"]
+#[path = "../../../engine/tests/namespace_profile.rs"]
 mod namespace_profile;
-#[path = "pre_active_abort.rs"]
+#[path = "../../../engine/tests/pre_active_abort.rs"]
 mod pre_active_abort;
 
 #[test]

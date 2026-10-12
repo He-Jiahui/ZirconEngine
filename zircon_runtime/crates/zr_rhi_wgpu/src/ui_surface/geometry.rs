@@ -7,6 +7,7 @@ use zr_rhi::{
     UiSurfacePresentStatsAccumulator, UiSurfaceRect, UiSurfaceResolvedCommandKind,
 };
 
+#[path = "geometry/clipping.rs"]
 mod clipping;
 
 use clipping::clip_solid_triangles_to_rect;

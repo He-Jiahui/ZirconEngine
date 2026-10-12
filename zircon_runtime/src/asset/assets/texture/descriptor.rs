@@ -12,6 +12,7 @@ use crate::core::framework::render::{
 
 use super::TexturePayload;
 
+#[path = "descriptor/settings.rs"]
 mod settings;
 
 use self::settings::{
@@ -571,7 +572,7 @@ fn default_depth_or_array_layers() -> u32 {
 }
 
 #[cfg(test)]
-#[path = "tests/descriptor_plugins07_decoded_format_hotpath_tests.rs"]
+#[path = "../tests/desc_plugins07_decoded_format_hotpath.rs"]
 mod plugins07_decoded_format_hotpath_tests;
 
 #[cfg(test)]

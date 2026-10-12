@@ -83,7 +83,7 @@ class DrawerHeaderNativeReceiptPerformanceContract(unittest.TestCase):
             "host_drawer_header_pointer_surface.rs"
         )
         pointer_layout = source(
-            "zircon_editor/src/ui/retained_host/app/pointer_layout/shell_chrome.rs"
+            "zircon_editor/src/ui/retained/app/pointer_layout/shell_chrome.rs"
         )
 
         self.assertNotIn("UiFrame", build)
@@ -94,11 +94,11 @@ class DrawerHeaderNativeReceiptPerformanceContract(unittest.TestCase):
 
     def test_callback_borrows_native_receipt_target_without_pointer_dispatch(self):
         callback = source(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/"
+            "zircon_editor/src/ui/retained/dispatch/shared_pointer/"
             "drawer_header.rs"
         )
         click = source(
-            "zircon_editor/src/ui/retained_host/drawer_header_pointer/handle_click.rs"
+            "zircon_editor/src/ui/retained/drawer_header_pointer/handle_click.rs"
         )
 
         self.assertRegex(callback, re.compile(r"pointer_bridge\s*\.target_for_route"))
@@ -110,7 +110,7 @@ class DrawerHeaderNativeReceiptPerformanceContract(unittest.TestCase):
 
     def test_drawer_command_boundary_accepts_typed_target(self):
         command = source(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/layout/drawer_toggle.rs"
+            "zircon_editor/src/ui/retained/dispatch/layout/drawer_toggle.rs"
         )
 
         self.assertIn("slot: ActivityDrawerSlot", command)

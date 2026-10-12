@@ -91,10 +91,10 @@ RUNTIME_08_TEST_FILES = (
     "zircon_runtime/src/scene/tests/ecs_events_messages.rs",
     "zircon_runtime/src/scene/tests/ecs_change_detection.rs",
     "zircon_runtime/src/scene/tests/component_structure/runtime_08_owner_tree.rs",
-    "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data.rs",
-    "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data/inventory.rs",
-    "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data/guard_coverage.rs",
-    "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data/docs.rs",
+    "zircon_runtime/src/tests/contracts/ecs_kernel_data.rs",
+    "zircon_runtime/src/tests/contracts/ecs_kernel_data/inventory.rs",
+    "zircon_runtime/src/tests/contracts/ecs_kernel_data/guard_coverage.rs",
+    "zircon_runtime/src/tests/contracts/ecs_kernel_data/docs.rs",
 )
 
 MIRROR_DOCS_GUARD = (

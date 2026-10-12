@@ -589,5 +589,5 @@ fn numeric_array_len(value: &toml::Value, len: usize) -> bool {
 }
 
 #[cfg(test)]
-#[path = "tests/validation_optimization_batch_ie_runtime616_tests.rs"]
+#[path = "tests/validation_perf.rs"]
 mod optimization_batch_ie_runtime616_tests;

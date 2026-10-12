@@ -1,5 +1,7 @@
 // 固定清单模块列表仅在 modules 顶层表内读取；后续过滤 runtime 类型再与运行时包清单比较。
+#[path = "../modules/line.rs"]
 mod line;
+#[path = "../modules/state.rs"]
 mod state;
 
 use self::state::ModuleContributionParserState;

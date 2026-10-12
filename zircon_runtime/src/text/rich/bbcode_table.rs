@@ -4,7 +4,9 @@ use self::attributes::{configure_columns, parse_cell_attributes};
 use self::placement::{CellPlacement, TablePlacementCursor};
 use super::admission::RichTextParseError;
 
+#[path = "bbcode_table/attributes.rs"]
 mod attributes;
+#[path = "bbcode_table/placement.rs"]
 mod placement;
 
 const DEFAULT_TABLE_COLUMNS: usize = 1;

@@ -1,4 +1,5 @@
 //! 迁移命令测试共享项目根、清单和 sidecar 夹具；路径必须落在清单声明的资源根下。
+#[path = "project_commandlet/mod.rs"]
 mod project_commandlet;
 
 use std::path::{Path, PathBuf};

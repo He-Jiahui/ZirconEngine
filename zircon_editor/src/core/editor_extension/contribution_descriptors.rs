@@ -496,5 +496,5 @@ pub(super) fn validate_asset_importer(
 mod tests;
 
 #[cfg(test)]
-#[path = "contribution_descriptors/tests/optimization_tests.rs"]
+#[path = "contribution_descriptors/tests/perf.rs"]
 mod optimization_tests;

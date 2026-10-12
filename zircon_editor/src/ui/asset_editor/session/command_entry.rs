@@ -386,7 +386,7 @@ fn tree_document_replay_commands(
 }
 
 #[cfg(test)]
-#[path = "tests/command_entry_close_dirty_preflight_tests.rs"]
+#[path = "../../session/tests/command_entry_close_dirty_preflight.rs"]
 mod close_dirty_preflight_tests;
 
 fn build_widget_import_replay_commands(
@@ -559,9 +559,9 @@ fn has_duplicate_string_entries(entries: &[String]) -> bool {
 }
 
 #[cfg(test)]
-#[path = "command_entry/tests/optimization_batch_jn_editor653_tests.rs"]
+#[path = "command_entry/tests/perf.rs"]
 mod optimization_batch_jn_editor653_tests;
 
 #[cfg(test)]
-#[path = "tests/command_entry_optimization_tests.rs"]
+#[path = "tests/command_entry_perf.rs"]
 mod optimization_tests;

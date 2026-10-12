@@ -50,9 +50,9 @@ impl UiInputDispatchOutcome {
 }
 
 #[cfg(test)]
-#[path = "outcome/tests/single_pass_metadata_tests.rs"]
+#[path = "../outcome/tests/single_pass_metadata.rs"]
 mod single_pass_metadata_tests;
 
 #[cfg(test)]
-#[path = "outcome/tests/host_request_capacity_tests.rs"]
+#[path = "../outcome/tests/host_request_capacity.rs"]
 mod host_request_capacity_tests;

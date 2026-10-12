@@ -688,5 +688,5 @@ fn resource_management_row_matches_record(
 }
 
 #[cfg(test)]
-#[path = "management_projection/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

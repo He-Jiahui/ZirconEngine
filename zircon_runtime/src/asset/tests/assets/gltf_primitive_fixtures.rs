@@ -1,6 +1,10 @@
+#[path = "gltf_primitive_fixtures/animation.rs"]
 mod animation;
+#[path = "gltf_primitive_fixtures/basic.rs"]
 mod basic;
+#[path = "gltf_primitive_fixtures/materials.rs"]
 mod materials;
+#[path = "gltf_primitive_fixtures/vertex_channels.rs"]
 mod vertex_channels;
 
 pub(super) use animation::write_node_animation_gltf;

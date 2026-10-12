@@ -12,7 +12,9 @@ use super::scope_model::{TaskGraphScopeCensus, TaskGraphScopeDescriptor};
 use super::scope_registration::TaskGraphScopeRegistration;
 use super::task_handle::TaskHandle;
 
+#[path = "scope/cancellation.rs"]
 mod cancellation;
+#[path = "scope/task_admission.rs"]
 mod task_admission;
 
 pub use cancellation::TaskCancellationToken;

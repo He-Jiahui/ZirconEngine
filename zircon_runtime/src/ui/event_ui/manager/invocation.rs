@@ -196,5 +196,5 @@ fn take_binding_arguments(binding: &mut UiEventBinding) -> Vec<UiBindingValue> {
 }
 
 #[cfg(test)]
-#[path = "invocation/tests/owned_binding_arguments_tests.rs"]
+#[path = "tests/owned_binding_arguments.rs"]
 mod owned_binding_arguments_tests;

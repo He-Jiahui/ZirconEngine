@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 STORE = ROOT / (
     "zircon_runtime/src/core/framework/render/viewport_highlight_store.rs"
 )
-BENCHMARK = ROOT / "zircon_runtime/src/core/framework/render/viewport_highlight_store/tests/hash_index_tests.rs"
+BENCHMARK = ROOT / "zircon_runtime/src/core/framework/render/tests/hash_index.rs"
 
 
 class Runtime62ViewportHighlightHashIndexPerformanceContract(unittest.TestCase):

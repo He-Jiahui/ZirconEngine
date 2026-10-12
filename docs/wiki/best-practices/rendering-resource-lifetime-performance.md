@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/src/render_graph/graph/transient_allocation.rs
   - zircon_runtime/crates/zr_rhi/src/device/render_device.rs
   - zircon_runtime/crates/zr_rhi/src/submission.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/create_texture_bundle.rs
+  - zircon_runtime/src/graphics/offscreen_target_construct/create_texture_bundle.rs
 implementation_files:
   - zircon_runtime/src/render_graph/builder/compile.rs
   - zircon_runtime/src/render_graph/graph/transient_allocation.rs
@@ -14,7 +14,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/render_graph/tests
   - zircon_runtime/crates/zr_rhi/src/tests
-  - zircon_runtime/crates/zr_rhi_wgpu/src/tests
+  - zircon_runtime/crates/zr_rhi_wgpu/tests
 doc_type: workflow-detail
 ---
 

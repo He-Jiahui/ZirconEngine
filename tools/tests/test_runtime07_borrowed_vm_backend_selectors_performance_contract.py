@@ -12,7 +12,7 @@ ZR_VM_SOURCE = ROOT / "zircon_plugins/zr_vm_language/runtime/src/backend.rs"
 IMPLEMENTATION_SOURCES = (
     REGISTRY_SOURCE,
     BUILTIN_SOURCE,
-    ROOT / "zircon_runtime/src/script/vm/backend/backend_registry/tests/qualified_lookup_tests.rs",
+    ROOT / "zircon_runtime/src/script/vm/backend/backend_registry/tests/qualified_lookup.rs",
     ROOT / "zircon_runtime/src/script/vm/tests/lifecycle_failures.rs",
     ROOT / "zircon_runtime/src/script/vm/tests/support.rs",
     ZR_VM_SOURCE,

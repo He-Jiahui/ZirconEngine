@@ -6,7 +6,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/scene/dynamic_scene/session/selected_retention/tag/preview.rs"
+    / "zircon_runtime/src/scene/dynamic/session/selected_retention/tag/preview.rs"
 )
 
 

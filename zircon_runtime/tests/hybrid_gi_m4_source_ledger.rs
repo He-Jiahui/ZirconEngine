@@ -5,10 +5,10 @@ use zircon_runtime::core::framework::render::{
 };
 
 const POST_PROCESS_SHADER: &str = concat!(
-    include_str!("../src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl"),
+    include_str!("../src/graphics/scene/renderer/post/shaders/post.wgsl"),
     "\n",
     include_str!(
-        "../src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl"
+        "../src/graphics/post/shaders/process_screen_space_reflection.wgsl"
     )
 );
 

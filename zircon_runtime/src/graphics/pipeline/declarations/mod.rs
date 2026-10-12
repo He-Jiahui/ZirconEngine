@@ -1,17 +1,32 @@
+#[path = "../../declarations/advanced_lighting_compile_inputs.rs"]
 mod advanced_lighting_compile_inputs;
+#[path = "advanced_pbr_pass_contract.rs"]
 mod advanced_pbr_pass_contract;
+#[path = "ambient_occlusion.rs"]
 mod ambient_occlusion;
+#[path = "compiled_render_pipeline.rs"]
 mod compiled_render_pipeline;
+#[path = "render_pass_stage.rs"]
 mod render_pass_stage;
+#[path = "render_pipeline_asset.rs"]
 mod render_pipeline_asset;
+#[path = "../../declarations/render_pipeline_compile_options.rs"]
 mod render_pipeline_compile_options;
+#[path = "../../declarations/render_pipeline_compile_report.rs"]
 mod render_pipeline_compile_report;
+#[path = "renderer_asset.rs"]
 mod renderer_asset;
+#[path = "renderer_data_document.rs"]
 mod renderer_data_document;
+#[path = "renderer_feature_asset.rs"]
 mod renderer_feature_asset;
+#[path = "../../declarations/renderer_feature_contract_diagnostic.rs"]
 mod renderer_feature_contract_diagnostic;
+#[path = "renderer_feature_reference.rs"]
 mod renderer_feature_reference;
+#[path = "renderer_feature_source.rs"]
 mod renderer_feature_source;
+#[path = "terminal_surface_pass.rs"]
 mod terminal_surface_pass;
 
 pub(crate) use advanced_lighting_compile_inputs::AdvancedLightingCompileInputs;

@@ -238,7 +238,7 @@ fn worker_pool_source_uses_shared_ticket_results_not_a_completion_channel() {
         include_str!("../../../pipeline/worker_pool/payload.rs"),
     ];
     let manager_source =
-        include_str!("../../../pipeline/manager/project_asset_manager/construction.rs");
+        include_str!("../../../pipeline/manager/assets/construction.rs");
 
     assert!(worker_pool_sources[0].contains("AssetWorkerCompletionTicket"));
     assert!(worker_pool_sources[0].contains("Arc<CpuAssetPayload>"));

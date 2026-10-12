@@ -32,10 +32,15 @@ use zircon_runtime_interface::ui::{
     tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
 };
 
+#[path = "event_routing/component_events.rs"]
 mod component_events;
+#[path = "event_routing/contracts.rs"]
 mod contracts;
+#[path = "event_routing/dispatch_effects.rs"]
 mod dispatch_effects;
+#[path = "event_routing/pointer_state.rs"]
 mod pointer_state;
+#[path = "event_routing/shared_input.rs"]
 mod shared_input;
 
 // 夹具直接同步旧焦点捕获和按指针编号的捕获表，以制造后续路由前置状态；生产捕获应经过效果入口。

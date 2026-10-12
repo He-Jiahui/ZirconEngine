@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface
+  - zircon_runtime/crates/zr_rhi_wgpu/src
   - zircon_runtime/src/graphics/text_transport
 implementation_files:
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs

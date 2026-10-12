@@ -97,7 +97,7 @@ class HardCutoverMigrationSmellsTests(unittest.TestCase):
             "zircon_runtime/src/builtin/runtime_modules/assembly.rs": (
                 "legacy-runtime-module-composition-debt"
             ),
-            "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project/selection.rs": (
+            "zircon_runtime/src/plugin/runtime/catalog/project/selection.rs": (
                 "legacy-runtime-plugin-selection-admission-debt"
             ),
             "zircon_runtime/src/render_graph/access/resource_access_intent.rs": (
@@ -109,7 +109,7 @@ class HardCutoverMigrationSmellsTests(unittest.TestCase):
             "zircon_runtime/src/ui/component/state_reducer/state_model.rs": (
                 "legacy-runtime-ui-event-dto-debt"
             ),
-            "zircon_runtime/src/ui/surface/surface/default_interactions/table/width_mutation.rs": (
+            "zircon_runtime/src/ui/surface/surface/table/width_mutation.rs": (
                 "legacy-runtime-ui-table-update-route-debt"
             ),
             "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs": (

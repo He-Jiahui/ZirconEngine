@@ -52,10 +52,15 @@ fn pointer_state() -> UiStateFlags {
     }
 }
 
+#[path = "shared_core/box_flow.rs"]
 mod box_flow;
+#[path = "shared_core/input_visibility.rs"]
 mod input_visibility;
+#[path = "shared_core/layout_surface.rs"]
 mod layout_surface;
+#[path = "shared_core/navigation.rs"]
 mod navigation;
+#[path = "shared_core/scroll_mutation.rs"]
 mod scroll_mutation;
 
 fn fixed_constraint(size: f32) -> AxisConstraint {

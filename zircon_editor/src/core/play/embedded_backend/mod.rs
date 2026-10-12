@@ -7,6 +7,7 @@ use super::{
     PlayStartRequest,
 };
 
+#[path = "session_contract.rs"]
 mod session_contract;
 
 pub use session_contract::{

@@ -7,14 +7,14 @@ from tools.analysis.performance.editor.editor_pointer_feedback_batch_pressure im
 
 ROOT = Path(__file__).resolve().parents[2]
 POINTER = ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs"
+    "zircon_editor/src/ui/retained/dispatch/workbench/pointer.rs"
 )
 FEEDBACK = ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
     "workbench/pointer_feedback.rs"
 )
 PRODUCT_TEST = ROOT / (
-    "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
+    "zircon_editor/src/tests/host/callbacks/templates/"
     "workbench_pointer_preview.rs"
 )
 

@@ -11,12 +11,19 @@ use zircon_runtime_interface::ui::template::{
     UiCompiledAssetPackageProfile,
 };
 
+#[path = "asset_binding/apply_report_performance.rs"]
 mod apply_report_performance;
+#[path = "asset_binding/compiled_program.rs"]
 mod compiled_program;
+#[path = "asset_binding/control_scope.rs"]
 mod control_scope;
+#[path = "asset_binding/default_interaction_schema.rs"]
 mod default_interaction_schema;
+#[path = "asset_binding/naming_contract.rs"]
 mod naming_contract;
+#[path = "asset_binding/schema_naming.rs"]
 mod schema_naming;
+#[path = "asset_binding/telemetry_performance.rs"]
 mod telemetry_performance;
 
 const VALID_BINDING_LAYOUT: &str = r##"

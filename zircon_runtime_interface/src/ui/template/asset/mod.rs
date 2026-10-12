@@ -1,13 +1,24 @@
+#[path = "action_policy/mod.rs"]
 mod action_policy;
+#[path = "binding/mod.rs"]
 mod binding;
+#[path = "compiler/mod.rs"]
 mod compiler;
+#[path = "component_contract/mod.rs"]
 mod component_contract;
+#[path = "document.rs"]
 mod document;
+#[path = "invalidation/mod.rs"]
 mod invalidation;
+#[path = "localization/mod.rs"]
 mod localization;
+#[path = "prototype.rs"]
 mod prototype;
+#[path = "resource_ref/mod.rs"]
 mod resource_ref;
+#[path = "schema/mod.rs"]
 mod schema;
+#[path = "style.rs"]
 mod style;
 
 pub use action_policy::{

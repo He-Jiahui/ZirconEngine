@@ -175,5 +175,5 @@ fn default_camera_transform() -> Transform {
 }
 
 #[cfg(test)]
-#[path = "tests/scene_viewport_controller_camera.rs"]
+#[path = "tests/camera.rs"]
 mod tests;

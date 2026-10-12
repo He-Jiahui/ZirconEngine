@@ -11,7 +11,7 @@ plan_sources:
   - user: 2026-09-09 watcher、增量导入与 generation 机制详解
 tests:
   - zircon_runtime/src/asset/tests/watcher.rs
-  - zircon_runtime/src/asset/tests/project/manager/targeted_import
+  - zircon_runtime/src/asset/tests/manager/targeted_import
 doc_type: module-detail
 ---
 

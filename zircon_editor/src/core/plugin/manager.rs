@@ -15,12 +15,19 @@ use super::descriptor::EditorPluginDescriptor;
 use super::phases::EditorPluginLoadingPhase;
 use super::sdk::lifecycle::{EditorPluginLifecycleEvent, EditorPluginLifecycleReport};
 
+#[path = "manager/discovery.rs"]
 mod discovery;
+#[path = "manager/lifecycle_replacement.rs"]
 mod lifecycle_replacement;
+#[path = "manager/project_registration.rs"]
 mod project_registration;
+#[path = "manager/project_selection.rs"]
 mod project_selection;
+#[path = "manager/publication.rs"]
 mod publication;
+#[path = "manager/snapshot.rs"]
 mod snapshot;
+#[path = "manager/state.rs"]
 mod state;
 
 use discovery::discovery_index;

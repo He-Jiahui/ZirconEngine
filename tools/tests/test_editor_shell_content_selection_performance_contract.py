@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SELECTION = ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "shell_content_selection.rs"
 )
 

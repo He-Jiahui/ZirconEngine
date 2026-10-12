@@ -105,5 +105,5 @@ fn mesh_bounds_and_planarity(vertices: &[MeshVertex]) -> (RenderMeshBounds, bool
 }
 
 #[cfg(test)]
-#[path = "primitive/tests/single_pass_descriptor_tests.rs"]
+#[path = "primitive/tests/single_pass_descriptor.rs"]
 mod single_pass_descriptor_tests;

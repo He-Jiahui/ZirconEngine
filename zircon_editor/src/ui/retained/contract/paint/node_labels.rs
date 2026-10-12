@@ -1,0 +1,44 @@
+use super::super::data::{HostTextInputFocusData, TemplatePaneNodeData};
+
+#[path = "node_labels/focus.rs"]
+mod focus;
+#[path = "node_labels/input_kind.rs"]
+mod input_kind;
+#[path = "node_labels/property.rs"]
+mod property;
+#[path = "node_labels/values.rs"]
+mod values;
+
+use focus::focused_text_value;
+use property::{property_row_has_label, property_row_label};
+use values::{fallback_node_has_label, fallback_node_label};
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn template_node_label(
+    node: &TemplatePaneNodeData,
+    text_input_focus: Option<&HostTextInputFocusData>,
+) -> String {
+    if let Some(focus) = focused_text_value(node, text_input_focus) {
+        return focus.to_string();
+    }
+    if let Some(property_label) = property_row_label(node) {
+        return property_label;
+    }
+    fallback_node_label(node)
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn template_node_has_label(
+    node: &TemplatePaneNodeData,
+    text_input_focus: Option<&HostTextInputFocusData>,
+) -> bool {
+    if let Some(focus) = focused_text_value(node, text_input_focus) {
+        return !focus.is_empty();
+    }
+    if let Some(has_label) = property_row_has_label(node) {
+        return has_label;
+    }
+    fallback_node_has_label(node)
+}
+
+#[cfg(test)]
+#[path = "node_labels_tests/tests/mod.rs"]
+mod tests;

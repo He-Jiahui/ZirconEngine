@@ -153,7 +153,7 @@ fn normalize_windows_path_identity(mut identity: String) -> String {
 }
 
 #[cfg(all(test, windows))]
-#[path = "recovery/tests/path_identity_tests.rs"]
+#[path = "recovery/tests/path_identity.rs"]
 mod path_identity_tests;
 
 fn resolve_existing_or_parent(path: &Path) -> Option<PathBuf> {

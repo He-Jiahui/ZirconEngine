@@ -34,7 +34,9 @@ use super::{
 };
 use super::{TextLayoutGeometryBudget, TextLayoutGeometryOwner, TextLayoutGeometryViolation};
 
+#[path = "layout_session/diagnostics.rs"]
 mod diagnostics;
+#[path = "layout_session/table_work.rs"]
 mod table_work;
 
 pub use diagnostics::TextLayoutFallbackReport;

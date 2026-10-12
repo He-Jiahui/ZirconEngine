@@ -1,13 +1,24 @@
+#[path = "asset_type_id.rs"]
 mod asset_type_id;
+#[path = "builtin.rs"]
 mod builtin;
+#[path = "context_command.rs"]
 mod context_command;
+#[path = "contribution.rs"]
 mod contribution;
+#[path = "creation_template.rs"]
 mod creation_template;
+#[path = "definition.rs"]
 mod definition;
+#[path = "error.rs"]
 mod error;
+#[path = "presentation.rs"]
 mod presentation;
+#[path = "registry.rs"]
 mod registry;
+#[path = "thumbnail_provider.rs"]
 mod thumbnail_provider;
+#[path = "toolkit.rs"]
 mod toolkit;
 
 pub use asset_type_id::{AssetTypeId, AssetTypeIdError};

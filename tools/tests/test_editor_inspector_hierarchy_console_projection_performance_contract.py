@@ -6,14 +6,14 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 MODULE = ROOT / "zircon_editor/src/ui/retained_host/ui/pane_data_conversion"
 PAINT_PIPELINE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_node_pipeline"
 )
 CONSOLE_PROJECTOR = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/"
     "docks/pane/template_nodes/console_output.rs"
 )
-CONSOLE_METADATA = ROOT / "zircon_editor/src/ui/retained_host/console_output.rs"
+CONSOLE_METADATA = ROOT / "zircon_editor/src/ui/retained/console_output.rs"
 
 
 class EditorInspectorHierarchyConsoleProjectionPerformanceContractTests(unittest.TestCase):

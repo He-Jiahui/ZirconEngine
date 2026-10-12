@@ -7,12 +7,12 @@ related_code:
   - zircon_runtime/src/asset/importer/mod.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
 implementation_files:
-  - zircon_runtime/src/asset/project
+  - zircon_runtime/src/asset
   - zircon_runtime/src/asset/pipeline/manager
 plan_sources:
   - user: 2026-09-09 项目资产管线说明
 tests:
-  - zircon_runtime/src/asset/tests/project
+  - zircon_runtime/src/asset/tests
   - zircon_runtime/src/asset/tests/pipeline
   - zircon_runtime/src/asset/tests/facade
 doc_type: module-detail

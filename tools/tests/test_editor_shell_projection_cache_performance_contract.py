@@ -6,14 +6,14 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SHELL = ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "shell_presentation.rs"
 )
 PROJECTION_CACHE = ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+    "zircon_editor/src/ui/layouts/windows/window/"
     "projection_cache.rs"
 )
-APPLY = ROOT / "zircon_editor/src/ui/retained_host/ui/apply_presentation.rs"
+APPLY = ROOT / "zircon_editor/src/ui/retained/ui/apply_presentation.rs"
 
 
 class EditorShellProjectionCachePerformanceContractTests(unittest.TestCase):

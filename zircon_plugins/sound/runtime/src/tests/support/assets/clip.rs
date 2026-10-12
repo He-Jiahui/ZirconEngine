@@ -1,4 +1,6 @@
+#[path = "clip/builders.rs"]
 mod builders;
+#[path = "clip/validation.rs"]
 mod validation;
 
 pub(in crate::tests) use builders::{

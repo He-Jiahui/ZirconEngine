@@ -53,9 +53,13 @@ use super::{
     v2_authoring::{build_v2_preview_host, ensure_v2_asset_kind},
 };
 
+#[path = "lifecycle/external_source.rs"]
 mod external_source;
+#[path = "lifecycle/palette_catalog.rs"]
 mod palette_catalog;
+#[path = "lifecycle/source_outline_cache.rs"]
 mod source_outline_cache;
+#[path = "lifecycle/v2_projection.rs"]
 pub(crate) mod v2_projection;
 
 use source_outline_cache::{initial_source_outline_state, refresh_valid_source_outline_caches};

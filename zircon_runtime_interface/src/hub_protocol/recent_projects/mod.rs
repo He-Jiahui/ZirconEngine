@@ -8,11 +8,17 @@
 //! 上述英文描述对应早期仅有 DTO 的模块；当前 `store` 子模块负责带平台锁的文件事务。
 //! 此模块定义记录格式、词法路径键和带平台锁的读改写；项目身份与打开权限仍由宿主预检决定。
 
+#[path = "entry.rs"]
 mod entry;
+#[path = "error.rs"]
 mod error;
+#[path = "identity.rs"]
 mod identity;
+#[path = "registry.rs"]
 mod registry;
+#[path = "storage_path.rs"]
 mod storage_path;
+#[path = "store.rs"]
 mod store;
 
 pub use entry::HubRecentProjectV1;

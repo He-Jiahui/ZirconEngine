@@ -15,7 +15,7 @@ import subprocess
 
 CRITICAL_SOURCE_CONTRACTS = (
     (
-        "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs",
+        "zircon_editor/src/ui/retained/viewport_toolbar_pointer/rebuild_surface.rs",
         (
             "enum ViewportToolbarSurfaceDelta",
             "ViewportToolbarSurfaceDelta::Geometry",
@@ -27,11 +27,11 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/handle_click.rs",
+        "zircon_editor/src/ui/retained/viewport_toolbar_pointer/handle_click.rs",
         ("sync_clicked_control", "self.rebuild_surface();"),
     ),
     (
-        "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs",
+        "zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs",
         (
             "applied_surface_frames",
             "self.apply_surface_delta(if topology_changed",

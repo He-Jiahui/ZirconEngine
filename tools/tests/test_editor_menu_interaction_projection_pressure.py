@@ -9,18 +9,18 @@ from tools.analysis.performance.editor.editor_menu_interaction_projection_pressu
 
 ROOT = Path(__file__).resolve().parents[2]
 HOVER = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_node_pipeline/hover.rs"
 )
 KEYBOARD_MENU = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/menu.rs"
+    "zircon_editor/src/ui/retained/contract/native_keyboard/target/menu.rs"
 )
 POINTER_ITEMS = ROOT / (
     "zircon_editor/src/ui/retained_host/menu_pointer/"
     "host_menu_pointer_bridge_popup_items.rs"
 )
 POINTER_TREE = ROOT / (
-    "zircon_editor/src/ui/retained_host/menu_pointer/menu_item_tree.rs"
+    "zircon_editor/src/ui/retained/menu_pointer/menu_item_tree.rs"
 )
 POINTER_REBUILD = ROOT / (
     "zircon_editor/src/ui/retained_host/menu_pointer/"

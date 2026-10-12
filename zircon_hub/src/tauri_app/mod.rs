@@ -1,9 +1,16 @@
+#[path = "account_commands.rs"]
 mod account_commands;
+#[path = "action_id.rs"]
 mod action_id;
+#[path = "action_request.rs"]
 mod action_request;
+#[path = "commands.rs"]
 mod commands;
+#[path = "runtime_state.rs"]
 mod runtime_state;
+#[path = "view_model.rs"]
 mod view_model;
+#[path = "window_state.rs"]
 mod window_state;
 
 use tauri::Manager;

@@ -26,7 +26,7 @@ class RuntimePerformanceHotpathBoundaryTests(unittest.TestCase):
 
     def test_test_inventory_count_is_derived_from_the_manifest(self) -> None:
         manifest = (
-            "zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs",
+            "zircon_runtime/src/tests/contracts/performance.rs",
         )
         with patch.object(performance_hotpath_boundary, "RUNTIME_07_TEST_FILES", manifest):
             report = performance_hotpath_boundary_audit(REPO_ROOT)

@@ -298,5 +298,5 @@ impl EditorUiHost {
 }
 
 #[cfg(test)]
-#[path = "tests/palette_performance_tests.rs"]
+#[path = "tests/palette_perf.rs"]
 mod performance_tests;

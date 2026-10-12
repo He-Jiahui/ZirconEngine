@@ -34,10 +34,10 @@ pub(super) fn blocked_dependencies_root_source() -> &'static str {
 pub(super) fn blocked_dependencies_source() -> String {
     [
         include_str!("../../../handle/activation/blocked_dependencies/single.rs"),
-        include_str!("../../../handle/activation/blocked_dependencies/two_service.rs"),
-        include_str!("../../../handle/activation/blocked_dependencies/three_service.rs"),
-        include_str!("../../../handle/activation/blocked_dependencies/four_service.rs"),
-        include_str!("../../../handle/activation/blocked_dependencies/five_service.rs"),
+        include_str!("../../../handle/blocked_dependencies/two_service.rs"),
+        include_str!("../../../handle/blocked_dependencies/three_service.rs"),
+        include_str!("../../../handle/blocked_dependencies/four_service.rs"),
+        include_str!("../../../handle/blocked_dependencies/five_service.rs"),
     ]
     .join("\n")
 }
@@ -87,11 +87,11 @@ pub(super) fn deactivation_behavior_mod_source() -> &'static str {
 pub(super) fn activation_tests_source() -> String {
     [
         include_str!("../behavior/activation.rs"),
-        include_str!("../behavior/deactivation/blocked.rs"),
-        include_str!("../behavior/deactivation/blocked/exact_five_dependency_matcher.rs"),
-        include_str!("../behavior/deactivation/blocked/exact_five_without_index_map.rs"),
-        include_str!("../behavior/deactivation/blocked/exact_four_dependency_matcher.rs"),
-        include_str!("../behavior/deactivation/blocked/exact_two_three_dependency_matcher.rs"),
+        include_str!("../../behavior/deactivation/blocked.rs"),
+        include_str!("../../blocked/exact_five_dependency_matcher.rs"),
+        include_str!("../../blocked/exact_five_without_index_map.rs"),
+        include_str!("../../blocked/exact_four_dependency_matcher.rs"),
+        include_str!("../../../../tests/blocked/exact_two_three_dependency_matcher.rs"),
         include_str!("../behavior/deactivation/clean.rs"),
     ]
     .join("\n")

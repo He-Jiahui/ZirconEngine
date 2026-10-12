@@ -5,10 +5,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 PRESENT_STATS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs"
+    "zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs"
 )
 EDITOR_BATCH = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui_perf/counter_batch.rs"
+    "zircon_editor/src/ui/retained/ui_perf/counter_batch.rs"
 )
 RUNTIME_SCOPE = ROOT / (
     "zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs"

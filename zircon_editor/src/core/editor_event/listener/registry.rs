@@ -175,7 +175,7 @@ fn not_registered(listener_id: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "registry/tests/optimization_tests.rs"]
+#[path = "registry/tests/perf.rs"]
 mod optimization_tests;
 
 #[cfg(test)]

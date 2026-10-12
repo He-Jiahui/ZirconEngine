@@ -1,4 +1,6 @@
+#[path = "selection.rs"]
 mod selection;
+#[path = "view.rs"]
 mod view;
 
 pub(crate) use selection::{ActivityDecisionSelectionError, ActivityDecisionSelectionId};

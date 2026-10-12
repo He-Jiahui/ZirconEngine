@@ -1,6 +1,10 @@
+#[path = "advance.rs"]
 mod advance;
+#[path = "capacity.rs"]
 mod capacity;
+#[path = "selection.rs"]
 mod selection;
+#[path = "state.rs"]
 mod state;
 #[cfg(test)]
 #[path = "tests/cases.rs"]

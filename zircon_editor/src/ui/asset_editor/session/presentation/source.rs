@@ -62,5 +62,5 @@ impl UiAssetEditorSession {
 }
 
 #[cfg(test)]
-#[path = "tests/source_optimization_batch_20260830ca_editor_tests.rs"]
+#[path = "tests/source_perf.rs"]
 mod optimization_batch_20260830ca_editor_tests;

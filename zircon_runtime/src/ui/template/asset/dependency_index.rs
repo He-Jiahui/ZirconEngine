@@ -117,7 +117,7 @@ impl UiAssetDependencyIndex {
 }
 
 #[cfg(test)]
-#[path = "dependency_index/tests/cascade_target_capacity_tests.rs"]
+#[path = "tests/cascade_target_capacity.rs"]
 mod cascade_target_capacity_tests;
 
 // 依赖身份只按定位器去重并排序；同定位器的额外引用信息保留首次登记的版本。

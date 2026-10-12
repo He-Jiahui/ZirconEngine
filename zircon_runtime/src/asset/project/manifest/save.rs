@@ -87,7 +87,7 @@ fn serialize_current_project_manifest(
 }
 
 #[cfg(test)]
-#[path = "save/tests/borrowed_serialization_tests.rs"]
+#[path = "save/tests/borrowed_serialization.rs"]
 mod borrowed_serialization_tests;
 
 #[cfg(test)]

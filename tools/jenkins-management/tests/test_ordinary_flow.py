@@ -158,6 +158,75 @@ class OrdinaryFlowTests(unittest.TestCase):
                     preparation.verify_source(deleted, source, approved)
                 self.assertTrue((source / "foreign.rs").is_file())
 
+    def test_materialization_rejects_corrupt_objects_and_invalid_closure_manifests(self):
+        from tools.jenkins.contracts import JenkinsError
+        from tools.jenkins.workflow import pools
+        cases = (("engine-object", "input_object_missing"),
+                 ("external-object", "external_object_corrupt"),
+                 ("external-identity", "external_manifest_invalid"),
+                 ("engine-schema", "sealed_manifest_missing"),
+                 ("engine-entry", "manifest_entry_invalid"),
+                 ("engine-absolute-path", "manifest_path_invalid"),
+                 ("engine-empty-path", "manifest_path_invalid"))
+        for case, code in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory(prefix="ordinary-invalid-closure-") as temporary:
+                root = Path(temporary)
+                namespace = root / "namespace"
+                store = namespace / "inputs/objects"
+                store.mkdir(parents=True)
+                source = namespace / "pool/inputs/source"
+                approved = SimpleNamespace(path=root, namespace=lambda: namespace)
+                state = MemoryState()
+                def entry(path, content):
+                    checksum = hashlib.sha256(content).hexdigest()
+                    (store / checksum).write_bytes(content)
+                    return {"path": path, "status": "present", "sha256": checksum,
+                            "objectDigest": checksum, "size": len(content), "beforeHash": checksum}
+                external_manifest = {"schemaVersion": 1, "baseHead": "a" * 40,
+                                     "entries": [entry("vm.rs", b"dependency\n")], "external": []}
+                manifest = {"schemaVersion": 1, "baseHead": "a" * 40, "repositoryId": "repository",
+                            "preparationKind": "current-source",
+                            "entries": [entry("owned.rs", b"engine\n")],
+                            "external": [{"kind": "sealed-external-source", "name": "zr_vm",
+                                          "repositoryRoot": str(root / "zr_vm"), "manifest": external_manifest,
+                                          "sourceDigest": preparation.digest(external_manifest)}]}
+                if case == "engine-object":
+                    (store / manifest["entries"][0]["objectDigest"]).write_bytes(b"corrupt engine\n")
+                elif case == "external-object":
+                    (store / external_manifest["entries"][0]["objectDigest"]).write_bytes(b"corrupt dependency\n")
+                elif case == "external-identity":
+                    manifest["external"][0]["sourceDigest"] = "0" * 64
+                elif case == "engine-schema":
+                    manifest["entries"] = tuple(manifest["entries"])
+                elif case == "engine-entry":
+                    manifest["entries"] = [None]
+                elif case == "engine-absolute-path":
+                    manifest["entries"][0]["path"] = "/owned.rs"
+                elif case == "engine-empty-path":
+                    manifest["entries"][0]["path"] = ""
+                owner, key = "invalid-" + case, "shared-preparation"
+                reservation = owner + "-reservation"
+                sealed_digest = preparation.digest(manifest)
+                state.put("sealed_input", sealed_digest,
+                          {"sourceManifest": manifest, "objectRoot": str(namespace)})
+                state.put("resource_reservation", reservation, {"owner": owner, "status": "active"})
+                state.put("pool_writer_hold", key,
+                          {"owner": owner, "status": "active", "reservationKey": reservation})
+                sealed = {"sealedInputRef": sealed_digest, "sourceManifest": manifest,
+                          "sourceRoot": "registered-worktree", "capturedSourceDigest": "c" * 64}
+                physical = lambda approved, value, **kwargs: Path(value)
+                with patch("tools.jenkins.resources.paths.physical_path_under", side_effect=physical), \
+                        patch.object(pools, "physical_path_under", side_effect=physical), \
+                        self.assertRaises(JenkinsError) as rejected:
+                    preparation.materialize_source(state, approved=approved, owner=owner,
+                        preparation_key_value=key, source_path=source, reservation_key=reservation,
+                        sealed=sealed, identity={"sessionId": owner}, command=["cargo", "check"],
+                        environment_digest="e" * 64)
+                self.assertEqual(code, rejected.exception.code)
+                self.assertIsNone(state.get("preparation_update", key))
+                self.assertIsNone(state.get("preparation_source", key))
+                self.assertFalse(source.parent.exists())
+
     def test_sealed_dependency_isolated_from_foreign_edits_and_owned_changes_still_block(self):
         from tools.jenkins import source as formal_source
         from tools.jenkins.workflow import pools

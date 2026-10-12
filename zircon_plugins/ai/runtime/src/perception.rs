@@ -1,8 +1,12 @@
 //! 感知模块连接 ECS 组件、配对预算扫描、刺激过期处理以及动画和声音事件适配。
 
+#[path = "perception/adapter.rs"]
 mod adapter;
+#[path = "perception/components.rs"]
 mod components;
+#[path = "perception/scan.rs"]
 mod scan;
+#[path = "perception/stimuli.rs"]
 mod stimuli;
 
 pub use adapter::{

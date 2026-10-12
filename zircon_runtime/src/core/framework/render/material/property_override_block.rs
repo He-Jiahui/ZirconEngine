@@ -61,5 +61,5 @@ impl MaterialPropertyOverrideBlock {
 }
 
 #[cfg(test)]
-#[path = "tests/property_override_block.rs"]
+#[path = "../../../render/material/tests/property_override_block.rs"]
 mod tests;

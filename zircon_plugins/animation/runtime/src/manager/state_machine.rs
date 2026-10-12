@@ -138,5 +138,5 @@ fn condition_matches(
 }
 
 #[cfg(test)]
-#[path = "tests/state_machine_optimization_batch_20260830cl_tests.rs"]
+#[path = "tests/state_machine_perf.rs"]
 mod optimization_batch_20260830cl_tests;

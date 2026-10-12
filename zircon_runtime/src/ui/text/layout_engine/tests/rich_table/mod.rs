@@ -7,7 +7,9 @@ use zircon_runtime_interface::ui::{
 
 use super::{layout_text, test_style};
 
+#[path = "horizontal.rs"]
 mod horizontal;
+#[path = "vertical_rl.rs"]
 mod vertical_rl;
 
 fn vertical_table(markup: &str, frame: UiFrame) -> UiResolvedTextLayout {

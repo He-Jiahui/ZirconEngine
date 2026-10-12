@@ -445,5 +445,5 @@ fn hash_field(hasher: &mut blake3::Hasher, field: &[u8]) {
 }
 
 #[cfg(test)]
-#[path = "tests/module_dependencies_unit.rs"]
+#[path = "../../manifest/tests/module_dependencies_unit.rs"]
 mod tests;

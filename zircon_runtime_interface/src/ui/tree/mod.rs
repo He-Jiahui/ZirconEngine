@@ -1,3 +1,4 @@
+#[path = "node/mod.rs"]
 mod node;
 
 pub use node::{

@@ -238,5 +238,5 @@ fn ordered_edge(a: usize, b: usize) -> (usize, usize) {
 }
 
 #[cfg(test)]
-#[path = "tests/blend_space_2d.rs"]
+#[path = "../tests/blend_space_2d.rs"]
 mod tests;

@@ -1,8 +1,9 @@
 //! Scene rasterization and resource streaming.
 
+#[path = "gpu_scene/mod.rs"]
 mod gpu_scene;
 #[cfg(test)]
-#[path = "tests/render_product_material_property_tests.rs"]
+#[path = "tests/render_product_material_property.rs"]
 mod render_product_material_property_tests;
 #[cfg(test)]
 #[path = "tests/render_product_streamer_tests.rs"]
@@ -10,9 +11,11 @@ mod render_product_streamer_tests;
 #[cfg(test)]
 #[path = "tests/render_product_zshader_import_tests.rs"]
 mod render_product_zshader_import_tests;
+#[path = "render_scene/mod.rs"]
 pub(crate) mod render_scene;
+#[path = "resources/mod.rs"]
 pub(in crate::graphics) mod resources;
-#[path = "scene_renderer/mod.rs"]
+#[path = "renderer/mod.rs"]
 mod scene_renderer;
 
 pub(crate) use resources::{default_pipeline_key, PipelineKey, ResourceStreamer};

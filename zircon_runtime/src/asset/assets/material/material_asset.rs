@@ -12,10 +12,15 @@ use crate::core::framework::render::{
 };
 use crate::core::resource::ResourceId;
 
+#[path = "material_asset/advanced_features.rs"]
 mod advanced_features;
+#[path = "material_asset/management.rs"]
 mod management;
+#[path = "material_asset/readiness.rs"]
 mod readiness;
+#[path = "material_asset/subsurface.rs"]
 mod subsurface;
+#[path = "material_asset/value_sync.rs"]
 mod value_sync;
 
 pub use self::management::{
@@ -64,7 +69,7 @@ pub struct MaterialAsset {
 }
 
 #[cfg(test)]
-#[path = "material_asset/tests/optimization_batch_hz_runtime609_tests.rs"]
+#[path = "material_asset/tests/perf.rs"]
 mod optimization_batch_hz_runtime609_tests;
 
 impl MaterialAsset {

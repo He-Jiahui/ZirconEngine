@@ -1,8 +1,11 @@
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
 
+#[path = "attributes.rs"]
 mod attributes;
+#[path = "derive.rs"]
 mod derive;
+#[path = "fields.rs"]
 mod fields;
 
 #[cfg(test)]

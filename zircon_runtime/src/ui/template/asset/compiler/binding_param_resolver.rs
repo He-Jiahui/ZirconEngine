@@ -437,5 +437,5 @@ fn append_float_source(source: &mut String, value: f64) -> bool {
 }
 
 #[cfg(test)]
-#[path = "binding_param_resolver/tests/single_buffer_tests.rs"]
+#[path = "tests/single_buffer.rs"]
 mod single_buffer_tests;

@@ -1,10 +1,15 @@
 //! 先发现并验证整批证据，再恢复或清理；提交与恢复共享 owner 锁，避免并发改写同一日志目录。
 //! Restart recovery for durable transaction journals.
 
+#[path = "discovery.rs"]
 mod discovery;
+#[path = "evidence.rs"]
 mod evidence;
+#[path = "policy.rs"]
 mod policy;
+#[path = "replay.rs"]
 mod replay;
+#[path = "validation.rs"]
 mod validation;
 
 use std::path::{Path, PathBuf};

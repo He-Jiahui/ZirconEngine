@@ -15,6 +15,7 @@ use crate::text::{
 };
 use crate::text::{TextRange, TextStyle};
 
+#[path = "shaped_cache/memory.rs"]
 mod memory;
 
 use memory::estimated_entry_bytes;

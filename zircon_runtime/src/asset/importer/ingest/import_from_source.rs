@@ -97,5 +97,5 @@ fn requires_project_resolver(path: &Path) -> bool {
 }
 
 #[cfg(test)]
-#[path = "tests/import_from_source_plugins07_borrowed_descriptor_tests.rs"]
+#[path = "../../tests/import_from_source_plugins07_borrowed_desc.rs"]
 mod plugins07_borrowed_descriptor_tests;

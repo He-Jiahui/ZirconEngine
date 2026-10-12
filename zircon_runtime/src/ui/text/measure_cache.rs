@@ -38,7 +38,9 @@ use super::resolved_layout::{
 use super::rich_text::{parse_source_text_with_provider, UiParsedText};
 use super::shaper::measure_unwrapped_text_height_with_provider;
 
+#[path = "measure_cache/context.rs"]
 mod context;
+#[path = "measure_cache/retained_document.rs"]
 mod retained_document;
 
 use retained_document::RetainedPlainTextDocumentCache;

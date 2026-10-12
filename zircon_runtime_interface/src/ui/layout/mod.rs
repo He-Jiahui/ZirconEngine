@@ -1,12 +1,22 @@
+#[path = "constraints.rs"]
 mod constraints;
+#[path = "debug.rs"]
 mod debug;
+#[path = "engine.rs"]
 mod engine;
+#[path = "geometry.rs"]
 mod geometry;
+#[path = "linear_sizing.rs"]
 mod linear_sizing;
+#[path = "metrics.rs"]
 mod metrics;
+#[path = "scroll.rs"]
 mod scroll;
+#[path = "slot.rs"]
 mod slot;
+#[path = "style.rs"]
 mod style;
+#[path = "virtualization.rs"]
 mod virtualization;
 
 pub use constraints::{

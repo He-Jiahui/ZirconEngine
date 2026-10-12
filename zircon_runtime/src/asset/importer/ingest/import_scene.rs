@@ -17,5 +17,5 @@ pub(crate) fn import_scene(
 }
 
 #[cfg(test)]
-#[path = "tests/import_scene_plugins07_scene_source_tests.rs"]
+#[path = "../../ingest/tests/import_scene_plugins07_scene_source.rs"]
 mod plugins07_scene_source_tests;

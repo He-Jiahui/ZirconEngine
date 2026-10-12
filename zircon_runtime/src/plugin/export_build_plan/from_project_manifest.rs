@@ -10,8 +10,11 @@ use crate::{
     plugin::RuntimePluginCatalog,
 };
 
+#[path = "../from_project_manifest/feature_selection.rs"]
 mod feature_selection;
+#[path = "from_project_manifest/profile.rs"]
 mod profile;
+#[path = "../from_project_manifest/profile_projection.rs"]
 mod profile_projection;
 
 use self::feature_selection::{

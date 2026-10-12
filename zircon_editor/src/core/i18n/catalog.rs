@@ -135,5 +135,5 @@ impl EditorI18nCatalog {
 }
 
 #[cfg(test)]
-#[path = "tests/catalog_optimization_batch_ie_editor616_tests.rs"]
+#[path = "tests/catalog_perf.rs"]
 mod optimization_batch_ie_editor616_tests;

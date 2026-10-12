@@ -105,7 +105,7 @@ fn relative_uri_path(path: &Path) -> String {
 }
 
 #[cfg(test)]
-#[path = "source_uri_for_path/tests/direct_join_tests.rs"]
+#[path = "tests/direct_join.rs"]
 mod direct_join_tests;
 
 #[cfg(test)]

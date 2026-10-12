@@ -1,0 +1,479 @@
+use crate::core::framework::channel::{ChannelReceiver, ChannelWakeCallback};
+use crate::core::CoreError;
+use crossbeam_channel::unbounded;
+
+use super::super::errors::{asset_error, asset_error_message};
+use super::super::project_asset_manager::ProjectAssetManager;
+use super::super::records::{build_project_info, build_status_record};
+use super::super::resource_sync::{project_resource_identities, reconcile_project_resources};
+use super::super::{
+    AssetManager as AssetManagerContract, AssetPipelineInfo, AssetStatusRecord, ProjectInfo,
+};
+use crate::asset::project::{lock_project_generation, ProjectManager};
+use crate::asset::watch::{AssetChange, AssetChangeKind, AssetWatchError};
+use crate::asset::{
+    AssetImportError, AssetImporterCapabilityReport, AssetImporterHandler, AssetUri,
+    ProjectImportReceipt,
+};
+use crate::core::resource::{ResourceMutationBatch, ResourceScheme};
+use std::sync::Arc;
+
+impl AssetManagerContract for ProjectAssetManager {
+    fn pipeline_info(&self) -> AssetPipelineInfo {
+        AssetPipelineInfo {
+            default_worker_count: self.default_worker_count(),
+        }
+    }
+
+    fn register_asset_importer(
+        &self,
+        importer: Arc<dyn AssetImporterHandler>,
+    ) -> Result<(), CoreError> {
+        ProjectAssetManager::register_asset_importer_arc(self, importer)
+    }
+
+    fn asset_importer_capability_reports(&self) -> Vec<AssetImporterCapabilityReport> {
+        ProjectAssetManager::asset_importer_capability_reports(self)
+    }
+
+    fn asset_importer_capability_report_for_source(
+        &self,
+        source_path: &str,
+    ) -> Result<AssetImporterCapabilityReport, AssetImportError> {
+        ProjectAssetManager::asset_importer_capability_report_for_source(
+            self,
+            std::path::Path::new(source_path),
+        )
+    }
+
+    fn open_project(&self, root_path: &str) -> Result<ProjectInfo, CoreError> {
+        let project = ProjectManager::open(root_path).map_err(asset_error)?;
+        self.open_prepared_project(project)
+    }
+
+    fn open_prepared_project(&self, project: ProjectManager) -> Result<ProjectInfo, CoreError> {
+        ProjectAssetManager::open_prepared_project(self, project)
+    }
+
+    fn close_project(&self) -> Result<Option<std::path::PathBuf>, CoreError> {
+        ProjectAssetManager::close_project(self)
+    }
+
+    fn current_project_snapshot(&self) -> Option<ProjectManager> {
+        self.project_read().as_ref().cloned()
+    }
+
+    fn current_project_source_path(
+        &self,
+        uri: &AssetUri,
+    ) -> Result<Option<std::path::PathBuf>, AssetImportError> {
+        let project = self.project_read();
+        let Some(project) = project.as_ref() else {
+            return Ok(None);
+        };
+        if let Some(path) = self.indexed_project_source_path(uri) {
+            return Ok(Some(path));
+        }
+        match uri.scheme() {
+            ResourceScheme::Res | ResourceScheme::Package => {
+                Err(AssetImportError::MissingProjectAssetUri { uri: uri.clone() })
+            }
+            ResourceScheme::Library | ResourceScheme::Builtin | ResourceScheme::Memory => {
+                project.source_path_for_uri(uri).map(Some)
+            }
+        }
+    }
+
+    fn current_project_asset_uris(&self) -> Vec<AssetUri> {
+        let project = self.project_read();
+        let Some(project) = project.as_ref() else {
+            return Vec::new();
+        };
+        project
+            .registry()
+            .values()
+            .map(|record| record.primary_locator().clone())
+            .collect()
+    }
+
+    fn current_project(&self) -> Option<ProjectInfo> {
+        self.project_read().as_ref().map(build_project_info)
+    }
+
+    fn asset_status(&self, uri: &str) -> Option<AssetStatusRecord> {
+        let uri = AssetUri::parse(uri).ok()?;
+        let project = self.project_read();
+        let project = project.as_ref()?;
+        project
+            .registry()
+            .get_by_locator(&uri)
+            .map(build_status_record)
+    }
+
+    fn list_assets(&self) -> Vec<AssetStatusRecord> {
+        let project = self.project_read();
+        let Some(project) = project.as_ref() else {
+            return Vec::new();
+        };
+        let mut assets = project
+            .registry()
+            .values()
+            .map(build_status_record)
+            .collect::<Vec<_>>();
+        assets.sort_by(|left, right| left.uri.cmp(&right.uri));
+        assets
+    }
+
+    fn subscribe_asset_changes(&self) -> ChannelReceiver<AssetChange> {
+        self.subscribe_asset_changes_internal(None)
+    }
+
+    fn subscribe_asset_changes_with_wake(
+        &self,
+        wake: ChannelWakeCallback,
+    ) -> ChannelReceiver<AssetChange> {
+        self.subscribe_asset_changes_internal(Some(wake))
+    }
+
+    fn subscribe_asset_watch_errors(&self) -> ChannelReceiver<AssetWatchError> {
+        let (sender, receiver) = unbounded();
+        self.lock_watch_error_subscribers().push(sender);
+        receiver
+    }
+
+    fn relocate_project_source(
+        &self,
+        source_uuid: crate::asset::AssetUuid,
+        target: AssetUri,
+    ) -> Result<Vec<AssetStatusRecord>, CoreError> {
+        ProjectAssetManager::relocate_project_source(self, source_uuid, target)
+    }
+
+    fn import_model_source(
+        &self,
+        source_path: &std::path::Path,
+    ) -> Result<ProjectImportReceipt, CoreError> {
+        self.import_model_source_for_scope(None, source_path)
+    }
+
+    fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError> {
+        self.import_asset_for_scope(None, uri)
+    }
+
+    fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError> {
+        let (
+            expected_generation,
+            expected_preparation_epoch,
+            previous_project_identities,
+            mut candidate,
+        ) = {
+            let _generation = self.project_generation_read();
+            let project = self.project_read();
+            let Some(active_project) = project.as_ref() else {
+                return Ok(Vec::new());
+            };
+            (
+                active_project.catalog_input_generation().sequence(),
+                self.current_project_preparation_epoch(),
+                project_resource_identities(active_project),
+                active_project.clone(),
+            )
+        };
+        let project_generation =
+            lock_project_generation(candidate.paths().root()).map_err(asset_error)?;
+        let (imported, prepared_files) = candidate
+            .prepare_full_generation(None)
+            .map_err(asset_error)?;
+        let prepared = self.prepare_project_resource_sync(&candidate)?;
+        let statuses = imported.iter().map(build_status_record).collect::<Vec<_>>();
+        let generation = self.project_generation_write();
+        let mut project = self.project_write();
+        let Some(active_project) = project.as_ref() else {
+            return Err(asset_error_message(
+                "project reimport lost its active project before commit",
+            ));
+        };
+        // An unchanged prepared-project reopen may retain its catalog but replace activation.
+        if active_project.activation_identity() != candidate.activation_identity()
+            || active_project.catalog_input_generation().sequence() != expected_generation
+            || self.current_project_preparation_epoch() != expected_preparation_epoch
+        {
+            return Err(asset_error_message(
+                "project reimport was superseded by a newer project generation",
+            ));
+        }
+        let batch = reconcile_project_resources(
+            ResourceMutationBatch::new(),
+            &previous_project_identities,
+            &candidate,
+        );
+        let commit_outcome = self.commit_project_resource_sync(
+            prepared,
+            batch,
+            || prepared_files.commit().map_err(asset_error),
+            || {
+                *project = Some(candidate);
+                drop(project);
+            },
+        )?;
+        drop(project_generation);
+        self.publish_project_generation(
+            generation,
+            imported
+                .into_iter()
+                .map(|metadata| {
+                    AssetChange::new(
+                        AssetChangeKind::Modified,
+                        metadata.primary_locator().clone(),
+                        None,
+                    )
+                })
+                .collect(),
+        );
+        commit_outcome.ensure_durable().map_err(asset_error)?;
+        Ok(statuses)
+    }
+}
+
+impl ProjectAssetManager {
+    /// Imports only into the specified activation, checking before preparation and again
+    /// under the original commit write gate. Ordinary catalog updates keep this identity.
+    pub fn import_asset_for_project(
+        &self,
+        expected: &crate::asset::project::ProjectActivationIdentity,
+        uri: &str,
+    ) -> Result<Option<AssetStatusRecord>, CoreError> {
+        self.import_asset_for_scope(Some(expected), uri)
+    }
+
+    /// Model imports use the same active-packet fence and original transaction owner.
+    pub fn import_model_source_for_project(
+        &self,
+        expected: &crate::asset::project::ProjectActivationIdentity,
+        source_path: &std::path::Path,
+    ) -> Result<crate::asset::project::ProjectImportReceipt, CoreError> {
+        self.import_model_source_for_scope(Some(expected), source_path)
+    }
+
+    fn import_model_source_for_scope(
+        &self,
+        expected: Option<&crate::asset::project::ProjectActivationIdentity>,
+        source_path: &std::path::Path,
+    ) -> Result<ProjectImportReceipt, CoreError> {
+        const DEFAULT_PROJECT_MATERIAL_URI: &str = "res://materials/default.zmaterial";
+
+        let (expected_generation, expected_preparation_epoch, mut candidate) = {
+            let _generation = self.project_generation_read();
+            let project = self.project_read();
+            require_import_activation(project.as_ref(), expected)?;
+            let Some(active_project) = project.as_ref() else {
+                return Err(asset_error_message(
+                    "model import requires an active directory project",
+                ));
+            };
+            (
+                active_project.catalog_input_generation().sequence(),
+                self.current_project_preparation_epoch(),
+                active_project.clone(),
+            )
+        };
+        let project_generation =
+            lock_project_generation(candidate.paths().root()).map_err(asset_error)?;
+        let source_plan = candidate
+            .prepare_model_import_source(source_path)
+            .map_err(asset_error)?;
+        let source_uri = source_plan.source_uri().clone();
+        let source_watch_echoes = source_plan.watch_echoes().to_vec();
+        let source_path = source_plan.source_path().to_path_buf();
+        let material_uri = AssetUri::parse(DEFAULT_PROJECT_MATERIAL_URI).map_err(asset_error)?;
+        let material_path = candidate
+            .existing_or_primary_project_source_path_for_uri(&material_uri)
+            .map_err(asset_error)?;
+        let material_previous_records = candidate.source_resource_records(&material_uri);
+        let source_paths = vec![
+            (
+                source_uri.clone(),
+                source_path,
+                candidate.source_resource_records(&source_uri),
+            ),
+            (material_uri, material_path, material_previous_records),
+        ];
+        let mut prepared_generation = candidate
+            .prepare_model_import_batch(source_plan)
+            .map_err(asset_error)?;
+        let imported = prepared_generation.imported().to_vec();
+        let affected = prepared_generation.affected().to_vec();
+        let ready_payloads = prepared_generation.take_ready_payloads();
+        let prepared = self.prepare_compound_project_resource_sync(
+            &candidate,
+            &source_paths,
+            &imported,
+            &affected,
+            ready_payloads,
+        );
+        let receipt = ProjectImportReceipt::new(
+            source_uri,
+            candidate.catalog_input_generation().sequence(),
+            imported,
+        );
+        let generation = self.project_generation_write();
+        let mut project = self.project_write();
+        require_import_activation(project.as_ref(), expected)?;
+        let Some(active_project) = project.as_ref() else {
+            return Err(asset_error_message(
+                "model import lost its active project before commit",
+            ));
+        };
+        // An unchanged prepared-project reopen may retain its catalog but replace activation.
+        if active_project.activation_identity() != candidate.activation_identity()
+            || active_project.catalog_input_generation().sequence() != expected_generation
+            || self.current_project_preparation_epoch() != expected_preparation_epoch
+        {
+            return Err(asset_error_message(
+                "model import was superseded by a newer project generation",
+            ));
+        }
+        self.commit_compound_project_resource_sync(
+            prepared,
+            || {
+                prepared_generation
+                    .commit()
+                    .and_then(|outcome| outcome.ensure_durable())
+                    .map_err(asset_error)
+            },
+            || {
+                *project = Some(candidate);
+                drop(project);
+            },
+        )?;
+        self.register_transaction_watch_echoes(source_watch_echoes);
+        drop(project_generation);
+        self.publish_project_generation(
+            generation,
+            receipt
+                .committed_records()
+                .iter()
+                .map(|record| {
+                    AssetChange::new(
+                        AssetChangeKind::Modified,
+                        record.primary_locator().clone(),
+                        None,
+                    )
+                })
+                .collect(),
+        );
+        Ok(receipt)
+    }
+
+    fn import_asset_for_scope(
+        &self,
+        expected: Option<&crate::asset::project::ProjectActivationIdentity>,
+        uri: &str,
+    ) -> Result<Option<AssetStatusRecord>, CoreError> {
+        let uri = AssetUri::parse(uri).map_err(asset_error)?;
+        let (
+            expected_generation,
+            expected_preparation_epoch,
+            mut candidate,
+            source_path,
+            previous_source_records,
+        ) = {
+            let _generation = self.project_generation_read();
+            let project = self.project_read();
+            require_import_activation(project.as_ref(), expected)?;
+            let Some(active_project) = project.as_ref() else {
+                return Ok(None);
+            };
+            let indexed_source_path = self.indexed_project_source_path(&uri);
+            let source_path = match indexed_source_path {
+                Some(path) => path,
+                None if uri.scheme() == ResourceScheme::Res => active_project
+                    .primary_project_source_path_for_uri(&uri)
+                    .map_err(asset_error)?,
+                None => {
+                    return Err(asset_error(AssetImportError::MissingProjectAssetUri {
+                        uri,
+                    }));
+                }
+            };
+            (
+                active_project.catalog_input_generation().sequence(),
+                self.current_project_preparation_epoch(),
+                active_project.clone(),
+                source_path,
+                active_project.source_resource_records(&uri),
+            )
+        };
+        let project_generation =
+            lock_project_generation(candidate.paths().root()).map_err(asset_error)?;
+        let mut prepared_generation = candidate
+            .prepare_targeted_generation(&uri, &source_path)
+            .map_err(asset_error)?;
+        let ready_payloads = prepared_generation.take_ready_payloads();
+        let prepared = self.prepare_targeted_project_resource_sync(
+            &candidate,
+            &uri,
+            source_path,
+            &previous_source_records,
+            prepared_generation.imported(),
+            prepared_generation.affected(),
+            ready_payloads,
+        );
+        let status = candidate
+            .registry()
+            .get_by_locator(&uri)
+            .map(build_status_record);
+        let generation = self.project_generation_write();
+        let mut project = self.project_write();
+        require_import_activation(project.as_ref(), expected)?;
+        let Some(active_project) = project.as_ref() else {
+            return Err(asset_error_message(
+                "targeted asset import lost its active project before commit",
+            ));
+        };
+        // An unchanged prepared-project reopen may retain its catalog but replace activation.
+        if active_project.activation_identity() != candidate.activation_identity()
+            || active_project.catalog_input_generation().sequence() != expected_generation
+            || self.current_project_preparation_epoch() != expected_preparation_epoch
+        {
+            return Err(asset_error_message(
+                "targeted asset import was superseded by a newer project generation",
+            ));
+        }
+        let commit_outcome = self.commit_targeted_project_resource_sync(
+            prepared,
+            || prepared_generation.commit().map_err(asset_error),
+            || {
+                *project = Some(candidate);
+                drop(project);
+            },
+        )?;
+        let published_changes = status
+            .is_some()
+            .then(|| AssetChange::new(AssetChangeKind::Modified, uri, None))
+            .into_iter()
+            .collect();
+        drop(project_generation);
+        self.publish_project_generation(generation, published_changes);
+        commit_outcome.ensure_durable().map_err(asset_error)?;
+        Ok(status)
+    }
+}
+
+fn require_import_activation(
+    project: Option<&crate::asset::project::ProjectManager>,
+    expected: Option<&crate::asset::project::ProjectActivationIdentity>,
+) -> Result<(), CoreError> {
+    if expected.is_some_and(|expected| {
+        project.is_none_or(|project| project.activation_identity() != expected)
+    }) {
+        return Err(asset_error_message(
+            "asset import belongs to an inactive project activation",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "../../pipeline/manager/tests/asset_manager_contract.rs"]
+mod tests;

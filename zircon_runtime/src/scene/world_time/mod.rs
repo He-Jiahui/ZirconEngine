@@ -1,8 +1,12 @@
 //! Per-world virtual and fixed simulation time.
 
+#[path = "controller.rs"]
 mod controller;
+#[path = "fixed_step.rs"]
 mod fixed_step;
+#[path = "interpolation.rs"]
 mod interpolation;
+#[path = "snapshot.rs"]
 mod snapshot;
 
 // Public World-time observation and configuration surface.

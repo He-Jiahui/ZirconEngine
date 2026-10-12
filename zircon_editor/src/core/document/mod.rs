@@ -1,5 +1,8 @@
+#[path = "lifecycle.rs"]
 mod lifecycle;
+#[path = "scene_reload.rs"]
 mod scene_reload;
+#[path = "scene_route.rs"]
 mod scene_route;
 
 pub(crate) use lifecycle::SceneDocumentActivationReservation;

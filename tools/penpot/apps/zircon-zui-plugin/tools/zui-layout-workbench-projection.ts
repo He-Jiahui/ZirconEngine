@@ -20,7 +20,7 @@ const INSPECTOR_SOURCE =
 const STATUS_BAR_SOURCE =
   'zircon_editor/assets/ui/editor/unreal/components/status_bar.zui';
 const WORKBENCH_TAB_COMPONENT =
-  'res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab';
+  'res://ui/editor/components/workbench/primitives/inputs/tab.zui#WorkbenchTab';
 
 type JsonObject = Record<string, unknown>;
 export type WorkbenchHierarchyRow = {

@@ -136,5 +136,5 @@ fn condition_matches(
 }
 
 #[cfg(test)]
-#[path = "state_machine/tests/borrowed_state_index_tests.rs"]
+#[path = "state_machine/tests/borrowed_state_index.rs"]
 mod borrowed_state_index_tests;

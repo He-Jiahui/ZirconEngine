@@ -21,7 +21,7 @@ class EditorAssetBrowserProfileScaleContract(unittest.TestCase):
         ).read_text(encoding="utf-8")
         projector = (
             REPO_ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs"
+            / "zircon_editor/src/ui/contract/docks/pane/nodes/asset_content/projector.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("asset_browser_materialized_item_budget", browser)
@@ -39,11 +39,11 @@ class EditorAssetBrowserProfileScaleContract(unittest.TestCase):
     def test_scroll_path_publishes_dispatch_and_logical_catalog_cardinality(self) -> None:
         dispatch = (
             REPO_ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/pane/asset/content.rs"
+            / "zircon_editor/src/ui/retained/contract/pointer/scroll/pane/asset/content.rs"
         ).read_text(encoding="utf-8")
         motion = (
             REPO_ROOT
-            / "zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/motion.rs"
+            / "zircon_editor/src/ui/retained/app/asset_content_pointer/events/motion.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("AssetBrowserScrollDispatchCount", dispatch)
@@ -57,7 +57,7 @@ class EditorAssetBrowserProfileScaleContract(unittest.TestCase):
         ).read_text(encoding="utf-8")
         projector = (
             REPO_ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs"
+            / "zircon_editor/src/ui/contract/docks/pane/nodes/asset_content/projector.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("browser_materialized_item_count", metadata)

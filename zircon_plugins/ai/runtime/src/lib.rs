@@ -1,11 +1,19 @@
+#[path = "behavior_tree.rs"]
 pub mod behavior_tree;
 /// 按 schema 编译的黑板槽位与稠密存储，对外提供稳定的槽位契约。
+#[path = "blackboard.rs"]
 pub mod blackboard;
+#[path = "capability.rs"]
 mod capability;
+#[path = "manager.rs"]
 mod manager;
+#[path = "module.rs"]
 mod module;
+#[path = "perception.rs"]
 pub mod perception;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "tick_lod.rs"]
 mod tick_lod;
 
 pub use capability::{
@@ -29,4 +37,5 @@ pub use plugin::{
 pub use tick_lod::AiBehaviorTickLod;
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

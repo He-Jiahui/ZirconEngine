@@ -1,6 +1,8 @@
 /// Native plugin manifest discovery and load commands.
+#[path = "native/discovery.rs"]
 pub mod discovery;
 /// Stable live-host handles for native plugin lifecycle operations.
+#[path = "native/host.rs"]
 pub mod host;
 
 pub use super::native_plugin_loader::{

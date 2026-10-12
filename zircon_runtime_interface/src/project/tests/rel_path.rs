@@ -17,6 +17,17 @@ fn relative_path_rejects_empty_absolute_dot_parent_and_prefix_forms() {
         "..",
         "assets/../outside",
         "C:/assets",
+        "assets/C:/outside",
+        "assets\\C:outside",
+        "assets/file:stream",
+        "assets/CON",
+        "assets/con.txt",
+        "assets/PRN.log",
+        "assets/AUX .data",
+        "assets/nul.",
+        "assets/COM1",
+        "assets/lpt9.txt",
+        "assets/COM¹.txt",
         r"\\server\share\assets",
     ] {
         assert!(RelPath::parse(invalid).is_err(), "accepted {invalid:?}");

@@ -15,7 +15,7 @@ NAVIGATION_ROOT = REPO_ROOT / (
 )
 SPEC_ROOT = NAVIGATION_ROOT / "specs"
 BINDING_ROOT = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
+    "zircon_editor/src/ui/runtime/builtin/"
     "workbench_extension_module_template_bindings"
 )
 REFERENCE_ACTIONS = REPO_ROOT / (
@@ -23,7 +23,7 @@ REFERENCE_ACTIONS = REPO_ROOT / (
     "workbench/reference_menu_actions.rs"
 )
 PREVIEW_ACTIONS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs"
+    "zircon_editor/src/ui/retained/preview_actions/extensions.rs"
 )
 EXTENSION_TAB_ACTION = re.compile(
     r"workbench\.extension\.[a-z_]+\.[a-z_]+_tab\.select"

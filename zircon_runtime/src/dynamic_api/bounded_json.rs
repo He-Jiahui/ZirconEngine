@@ -1,6 +1,10 @@
+#[path = "bounded_json/deadline.rs"]
 mod deadline;
+#[path = "bounded_json/error.rs"]
 mod error;
+#[path = "bounded_json/preflight.rs"]
 mod preflight;
+#[path = "bounded_json/writer.rs"]
 mod writer;
 
 #[cfg(test)]

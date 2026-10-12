@@ -2,11 +2,11 @@ use crate::core::framework::project::{ExportPackagingStrategy, ExportProfile};
 use crate::plugin::RuntimeProfileDescriptor;
 
 #[cfg(test)]
-#[path = "export_profile_validation/tests/strategy_capacity_tests.rs"]
+#[path = "../profile_validate/tests/strategy_capacity.rs"]
 mod strategy_capacity_tests;
 
 #[cfg(test)]
-#[path = "export_profile_validation/tests/optimization_batch_iv_runtime633_tests.rs"]
+#[path = "profile_validate/tests/perf.rs"]
 mod optimization_batch_iv_runtime633_tests;
 
 pub(super) fn export_profile_duplicate_name_fatal_diagnostics(

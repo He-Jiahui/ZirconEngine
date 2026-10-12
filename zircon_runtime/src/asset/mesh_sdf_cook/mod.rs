@@ -1,10 +1,16 @@
 //! 导入时按显式请求烘焙网格 SDF；预算超限可降级为无派生数据，其余错误中止导入。
 
+#[path = "acceleration.rs"]
 mod acceleration;
+#[path = "budget.rs"]
 mod budget;
+#[path = "cook.rs"]
 mod cook;
+#[path = "distance.rs"]
 mod distance;
+#[path = "error.rs"]
 mod error;
+#[path = "request.rs"]
 mod request;
 #[cfg(test)]
 #[path = "tests/cases.rs"]

@@ -1,15 +1,28 @@
+#[path = "binding_call.rs"]
 mod binding_call;
+#[path = "binding_value.rs"]
 mod binding_value;
+#[path = "conversion.rs"]
 mod conversion;
+#[path = "event_binding.rs"]
 mod event_binding;
+#[path = "event_kind.rs"]
 mod event_kind;
+#[path = "event_path.rs"]
 mod event_path;
+#[path = "execution_receipt.rs"]
 mod execution_receipt;
+#[path = "model_context.rs"]
 mod model_context;
+#[path = "model_schema.rs"]
 mod model_schema;
+#[path = "mutation_receipt.rs"]
 mod mutation_receipt;
+#[path = "parse_error.rs"]
 mod parse_error;
+#[path = "parser.rs"]
 mod parser;
+#[path = "update.rs"]
 mod update;
 
 pub use binding_call::UiBindingCall;

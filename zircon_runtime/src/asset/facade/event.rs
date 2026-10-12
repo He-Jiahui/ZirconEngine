@@ -1,5 +1,8 @@
+#[path = "event/declaration.rs"]
 mod declaration;
+#[path = "event/projection.rs"]
 mod projection;
+#[path = "event/receiver.rs"]
 mod receiver;
 
 pub use declaration::{AssetEvent, AssetEventKind};

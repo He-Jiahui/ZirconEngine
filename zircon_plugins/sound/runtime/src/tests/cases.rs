@@ -30,24 +30,43 @@ use super::{
     SOUND_MODULE_NAME,
 };
 
+#[path = "automation_binding.rs"]
 mod automation_binding;
+#[path = "automation_curve.rs"]
 mod automation_curve;
+#[path = "convolution.rs"]
 mod convolution;
+#[path = "dynamic_events/mod.rs"]
 mod dynamic_events;
+#[path = "graph_config.rs"]
 mod graph_config;
+#[path = "kira_bridge.rs"]
 mod kira_bridge;
+#[path = "kira_graph_sync.rs"]
 mod kira_graph_sync;
+#[path = "manifest.rs"]
 mod manifest;
+#[path = "mixer_graph.rs"]
 mod mixer_graph;
+#[path = "optional_feature_manifest.rs"]
 mod optional_feature_manifest;
+#[path = "output_device.rs"]
 mod output_device;
+#[path = "playback.rs"]
 mod playback;
+#[path = "poison_recovery.rs"]
 mod poison_recovery;
+#[path = "presets.rs"]
 mod presets;
+#[path = "ray_tracing.rs"]
 mod ray_tracing;
+#[path = "runtime_core.rs"]
 mod runtime_core;
+#[path = "source_inputs.rs"]
 mod source_inputs;
+#[path = "spatial.rs"]
 mod spatial;
+#[path = "support.rs"]
 mod support;
 
 use support::*;

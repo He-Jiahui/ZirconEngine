@@ -6,11 +6,11 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn inspector_surface_controls_use_pane_surface_host_callbacks() {
-    let globals = source("src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs");
-    let wiring = source("src/ui/retained_host/app/callback_wiring/pane_surface/inspector.rs");
+    let globals = source("src/ui/retained/contract/globals/pane_context/callbacks.rs");
+    let wiring = source("src/ui/retained/app/callback_wiring/pane_surface/inspector.rs");
     let inspector = [
-        "src/ui/retained_host/app/inspector/surface_controls/value_change.rs",
-        "src/ui/retained_host/app/inspector/surface_controls/click.rs",
+        "src/ui/retained/app/inspector/surface_controls/value_change.rs",
+        "src/ui/retained/app/inspector/surface_controls/click.rs",
     ]
     .into_iter()
     .map(source)

@@ -19,8 +19,11 @@ use zircon_runtime_interface::ui::{
 
 use super::UiSurface;
 
+#[path = "rebuild/authored_geometry.rs"]
 mod authored_geometry;
+#[path = "rebuild/incremental.rs"]
 mod incremental;
+#[path = "rebuild/report.rs"]
 mod report;
 pub use authored_geometry::{UiAuthoredGeometryFallbackReason, UiAuthoredGeometryPublication};
 #[cfg(feature = "profiling")]

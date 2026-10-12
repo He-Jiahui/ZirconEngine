@@ -1,9 +1,14 @@
 //! 可选虚拟几何派生数据的导入烘焙与诊断导出；基础网格仍由模型原语单独保留。
 
+#[path = "binary_dump.rs"]
 mod binary_dump;
+#[path = "bvh_graph_dump.rs"]
 mod bvh_graph_dump;
+#[path = "cook.rs"]
 mod cook;
+#[path = "inspection_dump.rs"]
 mod inspection_dump;
+#[path = "request.rs"]
 mod request;
 
 pub use binary_dump::encode_virtual_geometry_cook_binary_dump;

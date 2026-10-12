@@ -4,7 +4,9 @@ use crate::core::framework::project::ExportProfile;
 use self::{browser::browser_host_files, mobile::mobile_host_files};
 use super::ExportGeneratedFile;
 
+#[path = "platform_host_files/browser.rs"]
 mod browser;
+#[path = "platform_host_files/mobile.rs"]
 mod mobile;
 
 /// SourceTemplate 生成时调用；桌面/无头写 main，移动端/浏览器写被宿主加载的 library 与资源。

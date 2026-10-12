@@ -1,3 +1,4 @@
+#[path = "anchored_tree/entries.rs"]
 mod entries;
 pub(crate) use entries::AnchoredEntry;
 

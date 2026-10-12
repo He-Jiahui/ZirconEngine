@@ -195,5 +195,5 @@ fn type_mismatch(property: &str, expected: &str) -> RenderMaterialValidationErro
 }
 
 #[cfg(test)]
-#[path = "tests/advanced_features_optimization_batch_20260830cj_runtime_tests.rs"]
+#[path = "../tests/advanced_features_perf.rs"]
 mod optimization_batch_20260830cj_runtime_tests;

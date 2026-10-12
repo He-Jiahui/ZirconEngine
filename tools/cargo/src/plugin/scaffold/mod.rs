@@ -1,5 +1,6 @@
 //! 插件脚手架先在内存中生成包文件与工作区/目录布线，再写入多处文件；写入失败时尽力恢复原文本。
 
+#[path = "templates.rs"]
 mod templates;
 
 use std::fmt;

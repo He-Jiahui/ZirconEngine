@@ -382,5 +382,5 @@ impl EngineTaskGraphInner {
 }
 
 #[cfg(test)]
-#[path = "engine_task_graph/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

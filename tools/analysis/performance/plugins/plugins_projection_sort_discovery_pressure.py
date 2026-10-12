@@ -12,18 +12,18 @@ ROOT = Path(__file__).resolve().parents[4]
 CRITICAL_SOURCE_FILES = (
     "tools/analysis/performance/plugins/plugins_projection_sort_discovery_pressure.py",
     "zircon_plugins/physics/runtime/src/manager/world_sync.rs",
-    "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/collect_pending_updates.rs",
-    "zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/contract.rs",
+    "zircon_plugins/hybrid_gi/runtime/src/gi/prepare_frame/collect_pending_updates.rs",
+    "zircon_runtime/src/plugin/loader/discovery_refresh/contract.rs",
 )
 BASELINE_GIT_REVISION = "ca3ac3cc6ad218d04a5cd469447cea2452441321"
 HEAD_BASELINE_GIT_BLOBS = {
     "zircon_plugins/physics/runtime/src/manager/world_sync.rs": (
         "c851d5de0d7f94c1921e5de7e5ee5b1ad9ae6ee1"
     ),
-    "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/collect_pending_updates.rs": (
+    "zircon_plugins/hybrid_gi/runtime/src/gi/prepare_frame/collect_pending_updates.rs": (
         "6f6108ce5bea947c6dfc41d8c2cdfd69ac1162f7"
     ),
-    "zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/contract.rs": (
+    "zircon_runtime/src/plugin/loader/discovery_refresh/contract.rs": (
         "759d020e113114d5790423c351d5839dee1aca5e"
     ),
 }

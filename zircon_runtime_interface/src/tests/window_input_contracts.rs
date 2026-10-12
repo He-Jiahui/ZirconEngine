@@ -42,7 +42,9 @@ where
     serde_json::from_str(&serde_json::to_string(value).unwrap()).unwrap()
 }
 
+#[path = "window_input_contracts/ime.rs"]
 mod ime;
+#[path = "window_input_contracts/window_events.rs"]
 mod window_events;
 
 #[test]

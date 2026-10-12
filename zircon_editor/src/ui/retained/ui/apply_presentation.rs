@@ -1,0 +1,821 @@
+use super::pane_data_conversion;
+use crate::ui::layouts::common::model_rc;
+use crate::ui::layouts::views as view_data;
+use crate::ui::layouts::windows::workbench_host_window::{
+    self as host_window, build_host_scene_data_with_cache, build_native_floating_surface_data,
+    frame_rect, HostChromeProjectionCache, ShellPresentation,
+};
+use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
+use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
+use crate::ui::retained_host::primitives::ModelRc;
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use crate::ui::retained_host::{
+    self as host_contract, HostWindowGeometryPresentationData, HostWindowPresentationData,
+    UiHostWindow,
+};
+use crate::ui::template_runtime::{EditorUiHostRuntime, RetainedUiHostProjection};
+use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
+use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::ui::workbench::snapshot::EditorChromeSnapshot;
+use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
+
+use super::floating_pane_geometry::floating_pane_content_size;
+use super::root_template_overlay::to_host_contract_root_template_overlay_nodes_at_scale;
+use super::shell_content_presentation::patch_shell_content_presentation;
+use super::template_node_conversion::to_host_contract_template_nodes;
+use super::workbench_window_projection::{
+    build_host_contract_workbench_window_geometry_patch_at_mount_and_scale,
+    to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale,
+};
+
+#[path = "apply_presentation/geometry.rs"]
+mod geometry;
+#[path = "apply_presentation/pane_conversion.rs"]
+mod pane_conversion;
+#[path = "apply_presentation/scene_conversion.rs"]
+mod scene_conversion;
+
+pub(crate) use geometry::apply_window_metrics_geometry_presentation;
+use pane_conversion::to_host_contract_pane;
+#[cfg(test)]
+pub(in crate::ui::retained_host::ui) use scene_conversion::to_host_contract_host_scene_data;
+#[cfg(test)]
+pub(in crate::ui::retained_host::ui) use scene_conversion::to_host_contract_host_scene_geometry_with_retained_panes;
+pub(super) use scene_conversion::{
+    to_host_contract_bottom_dock, to_host_contract_host_shell, to_host_contract_host_window_layout,
+    to_host_contract_side_dock,
+};
+use scene_conversion::{
+    to_host_contract_chrome_tab, to_host_contract_host_scene_data_with_runtime,
+    to_host_contract_native_floating_surface_data_with_runtime,
+};
+
+pub(crate) fn apply_presentation(
+    ui: &UiHostWindow,
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    geometry: &WorkbenchShellGeometry,
+    preset_names: &[String],
+    active_preset_name: Option<&str>,
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
+    runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+    module_plugins: &host_window::ModulePluginsPaneViewData,
+    build_export: &host_window::BuildExportPaneViewData,
+    root_template_projection: Option<&RetainedUiHostProjection>,
+    workbench_window_projection: Option<&RetainedUiHostProjection>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+    floating_window_projection_bundle: &FloatingWindowProjectionBundle,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
+) {
+    let template_v2_data = std::collections::BTreeMap::new();
+    let mut chrome_projection_cache = HostChromeProjectionCache::default();
+    let mut console_projection_cache = pane_data_conversion::ConsolePaneProjectionCache::default();
+    let mut module_plugins_projection_cache =
+        pane_data_conversion::ModulePluginsPaneProjectionCache::default();
+    let _ = apply_presentation_with_template_v2_data(
+        ui,
+        model,
+        chrome,
+        geometry,
+        preset_names,
+        active_preset_name,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        &template_v2_data,
+        root_template_projection,
+        workbench_window_projection,
+        componentized_workbench_layout_frames,
+        floating_window_projection_bundle,
+        pane_runtimes,
+        1.0,
+        "",
+        &mut chrome_projection_cache,
+        &mut console_projection_cache,
+        &mut module_plugins_projection_cache,
+        false,
+    );
+}
+
+pub(crate) fn apply_presentation_with_template_v2_data(
+    ui: &UiHostWindow,
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    geometry: &WorkbenchShellGeometry,
+    preset_names: &[String],
+    active_preset_name: Option<&str>,
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
+    runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+    module_plugins: &host_window::ModulePluginsPaneViewData,
+    build_export: &host_window::BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
+    root_template_projection: Option<&RetainedUiHostProjection>,
+    workbench_window_projection: Option<&RetainedUiHostProjection>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+    floating_window_projection_bundle: &FloatingWindowProjectionBundle,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
+    template_scale_factor: f32,
+    hierarchy_filter_query: &str,
+    chrome_projection_cache: &mut HostChromeProjectionCache,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
+    shell_content_only: bool,
+) -> Option<std::sync::Arc<ShellPresentation>> {
+    let mut presentation = {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "retained_host",
+            "apply_shell_presentation_from_state"
+        );
+        record_current_ui_perf_counter(UiPerfCounter::ShellPresentationBuildCount, 1.0);
+        std::sync::Arc::new(ShellPresentation::from_state(
+            model,
+            chrome,
+            geometry,
+            preset_names,
+            active_preset_name,
+            ui_asset_panes,
+            animation_panes,
+            runtime_diagnostics,
+            module_plugins,
+            build_export,
+            template_v2_data,
+            floating_window_projection_bundle,
+            chrome_projection_cache,
+        ))
+    };
+    let pane_surface_host = ui.global::<host_contract::PaneSurfaceHostContext>();
+
+    let host_layout = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_host_window_layout");
+        host_window_layout(componentized_workbench_layout_frames)
+    };
+    if shell_content_only
+        && patch_shell_content_presentation(
+            ui,
+            &presentation,
+            &host_layout,
+            chrome,
+            pane_runtimes,
+            hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
+        )
+    {
+        return None;
+    }
+    let host_scene_data = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_host_scene_data");
+        record_current_ui_perf_counter(UiPerfCounter::HostSceneBuildCount, 1.0);
+        build_host_scene_data_with_cache(
+            &model.menu_bar,
+            &presentation.host_surface_data,
+            &presentation.host_shell,
+            &host_layout,
+            &presentation.status_primary,
+            chrome.inspector.is_some(),
+            &chrome.project_overview,
+            chrome,
+            chrome_projection_cache,
+        )
+    };
+    std::sync::Arc::get_mut(&mut presentation)
+        .expect("shell presentation must be unique before publication")
+        .retained_scene_data = Some(std::sync::Arc::new(host_scene_data.clone()));
+    let host_welcome_pane = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_welcome_pane");
+        let welcome_pane = project_welcome_pane(&presentation.welcome.pane, &host_scene_data);
+        to_host_contract_welcome_pane(&welcome_pane, &presentation.welcome.recent_projects)
+    };
+    let native_floating_surface_data = {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "retained_host",
+            "apply_build_native_floating_surface_data"
+        );
+        build_native_floating_surface_data(&host_scene_data, &presentation.host_shell)
+    };
+    let current_generation = ui.get_host_presentation_generation();
+    let current_structure = current_generation.structure();
+    let host_scene_data = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_scene_data");
+        record_current_ui_perf_counter(UiPerfCounter::PaneProjectionBuildCount, 1.0);
+        to_host_contract_host_scene_data_with_runtime(
+            &host_scene_data,
+            pane_runtimes,
+            Some(&presentation.welcome),
+            hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
+        )
+    };
+    let native_floating_surface_data = {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "retained_host",
+            "apply_convert_native_floating_surface_data"
+        );
+        to_host_contract_native_floating_surface_data_with_runtime(
+            &native_floating_surface_data,
+            pane_runtimes,
+            Some(&presentation.welcome),
+            hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
+        )
+    };
+    let host_shell = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_shell");
+        to_host_contract_host_shell(&presentation.host_shell)
+    };
+    let host_layout = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_layout");
+        to_host_contract_host_window_layout(&host_layout)
+    };
+    let workbench_window_nodes =
+        to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+            workbench_window_projection,
+            Some(&current_structure.workbench_window_nodes),
+            componentized_workbench_layout_frames.mount_frame,
+            template_scale_factor,
+        );
+    let window_size = ui.window().size();
+    let host_presentation = HostWindowPresentationData {
+        host_scene_data,
+        native_floating_surface_data,
+        host_shell,
+        host_layout,
+        asset_deletion_blocker: current_structure
+            .asset_deletion_blocker
+            .relayout(window_size.width as f32, window_size.height as f32),
+        close_prompt: current_structure.close_prompt.clone(),
+        root_template_nodes: to_host_contract_root_template_overlay_nodes_at_scale(
+            root_template_projection,
+            template_scale_factor,
+        ),
+        workbench_window_nodes,
+        ..HostWindowPresentationData::default()
+    };
+    drop(current_generation);
+    {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_host_presentation");
+        ui.set_host_presentation(host_presentation);
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_tail_globals");
+        pane_surface_host.set_welcome_pane(host_welcome_pane);
+    }
+    Some(presentation)
+}
+
+pub(super) fn host_window_layout(
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+) -> host_window::HostWindowLayoutData {
+    let authoritative = componentized_workbench_layout_frames.mount_frame.is_some()
+        || componentized_workbench_layout_frames
+            .center_band_frame
+            .is_some()
+        || componentized_workbench_layout_frames
+            .document_region_frame
+            .is_some()
+        || componentized_workbench_layout_frames
+            .status_bar_frame
+            .is_some();
+    let center_band_frame = componentized_workbench_layout_frames
+        .center_band_frame
+        .filter(ui_frame_is_valid)
+        .unwrap_or_default();
+    let left_region_frame = componentized_workbench_layout_frames
+        .left_region_frame
+        .filter(ui_frame_is_valid)
+        .unwrap_or_default();
+    let document_region_frame = componentized_workbench_layout_frames
+        .document_region_frame
+        .filter(ui_frame_is_valid)
+        .unwrap_or_default();
+    let right_region_frame = componentized_workbench_layout_frames
+        .right_region_frame
+        .filter(ui_frame_is_valid)
+        .unwrap_or_default();
+    let bottom_region_frame = componentized_workbench_layout_frames
+        .bottom_region_frame
+        .filter(ui_frame_is_valid)
+        .unwrap_or_default();
+    let viewport_content_frame = componentized_workbench_layout_frames
+        .viewport_content_frame
+        .filter(ui_frame_is_valid)
+        .unwrap_or_default();
+    let status_bar_frame = componentized_workbench_layout_frames
+        .status_bar_frame
+        .filter(ui_frame_is_valid)
+        .unwrap_or_default();
+    let left_splitter_frame = componentized_workbench_layout_frames
+        .left_resize_splitter_frame
+        .filter(ui_frame_is_valid)
+        .unwrap_or_default();
+    let right_splitter_frame = componentized_workbench_layout_frames
+        .right_resize_splitter_frame
+        .filter(ui_frame_is_valid)
+        .unwrap_or_default();
+    let bottom_splitter_frame = componentized_workbench_layout_frames
+        .bottom_resize_splitter_frame
+        .filter(ui_frame_is_valid)
+        .unwrap_or_default();
+
+    host_window::HostWindowLayoutData {
+        authoritative,
+        center_band_frame: frame_rect(center_band_frame),
+        status_bar_frame: frame_rect(status_bar_frame),
+        left_region_frame: frame_rect(left_region_frame),
+        document_region_frame: frame_rect(document_region_frame),
+        right_region_frame: frame_rect(right_region_frame),
+        bottom_region_frame: frame_rect(bottom_region_frame),
+        left_splitter_frame: frame_rect(left_splitter_frame),
+        right_splitter_frame: frame_rect(right_splitter_frame),
+        bottom_splitter_frame: frame_rect(bottom_splitter_frame),
+        viewport_content_frame: frame_rect(viewport_content_frame),
+    }
+}
+
+fn ui_frame_is_valid(frame: &UiFrame) -> bool {
+    frame.x.is_finite()
+        && frame.y.is_finite()
+        && frame.width.is_finite()
+        && frame.height.is_finite()
+        && frame.width >= 0.0
+        && frame.height >= 0.0
+}
+
+fn map_model_rc<T, U, F>(model: &ModelRc<T>, mut map: F) -> ModelRc<U>
+where
+    T: Clone + 'static,
+    U: Clone + 'static,
+    F: FnMut(T) -> U,
+{
+    model_rc(
+        (0..model.row_count())
+            .filter_map(|row| model.row_data(row))
+            .map(&mut map)
+            .collect(),
+    )
+}
+
+fn to_host_contract_frame_rect(frame: &host_window::FrameRect) -> host_contract::FrameRect {
+    host_contract::FrameRect {
+        x: frame.x,
+        y: frame.y,
+        width: frame.width,
+        height: frame.height,
+    }
+}
+
+fn to_host_contract_tab_data(tab: host_window::TabData) -> host_contract::TabData {
+    host_contract::TabData {
+        id: tab.id,
+        slot: tab.slot,
+        title: tab.title,
+        icon_key: tab.icon_key,
+        active: tab.active,
+        closeable: tab.closeable,
+    }
+}
+
+fn to_host_contract_tabs(tabs: &ModelRc<host_window::TabData>) -> ModelRc<host_contract::TabData> {
+    map_model_rc(tabs, to_host_contract_tab_data)
+}
+
+fn to_host_contract_floating_window_data(
+    window: host_window::FloatingWindowData,
+    header_height_px: f32,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
+    welcome: Option<&view_data::WelcomePresentation>,
+    hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
+) -> host_contract::FloatingWindowData {
+    let content_size = floating_pane_content_size(
+        window.frame.width,
+        window.frame.height,
+        window.header_frame.height,
+        header_height_px,
+    );
+    let pane_size = host_window::PaneContentSize::new(content_size.width, content_size.height);
+    host_contract::FloatingWindowData {
+        window_id: window.window_id,
+        title: window.title,
+        frame: to_host_contract_frame_rect(&window.frame),
+        header_nodes: to_host_contract_template_nodes(&window.header_nodes),
+        header_frame: to_host_contract_frame_rect(&window.header_frame),
+        overflow_frame: to_host_contract_frame_rect(&window.overflow_frame),
+        tab_frames: map_model_rc(&window.tab_frames, to_host_contract_chrome_tab),
+        target_group: window.target_group,
+        left_edge_target_group: window.left_edge_target_group,
+        right_edge_target_group: window.right_edge_target_group,
+        top_edge_target_group: window.top_edge_target_group,
+        bottom_edge_target_group: window.bottom_edge_target_group,
+        focus_target_id: window.focus_target_id,
+        tabs: to_host_contract_tabs(&window.tabs),
+        active_pane: to_host_contract_pane(
+            window.active_pane,
+            pane_size,
+            pane_runtimes,
+            welcome,
+            hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
+        ),
+    }
+}
+
+fn to_host_contract_floating_windows(
+    windows: &ModelRc<host_window::FloatingWindowData>,
+    header_height_px: f32,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
+    welcome: Option<&view_data::WelcomePresentation>,
+    hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
+) -> ModelRc<host_contract::FloatingWindowData> {
+    map_model_rc(windows, |window| {
+        to_host_contract_floating_window_data(
+            window,
+            header_height_px,
+            pane_runtimes,
+            welcome,
+            hierarchy_filter_query,
+            console_projection_cache,
+            module_plugins_projection_cache,
+        )
+    })
+}
+
+fn to_host_contract_new_project_form(
+    form: &view_data::NewProjectFormData,
+) -> host_contract::NewProjectFormData {
+    host_contract::NewProjectFormData {
+        project_name: form.project_name.clone(),
+        location: form.location.clone(),
+        project_path_preview: form.project_path_preview.clone(),
+        template_label: form.template_label.clone(),
+        validation_message: form.validation_message.clone(),
+        can_create: form.can_create,
+        can_open_existing: form.can_open_existing,
+        browse_supported: form.browse_supported,
+    }
+}
+
+fn to_host_contract_welcome_pane(
+    pane: &view_data::WelcomePaneData,
+    recent_projects: &ModelRc<view_data::RecentProjectData>,
+) -> host_contract::WelcomePaneData {
+    let (nodes, layout) = welcome_nodes_with_native_dispatch(
+        to_host_contract_template_nodes(&pane.nodes),
+        &pane.form,
+    );
+    host_contract::WelcomePaneData {
+        nodes,
+        layout,
+        title: pane.title.clone(),
+        subtitle: pane.subtitle.clone(),
+        status_message: pane.status_message.clone(),
+        form: to_host_contract_new_project_form(&pane.form),
+        recent_projects: to_host_contract_recent_projects(recent_projects),
+    }
+}
+
+fn welcome_nodes_with_native_dispatch(
+    nodes: ModelRc<host_contract::TemplatePaneNodeData>,
+    form: &view_data::NewProjectFormData,
+) -> (
+    ModelRc<host_contract::TemplatePaneNodeData>,
+    host_contract::WelcomePaneLayoutData,
+) {
+    let mut row_patches = std::collections::BTreeMap::new();
+    let mut layout = host_contract::WelcomePaneLayoutData::default();
+    for (row, node) in nodes.iter().enumerate() {
+        layout.capture(node);
+        if !matches!(
+            node.control_id.as_str(),
+            "WelcomeProjectNameField"
+                | "WelcomeLocationField"
+                | "WelcomeCreateProjectButton"
+                | "WelcomeOpenExistingButton"
+        ) {
+            continue;
+        }
+        let mut node = node.clone();
+        match node.control_id.as_str() {
+            "WelcomeProjectNameField" => {
+                node.component_role = "input-field".into();
+                node.dispatch_kind = "welcome_text".into();
+                node.action_id = "welcome.project.name.edit".into();
+                node.edit_action_id = "welcome.project.name.edit".into();
+                node.value_text = form.project_name.clone();
+                if node.text.is_empty() {
+                    node.text = form.project_name.clone();
+                }
+            }
+            "WelcomeLocationField" => {
+                node.component_role = "input-field".into();
+                node.dispatch_kind = "welcome_text".into();
+                node.action_id = "welcome.project.location.edit".into();
+                node.edit_action_id = "welcome.project.location.edit".into();
+                node.value_text = form.location.clone();
+                if node.text.is_empty() {
+                    node.text = form.location.clone();
+                }
+            }
+            "WelcomeCreateProjectButton" => {
+                node.dispatch_kind = "welcome".into();
+                node.action_id = "welcome.project.create".into();
+                node.disabled = !form.can_create;
+            }
+            "WelcomeOpenExistingButton" => {
+                node.dispatch_kind = "welcome".into();
+                node.action_id = "welcome.project.open_existing".into();
+                node.disabled = !form.can_open_existing;
+            }
+            _ => unreachable!("welcome dispatch controls were filtered above"),
+        }
+        row_patches.insert(row, node);
+    }
+    (nodes.with_row_patches(row_patches), layout)
+}
+
+fn project_welcome_pane(
+    pane: &view_data::WelcomePaneData,
+    scene: &host_window::HostWindowSceneData,
+) -> view_data::WelcomePaneData {
+    let mut pane = pane.clone();
+    if let Some(size) = resolve_visible_welcome_pane_size(scene) {
+        pane.nodes = view_data::welcome_pane_nodes(size);
+    }
+    pane
+}
+
+fn project_welcome_pane_for_size(
+    pane: &view_data::WelcomePaneData,
+    size: host_window::PaneContentSize,
+) -> view_data::WelcomePaneData {
+    let mut pane = pane.clone();
+    pane.nodes =
+        view_data::welcome_pane_nodes(UiSize::new(size.width.max(1.0), size.height.max(1.0)));
+    pane
+}
+
+fn resolve_visible_welcome_pane_size(scene: &host_window::HostWindowSceneData) -> Option<UiSize> {
+    if scene.document_dock.pane.kind.as_str() == "Welcome" {
+        return Some(UiSize::new(
+            scene.document_dock.region_frame.width.max(0.0),
+            dock_content_height(
+                scene.document_dock.region_frame.height,
+                scene.document_dock.header_height_px,
+            ),
+        ));
+    }
+
+    if scene.left_dock.pane.kind.as_str() == "Welcome" {
+        return Some(UiSize::new(
+            scene.left_dock.panel_width_px.max(0.0),
+            dock_content_height(
+                scene.left_dock.region_frame.height,
+                scene.left_dock.panel_header_height_px,
+            ),
+        ));
+    }
+
+    if scene.right_dock.pane.kind.as_str() == "Welcome" {
+        return Some(UiSize::new(
+            scene.right_dock.panel_width_px.max(0.0),
+            dock_content_height(
+                scene.right_dock.region_frame.height,
+                scene.right_dock.panel_header_height_px,
+            ),
+        ));
+    }
+
+    if scene.bottom_dock.pane.kind.as_str() == "Welcome" {
+        return Some(UiSize::new(
+            scene.bottom_dock.region_frame.width.max(0.0),
+            dock_content_height(
+                scene.bottom_dock.region_frame.height,
+                scene.bottom_dock.header_height_px,
+            ),
+        ));
+    }
+
+    scene
+        .floating_layer
+        .floating_windows
+        .iter()
+        .find_map(|window| {
+            (window.active_pane.kind.as_str() == "Welcome").then(|| {
+                UiSize::new(
+                    window.frame.width.max(0.0),
+                    (window.frame.height - scene.floating_layer.header_height_px).max(0.0),
+                )
+            })
+        })
+}
+
+fn dock_content_height(region_height: f32, header_height: f32) -> f32 {
+    (region_height - header_height - 1.0).max(0.0)
+}
+
+fn to_host_contract_recent_project(
+    data: view_data::RecentProjectData,
+) -> host_contract::RecentProjectData {
+    host_contract::RecentProjectData {
+        display_name: data.display_name,
+        path: data.path,
+        last_opened_label: data.last_opened_label,
+        status_label: data.status_label,
+        invalid: data.invalid,
+    }
+}
+
+fn to_host_contract_recent_projects(
+    data: &ModelRc<view_data::RecentProjectData>,
+) -> ModelRc<host_contract::RecentProjectData> {
+    map_model_rc(data, to_host_contract_recent_project)
+}
+
+pub(crate) fn to_host_contract_scene_viewport_chrome(
+    data: view_data::SceneViewportChromeData,
+) -> host_contract::SceneViewportChromeData {
+    host_contract::SceneViewportChromeData {
+        mode: data.mode,
+        transform_space: data.transform_space,
+        pivot_mode: data.pivot_mode,
+        projection_mode: data.projection_mode,
+        view_orientation: data.view_orientation,
+        display_mode: data.display_mode,
+        grid_mode: data.grid_mode,
+        gizmos_enabled: data.gizmos_enabled,
+        preview_lighting: data.preview_lighting,
+        preview_skybox: data.preview_skybox,
+        translate_snap: data.translate_snap,
+        rotate_snap_deg: data.rotate_snap_deg,
+        scale_snap: data.scale_snap,
+        translate_snap_label: data.translate_snap_label,
+        rotate_snap_label: data.rotate_snap_label,
+        scale_snap_label: data.scale_snap_label,
+        toolbar_surface_frame: None,
+        toolbar_template_nodes: Default::default(),
+        toolbar_surface_key: Default::default(),
+        toolbar_enter_play_enabled: false,
+        toolbar_exit_play_enabled: false,
+        toolbar_is_playing: false,
+    }
+}
+
+fn to_host_contract_animation_editor_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
+) -> host_contract::AnimationEditorPaneData {
+    runtime.map_or_else(
+        || pane_data_conversion::to_host_contract_animation_editor_pane_from_host_pane(data, pane_size),
+        |runtime| {
+            pane_data_conversion::to_host_contract_animation_editor_pane_from_host_pane_with_runtime(
+                data, pane_size, runtime,
+            )
+        },
+    )
+}
+
+fn to_host_contract_assets_activity_pane(
+    data: host_window::AssetsActivityPaneViewData,
+) -> host_contract::AssetsActivityPaneData {
+    pane_data_conversion::to_host_contract_assets_activity_pane(data)
+}
+
+fn to_host_contract_hierarchy_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
+    hierarchy_filter_query: &str,
+) -> host_contract::HierarchyPaneData {
+    runtime.map_or_else(
+        || {
+            pane_data_conversion::to_host_contract_hierarchy_pane_from_host_pane_with_query(
+                data,
+                pane_size,
+                hierarchy_filter_query,
+            )
+        },
+        |runtime| {
+            pane_data_conversion::to_host_contract_hierarchy_pane_from_host_pane_with_runtime(
+                data,
+                pane_size,
+                runtime,
+                hierarchy_filter_query,
+            )
+        },
+    )
+}
+
+fn to_host_contract_inspector_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
+) -> host_contract::InspectorPaneData {
+    runtime.map_or_else(
+        || pane_data_conversion::to_host_contract_inspector_pane_from_host_pane(data, pane_size),
+        |runtime| {
+            pane_data_conversion::to_host_contract_inspector_pane_from_host_pane_with_runtime(
+                data, pane_size, runtime,
+            )
+        },
+    )
+}
+
+fn to_host_contract_console_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
+) -> host_contract::ConsolePaneData {
+    runtime.map_or_else(
+        || pane_data_conversion::to_host_contract_console_pane_from_host_pane(data, pane_size),
+        |runtime| {
+            pane_data_conversion::to_host_contract_console_pane_from_host_pane_with_runtime(
+                data, pane_size, runtime,
+            )
+        },
+    )
+}
+
+fn to_host_contract_project_overview_pane(
+    data: host_window::ProjectOverviewPaneViewData,
+) -> host_contract::ProjectOverviewPaneData {
+    pane_data_conversion::to_host_contract_project_overview_pane(data)
+}
+
+fn to_host_contract_build_export_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+) -> host_contract::BuildExportPaneData {
+    pane_data_conversion::to_host_contract_build_export_pane_from_host_pane(data, pane_size)
+}
+
+fn to_host_contract_generated_bottom_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
+) -> host_contract::GeneratedBottomPaneData {
+    pane_data_conversion::to_host_contract_generated_bottom_pane_from_host_pane_with_runtime(
+        data, pane_size, runtime,
+    )
+}
+
+fn to_host_contract_runtime_diagnostics_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+) -> host_contract::RuntimeDiagnosticsPaneData {
+    pane_data_conversion::to_host_contract_runtime_diagnostics_pane_from_host_pane(data, pane_size)
+}
+
+fn to_host_contract_performance_timeline_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+) -> host_contract::PerformanceTimelinePaneData {
+    pane_data_conversion::to_host_contract_performance_timeline_pane_from_host_pane(data, pane_size)
+}
+
+fn to_host_contract_ui_asset_pane(
+    data: crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    instance_id: &str,
+) -> host_contract::UiAssetEditorPaneData {
+    pane_data_conversion::to_host_contract_ui_asset_pane(data, instance_id)
+}
+
+#[cfg(test)]
+#[path = "tests/apply_presentation_perf.rs"]
+mod performance_tests;
+
+#[cfg(test)]
+#[path = "tests/viewport_ownership_perf.rs"]
+mod viewport_ownership_performance_tests;
+
+#[cfg(test)]
+#[path = "../../ui/tests/apply_presentation_authoritative_layout.rs"]
+mod authoritative_layout_tests;

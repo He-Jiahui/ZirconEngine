@@ -81,12 +81,12 @@ REQUIRED_COUNTERS = (
 )
 
 REQUIRED_SOURCE_PATHS = (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/render.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/record.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/image.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/text.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/text/segment_cache.rs",
 )
 
 

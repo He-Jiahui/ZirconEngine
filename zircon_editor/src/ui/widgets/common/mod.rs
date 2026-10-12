@@ -1,3 +1,4 @@
+#[path = "tabs.rs"]
 mod tabs;
 
 pub(crate) use tabs::{

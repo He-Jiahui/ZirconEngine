@@ -294,5 +294,5 @@ fn dds_dx10_extension_header_is_upload_ready(bytes: &[u8]) -> Option<bool> {
 }
 
 #[cfg(test)]
-#[path = "tests/dds_plugins07_fourcc_hotpath_tests.rs"]
+#[path = "../tests/dds_plugins07_fourcc_hotpath.rs"]
 mod plugins07_fourcc_hotpath_tests;

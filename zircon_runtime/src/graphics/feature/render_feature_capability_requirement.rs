@@ -83,5 +83,5 @@ impl RenderFeatureCapabilityRequirement {
 }
 
 #[cfg(test)]
-#[path = "tests/render_feature_capability_requirement.rs"]
+#[path = "../tests/render_feature_capability_requirement.rs"]
 mod tests;

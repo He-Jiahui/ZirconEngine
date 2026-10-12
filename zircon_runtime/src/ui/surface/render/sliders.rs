@@ -13,7 +13,9 @@ use zircon_runtime_interface::ui::{
 
 use super::painter_state::UiRenderPainterStateSource;
 
+#[path = "sliders/commands.rs"]
 mod commands;
+#[path = "sliders/state_colors.rs"]
 mod state_colors;
 
 use commands::{quad_command, text_command};

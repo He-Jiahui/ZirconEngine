@@ -10,7 +10,7 @@ tier = "region_panel"
 
 [[components]]
 component_id = "ActivityDrawerWindow"
-document_id = "res://ui/editor/components/workbench/shell/activity_drawer_window.zui"
+document_id = "res://ui/editor/workbench/shell/activity_drawer_window.zui"
 binding_namespace = "ActivityDrawerWindow"
 tier = "region_panel"
 
@@ -58,7 +58,7 @@ accepts = ["Container"]
 
 [[components]]
 component_id = "WorkbenchPanelHeader"
-document_id = "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui"
+document_id = "res://ui/editor/workbench/composites/chrome/panel_header.zui"
 binding_namespace = "WorkbenchPanelHeader"
 tier = "composite"
 
@@ -76,7 +76,7 @@ accepts = ["WorkbenchButton", "WorkbenchCaption", "WorkbenchChip", "WorkbenchDro
 
 [[components]]
 component_id = "WorkbenchPropertyEditorRow"
-document_id = "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui"
+document_id = "res://ui/editor/workbench/inputs/property_editor_row.zui"
 binding_namespace = "WorkbenchPropertyEditorRow"
 tier = "composite"
 
@@ -88,7 +88,7 @@ accepts = ["WorkbenchCheckbox", "WorkbenchDropdown", "WorkbenchField", "Workbenc
 
 [[components]]
 component_id = "WorkbenchDiagnosticRow"
-document_id = "res://ui/editor/components/workbench/composites/feedback/workbench_diagnostic_row.zui"
+document_id = "res://ui/editor/workbench/composites/feedback/diagnostic_row.zui"
 binding_namespace = "WorkbenchDiagnosticRow"
 tier = "composite"
 
@@ -272,13 +272,13 @@ tier = "region_panel"
 
 [[components]]
 component_id = "WorkbenchAxisValueField"
-document_id = "res://ui/editor/components/workbench/primitives/chrome/workbench_axis_value_field.zui"
+document_id = "res://ui/editor/workbench/primitives/chrome/axis_value_field.zui"
 binding_namespace = "WorkbenchAxisValueField"
 tier = "primitive"
 
 [[components]]
 component_id = "WorkbenchChip"
-document_id = "res://ui/editor/components/workbench/primitives/chrome/workbench_chip.zui"
+document_id = "res://ui/editor/components/workbench/primitives/chrome/chip.zui"
 binding_namespace = "WorkbenchChip"
 tier = "primitive"
 
@@ -289,13 +289,13 @@ default = { literal = "Chip" }
 
 [[components]]
 component_id = "WorkbenchRailButton"
-document_id = "res://ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui"
+document_id = "res://ui/editor/workbench/primitives/chrome/rail_button.zui"
 binding_namespace = "WorkbenchRailButton"
 tier = "primitive"
 
 [[components]]
 component_id = "WorkbenchSectionTitle"
-document_id = "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui"
+document_id = "res://ui/editor/workbench/primitives/chrome/section_title.zui"
 binding_namespace = "WorkbenchSectionTitle"
 tier = "primitive"
 
@@ -306,7 +306,7 @@ default = { literal = "Section" }
 
 [[components]]
 component_id = "WorkbenchCaption"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui"
+document_id = "res://ui/editor/components/workbench/primitives/data/caption.zui"
 binding_namespace = "WorkbenchCaption"
 tier = "primitive"
 
@@ -317,13 +317,13 @@ default = { literal = "Caption" }
 
 [[components]]
 component_id = "WorkbenchComponentPropertyRow"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_component_property_row.zui"
+document_id = "res://ui/editor/workbench/data/component_property_row.zui"
 binding_namespace = "WorkbenchComponentPropertyRow"
 tier = "primitive"
 
 [[components]]
 component_id = "WorkbenchDivider"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_divider.zui"
+document_id = "res://ui/editor/components/workbench/primitives/data/divider.zui"
 binding_namespace = "WorkbenchDivider"
 tier = "primitive"
 
@@ -339,7 +339,7 @@ default = { literal = "fullWidth" }
 
 [[components]]
 component_id = "WorkbenchIcon"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_icon.zui"
+document_id = "res://ui/editor/components/workbench/primitives/data/icon.zui"
 binding_namespace = "WorkbenchIcon"
 tier = "primitive"
 
@@ -355,7 +355,7 @@ default = { literal = "Icon" }
 
 [[components]]
 component_id = "WorkbenchLabel"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_label.zui"
+document_id = "res://ui/editor/components/workbench/primitives/data/label.zui"
 binding_namespace = "WorkbenchLabel"
 tier = "primitive"
 
@@ -366,7 +366,7 @@ default = { literal = "Label" }
 
 [[components]]
 component_id = "WorkbenchListRow"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui"
+document_id = "res://ui/editor/components/workbench/primitives/data/list_row.zui"
 binding_namespace = "WorkbenchListRow"
 tier = "primitive"
 
@@ -387,13 +387,13 @@ default = { literal = false }
 
 [[components]]
 component_id = "WorkbenchPreviewViewport"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_preview_viewport.zui"
+document_id = "res://ui/editor/workbench/primitives/data/preview_viewport.zui"
 binding_namespace = "WorkbenchPreviewViewport"
 tier = "primitive"
 
 [[components]]
 component_id = "WorkbenchPropertyRow"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui"
+document_id = "res://ui/editor/workbench/primitives/data/property_row.zui"
 binding_namespace = "WorkbenchPropertyRow"
 tier = "primitive"
 
@@ -409,37 +409,37 @@ default = { literal = "Value" }
 
 [[components]]
 component_id = "WorkbenchSampleGrid"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_sample_grid.zui"
+document_id = "res://ui/editor/workbench/primitives/data/sample_grid.zui"
 binding_namespace = "WorkbenchSampleGrid"
 tier = "primitive"
 
 [[components]]
 component_id = "WorkbenchTableRow"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui"
+document_id = "res://ui/editor/workbench/primitives/data/table_row.zui"
 binding_namespace = "WorkbenchTableRow"
 tier = "primitive"
 
 [[components]]
 component_id = "WorkbenchTimelineStrip"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_timeline_strip.zui"
+document_id = "res://ui/editor/workbench/primitives/data/timeline_strip.zui"
 binding_namespace = "WorkbenchTimelineStrip"
 tier = "primitive"
 
 [[components]]
 component_id = "WorkbenchTreeRow"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui"
+document_id = "res://ui/editor/components/workbench/primitives/data/tree_row.zui"
 binding_namespace = "WorkbenchTreeRow"
 tier = "primitive"
 
 [[components]]
 component_id = "WorkbenchWeightHeatmap"
-document_id = "res://ui/editor/components/workbench/primitives/data/workbench_weight_heatmap.zui"
+document_id = "res://ui/editor/workbench/primitives/data/weight_heatmap.zui"
 binding_namespace = "WorkbenchWeightHeatmap"
 tier = "primitive"
 
 [[components]]
 component_id = "WorkbenchAlert"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_alert.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/alert.zui"
 binding_namespace = "WorkbenchAlert"
 tier = "primitive"
 
@@ -460,7 +460,7 @@ default = { literal = "outlined" }
 
 [[components]]
 component_id = "WorkbenchCommandPalette"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_command_palette.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/command_palette.zui"
 binding_namespace = "WorkbenchCommandPalette"
 tier = "primitive"
 
@@ -491,7 +491,7 @@ default = { literal = "build_project" }
 
 [[components]]
 component_id = "WorkbenchConfirmDialog"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_confirm_dialog.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/confirm_dialog.zui"
 binding_namespace = "WorkbenchConfirmDialog"
 tier = "primitive"
 
@@ -532,7 +532,7 @@ default = { literal = true }
 
 [[components]]
 component_id = "WorkbenchContextMenu"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_context_menu.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/context_menu.zui"
 binding_namespace = "WorkbenchContextMenu"
 tier = "primitive"
 
@@ -553,7 +553,7 @@ default = { literal = "SceneNode:Camera" }
 
 [[components]]
 component_id = "WorkbenchDialog"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_dialog.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/dialog.zui"
 binding_namespace = "WorkbenchDialog"
 tier = "primitive"
 
@@ -574,7 +574,7 @@ default = { literal = "Review scene-level settings before applying changes." }
 
 [[components]]
 component_id = "WorkbenchDragOverlay"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/drag_overlay.zui"
 binding_namespace = "WorkbenchDragOverlay"
 tier = "primitive"
 
@@ -625,7 +625,7 @@ default = { literal = "Drop into scene" }
 
 [[components]]
 component_id = "WorkbenchDropdownPopup"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_dropdown_popup.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/dropdown_popup.zui"
 binding_namespace = "WorkbenchDropdownPopup"
 tier = "primitive"
 
@@ -646,7 +646,7 @@ default = { literal = ["Assets"] }
 
 [[components]]
 component_id = "WorkbenchNotificationCenter"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui"
+document_id = "res://ui/editor/workbench/feedback/notification_center.zui"
 binding_namespace = "WorkbenchNotificationCenter"
 tier = "primitive"
 
@@ -682,7 +682,7 @@ default = { literal = "No notifications" }
 
 [[components]]
 component_id = "WorkbenchPopupMenu"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/popup_menu.zui"
 binding_namespace = "WorkbenchPopupMenu"
 tier = "primitive"
 
@@ -703,7 +703,7 @@ default = { literal = true }
 
 [[components]]
 component_id = "WorkbenchProgressBar"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/progress_bar.zui"
 binding_namespace = "WorkbenchProgressBar"
 tier = "primitive"
 
@@ -739,7 +739,7 @@ default = { literal = false }
 
 [[components]]
 component_id = "WorkbenchSkeleton"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/skeleton.zui"
 binding_namespace = "WorkbenchSkeleton"
 tier = "primitive"
 
@@ -760,7 +760,7 @@ default = { literal = true }
 
 [[components]]
 component_id = "WorkbenchStatusItem"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/status_item.zui"
 binding_namespace = "WorkbenchStatusItem"
 tier = "primitive"
 
@@ -771,7 +771,7 @@ default = { literal = "Status" }
 
 [[components]]
 component_id = "WorkbenchToast"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_toast.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/toast.zui"
 binding_namespace = "WorkbenchToast"
 tier = "primitive"
 
@@ -792,7 +792,7 @@ default = { literal = "outlined" }
 
 [[components]]
 component_id = "WorkbenchTooltip"
-document_id = "res://ui/editor/components/workbench/primitives/feedback/workbench_tooltip.zui"
+document_id = "res://ui/editor/workbench/primitives/feedback/tooltip.zui"
 binding_namespace = "WorkbenchTooltip"
 tier = "primitive"
 
@@ -823,7 +823,7 @@ default = { literal = "workbench-tooltip" }
 
 [[components]]
 component_id = "WorkbenchButton"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/button.zui"
 binding_namespace = "WorkbenchButton"
 tier = "primitive"
 
@@ -839,7 +839,7 @@ default = { literal = "outlined" }
 
 [[components]]
 component_id = "WorkbenchCheckbox"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui"
+document_id = "res://ui/editor/workbench/primitives/inputs/checkbox.zui"
 binding_namespace = "WorkbenchCheckbox"
 tier = "primitive"
 
@@ -855,7 +855,7 @@ default = { literal = false }
 
 [[components]]
 component_id = "WorkbenchDropdown"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui"
+document_id = "res://ui/editor/workbench/primitives/inputs/dropdown.zui"
 binding_namespace = "WorkbenchDropdown"
 tier = "primitive"
 
@@ -871,7 +871,7 @@ default = { literal = "Default" }
 
 [[components]]
 component_id = "WorkbenchField"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/field.zui"
 binding_namespace = "WorkbenchField"
 tier = "primitive"
 
@@ -887,7 +887,7 @@ default = { literal = "" }
 
 [[components]]
 component_id = "WorkbenchIconButton"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui"
+document_id = "res://ui/editor/workbench/primitives/inputs/icon_button.zui"
 binding_namespace = "WorkbenchIconButton"
 tier = "primitive"
 
@@ -903,7 +903,7 @@ default = { literal = "Tool" }
 
 [[components]]
 component_id = "WorkbenchNumberField"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui"
+document_id = "res://ui/editor/workbench/primitives/inputs/number_field.zui"
 binding_namespace = "WorkbenchNumberField"
 tier = "primitive"
 
@@ -919,7 +919,7 @@ default = { literal = "0" }
 
 [[components]]
 component_id = "WorkbenchRadio"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_radio.zui"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/radio.zui"
 binding_namespace = "WorkbenchRadio"
 tier = "primitive"
 
@@ -935,7 +935,7 @@ default = { literal = false }
 
 [[components]]
 component_id = "WorkbenchRangeSlider"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_range_slider.zui"
+document_id = "res://ui/editor/workbench/primitives/inputs/range_slider.zui"
 binding_namespace = "WorkbenchRangeSlider"
 tier = "primitive"
 
@@ -971,7 +971,7 @@ default = { literal = 10.0 }
 
 [[components]]
 component_id = "WorkbenchSearchInput"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui"
+document_id = "res://ui/editor/workbench/primitives/inputs/search_input.zui"
 binding_namespace = "WorkbenchSearchInput"
 tier = "primitive"
 
@@ -987,7 +987,7 @@ default = { literal = "Search" }
 
 [[components]]
 component_id = "WorkbenchSegmentedControl"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_segmented_control.zui"
+document_id = "res://ui/editor/workbench/primitives/inputs/segmented_control.zui"
 binding_namespace = "WorkbenchSegmentedControl"
 tier = "primitive"
 
@@ -1003,7 +1003,7 @@ default = { literal = "single" }
 
 [[components]]
 component_id = "WorkbenchSlider"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_slider.zui"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/slider.zui"
 binding_namespace = "WorkbenchSlider"
 tier = "primitive"
 
@@ -1029,7 +1029,7 @@ default = { literal = 1.0 }
 
 [[components]]
 component_id = "WorkbenchTabStrip"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui"
+document_id = "res://ui/editor/workbench/primitives/inputs/tab_strip.zui"
 binding_namespace = "WorkbenchTabStrip"
 tier = "primitive"
 
@@ -1041,7 +1041,7 @@ accepts = ["WorkbenchTab"]
 
 [[components]]
 component_id = "WorkbenchTab"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/tab.zui"
 binding_namespace = "WorkbenchTab"
 tier = "primitive"
 
@@ -1057,7 +1057,7 @@ default = { literal = false }
 
 [[components]]
 component_id = "WorkbenchToggle"
-document_id = "res://ui/editor/components/workbench/primitives/inputs/workbench_toggle.zui"
+document_id = "res://ui/editor/components/workbench/primitives/inputs/toggle.zui"
 binding_namespace = "WorkbenchToggle"
 tier = "primitive"
 

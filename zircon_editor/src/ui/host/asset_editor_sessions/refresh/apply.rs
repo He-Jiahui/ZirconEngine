@@ -63,5 +63,5 @@ fn merge_refresh_instance_sets(
 }
 
 #[cfg(test)]
-#[path = "tests/apply_optimization_tests.rs"]
+#[path = "tests/apply_perf.rs"]
 mod optimization_tests;

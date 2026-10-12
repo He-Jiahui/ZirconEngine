@@ -40,21 +40,21 @@ RUNTIME_06_SOURCE_FILES = (
     "zircon_runtime/src/plugin/native.rs",
     "zircon_runtime/src/plugin/native/discovery.rs",
     "zircon_runtime/src/plugin/native/host.rs",
-    "zircon_runtime/src/plugin/native_plugin_loader/mod.rs",
-    "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_discovery.rs",
-    "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_host_handle.rs",
-    "zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs",
-    "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs",
-    "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs",
-    "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs",
-    "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs",
+    "zircon_runtime/src/plugin/loader/mod.rs",
+    "zircon_runtime/src/plugin/loader/native_plugin_discovery.rs",
+    "zircon_runtime/src/plugin/loader/native_plugin_host_handle.rs",
+    "zircon_runtime/src/plugin/loader/abi_declarations.rs",
+    "zircon_runtime/src/plugin/loader/native_plugin_abi.rs",
+    "zircon_runtime/src/plugin/loader/live/lifecycle.rs",
+    "zircon_runtime/src/plugin/loader/live/hot_reload.rs",
+    "zircon_runtime/src/plugin/loader/live/tests/hot_reload_failures.rs",
     "zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs",
     "zircon_runtime/src/script/vm/tests.rs",
     "zircon_runtime/src/script/vm/tests/lifecycle_failures.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/lifecycle_fallback.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/mirror_docs.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/native_loader_namespace.rs",
+    "zircon_runtime/src/tests/contracts/plugin_surface_lifecycle.rs",
+    "zircon_runtime/src/tests/plugin_surface_lifecycle/lifecycle_fallback.rs",
+    "zircon_runtime/src/tests/contracts/plugin_surface_lifecycle/mirror_docs.rs",
+    "zircon_runtime/src/tests/plugin_surface_lifecycle/native_loader_namespace.rs",
     "zircon_plugins/native_dynamic_fixture/native/src/lib.rs",
 )
 
@@ -383,7 +383,7 @@ def plugin_surface_lifecycle_boundary_audit(root: Path) -> dict[str, object]:
         suffixes=(".rs", ".toml"),
     )
     export_build_plan_v1_v2_usage_count = _location_count(
-        root / "zircon_runtime/src/plugin/export_build_plan",
+        root / "zircon_runtime/src/plugin",
         V1_V2_PATTERNS,
     )
     native_loader_test_files = _files_containing(

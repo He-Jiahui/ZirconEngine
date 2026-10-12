@@ -20,6 +20,9 @@ use super::authoring_boundary::{
 };
 use super::support::{material_handle, model_handle};
 
+#[path = "world_basics/render_extract.rs"]
 mod render_extract;
+#[path = "world_basics/sprites.rs"]
 mod sprites;
+#[path = "world_basics/world_state.rs"]
 mod world_state;

@@ -39,15 +39,15 @@ UI_PENDING_GATE_ANCHORS = (
 
 UI_CONTRACT_SINGLE_SOURCE_ANCHORS = (
     (
-        "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ui_contract.rs",
+        "zircon_runtime/src/tests/contracts/dynamic_api_session/ui_contract.rs",
         "runtime_10_ui_contract_types_have_single_definition_across_interface_and_runtime",
     ),
     (
-        "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ui_contract.rs",
+        "zircon_runtime/src/tests/contracts/dynamic_api_session/ui_contract.rs",
         "UiBindingCodec",
     ),
     (
-        "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ui_contract.rs",
+        "zircon_runtime/src/tests/contracts/dynamic_api_session/ui_contract.rs",
         "UiAssetSchemaVersionPolicy",
     ),
     (
@@ -71,7 +71,7 @@ UI_CONTRACT_SINGLE_SOURCE_ANCHORS = (
 
 UI_V2_CONTRACT_SYNC_ANCHORS = (
     (
-        "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs",
+        "zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs",
         "runtime_10_ui_v2_contract_sync_matches_runtime_09_verdict_and_interface_owner",
     ),
     (

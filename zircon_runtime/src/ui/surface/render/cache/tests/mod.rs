@@ -31,6 +31,9 @@ fn quad(node_id: u64, frame: UiFrame) -> UiRenderCommand {
     }
 }
 
+#[path = "damage.rs"]
 mod damage;
+#[path = "geometry_patch.rs"]
 mod geometry_patch;
+#[path = "update.rs"]
 mod update;

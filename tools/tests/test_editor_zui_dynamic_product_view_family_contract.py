@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 ASSET_ROOT = REPO_ROOT / "zircon_editor/assets/ui/editor"
 STRICT_THEME = "res://ui/theme/editor_workbench_strict.zui"
 STRICT_THEME_SOURCE = REPO_ROOT / "zircon_editor/assets/ui/theme/editor_workbench_strict.zui"
-VIEW_PROJECTION_ROOT = REPO_ROOT / "zircon_editor/src/ui/layouts/views/view_projection"
+VIEW_PROJECTION_ROOT = REPO_ROOT / "zircon_editor/src/ui/layouts/views"
 DYNAMIC_VIEW_ROOT = REPO_ROOT / "zircon_editor/src/ui/layouts/views"
 INSPECTOR_PROJECTION_SOURCE = DYNAMIC_VIEW_ROOT / "inspector.rs"
 NUMERIC_CORNER_RADIUS = re.compile(r"corner_radius:\s*([0-9]+(?:\.[0-9]+)?)")
@@ -606,7 +606,7 @@ class EditorZuiDynamicProductViewFamilyContractTests(unittest.TestCase):
     def test_retained_text_does_not_shrink_authored_fonts_to_short_slots(self):
         metrics = (
             REPO_ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            / "zircon_editor/src/ui/retained/contract/paint/"
             "template_node_text/metrics.rs"
         ).read_text(encoding="utf-8")
 
@@ -713,7 +713,7 @@ class EditorZuiDynamicProductViewFamilyContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         utility_layout = (
             REPO_ROOT
-            / "zircon_editor/src/ui/layouts/views/asset_browser/compact_layout/utility_layout.rs"
+            / "zircon_editor/src/ui/layouts/views/compact_layout/utility_layout.rs"
         ).read_text(encoding="utf-8")
         self.assertIn("NARROW_BREAKPOINT_WIDTH: f32 = 640.0", column_budget)
         self.assertIn(

@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 use super::{parser::BindingParser, UiBindingCall, UiBindingParseError, UiEventPath};
 
 #[cfg(test)]
-#[path = "event_binding/tests/native_projection_performance_tests.rs"]
+#[path = "tests/native_projection_perf.rs"]
 mod native_projection_performance_tests;
 
 #[cfg(test)]
-#[path = "event_binding/tests/capacity_performance_tests.rs"]
+#[path = "tests/capacity_perf.rs"]
 mod capacity_performance_tests;
 
 /// 将 UI 事件路由地址与可选动作合并为序列化契约；无动作仍可单独订阅或描述事件路径。

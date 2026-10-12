@@ -14,7 +14,7 @@ use super::super::diagnostics::{
 use super::super::submission_metrics::WgpuSubmissionMetricsSnapshot;
 use super::{WgpuNativeDiagnosticReadbackFrame, WgpuRenderDevice};
 
-#[path = "diagnostics_native_texture_mip_chain.rs"]
+#[path = "../../../device/diagnostics_native_texture_mip_chain.rs"]
 mod native_texture_mip_chain;
 use native_texture_mip_chain::{
     ensure_native_rgba16float_texture_mip_chain_readback, record_native_diagnostic_texture_copy,
@@ -961,5 +961,5 @@ fn ensure_native_diagnostic_readback_range(
 }
 
 #[cfg(test)]
-#[path = "tests/diagnostics_diagnostic_boundary_tests.rs"]
+#[path = "../../tests/diagnostics_diagnostic_boundary.rs"]
 mod diagnostic_boundary_tests;

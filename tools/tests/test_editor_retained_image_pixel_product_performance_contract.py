@@ -4,9 +4,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PRIMITIVES = REPO_ROOT / "zircon_editor/src/ui/retained_host/primitives.rs"
+PRIMITIVES = REPO_ROOT / "zircon_editor/src/ui/retained/primitives.rs"
 RETAINED = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/retained.rs"
 )
 

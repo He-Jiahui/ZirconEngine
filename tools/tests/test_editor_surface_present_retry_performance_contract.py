@@ -5,16 +5,16 @@ import unittest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EVENT_LOOP = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop.rs"
 )
 REDRAW = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/redraw.rs"
 )
 PRESENT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/redraw/present.rs"
 )
 LIFECYCLE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs"
 )
 
 

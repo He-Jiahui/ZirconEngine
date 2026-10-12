@@ -7,33 +7,33 @@ from tools.analysis.performance.editor.editor_virtual_row_reconcile_pressure imp
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VIRTUAL_ROWS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/"
+    "zircon_editor/src/ui/retained/dispatch/"
     "template_bridge/virtual_rows.rs"
 )
 VIRTUAL_ROWS_TESTS = VIRTUAL_ROWS.parent / "tests/virtual_rows_performance_tests.rs"
 COMPONENT_ROWS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/"
+    "zircon_editor/src/ui/retained/dispatch/"
     "template_bridge/workbench/component_property_rows.rs"
 )
 DATA_SYNC = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/"
+    "zircon_editor/src/ui/retained/dispatch/"
     "template_bridge/workbench/data_sync.rs"
 )
 COMPONENTIZED_WINDOW = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/"
+    "zircon_editor/src/ui/retained/dispatch/"
     "template_bridge/workbench/componentized_window.rs"
 )
 POINTER_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs"
+    "zircon_editor/src/ui/retained/dispatch/workbench/pointer.rs"
 )
 PRODUCT_INSPECTOR_SCROLL = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/inspector.rs"
+    "zircon_editor/src/ui/retained/app/detail_scroll_pointer/inspector.rs"
 )
 RUNTIME_EVENT_ROUTING = REPO_ROOT / (
     "zircon_runtime/src/ui/surface/surface/event_routing.rs"
 )
 INSPECTOR_ASSET = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_inspector_panel.zui"
 )
 PROFILE_MANIFEST = REPO_ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
@@ -155,12 +155,12 @@ class EditorVirtualRowReconcilePerformanceContract(unittest.TestCase):
     def test_profile_manifest_binds_virtual_row_reconciliation(self) -> None:
         manifest = PROFILE_MANIFEST.read_text(encoding="utf-8")
         for path in (
-            "zircon_editor/src/ui/retained_host/callback_dispatch/"
+            "zircon_editor/src/ui/retained/dispatch/"
             "template_bridge/virtual_rows.rs",
-            "zircon_editor/src/ui/retained_host/callback_dispatch/"
+            "zircon_editor/src/ui/retained/dispatch/"
             "template_bridge/workbench/component_property_rows.rs",
-            "zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/inspector.rs",
-            "zircon_editor/assets/ui/editor/components/workbench/shell/"
+            "zircon_editor/src/ui/retained/app/detail_scroll_pointer/inspector.rs",
+            "zircon_editor/assets/ui/editor/workbench/shell/"
             "workbench_inspector_panel.zui",
             "zircon_runtime/src/ui/surface/virtual_list_materialization.rs",
             "zircon_runtime/src/ui/surface/virtual_list_prototype_pool.rs",

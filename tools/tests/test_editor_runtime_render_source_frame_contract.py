@@ -16,13 +16,13 @@ PROJECTION_BUILD = ROOT / (
 ASSETS_ACTIVITY = ROOT / "zircon_editor/src/ui/layouts/views/assets_activity.rs"
 ASSET_BROWSER = ROOT / "zircon_editor/src/ui/layouts/views/asset_browser.rs"
 SCENE_PROJECTION = ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs"
+    "zircon_editor/src/ui/layouts/windows/window/scene_projection.rs"
 )
 VIEW_HOST_DATA = ROOT / (
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs"
+    "zircon_editor/src/ui/layouts/windows/window/host_data.rs"
 )
 HOST_PANE_DATA = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/data/panes/basic.rs"
+    "zircon_editor/src/ui/retained/contract/data/panes/basic.rs"
 )
 PANE_CONVERSION = ROOT / (
     "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/"

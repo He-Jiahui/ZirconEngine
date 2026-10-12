@@ -3,9 +3,13 @@
 //! Platform hosts may implement the operating-system lease differently, but they must use this
 //! record format and, on Windows, this namespace identity to address the same editor session.
 
+#[path = "codec.rs"]
 mod codec;
+#[path = "error.rs"]
 mod error;
+#[path = "identity.rs"]
 mod identity;
+#[path = "record.rs"]
 mod record;
 
 pub use codec::{

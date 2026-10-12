@@ -174,5 +174,5 @@ fn curve_interpolation(interpolation: AnimationInterpolationAsset) -> CurveInter
 }
 
 #[cfg(test)]
-#[path = "tests/curve_foundation_optimization_tests.rs"]
+#[path = "tests/curve_foundation_perf.rs"]
 mod optimization_tests;

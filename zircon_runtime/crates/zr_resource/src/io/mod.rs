@@ -1,5 +1,8 @@
+#[path = "artifact_identity.rs"]
 mod artifact_identity;
+#[path = "atomic_file/mod.rs"]
 pub(crate) mod atomic_file;
+#[path = "transaction/mod.rs"]
 pub(crate) mod transaction;
 
 #[cfg(test)]

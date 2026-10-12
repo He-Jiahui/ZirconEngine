@@ -200,7 +200,7 @@ fn editor_project_document_requires_an_explicit_project_generation() {
 #[test]
 fn welcome_pane_projection_does_not_probe_the_filesystem() {
     let source = include_str!(
-        "../../../ui/workbench/startup/editor_startup_session_document_welcome_pane_snapshot.rs"
+        "../../../ui/editor_startup_session_document_welcome_pane_snapshot.rs"
     );
     let retired_authority = ["Project", "Authority"].concat();
     let retired_probe = ["probe", "_draft"].concat();
@@ -237,11 +237,11 @@ fn welcome_pane_projection_uses_cached_probe_result() {
 
 #[test]
 fn project_to_welcome_probe_lifecycle_is_surface_owned_not_project_mode_owned() {
-    let present = include_str!("../../../ui/retained_host/app/welcome_session/session/present.rs");
-    let apply = include_str!("../../../ui/retained_host/app/welcome_session/session/apply.rs");
-    let probe = include_str!("../../../ui/retained_host/app/welcome_session/project_probe.rs");
+    let present = include_str!("../../../ui/retained/app/welcome_session/session/present.rs");
+    let apply = include_str!("../../../ui/retained/app/welcome_session/session/apply.rs");
+    let probe = include_str!("../../../ui/retained/app/welcome_session/project_probe.rs");
     let startup_views =
-        include_str!("../../../ui/retained_host/app/welcome_session/actions/startup_views.rs");
+        include_str!("../../../ui/retained/app/welcome_session/actions/startup_views.rs");
     let retired_mode_gate = ["startup_session", ".mode != EditorSessionMode::Welcome"].concat();
 
     assert!(present.contains("self.schedule_welcome_project_probe();"));

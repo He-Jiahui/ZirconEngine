@@ -115,5 +115,5 @@ impl BlackboardObserverSet {
 }
 
 #[cfg(test)]
-#[path = "tests/observer_matching_performance_tests.rs"]
+#[path = "tests/observer_matching_perf.rs"]
 mod matching_performance_tests;

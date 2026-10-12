@@ -1,10 +1,15 @@
 //! 中立命令按执行域下沉到独立编码器，共享状态与验证边界仍归设备提交链。
 //! Native command encoding split by execution domain.
 
+#[path = "command_encoder/compute.rs"]
 mod compute;
+#[path = "command_encoder/compute_pass.rs"]
 mod compute_pass;
+#[path = "command_encoder/render_pass.rs"]
 mod render_pass;
+#[path = "command_encoder/state.rs"]
 mod state;
+#[path = "command_encoder/texture_copy.rs"]
 mod texture_copy;
 
 pub(crate) use compute::{

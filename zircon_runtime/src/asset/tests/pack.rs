@@ -14,11 +14,17 @@ use crate::asset::pack::{
     ZRPACK_MAGIC,
 };
 
+#[path = "pack/basic.rs"]
 mod basic;
+#[path = "pack/delta_installer.rs"]
 mod delta_installer;
+#[path = "pack/delta_pack.rs"]
 mod delta_pack;
+#[path = "pack/delta_reader_validation.rs"]
 mod delta_reader_validation;
+#[path = "pack/reader_validation.rs"]
 mod reader_validation;
+#[path = "pack/trim.rs"]
 mod trim;
 
 #[test]

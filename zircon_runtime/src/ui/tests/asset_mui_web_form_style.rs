@@ -3,6 +3,7 @@ use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
+#[path = "asset_mui_web_form_style/form_controls.rs"]
 mod form_controls;
 
 const FORM_STYLE_TOML: &str = r##"

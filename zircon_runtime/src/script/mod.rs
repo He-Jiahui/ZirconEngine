@@ -1,5 +1,6 @@
 //! VM plugin contracts, host handles, and hot reload coordination.
 
+#[path = "vm/mod.rs"]
 mod vm;
 
 pub(crate) use vm::runtime_context_for_frame;

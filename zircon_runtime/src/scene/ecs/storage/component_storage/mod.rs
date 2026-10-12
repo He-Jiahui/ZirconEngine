@@ -1,7 +1,12 @@
+#[path = "component_results.rs"]
 mod component_results;
+#[path = "entry.rs"]
 mod entry;
+#[path = "location.rs"]
 mod location;
+#[path = "sparse.rs"]
 mod sparse;
+#[path = "store.rs"]
 mod store;
 
 pub(crate) use entry::{

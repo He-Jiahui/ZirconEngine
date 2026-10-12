@@ -11,8 +11,10 @@ use crate::projects::CloudBindingEnvironment;
 
 use super::commands::HubCommandState;
 
+#[path = "account_commands/cloud_binding.rs"]
 mod cloud_binding;
 use cloud_binding::execute_cloud_binding_action;
+#[path = "account_commands/cloud_sync.rs"]
 mod cloud_sync;
 use cloud_sync::execute_cloud_sync_action;
 

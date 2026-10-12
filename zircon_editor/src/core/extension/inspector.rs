@@ -6,6 +6,7 @@ use thiserror::Error;
 
 use crate::core::editor_operation::EditorOperationPath;
 
+#[path = "inspector/field_editor.rs"]
 mod field_editor;
 
 pub use field_editor::{

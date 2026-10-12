@@ -167,5 +167,5 @@ impl From<ShaderResourceRecordExportError> for ShaderPrewarmResourceRegistryErro
 }
 
 #[cfg(test)]
-#[path = "resource_registry/tests/cases.rs"]
+#[path = "../../manifest/resource_registry/tests/cases.rs"]
 mod tests;

@@ -22,11 +22,17 @@ use super::{
     RuntimeOperationServiceError,
 };
 
+#[path = "service/admission.rs"]
 mod admission;
+#[path = "service/completion.rs"]
 mod completion;
+#[path = "service/json_budget.rs"]
 mod json_budget;
+#[path = "service/limits.rs"]
 mod limits;
+#[path = "service/prepare_completion.rs"]
 mod prepare_completion;
+#[path = "service/task_state.rs"]
 mod task_state;
 
 use json_budget::{json_value_byte_len, truncate_utf8_to_bytes};

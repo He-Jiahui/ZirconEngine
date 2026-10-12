@@ -5,12 +5,12 @@ INPUT_PRODUCTION_MODULE_MAX_LINES = 500
 INPUT_TEST_MODULE_MAX_LINES = 800
 EXPECTED_INPUT_STACK_GUARD_FILE_COUNT = 6
 INPUT_STACK_GUARD_FILES = (
-    "zircon_runtime/src/tests/runtime_absorption/input_stack.rs",
-    "zircon_runtime/src/tests/runtime_absorption/input_stack/contracts.rs",
-    "zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs",
-    "zircon_runtime/src/tests/runtime_absorption/input_stack/gamepad_bridge.rs",
-    "zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/behavior_anchors.rs",
-    "zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs",
+    "zircon_runtime/src/tests/contracts/input_stack.rs",
+    "zircon_runtime/src/tests/contracts/input_stack/contracts.rs",
+    "zircon_runtime/src/tests/contracts/input_stack/action_mapping.rs",
+    "zircon_runtime/src/tests/contracts/input_stack/gamepad_bridge.rs",
+    "zircon_runtime/src/tests/contracts/input_stack/inventory/behavior_anchors.rs",
+    "zircon_runtime/src/tests/contracts/input_stack/inventory/mirror_docs.rs",
 )
 INPUT_RUNTIME_MODULES = (
     "zircon_runtime/src/input/mod.rs",

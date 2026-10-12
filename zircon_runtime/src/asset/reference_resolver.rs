@@ -375,5 +375,5 @@ fn filesystem_project_hint_for_locator(
 mod tests;
 
 #[cfg(test)]
-#[path = "reference_resolver/tests/optimization_batch_is_runtime631_tests.rs"]
+#[path = "reference_resolver/tests/perf.rs"]
 mod optimization_batch_is_runtime631_tests;

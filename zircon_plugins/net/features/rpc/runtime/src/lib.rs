@@ -1,9 +1,13 @@
 //! 集中公开 RPC feature、握手 wire frame、channel DTO 与 manager，供宿主装配和测试调用。
 //! 公开 API 仍需与实际传输连接、身份与消息路由绑定。
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "feature.rs"]
 mod feature;
+#[path = "manager.rs"]
 mod manager;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{NET_RPC_FEATURE_CAPABILITY, RUNTIME_CAPABILITIES};
@@ -17,4 +21,5 @@ pub use plugin::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

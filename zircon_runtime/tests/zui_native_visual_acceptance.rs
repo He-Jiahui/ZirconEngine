@@ -16,7 +16,7 @@ mod dpi;
 mod evidence;
 #[path = "zui_native_visual_acceptance/preview.rs"]
 mod preview;
-#[path = "runtime_text_multilingual_product_framebuffer/product_renderer.rs"]
+#[path = "text_pixels/product_renderer.rs"]
 mod product_renderer;
 #[path = "zui_native_visual_acceptance/semantic.rs"]
 mod semantic;

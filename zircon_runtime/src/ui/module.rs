@@ -12,7 +12,9 @@ use crate::core::{
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 use crate::ui::event_ui::UiEventManager;
 
+#[path = "module/lifecycle.rs"]
 mod lifecycle;
+#[path = "module/runtime_driver.rs"]
 mod runtime_driver;
 
 pub use runtime_driver::{UiConfig, UiRuntimeDriver, UI_CONFIG_KEY};

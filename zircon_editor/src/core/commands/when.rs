@@ -523,5 +523,5 @@ where
 }
 
 #[cfg(test)]
-#[path = "when/tests/optimization_batch_is_editor631_tests.rs"]
+#[path = "when/tests/perf.rs"]
 mod optimization_batch_is_editor631_tests;

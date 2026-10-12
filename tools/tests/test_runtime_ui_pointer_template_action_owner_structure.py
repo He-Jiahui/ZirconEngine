@@ -16,7 +16,7 @@ class RuntimeUiPointerTemplateActionOwnerStructureTests(unittest.TestCase):
         )
         child_path = (
             repo_root
-            / "zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs"
+            / "zircon_runtime/src/ui/surface/surface/pointer_component_events/action.rs"
         )
 
         owner = owner_path.read_text(encoding="utf-8")
@@ -84,7 +84,7 @@ class RuntimeUiPointerTemplateActionOwnerStructureTests(unittest.TestCase):
         runtime_plan = mirrors[1].read_text(encoding="utf-8")
         for current_path in (
             "zircon_runtime/src/ui/surface/surface/pointer_component_events.rs",
-            "zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs",
+            "zircon_runtime/src/ui/surface/surface/pointer_component_events/action.rs",
             "tools/tests/test_runtime_ui_pointer_template_action_owner_structure.py",
         ):
             self.assertIn(current_path, runtime_plan)

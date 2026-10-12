@@ -174,12 +174,12 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/module_plugin_actions.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_plugins/sound/plugin.toml
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/Cargo.toml
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/Cargo.toml
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/sound/features/timeline/runtime/Cargo.toml
+  - zircon_plugins/sound/features/timeline/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_reverb/runtime/Cargo.toml
+  - zircon_plugins/sound/features/ray_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_reverb/editor/src/lib.rs
   - zircon_plugins/net/plugin.toml
   - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/tests/mod.rs
@@ -336,12 +336,12 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/browser.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/mobile.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/Cargo.toml
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/Cargo.toml
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/sound/features/timeline/runtime/Cargo.toml
+  - zircon_plugins/sound/features/timeline/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_reverb/runtime/Cargo.toml
+  - zircon_plugins/sound/features/ray_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_reverb/editor/src/lib.rs
   - zircon_plugins/net/plugin.toml
   - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/tests/mod.rs
@@ -367,8 +367,8 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
   - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
   - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_reverb/runtime/src/lib.rs
   - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs

@@ -6,7 +6,7 @@ version = 2
 display_name = "Unreal Outliner Panel"
 
 [imports]
-widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput", "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"]
+widgets = ["res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput", "res://ui/editor/workbench/primitives/inputs/icon_button.zui#WorkbenchIconButton"]
 styles = ["res://ui/editor/unreal/starship.zui"]
 
 [components.UnrealOutlinerPanel]

@@ -1,7 +1,7 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/pipeline
-  - zircon_runtime/src/graphics/feature/compute_pass_descriptor
+  - zircon_runtime/src/graphics
+  - zircon_runtime/src/graphics/compute_pass_descriptor
   - zircon_runtime/crates/zr_rhi/src/descriptors/pipeline.rs
 implementation_files:
   - zircon_runtime/src/graphics/pipeline/async_compile.rs
@@ -10,7 +10,7 @@ implementation_files:
 plan_sources:
   - docs/wiki/graphics/shaders.md
 tests:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests
+  - zircon_runtime/src/graphics/pipeline/pipeline
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/pipeline.rs
 doc_type: api-reference
 ---

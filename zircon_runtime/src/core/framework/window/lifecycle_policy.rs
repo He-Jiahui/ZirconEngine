@@ -86,5 +86,5 @@ impl Default for WindowLifecyclePolicy {
 }
 
 #[cfg(test)]
-#[path = "tests/lifecycle_policy_optimization_batch_fh_tests.rs"]
+#[path = "tests/lifecycle_policy_perf.rs"]
 mod optimization_batch_fh_tests;

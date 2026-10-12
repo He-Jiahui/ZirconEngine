@@ -66,5 +66,5 @@ impl SceneInspectionFieldsDelta {
 }
 
 #[cfg(test)]
-#[path = "tests/fields_delta.rs"]
+#[path = "../tests/fields_delta.rs"]
 mod tests;

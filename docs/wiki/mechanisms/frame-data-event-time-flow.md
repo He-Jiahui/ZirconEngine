@@ -13,7 +13,7 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 机制 Wiki
   - docs/wiki/core-runtime/events-config-and-time.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/events
+  - zircon_runtime/src/core/tests/events
   - zircon_runtime/src/tests/time.rs
   - zircon_runtime/src/core/framework/tests/framework_surfaces.rs
 doc_type: mechanism-guide

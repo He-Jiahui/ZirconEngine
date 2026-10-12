@@ -94,5 +94,5 @@ fn validated_message(message: String) -> Result<Arc<str>, EditorLogError> {
 }
 
 #[cfg(test)]
-#[path = "tests/entry_optimization_batch_hc_editor584_tests.rs"]
+#[path = "tests/entry_perf.rs"]
 mod optimization_batch_hc_editor584_tests;

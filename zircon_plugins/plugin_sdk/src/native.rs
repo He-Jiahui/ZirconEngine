@@ -3,6 +3,7 @@
 use std::ffi::{c_char, c_void, CStr, CString};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
+#[path = "native/owned_buffers/mod.rs"]
 mod owned_buffers;
 
 pub use owned_buffers::{NativePluginOwnedBytesError, NativePluginOwnedBytesErrorKind};

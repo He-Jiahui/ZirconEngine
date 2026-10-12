@@ -1,6 +1,10 @@
+#[path = "codec/mod.rs"]
 mod codec;
+#[path = "durable/mod.rs"]
 mod durable;
+#[path = "payload.rs"]
 mod payload;
+#[path = "transaction.rs"]
 mod transaction;
 
 pub use codec::{

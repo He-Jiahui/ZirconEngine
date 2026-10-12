@@ -3,17 +3,17 @@ related_code:
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
-  - zircon_runtime/src/plugin/native_plugin_loader
+  - zircon_runtime/src/plugin/loader
 implementation_files:
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_plugins/plugin_sdk/src/dist.rs
-  - zircon_runtime/src/plugin/native_plugin_loader
+  - zircon_runtime/src/plugin/loader
 plan_sources:
   - user: 2026-09-09 补充 ZirconEngine 最佳实践、方案示例与详细 Wiki
 tests:
   - zircon_plugins/native_dynamic_fixture
   - zircon_plugins/editor_contribution_fixture
-  - zircon_runtime/src/plugin/native_plugin_loader
+  - zircon_runtime/src/plugin/loader
 doc_type: workflow-detail
 ---
 

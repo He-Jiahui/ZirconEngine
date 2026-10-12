@@ -1,5 +1,8 @@
+#[path = "dynamic_resolution.rs"]
 mod dynamic_resolution;
+#[path = "pipeline.rs"]
 mod pipeline;
+#[path = "resolution.rs"]
 mod resolution;
 
 pub use dynamic_resolution::{

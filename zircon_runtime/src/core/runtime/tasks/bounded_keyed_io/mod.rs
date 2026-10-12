@@ -1,10 +1,16 @@
 //! Domain-neutral bounded keyed I/O admission and execution lane.
 
+#[path = "admission.rs"]
 mod admission;
+#[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "fence.rs"]
 mod fence;
+#[path = "key.rs"]
 mod key;
+#[path = "lane.rs"]
 mod lane;
+#[path = "ticket.rs"]
 mod ticket;
 
 pub use admission::{

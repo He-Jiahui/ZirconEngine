@@ -42,5 +42,5 @@ fn cloned_arc_slice<T: Clone>(source: &[T]) -> Arc<[T]> {
 }
 
 #[cfg(test)]
-#[path = "extract/tests/direct_arc_slice_tests.rs"]
+#[path = "../extract/tests/direct_arc_slice.rs"]
 mod direct_arc_slice_tests;

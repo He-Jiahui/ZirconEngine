@@ -807,5 +807,5 @@ mod dependency_scale;
 #[path = "ownership.rs"]
 mod ownership;
 
-#[path = "supplied_scheduler.rs"]
+#[path = "../../../scope/tests/supplied_scheduler.rs"]
 mod supplied_scheduler;

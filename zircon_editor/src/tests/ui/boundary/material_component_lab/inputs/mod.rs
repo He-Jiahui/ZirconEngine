@@ -2,12 +2,19 @@
 
 use zircon_runtime_interface::ui::v2::UiV2NodeDefinition;
 
+#[path = "checkbox.rs"]
 mod checkbox;
+#[path = "numeric.rs"]
 mod numeric;
+#[path = "radio.rs"]
 mod radio;
+#[path = "selection.rs"]
 mod selection;
+#[path = "switch.rs"]
 mod switch;
+#[path = "text.rs"]
 mod text;
+#[path = "toggle.rs"]
 mod toggle;
 
 fn assert_non_dispatchable_child(node: &UiV2NodeDefinition, node_id: &str, component: &str) {

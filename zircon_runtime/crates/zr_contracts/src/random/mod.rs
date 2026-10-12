@@ -2,14 +2,22 @@
 //!
 //! Seed derivation and generator execution remain in the Runtime random kernel.
 
+#[path = "algorithm.rs"]
 mod algorithm;
 #[doc(hidden)]
+#[path = "assembly.rs"]
 pub mod assembly;
+#[path = "checkpoint_error.rs"]
 mod checkpoint_error;
+#[path = "key.rs"]
 mod key;
+#[path = "service_checkpoint.rs"]
 mod service_checkpoint;
+#[path = "service_state.rs"]
 mod service_state;
+#[path = "state.rs"]
 mod state;
+#[path = "stream_checkpoint.rs"]
 mod stream_checkpoint;
 
 pub use algorithm::{
@@ -25,4 +33,5 @@ pub use state::{RandomState, RandomStateError};
 pub use stream_checkpoint::RandomStreamCheckpoint;
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

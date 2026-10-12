@@ -550,7 +550,7 @@ fn required_native_editor_plugin_failure(
 }
 
 #[cfg(test)]
-#[path = "tests/editor_manager_project_recovery_close_contract_tests.rs"]
+#[path = "../tests/editor_manager_project_recovery_close_contract.rs"]
 mod recovery_close_contract_tests;
 
 fn project_diagnostics_configuration_message(project_root: &Path, error: impl Display) -> String {

@@ -96,5 +96,5 @@ impl EditorHostEventController {
 }
 
 #[cfg(test)]
-#[path = "tests/play_world_replacement.rs"]
+#[path = "../tests/play_world_replacement.rs"]
 mod tests;

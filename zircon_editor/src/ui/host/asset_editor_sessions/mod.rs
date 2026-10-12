@@ -1,14 +1,26 @@
+#[path = "dependency_index/mod.rs"]
 mod dependency_index;
+#[path = "editing.rs"]
 mod editing;
+#[path = "hydration.rs"]
 mod hydration;
+#[path = "imports/mod.rs"]
 mod imports;
+#[path = "lifecycle.rs"]
 mod lifecycle;
+#[path = "open.rs"]
 mod open;
+#[path = "preview_refresh.rs"]
 mod preview_refresh;
+#[path = "refresh/mod.rs"]
 mod refresh;
+#[path = "save.rs"]
 mod save;
+#[path = "sync.rs"]
 mod sync;
+#[path = "watcher.rs"]
 mod watcher;
+#[path = "workspace_state.rs"]
 mod workspace_state;
 
 use crate::ui::template::EditorTemplateRuntimeService;

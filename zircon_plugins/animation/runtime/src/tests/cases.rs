@@ -219,7 +219,7 @@ fn animation_package_manifest_declares_dist_contract() {
 
 #[test]
 fn property_sequence_pipeline_caches_compiled_projection_by_asset_revision() {
-    let pipeline_source = include_str!("../evaluation/pipeline/animation_evaluation_pipeline.rs");
+    let pipeline_source = include_str!("../evaluation/animation_evaluation_pipeline.rs");
     let request_source = include_str!("../evaluation/pipeline/requests.rs");
     let scan_source = include_str!("../evaluation/pipeline/parameter_apply.rs");
     let tick_source = include_str!("../evaluation/pipeline/tick.rs");

@@ -168,7 +168,7 @@ fn compare_material_name_text(left: &str, right: &str) -> Ordering {
 }
 
 #[cfg(test)]
-#[path = "sort_order/tests/fast_case_tests.rs"]
+#[path = "../sort_order/tests/fast_case.rs"]
 mod fast_case_tests;
 
 fn status_rank(status: RenderMaterialReadinessStatus) -> u8 {

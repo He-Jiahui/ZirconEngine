@@ -340,5 +340,5 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
 }
 
 #[cfg(test)]
-#[path = "tests/ktx_plugins07_ktx_header_hotpath_tests.rs"]
+#[path = "../../tests/ktx_plugins07_ktx_header_hotpath.rs"]
 mod plugins07_ktx_header_hotpath_tests;

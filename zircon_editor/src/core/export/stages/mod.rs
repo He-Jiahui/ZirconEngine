@@ -1,5 +1,8 @@
+#[path = "compile_host.rs"]
 mod compile_host;
+#[path = "executor.rs"]
 mod executor;
+#[path = "platform_bundle.rs"]
 mod platform_bundle;
 
 pub use compile_host::{

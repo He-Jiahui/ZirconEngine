@@ -1,10 +1,18 @@
+#[path = "artifact_manifest.rs"]
 mod artifact_manifest;
+#[path = "library_path.rs"]
 mod library_path;
+#[path = "loaded_runtime.rs"]
 mod loaded_runtime;
+#[path = "runtime_library_error.rs"]
 mod runtime_library_error;
+#[path = "runtime_session.rs"]
 mod runtime_session;
+#[path = "runtime_session_create_failure.rs"]
 mod runtime_session_create_failure;
+#[path = "runtime_teardown_failure.rs"]
 mod runtime_teardown_failure;
+#[path = "wake_registry.rs"]
 mod wake_registry;
 
 #[cfg(test)]

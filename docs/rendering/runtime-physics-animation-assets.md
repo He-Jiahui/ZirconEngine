@@ -128,7 +128,7 @@ related_code:
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/contact.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/query.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/step.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
+  - zircon_plugins/animation/runtime/tests/physics_tick.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs

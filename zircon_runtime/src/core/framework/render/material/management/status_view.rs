@@ -121,5 +121,5 @@ fn sort_owned_values<T>(mut values: Vec<T>, sort: impl FnOnce(&mut [T])) -> Vec<
 }
 
 #[cfg(test)]
-#[path = "status_view/tests/owned_sort_tests.rs"]
+#[path = "tests/owned_sort.rs"]
 mod owned_sort_tests;

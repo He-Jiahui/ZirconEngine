@@ -6,7 +6,7 @@ from tools.analysis.performance.editor.editor_workbench_projection_pressure impo
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HOST = ROOT / "zircon_editor/src/ui/retained_host"
+HOST = ROOT / "zircon_editor/src/ui/retained"
 EVENT_BRIDGE = HOST / "event_bridge.rs"
 DISPATCH_EFFECTS = HOST / "app/host_lifecycle/dispatch_effects.rs"
 DISPATCH_SIDE_EFFECTS = HOST / "app/host_lifecycle/dispatch_effects/side_effects.rs"

@@ -6,7 +6,7 @@ display_name = "Unreal content drawer"
 
 [imports]
 widgets = [
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+  "res://ui/editor/workbench/primitives/inputs/dropdown.zui#WorkbenchDropdown",
 ]
 styles = ["res://ui/editor/unreal/starship.zui"]
 

@@ -238,7 +238,7 @@ fn export_process_final_drains_do_not_reaggregate_the_complete_stream() {
     let cargo_source = include_str!("../export_cargo_process.rs");
     let support_source = include_str!("../export_process_support/output_capture.rs");
     let wizard_source =
-        include_str!("../editor_manager_plugins_export/export_build/wizard/execution.rs");
+        include_str!("../exports/export_build/wizard/execution.rs");
 
     assert!(!cargo_source.contains(concat!("final_output_", "drain")));
     assert!(!support_source.contains(concat!("final_output_", "drain")));

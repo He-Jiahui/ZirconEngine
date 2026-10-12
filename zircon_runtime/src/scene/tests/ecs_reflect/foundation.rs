@@ -23,13 +23,21 @@ use crate::scene::{
     RuntimeTypeRegistration, TypeRegistry, World,
 };
 
+#[path = "foundation/address_routing.rs"]
 mod address_routing;
+#[path = "foundation/fixed_lights_name.rs"]
 mod fixed_lights_name;
+#[path = "foundation/fixed_registry.rs"]
 mod fixed_registry;
+#[path = "foundation/fixed_render_physics.rs"]
 mod fixed_render_physics;
+#[path = "foundation/fixed_transform_active.rs"]
 mod fixed_transform_active;
+#[path = "foundation/registry.rs"]
 mod registry;
+#[path = "foundation/value_conversion.rs"]
 mod value_conversion;
+#[path = "foundation/versioned_json.rs"]
 mod versioned_json;
 
 fn metadata_registration(type_path: &str, short_type_path: &str) -> ReflectTypeRegistration {

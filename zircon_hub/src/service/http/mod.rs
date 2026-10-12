@@ -21,7 +21,9 @@ use axum::{
 };
 use std::sync::Arc;
 use tokio::sync::Semaphore;
+#[path = "catalog_routes.rs"]
 mod catalog_routes;
+#[path = "cloud_routes.rs"]
 mod cloud_routes;
 use catalog_routes::{
     catalog_artifact, catalog_entitlements, catalog_license, catalog_list, catalog_publish,

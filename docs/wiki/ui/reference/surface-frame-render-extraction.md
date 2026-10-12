@@ -3,9 +3,9 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
-  - zircon_runtime/src/ui/surface
+  - zircon_runtime/src/ui
 implementation_files:
-  - zircon_runtime/src/ui/surface
+  - zircon_runtime/src/ui
 plan_sources:
   - user: 2026-09-09 扩充公开 UI 接口、机制案例与教程
 tests:

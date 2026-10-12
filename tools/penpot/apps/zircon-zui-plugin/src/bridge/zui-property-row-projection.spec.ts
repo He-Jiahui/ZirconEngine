@@ -13,7 +13,7 @@ import { parsePropertyAxes } from './zui-property-row-values';
 describe('Editor retained property rows', () => {
   const root = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../../', import.meta.url)));
   const asset =
-    'zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui';
+    'zircon_editor/assets/ui/editor/workbench/primitives/data/property_row.zui';
   const theme = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
   const dependencies = new LayoutDependencies();
   beforeAll(async () => dependencies.load(root, [asset, theme]));

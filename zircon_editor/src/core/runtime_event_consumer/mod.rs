@@ -1,8 +1,14 @@
+#[path = "error.rs"]
 mod error;
+#[path = "fault_receipt.rs"]
 mod fault_receipt;
+#[path = "host.rs"]
 mod host;
+#[path = "manifest.rs"]
 mod manifest;
+#[path = "pump.rs"]
 mod pump;
+#[path = "registration.rs"]
 mod registration;
 
 pub use error::{

@@ -12,9 +12,13 @@ use crate::core::{LifecycleState, ServiceKind, StartupMode};
 // 解析测试跨公共入口、注册身份与模块卸载，验证懒初始化只提交当前代数的实例。
 // 线程同步用例固定工厂竞争、调用准入和卸载之间的先后关系。
 
+#[path = "behavior/aliases.rs"]
 mod aliases;
+#[path = "behavior/dependency_cycles.rs"]
 mod dependency_cycles;
+#[path = "../behavior/exact_dependency_resolution.rs"]
 mod exact_dependency_resolution;
+#[path = "behavior/factory_panics.rs"]
 mod factory_panics;
 
 #[derive(Debug)]

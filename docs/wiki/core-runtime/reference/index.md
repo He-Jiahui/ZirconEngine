@@ -12,7 +12,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 完善所有公开接口、机制案例、最佳实践、教程与功能介绍
 tests:
-  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/tests
   - zircon_runtime/src/operation/tests
   - zircon_runtime/src/plugin/bridge/table.rs
 doc_type: category-index

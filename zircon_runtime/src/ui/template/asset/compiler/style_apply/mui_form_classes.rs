@@ -564,7 +564,7 @@ fn text_field_label_shrinks(attributes: &BTreeMap<String, Value>) -> bool {
 }
 
 #[cfg(test)]
-#[path = "mui_form_classes/tests/borrowed_text_field_variant_tests.rs"]
+#[path = "../../../../asset/compiler/tests/borrowed_text_field_variant.rs"]
 mod borrowed_text_field_variant_tests;
 
 fn append_prefixed_state_classes(node: &mut UiTemplateNode, prefix: &str, states: &[&str]) {

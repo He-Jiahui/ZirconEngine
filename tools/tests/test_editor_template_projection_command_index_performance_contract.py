@@ -10,7 +10,7 @@ PROJECTION_CACHE = ROOT / (
     "zircon_editor/src/ui/layouts/views/view_projection/projection_cache.rs"
 )
 COMMAND_INDEX = ROOT / (
-    "zircon_editor/src/ui/layouts/views/view_projection/projection_cache/"
+    "zircon_editor/src/ui/layouts/views/projection_cache/"
     "render_command_index.rs"
 )
 

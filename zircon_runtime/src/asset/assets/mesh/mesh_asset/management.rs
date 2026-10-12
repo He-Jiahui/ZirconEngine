@@ -152,5 +152,5 @@ impl MeshAssetManagementRecordSet {
 }
 
 #[cfg(test)]
-#[path = "management/tests/capacity_tests.rs"]
+#[path = "management/tests/capacity.rs"]
 mod capacity_tests;

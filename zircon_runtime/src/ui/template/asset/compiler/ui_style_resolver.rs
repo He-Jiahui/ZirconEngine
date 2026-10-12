@@ -5,11 +5,11 @@ use super::ui_document_compiler::{CompilationArtifacts, ResolvedStyleSheet, UiDo
 use super::value_normalizer::compose_tokens;
 
 #[cfg(test)]
-#[path = "ui_style_resolver/tests/capacity_tests.rs"]
+#[path = "tests/capacity.rs"]
 mod capacity_tests;
 
 #[cfg(test)]
-#[path = "ui_style_resolver/tests/import_capacity_tests.rs"]
+#[path = "tests/import_capacity.rs"]
 mod import_capacity_tests;
 
 #[derive(Default)]

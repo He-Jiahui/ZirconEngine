@@ -15,7 +15,7 @@ use super::{
     prewarm_shader_variants_to_disk_with_pipeline_validation,
 };
 
-#[path = "combined_validation_tests.rs"]
+#[path = "../../../prewarm/tests/combined_validation.rs"]
 mod combined_validation_tests;
 
 const VALID_WGSL: &str = "fn main() {}";

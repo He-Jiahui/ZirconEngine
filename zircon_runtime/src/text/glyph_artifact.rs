@@ -15,12 +15,19 @@ use crate::text::font::{
 };
 use crate::text::shaping::{TextLayoutOutcome, TextShapingOutcome};
 
+#[path = "glyph_artifact/geometry.rs"]
 mod geometry;
+#[path = "glyph_artifact/identity.rs"]
 mod identity;
+#[path = "glyph_artifact/presentation.rs"]
 mod presentation;
+#[path = "glyph_artifact/projection.rs"]
 mod projection;
+#[path = "glyph_artifact/rich.rs"]
 mod rich;
+#[path = "glyph_artifact/snapshot.rs"]
 mod snapshot;
+#[path = "glyph_artifact/visual_projection.rs"]
 mod visual_projection;
 
 pub(crate) use geometry::{

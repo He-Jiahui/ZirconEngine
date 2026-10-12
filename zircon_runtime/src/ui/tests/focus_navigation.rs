@@ -22,9 +22,13 @@ use zircon_runtime_interface::ui::{
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
 
+#[path = "focus_navigation/focus_state.rs"]
 mod focus_state;
+#[path = "focus_navigation/modal_popup.rs"]
 mod modal_popup;
+#[path = "focus_navigation/property_mutation.rs"]
 mod property_mutation;
+#[path = "focus_navigation/tab_directional.rs"]
 mod tab_directional;
 
 fn focus_surface() -> UiSurface {

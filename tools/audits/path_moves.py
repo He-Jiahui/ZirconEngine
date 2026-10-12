@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import stat
+import time
 import subprocess
 import tomllib
 
@@ -36,7 +37,12 @@ def git(*args: str) -> bytes:
 def write(path: Path, data: bytes) -> None:
     """Mutate the canonical handle, preserving unrelated bytes and line endings."""
     with path.open("r+b" if path.exists() else "x+b") as stream:
-        stream.seek(0);stream.write(data);stream.truncate();stream.flush()
+        stream.seek(0);stream.write(data);stream.flush()
+        for attempt in range(20):
+            try:stream.truncate();stream.flush();break
+            except PermissionError:
+                if attempt==19:raise
+                time.sleep(0.25)
 
 
 def report(directory: Path, name: str, value: dict) -> None:

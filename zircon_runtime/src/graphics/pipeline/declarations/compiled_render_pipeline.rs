@@ -11,10 +11,15 @@ use super::{
     renderer_feature_asset::RendererFeatureAsset,
 };
 
+#[path = "compiled/execution_packet.rs"]
 mod execution_packet;
+#[path = "../compiled/history_epilogue_plan.rs"]
 mod history_epilogue_plan;
+#[path = "../compiled/resource_write_index.rs"]
 mod resource_write_index;
+#[path = "../compiled/runtime_feature_flags.rs"]
 mod runtime_feature_flags;
+#[path = "compiled/runtime_metadata.rs"]
 mod runtime_metadata;
 
 pub(crate) use execution_packet::{
@@ -242,5 +247,5 @@ impl CompiledRenderPipeline {
 }
 
 #[cfg(test)]
-#[path = "compiled_render_pipeline/tests/cases.rs"]
+#[path = "compiled/tests/cases.rs"]
 mod tests;

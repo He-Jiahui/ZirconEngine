@@ -2,9 +2,13 @@
 //!
 //! 这里只定义动作值和状态值；[`crate::input::camera_controller::OrbitCameraController`] 消费动作，
 //! Editor 与动态 Runtime 调用方负责维护目标和相机变换所在的坐标空间，并应用输出。
+#[path = "action.rs"]
 mod action;
+#[path = "input.rs"]
 mod input;
+#[path = "settings.rs"]
 mod settings;
+#[path = "state.rs"]
 mod state;
 
 pub use action::OrbitCameraAction;

@@ -300,9 +300,9 @@ impl EditorPluginCatalog {
 mod tests;
 
 #[cfg(test)]
-#[path = "tests/catalog_optimization_batch_20260830cm_editor_tests.rs"]
+#[path = "tests/catalog_perf.rs"]
 mod optimization_batch_20260830cm_editor_tests;
 
 #[cfg(test)]
-#[path = "catalog/tests/optimization_batch_ib_editor611_tests.rs"]
+#[path = "catalog/tests/perf.rs"]
 mod optimization_batch_ib_editor611_tests;

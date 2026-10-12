@@ -92,5 +92,5 @@ pub(super) fn validate_mesh_sdf_asset_for_source(
 }
 
 #[cfg(test)]
-#[path = "tests/validate_optimization_batch_gv_runtime577_tests.rs"]
+#[path = "tests/validate_perf.rs"]
 mod optimization_batch_gv_runtime577_tests;

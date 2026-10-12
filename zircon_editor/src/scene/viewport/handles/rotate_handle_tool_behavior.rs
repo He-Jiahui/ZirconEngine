@@ -98,5 +98,5 @@ impl HandleTool for RotateHandleTool {
 }
 
 #[cfg(test)]
-#[path = "rotate_handle_tool_behavior/tests/overlay_capacity_tests.rs"]
+#[path = "tests/overlay_capacity.rs"]
 mod overlay_capacity_tests;

@@ -79,7 +79,7 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
     resource_commit = root / "zircon_runtime/crates/zr_resource/src/manager/commit.rs"
     resource_sync = (
         root
-        / "zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs"
+        / "zircon_runtime/src/asset/manager/resource_sync/register_project_resource.rs"
     )
     worker_pool = root / "zircon_runtime/src/asset/pipeline/worker_pool.rs"
     worker_pool_options = (
@@ -93,18 +93,18 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
     )
     construction = (
         root
-        / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs"
+        / "zircon_runtime/src/asset/pipeline/manager/assets/construction.rs"
     )
     watcher = root / "zircon_runtime/src/asset/watch/asset_watcher.rs"
     watch_loop = root / "zircon_runtime/src/asset/watch/watch_loop.rs"
     watch_error = root / "zircon_runtime/src/asset/watch/asset_watch_error.rs"
     project_asset_manager = (
         root
-        / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs"
+        / "zircon_runtime/src/asset/pipeline/manager/assets/assets.rs"
     )
     project_asset_runtime = (
         root
-        / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs"
+        / "zircon_runtime/src/asset/pipeline/manager/assets/runtime.rs"
     )
     artifact_mod = root / "zircon_runtime/src/asset/artifact/mod.rs"
     artifact_store = root / "zircon_runtime/src/asset/artifact/store.rs"

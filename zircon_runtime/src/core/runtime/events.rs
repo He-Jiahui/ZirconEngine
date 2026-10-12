@@ -1,13 +1,22 @@
 //! Topic-based event distribution with explicit delivery policy.
 
+#[path = "events/admission.rs"]
 mod admission;
+#[path = "events/close.rs"]
 mod close;
+#[path = "events/diagnostics.rs"]
 mod diagnostics;
+#[path = "events/frozen.rs"]
 mod frozen;
+#[path = "events/prune.rs"]
 mod prune;
+#[path = "events/publish.rs"]
 mod publish;
+#[path = "events/subscribe.rs"]
 mod subscribe;
+#[path = "events/subscriber.rs"]
 mod subscriber;
+#[path = "events/topic.rs"]
 mod topic;
 
 use std::fmt;

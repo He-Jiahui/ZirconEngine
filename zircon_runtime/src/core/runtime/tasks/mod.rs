@@ -1,28 +1,52 @@
 //! Runtime-owned task helpers and execution primitives.
 
+#[path = "bounded_keyed_io/mod.rs"]
 mod bounded_keyed_io;
+#[path = "bounded_stream_io/mod.rs"]
 mod bounded_stream_io;
+#[path = "callback_dispatcher.rs"]
 mod callback_dispatcher;
+#[path = "diagnostic_observation/mod.rs"]
 mod diagnostic_observation;
+#[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "job_handle.rs"]
 mod job_handle;
+#[path = "job_scheduler.rs"]
 mod job_scheduler;
+#[path = "parallel_for.rs"]
 mod parallel_for;
+#[path = "pool.rs"]
 mod pool;
+#[path = "pools.rs"]
 mod pools;
+#[path = "report.rs"]
 mod report;
+#[path = "retained_byte_budget.rs"]
 mod retained_byte_budget;
+#[path = "task_cancellation_policy.rs"]
 mod task_cancellation_policy;
+#[path = "task_descriptor.rs"]
 mod task_descriptor;
+#[path = "task_graph/mod.rs"]
 mod task_graph;
+#[path = "task_id.rs"]
 mod task_id;
+#[path = "task_pool_descriptor.rs"]
 mod task_pool_descriptor;
+#[path = "task_pool_kind.rs"]
 mod task_pool_kind;
+#[path = "task_state.rs"]
 mod task_state;
+#[path = "task_status.rs"]
 mod task_status;
+#[path = "thread_assignment.rs"]
 mod thread_assignment;
+#[path = "thread_budget.rs"]
 mod thread_budget;
+#[path = "thread_completion.rs"]
 mod thread_completion;
+#[path = "timer.rs"]
 mod timer;
 
 use std::thread::{self, JoinHandle};

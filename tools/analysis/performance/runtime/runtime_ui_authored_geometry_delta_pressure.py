@@ -51,7 +51,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs",
+        "zircon_editor/src/ui/retained/viewport_toolbar_pointer/rebuild_surface.rs",
         (
             "observed_topology_generation",
             "changed_node_ids",

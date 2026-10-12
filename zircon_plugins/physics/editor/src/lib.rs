@@ -1,9 +1,16 @@
+#[path = "capability.rs"]
 mod capability;
+#[path = "extension_ids.rs"]
 mod extension_ids;
+#[path = "overlay.rs"]
 mod overlay;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "ragdoll_profile_editor.rs"]
 mod ragdoll_profile_editor;
+#[path = "runtime_mirror.rs"]
 mod runtime_mirror;
+#[path = "viewport_overlay_provider.rs"]
 mod viewport_overlay_provider;
 
 #[cfg(test)]

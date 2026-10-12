@@ -10,7 +10,7 @@ TOOLTIP = ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
     "workbench/icon_tooltip.rs"
 )
-TOOLTIP_METADATA = ROOT / "zircon_editor/src/ui/template_runtime/workbench_tooltip.rs"
+TOOLTIP_METADATA = ROOT / "zircon_editor/src/ui/runtime/tooltip.rs"
 
 
 class EditorWorkbenchIconTooltipCandidateAllocationPerformanceContractTests(

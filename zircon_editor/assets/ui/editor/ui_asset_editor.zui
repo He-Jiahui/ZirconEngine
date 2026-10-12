@@ -9,14 +9,14 @@ node = "ui_asset_editor_root"
 
 [imports]
 widgets = [
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
-  "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow",
-  "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption",
-  "res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel",
-  "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-  "res://ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui#WorkbenchUiAssetActionBar",
+  "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton",
+  "res://ui/editor/workbench/primitives/inputs/icon_button.zui#WorkbenchIconButton",
+  "res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput",
+  "res://ui/editor/components/workbench/primitives/data/tree_row.zui#WorkbenchTreeRow",
+  "res://ui/editor/components/workbench/primitives/data/caption.zui#WorkbenchCaption",
+  "res://ui/editor/components/workbench/primitives/data/label.zui#WorkbenchLabel",
+  "res://ui/editor/workbench/primitives/chrome/section_title.zui#WorkbenchSectionTitle",
+  "res://ui/editor/workbench/chrome/ui_asset_action_bar.zui#WorkbenchUiAssetActionBar",
 ]
 styles = ["res://ui/editor/theme/editor_tokens.zui"]
 

@@ -5,11 +5,15 @@
 #[allow(unused_imports, clippy::single_component_path_imports)]
 use zr_runtime_dev_dylib as _;
 
+#[path = "entry/mod.rs"]
 mod entry;
 pub use entry::{retry_product_cleanup_until, ProductCloseError, ProductCompositionFailure};
+#[path = "plugins/mod.rs"]
 pub mod plugins;
+#[path = "prelude.rs"]
 pub mod prelude;
 #[cfg(feature = "platform-window")]
+#[path = "reference_cpu_presenter.rs"]
 mod reference_cpu_presenter;
 
 #[cfg(feature = "target-editor-host")]
@@ -46,4 +50,5 @@ pub use plugins::{
 pub use entry::{retry_runtime_startup_cleanup, RuntimeSessionCreateFailure};
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

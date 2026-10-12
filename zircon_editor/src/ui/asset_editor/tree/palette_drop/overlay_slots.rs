@@ -9,7 +9,7 @@ use super::resolution::{
 };
 
 #[cfg(test)]
-#[path = "overlay_slots/tests/capacity_tests.rs"]
+#[path = "tests/capacity.rs"]
 mod capacity_tests;
 
 const OVERLAY_SLOT_TARGET_COUNT: usize = 9;

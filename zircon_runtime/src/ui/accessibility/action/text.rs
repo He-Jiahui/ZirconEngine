@@ -1,4 +1,6 @@
+#[path = "text/replace.rs"]
 mod replace;
+#[path = "text/selection.rs"]
 mod selection;
 
 pub(super) use replace::dispatch_replace_selected_text;

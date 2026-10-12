@@ -52,7 +52,7 @@ impl EntityPath {
 }
 
 #[cfg(test)]
-#[path = "entity_path/tests/single_scan_parse_tests.rs"]
+#[path = "entity_path/tests/single_scan_parse.rs"]
 mod single_scan_parse_tests;
 
 impl fmt::Display for EntityPath {

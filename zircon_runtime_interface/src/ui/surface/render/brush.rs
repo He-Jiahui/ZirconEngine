@@ -328,5 +328,5 @@ fn material_resource_id(material_id: &str, variant: Option<&str>) -> String {
 }
 
 #[cfg(test)]
-#[path = "brush/tests/material_key_performance_tests.rs"]
+#[path = "brush/tests/material_key_perf.rs"]
 mod material_key_performance_tests;

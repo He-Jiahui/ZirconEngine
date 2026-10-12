@@ -1,0 +1,3 @@
+//! 静态清单的可选特性的所有者与公开元数据回归；经共享读取和本领域断言检查当前包声明，不执行插件行为。
+#[path = "optional_features/metadata.rs"]
+mod metadata;

@@ -1,20 +1,36 @@
 //! Neutral navigation contracts shared by runtime plugins and editor tools.
 
+#[path = "agent.rs"]
 mod agent;
+#[path = "asset/mod.rs"]
 mod asset;
+#[path = "bake.rs"]
 mod bake;
+#[path = "constants.rs"]
 mod constants;
+#[path = "error.rs"]
 mod error;
+#[path = "gizmo.rs"]
 mod gizmo;
+#[path = "handle.rs"]
 mod handle;
+#[path = "manager.rs"]
 mod manager;
+#[path = "modifier.rs"]
 mod modifier;
+#[path = "obstacle.rs"]
 mod obstacle;
+#[path = "off_mesh_link.rs"]
 mod off_mesh_link;
+#[path = "operation.rs"]
 mod operation;
+#[path = "query.rs"]
 mod query;
+#[path = "settings.rs"]
 mod settings;
+#[path = "stats.rs"]
 mod stats;
+#[path = "surface.rs"]
 mod surface;
 
 pub use agent::{

@@ -86,5 +86,5 @@ fn irradiance_volume_priority_cmp(
 }
 
 #[cfg(test)]
-#[path = "tests/irradiance_volume.rs"]
+#[path = "../tests/irradiance_volume.rs"]
 mod tests;

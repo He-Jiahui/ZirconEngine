@@ -13,7 +13,7 @@ const VISIBLE_LIMIT: &str = "visible_limit";
 const KEYBOARD_NAVIGATION: &str = "keyboard_navigation";
 
 #[cfg(test)]
-#[path = "tests/notification_static_key_tests.rs"]
+#[path = "tests/notification_static_key.rs"]
 mod notification_static_key_tests;
 
 pub(super) fn sync_after_value_change(
@@ -569,5 +569,5 @@ fn string_bool(value: &str) -> Option<bool> {
 }
 
 #[cfg(test)]
-#[path = "tests/notification_center_performance_tests.rs"]
+#[path = "tests/notification_center_perf.rs"]
 mod performance_tests;

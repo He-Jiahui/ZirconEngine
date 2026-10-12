@@ -1,7 +1,11 @@
 //! 测试专用的静态清单投影入口；只接受仓内 sound/plugin.toml 的已知写法，供对照测试使用。
+#[path = "support/contributions.rs"]
 mod contributions;
+#[path = "support/metadata.rs"]
 mod metadata;
+#[path = "support/options.rs"]
 mod options;
+#[path = "support/values.rs"]
 mod values;
 
 pub(in crate::tests::manifest) use contributions::StaticSoundContributions;

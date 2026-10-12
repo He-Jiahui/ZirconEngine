@@ -1,6 +1,10 @@
+#[path = "registry.rs"]
 mod registry;
+#[path = "source_engine_install.rs"]
 mod source_engine_install;
+#[path = "source_engine_paths.rs"]
 mod source_engine_paths;
+#[path = "validation.rs"]
 mod validation;
 
 pub use registry::{

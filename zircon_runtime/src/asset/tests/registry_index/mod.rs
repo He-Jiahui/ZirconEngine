@@ -1,9 +1,14 @@
 //! 离线索引测试以真实 source 与 sidecar 组成磁盘夹具；扫描取 sidecar 的身份、标签和依赖。
 
+#[path = "dependency_extractors.rs"]
 mod dependency_extractors;
+#[path = "incremental.rs"]
 mod incremental;
+#[path = "persistence.rs"]
 mod persistence;
+#[path = "queries.rs"]
 mod queries;
+#[path = "scan_safety.rs"]
 mod scan_safety;
 
 use std::collections::BTreeSet;

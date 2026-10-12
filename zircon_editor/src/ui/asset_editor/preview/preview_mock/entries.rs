@@ -673,5 +673,5 @@ pub(super) fn preview_nested_path_segments(
 }
 
 #[cfg(test)]
-#[path = "entries/tests/literal_single_buffer_tests.rs"]
+#[path = "../../../preview/preview_mock/entries/tests/literal_single_buffer.rs"]
 mod literal_single_buffer_tests;

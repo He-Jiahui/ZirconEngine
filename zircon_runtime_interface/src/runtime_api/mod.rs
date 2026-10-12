@@ -1,9 +1,14 @@
 //! Runtime 动态库与宿主、编辑器共享的 ABI 边界。
 //! 此处集中重导出固定布局载体和线格式常量；跨库调用仍须核对版本、输出所有权与会话身份。
+#[path = "abi/mod.rs"]
 mod abi;
+#[path = "constants.rs"]
 mod constants;
+#[path = "frame/mod.rs"]
 mod frame;
+#[path = "host/mod.rs"]
 mod host;
+#[path = "session/mod.rs"]
 mod session;
 
 // Frozen Runtime API versioning and dynamic entry point.

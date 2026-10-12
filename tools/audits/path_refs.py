@@ -117,12 +117,12 @@ def rust_rewrite(source: str, old: Path, new: Path, moves: dict[Path,Path],
         ambiguous=not explicit and (len(choices)>1 or (choices and choices[0]!=destination))
         # Every changed resolution gets an explicit physical mount. Module names,
         # visibility, cfg, public reexports and executable code remain intact.
-        needs=(old!=new or target!=destination or ambiguous)
+        needs=(old!=new or target!=destination or ambiguous or (not explicit and not module.parents))
         if not needs:continue
         if explicit:
             start=module.start+explicit.start(1);end=module.start+explicit.end(1)
             edits.append((start,end,relative(destination,base)))
-        elif destination not in default or ambiguous:
+        elif destination not in default or ambiguous or not module.parents:
             line_start=source.rfind("\n",0,module.keyword)+1
             indent=source[line_start:module.keyword]
             indent=indent if not indent.strip() else ""

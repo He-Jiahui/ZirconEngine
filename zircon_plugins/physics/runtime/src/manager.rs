@@ -2,16 +2,26 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 #[cfg(any(feature = "backend-jolt", test))]
+#[path = "manager/change_detection.rs"]
 mod change_detection;
+#[path = "manager/clock.rs"]
 mod clock;
+#[path = "manager/command_buffer.rs"]
 mod command_buffer;
 #[cfg(feature = "backend-jolt")]
+#[path = "manager/jolt_world.rs"]
 mod jolt_world;
+#[path = "manager/poison_recovery.rs"]
 mod poison_recovery;
+#[path = "manager/query.rs"]
 mod query;
+#[path = "manager/service.rs"]
 mod service;
+#[path = "manager/settings.rs"]
 mod settings;
+#[path = "manager/validation.rs"]
 pub(crate) mod validation;
+#[path = "manager/world_sync.rs"]
 mod world_sync;
 
 #[cfg(test)]

@@ -217,7 +217,11 @@ fn world_sync_preserves_constraint_and_skeletal_joint_metadata() {
     );
 }
 
+#[path = "contact.rs"]
 mod contact;
+#[path = "event.rs"]
 mod event;
+#[path = "query.rs"]
 mod query;
+#[path = "step.rs"]
 mod step;

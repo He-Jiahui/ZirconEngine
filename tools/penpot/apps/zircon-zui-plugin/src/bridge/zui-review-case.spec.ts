@@ -197,7 +197,7 @@ describe('review host state projection', () => {
           component: 'ScrollableBox',
           control_id: 'WorkbenchModuleListScroll',
           penpot_review_source_path:
-            'zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui',
+            'zircon_editor/assets/ui/editor/workbench/modules/core/index/module_workspace.zui',
           penpot_review_source_node_id: 'module_scroll',
           layout: { container: { kind: 'ScrollableBox' } },
           props: {},
@@ -1043,7 +1043,7 @@ describe('review host state projection', () => {
 describe('authored Workbench button painter states', () => {
   const root = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../../', import.meta.url)));
   const assetPath =
-    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui';
+    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui';
   const themePath = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
   const dependencies = new LayoutDependencies();
   beforeAll(async () => {

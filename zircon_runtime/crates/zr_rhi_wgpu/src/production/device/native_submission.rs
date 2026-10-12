@@ -89,5 +89,5 @@ impl WgpuRenderDevice {
 }
 
 #[cfg(test)]
-#[path = "tests/native_submission.rs"]
+#[path = "../../device/tests/native_submission.rs"]
 mod tests;

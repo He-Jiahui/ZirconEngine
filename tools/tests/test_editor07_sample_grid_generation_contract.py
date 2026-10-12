@@ -45,7 +45,7 @@ class Editor07SampleGridGenerationContractTests(unittest.TestCase):
             "pane_component_projection/sample_grid.rs"
         )
         host_data = source(
-            "zircon_editor/src/ui/retained_host/host_contract/data/"
+            "zircon_editor/src/ui/retained/contract/data/"
             "template_nodes/sample_grid.rs"
         )
 
@@ -55,15 +55,15 @@ class Editor07SampleGridGenerationContractTests(unittest.TestCase):
 
     def test_painter_consumes_preformatted_typed_slices(self) -> None:
         surface = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_sample_grid/surface.rs"
         )
         text = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_sample_grid/text.rs"
         )
         points = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_sample_grid/points.rs"
         )
 

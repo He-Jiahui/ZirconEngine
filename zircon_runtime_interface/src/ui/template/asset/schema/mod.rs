@@ -1,4 +1,6 @@
+#[path = "policy.rs"]
 mod policy;
+#[path = "report.rs"]
 mod report;
 
 pub use policy::{

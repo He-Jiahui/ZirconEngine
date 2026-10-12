@@ -53,33 +53,33 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/native_panes/hierarchy.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/native_panes/welcome.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/asset.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/asset/content.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/asset/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/asset/reference.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/asset/tree.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/callback_targets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/passive.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/sequence.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/template.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/viewport.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence/run.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence/run/callback.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence/run/fallback.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence/run/result.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/native.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/passive.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/template.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/viewport.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/viewport/body.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/viewport/toolbar.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/asset.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/asset/content.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/asset/entry.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/asset/reference.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/asset/tree.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/entry.rs
+  - zircon_editor/src/ui/contract/pointer/buttons/target/entry/callback_targets.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/entry/input.rs
+  - zircon_editor/src/ui/contract/pointer/buttons/target/entry/result_targets.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/entry.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/input.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/passive.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/sequence.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/template.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/viewport.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/entry/sequence.rs
+  - zircon_editor/src/ui/contract/pointer/buttons/target/entry/sequence/entry.rs
+  - zircon_editor/src/ui/contract/pointer/buttons/target/entry/sequence/run.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/sequence/run/callback.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/sequence/run/fallback.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/sequence/run/result.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/native.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/passive.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/template.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/viewport.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/viewport/body.rs
+  - zircon_editor/src/ui/contract/pointer/buttons/target/viewport/toolbar.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/viewport.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/viewport/toolbar.rs
@@ -386,33 +386,33 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/native_panes/hierarchy.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/native_panes/welcome.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/asset.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/asset/content.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/asset/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/asset/reference.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/asset/tree.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/callback_targets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/passive.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/sequence.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/template.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/result_targets/viewport.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence/run.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence/run/callback.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence/run/fallback.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/entry/sequence/run/result.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/native.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/passive.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/template.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/viewport.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/viewport/body.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/target/viewport/toolbar.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/asset.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/asset/content.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/asset/entry.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/asset/reference.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/asset/tree.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/entry.rs
+  - zircon_editor/src/ui/contract/pointer/buttons/target/entry/callback_targets.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/entry/input.rs
+  - zircon_editor/src/ui/contract/pointer/buttons/target/entry/result_targets.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/entry.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/input.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/passive.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/sequence.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/template.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/result_targets/viewport.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/entry/sequence.rs
+  - zircon_editor/src/ui/contract/pointer/buttons/target/entry/sequence/entry.rs
+  - zircon_editor/src/ui/contract/pointer/buttons/target/entry/sequence/run.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/sequence/run/callback.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/sequence/run/fallback.rs
+  - zircon_editor/src/ui/pointer/buttons/target/entry/sequence/run/result.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/native.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/passive.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/template.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/viewport.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/target/viewport/body.rs
+  - zircon_editor/src/ui/contract/pointer/buttons/target/viewport/toolbar.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/viewport.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/viewport/toolbar.rs

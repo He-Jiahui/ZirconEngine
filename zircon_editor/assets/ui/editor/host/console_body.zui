@@ -5,7 +5,7 @@ version = 2
 display_name = "console pane body"
 
 [imports]
-widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"]
+widgets = ["res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton"]
 styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [root]

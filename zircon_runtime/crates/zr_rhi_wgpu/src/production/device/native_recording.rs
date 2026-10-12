@@ -459,5 +459,5 @@ impl WgpuRenderDevice {
 }
 
 #[cfg(test)]
-#[path = "tests/native_recording.rs"]
+#[path = "../../device/tests/native_recording.rs"]
 mod tests;

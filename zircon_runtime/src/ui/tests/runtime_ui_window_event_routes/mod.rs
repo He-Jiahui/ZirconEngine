@@ -31,8 +31,11 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_WINDOW_THEME_DARK_V1,
 };
 
+#[path = "abi.rs"]
 mod abi;
+#[path = "normalized.rs"]
 mod normalized;
+#[path = "platform.rs"]
 mod platform;
 
 fn runtime_event_context() -> UiRuntimeEventAdapterContext {

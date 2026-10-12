@@ -24,41 +24,41 @@ WELCOME_BOOTSTRAP_TEST = REPO_ROOT / (
     "zircon_editor/src/tests/ui/welcome/bootstrap_assets.rs"
 )
 WELCOME_FRAME_RESOLVE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "paint_workbench_renderer/welcome/main_column/frames/resolve.rs"
 )
 WELCOME_TOP_SEQUENCE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "paint_workbench_renderer/welcome/main_column/frames/sequence/top.rs"
 )
 WELCOME_FORM_SEQUENCE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "paint_workbench_renderer/welcome/main_column/frames/sequence/form.rs"
 )
 WELCOME_MAIN_COLUMN = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "paint_workbench_renderer/welcome/main_column.rs"
 )
 WELCOME_NATIVE_PAINT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "paint_workbench_renderer/welcome.rs"
 )
 WELCOME_RECENT_HEADER = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "paint_workbench_renderer/welcome/recent_projects/header.rs"
 )
 WELCOME_RECENT_GEOMETRY = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/welcome_recent_geometry.rs"
+    "zircon_editor/src/ui/retained/welcome_recent_geometry.rs"
 )
 WELCOME_RECENT_POINTER_LAYOUT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/welcome_recent_pointer/"
+    "zircon_editor/src/ui/retained/welcome_recent_pointer/"
     "welcome_recent_pointer_layout.rs"
 )
 WELCOME_RECENT_POINTER_HELPER = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/welcome_recent_pointer/helper.rs"
+    "zircon_editor/src/ui/retained/welcome_recent_pointer/helper.rs"
 )
 WELCOME_RECENT_APP_LAYOUT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/app/pointer_layout/welcome_recent.rs"
+    "zircon_editor/src/ui/retained/app/pointer_layout/welcome_recent.rs"
 )
 WELCOME_PROFILE_PANE_FRAMES = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/"

@@ -5,15 +5,15 @@ from tools.analysis.performance.runtime.runtime_ui_image_prepare_cache_pressure 
 
 
 ROOT = Path(__file__).resolve().parents[2]
-IMAGE = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs"
-IMAGE_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/image/tests/cases.rs"
-RENDER = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+IMAGE = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/image.rs"
+IMAGE_TESTS = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/image/tests/cases.rs"
+RENDER = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
 PLAN_CACHE = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs"
 )
 RECORD = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render/record.rs"
 )
 
 

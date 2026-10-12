@@ -26,7 +26,7 @@ def rust_item(text: str, marker: str) -> str:
 
 class FloatingWindowProjectionSpatialScaleInstrumentationContract(unittest.TestCase):
     def test_bundle_records_build_and_source_cardinality_before_allocation(self):
-        text = source("zircon_editor/src/ui/retained_host/floating_window_projection.rs")
+        text = source("zircon_editor/src/ui/retained/floating_window_project.rs")
         build = rust_item(
             text,
             "pub(crate) fn build_floating_window_projection_bundle_from_windows_with_shared_source",
@@ -57,7 +57,7 @@ class FloatingWindowProjectionSpatialScaleInstrumentationContract(unittest.TestC
         self.assertLess(build.index(counter), build.index("for (window_index, window)"))
 
     def test_pointer_patch_records_all_stable_topology_candidate_work(self):
-        text = source("zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs")
+        text = source("zircon_editor/src/ui/retained/shell_pointer/drag_surface.rs")
         patch = rust_item(text, "pub(super) fn patch_drag_surface")
 
         for counter in [
@@ -73,7 +73,7 @@ class FloatingWindowProjectionSpatialScaleInstrumentationContract(unittest.TestC
         )
 
     def test_pointer_patch_distinguishes_topology_miss_from_geometry_reuse(self):
-        text = source("zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs")
+        text = source("zircon_editor/src/ui/retained/shell_pointer/drag_surface.rs")
         patch = rust_item(text, "pub(super) fn patch_drag_surface")
 
         topology = "ui.shell_drag.topology_miss_count"

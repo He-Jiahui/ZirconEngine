@@ -1,6 +1,10 @@
+#[path = "feedback.rs"]
 mod feedback;
+#[path = "prepare_input.rs"]
 mod prepare_input;
+#[path = "registration.rs"]
 mod registration;
+#[path = "update.rs"]
 mod update;
 
 pub(crate) use feedback::RuntimeProviderFeedback;

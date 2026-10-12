@@ -115,7 +115,7 @@ fn capitalize_ascii(value: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "default_registry/tests/optimization_batch_ix_editor634_tests.rs"]
+#[path = "default_registry/tests/perf.rs"]
 mod optimization_batch_ix_editor634_tests;
 
 #[cfg(test)]

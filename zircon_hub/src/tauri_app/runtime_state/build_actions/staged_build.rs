@@ -13,6 +13,7 @@ use zircon_runtime_interface::runtime_build_set::{
 
 use crate::error::HubError;
 
+#[path = "staged_build/platform.rs"]
 mod platform;
 
 use platform::{

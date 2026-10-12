@@ -1,6 +1,10 @@
+#[path = "state/camera_authority.rs"]
 mod camera_authority;
+#[path = "state/play_mode.rs"]
 mod play_mode;
+#[path = "state/selection.rs"]
 mod selection;
+#[path = "state/viewport.rs"]
 mod viewport;
 
 pub(crate) use viewport::{begin_moved_gizmo_drag, move_handle_drag_cursor_pair};

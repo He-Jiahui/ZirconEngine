@@ -13,8 +13,11 @@
 //! # 参考
 //! [`InputEventQueueStatus`]、[`InputEventRecordingConfig`]、[`InputEventRecordingStatus`]、
 //! [`DEFAULT_INPUT_EVENT_RECORDING_CAPACITY`]。
+#[path = "queue_status.rs"]
 mod queue_status;
+#[path = "recording_config.rs"]
 mod recording_config;
+#[path = "recording_status.rs"]
 mod recording_status;
 
 pub use queue_status::InputEventQueueStatus;

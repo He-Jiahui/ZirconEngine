@@ -10,15 +10,25 @@ use crate::scene::{NodeKind, SystemStage, World};
 
 const LARGE_HIERARCHY_NODE_COUNT: usize = 256;
 
+#[path = "derived_state/checked_parent_chain.rs"]
 mod checked_parent_chain;
+#[path = "derived_state/hierarchy_behavior.rs"]
 mod hierarchy_behavior;
+#[path = "derived_state/hierarchy_rebuild.rs"]
 mod hierarchy_rebuild;
+#[path = "derived_state/projected_reads.rs"]
 mod projected_reads;
+#[path = "derived_state/protected_authored_authority.rs"]
 mod protected_authored_authority;
+#[path = "derived_state/protected_authority.rs"]
 mod protected_authority;
+#[path = "derived_state/runtime_freshness.rs"]
 mod runtime_freshness;
+#[path = "derived_state/spawn_paths.rs"]
 mod spawn_paths;
+#[path = "derived_state/subtree_cycle_walk.rs"]
 mod subtree_cycle_walk;
+#[path = "derived_state/work_counters.rs"]
 mod work_counters;
 
 fn detached_node_record(id: u64, kind: NodeKind) -> NodeRecord {

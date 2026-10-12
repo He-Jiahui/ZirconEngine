@@ -396,5 +396,5 @@ pub(super) fn theme_display_name(source_display_name: &str, base_name: &str) -> 
 }
 
 #[cfg(test)]
-#[path = "tests/merge_optimization_tests.rs"]
+#[path = "tests/merge_perf.rs"]
 mod optimization_tests;

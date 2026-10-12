@@ -1,8 +1,12 @@
 //! 导航派发的共享契约：处理器通过上下文读取路由、返回决议，结果承接焦点与绑定回执。
 
+#[path = "context.rs"]
 mod context;
+#[path = "effect.rs"]
 mod effect;
+#[path = "invocation.rs"]
 mod invocation;
+#[path = "result.rs"]
 mod result;
 
 pub use context::UiNavigationDispatchContext;

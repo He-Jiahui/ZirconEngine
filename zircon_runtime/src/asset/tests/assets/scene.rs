@@ -18,10 +18,17 @@ use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::render::{CorePipelineKind, ProjectionMode, RenderCameraClearColor};
 use crate::core::framework::scene::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 
+#[path = "scene/camera.rs"]
 mod camera;
+#[path = "scene/foundation.rs"]
 mod foundation;
+#[path = "scene/lights.rs"]
 mod lights;
+#[path = "scene/management.rs"]
 mod management;
+#[path = "scene/physics_animation.rs"]
 mod physics_animation;
+#[path = "scene/post_process.rs"]
 mod post_process;
+#[path = "scene/script_bindings.rs"]
 mod script_bindings;

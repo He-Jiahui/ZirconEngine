@@ -14,6 +14,7 @@ use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::graphics::WgpuRenderFramework;
 use zircon_runtime::scene::world::World;
 
+#[path = "support/mod.rs"]
 mod support;
 
 #[test]

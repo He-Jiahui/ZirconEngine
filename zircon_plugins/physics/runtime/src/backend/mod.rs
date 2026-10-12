@@ -1,17 +1,27 @@
 //! 组织物理后端私有实现与 crate 公共 API：按 feature 纳入 Jolt，重导出稳定接口，其余解析和选择 helper 留在 crate 内。
 
+#[path = "builtin/mod.rs"]
 pub(crate) mod builtin;
 
 #[cfg(feature = "backend-jolt")]
+#[path = "jolt/mod.rs"]
 mod jolt;
 
+#[path = "contract.rs"]
 mod contract;
+#[path = "error.rs"]
 mod error;
+#[path = "handle_pool.rs"]
 mod handle_pool;
+#[path = "handles.rs"]
 mod handles;
+#[path = "mass_properties.rs"]
 mod mass_properties;
+#[path = "selection.rs"]
 mod selection;
+#[path = "types.rs"]
 mod types;
+#[path = "validation.rs"]
 mod validation;
 
 pub use builtin::BuiltinPhysicsBackend;

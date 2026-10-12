@@ -9,10 +9,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STREAMS_MODULE = REPO_ROOT / (
-    "zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams.rs"
+    "zircon_runtime/src/core/render/virtual_geometry_debug_snapshot_streams.rs"
 )
 TYPES_MODULE = REPO_ROOT / (
-    "zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams/types.rs"
+    "zircon_runtime/src/core/render/virtual_geometry_debug_snapshot_streams/types.rs"
 )
 
 

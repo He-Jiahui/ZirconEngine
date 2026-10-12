@@ -107,5 +107,5 @@ pub fn publish_render_artifact_cook_output(
 }
 
 #[cfg(test)]
-#[path = "cook_publication/tests/cases.rs"]
+#[path = "../../store/tests/cook_publication_cases.rs"]
 mod tests;

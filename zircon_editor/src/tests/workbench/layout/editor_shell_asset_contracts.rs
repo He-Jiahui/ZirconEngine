@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::design_tokens::{EditorChromeTokens, EditorDesi
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
 const WORKBENCH_SKELETON_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui"
+    "../../../../assets/ui/editor/workbench/primitives/feedback/skeleton.zui"
 );
 const UNREAL_LEVEL_EDITOR_ASSET: &str =
     include_str!("../../../../assets/ui/editor/unreal/level_editor_window.zui");
@@ -24,15 +24,15 @@ const UNREAL_OUTLINER_ASSET: &str =
 const UNREAL_DETAILS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/unreal/components/details.zui");
 const COMMAND_PALETTE_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/floating/workbench_command_palette.zui"
+    "../../../../assets/ui/editor/components/workbench/floating/command_palette.zui"
 );
 const PREFERENCES_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/floating/workbench_preferences.zui"
+    "../../../../assets/ui/editor/components/workbench/floating/preferences.zui"
 );
 const UI_ASSET_EDITOR_ASSET: &str =
     include_str!("../../../../assets/ui/editor/ui_asset_editor.zui");
 const WORKBENCH_UI_ASSET_ACTION_BAR_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui"
+    "../../../../assets/ui/editor/workbench/chrome/ui_asset_action_bar.zui"
 );
 const WORKBENCH_MENU_POPUP_ASSET: &str =
     include_str!("../../../../assets/ui/editor/workbench_menu_popup.zui");
@@ -40,6 +40,7 @@ const UNREAL_DOCK_HEADER_ASSET: &str =
     include_str!("../../../../assets/ui/editor/unreal/components/dock_header.zui");
 const WELCOME_ASSET: &str = include_str!("../../../../assets/ui/editor/welcome.zui");
 
+#[path = "../../layout/editor_shell_asset_contracts/ui_asset_editor.rs"]
 mod ui_asset_editor;
 
 #[test]

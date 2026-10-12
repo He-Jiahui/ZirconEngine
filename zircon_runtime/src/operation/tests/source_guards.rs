@@ -235,7 +235,7 @@ fn changed_navigation_operation_tests_use_deadlines_and_real_owner_state() {
     assert!(!source.contains("for _ in 0..4096"));
     assert!(source.contains("clear then restore must publish a fresh loaded identity"));
     let generation_tests = include_str!(
-        "../../../../zircon_plugins/navigation/runtime/src/manager/bake/tests/geometry_provider_generation_tests.rs"
+        "../../../../zircon_plugins/navigation/runtime/src/tests/geometry_provider_generate.rs"
     );
     assert!(generation_tests
         .contains("a fresh project generation should publish after A to empty to A"));

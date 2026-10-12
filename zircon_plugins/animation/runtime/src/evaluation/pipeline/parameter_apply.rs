@@ -24,7 +24,7 @@ use super::requests::{
 };
 
 #[cfg(test)]
-#[path = "parameter_apply/tests/performance_tests.rs"]
+#[path = "../tests/parameter_apply_perf.rs"]
 mod optimization_batch_20260830cp_tests;
 
 /// Persistent typed projection for the animation system. It caches only ECS
@@ -677,5 +677,5 @@ fn skeleton_asset_revision(assets: Option<&ProjectAssetManager>, id: AssetId) ->
 }
 
 #[cfg(test)]
-#[path = "tests/parameter_apply.rs"]
+#[path = "../tests/parameter_apply.rs"]
 mod tests;

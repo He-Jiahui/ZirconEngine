@@ -13,6 +13,7 @@ use crate::core::framework::animation::{
     AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
 };
 
+#[path = "gltf_animation_subassets/target_path.rs"]
 mod target_path;
 
 use target_path::skeleton_target_ids_by_node;
@@ -174,7 +175,7 @@ pub fn add_gltf_animation_and_skin_subassets(
 }
 
 #[cfg(test)]
-#[path = "gltf_animation_subassets/tests/optimization_batch_ir_runtime628_tests.rs"]
+#[path = "gltf_animation_subassets/tests/perf.rs"]
 mod optimization_batch_ir_runtime628_tests;
 
 fn skin_index_for_animation(
@@ -755,5 +756,5 @@ fn push_dependency_once(
 }
 
 #[cfg(test)]
-#[path = "tests/gltf_animation_subassets_plugins07_hierarchy_depth_stack_tests.rs"]
+#[path = "../../../tests/gltf_animation_subassets_plugins07_hierarchy_depth.rs"]
 mod plugins07_hierarchy_depth_stack_tests;

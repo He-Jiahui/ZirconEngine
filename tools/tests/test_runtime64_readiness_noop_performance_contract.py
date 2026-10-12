@@ -8,11 +8,11 @@ READINESS = (
     / "zircon_runtime/crates/zr_resource/src/manager/readiness_projection.rs"
 )
 READINESS_TESTS = (
-    ROOT / "zircon_runtime/crates/zr_resource/src/manager/readiness_projection/tests/cases.rs"
+    ROOT / "zircon_runtime/crates/zr_resource/src/manager/tests/readiness_project_cases.rs"
 )
 READINESS_BEHAVIOR_TESTS = (
     ROOT
-    / "zircon_runtime/crates/zr_resource/src/manager/readiness_projection/tests/behavior_red.rs"
+    / "zircon_runtime/crates/zr_resource/src/manager/tests/behavior_red.rs"
 )
 
 

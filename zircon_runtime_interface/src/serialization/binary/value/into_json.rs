@@ -189,5 +189,5 @@ fn validate_string(value: &str) -> Result<(), BinaryValueError> {
 }
 
 #[cfg(test)]
-#[path = "tests/into_json_performance_tests.rs"]
+#[path = "tests/into_json_perf.rs"]
 mod performance_tests;

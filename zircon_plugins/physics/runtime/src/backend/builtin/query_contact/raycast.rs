@@ -1,6 +1,10 @@
+#[path = "raycast/aabb.rs"]
 mod aabb;
+#[path = "../raycast/capsule.rs"]
 mod capsule;
+#[path = "../raycast/quadratic.rs"]
 mod quadratic;
+#[path = "../raycast/sphere.rs"]
 mod sphere;
 
 use zircon_runtime::core::framework::physics::{

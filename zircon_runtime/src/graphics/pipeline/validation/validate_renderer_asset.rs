@@ -41,5 +41,5 @@ pub(in crate::graphics::pipeline) fn validate_renderer_asset(
 }
 
 #[cfg(test)]
-#[path = "tests/validate_renderer_asset_optimization_tests.rs"]
+#[path = "../tests/validate_renderer_asset_perf.rs"]
 mod optimization_tests;

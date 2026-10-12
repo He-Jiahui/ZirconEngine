@@ -5,7 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COPY = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/"
+    "zircon_editor/src/ui/retained/contract/presenter/"
     "softbuffer/surface_io/copy.rs"
 )
 PLAN = REPO_ROOT / (

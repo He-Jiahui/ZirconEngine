@@ -47,5 +47,5 @@ impl RuntimeUiSurfaceSet {
 }
 
 #[cfg(test)]
-#[path = "tests/host_request_drain_optimization_batch_20260830cp_runtime_tests.rs"]
+#[path = "../tests/host_request_drain_perf.rs"]
 mod optimization_batch_20260830cp_runtime_tests;

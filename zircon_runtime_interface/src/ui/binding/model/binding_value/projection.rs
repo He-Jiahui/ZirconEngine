@@ -5,7 +5,7 @@ use serde_json::{json, Map, Value};
 use super::{types::quoted_into, UiBindingValue};
 
 #[cfg(test)]
-#[path = "projection/tests/native_repr_performance_tests.rs"]
+#[path = "../tests/native_repr_perf.rs"]
 mod native_repr_performance_tests;
 
 impl UiBindingValue {

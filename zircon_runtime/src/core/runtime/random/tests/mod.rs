@@ -1,7 +1,12 @@
+#[path = "algorithm.rs"]
 mod algorithm;
+#[path = "bounded.rs"]
 mod bounded;
+#[path = "registry.rs"]
 mod registry;
+#[path = "retention.rs"]
 mod retention;
+#[path = "service.rs"]
 mod service;
 
 use zr_contracts::random::{

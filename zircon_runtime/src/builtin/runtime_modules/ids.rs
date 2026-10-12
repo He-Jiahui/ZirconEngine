@@ -1,5 +1,7 @@
 #[cfg(feature = "native-host")]
+#[path = "ids/module_id.rs"]
 mod module_id;
+#[path = "ids/plugin_id.rs"]
 mod plugin_id;
 
 #[cfg(feature = "native-host")]

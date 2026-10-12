@@ -198,5 +198,5 @@ fn append_resolved_stylesheets(
 
 // 普通回归守住顺序和空输入；ignored 计时只衡量最终 token 所有权移交，不能代替多实例样式域的语义验证。
 #[cfg(test)]
-#[path = "tests/ui_document_compiler_performance_tests.rs"]
+#[path = "tests/document_compiler_perf.rs"]
 mod performance_tests;

@@ -244,5 +244,5 @@ impl Drop for OutputCaptureCleanup {
 mod tests;
 
 #[cfg(test)]
-#[path = "output_capture/tests/capacity_tests.rs"]
+#[path = "../output_capture/tests/capacity.rs"]
 mod capacity_tests;

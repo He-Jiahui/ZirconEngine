@@ -1,6 +1,10 @@
+#[path = "cursor.rs"]
 mod cursor;
+#[path = "id.rs"]
 mod id;
+#[path = "queue.rs"]
 mod queue;
+#[path = "store.rs"]
 mod store;
 
 pub use cursor::{MessageCursor, MessageReadIter};

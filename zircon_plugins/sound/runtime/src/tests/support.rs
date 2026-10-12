@@ -1,7 +1,11 @@
 //! 本组测试挂接相同运行时边界的夹具和行为用例；具体限制由子模块的入口断言界定。
+#[path = "support/assertions.rs"]
 mod assertions;
+#[path = "support/assets.rs"]
 mod assets;
+#[path = "support/effects.rs"]
 mod effects;
+#[path = "support/listener.rs"]
 mod listener;
 
 pub(super) use assertions::{assert_sample_near, assert_samples_near};

@@ -1,4 +1,6 @@
+#[path = "attrs.rs"]
 mod attrs;
+#[path = "op_code.rs"]
 mod op_code;
 
 pub use attrs::{NnConv2dAttrs, NnGemmAttrs, NnOpAttrs, NnOpAttrsError, NnPool2dAttrs};

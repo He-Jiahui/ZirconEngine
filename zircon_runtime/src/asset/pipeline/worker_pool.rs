@@ -8,9 +8,13 @@ use crate::asset::types::{AssetRequest, CpuAssetPayload};
 use crate::core::runtime::tasks::{TaskPool, TaskPoolKind, TaskTimer};
 use crate::core::{CoreError, CoreResult};
 
+#[path = "worker_pool/completion.rs"]
 mod completion;
+#[path = "worker_pool/diagnostics.rs"]
 mod diagnostics;
+#[path = "worker_pool/options.rs"]
 mod options;
+#[path = "worker_pool/payload.rs"]
 mod payload;
 
 use completion::{

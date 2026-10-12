@@ -1,6 +1,10 @@
+#[path = "call_site_error.rs"]
 mod call_site_error;
+#[path = "compiled_call_site.rs"]
 mod compiled_call_site;
+#[path = "param_layout.rs"]
 mod param_layout;
+#[path = "script_call_table.rs"]
 mod script_call_table;
 
 pub use call_site_error::CallSiteError;

@@ -355,4 +355,5 @@ fn tag_to_string(tag: Tag) -> String {
 }
 
 #[cfg(test)]
+#[path = "../parse_sfnt/tests/mod.rs"]
 mod tests;

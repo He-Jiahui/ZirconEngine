@@ -4,12 +4,19 @@
 //! ownership remain outside this module. Its artifact replaces string graph edges with indexes so
 //! runtime evaluation and editor preview can share the same validated topology later.
 
+#[path = "diagnostic.rs"]
 mod diagnostic;
+#[path = "graph.rs"]
 mod graph;
+#[path = "parameter.rs"]
 mod parameter;
+#[path = "product.rs"]
 mod product;
+#[path = "schema.rs"]
 mod schema;
+#[path = "sequence/mod.rs"]
 pub mod sequence;
+#[path = "state_machine/mod.rs"]
 pub mod state_machine;
 
 pub use diagnostic::{

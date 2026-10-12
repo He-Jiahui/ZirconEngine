@@ -1,9 +1,14 @@
 //! 内置节点表只声明 ID、类别与语义；目录负责将其注册为可编译的实现槽位。
 
+#[path = "composite.rs"]
 mod composite;
+#[path = "decorator.rs"]
 mod decorator;
+#[path = "integration.rs"]
 mod integration;
+#[path = "service.rs"]
 mod service;
+#[path = "task.rs"]
 mod task;
 
 #[cfg(test)]

@@ -24,5 +24,5 @@ impl FloatingWindowModel {
 }
 
 #[cfg(test)]
-#[path = "tests/floating_window_focus_optimization_batch_20260830cl_editor_tests.rs"]
+#[path = "tests/floating_window_focus_perf.rs"]
 mod optimization_batch_20260830cl_editor_tests;

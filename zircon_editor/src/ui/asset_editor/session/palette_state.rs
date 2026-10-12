@@ -433,5 +433,5 @@ impl UiAssetEditorSession {
 mod tests;
 
 #[cfg(test)]
-#[path = "palette_state/tests/owned_document_move_tests.rs"]
+#[path = "tests/owned_document_move.rs"]
 mod owned_document_move_tests;

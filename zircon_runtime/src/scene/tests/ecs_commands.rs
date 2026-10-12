@@ -110,6 +110,9 @@ impl Command for EnqueueThenPanic {
     }
 }
 
+#[path = "ecs_commands/checked_reparent.rs"]
 mod checked_reparent;
+#[path = "ecs_commands/packed_arena.rs"]
 mod packed_arena;
+#[path = "ecs_commands/structural_batches.rs"]
 mod structural_batches;

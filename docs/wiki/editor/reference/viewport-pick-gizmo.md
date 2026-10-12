@@ -7,7 +7,7 @@ related_code:
   - zircon_editor/src/core/gateway/session/viewport_pick.rs
   - zircon_editor/src/ui/retained_host/viewport
 implementation_files:
-  - zircon_editor/src/scene/viewport
+  - zircon_editor/src/scene
   - zircon_editor/src/core/gateway/viewport_pick_route.rs
 plan_sources:
   - user: 2026-09-09 完善 ZirconEngine 公开接口、机制案例、教程与最佳实践

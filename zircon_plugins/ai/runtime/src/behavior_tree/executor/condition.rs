@@ -19,7 +19,7 @@ use crate::manager::parameters::{
 use super::CompiledBehaviorNode;
 
 #[cfg(test)]
-#[path = "condition/tests/allocation_tests.rs"]
+#[path = "tests/allocation.rs"]
 mod allocation_tests;
 
 pub(super) fn decorator_condition_passes(

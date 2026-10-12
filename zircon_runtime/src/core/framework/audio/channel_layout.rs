@@ -700,5 +700,5 @@ impl AudioChannelLayout {
 
 // 将离散名称的行为与源码结构检查挂到私有测试模块；性能样本保持独立的忽略测试入口。
 #[cfg(test)]
-#[path = "channel_layout/tests/allocation_free_discrete_name_tests.rs"]
+#[path = "tests/alloc_free_discrete_name.rs"]
 mod allocation_free_discrete_name_tests;

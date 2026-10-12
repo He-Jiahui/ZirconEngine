@@ -13,7 +13,7 @@ def source(relative: str) -> str:
 class ShellPointerSingleReleaseReceiptPerformanceContract(unittest.TestCase):
     def test_drag_target_sync_returns_the_typed_route_receipt(self):
         drag_drop = source(
-            "zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop.rs"
+            "zircon_editor/src/ui/retained/app/workspace_docking/drag_drop.rs"
         )
 
         self.assertIn(
@@ -25,10 +25,10 @@ class ShellPointerSingleReleaseReceiptPerformanceContract(unittest.TestCase):
 
     def test_drag_release_routes_once_and_passes_the_receipt_to_resolution(self):
         drag_drop = source(
-            "zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop.rs"
+            "zircon_editor/src/ui/retained/app/workspace_docking/drag_drop.rs"
         )
         route = source(
-            "zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop/route.rs"
+            "zircon_editor/src/ui/retained/app/workspace_docking/drag_drop/route.rs"
         )
 
         release = drag_drop.split("fn dispatch_drag_drop_from_pointer", 1)[1]
@@ -39,7 +39,7 @@ class ShellPointerSingleReleaseReceiptPerformanceContract(unittest.TestCase):
 
     def test_drop_resolution_borrows_the_committed_layout_model_and_frames(self):
         route = source(
-            "zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop/route.rs"
+            "zircon_editor/src/ui/retained/app/workspace_docking/drag_drop/route.rs"
         )
 
         self.assertIn("pointer_route: Option<HostShellPointerRoute>", route)
@@ -90,7 +90,7 @@ class ShellPointerSingleReleaseReceiptPerformanceContract(unittest.TestCase):
             "drawer_resize/capture.rs"
         )
         bridge = source(
-            "zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs"
+            "zircon_editor/src/ui/retained/shell_pointer/bridge.rs"
         )
 
         self.assertIn("cancel_resize", capture)

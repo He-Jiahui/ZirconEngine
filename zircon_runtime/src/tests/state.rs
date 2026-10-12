@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 use crate::core::runtime::state_machine::{NextState, OnEnter, OnExit, OnTransition, StateSpec};
 use crate::core::CoreRuntime;
 
+#[path = "state/hook_index.rs"]
 mod hook_index;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

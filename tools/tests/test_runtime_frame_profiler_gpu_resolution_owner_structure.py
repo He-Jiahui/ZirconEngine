@@ -12,11 +12,11 @@ class RuntimeFrameProfilerGpuResolutionOwnerStructureTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         owner_path = (
             repo_root
-            / "zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs"
+            / "zircon_runtime/src/graphics/runtime/framework/frame_profiler.rs"
         )
         child_path = (
             repo_root
-            / "zircon_runtime/src/graphics/runtime/render_framework/frame_profiler/gpu_resolution.rs"
+            / "zircon_runtime/src/graphics/runtime/framework/frame_profiler/gpu_resolution.rs"
         )
 
         owner = owner_path.read_text(encoding="utf-8")
@@ -71,8 +71,8 @@ class RuntimeFrameProfilerGpuResolutionOwnerStructureTests(unittest.TestCase):
 
         runtime_plan = mirrors[0].read_text(encoding="utf-8")
         for current_path in (
-            "zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/frame_profiler/gpu_resolution.rs",
+            "zircon_runtime/src/graphics/runtime/framework/frame_profiler.rs",
+            "zircon_runtime/src/graphics/runtime/framework/frame_profiler/gpu_resolution.rs",
             "tools/tests/test_runtime_frame_profiler_gpu_resolution_owner_structure.py",
         ):
             self.assertIn(current_path, runtime_plan)

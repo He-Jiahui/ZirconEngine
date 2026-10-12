@@ -22,8 +22,11 @@ use zircon_runtime_interface::ui::{
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
 
+#[path = "accessibility_widget_actions/disclosure_actions.rs"]
 mod disclosure_actions;
+#[path = "accessibility_widget_actions/popup_actions.rs"]
 mod popup_actions;
+#[path = "accessibility_widget_actions/tooltip_menu.rs"]
 mod tooltip_menu;
 
 fn id(value: u64) -> UiNodeId {

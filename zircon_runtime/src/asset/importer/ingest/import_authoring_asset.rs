@@ -99,5 +99,5 @@ fn asset_authoring_parse_error(error: AssetAuthoringError) -> AssetImportError {
 }
 
 #[cfg(test)]
-#[path = "tests/import_authoring_asset_plugins07_authoring_source_tests.rs"]
+#[path = "../../../tests/import_authoring_asset_plugins07_authoring_source.rs"]
 mod plugins07_authoring_source_tests;

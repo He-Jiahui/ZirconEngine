@@ -13,13 +13,21 @@ use zircon_runtime::core::framework::net::{
     NetWebSocketListenerDescriptor,
 };
 
+#[path = "backend/client.rs"]
 mod client;
+#[path = "backend/connection.rs"]
 mod connection;
+#[path = "backend/frame.rs"]
 mod frame;
+#[path = "backend/handshake.rs"]
 mod handshake;
+#[path = "backend/listener.rs"]
 mod listener;
+#[path = "backend/reader.rs"]
 mod reader;
+#[path = "backend/security.rs"]
 mod security;
+#[path = "backend/stream.rs"]
 mod stream;
 
 #[derive(Clone, Debug, Default)]

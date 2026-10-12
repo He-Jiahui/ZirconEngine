@@ -10,7 +10,9 @@
 //! WGPU context for same-device composition. The deterministic host mirror exists only for RHI
 //! contract tests.
 
+#[path = "bind_group_validation.rs"]
 mod bind_group_validation;
+#[path = "capabilities.rs"]
 mod capabilities;
 #[cfg(test)]
 #[path = "tests/command_validation.rs"]
@@ -18,19 +20,33 @@ mod command_validation;
 #[cfg(test)]
 #[path = "tests/device.rs"]
 mod device;
+#[path = "device_fault.rs"]
 mod device_fault;
+#[path = "device_profile.rs"]
 mod device_profile;
+#[path = "gpu_diagnostic_query_frame.rs"]
 mod gpu_diagnostic_query_frame;
+#[path = "gpu_pass_timer.rs"]
 mod gpu_pass_timer;
+#[path = "gpu_pipeline_statistics.rs"]
 mod gpu_pipeline_statistics;
+#[path = "gpu_readback_queue/mod.rs"]
 mod gpu_readback_queue;
+#[path = "indirect_validation.rs"]
 mod indirect_validation;
+#[path = "pipeline_validation.rs"]
 mod pipeline_validation;
+#[path = "production/mod.rs"]
 mod production;
+#[path = "render_pass_validation.rs"]
 mod render_pass_validation;
+#[path = "resource_validation.rs"]
 mod resource_validation;
+#[path = "texture_copy.rs"]
 mod texture_copy;
+#[path = "texture_view.rs"]
 mod texture_view;
+#[path = "ui_surface.rs"]
 mod ui_surface;
 
 pub use capabilities::wgpu_backend_caps;
@@ -77,4 +93,5 @@ pub use ui_surface::{
 use device::{DeterministicRhiContractCommandList, DeterministicRhiContractDevice};
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

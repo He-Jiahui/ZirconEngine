@@ -44,18 +44,18 @@ RUNTIME_13_SOURCE_FILES = (
     "zircon_runtime/src/script/vm/runtime_context.rs",
 )
 RUNTIME_13_TEST_FILES = (
-    "zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs",
-    "zircon_runtime/src/tests/runtime_absorption/script_binding.rs",
+    "zircon_runtime/src/tests/contracts/script_host_ledger.rs",
+    "zircon_runtime/src/tests/contracts/script_binding.rs",
     "zircon_runtime/src/script/vm/gameplay_host/tests.rs",
 )
 RUNTIME_13_GUARD_FILES = (
-    "zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs",
-    "zircon_runtime/src/tests/runtime_absorption/script_binding.rs",
-    "zircon_runtime/src/tests/runtime_absorption/script_host_ledger/ledger.rs",
-    "zircon_runtime/src/tests/runtime_absorption/script_host_ledger/capability.rs",
-    "zircon_runtime/src/tests/runtime_absorption/script_host_ledger/ecs_facade.rs",
-    "zircon_runtime/src/tests/runtime_absorption/script_binding/gameplay_host.rs",
-    "zircon_runtime/src/tests/runtime_absorption/script_binding/mirror_docs.rs",
+    "zircon_runtime/src/tests/contracts/script_host_ledger.rs",
+    "zircon_runtime/src/tests/contracts/script_binding.rs",
+    "zircon_runtime/src/tests/contracts/script_host_ledger/ledger.rs",
+    "zircon_runtime/src/tests/contracts/script_host_ledger/capability.rs",
+    "zircon_runtime/src/tests/contracts/script_host_ledger/ecs_facade.rs",
+    "zircon_runtime/src/tests/contracts/script_binding/gameplay_host.rs",
+    "zircon_runtime/src/tests/contracts/script_binding/mirror_docs.rs",
     "zircon_runtime/src/script/vm/gameplay_host/tests/combat_lifecycle.rs",
 )
 FIXED_HOST_MODULES = (
@@ -202,10 +202,10 @@ def script_binding_boundary_audit(root: Path) -> dict[str, object]:
     bridge_host = root / "zircon_runtime/src/script/vm/host/bridge_host_module.rs"
     runtime_context = root / "zircon_runtime/src/script/vm/runtime_context.rs"
     script_host_ledger_guard = (
-        root / "zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs"
+        root / "zircon_runtime/src/tests/contracts/script_host_ledger.rs"
     )
     script_binding_guard = (
-        root / "zircon_runtime/src/tests/runtime_absorption/script_binding.rs"
+        root / "zircon_runtime/src/tests/contracts/script_binding.rs"
     )
     gameplay_host_tests = root / "zircon_runtime/src/script/vm/gameplay_host/tests.rs"
     runtime_13_plan = (
@@ -290,7 +290,7 @@ def script_binding_boundary_audit(root: Path) -> dict[str, object]:
         file
         for file in test_files
         if (
-            file["path"] == "zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs"
+            file["path"] == "zircon_runtime/src/tests/contracts/script_host_ledger.rs"
             and file["lines"] > SCRIPT_LEDGER_TEST_MAX_LINES
         )
         or (

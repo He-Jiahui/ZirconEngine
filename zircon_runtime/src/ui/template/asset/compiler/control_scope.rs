@@ -180,7 +180,7 @@ fn duplicate_control_id_detail(duplicates: &BTreeMap<String, usize>) -> String {
 }
 
 #[cfg(test)]
-#[path = "control_scope/tests/duplicate_detail_single_buffer_tests.rs"]
+#[path = "../../../asset/compiler/tests/duplicate_detail_single_buffer.rs"]
 mod duplicate_detail_single_buffer_tests;
 
 fn probe_control_reference(

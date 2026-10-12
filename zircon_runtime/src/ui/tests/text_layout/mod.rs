@@ -11,10 +11,15 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
+#[path = "alignment.rs"]
 mod alignment;
+#[path = "direction.rs"]
 mod direction;
+#[path = "edit_state.rs"]
 mod edit_state;
+#[path = "overflow.rs"]
 mod overflow;
+#[path = "wrapping.rs"]
 mod wrapping;
 
 fn visible_state() -> UiStateFlags {

@@ -165,5 +165,5 @@ fn push_availability_diagnostic_lines(
 }
 
 #[cfg(test)]
-#[path = "availability_report/tests/capacity_tests.rs"]
+#[path = "availability_report/tests/capacity.rs"]
 mod capacity_tests;

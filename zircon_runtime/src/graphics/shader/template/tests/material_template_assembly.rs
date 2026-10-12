@@ -112,7 +112,7 @@ fn shaded_fragment_templates_apply_one_shared_double_sided_surface_frame() {
     for template in [
         include_str!("../../wgsl/zr_template_forward.wgsl"),
         include_str!("../../wgsl/zr_template_deferred_gbuffer.wgsl"),
-        include_str!("../../wgsl/zr_template_forward_environment_only_pbr.wgsl"),
+        include_str!("../../../wgsl/zr_template_forward_environment_only_pbr.wgsl"),
         include_str!("../../wgsl/zr_template_gbuffer.wgsl"),
     ] {
         assert!(template.contains("@builtin(front_facing) front_facing: bool"));
@@ -222,7 +222,7 @@ fn render_transmission_validates_viewport_local_projection_for_nonzero_viewport_
 fn render_lightmaps_share_metallic_diffuse_energy_across_template_paths() {
     let forward = include_str!("../../wgsl/zr_template_forward.wgsl");
     let deferred = include_str!("../../wgsl/zr_template_deferred_gbuffer.wgsl");
-    let fallback = include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl");
+    let fallback = include_str!("../../../scene/renderer/mesh/shaders/fallback_mesh.wgsl");
 
     for (label, source) in [("forward", forward), ("deferred", deferred)] {
         assert!(

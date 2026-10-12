@@ -7,7 +7,7 @@ import { cloneZuiDocument, parseZuiDocument } from './zui-document';
 describe('explicit review host theme dependencies', () => {
   const root = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../../', import.meta.url)));
   const assetPath =
-    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui';
+    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui';
   const themePath = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
   const read = (path: string) =>
     parseZuiDocument(readFileSync(`${root}/${path}`, 'utf8')).document;

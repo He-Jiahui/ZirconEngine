@@ -142,7 +142,7 @@ describe('declared component data scenarios', () => {
     const source: ZuiDocument = {
       asset: {
         kind: 'component',
-        id: 'res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui',
+        id: 'res://ui/editor/workbench/primitives/data/table_row.zui',
         version: 2,
       },
       components: { WorkbenchTableRow: { root: 'root' } },
@@ -160,7 +160,7 @@ describe('declared component data scenarios', () => {
       },
     };
     const cases = defaultReviewCases(
-      'zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui',
+      'zircon_editor/assets/ui/editor/workbench/primitives/data/table_row.zui',
       'component',
       source,
     );
@@ -294,7 +294,7 @@ describe('declared component data scenarios', () => {
         root: {
           component: 'Snackbar',
           penpot_prefab_source:
-            'zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_toast.zui#WorkbenchToast',
+            'zircon_editor/assets/ui/editor/workbench/primitives/feedback/toast.zui#WorkbenchToast',
           props: { text: 'Saved', open: false, popup_open: false },
         },
       },

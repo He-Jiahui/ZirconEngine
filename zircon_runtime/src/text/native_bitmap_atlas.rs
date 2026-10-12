@@ -1,10 +1,18 @@
+#[path = "native_bitmap_atlas/frame.rs"]
 mod frame;
+#[path = "native_bitmap_atlas/glyph_run.rs"]
 mod glyph_run;
+#[path = "native_bitmap_atlas/handoff.rs"]
 mod handoff;
+#[path = "native_bitmap_atlas/report.rs"]
 mod report;
+#[path = "native_bitmap_atlas/retry_frame.rs"]
 mod retry_frame;
+#[path = "native_bitmap_atlas/source_cache.rs"]
 mod source_cache;
+#[path = "native_bitmap_atlas/source_image.rs"]
 mod source_image;
+#[path = "native_bitmap_atlas/storage.rs"]
 mod storage;
 
 #[cfg(test)]

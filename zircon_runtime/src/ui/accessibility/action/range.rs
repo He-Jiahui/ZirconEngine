@@ -13,7 +13,9 @@ use super::result::unsupported_role_action;
 use self::adjustment::adjustment_direction;
 use self::result::finish_adjust_value_mutation;
 
+#[path = "range/adjustment.rs"]
 mod adjustment;
+#[path = "range/result.rs"]
 mod result;
 
 // 滑块步进委托表面 range 契约解析最小值、最大值和步长；无障碍层只提供方向与来源身份。

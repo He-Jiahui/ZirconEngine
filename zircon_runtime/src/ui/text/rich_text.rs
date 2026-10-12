@@ -17,6 +17,7 @@ use zircon_runtime_interface::ui::surface::{
     UiRenderCommand, UiRichTextFormat, UiTextRange, UiTextRunKind,
 };
 
+#[path = "rich_text/link_hit.rs"]
 mod link_hit;
 
 pub(crate) use link_hit::link_at_layout_point;

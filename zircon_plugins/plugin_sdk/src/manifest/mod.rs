@@ -1,7 +1,12 @@
+#[path = "defaults.rs"]
 mod defaults;
+#[path = "feature_bundle_builder.rs"]
 mod feature_bundle_builder;
+#[path = "importer_runtime.rs"]
 mod importer_runtime;
+#[path = "package_builder.rs"]
 mod package_builder;
+#[path = "plugin_module_builder.rs"]
 mod plugin_module_builder;
 
 pub use defaults::{default_export_packaging, default_supported_platforms, SDK_API_VERSION};

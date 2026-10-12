@@ -1,3 +1,4 @@
+#[path = "maturity/raw.rs"]
 mod raw;
 
 pub(in super::super) fn maturity_from_plugin_toml(

@@ -1,8 +1,14 @@
+#[path = "action_ids.rs"]
 mod action_ids;
+#[path = "localized_setting.rs"]
 mod localized_setting;
+#[path = "persistence_health_projection.rs"]
 mod persistence_health_projection;
+#[path = "settings_localization_domain.rs"]
 mod settings_localization_domain;
+#[path = "settings_navigation_category.rs"]
 mod settings_navigation_category;
+#[path = "settings_window_projection/mod.rs"]
 mod settings_window_projection;
 
 pub(crate) use action_ids::{

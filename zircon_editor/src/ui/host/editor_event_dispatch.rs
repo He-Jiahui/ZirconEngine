@@ -865,5 +865,5 @@ fn ui_binding_value_to_json(value: &UiBindingValue) -> Value {
 }
 
 #[cfg(test)]
-#[path = "tests/editor_event_dispatch_binding_dispatch_error_tests.rs"]
+#[path = "tests/editor_event_dispatch_binding_dispatch_error.rs"]
 mod binding_dispatch_error_tests;

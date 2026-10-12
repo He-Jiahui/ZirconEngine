@@ -284,5 +284,5 @@ fn table_column_width_changed(previous: f64, next: f64) -> bool {
 }
 
 #[cfg(test)]
-#[path = "tests/resize_optimization_tests.rs"]
+#[path = "../../table/tests/resize_perf.rs"]
 mod optimization_tests;

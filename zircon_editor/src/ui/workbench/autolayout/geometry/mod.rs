@@ -1,11 +1,20 @@
+#[path = "compute.rs"]
 mod compute;
+#[path = "floating_window_frames.rs"]
 mod floating_window_frames;
+#[path = "region_frames.rs"]
 mod region_frames;
+#[path = "resolved_region_frames.rs"]
 mod resolved_region_frames;
+#[path = "side_width_allocation.rs"]
 mod side_width_allocation;
+#[path = "splitter_frames.rs"]
 mod splitter_frames;
+#[path = "vertical_bands.rs"]
 mod vertical_bands;
+#[path = "viewport_content_frame.rs"]
 mod viewport_content_frame;
+#[path = "window_minimums.rs"]
 mod window_minimums;
 
 pub use compute::{

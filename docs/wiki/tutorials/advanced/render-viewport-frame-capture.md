@@ -1,17 +1,17 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
+  - zircon_runtime/src/graphics/runtime/framework/mod.rs
   - zircon_editor/src/core/play/controller/preview_routing.rs
   - zircon_editor/src/core/play/preview_frame.rs
   - zircon_runtime/src/core/runtime/runtime.rs
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
+  - zircon_runtime/src/graphics/runtime/framework/mod.rs
   - zircon_editor/src/core/play/controller/preview_routing.rs
 plan_sources:
   - user: 2026-09-09 扩充 ZirconEngine 公开接口教程、机制案例与最佳实践
 tests:
   - zircon_runtime/tests/virtual_geometry_extract_contract.rs
-  - zircon_editor/tests/integration_contracts/viewport_toolbar_template_projection.rs
+  - zircon_editor/tests/integration_contracts/viewport_toolbar_template_project.rs
 doc_type: workflow-detail
 ---
 

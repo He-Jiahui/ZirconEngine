@@ -8,8 +8,11 @@ use crate::core::resource::io::transaction::{
     PreparedFileWrite, TransactionFault, TransactionPhase,
 };
 
+#[path = "transaction/journal_owner.rs"]
 mod journal_owner;
+#[path = "transaction/recovery.rs"]
 mod recovery;
+#[path = "transaction/toml_evidence.rs"]
 mod toml_evidence;
 
 pub(in crate::asset::migration) const JOURNAL_DIRECTORY: &str = "asset-migration";

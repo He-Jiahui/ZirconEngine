@@ -17,12 +17,19 @@ use std::sync::Arc;
 use super::owner::PluginModuleId;
 use super::RuntimeExtensionRegistry;
 
+#[path = "register/bridge_registration.rs"]
 mod bridge_registration;
+#[path = "register/event_registration.rs"]
 mod event_registration;
+#[path = "register/metadata.rs"]
 mod metadata;
+#[path = "register/resource_registration.rs"]
 mod resource_registration;
+#[path = "register/runtime_core.rs"]
 mod runtime_core;
+#[path = "../register/runtime_scene_system_register.rs"]
 mod runtime_scene_system_registration;
+#[path = "register/system_registration.rs"]
 mod system_registration;
 
 pub(in crate::plugin::extension_registry) use event_registration::EventRegistration;
@@ -282,5 +289,5 @@ impl RuntimeExtensionRegistry {
 }
 
 #[cfg(test)]
-#[path = "tests/register_runtime_owner_key_tests.rs"]
+#[path = "tests/register_runtime_owner_key.rs"]
 mod runtime_owner_key_tests;

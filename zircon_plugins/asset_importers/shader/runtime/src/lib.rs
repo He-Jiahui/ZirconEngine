@@ -5,7 +5,9 @@ use zircon_runtime::asset::{
 };
 use zircon_runtime::core::framework::render::ShaderAssetKind;
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

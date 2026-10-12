@@ -43,7 +43,7 @@ HEADLESS_LIFECYCLE_ANCHORS = (
         "minimal_and_headless_profiles_skip_render_bridge_bootstrap",
     ),
     (
-        "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/headless_profiles.rs",
+        "zircon_runtime/src/tests/contracts/dynamic_api_session/headless_profiles.rs",
         "runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces",
     ),
     (

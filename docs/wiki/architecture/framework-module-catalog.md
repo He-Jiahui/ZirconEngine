@@ -6,8 +6,8 @@ related_code:
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_plugins/Cargo.toml
 implementation_files:
-  - zircon_runtime/src/core/framework
-  - zircon_runtime/src/builtin/runtime_modules
+  - zircon_runtime/src/core
+  - zircon_runtime/src/builtin
   - zircon_plugins
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
@@ -55,8 +55,8 @@ status: source-audited
 | `net` | 连接、传输、RPC、复制和网络诊断 | `NetManager`, `NetEndpoint`, `RpcPayloadSchema`, `SyncReplicationBudget` | `zircon_plugins/net` feature crates | 可选/实验 |
 | `physics` | 固定步模拟、碰撞查询、约束和触发器 | `PhysicsManager`, `PhysicsQueryInterface`, `PhysicsRayCastQuery`, `PhysicsWorldStepPlan` | `zircon_plugins/physics` | 可选/实验 |
 | `picking` | 指针命中、射线、pipeline 和后端能力 | `PickingBackend`, `PickingPipelineInput`, `PickingPointerEvent`, `PointerRay` | graphics/editor picking route | 已实现/异步 |
-| `platform` | target mode、宿主生命周期、窗口能力和偏好 | `RuntimeTargetMode`, `PlatformHostDescriptor`, `PlatformHostSnapshot`, `ApplicationLifecycleSnapshot` | `zircon_runtime/src/core/framework/platform`、app host | 已实现/按平台 |
-| `project` | 项目 manifest、导出 profile、插件选择和打包策略 | `ProjectManifest`, `ExportProfile`, `ProjectPluginSelection` | `zircon_runtime/src/asset/project`、`zircon_app` | 已实现/受限 |
+| `platform` | target mode、宿主生命周期、窗口能力和偏好 | `RuntimeTargetMode`, `PlatformHostDescriptor`, `PlatformHostSnapshot`, `ApplicationLifecycleSnapshot` | `zircon_runtime/src/core/platform`、app host | 已实现/按平台 |
+| `project` | 项目 manifest、导出 profile、插件选择和打包策略 | `ProjectManifest`, `ExportProfile`, `ProjectPluginSelection` | `zircon_runtime/src/asset`、`zircon_app` | 已实现/受限 |
 | `random` | 可重现随机流、seed、checkpoint 与 replay | `RandomSeedReceipt`, `RandomServiceCheckpoint`, `RandomState`, `RandomStreamCheckpoint` | `core::runtime::random` | 已实现 |
 | `render` | 帧抽取、视口、材质、灯光、环境和后处理 DTO | `RenderFramework`, `RenderFrameExtract` | `zircon_runtime/src/graphics`、RHI/WGPU | 已实现/高级能力可选 |
 | `scene` | Level、World、实体层级和场景生命周期 | `LevelManager`, `WorldHandle`, `SceneResource`, `SceneArtifactTicket` | `zircon_runtime/src/scene` | 已实现 |

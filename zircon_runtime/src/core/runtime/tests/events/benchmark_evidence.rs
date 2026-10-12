@@ -643,5 +643,5 @@ fn runtime02_admission_v2_contract_performance_evidence() {
     }
 }
 
-#[path = "benchmark_evidence/admission_contention.rs"]
+#[path = "../../../tests/events/benchmark_evidence/admission_contention.rs"]
 mod admission_contention;

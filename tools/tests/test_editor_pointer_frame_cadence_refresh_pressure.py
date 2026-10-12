@@ -10,7 +10,7 @@ from tools.analysis.performance.editor.editor_pointer_frame_cadence_refresh_pres
 
 ROOT = Path(__file__).resolve().parents[2]
 POINTER_DISPATCH = ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs"
+    "zircon_editor/src/ui/retained/dispatch/workbench/pointer.rs"
 )
 POINTER_FEEDBACK = ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
@@ -20,7 +20,7 @@ TEMPLATE_SURFACE = ROOT / (
     "zircon_editor/src/ui/workbench/reference/template_surface.rs"
 )
 EVENT_LOOP_REDRAW = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/redraw.rs"
 )
 UNREAL_INVALIDATION_ROOT = ROOT / (
     "dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/FastUpdate/"
@@ -91,13 +91,13 @@ class EditorPointerFrameCadenceRefreshPressureTests(unittest.TestCase):
         self.assertIn("frames_extract_skip_count", surface)
         self.assertIn("workbench_surface_extract_frames", surface)
 
-        tooltip = (ROOT / "zircon_editor/src/ui/retained_host/app/workbench_tooltip.rs").read_text(
+        tooltip = (ROOT / "zircon_editor/src/ui/retained/app/tooltip.rs").read_text(
             encoding="utf-8"
         )
         self.assertIn("effects.request_workbench_projection();", tooltip)
         self.assertNotIn("and_then(|changed|", tooltip)
 
-        feedback = (ROOT / "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/pointer_feedback.rs").read_text(
+        feedback = (ROOT / "zircon_editor/src/ui/retained/dispatch/templates/workbench/pointer_feedback.rs").read_text(
             encoding="utf-8"
         )
         self.assertIn("feedback_deferred_count", feedback)

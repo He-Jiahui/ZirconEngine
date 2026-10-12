@@ -48,6 +48,24 @@ fn reliable_udp_simulation_drops_and_reorders_packets_deterministically() {
 }
 
 #[test]
+fn zero_drop_interval_disables_dropping_even_when_bypassing_builder() {
+    let manager = NetReliableUdpRuntimeManager::default();
+    manager.set_simulation_profile(ReliableDatagramSimulationProfile {
+        drop_every_nth_packet: Some(0),
+        ..ReliableDatagramSimulationProfile::default()
+    });
+    let packets = manager
+        .enqueue_reliable_datagram("state", b"payload".to_vec())
+        .packets;
+
+    let delivery = manager.simulate_outbound_delivery(packets);
+
+    assert_eq!(delivery.delivered_packets.len(), 1);
+    assert!(delivery.dropped_packets.is_empty());
+    assert_eq!(manager.stats().dropped_packets, 0);
+}
+
+#[test]
 fn thirty_percent_loss_delivers_in_order() {
     let sender = NetReliableUdpRuntimeManager::new(ReliableDatagramConfig {
         resend_timeout_ms: 10,

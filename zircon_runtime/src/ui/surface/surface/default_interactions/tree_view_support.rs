@@ -507,9 +507,9 @@ fn int_attribute(metadata: &UiTemplateNodeMetadata, property: &str) -> Option<i6
 }
 
 #[cfg(test)]
-#[path = "tests/tree_view_support.rs"]
+#[path = "../tests/tree_view_support.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "tree_view_support/tests/capacity_tests.rs"]
+#[path = "../tree_view_support/tests/capacity.rs"]
 mod capacity_tests;

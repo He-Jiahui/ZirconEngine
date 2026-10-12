@@ -88,5 +88,5 @@ fn valid_weight(weight: Real) -> bool {
 }
 
 #[cfg(test)]
-#[path = "simulated_pose_blend/tests/performance_tests.rs"]
+#[path = "../../tests/simulated_pose_blend_perf.rs"]
 mod optimization_batch_20260830cw_tests;

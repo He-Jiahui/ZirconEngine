@@ -76,7 +76,7 @@ pub fn strip_wgsl_include_directives(source: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "module_import/tests/include_strip_tests.rs"]
+#[path = "tests/include_strip.rs"]
 mod include_strip_tests;
 
 pub fn is_generated_shader_module_token(token: &str) -> bool {
@@ -261,7 +261,7 @@ fn shader_module_segment(
 }
 
 #[cfg(test)]
-#[path = "module_import/tests/direct_path_tests.rs"]
+#[path = "tests/direct_path.rs"]
 mod direct_path_tests;
 
 fn terminal_directory_was_folded(path_segments: &[String]) -> bool {

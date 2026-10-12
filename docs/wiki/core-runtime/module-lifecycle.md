@@ -14,8 +14,8 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/architecture/core-runtime-service-registry.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/activation
-  - zircon_runtime/src/core/runtime/tests/registration
+  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/runtime/tests
 doc_type: module-detail
 ---
 

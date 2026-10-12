@@ -11,7 +11,7 @@ import {
 describe('Editor retained Workbench button projection', () => {
   const root = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../../', import.meta.url)));
   const assetPath =
-    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui';
+    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui';
   const themePath = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
   const showcasePath =
     'zircon_editor/assets/ui/editor/components/showcase/showcase_input_section.zui';

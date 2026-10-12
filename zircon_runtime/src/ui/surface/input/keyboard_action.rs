@@ -175,5 +175,5 @@ fn normalized_key_matches(key: &str, expected: &[&str]) -> bool {
 }
 
 #[cfg(test)]
-#[path = "keyboard_action/tests/single_scan_text_tests.rs"]
+#[path = "keyboard_action/tests/single_scan_text.rs"]
 mod single_scan_text_tests;

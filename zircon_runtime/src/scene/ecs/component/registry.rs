@@ -8,6 +8,7 @@ use super::id::ComponentId;
 use super::marker::Component;
 use super::table_column::TableColumnLayout;
 
+#[path = "registry/transferred.rs"]
 mod transferred;
 
 pub(crate) use transferred::{

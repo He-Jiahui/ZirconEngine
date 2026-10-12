@@ -319,5 +319,5 @@ impl core::fmt::Display for ZrRuntimeAppSessionConfigurationError {
 }
 
 #[cfg(test)]
-#[path = "tests/app_session_configuration_v2.rs"]
+#[path = "tests/app_session_config_v2.rs"]
 mod tests;

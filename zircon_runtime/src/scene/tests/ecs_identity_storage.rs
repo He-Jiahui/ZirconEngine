@@ -22,7 +22,9 @@ impl Component for SparseMana {
 #[derive(Debug, PartialEq, Eq)]
 struct DetachedProbe(u32);
 
+#[path = "ecs_identity_storage/component_storage.rs"]
 mod component_storage;
+#[path = "ecs_identity_storage/despawn_contract.rs"]
 mod despawn_contract;
 
 #[test]

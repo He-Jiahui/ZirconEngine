@@ -7,28 +7,28 @@ import unittest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DAMAGE_REGION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/redraw/damage_region.rs"
+    "zircon_editor/src/ui/retained/contract/redraw/damage_region.rs"
 )
 REDRAW_MERGE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/redraw/request/merge.rs"
+    "zircon_editor/src/ui/retained/contract/redraw/request/merge.rs"
 )
 REDRAW_QUERY = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/redraw/request/query.rs"
+    "zircon_editor/src/ui/retained/contract/redraw/request/query.rs"
 )
 EVENT_LOOP_REDRAW = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/redraw.rs"
 )
 PRESENT_REDRAW = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/redraw/present.rs"
 )
 REDRAW_CONSTRUCTORS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/redraw/request/constructors.rs"
+    "zircon_editor/src/ui/retained/contract/redraw/request/constructors.rs"
 )
-UI_PERF = REPO_ROOT / "zircon_editor/src/ui/retained_host/ui_perf.rs"
+UI_PERF = REPO_ROOT / "zircon_editor/src/ui/retained/ui_perf.rs"
 UI_PERF_COUNTER_CATALOG = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/ui_perf/counter_catalog.rs"
+    "zircon_editor/src/ui/retained/ui_perf/counter_catalog.rs"
 )
-REDRAW_TESTS = REPO_ROOT / "zircon_editor/src/ui/retained_host/host_contract/tests/redraw_tests.rs"
+REDRAW_TESTS = REPO_ROOT / "zircon_editor/src/ui/retained/contract/tests/redraw.rs"
 
 
 class EditorBoundedDamageRegionPerformanceContract(unittest.TestCase):
@@ -136,7 +136,7 @@ class EditorBoundedDamageRegionPerformanceContract(unittest.TestCase):
         self.assertIn("redraw_region_simplifies_the_fourth_rect", source)
         self.assertIn("redraw_region_reports_exact_overlap_area", source)
         self.assertIn("redraw_region_preserves_the_legacy_f32_bounding_merge_order", source)
-        self.assertIn("retryable_surface_present_preserves_bounded_damage_pressure", read_rust_test_file("zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/tests/present.rs"))
+        self.assertIn("retryable_surface_present_preserves_bounded_damage_pressure", read_rust_test_file("zircon_editor/src/ui/retained/contract/window/event_loop/redraw/tests/present.rs"))
         self.assertIn(
             "let bounding_frame = union_frame(&self.bounding_frame, &next.bounding_frame);",
             damage,

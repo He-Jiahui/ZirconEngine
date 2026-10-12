@@ -7,16 +7,16 @@ fn source(relative: &str) -> String {
 #[test]
 fn shared_detail_scroll_surfaces_keep_scroll_authority_in_rust() {
     let globals = [
-        "src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs",
-        "src/ui/retained_host/host_contract/globals/pane_context/setters/interaction.rs",
+        "src/ui/retained/contract/globals/pane_context/callbacks.rs",
+        "src/ui/retained/contract/globals/setters/interaction.rs",
     ]
     .into_iter()
     .map(source)
     .collect::<Vec<_>>()
     .join("\n");
     let pointer_layout = [
-        "src/ui/retained_host/app/pointer_layout/hierarchy.rs",
-        "src/ui/retained_host/app/pointer_layout/detail_scrolls.rs",
+        "src/ui/retained/app/pointer_layout/hierarchy.rs",
+        "src/ui/retained/app/pointer_layout/detail_scrolls.rs",
     ]
     .into_iter()
     .map(source)
@@ -53,8 +53,8 @@ fn shared_detail_scroll_surfaces_keep_scroll_authority_in_rust() {
 
 #[test]
 fn detail_scroll_pointer_bridge_uses_direct_scalar_routing_only() {
-    let bridge = source("src/ui/retained_host/detail_pointer/scroll_surface_pointer_bridge.rs");
-    let scroll = source("src/ui/retained_host/detail_pointer/handle_scroll.rs");
+    let bridge = source("src/ui/retained/detail_pointer/scroll_surface_pointer_bridge.rs");
+    let scroll = source("src/ui/retained/detail_pointer/handle_scroll.rs");
 
     for forbidden in [
         "UiSurface",
@@ -74,7 +74,7 @@ fn detail_scroll_pointer_bridge_uses_direct_scalar_routing_only() {
 
 #[test]
 fn detail_scroll_offset_has_no_pointer_surface_to_recreate() {
-    let scroll = source("src/ui/retained_host/detail_pointer/handle_scroll.rs");
+    let scroll = source("src/ui/retained/detail_pointer/handle_scroll.rs");
 
     assert!(!scroll.contains("self.rebuild_surface()"));
     assert!(!scroll.contains("dispatch_pointer_event"));
@@ -82,7 +82,7 @@ fn detail_scroll_offset_has_no_pointer_surface_to_recreate() {
 
 #[test]
 fn asset_details_extent_does_not_allocate_a_temporary_section_list() {
-    let extent = source("src/ui/retained_host/detail_pointer/asset_details_content_extent.rs");
+    let extent = source("src/ui/retained/detail_pointer/asset_details_content_extent.rs");
 
     assert!(
         !extent.contains("vec!["),

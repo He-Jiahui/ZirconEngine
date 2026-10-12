@@ -1,3 +1,4 @@
+#[path = "module/lifecycle.rs"]
 mod lifecycle;
 
 use std::sync::Arc;

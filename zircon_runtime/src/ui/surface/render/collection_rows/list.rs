@@ -8,7 +8,7 @@ use super::shared::{
 };
 
 #[cfg(test)]
-#[path = "list/tests/capacity_tests.rs"]
+#[path = "list/tests/capacity.rs"]
 mod capacity_tests;
 
 pub(super) fn list_row_commands(

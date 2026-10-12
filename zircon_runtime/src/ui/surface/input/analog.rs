@@ -16,7 +16,7 @@ use super::{
 use crate::ui::dispatch::UiNavigationDispatcher;
 
 #[cfg(test)]
-#[path = "analog/tests/owned_event_route_policy_tests.rs"]
+#[path = "analog/tests/owned_event_route_policy.rs"]
 mod owned_event_route_policy_tests;
 
 /// 保留模拟量的最新状态，并只在方向阈值/重复门允许时转成导航事件。

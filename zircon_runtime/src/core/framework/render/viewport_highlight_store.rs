@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::HighlightSet;
 
 #[cfg(test)]
-#[path = "viewport_highlight_store/tests/hash_index_tests.rs"]
+#[path = "tests/hash_index.rs"]
 mod hash_index_tests;
 
 #[derive(Clone, Debug, PartialEq)]

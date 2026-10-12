@@ -1,9 +1,15 @@
 //! sink 测试入口把格式、文件候选、批处理、背压、生命周期和性能契约组合到同一私有模块。
+#[path = "backpressure.rs"]
 mod backpressure;
+#[path = "batching.rs"]
 mod batching;
+#[path = "durability.rs"]
 mod durability;
+#[path = "fixtures.rs"]
 mod fixtures;
+#[path = "lifecycle.rs"]
 mod lifecycle;
+#[path = "performance/mod.rs"]
 mod performance;
 
 use std::path::PathBuf;

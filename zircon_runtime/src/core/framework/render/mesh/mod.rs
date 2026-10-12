@@ -1,6 +1,10 @@
+#[path = "bounds.rs"]
 mod bounds;
+#[path = "descriptor.rs"]
 mod descriptor;
+#[path = "mesh_kind.rs"]
 mod mesh_kind;
+#[path = "topology.rs"]
 mod topology;
 
 pub use bounds::RenderMeshBounds;

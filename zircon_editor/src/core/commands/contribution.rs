@@ -418,5 +418,5 @@ fn validate_asset_type_operation_bindings(
 mod optimization_tests;
 
 #[cfg(test)]
-#[path = "contribution/tests/optimization_batch_ht_editor602_tests.rs"]
+#[path = "contribution/tests/perf.rs"]
 mod optimization_batch_ht_editor602_tests;

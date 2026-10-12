@@ -1,6 +1,8 @@
 //! State-machine semantic validation and canonical IR.
 
+#[path = "compile.rs"]
 mod compile;
+#[path = "model.rs"]
 mod model;
 
 pub use compile::compile_animation_state_machine;
@@ -12,5 +14,5 @@ pub use model::{
 };
 
 #[cfg(test)]
-#[path = "tests/cases.rs"]
+#[path = "../../../../animation/compiler/tests/state_machine_cases.rs"]
 mod tests;

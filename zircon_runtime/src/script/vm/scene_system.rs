@@ -8,6 +8,7 @@ use std::{
 
 use serde::Deserialize;
 
+#[path = "scene_system/error.rs"]
 mod error;
 
 // Sibling VM hosts consume scene-system helper results without reaching into

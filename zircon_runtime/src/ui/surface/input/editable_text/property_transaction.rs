@@ -20,7 +20,7 @@ use crate::ui::{
 };
 
 #[cfg(test)]
-#[path = "property_transaction/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

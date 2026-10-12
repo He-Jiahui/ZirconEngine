@@ -285,5 +285,5 @@ fn finite_or(value: Real, fallback: Real) -> Real {
 }
 
 #[cfg(test)]
-#[path = "volumetric/tests/cases.rs"]
+#[path = "../volumetric/tests/cases.rs"]
 mod tests;

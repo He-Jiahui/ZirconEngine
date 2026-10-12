@@ -1,10 +1,16 @@
 //! Runtime-owned bounded decoding and lifecycle accounting for blocking streams.
 
+#[path = "capture.rs"]
 mod capture;
+#[path = "decoder.rs"]
 mod decoder;
+#[path = "lane.rs"]
 mod lane;
+#[path = "model.rs"]
 mod model;
+#[path = "state.rs"]
 mod state;
+#[path = "worker.rs"]
 mod worker;
 
 pub use capture::BoundedStreamIoCapture;

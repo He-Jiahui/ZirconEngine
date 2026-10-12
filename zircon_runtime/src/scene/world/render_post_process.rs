@@ -10,7 +10,7 @@ use crate::scene::components::{
 use super::World;
 
 #[cfg(test)]
-#[path = "render_post_process/tests/output_capacity_tests.rs"]
+#[path = "render_post_process/tests/output_capacity.rs"]
 mod output_capacity_tests;
 
 pub(super) struct CollectedPostProcessVolumes {

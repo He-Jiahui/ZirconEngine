@@ -1,9 +1,15 @@
 //! 静态清单测试共用的值转换表；输入范围由仓内插件文件及其测试投影限定。
+#[path = "values/array.rs"]
 mod array;
+#[path = "values/boolean.rs"]
 mod boolean;
+#[path = "../../support/values/capability_status.rs"]
 mod capability_status;
+#[path = "values/maturity.rs"]
 mod maturity;
+#[path = "values/module_kind.rs"]
 mod module_kind;
+#[path = "values/target_mode.rs"]
 mod target_mode;
 
 pub(super) use array::string_array_values;

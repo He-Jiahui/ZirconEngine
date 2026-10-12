@@ -6,27 +6,27 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TARGET = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/target.rs"
 )
 ASSET = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/asset.rs"
 )
 TEMPLATE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/template.rs"
 )
 CONVERSION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "render_command_conversion/image.rs"
 )
 BRUSH_CONVERSION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "render_command_conversion/brush.rs"
 )
 TOOLTIP_ARROW = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_tooltip_glyphs/arrows.rs"
 )
 TOOLTIP_ARROW_ASSET = (
@@ -34,22 +34,22 @@ TOOLTIP_ARROW_ASSET = (
     / "zircon_editor/assets/icons/zircon_editor_shell/controls/tooltip-arrow.svg"
 )
 TOOLTIP_INFO = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_tooltip_glyphs/icons.rs"
 )
 TOOLTIP_INFO_ASSET = (
     REPO_ROOT / "zircon_editor/assets/icons/zircon_editor_shell/status/info.svg"
 )
 SECTION_TITLE_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_section_title_glyphs.rs"
 )
 SECTION_TITLE_SHAPES = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_section_title_glyphs/shapes.rs"
 )
 SECTION_TITLE_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_section_title_glyphs/shapes/entry.rs"
 )
 SECTION_TITLE_VECTOR_ASSETS = tuple(
@@ -61,94 +61,94 @@ SECTION_TITLE_VECTOR_ASSETS = tuple(
     )
 )
 TREE_ROW_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_tree_row_glyphs.rs"
 )
 TREE_ROW_ACTION_GLYPHS = tuple(
     REPO_ROOT
     / (
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         f"template_tree_row_glyphs/actions/{action}.rs"
     )
     for action in ("eye", "kebab", "lock")
 )
 TREE_ROW_DISCLOSURE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_tree_row_glyphs/disclosure.rs"
 )
 TREE_ROW_OBJECT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_tree_row_glyphs/object.rs"
 )
 TREE_ROW_OBJECT_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_tree_row_glyphs/object/dispatch.rs"
 )
 TABLE_ROW_ACTIONS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_table_rows/actions.rs"
 )
 TABLE_ROW_ACTION_ENTRY = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_table_rows/actions/entry.rs"
 )
 CHIP_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_chip_glyphs.rs"
 )
 CHIP_CHEVRON = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_chip_glyphs/chevron.rs"
 )
 DROPDOWN_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_dropdown_glyphs.rs"
 )
 DROPDOWN_CHEVRON = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_dropdown_glyphs/chevron.rs"
 )
 FIELD_STEPPER = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_field_stepper.rs"
 )
 FIELD_STEPPER_COMMAND = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_field_stepper/command.rs"
 )
 FIELD_STEPPER_ASSET = (
     REPO_ROOT / "zircon_editor/assets/icons/zircon_editor_shell/controls/field-stepper.svg"
 )
 LIST_ROW_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_list_row_glyphs.rs"
 )
 CHECKBOX_TICK = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_selection_controls/checkbox/tick.rs"
 )
 SEARCH_FIELD_GLYPH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_fields/search/glyph.rs"
 )
 INSPECTOR_ROW_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_inspector_row_glyphs.rs"
 )
 INSPECTOR_ROW_VECTOR_OWNERS = tuple(
     REPO_ROOT
     / (
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         f"template_inspector_row_glyphs/{owner}.rs"
     )
     for owner in ("checks", "chevrons", "cubes", "swatches")
 )
 BUTTON_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_button_glyphs.rs"
 )
 BUTTON_GLYPH_SHAPES = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_button_glyphs/shapes.rs"
 )
 BUTTON_VECTOR_ASSETS = tuple(
@@ -160,15 +160,15 @@ BUTTON_VECTOR_ASSETS = tuple(
     )
 )
 ICON_BUTTON_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_icon_button_glyphs.rs"
 )
 ALERT_MARKS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_alert_glyphs/marks.rs"
 )
 ALERT_CLOSE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_alert_glyphs/close.rs"
 )
 ALERT_VECTOR_ASSETS = tuple(
@@ -177,27 +177,27 @@ ALERT_VECTOR_ASSETS = tuple(
     for tone in ("info", "success", "warning", "error")
 )
 POPUP_ADORNMENT_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_popup_row_adornments/glyphs.rs"
 )
 POPUP_ADORNMENT_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_popup_row_adornments/glyphs/dispatch.rs"
 )
 POPUP_ADORNMENT_SELECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_popup_row_adornments/selection.rs"
 )
 STATUS_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_status_glyphs.rs"
 )
 STATUS_ICON_GLYPHS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_status_glyphs/icon_glyphs.rs"
 )
 ICON_ALIASES = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/candidates/aliases.rs"
 )
 EDITOR_UI_ROOT = REPO_ROOT / "zircon_editor/assets/ui/editor"
@@ -469,7 +469,7 @@ class EditorSvgRasterBucketPerformanceContract(unittest.TestCase):
         source = (
             REPO_ROOT
             / (
-                "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+                "zircon_editor/src/ui/retained/contract/paint/"
                 "template_node_images/command.rs"
             )
         ).read_text(encoding="utf-8")

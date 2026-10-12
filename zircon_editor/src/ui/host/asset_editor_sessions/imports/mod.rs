@@ -1,8 +1,14 @@
+#[path = "collect.rs"]
 mod collect;
+#[path = "documents.rs"]
 mod documents;
+#[path = "generation.rs"]
 mod generation;
+#[path = "parsed_document.rs"]
 mod parsed_document;
+#[path = "resolution.rs"]
 mod resolution;
+#[path = "traversal.rs"]
 mod traversal;
 
 pub(in crate::ui::host::asset_editor_sessions) use collect::collect_ui_asset_import_document;

@@ -1,17 +1,25 @@
 #[cfg(feature = "native-host")]
+#[path = "runtime_modules/assembly.rs"]
 mod assembly;
 #[cfg(feature = "native-host")]
+#[path = "runtime_modules/availability.rs"]
 mod availability;
 #[cfg(feature = "native-host")]
+#[path = "runtime_modules/composition.rs"]
 mod composition;
 #[cfg(feature = "native-host")]
+#[path = "runtime_modules/core_modules.rs"]
 mod core_modules;
+#[path = "runtime_modules/ids.rs"]
 mod ids;
 #[cfg(feature = "native-host")]
+#[path = "runtime_modules/load_report.rs"]
 mod load_report;
 #[cfg(feature = "native-host")]
+#[path = "runtime_modules/manifest.rs"]
 mod manifest;
 #[cfg(feature = "native-host")]
+#[path = "runtime_modules/plugin_modules.rs"]
 mod plugin_modules;
 
 #[cfg(feature = "native-host")]
@@ -50,4 +58,5 @@ pub use manifest::{
 };
 
 #[cfg(all(test, feature = "native-host"))]
+#[path = "runtime_modules/tests/mod.rs"]
 mod tests;

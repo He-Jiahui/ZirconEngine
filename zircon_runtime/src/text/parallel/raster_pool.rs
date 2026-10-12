@@ -13,7 +13,9 @@ use crate::text::raster::{GlyphBitmap, SwashRasterError, SwashRasterRequest, Swa
 
 use super::completion_queue::CompletionByteBudget;
 
+#[path = "raster_pool/diagnostics.rs"]
 mod diagnostics;
+#[path = "raster_pool/worker.rs"]
 mod worker;
 
 pub(crate) use diagnostics::{

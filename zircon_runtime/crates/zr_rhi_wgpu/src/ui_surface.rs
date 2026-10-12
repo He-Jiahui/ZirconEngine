@@ -9,18 +9,31 @@ use zr_rhi::{
     UiSurfacePresenter,
 };
 
+#[path = "ui_surface/batching.rs"]
 mod batching;
+#[path = "ui_surface/color_space.rs"]
 mod color_space;
+#[path = "ui_surface/external_image_copy.rs"]
 mod external_image_copy;
+#[path = "ui_surface/frame_readback.rs"]
 mod frame_readback;
+#[path = "ui_surface/geometry.rs"]
 mod geometry;
+#[path = "ui_surface/image_cache.rs"]
 mod image_cache;
+#[path = "ui_surface/pipeline.rs"]
 mod pipeline;
+#[path = "ui_surface/presentation.rs"]
 mod presentation;
+#[path = "ui_surface/render_pass.rs"]
 mod render_pass;
+#[path = "ui_surface/retained_cache.rs"]
 mod retained_cache;
+#[path = "ui_surface/shared_image_registry.rs"]
 mod shared_image_registry;
+#[path = "ui_surface/surface_setup.rs"]
 mod surface_setup;
+#[path = "ui_surface/text.rs"]
 mod text;
 
 use batching::{BatchDrawPlanStats, CompiledUiBatchPlanCache};

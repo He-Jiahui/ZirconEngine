@@ -1,8 +1,14 @@
+#[path = "manager/graph.rs"]
 mod graph;
+#[path = "manager/parameters.rs"]
 mod parameters;
+#[path = "manager/poison_recovery.rs"]
 mod poison_recovery;
+#[path = "manager/pose.rs"]
 mod pose;
+#[path = "manager/sampling.rs"]
 mod sampling;
+#[path = "manager/state_machine.rs"]
 mod state_machine;
 
 use std::sync::{Arc, Mutex};

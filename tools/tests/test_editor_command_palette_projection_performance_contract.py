@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-RETAINED_UI = ROOT / "zircon_editor/src/ui/retained_host/ui"
+RETAINED_UI = ROOT / "zircon_editor/src/ui/retained/ui"
 PANE_DATA = RETAINED_UI / "pane_data_conversion"
 
 

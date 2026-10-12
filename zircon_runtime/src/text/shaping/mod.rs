@@ -1,22 +1,39 @@
 //! Shared text shaping owner. Third-party text backend types stay in leaf modules.
 
 #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+#[path = "analysis_profile.rs"]
 mod analysis_profile;
+#[path = "backend_error.rs"]
 mod backend_error;
+#[path = "bidi.rs"]
 mod bidi;
+#[path = "cosmic.rs"]
 mod cosmic;
+#[path = "direct_error.rs"]
 mod direct_error;
+#[path = "emoji_presentation.rs"]
 mod emoji_presentation;
+#[path = "failure_receipt.rs"]
 mod failure_receipt;
+#[path = "fallback_spans.rs"]
 mod fallback_spans;
+#[path = "horizontal/mod.rs"]
 mod horizontal;
+#[path = "itemize.rs"]
 mod itemize;
+#[path = "line_break.rs"]
 mod line_break;
+#[path = "normalize.rs"]
 mod normalize;
+#[path = "outcome.rs"]
 mod outcome;
+#[path = "script_segment.rs"]
 mod script_segment;
+#[path = "source_profile.rs"]
 mod source_profile;
+#[path = "vertical.rs"]
 mod vertical;
+#[path = "work_budget.rs"]
 mod work_budget;
 
 #[cfg(test)]

@@ -1,7 +1,10 @@
 //! 在线资源变化的命令与回执；命令可离线组合，实际身份校验与发布权限始终归管理器提交边界。
 
+#[path = "batch.rs"]
 mod batch;
+#[path = "operation.rs"]
 mod operation;
+#[path = "receipt.rs"]
 mod receipt;
 
 pub use batch::ResourceMutationBatch;

@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/key.rs"
+    / "zircon_runtime/src/plugin/runtime/catalog/feature_definitions/key.rs"
 )
 
 # 读取实现源码约束精确特性定义键：键预分配两侧标识与分隔符，并键追加借用部分不带格式器增长。

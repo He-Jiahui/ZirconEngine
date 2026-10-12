@@ -8,10 +8,12 @@ use zircon_runtime_interface::ui::{
     tree::{UiTree, UiTreeError},
 };
 
+#[path = "arrange/grid_masonry.rs"]
 mod grid_masonry;
 #[cfg(test)]
 #[path = "arrange/tests/cases.rs"]
 mod tests;
+#[path = "arrange/virtual_list.rs"]
 mod virtual_list;
 
 use self::grid_masonry::{arrange_grid_children, arrange_masonry_children};

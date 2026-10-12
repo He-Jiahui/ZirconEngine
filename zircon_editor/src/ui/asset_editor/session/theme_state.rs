@@ -830,9 +830,9 @@ fn has_duplicate_borrowed_entries<'a>(mut entries: impl ExactSizeIterator<Item =
 }
 
 #[cfg(test)]
-#[path = "theme_state/tests/optimization_batch_jj_editor649_tests.rs"]
+#[path = "theme_state/tests/perf.rs"]
 mod optimization_batch_jj_editor649_tests;
 
 #[cfg(test)]
-#[path = "theme_state/tests/optimization_tests.rs"]
+#[path = "theme_state/tests/theme_state_perf.rs"]
 mod optimization_tests;

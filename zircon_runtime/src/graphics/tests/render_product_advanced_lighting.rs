@@ -1,4 +1,6 @@
+#[path = "advanced_pbr.rs"]
 mod advanced_pbr;
+#[path = "render_product_advanced_lighting/af_m2.rs"]
 mod af_m2;
 
 use std::fs;

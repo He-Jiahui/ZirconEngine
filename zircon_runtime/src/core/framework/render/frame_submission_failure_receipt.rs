@@ -173,5 +173,5 @@ impl RenderFrameSubmissionFailureReceipt {
 }
 
 #[cfg(test)]
-#[path = "tests/frame_submission_failure_receipt.rs"]
+#[path = "../../render/tests/frame_submission_failure_receipt.rs"]
 mod tests;

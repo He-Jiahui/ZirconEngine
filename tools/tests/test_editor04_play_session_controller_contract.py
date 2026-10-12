@@ -101,7 +101,7 @@ class PlaySessionControllerContractTests(unittest.TestCase):
         self.assertIn("fn detach_terminal_play_gateway", core_controller)
         self.assertIn("if mode.has_active_runtime()", core_controller)
         self.assertIn("detach_matching_identity", core_controller)
-        self.assertIn("detach_terminal_play_gateway", read_rust_test_file("zircon_editor/src/ui/host/tests/editor_host_event_controller_lifecycle_contract_tests.rs"))
+        self.assertIn("detach_terminal_play_gateway", read_rust_test_file("zircon_editor/src/ui/tests/editor_host_event_controller_lifecycle_contract.rs"))
         self.assertGreaterEqual(menu.count("detach_terminal_play_gateway"), 2)
 
 

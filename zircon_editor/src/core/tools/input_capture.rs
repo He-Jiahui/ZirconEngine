@@ -621,5 +621,5 @@ impl ToolInputCaptureAuthority {
 mod tests;
 
 #[cfg(test)]
-#[path = "tests/optimization_batch_editor877_input_capture_shutdown_owned_drain_tests.rs"]
+#[path = "../../tests/perf_batch_editor877_input_capture_shutdown_owned.rs"]
 mod optimization_batch_editor877_input_capture_shutdown_owned_drain_tests;

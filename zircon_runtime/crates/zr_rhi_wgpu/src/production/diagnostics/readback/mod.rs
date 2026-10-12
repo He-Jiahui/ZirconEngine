@@ -7,16 +7,23 @@
 //! receipt, quota, and device-poll boundary without making `device.rs` a
 //! second readback owner.
 
+#[path = "batch.rs"]
 mod batch;
+#[path = "../../readback/completion_order.rs"]
 pub(crate) mod completion_order;
+#[path = "../../readback/delivery.rs"]
 mod delivery;
+#[path = "layout.rs"]
 mod layout;
+#[path = "metrics.rs"]
 mod metrics;
+#[path = "request.rs"]
 mod request;
+#[path = "service.rs"]
 mod service;
 
 #[cfg(test)]
-#[path = "tests/cases.rs"]
+#[path = "../../readback/tests/cases.rs"]
 mod tests;
 
 pub(crate) use batch::DiagnosticReadbackBatch;

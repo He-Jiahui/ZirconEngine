@@ -26,13 +26,13 @@ class EditorPiePreviewFrameContractTests(unittest.TestCase):
 
     def test_host_viewport_images_are_split_by_world_presentation_role(self) -> None:
         image = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs"
+            "zircon_editor/src/ui/retained/contract/data/viewport_image.rs"
         )
         root = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs"
+            "zircon_editor/src/ui/retained/contract/data/host_root.rs"
         )
         painter = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/viewport.rs"
+            "zircon_editor/src/ui/retained/contract/workbench/native_panes/viewport.rs"
         )
 
         self.assertIn("struct HostViewportImageSet", image)
@@ -47,10 +47,10 @@ class EditorPiePreviewFrameContractTests(unittest.TestCase):
 
     def test_retained_tick_captures_after_runtime_tick_and_clears_terminal_game_frame(self) -> None:
         tick = self.read(
-            "zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs"
+            "zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs"
         )
         preview = self.read(
-            "zircon_editor/src/ui/retained_host/app/play_preview_redraw.rs"
+            "zircon_editor/src/ui/retained/app/play_preview_redraw.rs"
         )
 
         runtime_pump = tick.find("self.runtime.pump_runtime_event_consumers()")

@@ -97,5 +97,5 @@ fn normalize_drawer(
 mod tests;
 
 #[cfg(test)]
-#[path = "normalize/tests/split_ratio_tests.rs"]
+#[path = "normalize/tests/split_ratio.rs"]
 mod split_ratio_tests;

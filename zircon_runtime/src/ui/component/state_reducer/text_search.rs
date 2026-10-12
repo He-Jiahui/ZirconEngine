@@ -63,9 +63,9 @@ fn unicode_lowercase_contains(value: &str, lowercase_query: &str) -> bool {
 mod tests;
 
 #[cfg(test)]
-#[path = "text_search/tests/streaming_prefix_tests.rs"]
+#[path = "../text_search/tests/streaming_prefix.rs"]
 mod streaming_prefix_tests;
 
 #[cfg(test)]
-#[path = "text_search/tests/streaming_contains_tests.rs"]
+#[path = "../text_search/tests/streaming_contains.rs"]
 mod streaming_contains_tests;

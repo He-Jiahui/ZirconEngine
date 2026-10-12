@@ -1,5 +1,8 @@
+#[path = "builtins.rs"]
 mod builtins;
+#[path = "include_sources.rs"]
 mod include_sources;
+#[path = "registry.rs"]
 mod registry;
 
 pub(crate) use builtins::{

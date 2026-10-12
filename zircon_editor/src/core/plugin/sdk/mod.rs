@@ -1,6 +1,8 @@
 //! Public editor-plugin SDK facade.
 
+#[path = "examples.rs"]
 pub mod examples;
+#[path = "lifecycle.rs"]
 pub mod lifecycle;
 
 pub use crate::core::asset::{

@@ -9,10 +9,10 @@ BATCH_PLAN_SOURCE = (
     ROOT / "zircon_runtime_interface/src/ui/surface/render/batch/plan.rs"
 )
 PRODUCT_PLAN_CACHE_SOURCE = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs"
 )
 PRODUCT_RENDER_SOURCE = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
 )
 
 # 约束批次计划先验证顺序再决定是否排序；压力模型与产品渲染路径共同检查有序提取的零排序路径。

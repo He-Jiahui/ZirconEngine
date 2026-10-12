@@ -89,5 +89,5 @@ fn split_labeled_uri(uri: &AssetUri) -> Option<(AssetUri, String)> {
 }
 
 #[cfg(test)]
-#[path = "artifact_access/tests/direct_rebuild_tests.rs"]
+#[path = "artifact_access/tests/direct_rebuild.rs"]
 mod direct_rebuild_tests;

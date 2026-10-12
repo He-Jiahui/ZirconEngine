@@ -1,4 +1,6 @@
+#[path = "lifecycle.rs"]
 mod lifecycle;
+#[path = "saving.rs"]
 mod saving;
 
 use std::sync::atomic::{AtomicUsize, Ordering};

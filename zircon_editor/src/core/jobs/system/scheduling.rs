@@ -174,5 +174,5 @@ impl Drop for CompletionGuard {
 }
 
 #[cfg(test)]
-#[path = "scheduling/tests/owned_dispatch_metadata_tests.rs"]
+#[path = "scheduling/tests/owned_dispatch_metadata.rs"]
 mod owned_dispatch_metadata_tests;

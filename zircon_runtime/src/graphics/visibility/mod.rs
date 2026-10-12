@@ -1,10 +1,18 @@
+#[path = "context/mod.rs"]
 mod context;
+#[path = "culling/mod.rs"]
 mod culling;
+#[path = "declarations/mod.rs"]
 mod declarations;
+#[path = "occlusion/mod.rs"]
 mod occlusion;
+#[path = "planning/mod.rs"]
 mod planning;
+#[path = "spatial_query.rs"]
 mod spatial_query;
+#[path = "static_index/mod.rs"]
 mod static_index;
+#[path = "view_context/mod.rs"]
 mod view_context;
 
 pub use declarations::{

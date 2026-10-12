@@ -92,5 +92,5 @@ impl AdvancedLightingExtract {
 }
 
 #[cfg(test)]
-#[path = "extract/tests/cases.rs"]
+#[path = "../extract/tests/cases.rs"]
 mod tests;

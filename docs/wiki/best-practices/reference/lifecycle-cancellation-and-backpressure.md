@@ -4,11 +4,11 @@ related_code:
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - zircon_runtime/src/core/runtime/handle/resolution.rs
 implementation_files:
-  - zircon_runtime/src/core/runtime
+  - zircon_runtime/src/core
 plan_sources:
   - docs/wiki/mechanisms/frame-data-event-time-flow.md
 tests:
-  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/tests
 doc_type: reference-guide
 ---
 
@@ -127,7 +127,7 @@ Unreal 的任务图强调依赖和取消传播；Bevy 的 schedule 将系统放�
 - `zircon_runtime/src/core/runtime/time.rs`：frame snapshot 与时间策略。
 - `zircon_runtime/src/core/runtime/lifecycle.rs`：module lifecycle 与 cleanup。
 - `zircon_runtime/src/core/runtime/handle/resolution.rs`：in-flight drain。
-- `zircon_runtime/src/core/runtime/tests`：时间、关闭和生命周期回归。
+- `zircon_runtime/src/core/tests`：时间、关闭和生命周期回归。
 
 ## API 参数说明
 

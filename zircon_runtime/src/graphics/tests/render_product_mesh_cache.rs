@@ -30,14 +30,20 @@ use super::render_product_submit::{
     material_with_import_note, snapshot_with_projection_for_mesh_cache_tests,
 };
 
+#[path = "meshes/morph.rs"]
 mod morph;
 #[cfg(feature = "dynamic-api")]
+#[path = "meshes/material_cache/mod.rs"]
 mod project_plugin_registry_material_passes_staged_cache;
 #[cfg(feature = "dynamic-api")]
+#[path = "meshes/project_plugin_registry_staged_cache.rs"]
 mod project_plugin_registry_staged_cache;
+#[path = "meshes/shading_model_parity.rs"]
 mod shading_model_parity;
 #[cfg(feature = "dynamic-api")]
+#[path = "meshes/staged_prewarm/mod.rs"]
 mod staged_prewarm;
+#[path = "meshes/geometry.rs"]
 mod virtual_geometry;
 
 const STATIC_CACHE_HEAVY_INSTANCE_COUNT: usize = 64;

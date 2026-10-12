@@ -15,21 +15,21 @@ def require(text: str, needle: str, context: str) -> None:
 
 
 def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -> None:
-    model = source("zircon_editor/src/ui/template_runtime/model.rs")
+    model = source("zircon_editor/src/ui/runtime/model.rs")
     require(
         model,
         "pub template_action: Option<UiActionRef>",
         "V2 binding projection must retain the authored action",
     )
 
-    host_nodes = source("zircon_editor/src/ui/template_runtime/host_nodes.rs")
+    host_nodes = source("zircon_editor/src/ui/runtime/host_nodes.rs")
     require(
         host_nodes,
         "pub template_action: Option<UiTemplateActionInvocation>",
         "host bindings must carry the resolved typed action",
     )
 
-    projection = source("zircon_editor/src/ui/template_runtime/runtime/projection.rs")
+    projection = source("zircon_editor/src/ui/runtime/runtime/projection.rs")
     require(
         projection,
         "resolve_template_actions",
@@ -47,7 +47,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     registry = source(
-        "zircon_editor/src/ui/template_runtime/runtime/template_action_registry.rs"
+        "zircon_editor/src/ui/runtime/runtime/action_registry.rs"
     )
     require(
         registry,
@@ -116,7 +116,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     runtime_host = source(
-        "zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs"
+        "zircon_editor/src/ui/runtime/runtime/runtime_host.rs"
     )
     require(
         runtime_host,
@@ -175,7 +175,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     pane_projection = source(
-        "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_runtime_projection.rs"
+        "zircon_editor/src/ui/retained/ui/data/runtime_projection.rs"
     )
     require(
         pane_projection,
@@ -199,7 +199,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     pane_conversion = source(
-        "zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs"
+        "zircon_editor/src/ui/retained/ui/apply_presentation/pane_conversion.rs"
     )
     require(
         pane_conversion,
@@ -208,7 +208,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     hit = source(
-        "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/hit.rs"
+        "zircon_editor/src/ui/retained/contract/surface_hit_test/node/hit.rs"
     )
     require(hit, "disabled: node.disabled", "pointer hits must retain disabled state")
     require(
@@ -217,8 +217,8 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
         "pointer hits must retain the table row's source index",
     )
 
-    retained_app = source("zircon_editor/src/ui/retained_host/app.rs")
-    click = source("zircon_editor/src/ui/retained_host/app/pane_surface_actions/click.rs")
+    retained_app = source("zircon_editor/src/ui/retained/app.rs")
+    click = source("zircon_editor/src/ui/retained/app/pane_surface_actions/click.rs")
     require(
         retained_app,
         "UiPointerComponentEvent",
@@ -261,7 +261,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     activation = source(
-        "zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/dispatch.rs"
+        "zircon_editor/src/ui/retained/contract/activation_semantics/dispatch.rs"
     )
     require(
         activation,
@@ -275,7 +275,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     activation_tests = source(
-        "zircon_editor/src/ui/retained_host/host_contract/tests/template_activation_semantics_tests.rs"
+        "zircon_editor/src/ui/retained/contract/tests/activation_semantics.rs"
     )
     require(
         activation_tests,
@@ -289,7 +289,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     pane_callbacks = source(
-        "zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs"
+        "zircon_editor/src/ui/retained/contract/globals/pane_context/callbacks.rs"
     )
     require(
         pane_callbacks,
@@ -303,7 +303,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     pane_callback_storage = source(
-        "zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/pane.rs"
+        "zircon_editor/src/ui/retained/contract/globals/callbacks/pane.rs"
     )
     require(
         pane_callback_storage,
@@ -312,7 +312,7 @@ def test_v2_retained_actions_preserve_typed_payloads_and_generation_boundary() -
     )
 
     pane_wiring = source(
-        "zircon_editor/src/ui/retained_host/app/callback_wiring/pane_surface/pane_controls.rs"
+        "zircon_editor/src/ui/retained/app/callback_wiring/pane_surface/pane_controls.rs"
     )
     require(
         pane_wiring,

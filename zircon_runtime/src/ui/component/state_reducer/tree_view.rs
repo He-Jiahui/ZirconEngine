@@ -5,6 +5,7 @@ use zircon_runtime_interface::ui::component::{
     UiValidationState, UiValue,
 };
 
+#[path = "tree_view/editing.rs"]
 mod editing;
 
 pub(super) use editing::{apply_begin_edit, apply_cancel_editing, apply_commit};

@@ -121,5 +121,5 @@ pub(super) fn dispatch_hot_reloaded_replacements(
 }
 
 #[cfg(test)]
-#[path = "tests/lifecycle_replacement_optimization_tests.rs"]
+#[path = "tests/lifecycle_replacement_perf.rs"]
 mod optimization_tests;

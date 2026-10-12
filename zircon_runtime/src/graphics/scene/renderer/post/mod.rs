@@ -1,0 +1,143 @@
+//! 后处理集中提供场景资源、节点执行记录与计算调度尺度，资源构造和 GPU 编码由子模块分别实现。
+#[path = "clear_render_target/mod.rs"]
+mod clear_render_target;
+#[path = "cluster_dimensions/mod.rs"]
+mod cluster_dimensions;
+#[path = "constants/mod.rs"]
+mod constants;
+#[path = "gpu_data/mod.rs"]
+mod gpu_data;
+#[path = "params/mod.rs"]
+pub(in crate::graphics::scene::scene_renderer) mod params;
+#[path = "pass_graph/mod.rs"]
+mod pass_graph;
+#[path = "resources/mod.rs"]
+mod resources;
+#[path = "process_resources/mod.rs"]
+mod scene_post_process_resources;
+#[path = "runtime_feature_flags/mod.rs"]
+mod scene_runtime_feature_flags;
+
+use crate::core::math::UVec2;
+
+use gpu_data::{
+    clustered_directional_light, hybrid_gi_probe_gpu, hybrid_gi_trace_region_gpu,
+    reflection_probe_gpu,
+};
+use params::{
+    bloom_params, cluster_params, depth_of_field_prepare_params, post_process_params, ssao_params,
+};
+
+pub(crate) use cluster_dimensions::{cluster_buffer_bytes_for_size, cluster_dimensions_for_size};
+pub(crate) use constants::{
+    wgpu_post_process_texture_format, POST_PROCESS_COLOR_LUT_FORMAT,
+    POST_PROCESS_INTERMEDIATE_HDR_FORMAT, POST_PROCESS_TONEMAPPED_FORMAT,
+    SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
+    SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT,
+    SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT, SMAA_STAGE_FORMAT,
+};
+pub(crate) use pass_graph::execute_post_process_pass_graph;
+pub(in crate::graphics::scene::scene_renderer) use resources::depth_sampling_mode::PostProcessDepthSamplingMode;
+pub(in crate::graphics::scene::scene_renderer) use resources::{
+    color_lut_bake_dispatch_groups, color_lut_bake_workgroup_size,
+};
+pub(crate) use scene_post_process_resources::ScenePostProcessResources;
+pub(crate) use scene_runtime_feature_flags::SceneRuntimeFeatureFlags;
+
+pub(in crate::graphics::scene::scene_renderer) fn ssao_dispatch_groups(
+    viewport_size: UVec2,
+) -> [u32; 3] {
+    [
+        viewport_size
+            .x
+            .max(1)
+            .div_ceil(constants::SSAO_WORKGROUP_SIZE),
+        viewport_size
+            .y
+            .max(1)
+            .div_ceil(constants::SSAO_WORKGROUP_SIZE),
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn ssao_workgroup_size() -> [u32; 3] {
+    [
+        constants::SSAO_WORKGROUP_SIZE,
+        constants::SSAO_WORKGROUP_SIZE,
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn clustered_lighting_dispatch_groups(
+    cluster_dimensions: UVec2,
+) -> [u32; 3] {
+    [
+        cluster_dimensions
+            .x
+            .max(1)
+            .div_ceil(constants::CLUSTER_WORKGROUP_SIZE),
+        cluster_dimensions
+            .y
+            .max(1)
+            .div_ceil(constants::CLUSTER_WORKGROUP_SIZE),
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn clustered_lighting_workgroup_size() -> [u32; 3] {
+    [
+        constants::CLUSTER_WORKGROUP_SIZE,
+        constants::CLUSTER_WORKGROUP_SIZE,
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn hzb_build_dispatch_groups(
+    hzb_size: UVec2,
+) -> [u32; 3] {
+    [
+        hzb_size.x.max(1).div_ceil(constants::HZB_WORKGROUP_SIZE),
+        hzb_size.y.max(1).div_ceil(constants::HZB_WORKGROUP_SIZE),
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn hzb_build_workgroup_size() -> [u32; 3] {
+    [
+        constants::HZB_WORKGROUP_SIZE,
+        constants::HZB_WORKGROUP_SIZE,
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn exposure_histogram_dispatch_groups(
+    viewport_size: UVec2,
+) -> [u32; 3] {
+    [
+        viewport_size
+            .x
+            .max(1)
+            .div_ceil(constants::EXPOSURE_HISTOGRAM_WORKGROUP_SIZE),
+        viewport_size
+            .y
+            .max(1)
+            .div_ceil(constants::EXPOSURE_HISTOGRAM_WORKGROUP_SIZE),
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn exposure_histogram_workgroup_size() -> [u32; 3] {
+    [
+        constants::EXPOSURE_HISTOGRAM_WORKGROUP_SIZE,
+        constants::EXPOSURE_HISTOGRAM_WORKGROUP_SIZE,
+        1,
+    ]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn exposure_resolve_dispatch_groups() -> [u32; 3] {
+    [1, 1, 1]
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn exposure_resolve_workgroup_size() -> [u32; 3] {
+    [1, 1, 1]
+}

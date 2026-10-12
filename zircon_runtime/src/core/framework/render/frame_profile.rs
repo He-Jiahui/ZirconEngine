@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+#[path = "frame_profile/gpu_timing_status.rs"]
 mod gpu_timing_status;
 
 pub use gpu_timing_status::RenderGpuTimingStatus;

@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/host_page_overflow_menu.rs"
+    "zircon_editor/src/ui/retained/contract/host_page_overflow_menu.rs"
 )
 
 

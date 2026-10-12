@@ -1,3 +1,4 @@
+#[path = "groups/resolution.rs"]
 mod resolution;
 
 use zircon_runtime::core::framework::project::RuntimeProfileId;

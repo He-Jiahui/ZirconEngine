@@ -2,10 +2,15 @@ use crate::core::math::UVec2;
 
 use super::render_batch::GlyphAtlasDrawBatchPlan;
 
+#[path = "render_gpu_plan/bind_group.rs"]
 mod bind_group;
+#[path = "render_gpu_plan/draw_command.rs"]
 mod draw_command;
+#[path = "render_gpu_plan/instance.rs"]
 mod instance;
+#[path = "render_gpu_plan/pipeline.rs"]
 mod pipeline;
+#[path = "render_gpu_plan/viewport.rs"]
 mod viewport;
 
 pub(crate) use bind_group::{

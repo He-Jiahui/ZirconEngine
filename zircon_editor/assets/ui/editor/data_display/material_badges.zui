@@ -1,0 +1,594 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/data_display/material_badges.zui"
+version = 2
+display_name = "Material Badges Prototype"
+
+[imports]
+widgets = [ "res://ui/editor/components/workbench/primitives/data/label.zui#WorkbenchLabel", "res://ui/editor/components/workbench/primitives/data/caption.zui#WorkbenchCaption" ]
+styles = [ "res://ui/editor/theme/editor_tokens.zui" ]
+
+[components.MaterialBadgesPrototype]
+root = "root"
+default_classes = [ "material-lab-prototype", "material-surface" ]
+
+[nodes.title]
+component = "WorkbenchLabel"
+control_id = "badges_Title"
+classes = [ "material-lab-title" ]
+
+[nodes.title.props]
+text = "Badges"
+text_tone = "primary"
+font_size = "$editor.typography.title.size"
+font_weight = "$editor.typography.strong.weight"
+
+[nodes.title.layout.width]
+stretch = "Stretch"
+
+[nodes.title.layout.height]
+min = 28
+preferred = 28
+max = 28
+stretch = "Fixed"
+
+[nodes.meta]
+component = "GridBox"
+control_id = "badges_Meta"
+classes = [ "material-lab-meta-strip", "material-lab-meta" ]
+
+[nodes.meta.layout.width]
+stretch = "Stretch"
+
+[nodes.meta.layout.height]
+min = 100
+preferred = 100
+max = 100
+stretch = "Fixed"
+
+[nodes.meta.layout.container]
+kind = "GridBox"
+columns = 2
+rows = 2
+column_gap = "$editor.density.gap.medium"
+row_gap = "$editor.density.gap.small"
+
+[[nodes.meta.children]]
+node = "meta_group"
+
+[[nodes.meta.children]]
+node = "meta_response"
+
+[[nodes.meta.children]]
+node = "meta_variant"
+
+[[nodes.meta.children]]
+node = "meta_layout"
+
+[nodes.meta_group]
+component = "WorkbenchCaption"
+control_id = "badges_MetaGroup"
+classes = [ "material-lab-meta-chip", "material-lab-meta-group" ]
+
+[nodes.meta_group.props]
+text = "Data Display"
+text_tone = "secondary"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.meta_group.layout.width]
+stretch = "Stretch"
+
+[nodes.meta_group.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.meta_response]
+component = "WorkbenchCaption"
+control_id = "badges_MetaResponse"
+classes = [ "material-lab-meta-chip", "material-lab-meta-response" ]
+
+[nodes.meta_response.props]
+text = "static / display"
+text_tone = "success"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+response_mechanism = "static / display"
+density = "compact"
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.meta_response.layout.width]
+stretch = "Stretch"
+
+[nodes.meta_response.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.meta_variant]
+component = "WorkbenchCaption"
+control_id = "badges_MetaVariant"
+classes = [ "material-lab-meta-chip", "material-lab-meta-variant" ]
+
+[nodes.meta_variant.props]
+text = "dot / standard"
+text_tone = "primary"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+variant = "dot / standard"
+density = "compact"
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.meta_variant.layout.width]
+stretch = "Stretch"
+
+[nodes.meta_variant.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.meta_layout]
+component = "WorkbenchCaption"
+control_id = "badges_MetaLayout"
+classes = [ "material-lab-meta-chip", "material-lab-meta-layout" ]
+
+[nodes.meta_layout.props]
+text = "row / grid"
+text_tone = "warning"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+layout_mode = "row / grid"
+density = "compact"
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.meta_layout.layout.width]
+stretch = "Stretch"
+
+[nodes.meta_layout.layout.height]
+min = 48
+preferred = 48
+max = 48
+stretch = "Fixed"
+
+[nodes.sample]
+component = "Badge"
+control_id = "badges_Sample"
+classes = [ "material-control", "material-lab-sample", "MuiBadge-root" ]
+
+[nodes.sample.props]
+text = "Notifications"
+className = "material-badge-sample"
+component = "span"
+badgeContent = "12"
+value_text = "12"
+max = 99
+showZero = false
+invisible = false
+variant = "standard"
+color = "error"
+overlap = "circular"
+surface_variant = "elevated"
+button_variant = "contained"
+text_tone = "primary"
+validation_level = "normal"
+hovered = true
+pressed = false
+focused = true
+selected = true
+checked = true
+disabled = false
+open = true
+popup_open = true
+corner_radius = 10
+border_width = 1
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+
+[nodes.sample.props.anchorOrigin]
+vertical = "bottom"
+horizontal = "left"
+
+[nodes.sample.props.slotProps.badge]
+className = "material-badge-slot"
+
+[nodes.sample.layout.width]
+stretch = "Stretch"
+
+[nodes.sample.layout.height]
+min = 34
+preferred = 34
+max = 34
+stretch = "Fixed"
+
+[nodes.sample.layout.container]
+kind = "HorizontalBox"
+gap = 4
+
+[[nodes.sample.children]]
+node = "badge_slot"
+
+[nodes.sample.children.slot]
+name = "badge"
+
+[nodes.badge_slot]
+component = "Label"
+control_id = "badges_BadgeSlot"
+classes = [ "material-badge-slot", "MuiBadge-badge" ]
+
+[nodes.badge_slot.props]
+text = "12"
+text_tone = "error"
+surface_variant = "elevated"
+validation_level = "error"
+corner_radius = 999
+border_width = 1
+input_interactive = false
+input_clickable = false
+input_hoverable = false
+input_focusable = false
+
+[nodes.badge_slot.layout.width]
+min = 24
+preferred = 28
+max = 34
+stretch = "Fixed"
+
+[nodes.badge_slot.layout.height]
+min = 18
+preferred = 20
+max = 20
+stretch = "Fixed"
+
+[nodes.state_strip]
+component = "GridBox"
+control_id = "badges_StateStrip"
+classes = [ "material-lab-state-strip" ]
+
+[nodes.state_strip.layout.width]
+stretch = "Stretch"
+
+[nodes.state_strip.layout.height]
+min = 108
+preferred = 108
+max = 108
+stretch = "Fixed"
+
+[nodes.state_strip.layout.container]
+kind = "GridBox"
+columns = 2
+rows = 4
+column_gap = "$editor.density.gap.medium"
+row_gap = "$editor.density.gap.small"
+
+[[nodes.state_strip.children]]
+node = "state_default"
+
+[[nodes.state_strip.children]]
+node = "state_hover"
+
+[[nodes.state_strip.children]]
+node = "state_pressed"
+
+[[nodes.state_strip.children]]
+node = "state_focus"
+
+[[nodes.state_strip.children]]
+node = "state_disabled"
+
+[[nodes.state_strip.children]]
+node = "state_selected"
+
+[[nodes.state_strip.children]]
+node = "state_open"
+
+[[nodes.state_strip.children]]
+node = "state_error"
+
+[nodes.state_default]
+component = "WorkbenchCaption"
+control_id = "badges_StateDefault"
+classes = [ "material-lab-state-pill", "material-lab-state-default" ]
+
+[nodes.state_default.props]
+text = "Default"
+text_tone = "secondary"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.state_default.layout.width]
+stretch = "Stretch"
+
+[nodes.state_default.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_hover]
+component = "WorkbenchCaption"
+control_id = "badges_StateHover"
+classes = [ "material-lab-state-pill", "material-lab-state-hover" ]
+
+[nodes.state_hover.props]
+text = "Hover"
+text_tone = "primary"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = true
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.state_hover.layout.width]
+stretch = "Stretch"
+
+[nodes.state_hover.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_pressed]
+component = "WorkbenchCaption"
+control_id = "badges_StatePressed"
+classes = [ "material-lab-state-pill", "material-lab-state-pressed" ]
+
+[nodes.state_pressed.props]
+text = "Pressed"
+text_tone = "primary"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = true
+pressed = true
+focused = false
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.state_pressed.layout.width]
+stretch = "Stretch"
+
+[nodes.state_pressed.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_focus]
+component = "WorkbenchCaption"
+control_id = "badges_StateFocus"
+classes = [ "material-lab-state-pill", "material-lab-state-focus" ]
+
+[nodes.state_focus.props]
+text = "Focus"
+text_tone = "primary"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = true
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.state_focus.layout.width]
+stretch = "Stretch"
+
+[nodes.state_focus.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_disabled]
+component = "WorkbenchCaption"
+control_id = "badges_StateDisabled"
+classes = [ "material-lab-state-pill", "material-lab-state-disabled" ]
+
+[nodes.state_disabled.props]
+text = "Disabled"
+text_tone = "disabled"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = true
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.state_disabled.layout.width]
+stretch = "Stretch"
+
+[nodes.state_disabled.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_selected]
+component = "WorkbenchCaption"
+control_id = "badges_StateSelected"
+classes = [ "material-lab-state-pill", "material-lab-state-selected" ]
+
+[nodes.state_selected.props]
+text = "Selected"
+text_tone = "primary"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = false
+selected = true
+checked = true
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.state_selected.layout.width]
+stretch = "Stretch"
+
+[nodes.state_selected.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_open]
+component = "WorkbenchCaption"
+control_id = "badges_StateOpen"
+classes = [ "material-lab-state-pill", "material-lab-state-open" ]
+
+[nodes.state_open.props]
+text = "Open"
+text_tone = "primary"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "normal"
+hovered = false
+pressed = false
+focused = false
+selected = true
+checked = false
+disabled = false
+open = true
+popup_open = true
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.state_open.layout.width]
+stretch = "Stretch"
+
+[nodes.state_open.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.state_error]
+component = "WorkbenchCaption"
+control_id = "badges_StateError"
+classes = [ "material-lab-state-pill", "material-lab-state-error" ]
+
+[nodes.state_error.props]
+text = "Error"
+text_tone = "error"
+font_size = "$editor.typography.caption.size"
+surface_variant = "frame_only"
+button_variant = "text"
+validation_level = "error"
+hovered = false
+pressed = false
+focused = false
+selected = false
+checked = false
+disabled = false
+open = false
+popup_open = false
+corner_radius = 0
+border_width = 0
+text_align = "left"
+
+[nodes.state_error.layout.width]
+stretch = "Stretch"
+
+[nodes.state_error.layout.height]
+min = 24
+preferred = 24
+max = 24
+stretch = "Fixed"
+
+[nodes.root]
+component = "VerticalBox"
+control_id = "badges_Root"
+classes = [ "material-lab-card", "material-surface", "material-badges" ]
+
+[nodes.root.layout.width]
+stretch = "Stretch"
+
+[nodes.root.layout.height]
+min = 336
+preferred = 336
+max = 336
+stretch = "Fixed"
+
+[nodes.root.layout.container]
+kind = "VerticalBox"
+gap = "$editor.density.gap.large"
+
+[[nodes.root.children]]
+node = "title"
+
+[[nodes.root.children]]
+node = "meta"
+
+[[nodes.root.children]]
+node = "sample"
+
+[[nodes.root.children]]
+node = "state_strip"

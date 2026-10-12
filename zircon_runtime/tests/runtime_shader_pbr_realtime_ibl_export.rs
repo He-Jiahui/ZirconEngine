@@ -22,12 +22,13 @@ use zircon_runtime::graphics::{
     RealtimeIblCpuTimingReport, RealtimeIblGpuTimingReport, ViewportFrame, WgpuRenderFramework,
 };
 
-#[path = "runtime_shader_pbr_realtime_ibl_export/cpu_profile_capture.rs"]
+#[path = "cpu_profile_capture.rs"]
 mod cpu_profile_capture;
-#[path = "runtime_shader_pbr_realtime_ibl_export/gltf_zero_roughness.rs"]
+#[path = "gltf_zero_roughness.rs"]
 mod gltf_zero_roughness;
 #[path = "runtime_shader_pbr_hdri_export/scene_fixtures.rs"]
 mod scene_fixtures;
+#[path = "support/mod.rs"]
 mod support;
 #[path = "runtime_shader_pbr_realtime_ibl_export/timing_reports.rs"]
 mod timing_reports;

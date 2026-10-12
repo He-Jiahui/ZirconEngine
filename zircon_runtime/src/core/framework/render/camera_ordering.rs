@@ -6,7 +6,7 @@ use crate::core::resource::ResourceId;
 use super::{CameraRenderDescriptor, CameraRenderType, RenderCameraTarget};
 
 #[cfg(test)]
-#[path = "camera_ordering/tests/hash_target_count_tests.rs"]
+#[path = "tests/hash_target_count.rs"]
 mod hash_target_count_tests;
 
 /// 场景世界提供的相机排序输入；实体 ID 只用于同序同目标时的稳定破同。

@@ -6,15 +6,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOLBAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_top_toolbar.zui"
 )
 ACTIVITY_RAIL = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_activity_rail.zui"
 )
 COMPONENT_DRAWER = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_component_drawer.zui"
 )
 ICON_TOOLTIP = REPO_ROOT / (
@@ -22,7 +22,7 @@ ICON_TOOLTIP = REPO_ROOT / (
     "workbench/icon_tooltip.rs"
 )
 ICON_TOOLTIP_RESOLVER = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/workbench_tooltip.rs"
+    "zircon_editor/src/ui/runtime/tooltip.rs"
 )
 TOOLBAR_LAYOUT = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"

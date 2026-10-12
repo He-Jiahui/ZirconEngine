@@ -19,9 +19,9 @@ plan_sources:
   - .codex/plans/UI Asset Editor 与共享 Layout 未完成内容归档.md
   - docs/editor/ui-asset-editor-host-session.md
 tests:
-  - zircon_editor/src/ui/asset_editor
+  - zircon_editor/src/ui
   - zircon_editor/src/ui/animation_editor
-  - zircon_editor/src/tests/ui
+  - zircon_editor/src/tests
 doc_type: module-detail
 ---
 

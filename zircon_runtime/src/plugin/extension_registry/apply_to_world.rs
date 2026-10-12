@@ -1,8 +1,9 @@
 //! 把插件贡献转为可复用的 World 安装计划；每个 World 独立构造资源和系统实例。
+#[path = "apply_to_world/component.rs"]
 mod component;
 
 #[cfg(test)]
-#[path = "apply_to_world/tests/capacity_tests.rs"]
+#[path = "apply_to_world/tests/capacity.rs"]
 mod capacity_tests;
 
 use crate::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};

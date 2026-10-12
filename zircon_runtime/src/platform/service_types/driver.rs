@@ -33,6 +33,7 @@ use super::super::{
     WindowRegistryError, WindowStateRegistry, WindowStateRegistryError,
 };
 
+#[path = "driver/surface_lifecycle.rs"]
 mod surface_lifecycle;
 
 /// Same-domain driver slot that lets the process host install one platform backend.
@@ -649,4 +650,5 @@ impl fmt::Display for PreferenceStorageBackendInstallError {
 impl Error for PreferenceStorageBackendInstallError {}
 
 #[cfg(test)]
+#[path = "driver/tests/mod.rs"]
 mod tests;

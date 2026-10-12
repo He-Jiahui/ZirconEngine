@@ -1,9 +1,14 @@
 use serde_json::Value;
 
+#[path = "entries/animation.rs"]
 mod animation;
+#[path = "entries/camera.rs"]
 mod camera;
+#[path = "entries/lighting.rs"]
 mod lighting;
+#[path = "entries/mesh.rs"]
 mod mesh;
+#[path = "entries/physics.rs"]
 mod physics;
 
 use crate::core::framework::scene::{

@@ -14,7 +14,7 @@ use super::plugin_selection_template::plugin_selection_template;
 use super::{ExportGeneratedFile, ExportLinkedRuntimeCrate};
 
 #[cfg(test)]
-#[path = "generated_files/tests/capacity_tests.rs"]
+#[path = "generated_files/tests/capacity.rs"]
 mod capacity_tests;
 
 /// 由 from_project_manifest 在诊断和链接源准入后调用；顺序也是验证内容工件及落盘报告的顺序。

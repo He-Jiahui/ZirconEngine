@@ -57,5 +57,5 @@ pub(super) fn compute_window_min_height(
 }
 
 #[cfg(test)]
-#[path = "window_minimums/tests/allocation_tests.rs"]
+#[path = "../../geometry/tests/window_minimums_alloc.rs"]
 mod allocation_tests;

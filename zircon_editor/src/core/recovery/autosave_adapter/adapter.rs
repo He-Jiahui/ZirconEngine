@@ -373,5 +373,5 @@ fn requests_for_documents(
 }
 
 #[cfg(test)]
-#[path = "tests/adapter_optimization_batch_20260830cp_editor_tests.rs"]
+#[path = "tests/adapter_perf.rs"]
 mod optimization_batch_20260830cp_editor_tests;

@@ -21,7 +21,9 @@ use super::parameters::{
     TASK_RESULT_EXPECTED_VALUES, TASK_RESULT_PARAMETER_KEY,
 };
 
+#[path = "validation/integration.rs"]
 mod integration;
+#[path = "validation/runtime_inputs.rs"]
 mod runtime_inputs;
 
 #[cfg(test)]

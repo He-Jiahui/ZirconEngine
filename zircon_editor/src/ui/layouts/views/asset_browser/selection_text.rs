@@ -245,7 +245,7 @@ fn selection_metadata_body_capacity(selection: &AssetSelectionSnapshot) -> usize
 }
 
 #[cfg(test)]
-#[path = "selection_text/tests/capacity_tests.rs"]
+#[path = "../tests/selection_text_capacity.rs"]
 mod capacity_tests;
 
 #[cfg(test)]

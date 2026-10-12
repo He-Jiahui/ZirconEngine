@@ -19,7 +19,7 @@ use super::{
     GpuSceneJournalTransactionCommit, GpuSceneJournalTransactionError,
 };
 
-#[path = "reprojection.rs"]
+#[path = "../../tests/reprojection.rs"]
 mod reprojection;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

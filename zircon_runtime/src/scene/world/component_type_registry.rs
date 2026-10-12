@@ -5,7 +5,7 @@ use crate::core::framework::scene::ComponentTypeDescriptor;
 use super::error::{SceneError, SceneResult};
 
 #[cfg(test)]
-#[path = "component_type_registry/tests/schema_generation_hash_tests.rs"]
+#[path = "tests/schema_generation_hash.rs"]
 mod schema_generation_hash_tests;
 
 #[derive(Clone, Debug, Default)]

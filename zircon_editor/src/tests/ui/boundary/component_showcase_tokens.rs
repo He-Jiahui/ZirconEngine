@@ -24,7 +24,7 @@ const COMPONENT_SHOWCASE_CHILD_TEMPLATES: &[(&str, &str)] = &[
         "collections section",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/showcase/showcase_collections_section.zui"
+            "/assets/ui/editor/components/showcase/collections_section.zui"
         )),
     ),
     (
@@ -45,7 +45,7 @@ const COMPONENT_SHOWCASE_CHILD_TEMPLATES: &[(&str, &str)] = &[
         "selection section",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/assets/ui/editor/components/showcase/showcase_selection_section.zui"
+            "/assets/ui/editor/components/showcase/selection_section.zui"
         )),
     ),
     (

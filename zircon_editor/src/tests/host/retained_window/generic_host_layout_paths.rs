@@ -81,7 +81,7 @@ fn editor_ui_toml_assets_replace_former_workbench_source_roles() {
 fn rust_projection_module_remains_the_editor_host_layout_authority() {
     let root = editor_root();
     assert!(
-        root.join("src/ui/layouts/windows/workbench_host_window/mod.rs")
+        root.join("src/ui/layouts/windows/window/mod.rs")
             .exists(),
         "current Rust host projection seam should remain available during DTO cutover"
     );

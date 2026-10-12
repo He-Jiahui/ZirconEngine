@@ -1,11 +1,20 @@
+#[path = "binary_contract.rs"]
 mod binary_contract;
+#[path = "binary_malformed_contract.rs"]
 mod binary_malformed_contract;
+#[path = "legacy_detection.rs"]
 mod legacy_detection;
+#[path = "load_contract.rs"]
 mod load_contract;
+#[path = "malformed_contract.rs"]
 mod malformed_contract;
+#[path = "migration_contract.rs"]
 mod migration_contract;
+#[path = "migration_failure_contract.rs"]
 mod migration_failure_contract;
+#[path = "schema_id_contract.rs"]
 mod schema_id_contract;
+#[path = "write_contract.rs"]
 mod write_contract;
 
 use serde::{Deserialize, Serialize};

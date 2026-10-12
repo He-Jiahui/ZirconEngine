@@ -7,6 +7,7 @@ use super::color_space::UI_IMAGE_TEXTURE_FORMAT;
 use super::image_cache::{image_payload_layout, remove_cached_image, ImageCacheAdmissionAction};
 use super::WgpuUiExternalImage;
 
+#[path = "../shared_image_registry/allocation_ledger.rs"]
 mod allocation_ledger;
 
 pub(crate) use allocation_ledger::WgpuUiImageInFlightPins;

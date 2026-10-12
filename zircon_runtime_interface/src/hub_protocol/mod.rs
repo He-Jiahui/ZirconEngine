@@ -3,14 +3,23 @@
 //!
 //! 启动和聚焦文件邮箱由宿主读写；最近项目文件事务由本模块的存储实现负责。
 
+#[path = "focus_ack.rs"]
 mod focus_ack;
+#[path = "focus_signal.rs"]
 mod focus_signal;
+#[path = "focus_signal_path.rs"]
 mod focus_signal_path;
+#[path = "mailbox.rs"]
 mod mailbox;
+#[path = "outcome.rs"]
 mod outcome;
+#[path = "protocol_version/mod.rs"]
 mod protocol_version;
+#[path = "ready_receipt.rs"]
 mod ready_receipt;
+#[path = "recent_projects/mod.rs"]
 mod recent_projects;
+#[path = "session_token/mod.rs"]
 mod session_token;
 
 #[cfg(test)]

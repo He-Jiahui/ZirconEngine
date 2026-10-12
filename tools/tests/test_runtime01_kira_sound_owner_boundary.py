@@ -89,7 +89,7 @@ class Runtime01KiraSoundOwnerBoundaryTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         mirror_guard = (
             REPO_ROOT
-            / "zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs"
+            / "zircon_runtime/src/tests/contracts/tech_stack/mirror_docs.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn(

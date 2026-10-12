@@ -1,3 +1,4 @@
+#[path = "shading_models/mod.rs"]
 mod shading_models;
 
 pub(crate) use shading_models::{

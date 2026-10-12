@@ -3,6 +3,7 @@ use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 use super::ReflectError;
 use validation::{validate_module_path, validate_plugin_id, validate_short_type_path};
 
+#[path = "type_path/validation.rs"]
 mod validation;
 
 pub(super) use validation::validate_type_path;

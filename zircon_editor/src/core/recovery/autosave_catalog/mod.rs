@@ -1,7 +1,12 @@
+#[path = "catalog.rs"]
 mod catalog;
+#[path = "metadata.rs"]
 mod metadata;
+#[path = "report.rs"]
 mod report;
+#[path = "snapshot_metadata.rs"]
 mod snapshot_metadata;
+#[path = "source_path.rs"]
 mod source_path;
 
 pub(crate) use catalog::AutosaveRecoveryCatalog;

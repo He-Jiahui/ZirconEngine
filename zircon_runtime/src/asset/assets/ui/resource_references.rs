@@ -76,5 +76,5 @@ fn visit_uri<'a>(uri: &'a str, visit: &mut impl FnMut(&'a str)) {
 }
 
 #[cfg(test)]
-#[path = "tests/resource_references_optimization_tests.rs"]
+#[path = "tests/resource_references_perf.rs"]
 mod optimization_tests;

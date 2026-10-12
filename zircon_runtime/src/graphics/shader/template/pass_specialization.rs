@@ -25,7 +25,7 @@ const HIT_PROXY_ALPHA_TEMPLATE_TOKEN: &str = "zr_template_hit_proxy_alpha.wgsl";
 
 const FORWARD_TEMPLATE: &str = include_str!("../wgsl/zr_template_forward.wgsl");
 const ENVIRONMENT_ONLY_PBR_FORWARD_TEMPLATE: &str =
-    include_str!("../wgsl/zr_template_forward_environment_only_pbr.wgsl");
+    include_str!("../../wgsl/zr_template_forward_environment_only_pbr.wgsl");
 const GBUFFER_TEMPLATE: &str = include_str!("../wgsl/zr_template_gbuffer.wgsl");
 const DEPTH_TEMPLATE: &str = include_str!("../wgsl/zr_template_depth.wgsl");
 const DEPTH_ALPHA_TEMPLATE: &str = include_str!("../wgsl/zr_template_depth_alpha.wgsl");

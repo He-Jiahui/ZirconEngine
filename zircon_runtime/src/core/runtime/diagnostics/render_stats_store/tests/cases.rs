@@ -10,8 +10,8 @@ fn render_stats_helpers_use_static_metadata_recording() {
 #[test]
 fn render_stats_product_leaves_use_static_metadata_recording() {
     for (name, source) in [
-        ("effect_stack", include_str!("../product/effect_stack.rs")),
-        ("light_grid", include_str!("../product/light_grid.rs")),
+        ("effect_stack", include_str!("../../product/effect_stack.rs")),
+        ("light_grid", include_str!("../../product/light_grid.rs")),
     ] {
         assert!(
             !source.contains("store.record("),
@@ -55,7 +55,7 @@ fn history_domain_diagnostics_use_fixed_paths_without_frame_string_allocation() 
 
 #[test]
 fn ambient_occlusion_execution_diagnostics_use_fixed_receipt_paths() {
-    let source = include_str!("../ambient_occlusion.rs");
+    let source = include_str!("../../../render_stats_store/ambient_occlusion.rs");
 
     assert_eq!(
         source
@@ -89,7 +89,7 @@ fn ambient_occlusion_execution_diagnostics_use_fixed_receipt_paths() {
 
 #[test]
 fn scene_submission_completion_diagnostics_use_fixed_receipt_paths() {
-    let source = include_str!("../scene_submission_completion.rs");
+    let source = include_str!("../../../render_stats_store/scene_submission_complete.rs");
 
     assert_eq!(source.matches("render.submission.completion.").count(), 11);
     for leaf in [

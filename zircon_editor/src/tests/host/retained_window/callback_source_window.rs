@@ -3,55 +3,55 @@
 fn child_window_callback_wiring_tracks_source_window_for_pane_interactions() {
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/callback_wiring.rs"
+        "/src/ui/retained/app/callback_wiring.rs"
     ));
     let helpers = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/helpers.rs"
+        "/src/ui/retained/app/helpers.rs"
     ));
     let viewport = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/viewport.rs"
+        "/src/ui/retained/app/viewport.rs"
     ));
     let hierarchy = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/hierarchy_pointer.rs"
+        "/src/ui/retained/app/hierarchy_pointer.rs"
     ));
     let tree = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/asset_tree_pointer.rs"
+        "/src/ui/retained/app/asset_tree_pointer.rs"
     ));
     let content = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/asset_content_pointer.rs"
+        "/src/ui/retained/app/asset_content_pointer.rs"
     ));
     let references = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/asset_reference_pointer.rs"
+        "/src/ui/retained/app/asset_reference_pointer.rs"
     ));
     let detail = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/detail_scroll_pointer.rs"
+        "/src/ui/retained/app/detail_scroll_pointer.rs"
     ));
     let inspector = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/inspector.rs"
+        "/src/ui/retained/app/inspector.rs"
     ));
     let assets = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/assets.rs"
+        "/src/ui/retained/app/assets.rs"
     ));
     let pane_actions = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/pane_surface_actions.rs"
+        "/src/ui/retained/app/pane_surface_actions.rs"
     ));
     let ui_asset_editor = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/ui_asset_editor.rs"
+        "/src/ui/retained/app/ui_asset_editor.rs"
     ));
     let workbench_pointer = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/workbench_pointer.rs"
+        "/src/ui/retained/app/pointer.rs"
     ));
 
     assert!(

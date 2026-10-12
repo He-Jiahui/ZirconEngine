@@ -4,7 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SCENE = ROOT / "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers"
-HOST_CONTRACT = ROOT / "zircon_editor/src/ui/retained_host/host_contract"
+HOST_CONTRACT = ROOT / "zircon_editor/src/ui/retained/contract"
 
 
 class EditorSceneLayerDamageStatePerformanceContract(unittest.TestCase):
@@ -50,7 +50,7 @@ class EditorSceneLayerDamageStatePerformanceContract(unittest.TestCase):
     def test_floating_layer_prepares_state_only_after_an_accepted_window(self):
         source = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/floating_windows.rs"
+            / "zircon_editor/src/ui/retained/contract/workbench/docks/floating_windows.rs"
         ).read_text(encoding="utf-8")
         draw = source.split("fn draw_floating_layer(", 1)[1]
 

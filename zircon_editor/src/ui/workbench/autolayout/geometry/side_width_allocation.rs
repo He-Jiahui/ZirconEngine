@@ -53,5 +53,5 @@ fn finite_demand_within_budget(value: f32, budget: f64) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "tests/side_width_allocation.rs"]
+#[path = "../../geometry/tests/side_width_allocation.rs"]
 mod tests;

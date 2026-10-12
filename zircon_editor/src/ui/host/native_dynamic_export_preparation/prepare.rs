@@ -202,9 +202,9 @@ pub(in crate::ui::host) fn prepare_native_dynamic_packages_with_cancellation(
 }
 
 #[cfg(test)]
-#[path = "tests/prepare_admission_tests.rs"]
+#[path = "../tests/prepare_admission.rs"]
 mod admission_tests;
 
 #[cfg(test)]
-#[path = "tests/prepare_performance_tests.rs"]
+#[path = "../tests/prepare_perf.rs"]
 mod performance_tests;

@@ -203,9 +203,9 @@ fn total_rule_count(document: &UiAssetDocument) -> usize {
 }
 
 #[cfg(test)]
-#[path = "theme_summary/tests/lightweight_selection_tests.rs"]
+#[path = "tests/lightweight_selection.rs"]
 mod lightweight_selection_tests;
 
 #[cfg(test)]
-#[path = "theme_summary/tests/optimization_batch_jh_editor647_tests.rs"]
+#[path = "theme_summary/tests/perf.rs"]
 mod optimization_batch_jh_editor647_tests;

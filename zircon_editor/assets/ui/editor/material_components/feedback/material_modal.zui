@@ -5,7 +5,7 @@ version = 2
 display_name = "Material Modal Prototype"
 
 [imports]
-widgets = ["res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel", "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption"]
+widgets = ["res://ui/editor/components/workbench/primitives/data/label.zui#WorkbenchLabel", "res://ui/editor/components/workbench/primitives/data/caption.zui#WorkbenchCaption"]
 styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.MaterialModalPrototype]

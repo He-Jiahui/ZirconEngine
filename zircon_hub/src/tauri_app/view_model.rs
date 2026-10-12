@@ -8,16 +8,27 @@ use crate::settings::HubLanguage;
 use crate::state::{HubSnapshot, ProjectAvailabilitySnapshot, TaskSeverity, TaskStatus};
 use crate::team::{TeamMemberEntry, TeamOverview};
 
+#[path = "view_model/action_history.rs"]
 mod action_history;
+#[path = "view_model/catalog.rs"]
 mod catalog;
+#[path = "view_model/coming_soon.rs"]
 mod coming_soon;
+#[path = "view_model/display.rs"]
 mod display;
+#[path = "view_model/localized.rs"]
 mod localized;
+#[path = "view_model/new_project.rs"]
 mod new_project;
+#[path = "view_model/project_templates.rs"]
 mod project_templates;
+#[path = "view_model/quick_actions.rs"]
 mod quick_actions;
+#[path = "view_model/settings_dto.rs"]
 mod settings_dto;
+#[path = "view_model/source_engines.rs"]
 mod source_engines;
+#[path = "view_model/ui_text.rs"]
 mod ui_text;
 
 use action_history::{action_history_rows, HubActionHistoryItem};

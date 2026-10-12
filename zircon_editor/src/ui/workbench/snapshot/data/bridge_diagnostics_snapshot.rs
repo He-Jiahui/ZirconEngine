@@ -80,5 +80,5 @@ fn bridge_status_label(status: BridgeInterfaceStatus) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/bridge_diagnostics_snapshot_optimization_batch_fa_tests.rs"]
+#[path = "../../../snapshot/data/tests/bridge_diagnostics_snapshot_perf.rs"]
 mod optimization_batch_fa_tests;

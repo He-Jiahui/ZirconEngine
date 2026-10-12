@@ -1,5 +1,6 @@
 //! Facade-owned runtime diagnostics collectors that resolve registered manager services.
 
+#[path = "collect.rs"]
 mod collect;
 #[cfg(feature = "physics-contracts")]
 #[path = "physics_collection_enabled.rs"]

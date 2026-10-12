@@ -171,5 +171,5 @@ pub(super) fn discovery_index(
 }
 
 #[cfg(test)]
-#[path = "discovery/tests/optimization_batch_ia_editor610_tests.rs"]
+#[path = "discovery/tests/perf.rs"]
 mod optimization_batch_ia_editor610_tests;

@@ -1,7 +1,12 @@
+#[path = "artifact.rs"]
 mod artifact;
+#[path = "codec.rs"]
 mod codec;
+#[path = "error.rs"]
 mod error;
+#[path = "identity.rs"]
 mod identity;
+#[path = "path.rs"]
 mod path;
 
 pub(crate) use artifact::{

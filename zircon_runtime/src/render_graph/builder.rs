@@ -14,10 +14,15 @@ use super::types::{
     RenderGraphTextureViewAlias, RenderPassId, RgBufferHandle, RgTextureHandle,
 };
 
+#[path = "builder/access_authoring.rs"]
 mod access_authoring;
+#[path = "builder/access_scope_tracker.rs"]
 mod access_scope_tracker;
+#[path = "builder/access_validation.rs"]
 mod access_validation;
+#[path = "builder/compile.rs"]
 mod compile;
+#[path = "builder/resource_dependency_inference.rs"]
 mod resource_dependency_inference;
 
 static NEXT_RENDER_GRAPH_BUILDER_GENERATION: AtomicU64 = AtomicU64::new(1);

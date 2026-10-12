@@ -75,5 +75,5 @@ impl VmBackendRegistry {
 mod tests;
 
 #[cfg(test)]
-#[path = "backend_registry/tests/qualified_lookup_tests.rs"]
+#[path = "backend_registry/tests/qualified_lookup.rs"]
 mod qualified_lookup_tests;

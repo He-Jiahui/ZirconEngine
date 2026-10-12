@@ -172,5 +172,5 @@ impl UiAssetEditorSession {
 }
 
 #[cfg(test)]
-#[path = "inspector/tests/streaming_items_tests.rs"]
+#[path = "../../../session/presentation/inspector/tests/streaming_items.rs"]
 mod streaming_items_tests;

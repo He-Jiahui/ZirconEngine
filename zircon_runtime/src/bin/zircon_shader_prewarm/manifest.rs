@@ -23,13 +23,21 @@ use zircon_runtime::dynamic_api::{
     material_surface_shader_prewarm_template_source, ShaderPrewarmTemplateSource,
 };
 
+#[path = "manifest/asset_inventory.rs"]
 mod asset_inventory;
+#[path = "manifest/material_sources.rs"]
 mod material_sources;
+#[path = "manifest/module_dependencies.rs"]
 mod module_dependencies;
+#[path = "manifest/pass_types.rs"]
 mod pass_types;
+#[path = "manifest/paths.rs"]
 mod paths;
+#[path = "manifest/permutation_registry.rs"]
 pub(crate) mod permutation_registry;
+#[path = "manifest/resource_registry.rs"]
 pub(crate) mod resource_registry;
+#[path = "manifest/revision.rs"]
 mod revision;
 
 pub(crate) use self::asset_inventory::ShaderPrewarmAssetInventory;

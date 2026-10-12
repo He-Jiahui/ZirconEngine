@@ -1,15 +1,28 @@
+#[path = "effect/component_event.rs"]
 mod component_event;
+#[path = "effect/drag_drop.rs"]
 mod drag_drop;
+#[path = "effect/focus_pointer.rs"]
 mod focus_pointer;
+#[path = "effect/host_request.rs"]
 mod host_request;
+#[path = "effect/ime_lifecycle.rs"]
 mod ime_lifecycle;
+#[path = "effect/link.rs"]
 mod link;
+#[path = "effect/navigation.rs"]
 mod navigation;
+#[path = "effect/node.rs"]
 mod node;
+#[path = "effect/popup_tooltip.rs"]
 mod popup_tooltip;
+#[path = "effect/redraw.rs"]
 mod redraw;
+#[path = "effect/target.rs"]
 mod target;
+#[path = "effect/text_services.rs"]
 mod text_services;
+#[path = "effect/transaction.rs"]
 mod transaction;
 
 #[cfg(test)]

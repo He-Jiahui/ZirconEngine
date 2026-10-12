@@ -257,5 +257,5 @@ fn render_manifest_loader_close_cancels_observers_and_closes_admission() {
     ));
 }
 
-#[path = "frontier.rs"]
+#[path = "../../../manifest_loader/tests/frontier.rs"]
 mod frontier;

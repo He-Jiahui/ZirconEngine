@@ -3,8 +3,8 @@ related_code:
   - zircon_editor/src/core/project/authority/open_project.rs
   - zircon_editor/src/core/project/scene_document.rs
   - zircon_editor/src/core/document/scene_route.rs
-  - zircon_editor/src/ui/retained_host/run_config.rs
-  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained/run_config.rs
+  - zircon_editor/src/ui/retained/app.rs
   - zircon_editor/src/core/editing/engine/transaction/scope.rs
   - zircon_editor/src/core/editing/engine/transaction/save_token.rs
   - zircon_editor/src/tests/editing/transaction_engine/history.rs
@@ -12,8 +12,8 @@ implementation_files:
   - zircon_editor/src/core/project/authority/open_project.rs
   - zircon_editor/src/core/project/scene_document.rs
   - zircon_editor/src/core/document/scene_route.rs
-  - zircon_editor/src/ui/retained_host/run_config.rs
-  - zircon_editor/src/core/editing/engine/transaction
+  - zircon_editor/src/ui/retained/run_config.rs
+  - zircon_editor/src/core/editing/engine
 plan_sources:
   - user: 2026-09-09 引擎用户场景配方：编辑器项目作者态会话
   - docs/wiki/editor/host-project-session.md
@@ -22,7 +22,7 @@ tests:
   - zircon_editor/src/tests/editing/authoring_world.rs
   - zircon_editor/src/tests/editing/transaction_engine/history.rs
   - zircon_editor/src/tests/editing/node_ops/hierarchy.rs
-  - zircon_editor/src/tests/host
+  - zircon_editor/src/tests
 doc_type: workflow-detail
 ---
 

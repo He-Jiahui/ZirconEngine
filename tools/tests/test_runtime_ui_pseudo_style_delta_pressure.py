@@ -10,7 +10,7 @@ from tools.analysis.performance.runtime.runtime_ui_pseudo_style_delta_pressure i
 ROOT = Path(__file__).resolve().parents[2]
 STYLE = ROOT / "zircon_runtime/src/ui/v2/style.rs"
 STATE_INVALIDATION = ROOT / (
-    "zircon_runtime/src/ui/surface/surface/pointer_component_events/"
+    "zircon_runtime/src/ui/surface/pointer_component_events/"
     "state_invalidation.rs"
 )
 PROPERTY_TRANSACTION = ROOT / (

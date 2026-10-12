@@ -1,8 +1,11 @@
+#[path = "compact_layout/column_budget.rs"]
 mod column_budget;
 #[cfg(test)]
-#[path = "compact_layout/tests/optimization_tests.rs"]
+#[path = "compact_layout/tests/perf.rs"]
 mod optimization_tests;
+#[path = "../compact_layout/source_panel_layout.rs"]
 mod source_panel_layout;
+#[path = "../compact_layout/utility_layout.rs"]
 mod utility_layout;
 
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};

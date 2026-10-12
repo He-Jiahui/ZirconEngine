@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "support/mod.rs"]
 mod support;
 
 use zircon_runtime::asset::pipeline::manager::AssetManager;

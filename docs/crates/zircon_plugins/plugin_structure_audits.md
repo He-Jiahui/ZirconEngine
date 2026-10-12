@@ -224,17 +224,17 @@ related_code:
   - zircon_plugins/sound/editor/src/extension_ids.rs
   - zircon_plugins/sound/editor/src/plugin.rs
   - zircon_plugins/sound/editor/src/tests.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/capability.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/ray_reverb/runtime/src/capability.rs
+  - zircon_plugins/sound/features/ray_reverb/runtime/src/plugin.rs
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/tests.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/capability.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/plugin.rs
+  - zircon_plugins/sound/features/ray_reverb/editor/src/capability.rs
+  - zircon_plugins/sound/features/ray_reverb/editor/src/plugin.rs
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/tests.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/capability.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/timeline/runtime/src/capability.rs
+  - zircon_plugins/sound/features/timeline/runtime/src/plugin.rs
   - zircon_plugins/sound/features/timeline_animation_track/runtime/src/tests.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/capability.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/plugin.rs
+  - zircon_plugins/sound/features/timeline/editor/src/capability.rs
+  - zircon_plugins/sound/features/timeline/editor/src/plugin.rs
   - zircon_plugins/sound/features/timeline_animation_track/editor/src/tests.rs
   - zircon_plugins/timeline_sequence/editor/src/lib.rs
   - zircon_plugins/timeline_sequence/editor/src/capability.rs
@@ -453,17 +453,17 @@ implementation_files:
   - zircon_plugins/sound/editor/src/extension_ids.rs
   - zircon_plugins/sound/editor/src/plugin.rs
   - zircon_plugins/sound/editor/src/tests.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/capability.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/ray_reverb/runtime/src/capability.rs
+  - zircon_plugins/sound/features/ray_reverb/runtime/src/plugin.rs
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/tests.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/capability.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/plugin.rs
+  - zircon_plugins/sound/features/ray_reverb/editor/src/capability.rs
+  - zircon_plugins/sound/features/ray_reverb/editor/src/plugin.rs
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/tests.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/capability.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/plugin.rs
+  - zircon_plugins/sound/features/timeline/runtime/src/capability.rs
+  - zircon_plugins/sound/features/timeline/runtime/src/plugin.rs
   - zircon_plugins/sound/features/timeline_animation_track/runtime/src/tests.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/capability.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/plugin.rs
+  - zircon_plugins/sound/features/timeline/editor/src/capability.rs
+  - zircon_plugins/sound/features/timeline/editor/src/plugin.rs
   - zircon_plugins/sound/features/timeline_animation_track/editor/src/tests.rs
   - zircon_plugins/timeline_sequence/editor/src/lib.rs
   - zircon_plugins/timeline_sequence/editor/src/capability.rs

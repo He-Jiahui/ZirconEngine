@@ -116,5 +116,5 @@ impl SceneInspectionHierarchyFragment {
 }
 
 #[cfg(test)]
-#[path = "tests/fragment_optimization_tests.rs"]
+#[path = "tests/fragment_perf.rs"]
 mod optimization_tests;

@@ -171,5 +171,5 @@ fn dispatch_local_http_route(
 }
 
 #[cfg(test)]
-#[path = "tests/http_routes_moved_local_http_request_tests.rs"]
+#[path = "../tests/http_routes_moved_local_http_request.rs"]
 mod moved_local_http_request_tests;

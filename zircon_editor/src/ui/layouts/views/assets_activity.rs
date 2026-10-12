@@ -18,12 +18,16 @@ use crate::ui::workbench::asset_content_layout::{
 use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
 use zircon_runtime_interface::ui::layout::UiSize;
 
+#[path = "assets_activity/content_layout.rs"]
 mod content_layout;
+#[path = "assets_activity/content_nodes.rs"]
 mod content_nodes;
+#[path = "assets_activity/reference_nodes.rs"]
 mod reference_nodes;
+#[path = "assets_activity/responsive_layout.rs"]
 mod responsive_layout;
 #[cfg(test)]
-#[path = "assets_activity/tests/responsive_layout_tests.rs"]
+#[path = "assets_activity/tests/narrow_controls.rs"]
 mod responsive_layout_tests;
 
 use super::{asset_kind_filter_options, ASSETS_ACTIVITY_KIND_FILTER_CONTROL_ID};

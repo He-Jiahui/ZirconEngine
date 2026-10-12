@@ -6,8 +6,8 @@ from tools.analysis.performance.ui.ui_surface_frame_domain_sharing_pressure impo
 
 
 ROOT = Path(__file__).resolve().parents[2]
-RUNTIME_SURFACE = ROOT / "zircon_runtime/src/ui/surface"
-INTERFACE_SURFACE = ROOT / "zircon_runtime_interface/src/ui/surface"
+RUNTIME_SURFACE = ROOT / "zircon_runtime/src/ui"
+INTERFACE_SURFACE = ROOT / "zircon_runtime_interface/src/ui"
 RUNTIME_UI_INPUT_ROUTING = (
     ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs"
 )

@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/asset/pipeline
+  - zircon_runtime/src/asset
   - zircon_runtime/src/asset/facade/readiness.rs
   - zircon_runtime/src/asset/watch
   - zircon_runtime/src/core/resource
@@ -11,7 +11,7 @@ implementation_files:
 plan_sources:
   - docs/wiki/scene-assets/project-assets.md
 tests:
-  - zircon_runtime/src/asset/tests/project
+  - zircon_runtime/src/asset/tests
   - zircon_runtime/src/asset/tests/watcher.rs
   - zircon_runtime/src/asset/tests/pipeline
 doc_type: mechanism-case-study

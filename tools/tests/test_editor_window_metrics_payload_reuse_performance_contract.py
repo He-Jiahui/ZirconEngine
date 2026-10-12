@@ -6,7 +6,7 @@ from tools.analysis.performance.editor.editor_window_metrics_payload_pressure im
 
 
 ROOT = Path(__file__).resolve().parents[2]
-APP = ROOT / "zircon_editor/src/ui/retained_host/app"
+APP = ROOT / "zircon_editor/src/ui/retained/app"
 LIFECYCLE = APP / "host_lifecycle"
 
 

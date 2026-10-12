@@ -1,8 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+#[path = "hit_test/cell_membership_patch.rs"]
 mod cell_membership_patch;
+#[path = "hit_test/geometry_patch.rs"]
 mod geometry_patch;
+#[path = "hit_test/query_scratch.rs"]
 mod query_scratch;
+#[path = "hit_test/route_index.rs"]
 mod route_index;
 
 use query_scratch::UiHitQueryScratchCell;

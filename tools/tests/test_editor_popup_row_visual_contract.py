@@ -5,35 +5,35 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ROW_STYLE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_popup_rows/surface/row/style.rs"
 )
 ROW_SURFACE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_popup_rows/surface/row.rs"
 )
 RUNTIME_POPUP_ROWS = REPO_ROOT / "zircon_runtime/src/ui/surface/render/popup_rows.rs"
 RUNTIME_POPUP_MENU = REPO_ROOT / "zircon_runtime/src/ui/surface/render/popup_menu.rs"
 RUNTIME_POPUP_OPTIONS = REPO_ROOT / "zircon_runtime/src/ui/surface/render/popup_options.rs"
 EDITOR_POPUP_LAYOUT_ROWS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/rows.rs"
+    "zircon_editor/src/ui/retained/contract/popup_layout/rows.rs"
 )
 EDITOR_POPUP_LAYOUT_METRICS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/metrics.rs"
+    "zircon_editor/src/ui/retained/contract/popup_layout/metrics.rs"
 )
 EDITOR_POPUP_MENU_PAINT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_popup_rows/menu/entry.rs"
 )
 EDITOR_POPUP_MENU_HIT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/"
     "template_node/popup_rows/menu.rs"
 )
 EDITOR_POPUP_MENU_KEYBOARD = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/menu.rs"
+    "zircon_editor/src/ui/retained/contract/native_keyboard/target/menu.rs"
 )
 TEMPLATE_PANE_NODE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/node.rs"
+    "zircon_editor/src/ui/retained/contract/data/nodes/node.rs"
 )
 PANE_LAYOUT_OFFSETS = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/"
@@ -44,10 +44,10 @@ PANE_CONTENT_ASSIGNMENT = REPO_ROOT / (
     "pane_component_projection/template_node_data/content.rs"
 )
 WORKBENCH_WINDOW_PROJECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs"
+    "zircon_editor/src/ui/retained/ui/windows.rs"
 )
 PHYSICAL_MOUNT_PROJECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/workbench_window_projection/mount.rs"
+    "zircon_editor/src/ui/retained/ui/windows/mount.rs"
 )
 
 

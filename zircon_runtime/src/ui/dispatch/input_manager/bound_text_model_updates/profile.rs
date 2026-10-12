@@ -104,5 +104,5 @@ pub(super) fn record_pending_release(payload_bytes: usize) {
 }
 
 #[cfg(test)]
-#[path = "tests/profile.rs"]
+#[path = "../tests/profile.rs"]
 mod tests;

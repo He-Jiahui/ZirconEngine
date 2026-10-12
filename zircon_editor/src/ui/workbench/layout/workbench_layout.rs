@@ -19,6 +19,7 @@ pub struct WorkbenchLayout {
     pub floating_windows: Vec<FloatingWindowLayout>,
 }
 
+#[path = "workbench_layout/deserialize.rs"]
 mod deserialize;
 
 impl Default for WorkbenchLayout {

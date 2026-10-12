@@ -1,7 +1,11 @@
 //! UI 边界结构测试共用文件扫描辅助函数；扫描结果用于资源位置与模块导出限制的断言。
+#[path = "boundary/asset_fixture_projection.rs"]
 mod asset_fixture_projection;
+#[path = "boundary/binding_event_roots.rs"]
 mod binding_event_roots;
+#[path = "boundary/layout_tree_surface.rs"]
 mod layout_tree_surface;
+#[path = "boundary/template_namespace.rs"]
 mod template_namespace;
 
 use std::fs;

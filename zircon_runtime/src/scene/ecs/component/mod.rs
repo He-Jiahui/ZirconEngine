@@ -1,6 +1,10 @@
+#[path = "id.rs"]
 mod id;
+#[path = "marker.rs"]
 mod marker;
+#[path = "registry.rs"]
 mod registry;
+#[path = "table_column.rs"]
 mod table_column;
 
 pub use id::ComponentId;

@@ -5,7 +5,7 @@ import unittest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-HYBRID_GI_EXTRACT_ROOT = ROOT / "zircon_runtime/src/core/framework/render/scene_extract/hybrid_gi"
+HYBRID_GI_EXTRACT_ROOT = ROOT / "zircon_runtime/src/core/framework/render/scene_extract/gi"
 
 
 def hybrid_gi_extract_source() -> str:
@@ -29,11 +29,11 @@ class HybridGiM4ContractTests(unittest.TestCase):
 
     def test_project_fixture_uses_explicit_asset_roots_and_project_writers(self) -> None:
         fixture_root = (
-            ROOT / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/tests/hybrid_gi_scene_prepare_material_fixtures.rs"
+            ROOT / "zircon_plugins/hybrid_gi/runtime/src/tests/hybrid_gi_scene_prepare_material.rs"
         )
         fixture = fixture_root.read_text(encoding="utf-8")
         project_documents = (
-            ROOT / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures/tests/project_documents.rs"
+            ROOT / "zircon_plugins/hybrid_gi/runtime/src/gi/test_sources/tests/project_documents.rs"
         )
         fixture_contract = fixture + project_documents.read_text(encoding="utf-8")
         manifest = (
@@ -81,7 +81,7 @@ class HybridGiM4ContractTests(unittest.TestCase):
     def test_scene_representation_has_explicit_surface_participation(self) -> None:
         source = (
             ROOT
-            / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/participation.rs"
+            / "zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/participation.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("enum HybridGiSurfaceParticipation", source)
@@ -93,7 +93,7 @@ class HybridGiM4ContractTests(unittest.TestCase):
     def test_participation_tracks_baked_generation_and_epoch(self) -> None:
         source = (
             ROOT
-            / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/participation.rs"
+            / "zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/participation.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("light_set_generation", source)
@@ -103,7 +103,7 @@ class HybridGiM4ContractTests(unittest.TestCase):
     def test_source_ledger_forbids_baked_and_full_dynamic_double_ownership(self) -> None:
         source = (
             ROOT
-            / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/source_ledger.rs"
+            / "zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/source_ledger.rs"
         ).read_text(encoding="utf-8")
         prepared = (
             ROOT / "zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs"
@@ -119,11 +119,11 @@ class HybridGiM4ContractTests(unittest.TestCase):
     def test_baked_mode_filters_static_lights_and_shader_applies_dynamic_weight(self) -> None:
         representation = (
             ROOT
-            / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs"
+            / "zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/representation.rs"
         ).read_text(encoding="utf-8")
         shader = (
             ROOT
-            / "zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl"
+            / "zircon_runtime/src/graphics/scene/renderer/post/shaders/post.wgsl"
         ).read_text(encoding="utf-8")
 
         self.assertIn("light.mobility == Mobility::Dynamic", representation)
@@ -134,14 +134,14 @@ class HybridGiM4ContractTests(unittest.TestCase):
     def test_temporal_invalidation_covers_scene_revisions_and_per_probe_ownership(self) -> None:
         participation = (
             ROOT
-            / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/participation.rs"
+            / "zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/participation.rs"
         ).read_text(encoding="utf-8")
         prepared = (
             ROOT / "zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs"
         ).read_text(encoding="utf-8")
         encoder = (
             ROOT
-            / "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs"
+            / "zircon_runtime/src/graphics/scene/post/encode_hybrid_gi_probes/encode.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("transform_revision", participation)
@@ -157,7 +157,7 @@ class HybridGiM4ContractTests(unittest.TestCase):
         extract = hybrid_gi_extract_source()
         representation = (
             ROOT
-            / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs"
+            / "zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/representation.rs"
         ).read_text(encoding="utf-8")
 
         for profile in ("FullyDynamic", "IndoorStatic", "OpenWorld", "Cinematic"):
@@ -177,11 +177,11 @@ class HybridGiM4ContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         updater = (
             ROOT
-            / "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs"
+            / "zircon_runtime/src/graphics/runtime/extract/update_stats/hybrid_gi_stats.rs"
         ).read_text(encoding="utf-8")
         editor = (
             ROOT
-            / "zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs"
+            / "zircon_editor/src/ui/layouts/windows/window/payloads/runtime_diagnostics.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("resolved_settings: Option<RenderHybridGiResolvedSettings>", provider_stats)
@@ -197,7 +197,7 @@ class HybridGiM4ContractTests(unittest.TestCase):
 
     def test_resolve_accepts_composed_graph_scene_velocity_ownership(self) -> None:
         source = (
-            ROOT / "zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs"
+            ROOT / "zircon_plugins/hybrid_gi/runtime/src/executors.rs"
         ).read_text(encoding="utf-8")
         resolve_resources = source.split(
             "const RESOLVE_RESOURCES: &[ExpectedResource] = &[", 1
@@ -210,17 +210,17 @@ class HybridGiM4ContractTests(unittest.TestCase):
         )
         self.assertIn(
             "hybrid_gi_resolve_accepts_external_or_transient_scene_velocity",
-            read_rust_test_file("zircon_plugins/hybrid_gi/runtime/src/tests/render_pass_executors.rs"),
+            read_rust_test_file("zircon_plugins/hybrid_gi/runtime/src/tests/executors.rs"),
         )
 
     def test_hybrid_gi_capability_preserves_the_scene_velocity_producer(self) -> None:
         flagship = (
             ROOT
-            / "zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/apply_flagship_profile_features.rs"
+            / "zircon_runtime/src/graphics/runtime/profile/apply_flagship_profile_features.rs"
         ).read_text(encoding="utf-8")
         tests = (
             ROOT
-            / "zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs"
+            / "zircon_runtime/src/graphics/runtime/framework/profile/profile.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn(
@@ -228,7 +228,7 @@ class HybridGiM4ContractTests(unittest.TestCase):
         )
         self.assertIn(
             "hybrid_gi_keeps_the_scene_velocity_producer_without_enabling_taa",
-            read_rust_test_file("zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/tests/compile_options_for_profile.rs"),
+            read_rust_test_file("zircon_runtime/src/graphics/runtime/framework/profile/tests/profile.rs"),
         )
 
 

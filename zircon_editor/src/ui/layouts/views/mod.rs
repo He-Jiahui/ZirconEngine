@@ -1,16 +1,30 @@
+#[path = "animation_editor.rs"]
 mod animation_editor;
+#[path = "asset_browser.rs"]
 mod asset_browser;
+#[path = "asset_kind_filter.rs"]
 mod asset_kind_filter;
+#[path = "asset_reference_rows.rs"]
 mod asset_reference_rows;
+#[path = "assets_activity.rs"]
 mod assets_activity;
+#[path = "console.rs"]
 mod console;
+#[path = "hierarchy.rs"]
 mod hierarchy;
+#[path = "inspector.rs"]
 mod inspector;
+#[path = "project_overview.rs"]
 mod project_overview;
+#[path = "view_data.rs"]
 mod view_data;
+#[path = "view_projection.rs"]
 mod view_projection;
+#[path = "viewport_chrome.rs"]
 mod viewport_chrome;
+#[path = "welcome.rs"]
 mod welcome;
+#[path = "welcome_presentation.rs"]
 mod welcome_presentation;
 
 pub(crate) use animation_editor::{animation_graph_pane_nodes, animation_sequence_pane_nodes};

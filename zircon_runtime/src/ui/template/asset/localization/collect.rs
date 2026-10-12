@@ -170,5 +170,5 @@ fn is_text_path(path: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "collect/tests/performance_tests.rs"]
+#[path = "collect/tests/perf.rs"]
 mod performance_tests;

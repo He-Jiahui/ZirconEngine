@@ -338,5 +338,5 @@ fn widget_value_property(metadata: &UiTemplateNodeMetadata) -> &str {
 }
 
 #[cfg(test)]
-#[path = "tests/radio_optimization_batch_20260830cu_runtime_tests.rs"]
+#[path = "tests/radio_perf.rs"]
 mod optimization_batch_20260830cu_runtime_tests;

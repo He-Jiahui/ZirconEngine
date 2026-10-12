@@ -1,3 +1,4 @@
+#[path = "validation.rs"]
 mod validation;
 
 pub(crate) use validation::component_param_kind;

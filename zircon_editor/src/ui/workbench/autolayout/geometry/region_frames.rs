@@ -144,7 +144,7 @@ fn solve_row_widths(
 }
 
 #[cfg(test)]
-#[path = "region_frames/tests/allocation_tests.rs"]
+#[path = "tests/allocation.rs"]
 mod allocation_tests;
 
 pub(crate) fn compact_side_width_limit(region: ShellRegionId, available_width: f32) -> Option<f32> {

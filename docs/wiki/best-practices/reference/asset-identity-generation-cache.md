@@ -1,16 +1,16 @@
 ---
 related_code:
   - zircon_runtime/src/core/resource
-  - zircon_runtime/src/asset/project
+  - zircon_runtime/src/asset
   - zircon_runtime_interface/src/world_sync/invalidation.rs
 implementation_files:
   - zircon_runtime/src/core/resource
-  - zircon_runtime/src/asset/project
+  - zircon_runtime/src/asset
 plan_sources:
   - docs/wiki/mechanisms/asset-import-readiness-residency.md
 tests:
   - zircon_runtime/src/asset/tests
-  - zircon_runtime/src/asset/project
+  - zircon_runtime/src/asset
 doc_type: reference-guide
 ---
 
@@ -128,7 +128,7 @@ Unreal 的 `FSoftObjectPath` 与 derived data cache 分离引用和构建产物�
 ## 精确来源
 
 - `zircon_runtime/src/core/resource`：资源状态、缓存和依赖。
-- `zircon_runtime/src/asset/project`：`ProjectManager` 导入、artifact 和索引。
+- `zircon_runtime/src/asset`：`ProjectManager` 导入、artifact 和索引。
 - `zircon_runtime_interface/src/world_sync/invalidation.rs`：失效批次 DTO。
 - `zircon_runtime/src/asset/tests`：generation、依赖和缓存回归。
 

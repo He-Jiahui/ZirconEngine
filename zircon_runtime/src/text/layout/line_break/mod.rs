@@ -15,12 +15,19 @@ use crate::text::shaping::DirectTextShapeRunProvider;
 use crate::text::shaping::{TextLayoutOutcome, TextShapeRunProvider, TextShapingOutcome};
 use crate::text::{TextRange, TextStyle};
 
+#[path = "boundary_correction.rs"]
 mod boundary_correction;
+#[path = "glue.rs"]
 mod glue;
+#[path = "glyph_fallback.rs"]
 mod glyph_fallback;
+#[path = "greedy.rs"]
 mod greedy;
+#[path = "smart.rs"]
 mod smart;
+#[path = "soft_hyphen.rs"]
 mod soft_hyphen;
+#[path = "wrap_space.rs"]
 mod wrap_space;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

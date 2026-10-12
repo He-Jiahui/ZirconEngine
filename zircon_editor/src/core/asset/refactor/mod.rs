@@ -3,8 +3,11 @@
 //! These views read the runtime registry authority. Filesystem mutation, redirectors, and
 //! reference rewrites belong to the later runtime mutation transaction rather than this module.
 
+#[path = "delete.rs"]
 mod delete;
+#[path = "deletion.rs"]
 mod deletion;
+#[path = "relocation.rs"]
 mod relocation;
 
 pub use delete::{AssetDeleteDisposition, AssetDeletePreflight};

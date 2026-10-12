@@ -17,7 +17,17 @@ impl NetReliableUdpRuntimeManager {
             .state
             .lock()
             .expect("net reliable UDP state mutex poisoned");
-        state.simulation_profile = profile;
+        // The shared profile has public fields, so callers can bypass its
+        // builder and provide `Some(0)`. Treat zero as disabled at this
+        // runtime boundary as well as in the packet predicate below.
+        state.simulation_profile = if profile.drop_every_nth_packet == Some(0) {
+            ReliableDatagramSimulationProfile {
+                drop_every_nth_packet: None,
+                ..profile
+            }
+        } else {
+            profile
+        };
         state.simulated_packet_counter = 0;
     }
 
@@ -60,11 +70,12 @@ impl NetReliableUdpRuntimeManager {
 }
 
 impl super::state::NetReliableUdpRuntimeState {
-    // BUG: [CR-PLUGIN-NET-0022] profile 可由公开字段/serde 携带 Some(0)，这里取模会 panic；setter 的清洗未覆盖该入口。
     pub(in crate::manager) fn should_drop_simulated_packet(&self) -> bool {
         self.simulation_profile
             .drop_every_nth_packet
-            .is_some_and(|packet_interval| self.simulated_packet_counter % packet_interval == 0)
+            .is_some_and(|packet_interval| {
+                packet_interval > 0 && self.simulated_packet_counter % packet_interval == 0
+            })
     }
 
     pub(in crate::manager) fn update_recovery_after_delivery(&mut self) {
@@ -114,5 +125,5 @@ fn reorder_delivered_packets(packets: &mut Vec<ReliableDatagramPacket>, reorder_
 }
 
 #[cfg(test)]
-#[path = "tests/delivery_exact_delivery_capacity_tests.rs"]
+#[path = "../tests/delivery_exact.rs"]
 mod exact_delivery_capacity_tests;

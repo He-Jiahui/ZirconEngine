@@ -218,7 +218,7 @@ fn color_has_visible_alpha(value: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "text_effects/tests/performance_tests.rs"]
+#[path = "text_effects/tests/perf.rs"]
 mod performance_tests;
 
 #[cfg(test)]

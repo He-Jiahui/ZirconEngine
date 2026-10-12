@@ -1,9 +1,14 @@
 //! Document dirty-state projection backed by Editor03 saved-top authority.
 
+#[path = "error.rs"]
 mod error;
+#[path = "external_effect_id.rs"]
 mod external_effect_id;
+#[path = "registry.rs"]
 mod registry;
+#[path = "save_batch.rs"]
 mod save_batch;
+#[path = "save_job_adapter.rs"]
 mod save_job_adapter;
 
 pub use error::DirtyRegistryError;

@@ -365,7 +365,7 @@ fn has_any_suffix(path: &str, suffixes: &[&str]) -> bool {
 }
 
 #[cfg(test)]
-#[path = "hot_reload_plan/tests/eviction_capacity_tests.rs"]
+#[path = "hot_reload_plan/tests/eviction_capacity.rs"]
 mod eviction_capacity_tests;
 
 #[cfg(test)]

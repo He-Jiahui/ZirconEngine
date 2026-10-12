@@ -13,7 +13,7 @@ MATERIAL_ASSET = REPO_ROOT / (
     "workbench_material_workspace.zui"
 )
 TEMPLATE_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
+    "zircon_editor/src/ui/runtime/builtin/"
     "workbench_module_template_bindings.rs"
 )
 

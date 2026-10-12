@@ -1,7 +1,12 @@
+#[path = "lod_selection.rs"]
 mod lod_selection;
+#[path = "snapshot.rs"]
 mod snapshot;
+#[path = "stable_key.rs"]
 mod stable_key;
+#[path = "static_state.rs"]
 mod static_state;
+#[path = "../../mesh/transform_revision.rs"]
 mod transform_revision;
 
 pub use lod_selection::RenderMeshLodSelection;

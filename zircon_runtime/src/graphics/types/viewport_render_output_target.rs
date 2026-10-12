@@ -3,7 +3,9 @@ use crate::core::framework::render::{RenderCameraTarget, RenderCameraTargetKind}
 use crate::core::math::UVec2;
 use crate::core::resource::{ResourceHandle, TextureMarker};
 
+#[path = "viewport_render_output_target/graph_import.rs"]
 mod graph_import;
+#[path = "viewport_render_output_target/writeback.rs"]
 mod writeback;
 
 pub(crate) use graph_import::{ViewportTextureGraphImportPlan, ViewportTextureGraphImportStatus};

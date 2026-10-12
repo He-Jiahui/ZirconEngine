@@ -81,7 +81,7 @@ class RuntimeEcsComponentRegistryTransferOwnerStructureTests(unittest.TestCase):
 
         runtime_inventory = (
             repo_root
-            / "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data/inventory.rs"
+            / "zircon_runtime/src/tests/contracts/ecs_kernel_data/inventory.rs"
         ).read_text(encoding="utf-8")
         self.assertIn('"src/scene/ecs/component/registry/transferred.rs"', runtime_inventory)
         self.assertIn("EXPECTED_RUNTIME_08_SOURCE_FILES.len(), 77", runtime_inventory)

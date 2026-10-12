@@ -8,8 +8,8 @@ display_name = "Inspector"
 
 [imports]
 widgets = [
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
-  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
+  "res://ui/editor/components/workbench/primitives/inputs/field.zui#WorkbenchField",
+  "res://ui/editor/workbench/inputs/property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
 styles = ["res://ui/theme/editor_workbench_strict.zui"]
 

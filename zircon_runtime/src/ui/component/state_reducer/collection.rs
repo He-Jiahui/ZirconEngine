@@ -212,11 +212,11 @@ fn array_value_mut<'a>(state: &'a mut UiComponentState, property: &str) -> &'a m
 }
 
 #[cfg(test)]
-#[path = "collection/tests/map_single_resolution_tests.rs"]
+#[path = "../collection/tests/map_single_resolution.rs"]
 mod map_single_resolution_tests;
 
 #[cfg(test)]
-#[path = "collection/tests/mutation_single_resolution_tests.rs"]
+#[path = "../collection/tests/mutation_single_resolution.rs"]
 mod mutation_single_resolution_tests;
 
 fn map_value_mut<'a>(

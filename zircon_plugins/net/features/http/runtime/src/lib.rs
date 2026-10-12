@@ -1,9 +1,13 @@
 //! 公开 HTTP feature 注册入口与可注入后端，供根 net manager 激活真实 socket HTTP。
 //! 独立测试构造器会创建单独 manager，生产 factory 将后端安装到已注册根服务。
 
+#[path = "backend.rs"]
 mod backend;
+#[path = "capability.rs"]
 mod capability;
+#[path = "feature.rs"]
 mod feature;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use backend::{http_runtime_backend, HyperReqwestHttpBackend};
@@ -15,4 +19,5 @@ pub use plugin::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

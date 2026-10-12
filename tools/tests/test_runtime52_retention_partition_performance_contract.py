@@ -3,19 +3,19 @@ import unittest
 # 保留分区 helper 一次遍历转移 ID，不额外建立删除集合；行为和性能证据与生产 helper 同属一处。
 
 ROOT = Path(__file__).resolve().parents[2]
-PLANNING = ROOT / "zircon_runtime/src/scene/dynamic_scene/session/retention/prune/planning.rs"
+PLANNING = ROOT / "zircon_runtime/src/scene/dynamic/session/retention/prune/planning.rs"
 PARTITION = (
     ROOT
-    / "zircon_runtime/src/scene/dynamic_scene/session/retention/prune/planning/partition.rs"
+    / "zircon_runtime/src/scene/dynamic/session/retention/prune/planning/partition.rs"
 )
-MANIFEST = ROOT / "zircon_runtime/src/scene/dynamic_scene/session/manifest/archive.rs"
+MANIFEST = ROOT / "zircon_runtime/src/scene/dynamic/session/manifest/archive.rs"
 SORTED_LOOKUP = (
     ROOT
-    / "zircon_runtime/src/scene/dynamic_scene/session/manifest/archive/sorted_lookup.rs"
+    / "zircon_runtime/src/scene/dynamic/session/manifest/archive/sorted_lookup.rs"
 )
-ARCHIVE = ROOT / "zircon_runtime/src/scene/dynamic_scene/session/archive.rs"
+ARCHIVE = ROOT / "zircon_runtime/src/scene/dynamic/session/archive.rs"
 SECONDARY_INDEX = (
-    ROOT / "zircon_runtime/src/scene/dynamic_scene/session/archive/secondary_index.rs"
+    ROOT / "zircon_runtime/src/scene/dynamic/session/archive/secondary_index.rs"
 )
 
 

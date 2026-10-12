@@ -12,7 +12,9 @@ use self::result::{
 };
 use self::tooltip::{dispatch_tooltip_dismiss, tooltip_dismissal_target};
 
+#[path = "popup/result.rs"]
 mod result;
+#[path = "popup/tooltip.rs"]
 mod tooltip;
 
 // 先查询实际弹层 owner，再退化到 tooltip；请求目标可能是弹层子节点，不能直接写其本地 open 属性。

@@ -116,7 +116,7 @@ describe('ZUI layout catalog reports', () => {
       await readFile(
         resolve(
           testRepoRoot,
-          'zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui',
+          'zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui',
         ),
         'utf8',
       ),
@@ -185,15 +185,15 @@ describe('ZUI layout catalog reports', () => {
     ).toMatchObject({ y: 28 });
     for (const [relativePath, nodeId] of [
       [
-        'zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui',
+        'zircon_editor/assets/ui/editor/modules/core/ai/perception_workspace.zui',
         'perception_map_row_01',
       ],
       [
-        'zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui',
+        'zircon_editor/assets/ui/editor/modules/core/gameplay/ability_workspace.zui',
         'ability_graph_row',
       ],
       [
-        'zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui',
+        'zircon_editor/assets/ui/editor/modules/core/rendering/render_workspace.zui',
         'render_graph_row_02',
       ],
     ] as const) {
@@ -211,7 +211,7 @@ describe('ZUI layout catalog reports', () => {
       await readFile(
         resolve(
           testRepoRoot,
-          'zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui',
+          'zircon_editor/assets/ui/editor/animation/extension_blend_space_workspace.zui',
         ),
         'utf8',
       ),
@@ -238,7 +238,7 @@ describe('ZUI layout catalog reports', () => {
     }
     expect(
       classifySourcePath(
-        'zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui',
+        'zircon_editor/assets/ui/editor/workbench/modules/core/index/module_workspace.zui',
         'component',
         workbenchHost,
       ),
@@ -390,7 +390,7 @@ describe('ZUI layout catalog reports', () => {
   it('keeps the blend-space sample label inside its compact property row', async () => {
     const sourcePath = resolve(
       testRepoRoot,
-      'zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_blend_space_details.zui',
+      'zircon_editor/assets/ui/editor/workbench/animation/blend_space_details.zui',
     );
     const source = parseZuiDocument(
       await readFile(sourcePath, 'utf8'),
@@ -406,7 +406,7 @@ describe('ZUI layout catalog reports', () => {
   it('uses a wide-only context drawer for the UI asset editor workspace', async () => {
     const sourcePath = resolve(
       testRepoRoot,
-      'zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui',
+      'zircon_editor/assets/ui/editor/ui/extension_ui_asset_editor_workspace.zui',
     );
     const source = parseZuiDocument(
       await readFile(sourcePath, 'utf8'),
@@ -432,7 +432,7 @@ describe('ZUI layout catalog reports', () => {
   it('keeps generated routes reachable through supported perpendicular scroll owners', async () => {
     const sourcePath = resolve(
       testRepoRoot,
-      'zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui',
+      'zircon_editor/assets/ui/editor/modules/generated/generated_bottom_panel.zui',
     );
     const source = parseZuiDocument(
       await readFile(sourcePath, 'utf8'),
@@ -490,7 +490,7 @@ describe('ZUI layout catalog reports', () => {
   it('keeps Material metadata readable at the 240px component width', async () => {
     const sourcePath = resolve(
       testRepoRoot,
-      'zircon_editor/assets/ui/editor/material_components/data_display/material_chips.zui',
+      'zircon_editor/assets/ui/editor/data_display/material_chips.zui',
     );
     const source = parseZuiDocument(
       await readFile(sourcePath, 'utf8'),
@@ -525,7 +525,7 @@ describe('ZUI layout catalog reports', () => {
   it('reserves the measured asset scope title slot in the workbench header', async () => {
     const sourcePath = resolve(
       testRepoRoot,
-      'zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui',
+      'zircon_editor/assets/ui/editor/modules/core/assets/assets_workspace.zui',
     );
     const source = parseZuiDocument(
       await readFile(sourcePath, 'utf8'),
@@ -570,7 +570,7 @@ describe('ZUI layout catalog reports', () => {
   it('reserves a wrapped heading row for the compact collections showcase', async () => {
     const sourcePath = resolve(
       testRepoRoot,
-      'zircon_editor/assets/ui/editor/components/showcase/showcase_collections_section.zui',
+      'zircon_editor/assets/ui/editor/components/showcase/collections_section.zui',
     );
     const source = parseZuiDocument(
       await readFile(sourcePath, 'utf8'),
@@ -906,7 +906,7 @@ describe('dual-renderer catalog review', () => {
     ).toBe(1280);
     expect(
       defaultReviewCases(
-        'zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui',
+        'zircon_editor/assets/ui/editor/modules/core/assets/assets_workspace.zui',
         'component',
       ).map((item) => item.viewport.width),
     ).toEqual([1280, 1280, 900, 640]);

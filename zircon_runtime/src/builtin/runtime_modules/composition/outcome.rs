@@ -163,5 +163,5 @@ fn reject(report: RuntimeModuleLoadReport) -> RuntimeModuleCompositionRejection 
 }
 
 #[cfg(test)]
-#[path = "outcome/tests/required_missing_summary_tests.rs"]
+#[path = "../../composition/outcome/tests/required_missing_summary.rs"]
 mod required_missing_summary_tests;

@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime_interface/src/ui/tree/node/tree_node.rs
   - zircon_runtime_interface/src/ui/window/input.rs
 implementation_files:
-  - zircon_runtime/src/ui/surface
+  - zircon_runtime/src/ui
 plan_sources:
   - user: 2026-09-09 扩充公开 UI 接口、机制案例与教程
 tests:

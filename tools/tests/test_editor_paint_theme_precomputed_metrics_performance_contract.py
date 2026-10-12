@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 THEME = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs"
+    "zircon_editor/src/ui/retained/contract/paint_theme.rs"
 )
 
 

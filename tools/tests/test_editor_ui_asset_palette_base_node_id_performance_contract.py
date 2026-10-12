@@ -29,7 +29,7 @@ class EditorUiAssetPaletteBaseNodeIdPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("trim_matches", normalization)
         self.assertNotIn("to_ascii_lowercase();", normalization)
 
-        benchmark = (ROOT / "zircon_editor/src/ui/asset_editor/palette/instantiate/tests/base_node_id_tests.rs").read_text(encoding="utf-8")
+        benchmark = (ROOT / "zircon_editor/src/ui/asset_editor/palette/instantiate/tests/base_node_id.rs").read_text(encoding="utf-8")
         self.assertIn("RUNTIME75_PALETTE_BASE_NODE_ID_BENCH_V1", benchmark)
         self.assertIn("legacy_allocations_per_id=2", benchmark)
         self.assertIn("optimized_allocations_per_id=1", benchmark)

@@ -8,6 +8,7 @@ use std::path::Path;
 use std::ptr::{null_mut, NonNull};
 use std::rc::Rc;
 
+#[path = "namespace_lock/journal.rs"]
 mod journal;
 pub(super) use journal::NamespaceJournal;
 

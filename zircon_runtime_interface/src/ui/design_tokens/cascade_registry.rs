@@ -235,9 +235,9 @@ fn legacy_density_token_aliases() -> [(&'static str, &'static str); 26] {
 mod tests;
 
 #[cfg(test)]
-#[path = "cascade_registry/tests/custom_property_alias_performance_tests.rs"]
+#[path = "../tests/custom_property_alias_perf.rs"]
 mod custom_property_alias_performance_tests;
 
 #[cfg(test)]
-#[path = "cascade_registry/tests/color_hex_performance_tests.rs"]
+#[path = "tests/color_hex_perf.rs"]
 mod color_hex_performance_tests;

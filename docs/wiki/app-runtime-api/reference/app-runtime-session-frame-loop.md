@@ -7,7 +7,7 @@ related_code:
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_library/runtime_session/frame_demand.rs
 implementation_files:
-  - zircon_app/src/entry/runtime_entry_app
+  - zircon_app/src/entry
   - zircon_app/src/entry/runtime_library/runtime_session.rs
 plan_sources:
   - user: 2026-09-09 扩展 zircon_app 公开接口、机制案例、教程和最佳实践
@@ -124,7 +124,7 @@ log::info!("composition={:?}", report);
 ## 测试与源码
 
 - runner：`zircon_app/src/entry/entry_runner/runtime.rs`。
-- 宿主 app：`zircon_app/src/entry/runtime_entry_app`。
+- 宿主 app：`zircon_app/src/entry`。
 - session：`zircon_app/src/entry/runtime_library/runtime_session.rs`。
 - frame loop guard：`zircon_app/src/entry/tests/runtime_entry_source_guards/frame_loop.rs`。
 

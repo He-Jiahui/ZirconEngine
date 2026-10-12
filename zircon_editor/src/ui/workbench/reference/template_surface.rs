@@ -17,7 +17,9 @@ use crate::ui::template_runtime::{
     RetainedUiProjectionSurfaceMetadataIndex, UNREAL_EDITOR_WINDOW_DOCUMENT_ID,
 };
 
+#[path = "surface/localized_text.rs"]
 mod localized_text;
+#[path = "surface/viewport_toolbar_publish.rs"]
 mod viewport_toolbar_publication;
 
 use self::localized_text::WorkbenchLocalizedTextContext;
@@ -989,7 +991,7 @@ fn surface_node_render_visible(surface: &UiSurface, node_id: UiNodeId) -> bool {
 }
 
 #[cfg(test)]
-#[path = "tests/template_surface_source_publication_tests.rs"]
+#[path = "tests/surface_source_publish.rs"]
 mod source_publication_tests;
 
 fn projection_node_for_control<'a>(

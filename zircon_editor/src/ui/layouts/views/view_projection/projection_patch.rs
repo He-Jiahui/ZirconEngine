@@ -110,5 +110,5 @@ impl ViewTemplateNodePatch {
 }
 
 #[cfg(test)]
-#[path = "projection_patch/tests/allocation_free_change_tests.rs"]
+#[path = "../tests/allocation_free_change.rs"]
 mod allocation_free_change_tests;

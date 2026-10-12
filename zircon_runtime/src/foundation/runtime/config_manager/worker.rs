@@ -410,5 +410,5 @@ fn flush_timeout_error(path: &PathBuf, timeout: Duration) -> ConfigManagerError 
 }
 
 #[cfg(all(test, windows))]
-#[path = "worker/tests/config_original_matrix.rs"]
+#[path = "../worker/tests/config_original_matrix.rs"]
 mod config_original_matrix;

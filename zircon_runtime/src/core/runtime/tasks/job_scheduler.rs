@@ -1,5 +1,6 @@
 //! Runtime scheduler facade for compute work submitted through the core task pools.
 
+#[path = "job_scheduler/pending.rs"]
 mod pending;
 
 use std::fmt;

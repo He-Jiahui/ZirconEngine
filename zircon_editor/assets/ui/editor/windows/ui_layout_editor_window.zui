@@ -5,7 +5,7 @@ version = 2
 display_name = "UI Layout Editor Window"
 
 [imports]
-widgets = ["res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"]
+widgets = ["res://ui/editor/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"]
 
 [root]
 node = "root"

@@ -220,7 +220,7 @@ fn pointer_button_mask(button: Option<UiPointerButton>) -> Option<u8> {
 mod tests;
 
 #[cfg(test)]
-#[path = "pointer_table/tests/hovered_path_tests.rs"]
+#[path = "pointer_table/tests/hovered_path.rs"]
 mod hovered_path_tests;
 
 #[cfg(test)]

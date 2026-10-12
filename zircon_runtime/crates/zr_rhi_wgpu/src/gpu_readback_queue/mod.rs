@@ -2,9 +2,13 @@
 //!
 //! Shared asynchronous WGPU buffer readback lifecycle.
 
+#[path = "queue.rs"]
 mod queue;
+#[path = "staging_ring.rs"]
 mod staging_ring;
+#[path = "texture_readback.rs"]
 mod texture_readback;
+#[path = "ticket.rs"]
 mod ticket;
 
 #[cfg(test)]

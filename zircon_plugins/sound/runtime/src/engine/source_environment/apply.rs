@@ -9,9 +9,13 @@ use zircon_runtime::core::framework::sound::{
 
 use super::super::{SoundHrtfRenderState, SoundHrtfRenderStateKey};
 
+#[path = "../apply/convolution_send.rs"]
 mod convolution_send;
+#[path = "apply/final_mix.rs"]
 mod final_mix;
+#[path = "apply/listener.rs"]
 mod listener;
+#[path = "../apply/volume_influence.rs"]
 mod volume_influence;
 
 pub(crate) fn apply_source_environment(

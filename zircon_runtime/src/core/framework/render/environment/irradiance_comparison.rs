@@ -246,5 +246,5 @@ fn divide_channels(values: [Real; 3], divisor: Real) -> [Real; 3] {
 }
 
 #[cfg(test)]
-#[path = "tests/irradiance_comparison.rs"]
+#[path = "../tests/irradiance_comparison.rs"]
 mod tests;

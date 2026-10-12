@@ -15,17 +15,29 @@ use self::target::{reject_missing_target, validate_included_target};
 use self::text::{dispatch_replace_selected_text, dispatch_set_text_selection};
 use self::value::dispatch_set_value;
 
+#[path = "action/activate.rs"]
 mod activate;
+#[path = "action/expanded.rs"]
 mod expanded;
+#[path = "action/focus.rs"]
 mod focus;
+#[path = "action/popup.rs"]
 mod popup;
+#[path = "action/range.rs"]
 mod range;
+#[path = "action/result.rs"]
 mod result;
+#[path = "action/scroll.rs"]
 mod scroll;
+#[path = "action/target.rs"]
 mod target;
+#[path = "action/text.rs"]
 mod text;
+#[path = "action/text_state.rs"]
 mod text_state;
+#[path = "action/value.rs"]
 mod value;
+#[path = "action/value_target.rs"]
 mod value_target;
 
 // 每次动作以当前快照检查目标，避免仅凭外部传来的 node_id 绕过隐藏、失效和 disabled 状态。

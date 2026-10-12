@@ -593,7 +593,7 @@ fn scoped_value_conflicts<T: PartialEq>(grid_value: &Option<T>, query_value: &Op
 }
 
 #[cfg(test)]
-#[path = "hit/tests/route_validation_performance_tests.rs"]
+#[path = "hit/tests/route_validation_perf.rs"]
 mod route_validation_performance_tests;
 
 #[cfg(test)]

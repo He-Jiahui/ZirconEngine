@@ -54,5 +54,5 @@ impl fmt::Display for NetEndpoint {
 }
 
 #[cfg(test)]
-#[path = "tests/endpoint_optimization_batch_ez_tests.rs"]
+#[path = "tests/endpoint_perf.rs"]
 mod optimization_batch_ez_tests;

@@ -17,7 +17,7 @@ use super::{
     PBR_MATRIX_ORTHO_SIZE, PBR_MATRIX_OUTPUT_SIZE, PBR_MATRIX_SPHERE_SCALE,
 };
 
-#[path = "pbr_matrix_quantitative/math.rs"]
+#[path = "math.rs"]
 mod math;
 
 use math::*;

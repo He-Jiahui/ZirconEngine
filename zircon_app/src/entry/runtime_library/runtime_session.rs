@@ -32,12 +32,19 @@ use super::{
     RuntimeSessionTeardownFailureState, RuntimeWakeRegistration,
 };
 
+#[path = "runtime_session/foreign_output.rs"]
 mod foreign_output;
+#[path = "runtime_session/frame_demand.rs"]
 mod frame_demand;
+#[path = "runtime_session/module_compose_receipt.rs"]
 pub(super) mod module_composition_receipt;
+#[path = "runtime_session/operation.rs"]
 mod operation;
+#[path = "runtime_session/owned_buffer.rs"]
 mod owned_buffer;
+#[path = "runtime_session/request_encoding.rs"]
 mod request_encoding;
+#[path = "runtime_session/surface_bindings.rs"]
 mod surface_bindings;
 
 pub(crate) use frame_demand::{RuntimeFrameDemand, MAX_HOST_RUNTIME_FRAME_DELAY};

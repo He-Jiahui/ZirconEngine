@@ -153,5 +153,5 @@ fn rgba8_mip_streaming_upload_bytes(
 }
 
 #[cfg(test)]
-#[path = "tests/gpu_texture_resource.rs"]
+#[path = "../tests/gpu_texture_resource.rs"]
 mod tests;

@@ -105,5 +105,5 @@ fn non_empty_label(value: &str, fallback: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/status_bar_viewport_chrome_text_tests.rs"]
+#[path = "tests/status_bar_viewport_chrome_text.rs"]
 mod status_bar_viewport_chrome_text_tests;

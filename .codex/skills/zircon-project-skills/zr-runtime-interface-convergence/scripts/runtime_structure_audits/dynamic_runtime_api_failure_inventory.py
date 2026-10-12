@@ -60,7 +60,7 @@ FFI_PANIC_ANCHORS = (
         "runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary",
     ),
     (
-        "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ffi_panic_boundary.rs",
+        "zircon_runtime/src/tests/contracts/dynamic_api_session/ffi_panic_boundary.rs",
         "runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge",
     ),
     ("docs/zircon_runtime/dynamic_api/session.md", "## FFI Panic Boundary"),

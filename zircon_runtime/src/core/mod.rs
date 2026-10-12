@@ -1,10 +1,15 @@
 //! Core runtime, lifecycle management, service registry, and shared runtime primitives.
 
+#[path = "runtime/mod.rs"]
 pub mod runtime;
 
+#[path = "framework/mod.rs"]
 pub mod framework;
+#[path = "manager/mod.rs"]
 pub mod manager;
+#[path = "math/mod.rs"]
 pub mod math;
+#[path = "resource/mod.rs"]
 pub mod resource;
 
 pub use framework::events::EngineEvent;

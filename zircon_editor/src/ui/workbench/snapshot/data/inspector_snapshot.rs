@@ -1,4 +1,6 @@
+#[path = "inspector_snapshot/native_fields.rs"]
 mod native_fields;
+#[path = "inspector_snapshot/rotation.rs"]
 mod rotation;
 
 pub use native_fields::InspectorNativeFieldSnapshot;

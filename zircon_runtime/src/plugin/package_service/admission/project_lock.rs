@@ -1,3 +1,4 @@
+#[path = "project_lock/input.rs"]
 mod input;
 
 use super::super::PackageStore;

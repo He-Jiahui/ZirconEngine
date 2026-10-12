@@ -331,5 +331,5 @@ pub(super) fn resolve_sub_machine_id(
 }
 
 #[cfg(test)]
-#[path = "tests/state_machine_cache.rs"]
+#[path = "../tests/state_machine_cache.rs"]
 mod tests;

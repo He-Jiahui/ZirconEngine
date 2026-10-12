@@ -10,7 +10,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 ResourceRegistry、句柄、加载状态与 readiness 详解
 tests:
-  - zircon_runtime/src/asset/tests/assets
+  - zircon_runtime/src/asset/tests
   - zircon_runtime/src/ui/tests/v2_asset/asset_loading.rs
 doc_type: module-detail
 ---

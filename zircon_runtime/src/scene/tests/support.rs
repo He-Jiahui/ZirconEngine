@@ -34,6 +34,7 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::scene::components::default_render_layer_mask;
 
+#[path = "support/project_fixture.rs"]
 mod project_fixture;
 
 pub(super) use project_fixture::{create_test_project, unique_temp_project_root};

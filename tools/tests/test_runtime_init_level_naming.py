@@ -214,7 +214,7 @@ class RuntimeInitLevelNamingTests(unittest.TestCase):
 
     def test_legacy_cfg_test_items_do_not_hide_production_naming_debt(self) -> None:
         graphics_path = "zircon_runtime/src/graphics/visibility/culling/is_mesh_visible.rs"
-        scene_path = "zircon_runtime/src/scene/dynamic_scene/document/migration/project_world.rs"
+        scene_path = "zircon_runtime/src/scene/dynamic/document/migration/project_world.rs"
 
         for relative_path in (graphics_path, scene_path):
             self.assertEqual(

@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/ticket.rs"
+    / "zircon_runtime/src/plugin/loader/discovery_refresh/ticket.rs"
 )
 
 

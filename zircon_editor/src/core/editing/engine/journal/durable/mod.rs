@@ -1,12 +1,22 @@
+#[path = "discovery.rs"]
 mod discovery;
+#[path = "document_key.rs"]
 mod document_key;
+#[path = "error.rs"]
 mod error;
+#[path = "format.rs"]
 mod format;
+#[path = "limits.rs"]
 mod limits;
+#[path = "model.rs"]
 mod model;
+#[path = "prepared.rs"]
 mod prepared;
+#[path = "reader.rs"]
 mod reader;
+#[path = "store.rs"]
 mod store;
+#[path = "writer.rs"]
 mod writer;
 
 pub use document_key::{JournalDocumentKey, JournalDocumentKeyError};

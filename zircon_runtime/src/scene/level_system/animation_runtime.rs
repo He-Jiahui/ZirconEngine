@@ -17,7 +17,7 @@ use super::frame_state::{
 use super::{AnimationStateTransitionRuntime, LevelSystem};
 
 #[cfg(test)]
-#[path = "animation_runtime/tests/drain_output_capacity_tests.rs"]
+#[path = "tests/drain_output_capacity.rs"]
 mod drain_output_capacity_tests;
 
 const ANIMATION_CLIP_EVENT_MAX_DRAIN_SAMPLES: usize = 32;

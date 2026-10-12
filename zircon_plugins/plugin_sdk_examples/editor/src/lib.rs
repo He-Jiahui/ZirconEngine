@@ -4,9 +4,13 @@
 //! stays a thin façade, while capability declarations, plugin registration, and
 //! extension registration live in named owner modules.
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "extension_ids.rs"]
 mod extension_ids;
+#[path = "extensions.rs"]
 mod extensions;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

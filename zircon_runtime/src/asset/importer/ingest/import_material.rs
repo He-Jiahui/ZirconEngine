@@ -19,5 +19,5 @@ pub(crate) fn import_material(
 }
 
 #[cfg(test)]
-#[path = "tests/import_material_plugins07_material_dependency_tests.rs"]
+#[path = "../../tests/import_material_plugins07_material_dependency.rs"]
 mod plugins07_material_dependency_tests;

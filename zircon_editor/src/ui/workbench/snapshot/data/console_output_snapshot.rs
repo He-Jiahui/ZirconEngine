@@ -4,6 +4,7 @@ use std::sync::{Arc, OnceLock};
 
 use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
 
+#[path = "../../../snapshot/data/console_output_snapshot/generation.rs"]
 mod generation;
 
 pub(crate) use generation::{

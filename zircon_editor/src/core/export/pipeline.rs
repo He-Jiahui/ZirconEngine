@@ -210,7 +210,7 @@ fn write_dependency_cycle(
 mod dependency_cycle_format_tests;
 
 #[cfg(test)]
-#[path = "pipeline/tests/optimization_batch_iv_editor633_tests.rs"]
+#[path = "pipeline/tests/perf.rs"]
 mod optimization_batch_iv_editor633_tests;
 
 impl Error for ExportPipelinePlanError {}

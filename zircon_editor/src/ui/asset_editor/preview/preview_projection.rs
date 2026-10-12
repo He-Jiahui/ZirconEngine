@@ -229,9 +229,9 @@ fn control_id_index(document: &UiAssetDocument) -> HashMap<&str, &UiNodeDefiniti
 }
 
 #[cfg(test)]
-#[path = "preview_projection/tests/control_hash_index_tests.rs"]
+#[path = "tests/control_hash_index.rs"]
 mod control_hash_index_tests;
 
 #[cfg(test)]
-#[path = "preview_projection/tests/optimization_batch_iz_editor638_tests.rs"]
+#[path = "preview_projection/tests/perf.rs"]
 mod optimization_batch_iz_editor638_tests;

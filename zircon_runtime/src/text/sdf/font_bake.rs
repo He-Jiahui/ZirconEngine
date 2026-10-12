@@ -14,18 +14,31 @@ use crate::text::{
     FontFaceId, FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight, InstancedFaceId,
 };
 
+#[path = "font_bake/async_batch.rs"]
 mod async_batch;
+#[path = "font_bake/atlas_build.rs"]
 mod atlas_build;
+#[path = "font_bake/atlas_pages.rs"]
 mod atlas_pages;
+#[path = "font_bake/distance_field.rs"]
 mod distance_field;
+#[path = "font_bake/dynamic_batch.rs"]
 mod dynamic_batch;
+#[path = "font_bake/font_asset_cache.rs"]
 mod font_asset_cache;
+#[path = "font_bake/font_metrics.rs"]
 mod font_metrics;
+#[path = "font_bake/glyph_cache.rs"]
 mod glyph_cache;
+#[path = "font_bake/glyph_metrics.rs"]
 mod glyph_metrics;
+#[path = "font_bake/model.rs"]
 mod model;
+#[path = "font_bake/offline_source.rs"]
 mod offline_source;
+#[path = "font_bake/prepared_atlas.rs"]
 mod prepared_atlas;
+#[path = "font_bake/source_context.rs"]
 mod source_context;
 
 use atlas_pages::SdfPersistentAtlasCache;

@@ -205,4 +205,5 @@ fn format_diagnostic_values(
 }
 
 #[cfg(test)]
+#[path = "diagnostics/tests/mod.rs"]
 mod tests;

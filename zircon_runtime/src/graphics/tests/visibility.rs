@@ -397,8 +397,11 @@ fn visibility_context_with_history_tracks_particle_upload_changes() {
     );
 }
 
+#[path = "visibility/virtual_geometry_frontier.rs"]
 mod virtual_geometry_frontier;
+#[path = "visibility/virtual_geometry_page_plan.rs"]
 mod virtual_geometry_page_plan;
+#[path = "visibility/virtual_geometry_priority.rs"]
 mod virtual_geometry_priority;
 
 fn crate_batch(entities: Vec<u64>) -> VisibilityBatch {

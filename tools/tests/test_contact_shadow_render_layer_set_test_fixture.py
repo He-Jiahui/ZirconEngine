@@ -7,7 +7,7 @@ class ContactShadowRenderLayerSetTestFixtureTests(unittest.TestCase):
     def test_wgpu_product_fixture_uses_render_layer_set_fields(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         source_path = (
-            repo_root / "zircon_plugins/rendering/features/contact_shadow/runtime/src/tests/wgpu_product_tests.rs"
+            repo_root / "zircon_plugins/rendering/features/contact_shadow/runtime/src/tests/gpu.rs"
         )
         source = source_path.read_text(encoding="utf-8")
 

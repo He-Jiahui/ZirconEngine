@@ -106,5 +106,5 @@ fn validate_ui_component_plugin_id(plugin_id: &str) -> Result<(), RuntimeExtensi
 }
 
 #[cfg(test)]
-#[path = "tests/component_optimization_tests.rs"]
+#[path = "tests/component_perf.rs"]
 mod optimization_tests;

@@ -14,6 +14,7 @@ use super::change_journal::{
 };
 use super::primitive::RenderScenePrimitive;
 
+#[path = "scene/delta_transaction.rs"]
 mod delta_transaction;
 
 pub(crate) use delta_transaction::RenderSceneDeltaTransactionError;

@@ -1,6 +1,10 @@
+#[path = "failure.rs"]
 mod failure;
+#[path = "owner.rs"]
 mod owner;
+#[path = "packet.rs"]
 mod packet;
+#[path = "registry.rs"]
 mod registry;
 
 pub use failure::{ProductCloseError, ProductCompositionFailure};

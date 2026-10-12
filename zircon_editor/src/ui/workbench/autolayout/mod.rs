@@ -6,23 +6,41 @@ pub use zircon_runtime_interface::ui::layout::{
     UiFrame as ShellFrame, UiSize as ShellSizePx,
 };
 
+#[path = "active_tab.rs"]
 mod active_tab;
+#[path = "axis_constraint_override.rs"]
 mod axis_constraint_override;
+#[path = "constraints/mod.rs"]
 mod constraints;
+#[path = "css_like_constraint.rs"]
 mod css_like_constraint;
+#[path = "floating_window.rs"]
 mod floating_window;
+#[path = "geometry/mod.rs"]
 mod geometry;
+#[path = "layout_tier.rs"]
 mod layout_tier;
+#[path = "pane_constraint_override.rs"]
 mod pane_constraint_override;
+#[path = "region/mod.rs"]
 mod region;
+#[path = "region_binding/mod.rs"]
 mod region_binding;
+#[path = "region_preferred_extents.rs"]
 mod region_preferred_extents;
+#[path = "region_state.rs"]
 mod region_state;
+#[path = "resolution_context.rs"]
 mod resolution_context;
+#[path = "shell_region_id.rs"]
 mod shell_region_id;
+#[path = "shell_regions_asset.rs"]
 mod shell_regions_asset;
+#[path = "workbench_chrome_metrics.rs"]
 mod workbench_chrome_metrics;
+#[path = "workbench_shell_geometry.rs"]
 mod workbench_shell_geometry;
+#[path = "workbench_skeleton.rs"]
 mod workbench_skeleton;
 
 pub use axis_constraint_override::AxisConstraintOverride;

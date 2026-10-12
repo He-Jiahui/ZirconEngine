@@ -11,10 +11,10 @@ const OUTPUT_PNG: &str = "plan18_hybrid_gi_m4_source_ledger_wgpu_20260713.png";
 const OUTPUT_REPORT: &str = "plan18_hybrid_gi_m4_source_ledger_wgpu_20260713.txt";
 
 const POST_PROCESS_SHADER: &str = concat!(
-    include_str!("../src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl"),
+    include_str!("../src/graphics/scene/renderer/post/shaders/post.wgsl"),
     "\n",
     include_str!(
-        "../src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl"
+        "../src/graphics/post/shaders/process_screen_space_reflection.wgsl"
     )
 );
 

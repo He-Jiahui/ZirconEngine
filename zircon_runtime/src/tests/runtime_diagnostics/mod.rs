@@ -1,11 +1,19 @@
 //! 诊断整合回归由模拟渲染服务提供确定快照，核对缺失服务、初始化错误和指标投影；模拟统计不能证明真实图形后端已执行。
+#[path = "capability_history_visibility.rs"]
 mod capability_history_visibility;
+#[path = "gpu_sprite_ui_advanced.rs"]
 mod gpu_sprite_ui_advanced;
+#[path = "graph_execution.rs"]
 mod graph_execution;
+#[path = "graph_resources.rs"]
 mod graph_resources;
+#[path = "hzb_light_camera_capture.rs"]
 mod hzb_light_camera_capture;
+#[path = "motion_vector.rs"]
 mod motion_vector;
+#[path = "post_process_material_mesh.rs"]
 mod post_process_material_mesh;
+#[path = "support.rs"]
 mod support;
 
 use crate::core::CoreRuntime;

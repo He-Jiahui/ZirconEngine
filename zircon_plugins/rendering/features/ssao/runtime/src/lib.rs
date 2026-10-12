@@ -1,7 +1,9 @@
 //! 屏幕空间环境遮蔽的运行时公共契约；特性提供者将此处元数据提交到目录与图编译。
 use zircon_runtime::graphics::RenderFeatureDescriptor;
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};

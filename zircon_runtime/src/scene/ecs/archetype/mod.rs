@@ -1,7 +1,12 @@
+#[path = "id.rs"]
 mod id;
+#[path = "index.rs"]
 mod index;
+#[path = "record.rs"]
 mod record;
+#[path = "signature.rs"]
 mod signature;
+#[path = "table/mod.rs"]
 mod table;
 
 pub use id::ArchetypeId;

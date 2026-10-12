@@ -5,14 +5,14 @@ related_code:
   - zircon_runtime/src/script/vm/plugin/vm_state_blob.rs
   - zircon_runtime/src/script/vm/host_interface/registry.rs
 implementation_files:
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator
+  - zircon_runtime/src/script/vm/runtime
   - zircon_runtime/src/script/vm/plugin/state_migration.rs
   - zircon_runtime/src/script/vm/plugin/vm_state_blob.rs
 plan_sources:
   - user: 2026-09-09 扩展脚本、反射、动画与导航公开接口文档
 tests:
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/state_migration.rs
+  - zircon_runtime/src/script/vm/runtime/tests
+  - zircon_runtime/src/script/vm/runtime/tests/state_migration.rs
 doc_type: workflow-detail
 ---
 

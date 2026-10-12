@@ -1,8 +1,16 @@
+#[path = "canonical.rs"]
 pub(super) mod canonical;
+#[path = "canonical_map_key.rs"]
 pub(super) mod canonical_map_key;
+#[path = "canonical_spool.rs"]
 pub(super) mod canonical_spool;
+#[path = "canonical_writer.rs"]
 pub(super) mod canonical_writer;
+#[path = "document.rs"]
 pub(super) mod document;
+#[path = "envelope.rs"]
 pub(super) mod envelope;
+#[path = "read.rs"]
 pub(super) mod read;
+#[path = "wire.rs"]
 pub(super) mod wire;

@@ -1,4 +1,6 @@
+#[path = "material_runtime.rs"]
 mod material_runtime;
+#[path = "shader_runtime.rs"]
 mod shader_runtime;
 
 pub(crate) use material_runtime::MaterialCaptureSeed;

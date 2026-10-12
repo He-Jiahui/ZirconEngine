@@ -16,14 +16,23 @@ use crate::asset::tests::support::{
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::{AssetImporterCapabilityStatus, AssetManager, AssetUri, ProjectAssetManager};
 
+#[path = "manager/deletion.rs"]
 mod deletion;
+#[path = "manager/lazy_residency.rs"]
 mod lazy_residency;
+#[path = "manager/model_import.rs"]
 mod model_import;
+#[path = "manager/project_open.rs"]
 mod project_open;
+#[path = "manager/resource_records.rs"]
 mod resource_records;
+#[path = "manager/resource_revisions.rs"]
 mod resource_revisions;
+#[path = "manager/runtime_leases.rs"]
 mod runtime_leases;
+#[path = "manager/service_capabilities.rs"]
 mod service_capabilities;
+#[path = "manager/watcher.rs"]
 mod watcher;
 
 fn project_asset_manager_with_first_wave_plugin_fixtures() -> ProjectAssetManager {

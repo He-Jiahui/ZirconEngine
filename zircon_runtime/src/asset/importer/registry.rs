@@ -499,5 +499,5 @@ fn unknown_typed_toml_suffix(source_path: &Path) -> Option<&str> {
 }
 
 #[cfg(test)]
-#[path = "tests/registry_plugins07_descriptor_selection_tests.rs"]
+#[path = "tests/registry_plugins07_desc_selection.rs"]
 mod plugins07_descriptor_selection_tests;

@@ -1,7 +1,12 @@
+#[path = "decode.rs"]
 mod decode;
+#[path = "encode.rs"]
 mod encode;
+#[path = "envelope.rs"]
 mod envelope;
+#[path = "value/mod.rs"]
 mod value;
+#[path = "wire.rs"]
 mod wire;
 
 pub(super) use decode::{decode_binary_current, decode_binary_header, decode_binary_payload};

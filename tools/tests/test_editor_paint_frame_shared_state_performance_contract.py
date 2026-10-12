@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-FRAME = ROOT / "zircon_editor/src/ui/retained_host/host_contract/paint_frame/frame.rs"
+FRAME = ROOT / "zircon_editor/src/ui/retained/contract/paint_frame/frame.rs"
 HOST = ROOT / "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/host_window.rs"
 COMPONENTIZED = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/"

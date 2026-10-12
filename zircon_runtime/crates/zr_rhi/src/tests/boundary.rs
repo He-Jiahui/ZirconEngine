@@ -23,7 +23,7 @@ fn app_editor_framework_and_interface_sources_do_not_import_wgpu_directly() {
     let roots = [
         "zircon_app/src",
         "zircon_editor/src",
-        "zircon_runtime/src/core/framework",
+        "zircon_runtime/src/core",
         "zircon_runtime_interface/src",
     ];
     let manifests = [

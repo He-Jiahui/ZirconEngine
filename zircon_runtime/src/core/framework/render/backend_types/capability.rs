@@ -301,5 +301,5 @@ impl RenderCapabilitySummary {
 }
 
 #[cfg(test)]
-#[path = "tests/capability_optimization_batch_20260830bp_runtime_tests.rs"]
+#[path = "tests/capability_perf.rs"]
 mod optimization_batch_20260830bp_runtime_tests;

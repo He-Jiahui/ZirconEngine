@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mod.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/resources/runtime
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
@@ -15,8 +15,8 @@ plan_sources:
   - docs/rendering/runtime-surface-and-assets-rules.md
   - docs/rendering/runtime-physics-animation-assets.md
 tests:
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests
+  - zircon_runtime/src/graphics/tests/meshes
+  - zircon_runtime/src/graphics/scene
   - zircon_runtime/src/asset/tests
 doc_type: module-detail
 ---

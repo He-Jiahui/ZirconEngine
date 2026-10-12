@@ -17,13 +17,21 @@ use super::{
     EditorRuntimeEventConsumerRegistry, EditorRuntimeEventPumpBudget, EditorRuntimeEventPumpReport,
 };
 
+#[path = "host/contribution_lifecycle.rs"]
 mod contribution_lifecycle;
+#[path = "host/execution_support.rs"]
 mod execution_support;
+#[path = "host/health.rs"]
 pub(crate) mod health;
+#[path = "host/lifecycle.rs"]
 mod lifecycle;
+#[path = "host/pending.rs"]
 pub(crate) mod pending;
+#[path = "host/pump_execution.rs"]
 mod pump_execution;
+#[path = "host/retention.rs"]
 pub(crate) mod retention;
+#[path = "host/round_robin.rs"]
 mod round_robin;
 
 pub(crate) use contribution_lifecycle::ContributionRetirementReport;
@@ -940,7 +948,7 @@ fn next_consumer_generation(current: u64) -> Result<u64, EditorRuntimeEventConsu
 }
 
 #[cfg(test)]
-#[path = "host/tests/optimization_batch_iu_editor631_tests.rs"]
+#[path = "host/tests/perf.rs"]
 mod optimization_batch_iu_editor631_tests;
 
 #[cfg(test)]

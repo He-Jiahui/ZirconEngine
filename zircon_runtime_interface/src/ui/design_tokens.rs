@@ -9,9 +9,13 @@ use super::style::{
     UiThemeTypographyVariant,
 };
 
+#[path = "design_tokens/cascade_registry.rs"]
 mod cascade_registry;
+#[path = "design_tokens/chrome.rs"]
 mod chrome;
+#[path = "design_tokens/density.rs"]
 mod density;
+#[path = "design_tokens/state_roles.rs"]
 mod state_roles;
 
 use cascade_registry::{

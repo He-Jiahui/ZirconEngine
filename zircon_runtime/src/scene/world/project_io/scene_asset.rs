@@ -816,5 +816,5 @@ fn persisted_reference_diagnostic(
 }
 
 #[cfg(test)]
-#[path = "tests/scene_asset_reference_diagnostic_tests.rs"]
+#[path = "tests/asset_reference_diagnostic.rs"]
 mod reference_diagnostic_tests;

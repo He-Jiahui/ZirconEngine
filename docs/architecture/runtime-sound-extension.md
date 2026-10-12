@@ -207,12 +207,12 @@ related_code:
   - zircon_plugins/sound/runtime/src/timeline/playback.rs
   - zircon_plugins/sound/runtime/src/timeline/schedule.rs
   - zircon_plugins/sound/runtime/src/timeline/validation.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/Cargo.toml
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/Cargo.toml
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/sound/features/timeline/runtime/Cargo.toml
+  - zircon_plugins/sound/features/timeline/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_reverb/runtime/Cargo.toml
+  - zircon_plugins/sound/features/ray_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_reverb/editor/src/lib.rs
   - zircon_plugins/sound/editor/Cargo.toml
   - zircon_plugins/sound/editor/src/authoring_bindings.rs
   - zircon_plugins/sound/editor/src/lib.rs
@@ -434,12 +434,12 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/timeline/playback.rs
   - zircon_plugins/sound/runtime/src/timeline/schedule.rs
   - zircon_plugins/sound/runtime/src/timeline/validation.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/Cargo.toml
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/Cargo.toml
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/lib.rs
+  - zircon_plugins/sound/features/timeline/runtime/Cargo.toml
+  - zircon_plugins/sound/features/timeline/runtime/src/lib.rs
+  - zircon_plugins/sound/features/timeline/editor/src/lib.rs
+  - zircon_plugins/sound/features/ray_reverb/runtime/Cargo.toml
+  - zircon_plugins/sound/features/ray_reverb/runtime/src/lib.rs
+  - zircon_plugins/sound/features/ray_reverb/editor/src/lib.rs
   - zircon_plugins/sound/editor/Cargo.toml
   - zircon_plugins/sound/editor/src/authoring_bindings.rs
   - zircon_plugins/sound/editor/src/lib.rs

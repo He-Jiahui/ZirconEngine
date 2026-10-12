@@ -176,5 +176,5 @@ pub(super) fn requested_pmrem_layout(
 }
 
 #[cfg(test)]
-#[path = "tests/import_settings_plugins07_environment_extension_hotpath_tests.rs"]
+#[path = "../../../tests/import_settings_plugins07_environment_extension.rs"]
 mod plugins07_environment_extension_hotpath_tests;

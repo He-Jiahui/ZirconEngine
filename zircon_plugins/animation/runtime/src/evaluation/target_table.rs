@@ -105,5 +105,5 @@ where
 }
 
 #[cfg(test)]
-#[path = "tests/target_table_optimization_batch_20260830co_tests.rs"]
+#[path = "tests/target_table_perf.rs"]
 mod optimization_batch_20260830co_tests;

@@ -5,11 +5,11 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 IDENTITY = (
     ROOT
-    / "zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs"
+    / "zircon_runtime/src/plugin/export_build_plan/manifest/identity.rs"
 )
 PROVIDER = (
     ROOT
-    / "zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/provider.rs"
+    / "zircon_runtime/src/plugin/export_build_plan/manifest/provider.rs"
 )
 
 

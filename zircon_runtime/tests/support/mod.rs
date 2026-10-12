@@ -20,6 +20,7 @@ use zircon_runtime::render_graph::{
     QueueLane, RenderBufferSchema, RenderGraphComputeWorkload, RenderResourceSchema,
 };
 
+#[path = "project_asset_runtime.rs"]
 mod project_asset_runtime;
 
 pub use project_asset_runtime::{ProjectAssetTestRuntime, TestWgpuRenderFramework};

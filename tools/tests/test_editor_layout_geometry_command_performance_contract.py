@@ -9,7 +9,7 @@ CORE_COMMAND = ROOT / "zircon_editor/src/core/editor_event/workbench/layout_comm
 CONVERSION = ROOT / "zircon_editor/src/ui/workbench/event/core_event_conversion.rs"
 MANAGER = ROOT / "zircon_editor/src/ui/workbench/layout/manager/apply.rs"
 HOST = ROOT / "zircon_editor/src/ui/host/layout_commands.rs"
-DRAWER_RESIZE = ROOT / "zircon_editor/src/ui/retained_host/drawer_resize.rs"
+DRAWER_RESIZE = ROOT / "zircon_editor/src/ui/retained/drawer_resize.rs"
 
 
 class EditorLayoutGeometryCommandPerformanceContractTests(unittest.TestCase):

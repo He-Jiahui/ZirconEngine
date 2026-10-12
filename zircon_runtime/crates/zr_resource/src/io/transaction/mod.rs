@@ -3,15 +3,25 @@
 //! Callers own semantic path policy. This module owns the immutable intent, append-only state
 //! transitions, staged evidence, platform publication, rollback, and restart decision.
 
+#[path = "commit.rs"]
 mod commit;
+#[path = "engine.rs"]
 mod engine;
+#[path = "error.rs"]
 mod error;
+#[path = "journal/mod.rs"]
 mod journal;
+#[path = "observation.rs"]
 mod observation;
+#[path = "owner_lock.rs"]
 mod owner_lock;
+#[path = "pathing.rs"]
 mod pathing;
+#[path = "recovery/mod.rs"]
 mod recovery;
+#[path = "schema.rs"]
 mod schema;
+#[path = "stage.rs"]
 mod stage;
 
 /// Identifies canonical project transaction stage, backup, and rollback-stage siblings.

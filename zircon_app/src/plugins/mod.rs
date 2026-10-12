@@ -1,4 +1,6 @@
+#[path = "builder.rs"]
 mod builder;
+#[path = "groups.rs"]
 mod groups;
 
 pub use builder::{PluginGroup, PluginGroupBuilder, PluginGroupError, ResolvedPluginGroup};

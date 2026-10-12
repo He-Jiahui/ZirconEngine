@@ -4,12 +4,12 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-RUNTIME_HOST = ROOT / "zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs"
+RUNTIME_HOST = ROOT / "zircon_editor/src/ui/runtime/runtime/runtime_host.rs"
 PANE_STATE = (
     ROOT
-    / "zircon_editor/src/ui/template_runtime/runtime/runtime_host/dynamic_control_state.rs"
+    / "zircon_editor/src/ui/runtime/runtime/runtime_host/dynamic_control_state.rs"
 )
-PANE_PROJECTION = ROOT / "zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs"
+PANE_PROJECTION = ROOT / "zircon_editor/src/ui/runtime/runtime/pane_payload_projection.rs"
 
 
 class EditorTemplateProjectionCachePerformanceContractTests(unittest.TestCase):

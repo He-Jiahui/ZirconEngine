@@ -3,6 +3,7 @@ use crate::ui::layouts::views::ViewTemplateFrameData;
 use crate::ui::layouts::views::ViewTemplateNodeData;
 use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorDensityTokens};
 
+#[path = "../toolbar_layout/control_snapshot.rs"]
 mod control_snapshot;
 use self::control_snapshot::{width_or, ToolbarControlSnapshot};
 
@@ -624,11 +625,11 @@ const KIND_CHIPS: &[(&str, f32)] = &[
 const KIND_CHIP_COUNT: usize = KIND_CHIPS.len();
 
 #[cfg(test)]
-#[path = "toolbar_layout/tests/kind_chip_single_scan_tests.rs"]
+#[path = "tests/kind_chip_single_scan.rs"]
 mod kind_chip_single_scan_tests;
 
 #[cfg(test)]
-#[path = "toolbar_layout/tests/control_snapshot_tests.rs"]
+#[path = "tests/control_snapshot.rs"]
 mod control_snapshot_tests;
 
 #[cfg(test)]

@@ -1,7 +1,10 @@
 //! VM GC 桥接的公开句柄、根租约和预算类型。
 
+#[path = "budget.rs"]
 mod budget;
+#[path = "host_handle.rs"]
 mod host_handle;
+#[path = "vm_object_ref.rs"]
 mod vm_object_ref;
 
 pub use budget::{

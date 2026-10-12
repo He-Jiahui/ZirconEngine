@@ -5,8 +5,8 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PRIMITIVES = ROOT / "zircon_editor/src/ui/retained_host/primitives.rs"
-PATCH_MAP = ROOT / "zircon_editor/src/ui/retained_host/persistent_row_patch_map.rs"
+PRIMITIVES = ROOT / "zircon_editor/src/ui/retained/primitives.rs"
+PATCH_MAP = ROOT / "zircon_editor/src/ui/retained/persistent_row_patch_map.rs"
 
 
 class ModelRcOrderedPatchCursorPerformanceContract(unittest.TestCase):

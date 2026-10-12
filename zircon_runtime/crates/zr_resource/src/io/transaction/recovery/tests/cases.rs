@@ -13,7 +13,7 @@ use super::replay::recover_active_journal_with;
 use super::validation::{validate_document_paths, validate_journals};
 use super::*;
 
-#[path = "artifact_cleanup.rs"]
+#[path = "../../../recovery/tests/artifact_cleanup.rs"]
 mod artifact_cleanup;
 
 const TEST_TRANSACTION_ID: &str =

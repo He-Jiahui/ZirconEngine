@@ -124,5 +124,5 @@ impl UiAssetEditorSession {
 }
 
 #[cfg(test)]
-#[path = "tests/theme_performance_tests.rs"]
+#[path = "tests/theme_perf.rs"]
 mod performance_tests;

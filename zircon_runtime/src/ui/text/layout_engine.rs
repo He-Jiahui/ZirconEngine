@@ -15,28 +15,51 @@ use zircon_runtime_interface::ui::surface::{
 
 use super::rich_text::{parse_source_text_with_provider, UiParsedText};
 
+#[path = "layout_engine/artifact.rs"]
 mod artifact;
+#[path = "layout_engine/candidate_line.rs"]
 mod candidate_line;
+#[path = "layout_engine/direction.rs"]
 mod direction;
+#[path = "layout_engine/ellipsis.rs"]
 mod ellipsis;
+#[path = "layout_engine/failure_layout.rs"]
 mod failure_layout;
+#[path = "layout_engine/geometry_admission.rs"]
 mod geometry_admission;
+#[path = "layout_engine/layout_result.rs"]
 mod layout_result;
+#[path = "layout_engine/line_box.rs"]
 mod line_box;
+#[path = "layout_engine/measurement.rs"]
 mod measurement;
+#[path = "layout_engine/overflow_style.rs"]
 mod overflow_style;
+#[path = "layout_engine/paragraph_layout.rs"]
 mod paragraph_layout;
+#[path = "layout_engine/physical_line_metrics.rs"]
 mod physical_line_metrics;
+#[path = "layout_engine/plain_layout.rs"]
 mod plain_layout;
+#[path = "layout_engine/range_mapping.rs"]
 mod range_mapping;
+#[path = "layout_engine/rich_layout.rs"]
 mod rich_layout;
+#[path = "layout_engine/rich_layout_vertical.rs"]
 mod rich_layout_vertical;
+#[path = "layout_engine/rich_table.rs"]
 mod rich_table;
+#[path = "layout_engine/secure_presentation.rs"]
 mod secure_presentation;
+#[path = "layout_engine/vertical.rs"]
 mod vertical;
+#[path = "layout_engine/viewport.rs"]
 mod viewport;
+#[path = "layout_engine/virtual_fragment_sequence.rs"]
 mod virtual_fragment_sequence;
+#[path = "layout_engine/visual_order.rs"]
 mod visual_order;
+#[path = "layout_engine/wrapping.rs"]
 mod wrapping;
 
 use super::resolved_layout::UiTextViewport;

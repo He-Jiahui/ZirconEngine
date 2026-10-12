@@ -9,12 +9,12 @@ from typing import Any
 INSPECTOR_SURFACE_PIPELINE_STAGE_COUNT = 4
 SOURCE_PATHS = (
     "zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs",
-    "zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/inspector.rs",
-    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/inspector_projection.rs",
-    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/inspector_fields.rs",
-    "zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs",
-    "zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs",
-    "zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs",
+    "zircon_editor/src/ui/layouts/windows/window/payloads/inspector.rs",
+    "zircon_editor/src/ui/retained/ui/data/inspector_projection.rs",
+    "zircon_editor/src/ui/retained/ui/data/inspector_fields.rs",
+    "zircon_editor/src/ui/runtime/runtime/runtime_host.rs",
+    "zircon_editor/src/ui/retained/app/host_lifecycle/recompute/shell/builder.rs",
+    "zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs",
 )
 SOURCE_GUARDS = {
     SOURCE_PATHS[0]: (

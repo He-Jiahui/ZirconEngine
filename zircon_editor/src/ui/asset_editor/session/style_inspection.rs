@@ -302,9 +302,9 @@ fn toml_value_to_json(value: &Value) -> JsonValue {
 }
 
 #[cfg(test)]
-#[path = "style_inspection/tests/selected_rule_tests.rs"]
+#[path = "tests/selected_rule.rs"]
 mod selected_rule_tests;
 
 #[cfg(test)]
-#[path = "style_inspection/tests/optimization_batch_jb_editor641_tests.rs"]
+#[path = "style_inspection/tests/perf.rs"]
 mod optimization_batch_jb_editor641_tests;

@@ -512,5 +512,5 @@ pub(super) fn session_active_actions(handle: ZrRuntimeSessionHandle) -> Option<u
 }
 
 #[cfg(test)]
-#[path = "tests/session_store_handle_allocation_tests.rs"]
+#[path = "tests/store_handle_alloc.rs"]
 mod handle_allocation_tests;

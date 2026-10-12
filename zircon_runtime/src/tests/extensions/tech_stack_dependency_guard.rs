@@ -400,7 +400,7 @@ fn editor_only_dependency_candidates_have_editor_backlog_owner() {
     }
 
     assert!(
-        backlog.contains("zircon_editor/src/ui/host")
+        backlog.contains("zircon_editor/src/ui")
             && backlog.contains("file and folder dialogs")
             && backlog.contains("Clipboard integration"),
         "editor backlog should name the expected owner paths and demand surfaces"
@@ -417,9 +417,9 @@ fn fontdue_editor_retained_host_dependency_has_migration_owner() {
     let runtime_manifest = read_repo_file("zircon_runtime/Cargo.toml");
     let editor_manifest = read_repo_file("zircon_editor/Cargo.toml");
     let retained_text = [
-        "zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs",
+        "zircon_editor/src/ui/retained/contract/paint_text/font.rs",
         "zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs",
-        "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs",
+        "zircon_editor/src/ui/retained/contract/paint_text/draw.rs",
     ]
     .into_iter()
     .map(read_repo_file)

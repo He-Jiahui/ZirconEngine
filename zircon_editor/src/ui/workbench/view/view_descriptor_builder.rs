@@ -100,5 +100,5 @@ fn normalize_default_presets(
 }
 
 #[cfg(test)]
-#[path = "view_descriptor_builder/tests/finite_preset_tests.rs"]
+#[path = "tests/finite_preset.rs"]
 mod finite_preset_tests;

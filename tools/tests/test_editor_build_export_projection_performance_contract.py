@@ -7,13 +7,13 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 TARGET_ROWS = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows"
+    / "zircon_editor/src/ui/retained/ui/data/build_export/target_rows"
 )
 CACHE = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/app/build_export_projection/cache.rs"
+    / "zircon_editor/src/ui/retained/app/build_export_projection/cache.rs"
 )
-PROJECTION = ROOT / "zircon_editor/src/ui/retained_host/app/build_export_projection.rs"
+PROJECTION = ROOT / "zircon_editor/src/ui/retained/app/build_export_projection.rs"
 WIZARD_PANEL = ROOT / (
     "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/"
     "build_export_wizard_panel.rs"
@@ -22,7 +22,7 @@ WIZARD_PANEL_PROJECTION = ROOT / (
     "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/"
     "wizard/panel_projection.rs"
 )
-WIZARD_PANEL_PROJECTION_TESTS = ROOT / "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection/tests/astra_artifact_truth_tests.rs"
+WIZARD_PANEL_PROJECTION_TESTS = ROOT / "zircon_editor/src/ui/host/exports/wizard/tests/astra_artifact_truth.rs"
 
 
 class EditorBuildExportProjectionPerformanceContractTests(unittest.TestCase):
@@ -37,9 +37,9 @@ class EditorBuildExportProjectionPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("base.clone()", projection)
         self.assertIn(
             "cached_base_reuses_the_same_projection_allocation",
-            read_rust_test_file("zircon_editor/src/ui/retained_host/app/build_export_projection/tests/cache.rs"),
+            read_rust_test_file("zircon_editor/src/ui/retained/app/build_export_projection/tests/cache.rs"),
         )
-        self.assertIn("Arc::ptr_eq", read_rust_test_file("zircon_editor/src/ui/retained_host/app/build_export_projection/tests/cache.rs"))
+        self.assertIn("Arc::ptr_eq", read_rust_test_file("zircon_editor/src/ui/retained/app/build_export_projection/tests/cache.rs"))
 
     def test_base_cache_hit_reads_a_watcher_epoch_without_filesystem_probes(self) -> None:
         cache = CACHE.read_text(encoding="utf-8")
@@ -72,10 +72,10 @@ class EditorBuildExportProjectionPerformanceContractTests(unittest.TestCase):
             "source_generation == token.source_generation", store
         )
         self.assertIn("!source_generation_unchanged", store)
-        self.assertIn("preset_write_advances_the_watcher_generation", read_rust_test_file("zircon_editor/src/ui/retained_host/app/build_export_projection/tests/cache.rs"))
+        self.assertIn("preset_write_advances_the_watcher_generation", read_rust_test_file("zircon_editor/src/ui/retained/app/build_export_projection/tests/cache.rs"))
         self.assertIn(
             "created_export_directory_is_watched_for_followup_preset_changes",
-            read_rust_test_file("zircon_editor/src/ui/retained_host/app/build_export_projection/tests/cache.rs"),
+            read_rust_test_file("zircon_editor/src/ui/retained/app/build_export_projection/tests/cache.rs"),
         )
 
     def test_wizard_projection_borrows_the_published_view_model(self) -> None:
@@ -91,11 +91,11 @@ class EditorBuildExportProjectionPerformanceContractTests(unittest.TestCase):
         self.assertNotIn("data.wizard_view_model.clone()", selector)
         self.assertIn(
             "published_wizard_view_model_is_borrowed_without_a_payload_clone",
-            read_rust_test_file("zircon_editor/src/ui/retained_host/ui/pane_data_conversion/tests/build_export_wizard_panel_performance_tests.rs"),
+            read_rust_test_file("zircon_editor/src/ui/retained/ui/data/tests/build_export_wizard_panel_perf.rs"),
         )
         self.assertIn(
             "missing_wizard_view_model_constructs_an_owned_fallback",
-            read_rust_test_file("zircon_editor/src/ui/retained_host/ui/pane_data_conversion/tests/build_export_wizard_panel_performance_tests.rs"),
+            read_rust_test_file("zircon_editor/src/ui/retained/ui/data/tests/build_export_wizard_panel_perf.rs"),
         )
 
     def test_wizard_projection_consumes_owned_node_payloads(self) -> None:

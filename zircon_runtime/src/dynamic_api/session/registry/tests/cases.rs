@@ -35,7 +35,7 @@ mod watcher_thread_exit;
 #[path = "owned_event.rs"]
 mod owned_event;
 
-#[path = "destroy_registry_deadline.rs"]
+#[path = "../../tests/destroy_registry_deadline.rs"]
 mod destroy_registry_deadline;
 
 static WAKE_ENTERED: AtomicBool = AtomicBool::new(false);

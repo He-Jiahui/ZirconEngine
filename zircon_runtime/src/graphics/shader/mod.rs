@@ -1,13 +1,24 @@
+#[path = "binding_contract.rs"]
 mod binding_contract;
+#[path = "builtin_global_shader_contracts.rs"]
 mod builtin_global_shader_contracts;
+#[path = "fullscreen_pass_parameters.rs"]
 mod fullscreen_pass_parameters;
+#[path = "global_pipeline_layout.rs"]
 mod global_pipeline_layout;
+#[path = "ide_env_generation.rs"]
 mod ide_env_generation;
+#[path = "ide_preview.rs"]
 mod ide_preview;
+#[path = "ide_validation.rs"]
 mod ide_validation;
+#[path = "invocation/mod.rs"]
 pub mod invocation;
+#[path = "shader_assets.rs"]
 mod shader_assets;
+#[path = "template/mod.rs"]
 pub(crate) mod template;
+#[path = "variant_cache/mod.rs"]
 pub(crate) mod variant_cache;
 
 pub use crate::core::framework::render::ShaderIdePreviewVariant;

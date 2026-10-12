@@ -34,5 +34,5 @@ impl VirtualGeometryRuntimePrepareOutput {
 }
 
 #[cfg(test)]
-#[path = "tests/prepare_output.rs"]
+#[path = "../tests/prepare_output.rs"]
 mod tests;

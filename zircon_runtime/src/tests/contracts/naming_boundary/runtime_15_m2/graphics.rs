@@ -1,0 +1,37 @@
+//! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。保存同组守卫使用的局部数据或辅助变换。
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use super::super::support::{assert_contains_all, read_repo_text, read_text};
+
+#[path = "../../graphics/gpu_model_embedded_primitive.rs"]
+mod gpu_model_embedded_primitive;
+#[path = "graphics/gi.rs"]
+mod hybrid_gi;
+#[path = "../../graphics/offscreen_target_construct.rs"]
+mod offscreen_target_construct;
+#[path = "../../runtime_15_m2/graphics/render_fixtures.rs"]
+mod render_fixtures;
+#[path = "../../graphics/render_framework_receiver.rs"]
+mod render_framework_receiver;
+#[path = "../../graphics/resource_streamer_construct.rs"]
+mod resource_streamer_construction;
+
+fn rust_files(root: &Path) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    collect_rust_files(root, &mut files);
+    files.sort();
+    files
+}
+
+fn collect_rust_files(root: &Path, files: &mut Vec<PathBuf>) {
+    for entry in fs::read_dir(root).expect("render framework directory should be readable") {
+        let entry = entry.expect("render framework entry should be readable");
+        let path = entry.path();
+        if path.is_dir() {
+            collect_rust_files(&path, files);
+        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
+            files.push(path);
+        }
+    }
+}

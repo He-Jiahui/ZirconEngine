@@ -1,7 +1,12 @@
+#[path = "capability.rs"]
 mod capability;
+#[path = "extension_ids.rs"]
 mod extension_ids;
+#[path = "overlay.rs"]
 mod overlay;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "runtime_mirror.rs"]
 mod runtime_mirror;
 
 #[cfg(test)]

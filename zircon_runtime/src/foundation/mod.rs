@@ -1,6 +1,8 @@
 //! Runtime foundation services and shared process configuration.
 
+#[path = "module.rs"]
 mod module;
+#[path = "runtime/mod.rs"]
 mod runtime;
 
 pub use crate::core::framework::foundation::FOUNDATION_MODULE_NAME;

@@ -1,3 +1,4 @@
+#[path = "generation.rs"]
 mod generation;
 
 pub(crate) use generation::{

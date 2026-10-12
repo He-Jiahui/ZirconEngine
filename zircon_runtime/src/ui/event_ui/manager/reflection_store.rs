@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::event_ui::{
 };
 
 #[cfg(test)]
-#[path = "reflection_store/tests/optimization_tests.rs"]
+#[path = "reflection_store/tests/perf.rs"]
 mod optimization_tests;
 
 impl UiEventManager {

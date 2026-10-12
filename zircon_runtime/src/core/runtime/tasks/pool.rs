@@ -1,3 +1,4 @@
+#[path = "pool/owned_workers.rs"]
 mod owned_workers;
 
 use std::fmt;

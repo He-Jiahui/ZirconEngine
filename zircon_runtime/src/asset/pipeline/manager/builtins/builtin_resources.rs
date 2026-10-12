@@ -242,5 +242,5 @@ fn owned_heap_bytes_proxy(asset: &ImportedAsset) -> usize {
 mod tests;
 
 #[cfg(test)]
-#[path = "builtin_resources/tests/lazy_lookup_tests.rs"]
+#[path = "tests/lazy_lookup.rs"]
 mod lazy_lookup_tests;

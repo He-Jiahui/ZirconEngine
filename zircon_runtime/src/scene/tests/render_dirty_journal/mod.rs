@@ -17,6 +17,9 @@ fn publish_render_dirty_journal(world: &mut World) {
     world.run_internal_scene_systems_for_stage(SystemStage::RenderExtract);
 }
 
+#[path = "publication.rs"]
 mod publication;
+#[path = "query_mutation.rs"]
 mod query_mutation;
+#[path = "render_component_project.rs"]
 mod render_component_projection;

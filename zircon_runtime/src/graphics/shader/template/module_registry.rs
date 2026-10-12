@@ -63,14 +63,14 @@ const SKINNED_MORPHED_MESH_GEOMETRY_INCLUDE: &str =
 const VIRTUAL_GEOMETRY_INCLUDE: &str = include_str!("../wgsl/zr_geometry_virtual_geometry.wgsl");
 const SCENE_RUNTIME_INCLUDE: &str = include_str!("../wgsl/zr_scene_runtime.wgsl");
 const GPU_SCENE_INCLUDE: &str =
-    include_str!("../../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+    include_str!("../../scene/renderer/mesh/shaders/zr_gpu_scene.wgsl");
 const LIGHTMAP_INCLUDE: &str = include_str!("../wgsl/zr_lightmap.wgsl");
 const LIGHT_COOKIE_INCLUDE: &str = include_str!("../wgsl/zr_light_cookie.wgsl");
 const IRRADIANCE_VOLUME_INCLUDE: &str = include_str!("../wgsl/zr_irradiance_volume.wgsl");
 const LIGHT_GRID_INCLUDE: &str =
-    include_str!("../../scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl");
+    include_str!("../../scene/renderer/lighting/shaders/zr_light_grid.wgsl");
 const SHADOW_INCLUDE: &str =
-    include_str!("../../scene/scene_renderer/shadow/shaders/zr_shadow.wgsl");
+    include_str!("../../scene/renderer/shadow/shaders/zr_shadow.wgsl");
 const SHADOW_DISABLED_INCLUDE: &str = r#"
 fn zr_gpu_light_shadow_visibility(
     _light: ZrGpuLightData,
@@ -681,5 +681,5 @@ fn gbuffer_encode_include_for_token(token: &str) -> Option<ShaderTemplateInclude
 mod tests;
 
 #[cfg(test)]
-#[path = "module_registry/tests/optimization_batch_iq_runtime627_tests.rs"]
+#[path = "module_registry/tests/perf.rs"]
 mod optimization_batch_iq_runtime627_tests;

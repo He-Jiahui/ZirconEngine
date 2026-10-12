@@ -1,6 +1,10 @@
+#[path = "catalog/mod.rs"]
 mod catalog;
+#[path = "data_binding/mod.rs"]
 mod data_binding;
+#[path = "descriptor/mod.rs"]
 mod descriptor;
+#[path = "state_reducer.rs"]
 mod state_reducer;
 
 pub use catalog::{UiComponentDescriptorRegistry, UiComponentPaletteEntry};

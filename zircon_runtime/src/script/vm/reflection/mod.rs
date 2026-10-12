@@ -1,5 +1,8 @@
+#[path = "catalog.rs"]
 mod catalog;
+#[path = "error.rs"]
 mod error;
+#[path = "schema.rs"]
 mod schema;
 
 pub use catalog::{

@@ -1,10 +1,16 @@
 //! Lightweight process diagnostics mirrored to console and a per-run log file.
 
+#[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "level.rs"]
 mod level;
+#[path = "platform.rs"]
 mod platform;
+#[path = "settings.rs"]
 mod settings;
+#[path = "sink.rs"]
 mod sink;
+#[path = "timestamp.rs"]
 mod timestamp;
 
 pub use diagnostics::{

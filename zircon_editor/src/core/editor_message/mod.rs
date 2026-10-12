@@ -1,14 +1,26 @@
+#[path = "bus.rs"]
 mod bus;
+#[path = "editor_ui_delta.rs"]
 mod editor_ui_delta;
+#[path = "ids/mod.rs"]
 mod ids;
+#[path = "inbox.rs"]
 mod inbox;
+#[path = "message/mod.rs"]
 mod message;
+#[path = "refresh_report.rs"]
 mod refresh_report;
+#[path = "retention.rs"]
 mod retention;
+#[path = "shared.rs"]
 mod shared;
+#[path = "subscriber.rs"]
 mod subscriber;
+#[path = "topic.rs"]
 mod topic;
+#[path = "topics.rs"]
 mod topics;
+#[path = "view_dirty_set.rs"]
 mod view_dirty_set;
 
 pub(crate) use bus::EditorMessageBus;

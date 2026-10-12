@@ -3,6 +3,7 @@ use super::{
 };
 use std::{future::IntoFuture, sync::Arc};
 
+#[path = "lifecycle/supervisor.rs"]
 mod supervisor;
 use supervisor::{StartupSupervisor, SHUTDOWN_TIMEOUT};
 

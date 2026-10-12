@@ -7,8 +7,11 @@ use crate::ui::{
     tree::UiDirtyFlags,
 };
 
+#[path = "ecs/compute.rs"]
 mod compute;
+#[path = "ecs/diff.rs"]
 mod diff;
+#[path = "ecs/focused_impact.rs"]
 mod focused_impact;
 #[cfg(test)]
 #[path = "ecs/tests/query_performance_tests.rs"]

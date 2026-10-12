@@ -86,7 +86,7 @@ fn same_source_path(left: &AssetUri, right: &AssetUri) -> bool {
 }
 
 #[cfg(test)]
-#[path = "incremental/tests/optimization_batch_jj_runtime649_tests.rs"]
+#[path = "incremental/tests/perf.rs"]
 mod optimization_batch_jj_runtime649_tests;
 
 #[cfg(test)]

@@ -242,5 +242,5 @@ impl Default for SolariRuntimeReport {
 mod tests;
 
 #[cfg(test)]
-#[path = "status/tests/preallocated_degradations_tests.rs"]
+#[path = "../../../render/solari/status/tests/preallocated_degradations.rs"]
 mod preallocated_degradations_tests;

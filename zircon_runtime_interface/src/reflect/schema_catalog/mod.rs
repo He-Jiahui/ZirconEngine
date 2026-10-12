@@ -5,9 +5,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::reflect::{ReflectError, ReflectFieldId, ReflectTypeRegistration};
 
+#[path = "admission.rs"]
 mod admission;
+#[path = "entry.rs"]
 mod entry;
+#[path = "field_index.rs"]
 mod field_index;
+#[path = "fingerprint.rs"]
 mod fingerprint;
 
 use admission::{

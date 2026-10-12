@@ -14,11 +14,17 @@ use crate::core::framework::render::{
 };
 use crate::core::resource::ResourceId;
 
+#[path = "material/advanced_features.rs"]
 mod advanced_features;
+#[path = "material/asset_serialization.rs"]
 mod asset_serialization;
+#[path = "material/management_records.rs"]
 mod management_records;
+#[path = "material/override_validation.rs"]
 mod override_validation;
+#[path = "material/owned_descriptor.rs"]
 mod owned_descriptor;
+#[path = "material/shader_readiness.rs"]
 mod shader_readiness;
 
 // 该夹具先重新生成 shader 材质工件，使就绪测试验证契约差异，而非空工件造成的加载失败。

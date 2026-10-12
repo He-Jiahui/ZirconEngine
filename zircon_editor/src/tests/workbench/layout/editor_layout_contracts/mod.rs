@@ -28,7 +28,11 @@ use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 pub(super) const SHELL_REGIONS_ASSET: &str =
     include_str!("../../../../../assets/ui/editor/layout/shell_regions.toml");
 
+#[path = "breakpoints.rs"]
 mod breakpoints;
+#[path = "geometry.rs"]
 mod geometry;
+#[path = "../../../layout/editor_layout_contracts/layout_commands.rs"]
 mod layout_commands;
+#[path = "../../../layout/editor_layout_contracts/region_contracts.rs"]
 mod region_contracts;

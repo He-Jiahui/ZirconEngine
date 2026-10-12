@@ -11,8 +11,8 @@ plan_sources:
   - user: 2026-09-09 扩充 ZirconEngine 公开接口教程、机制案例与最佳实践
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/activation
-  - zircon_runtime/src/core/runtime/tests/registration
+  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/runtime/tests
 doc_type: workflow-detail
 ---
 

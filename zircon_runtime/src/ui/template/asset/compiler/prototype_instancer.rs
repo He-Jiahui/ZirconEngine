@@ -846,5 +846,5 @@ fn apply_prototype_inline_styles_iterative(root: &mut UiTemplateNode) {
 }
 
 #[cfg(test)]
-#[path = "prototype_instancer/tests/optimization_batch_hp_runtime597_tests.rs"]
+#[path = "prototype_instancer/tests/perf.rs"]
 mod optimization_batch_hp_runtime597_tests;

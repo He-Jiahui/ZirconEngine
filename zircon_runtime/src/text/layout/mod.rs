@@ -1,21 +1,38 @@
 //! Text measurement and layout support backed by the shared runtime text stack.
 
+#[path = "advance_index.rs"]
 mod advance_index;
+#[path = "align.rs"]
 mod align;
+#[path = "arabic_justification.rs"]
 mod arabic_justification;
+#[path = "horizontal_line_fragment.rs"]
 mod horizontal_line_fragment;
+#[path = "horizontal_line_policy.rs"]
 mod horizontal_line_policy;
+#[path = "kinsoku.rs"]
 mod kinsoku;
+#[path = "line_break/mod.rs"]
 mod line_break;
+#[path = "logical_virtual_line.rs"]
 mod logical_virtual_line;
+#[path = "measure.rs"]
 mod measure;
+#[path = "overflow.rs"]
 mod overflow;
+#[path = "physical_line_fragment.rs"]
 mod physical_line_fragment;
+#[path = "rich.rs"]
 mod rich;
+#[path = "rich_advance_index.rs"]
 mod rich_advance_index;
+#[path = "rich_source.rs"]
 mod rich_source;
+#[path = "rich_vertical.rs"]
 mod rich_vertical;
+#[path = "tab.rs"]
 mod tab;
+#[path = "vertical_layout.rs"]
 mod vertical_layout;
 
 pub(crate) use advance_index::GraphemeAdvanceIndex;

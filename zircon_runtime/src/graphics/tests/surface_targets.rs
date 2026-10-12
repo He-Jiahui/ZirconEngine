@@ -27,17 +27,18 @@ const CAMERA_TEXTURE_TARGET_USAGE_CAPABILITY: &str = "camera texture render targ
 const HEADLESS_CAMERA_SURFACE_PRESENT_CAPABILITY: &str = "headless camera surface present";
 const SURFACE_PRESENT_CAPABILITY: &str = "viewport surface present";
 
+#[path = "surface_targets/texture_target.rs"]
 mod texture_target;
 
 #[test]
 fn graphics_scene_keeps_viewport_surface_owned_by_the_render_framework() {
     let scene_facade = include_str!("../scene/mod.rs");
-    let renderer_facade = include_str!("../scene/scene_renderer/mod.rs");
+    let renderer_facade = include_str!("../scene/renderer/mod.rs");
     let factory_source =
-        include_str!("../scene/scene_renderer/core/scene_renderer_viewport_surface.rs");
+        include_str!("../scene/renderer/core/viewport_surface.rs");
     let binding_source =
-        include_str!("../runtime/render_framework/viewport_surface/viewport_surface.rs");
-    let record_source = include_str!("../runtime/render_framework/viewport_record/surface.rs");
+        include_str!("../runtime/viewport_surface/viewport_surface.rs");
+    let record_source = include_str!("../runtime/framework/viewport_record/surface.rs");
 
     assert!(!scene_facade.contains("SceneViewportSurface"));
     assert!(!renderer_facade.contains("SceneViewportSurface"));
@@ -50,8 +51,8 @@ fn graphics_scene_keeps_viewport_surface_owned_by_the_render_framework() {
 #[test]
 fn graphics_viewport_binding_moves_the_native_surface_into_the_viewport_record() {
     let bind_source =
-        include_str!("../runtime/render_framework/viewport_surface/viewport_surface.rs");
-    let record_source = include_str!("../runtime/render_framework/viewport_record/surface.rs");
+        include_str!("../runtime/viewport_surface/viewport_surface.rs");
+    let record_source = include_str!("../runtime/framework/viewport_record/surface.rs");
 
     assert!(bind_source.contains(".replace_surface_and_extent(surface, descriptor.size)"));
     assert!(record_source.contains("surface: ViewportSurface"));
@@ -61,8 +62,8 @@ fn graphics_viewport_binding_moves_the_native_surface_into_the_viewport_record()
 #[test]
 fn graphics_surface_rebind_prepares_fences_and_publishes_before_retiring_the_old_surface() {
     let bind_source =
-        include_str!("../runtime/render_framework/viewport_surface/viewport_surface.rs");
-    let record_source = include_str!("../runtime/render_framework/viewport_record/surface.rs");
+        include_str!("../runtime/viewport_surface/viewport_surface.rs");
+    let record_source = include_str!("../runtime/framework/viewport_record/surface.rs");
     let runtime_bridge_source = include_str!("../../dynamic_api/runtime_loop.rs");
 
     let prepared_surface = bind_source
@@ -463,9 +464,9 @@ fn graphics_camera_target_headless_present_reports_unsupported_surface_fallback(
 #[test]
 fn graphics_surface_present_path_uses_neutral_present_without_readback_fallback() {
     let framework_present_source = include_str!(
-        "../runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs"
+        "../runtime/extract/submit/present_frame_extract.rs"
     );
-    let backend_surface_source = include_str!("../backend/render_backend/viewport_surface.rs");
+    let backend_surface_source = include_str!("../backend/backend/viewport_surface.rs");
 
     assert!(framework_present_source.contains("record_present_submission"));
     assert!(backend_surface_source.contains(".present_surface_frame(frame.clone(), submission)"));

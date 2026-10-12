@@ -1,6 +1,10 @@
+#[path = "capability.rs"]
 mod capability;
+#[path = "export_wizard.rs"]
 mod export_wizard;
+#[path = "extension_ids.rs"]
 mod extension_ids;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

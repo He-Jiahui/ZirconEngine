@@ -1,8 +1,14 @@
+#[path = "command.rs"]
 mod command;
+#[path = "events.rs"]
 mod events;
+#[path = "history.rs"]
 mod history;
+#[path = "journal/mod.rs"]
 mod journal;
+#[path = "routing.rs"]
 mod routing;
+#[path = "transaction.rs"]
 mod transaction;
 
 pub use crate::core::editing::selection::{SelectionJournal, SelectionSnapshot};

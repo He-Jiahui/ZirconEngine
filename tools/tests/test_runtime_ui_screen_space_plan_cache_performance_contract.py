@@ -5,24 +5,24 @@ from tools.analysis.performance.runtime.runtime_ui_screen_space_plan_cache_press
 
 
 ROOT = Path(__file__).resolve().parents[2]
-RENDER = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+RENDER = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
 PLAN_CACHE = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs"
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs"
 )
 BACKGROUND = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/background.rs"
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/background.rs"
 )
-RECORD = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs"
+RECORD = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render/record.rs"
 RENDERER = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs"
+    "zircon_runtime/src/graphics/scene/renderer/ui/screen_space_ui_renderer.rs"
 )
-CONSTRUCT = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs"
-RUST_TESTS = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/cases.rs"
+CONSTRUCT = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/construct.rs"
+RUST_TESTS = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render/tests/cases.rs"
 RUST_PLAN_CACHE_TESTS = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/plan_cache.rs"
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/tests/plan_cache.rs"
 )
 RUST_BACKGROUND_TESTS = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/background.rs"
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/tests/background.rs"
 )
 PROFILE_MANIFEST = ROOT / "tools/analysis/profiling/shared/profile-capture-manifest.ps1"
 
@@ -406,12 +406,12 @@ class RuntimeUiScreenSpacePlanCachePerformanceContract(unittest.TestCase):
     def test_profile_manifest_binds_the_plan_authority(self) -> None:
         manifest = PROFILE_MANIFEST.read_text(encoding="utf-8")
         for relative_path in (
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/background.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs",
+            "zircon_runtime/src/graphics/scene/renderer/ui/render.rs",
+            "zircon_runtime/src/graphics/scene/renderer/ui/render/background.rs",
+            "zircon_runtime/src/graphics/scene/renderer/ui/render/record.rs",
+            "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs",
+            "zircon_runtime/src/graphics/scene/renderer/ui/render/resolved_layout.rs",
+            "zircon_runtime/src/graphics/scene/renderer/ui/screen_space_ui_renderer.rs",
         ):
             self.assertIn(f'"{relative_path}"', manifest)
 

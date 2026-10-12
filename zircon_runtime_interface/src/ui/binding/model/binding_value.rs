@@ -2,8 +2,11 @@ use std::collections::BTreeMap;
 
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
+#[path = "binding_value/projection.rs"]
 mod projection;
+#[path = "binding_value/types.rs"]
 mod types;
+#[path = "binding_value/validation.rs"]
 mod validation;
 
 pub use types::{

@@ -6,10 +6,14 @@ use std::{
     time::Duration,
 };
 use tokio::{sync::Semaphore, time::Instant};
+#[path = "jobs.rs"]
 mod jobs;
+#[path = "migration.rs"]
 mod migration;
 #[cfg(windows)]
+#[path = "path_guard.rs"]
 mod path_guard;
+#[path = "receipt.rs"]
 pub mod receipt;
 
 pub(super) use jobs::JobCensus;
@@ -107,4 +111,5 @@ impl Database {
 }
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

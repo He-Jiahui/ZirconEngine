@@ -9,7 +9,7 @@ CORE_MODULE_ROOT = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/modules/core"
 )
 RUNTIME_SOURCES = (
-    REPO_ROOT / "zircon_editor/src/ui/retained_host/workbench_preview_actions.rs",
+    REPO_ROOT / "zircon_editor/src/ui/retained/preview_actions.rs",
     REPO_ROOT
     / (
         "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
@@ -17,10 +17,10 @@ RUNTIME_SOURCES = (
     ),
     REPO_ROOT
     / (
-        "zircon_editor/src/ui/template_runtime/builtin/"
+        "zircon_editor/src/ui/runtime/builtin/"
         "workbench_module_template_bindings.rs"
     ),
-    REPO_ROOT / "zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings/tests/assets_workspace_routes.rs",
+    REPO_ROOT / "zircon_editor/src/ui/runtime/builtin/tests/assets_workspace_routes.rs",
 )
 PASSIVE_OUTPUTS = (
     (

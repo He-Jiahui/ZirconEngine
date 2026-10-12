@@ -711,6 +711,7 @@ fn known_unsupported_property(property: &str) -> Option<&'static str> {
     }
 }
 
+#[path = "../css_like_constraint/declaration_parser.rs"]
 mod declaration_parser;
 
 #[cfg(test)]

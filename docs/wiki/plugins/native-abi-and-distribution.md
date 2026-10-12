@@ -16,7 +16,7 @@ plan_sources:
 tests:
   - zircon_plugins/native_dynamic_fixture
   - zircon_plugins/editor_contribution_fixture
-  - zircon_runtime/src/plugin/native_plugin_loader
+  - zircon_runtime/src/plugin/loader
 doc_type: abi-reference
 title: 原生 ABI 与插件分发
 status: source-audited

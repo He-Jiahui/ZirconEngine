@@ -5,7 +5,7 @@ import unittest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HOST_CONTRACT = (
-    REPO_ROOT / "zircon_editor/src/ui/retained_host/host_contract"
+    REPO_ROOT / "zircon_editor/src/ui/retained/contract"
 )
 PRESENT = HOST_CONTRACT / "window/event_loop/redraw/present.rs"
 ENVIRONMENT = HOST_CONTRACT / "profiling_artifacts/environment.rs"

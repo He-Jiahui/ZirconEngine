@@ -117,5 +117,5 @@ pub(super) fn registry_path(registry_root: &Path) -> PathBuf {
 mod load_disposition_tests;
 
 #[cfg(test)]
-#[path = "tests/persistence_optimization_batch_20260830ec_runtime_tests.rs"]
+#[path = "tests/persistence_perf.rs"]
 mod optimization_batch_20260830ec_runtime_tests;

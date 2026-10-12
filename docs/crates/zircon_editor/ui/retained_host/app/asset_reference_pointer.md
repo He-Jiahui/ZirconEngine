@@ -8,9 +8,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events/motion.rs
   - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/press.rs
   - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target/prepare.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target/state.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/dispatch.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/prepare.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/state.rs
   - zircon_editor/src/ui/retained_host/app/asset_surface_pointer_state.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces.rs
   - zircon_editor/src/ui/retained_host/asset_pointer/reference/bridge.rs
@@ -25,9 +25,9 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events/motion.rs
   - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/press.rs
   - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target/prepare.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target/state.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/dispatch.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/prepare.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/state.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

@@ -7,6 +7,7 @@ use crate::scene::ecs::channel::OwnedChannel;
 use crate::scene::ecs::messages::id::{Message, MessageId};
 use crate::scene::ecs::messages::queue::{MessageRetention, MessageRetentionMetrics, Messages};
 
+#[path = "store/writer_grant.rs"]
 mod writer_grant;
 use writer_grant::MessageActivity;
 pub(in crate::scene) use writer_grant::MessageWriterGrant;

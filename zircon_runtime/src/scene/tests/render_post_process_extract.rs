@@ -23,6 +23,7 @@ use crate::scene::components::{
 };
 use crate::scene::World;
 
+#[path = "render_post_process_extract/volumetric_fog.rs"]
 mod volumetric_fog;
 
 #[test]

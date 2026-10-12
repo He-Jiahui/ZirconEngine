@@ -1,6 +1,10 @@
+#[path = "cad.rs"]
 mod cad;
+#[path = "capability.rs"]
 mod capability;
+#[path = "mesh_importer.rs"]
 mod mesh_importer;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{
@@ -21,4 +25,5 @@ pub use plugin::{
 pub(crate) use mesh_importer::{model_outcome, primitive_from_indexed_mesh};
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

@@ -1,5 +1,6 @@
 //! Headless editor commandlets projected from the canonical command registry.
 
+#[path = "runner.rs"]
 mod runner;
 
 pub use runner::{

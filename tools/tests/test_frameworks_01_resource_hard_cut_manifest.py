@@ -53,7 +53,7 @@ class Frameworks01ResourceHardCutManifestTests(unittest.TestCase):
             "zircon_runtime_interface/src/tests/resource_contracts.rs": (
                 "#[test]\nfn resource_contract() {}\n"
             ),
-            "zircon_runtime/src/tests/runtime_absorption/resource_foundation.rs": (
+            "zircon_runtime/src/tests/contracts/resources.rs": (
                 "#[test]\nfn resource_foundation() {}\n"
             ),
         }

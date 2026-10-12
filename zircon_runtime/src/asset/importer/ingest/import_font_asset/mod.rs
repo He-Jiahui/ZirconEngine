@@ -1,3 +1,4 @@
+#[path = "parse_sfnt.rs"]
 mod parse_sfnt;
 
 use std::path::{Path, PathBuf};
@@ -141,5 +142,5 @@ fn dependency_uri_for_source(manifest_uri: &AssetUri, source: &str) -> Option<As
 }
 
 #[cfg(test)]
-#[path = "tests/mod_plugins07_font_manifest_source_tests.rs"]
+#[path = "../../../ingest/tests/mod_plugins07_font_manifest_source.rs"]
 mod plugins07_font_manifest_source_tests;

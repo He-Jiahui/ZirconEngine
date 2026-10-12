@@ -15,19 +15,19 @@ const REJECTED_HISTORY: [u16; 4] = [0x3c00, 0x3400, 0x3000, 0x3c00];
 
 const LIGHT_SCATTER_SHADER: &str = concat!(
     include_str!(
-        "../src/graphics/scene/scene_renderer/advanced_lighting/froxel/shaders/zr_froxel_reconstruct.wgsl"
+        "../src/graphics/scene/froxel/shaders/zr_froxel_reconstruct.wgsl"
     ),
     "\n",
     include_str!(
-        "../src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/shaders/types.wgsl"
+        "../src/graphics/scene/renderer/froxel/shaders/types.wgsl"
     ),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl"),
+    include_str!("../src/graphics/scene/renderer/lighting/shaders/zr_light_grid.wgsl"),
     "\n",
-    include_str!("../src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
+    include_str!("../src/graphics/scene/renderer/shadow/shaders/zr_shadow.wgsl"),
     "\n",
     include_str!(
-        "../src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/shaders/main.wgsl"
+        "../src/graphics/scene/renderer/froxel/shaders/main.wgsl"
     ),
 );
 

@@ -68,5 +68,5 @@ impl std::ops::DerefMut for DocumentLeafLayout {
 }
 
 #[cfg(test)]
-#[path = "tests/document_leaf_layout_identity_tests.rs"]
+#[path = "tests/document_leaf_layout_identity.rs"]
 mod identity_tests;

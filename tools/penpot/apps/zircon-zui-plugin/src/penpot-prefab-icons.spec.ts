@@ -8,7 +8,7 @@ import { previewIconTint, recolorIconShape } from './penpot-prefab-icons';
 describe('native IconButton design projection', () => {
   const root = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../', import.meta.url)));
   const assetPath =
-    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui';
+    'zircon_editor/assets/ui/editor/workbench/primitives/inputs/icon_button.zui';
   const themePath = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
   const dependencies = new LayoutDependencies();
 

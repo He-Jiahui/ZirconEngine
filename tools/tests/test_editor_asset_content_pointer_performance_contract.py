@@ -6,7 +6,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 STATE_WRITEBACK = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/state.rs"
+    / "zircon_editor/src/ui/retained/app/asset_content_pointer/target/state.rs"
 )
 PAINT_METADATA = ROOT / (
     "zircon_editor/src/ui/workbench/asset_content_layout/paint_metadata.rs"
@@ -14,7 +14,7 @@ PAINT_METADATA = ROOT / (
 PAINT_IDENTITY = ROOT / (
     "zircon_editor/src/ui/workbench/asset_content_layout/identity.rs"
 )
-ASSET_POINTER_ROOT = ROOT / "zircon_editor/src/ui/retained_host"
+ASSET_POINTER_ROOT = ROOT / "zircon_editor/src/ui/retained"
 ASSET_BRIDGES = (
     ASSET_POINTER_ROOT / "asset_pointer/content/bridge.rs",
     ASSET_POINTER_ROOT / "asset_pointer/tree/bridge.rs",

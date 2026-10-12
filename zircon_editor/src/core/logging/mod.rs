@@ -1,14 +1,26 @@
+#[path = "config.rs"]
 mod config;
+#[path = "entry.rs"]
 mod entry;
+#[path = "error.rs"]
 mod error;
+#[path = "filter.rs"]
 mod filter;
+#[path = "jump.rs"]
 mod jump;
+#[path = "record.rs"]
 mod record;
+#[path = "rolling_file.rs"]
 mod rolling_file;
+#[path = "runtime_task_diagnostics/mod.rs"]
 mod runtime_task_diagnostics;
+#[path = "service.rs"]
 mod service;
+#[path = "severity.rs"]
 mod severity;
+#[path = "source.rs"]
 mod source;
+#[path = "store.rs"]
 mod store;
 
 #[cfg(test)]

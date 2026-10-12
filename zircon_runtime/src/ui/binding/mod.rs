@@ -1,7 +1,10 @@
 //! 绑定执行前的类型与版本校验，以及执行后的来源/目标报告；真实模型访问和表面变更由各自 owner 完成。
 
+#[path = "conversion_registry.rs"]
 mod conversion_registry;
+#[path = "model_schema_registry.rs"]
 mod model_schema_registry;
+#[path = "update_report.rs"]
 mod update_report;
 
 pub use conversion_registry::{

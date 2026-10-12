@@ -20,7 +20,9 @@ use super::engine::{
 };
 use super::selection::SceneSelection;
 
+#[path = "command/batch_transform.rs"]
 mod batch_transform;
+#[path = "command/play_transform.rs"]
 mod play_transform;
 pub(crate) use batch_transform::{
     BatchTransformCommand, BatchTransformJournalPayload, BatchTransformTarget,

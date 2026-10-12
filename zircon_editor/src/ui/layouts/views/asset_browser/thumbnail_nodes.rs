@@ -142,7 +142,7 @@ pub(super) fn trim_asset_browser_thumbnail_slots(
 }
 
 #[cfg(test)]
-#[path = "thumbnail_nodes/tests/capacity_tests.rs"]
+#[path = "../tests/thumbnail_nodes_capacity.rs"]
 mod capacity_tests;
 
 #[cfg(test)]

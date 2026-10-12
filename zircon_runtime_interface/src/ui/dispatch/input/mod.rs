@@ -1,9 +1,16 @@
+#[path = "clipboard.rs"]
 mod clipboard;
+#[path = "effect.rs"]
 mod effect;
+#[path = "event.rs"]
 mod event;
+#[path = "metadata.rs"]
 mod metadata;
+#[path = "number.rs"]
 mod number;
+#[path = "reply.rs"]
 mod reply;
+#[path = "result.rs"]
 mod result;
 
 pub use clipboard::{

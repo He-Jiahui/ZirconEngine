@@ -10,11 +10,11 @@ use super::{
 };
 
 #[cfg(test)]
-#[path = "support/tests/weighted_random_tests.rs"]
+#[path = "../support/tests/weighted_random.rs"]
 mod weighted_random_tests;
 
 #[cfg(test)]
-#[path = "support/tests/observer_binding_tests.rs"]
+#[path = "../support/tests/observer_binding.rs"]
 mod observer_binding_tests;
 
 pub(super) fn bind_reachable_observers(

@@ -68,5 +68,5 @@ fn tooltip_timer_matches_retained_state(
 }
 
 #[cfg(test)]
-#[path = "tooltip_timer/tests/stale_owned_event_tests.rs"]
+#[path = "tooltip_timer/tests/stale_owned_event.rs"]
 mod stale_owned_event_tests;

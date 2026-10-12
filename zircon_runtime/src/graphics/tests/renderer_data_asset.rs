@@ -18,6 +18,7 @@ use crate::graphics::{
     RendererDataDocument, RendererDataDocumentError, RendererFeatureContractDiagnostic,
 };
 
+#[path = "renderer_data_asset/asset_aware_compile.rs"]
 mod asset_aware_compile;
 
 #[test]

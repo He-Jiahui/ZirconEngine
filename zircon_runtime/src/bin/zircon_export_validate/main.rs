@@ -1,5 +1,8 @@
+#[path = "args.rs"]
 mod args;
+#[path = "error.rs"]
 mod error;
+#[path = "run.rs"]
 mod run;
 
 use std::process::ExitCode;

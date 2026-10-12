@@ -21,6 +21,7 @@ use super::{
     BackendShapeRequest, OpenTypeFeature, ShapedGlyphRun, TextRange, TextStyle, VerticalMode,
 };
 
+#[path = "service/projection.rs"]
 mod projection;
 
 pub(crate) use projection::project_glyph;

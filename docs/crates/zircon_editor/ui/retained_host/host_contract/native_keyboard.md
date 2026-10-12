@@ -5,12 +5,12 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/discovery.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/options.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/search.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/selection.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/discovery.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/menu.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/model.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/options.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/search.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/selection.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/text_input.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/text_input/edit.rs
@@ -22,12 +22,12 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/discovery.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/options.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/search.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/selection.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/discovery.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/menu.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/model.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/options.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/search.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/selection.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

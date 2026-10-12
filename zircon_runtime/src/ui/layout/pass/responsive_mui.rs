@@ -14,6 +14,7 @@ use zircon_runtime_interface::ui::{
 
 use super::slot::UiLayoutSlotIndex;
 
+#[path = "responsive_mui/candidates.rs"]
 mod candidates;
 
 pub(super) use candidates::MuiResponsiveCandidates;

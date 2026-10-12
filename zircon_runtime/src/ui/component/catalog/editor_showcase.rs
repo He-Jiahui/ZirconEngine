@@ -6,7 +6,9 @@ use crate::ui::component::UiComponentDescriptorRegistry;
 
 use self::descriptors::editor_showcase_descriptors;
 
+#[path = "editor_showcase/descriptor_builders.rs"]
 mod descriptor_builders;
+#[path = "editor_showcase/descriptors.rs"]
 mod descriptors;
 
 static EDITOR_SHOWCASE_REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();

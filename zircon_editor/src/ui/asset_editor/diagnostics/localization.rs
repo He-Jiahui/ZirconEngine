@@ -46,5 +46,5 @@ fn node_id_from_localization_path(path: &str) -> Option<String> {
 }
 
 #[cfg(test)]
-#[path = "localization/tests/move_path_tests.rs"]
+#[path = "localization/tests/move_path.rs"]
 mod move_path_tests;

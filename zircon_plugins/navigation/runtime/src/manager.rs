@@ -1,9 +1,16 @@
+#[path = "manager/agent_motion.rs"]
 pub(crate) mod agent_motion;
+#[path = "manager/bake.rs"]
 mod bake;
+#[path = "manager/query.rs"]
 mod query;
+#[path = "manager/state.rs"]
 mod state;
+#[path = "manager/stats.rs"]
 mod stats;
+#[path = "manager/tick.rs"]
 pub(crate) mod tick;
+#[path = "manager/traversal/mod.rs"]
 mod traversal;
 
 use std::sync::MutexGuard;

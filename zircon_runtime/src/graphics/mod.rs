@@ -2,31 +2,55 @@
 
 // Crate-private implementation owners. Public callers should enter graphics
 // through the curated facade exports and subsystem prelude below.
+#[path = "backend/mod.rs"]
 pub(crate) mod backend;
+#[path = "debug_markers.rs"]
 pub(crate) mod debug_markers;
+#[path = "environment_ibl_bake_reservation.rs"]
 mod environment_ibl_bake_reservation;
+#[path = "extract/mod.rs"]
 pub(crate) mod extract;
+#[path = "feature/mod.rs"]
 pub(crate) mod feature;
+#[path = "hybrid_gi_runtime_provider/mod.rs"]
 pub(crate) mod hybrid_gi_runtime_provider;
+#[path = "material/mod.rs"]
 pub(crate) mod material;
+#[path = "particle_runtime_provider/mod.rs"]
 pub(crate) mod particle_runtime_provider;
+#[path = "pipeline/mod.rs"]
 pub(crate) mod pipeline;
+#[path = "resource_limits.rs"]
 pub(crate) mod resource_limits;
+#[path = "runtime/mod.rs"]
 pub(crate) mod runtime;
+#[path = "runtime_prepare_collector.rs"]
 mod runtime_prepare_collector;
+#[path = "runtime_prepare_device_epoch.rs"]
 mod runtime_prepare_device_epoch;
+#[path = "runtime_prepare_mesh_geometry_seed.rs"]
 mod runtime_prepare_mesh_geometry_seed;
+#[path = "runtime_provider/mod.rs"]
 pub(crate) mod runtime_provider;
+#[path = "scene/mod.rs"]
 pub(crate) mod scene;
+#[path = "shader/mod.rs"]
 pub(crate) mod shader;
+#[path = "solari_runtime_provider/mod.rs"]
 pub(crate) mod solari_runtime_provider;
+#[path = "text_transport/mod.rs"]
 mod text_transport;
+#[path = "types/mod.rs"]
 pub(crate) mod types;
+#[path = "virtual_geometry_runtime_provider/mod.rs"]
 pub(crate) mod virtual_geometry_runtime_provider;
+#[path = "visibility/mod.rs"]
 pub(crate) mod visibility;
 
 // Public module entries: the common prelude and module descriptor surface.
+#[path = "prelude.rs"]
 pub mod prelude;
+#[path = "graphics/mod.rs"]
 pub mod runtime_builtin_graphics;
 
 // Public facade exports. These are intentionally grouped by owner module so the
@@ -149,6 +173,8 @@ pub use visibility::{
     VisibilityVirtualGeometryFeedback, VisibilityVirtualGeometryPageUploadPlan,
 };
 
+#[path = "resource_identity.rs"]
 pub(crate) mod resource_identity;
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

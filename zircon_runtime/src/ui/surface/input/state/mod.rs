@@ -1,11 +1,20 @@
+#[path = "analog.rs"]
 mod analog;
+#[path = "drag_drop.rs"]
 mod drag_drop;
+#[path = "focus_loss.rs"]
 mod focus_loss;
+#[path = "pointer_capture.rs"]
 mod pointer_capture;
+#[path = "pointer_drag.rs"]
 mod pointer_drag;
+#[path = "pointer_position.rs"]
 mod pointer_position;
+#[path = "pointer_press.rs"]
 mod pointer_press;
+#[path = "popup_tooltip.rs"]
 mod popup_tooltip;
+#[path = "text_document_epoch.rs"]
 mod text_document_epoch;
 
 use std::collections::{BTreeMap, BTreeSet};

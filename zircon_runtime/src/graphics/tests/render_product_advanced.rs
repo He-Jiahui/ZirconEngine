@@ -22,6 +22,7 @@ use super::plugin_render_feature_fixtures::{
     pluginized_wgpu_render_framework, pluginized_wgpu_render_framework_with_advanced_providers,
 };
 
+#[path = "render_product_advanced/gpu_driven_product.rs"]
 mod gpu_driven_product;
 
 const HZB_WALL_HIDDEN_INSTANCE_COUNT: usize = 64;

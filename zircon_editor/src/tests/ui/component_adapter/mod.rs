@@ -140,8 +140,11 @@ fn key_modifiers(ctrl: bool, shift: bool, alt: bool, meta: bool) -> UiInputModif
     }
 }
 
+#[path = "asset_editor.rs"]
 mod asset_editor;
+#[path = "commands.rs"]
 mod commands;
+#[path = "inspector.rs"]
 mod inspector;
 
 const ASSET_EDITOR_ADAPTER_LAYOUT: &str = r#"

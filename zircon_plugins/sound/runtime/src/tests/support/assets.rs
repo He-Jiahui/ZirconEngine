@@ -1,3 +1,4 @@
+#[path = "assets/clip.rs"]
 mod clip;
 
 pub(in crate::tests) use clip::{

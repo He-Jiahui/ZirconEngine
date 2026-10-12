@@ -1,0 +1,21 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/data/divider.zui"
+version = 2
+display_name = "Workbench Divider"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.WorkbenchDivider]
+root = "root"
+default_classes = ["workbench-divider", "workbench-primitive"]
+
+[nodes.root]
+component = "Divider"
+control_id = "WorkbenchDividerRoot"
+pixel_snapping = "snap_to_pixel"
+classes = ["workbench-divider"]
+props = { orientation = "horizontal", variant = "fullWidth", separator_color = "$editor.separator.soft", disabled_separator_color = "$editor.border.disabled", thickness = "$editor.control.border_width", inset = "$editor.density.gap.medium", layout_min_height = "$editor.control.border_width" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.medium", stretch = "Fixed" } }

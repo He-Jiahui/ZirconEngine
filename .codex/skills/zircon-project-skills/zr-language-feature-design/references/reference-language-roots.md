@@ -7,9 +7,9 @@ Use these repository-local trees as the primary evidence base for `zirconEngine`
 - Source roots:
   - `zircon_app`
   - `zircon_runtime`
-  - `zircon_runtime/src/core/runtime`
+  - `zircon_runtime/src/core`
   - `zircon_runtime/src/core/manager`
-  - `zircon_runtime/src/core/framework`
+  - `zircon_runtime/src/core`
   - `zircon_runtime/src/engine_module`
   - `zircon_editor`
 - Test roots:

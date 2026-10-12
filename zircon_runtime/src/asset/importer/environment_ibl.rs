@@ -26,11 +26,17 @@ use crate::core::framework::render::{
 use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::resource::io::transaction::PreparedFileWrite;
 
+#[path = "environment_ibl/import_settings.rs"]
 mod import_settings;
+#[path = "environment_ibl/restore.rs"]
 mod restore;
+#[path = "environment_ibl/source_cubemap_texture.rs"]
 mod source_cubemap_texture;
+#[path = "environment_ibl/source_identity.rs"]
 mod source_identity;
+#[path = "environment_ibl/source_staging/mod.rs"]
 mod source_staging;
+#[path = "environment_ibl/warm_cache.rs"]
 mod warm_cache;
 
 use import_settings::{

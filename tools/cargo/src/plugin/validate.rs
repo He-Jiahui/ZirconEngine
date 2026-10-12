@@ -8,6 +8,7 @@ use toml::Value;
 
 use super::diagnostic::PluginDiagnostic;
 
+#[path = "validate/native_artifact.rs"]
 mod native_artifact;
 
 pub use native_artifact::validate_native_artifact;

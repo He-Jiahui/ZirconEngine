@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
+#[path = "graph_executor/parameters.rs"]
 mod parameters;
+#[path = "graph_executor/resource_aliases.rs"]
 mod resource_aliases;
 
 use parameters::{elementwise_parameters, gemm_parameters};

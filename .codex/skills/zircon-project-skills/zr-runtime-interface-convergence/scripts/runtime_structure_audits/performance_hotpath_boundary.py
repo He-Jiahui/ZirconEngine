@@ -103,7 +103,7 @@ def performance_hotpath_boundary_audit(
     worker_pool = root / "zircon_runtime/src/asset/pipeline/worker_pool.rs"
     project_asset_manager_construction = (
         root
-        / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs"
+        / "zircon_runtime/src/asset/pipeline/manager/assets/construction.rs"
     )
     animation_scene_diagnostics = (
         root / "zircon_runtime/src/animation/scene_hook/diagnostics.rs"

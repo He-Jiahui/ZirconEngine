@@ -13,7 +13,7 @@ MATERIALIZATION = ROOT / (
 )
 UI_ASSET_NODE_PROJECTION = ROOT / "zircon_editor/src/ui/asset_editor/node_projection.rs"
 TEMPLATE_CONVERSION = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs"
+    "zircon_editor/src/ui/retained/ui/node_conversion.rs"
 )
 PROJECTION_CACHE = ROOT / (
     "zircon_editor/src/ui/layouts/views/view_projection/projection_cache.rs"

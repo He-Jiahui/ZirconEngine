@@ -25,11 +25,11 @@ REFERENCE_MENU_ACTIONS = REPO_ROOT / (
     "workbench/reference_menu_actions.rs"
 )
 BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
+    "zircon_editor/src/ui/runtime/builtin/"
     "workbench_generated_bottom_template_bindings.rs"
 )
 PREVIEW_ACTIONS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/workbench_preview_actions.rs"
+    "zircon_editor/src/ui/retained/preview_actions.rs"
 )
 
 

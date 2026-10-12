@@ -6,10 +6,10 @@ class RuntimeRenderPipelinePostprocessPluginOwnerStructureTests(unittest.TestCas
     def test_plugin_input_routes_are_child_owned(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         routes_path = (
-            repo_root / "zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/tests/postprocess_routes.rs"
+            repo_root / "zircon_runtime/src/graphics/pipeline/pipeline/tests/postprocess_routes.rs"
         )
         plugin_inputs_path = (
-            repo_root / "zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes/tests/plugin_inputs.rs"
+            repo_root / "zircon_runtime/src/graphics/pipeline/pipeline/tests/plugin_inputs.rs"
         )
 
         routes = routes_path.read_text(encoding="utf-8")
@@ -49,7 +49,7 @@ class RuntimeRenderPipelinePostprocessPluginOwnerStructureTests(unittest.TestCas
         repo_root = Path(__file__).resolve().parents[2]
         budget_guard = (
             repo_root
-            / "zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pipeline_asset_compile_tests.rs"
+            / "zircon_runtime/src/tests/structure/source_size/render_pipeline_asset_compile.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn(

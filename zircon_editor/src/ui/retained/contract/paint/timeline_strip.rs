@@ -1,0 +1,82 @@
+// timeline-strip 专用入口消费 typed generation，先按画布尺寸取得静态刻度缓存，再叠加文本与可变 playhead/key；已认领的无效画布阻止通用 fallback。
+#[path = "timeline_strip/geometry.rs"]
+mod geometry;
+#[path = "timeline_strip/identity.rs"]
+mod identity;
+#[path = "timeline_strip/keys.rs"]
+mod keys;
+#[path = "timeline_strip/metrics.rs"]
+mod metrics;
+#[path = "timeline_strip/palette.rs"]
+mod palette;
+#[path = "timeline_strip/surface.rs"]
+mod surface;
+#[path = "timeline_strip/text.rs"]
+mod text;
+
+use super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::render_commands::HostPaintCommand;
+use crate::ui::timeline_strip::TimelineStripGeneration;
+use geometry::{has_paintable_timeline_strip_extent, TimelineStripGeometry};
+use identity::is_timeline_strip;
+use keys::push_timeline_keys_and_playhead;
+use metrics::timeline_metrics;
+use palette::timeline_palette;
+use surface::push_timeline_surface;
+use text::push_timeline_text;
+
+/// 供 secondary specialized 链调用；只认领 canvas+timeline-strip。须由上游传已裁剪 node_clip，基础 order 为后续相对图层留空间。
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_timeline_strip_commands(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    opacity: f32,
+) -> bool {
+    if !is_timeline_strip(node) {
+        return false;
+    }
+    if !has_paintable_timeline_strip_extent(rect) {
+        return true;
+    }
+
+    let metrics = timeline_metrics();
+    let palette = timeline_palette();
+    let geometry = TimelineStripGeometry::from_frame(rect, metrics);
+    if geometry.plot.width <= 0.0 || geometry.plot.height <= 0.0 {
+        return true;
+    }
+    let generation = &node.timeline_strip.generation;
+    let static_content = generation.static_content_for_plot_width(geometry.plot.width);
+    push_timeline_surface(
+        commands,
+        generation,
+        &geometry,
+        &static_content,
+        clip,
+        order,
+        opacity,
+        metrics,
+        palette,
+    );
+    push_timeline_text(
+        commands,
+        generation,
+        &geometry,
+        &static_content,
+        clip,
+        order,
+        opacity,
+        metrics,
+        palette,
+    );
+    push_timeline_keys_and_playhead(
+        commands, generation, &geometry, clip, order, opacity, metrics, palette,
+    );
+    true
+}
+
+#[cfg(test)]
+#[path = "timeline_strip_tests/tests/mod.rs"]
+mod tests;

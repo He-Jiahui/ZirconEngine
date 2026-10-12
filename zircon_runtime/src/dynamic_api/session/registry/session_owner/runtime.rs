@@ -293,7 +293,7 @@ impl RuntimeSessionOwner {
 }
 
 #[cfg(test)]
-#[path = "tests/runtime_startup_observation.rs"]
+#[path = "../../tests/runtime_startup_observation.rs"]
 pub(in crate::dynamic_api::session) mod startup_observation;
 
 #[cfg(test)]

@@ -10,6 +10,7 @@ use crate::ui::surface::UiSurface;
 use self::result::{finish_focus_rejected, finish_focus_success};
 use super::result::unsupported_role_action;
 
+#[path = "focus/result.rs"]
 mod result;
 
 // 辅助技术焦点请求进入表面统一焦点 API，保留其验证和状态回写；Focus 对 disabled 节点的许可由入口单独控制。

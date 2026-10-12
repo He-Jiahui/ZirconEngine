@@ -9,18 +9,31 @@ use crate::scene::components::{LocalTransform, Name, RenderLayerMask, RigidBodyC
 use crate::scene::ecs::{Component, Resource};
 use crate::scene::{SceneError, World};
 
+#[path = "ecs_typed_api/bundle_default_overrides.rs"]
 mod bundle_default_overrides;
+#[path = "ecs_typed_api/bundle_lifecycle.rs"]
 mod bundle_lifecycle;
+#[path = "ecs_typed_api/bundle_transactions.rs"]
 mod bundle_transactions;
+#[path = "ecs_typed_api/bundle_width.rs"]
 mod bundle_width;
+#[path = "ecs_typed_api/component_mutation.rs"]
 mod component_mutation;
+#[path = "ecs_typed_api/component_registry.rs"]
 mod component_registry;
+#[path = "ecs_typed_api/persistent_animation.rs"]
 mod persistent_animation;
+#[path = "ecs_typed_api/persistent_entity_core.rs"]
 mod persistent_entity_core;
+#[path = "ecs_typed_api/persistent_lighting.rs"]
 mod persistent_lighting;
+#[path = "ecs_typed_api/persistent_scene_render.rs"]
 mod persistent_scene_render;
+#[path = "ecs_typed_api/resource_state.rs"]
 mod resource_state;
+#[path = "ecs_typed_api/runtime_state.rs"]
 mod runtime_state;
+#[path = "ecs_typed_api/source_contracts.rs"]
 mod source_contracts;
 
 #[derive(Debug, PartialEq, Eq)]

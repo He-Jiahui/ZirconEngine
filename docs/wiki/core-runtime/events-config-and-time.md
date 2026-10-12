@@ -17,7 +17,7 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/events
+  - zircon_runtime/src/core/tests/events
   - zircon_runtime/src/core/runtime/config_store
   - zircon_runtime/src/foundation/runtime/tests/config_manager_tests.rs
   - zircon_runtime/src/tests/time.rs

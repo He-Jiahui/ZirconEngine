@@ -1,0 +1,4 @@
+#[path = "../../build/line_vertices.rs"]
+mod build_scene_gizmo_line_vertices;
+
+pub(crate) use build_scene_gizmo_line_vertices::build_scene_gizmo_line_vertices;

@@ -150,5 +150,5 @@ fn read_bounded_file(path: &std::path::Path) -> Result<Vec<u8>, DurableJournalEr
 }
 
 #[cfg(test)]
-#[path = "tests/reader_optimization_batch_20260830co_editor_tests.rs"]
+#[path = "tests/reader_perf.rs"]
 mod optimization_batch_20260830co_editor_tests;

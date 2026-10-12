@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HOST = ROOT / "zircon_editor/src/ui/retained_host/host_contract"
+HOST = ROOT / "zircon_editor/src/ui/retained/contract"
 ROUTING = HOST / "native_pointer/routing"
 
 

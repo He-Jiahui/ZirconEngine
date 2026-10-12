@@ -1,6 +1,8 @@
 use std::fmt;
 
+#[path = "interpreter/tensor_use_counts.rs"]
 mod tensor_use_counts;
+#[path = "interpreter/tensor_workspace.rs"]
 mod tensor_workspace;
 
 use tensor_use_counts::TensorUseCounts;

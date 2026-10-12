@@ -559,9 +559,9 @@ fn advance_sequence(sequence: &AtomicU64) -> u64 {
 }
 
 #[cfg(test)]
-#[path = "catalog_input_generation/tests/optimization_batch_iv_runtime632_tests.rs"]
+#[path = "catalog_input_generation/tests/perf.rs"]
 mod optimization_batch_iv_runtime632_tests;
 
 #[cfg(test)]
-#[path = "tests/catalog_input_generation_sequence_tests.rs"]
+#[path = "tests/catalog_input_generate_sequence.rs"]
 mod sequence_tests;

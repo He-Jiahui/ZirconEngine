@@ -6,7 +6,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MENU_CONTRACT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/menu_popup_contract.rs"
+    "zircon_editor/src/ui/retained/menu_popup_contract.rs"
 )
 MAIN_MENU = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"

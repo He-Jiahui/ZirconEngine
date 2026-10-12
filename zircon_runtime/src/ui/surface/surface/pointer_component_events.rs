@@ -16,7 +16,9 @@ use zircon_runtime_interface::ui::{
 
 use super::UiSurface;
 
+#[path = "../pointer_component_events/state_invalidation.rs"]
 mod state_invalidation;
+#[path = "pointer_component_events/action.rs"]
 mod template_action;
 
 impl UiSurface {
@@ -436,5 +438,5 @@ impl UiSurface {
 }
 
 #[cfg(test)]
-#[path = "tests/pointer_component_events_optimization_tests.rs"]
+#[path = "tests/pointer_component_events_perf.rs"]
 mod optimization_tests;

@@ -31,13 +31,13 @@ class CommandPalettePagedKeyboardContractTests(unittest.TestCase):
 
     def test_native_popup_navigation_distinguishes_row_and_window_moves(self) -> None:
         commands = source(
-            "zircon_editor/src/ui/retained_host/host_contract/native_keyboard/commands.rs"
+            "zircon_editor/src/ui/retained/contract/native_keyboard/commands.rs"
         )
         model = source(
-            "zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/model.rs"
+            "zircon_editor/src/ui/retained/contract/native_keyboard/target/model.rs"
         )
         dispatch = source(
-            "zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch.rs"
+            "zircon_editor/src/ui/retained/contract/native_keyboard/dispatch.rs"
         )
 
         self.assertIn("NamedKey::PageDown", commands)
@@ -54,10 +54,10 @@ class CommandPalettePagedKeyboardContractTests(unittest.TestCase):
 
     def test_editor_host_requeries_existing_catalog_and_rejects_stale_generation(self) -> None:
         actions = source(
-            "zircon_editor/src/ui/retained_host/app/command_palette_actions.rs"
+            "zircon_editor/src/ui/retained/app/command_palette_actions.rs"
         )
         bridge = source(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/command_palette.rs"
+            "zircon_editor/src/ui/retained/dispatch/templates/workbench/command_palette.rs"
         )
 
         self.assertIn("dispatch_workbench_command_palette_window_requested", actions)

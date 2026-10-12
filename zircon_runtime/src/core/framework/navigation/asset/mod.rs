@@ -8,10 +8,11 @@ use super::off_mesh_link::{NavLinkMotion, NavLinkTraversalMode};
 use super::settings::{default_navigation_areas, NavigationAgentSettings, NavigationAreaSettings};
 use crate::core::math::Real;
 
+#[path = "v1.rs"]
 mod v1;
 
 #[cfg(test)]
-#[path = "tests/triangle_capacity_tests.rs"]
+#[path = "tests/triangle_capacity.rs"]
 mod triangle_capacity_tests;
 
 pub type NavigationAssetResult<T> = std::result::Result<T, NavigationAssetError>;

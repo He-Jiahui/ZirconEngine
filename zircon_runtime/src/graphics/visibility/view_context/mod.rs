@@ -1,9 +1,10 @@
 use std::collections::{BTreeSet, HashMap};
 
+#[path = "build_views.rs"]
 mod build_views;
 
 #[cfg(test)]
-#[path = "tests/hash_relevance_tests.rs"]
+#[path = "tests/hash_relevance.rs"]
 mod hash_relevance_tests;
 
 use crate::core::framework::render::{PrimitiveRelevance, RenderLayerSet, ViewportCameraSnapshot};

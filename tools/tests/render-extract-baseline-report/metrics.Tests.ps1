@@ -257,7 +257,7 @@ Describe 'Render-extract baseline metrics' {
 
     It 'keeps the structural counter report schema bound to the product recorder' {
         $productPath = Join-Path $repoRoot `
-            'zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command_list\materialization_profile.rs'
+            'zircon_runtime\src\graphics\scene\mesh\commands\materialization_profile.rs'
         $reportModulePath = Join-Path $repoRoot 'tools\mvp\RenderExtractMeshCommandMetrics.psm1'
         $productNames = @(
             [regex]::Matches([IO.File]::ReadAllText($productPath), 'mesh_commands\.[a-z0-9_.]+') |

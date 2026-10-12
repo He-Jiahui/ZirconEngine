@@ -1,0 +1,24 @@
+//! 提示条与 toast 的统一几何出口；有限尺寸与包含性检查由共同 helper 管理。
+//! inline 和 toast 各自持有内容预算，调用方应传入对应 metrics 类型。
+
+#[path = "layout/common.rs"]
+mod common;
+#[path = "layout/inline.rs"]
+mod inline;
+#[path = "layout/metrics.rs"]
+mod metrics;
+#[path = "layout/toast.rs"]
+mod toast;
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use common::{
+    frame_is_within, has_paintable_alert_extent, paint_rect,
+};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use inline::{
+    alert_icon_rect, alert_text_rect,
+};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
+    alert_metrics, toast_metrics, WorkbenchAlertMetrics, WorkbenchToastMetrics,
+};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use toast::{
+    toast_action_rect, toast_close_rect, toast_has_action, toast_icon_rect, toast_text_rect,
+};

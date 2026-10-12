@@ -124,9 +124,13 @@ children = [
 ]
 "#;
 
+#[path = "template/interaction_bindings.rs"]
 mod interaction_bindings;
+#[path = "template/layout_compute.rs"]
 mod layout_compute;
+#[path = "template/slot_contracts.rs"]
 mod slot_contracts;
+#[path = "template/surface_containers.rs"]
 mod surface_containers;
 
 fn tree_from_root_toml(root: String) -> zircon_runtime_interface::ui::tree::UiTree {

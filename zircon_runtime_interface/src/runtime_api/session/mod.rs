@@ -1,18 +1,31 @@
+#[path = "app_session_configuration_v2.rs"]
 mod app_session_configuration_v2;
+#[path = "camera.rs"]
 mod camera;
+#[path = "editor_transform.rs"]
 mod editor_transform;
 #[cfg(test)]
 #[path = "tests/editor_transform_tests.rs"]
 mod editor_transform_tests;
+#[path = "events.rs"]
 mod events;
+#[path = "ime_compose_capability_v2.rs"]
 mod ime_composition_capability_v2;
+#[path = "ime_composition_v2.rs"]
 mod ime_composition_v2;
+#[path = "operation.rs"]
 mod operation;
+#[path = "plugin_event_mirror.rs"]
 mod plugin_event_mirror;
+#[path = "requests.rs"]
 mod requests;
+#[path = "session.rs"]
 mod session;
+#[path = "session_identity.rs"]
 mod session_identity;
+#[path = "translated_events.rs"]
 mod translated_events;
+#[path = "viewport.rs"]
 mod viewport;
 
 pub use app_session_configuration_v2::{

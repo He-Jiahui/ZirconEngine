@@ -1,15 +1,27 @@
 //! 管理系统参数的持久状态和调度访问集；仅显式实现封闭 WorldlessSystemParam 契约的参数可用于无 World 回调。
+#[path = "events.rs"]
 mod events;
+#[path = "local.rs"]
 mod local;
+#[path = "messages.rs"]
 mod messages;
+#[path = "native/mod.rs"]
 mod native;
+#[path = "param_set.rs"]
 mod param_set;
+#[path = "query.rs"]
 mod query;
+#[path = "removed_components.rs"]
 mod removed_components;
+#[path = "res.rs"]
 mod res;
+#[path = "system_param.rs"]
 mod system_param;
+#[path = "system_param_access.rs"]
 mod system_param_access;
+#[path = "system_param_error.rs"]
 mod system_param_error;
+#[path = "system_state.rs"]
 mod system_state;
 
 pub use events::{

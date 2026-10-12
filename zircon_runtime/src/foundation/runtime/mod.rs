@@ -1,7 +1,9 @@
+#[path = "config_manager.rs"]
 mod config_manager;
 #[cfg(test)]
 #[path = "tests/config_manager_tests.rs"]
 mod config_manager_tests;
+#[path = "config_path.rs"]
 mod config_path;
 
 pub use config_manager::DefaultConfigManager;

@@ -6,13 +6,13 @@ related_code:
   - zircon_runtime/src/asset/importer/mod.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
 implementation_files:
-  - zircon_runtime/src/asset/project/manager
+  - zircon_runtime/src/asset/manager
   - zircon_runtime/src/asset/importer
 plan_sources:
   - user: 2026-09-09 扩展 ZirconEngine Wiki 教程与机制说明
 tests:
   - zircon_runtime/src/asset/tests/project/asset_flow_sample
-  - zircon_runtime/src/asset/tests/project/manager
+  - zircon_runtime/src/asset/tests/manager
   - zircon_runtime/src/asset/tests/pipeline
 doc_type: workflow-detail
 ---

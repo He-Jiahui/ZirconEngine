@@ -5,13 +5,13 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn native_floating_window_mode_uses_rust_owned_host_window_contract() {
-    let native_presentation = source("src/ui/retained_host/app/native_windows/presentation.rs");
-    let native_store = source("src/ui/retained_host/app/native_windows/store.rs");
-    let window_handle = source("src/ui/retained_host/host_contract/window/handle.rs");
+    let native_presentation = source("src/ui/retained/app/native_windows/presentation.rs");
+    let native_store = source("src/ui/retained/app/native_windows/store.rs");
+    let window_handle = source("src/ui/retained/contract/window/handle.rs");
     let window_snapshot =
-        source("src/ui/retained_host/host_contract/window/presentation/snapshot.rs");
+        source("src/ui/retained/contract/window/presentation/snapshot.rs");
     let floating_data =
-        source("src/ui/retained_host/host_contract/data/host_components/floating.rs");
+        source("src/ui/retained/contract/data/host_components/floating.rs");
 
     for required in [
         "configure_native_floating_window_presentation",

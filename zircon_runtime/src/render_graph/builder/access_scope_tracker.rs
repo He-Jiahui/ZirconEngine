@@ -14,9 +14,11 @@ use super::super::types::{
 };
 use super::ResourceNode;
 
+#[path = "../access_scope_tracker/buffer_scope_history.rs"]
 mod buffer_scope_history;
 #[cfg(test)]
 pub(super) use buffer_scope_history::with_whole_map_coalescing;
+#[path = "access_scope_tracker/texture_scope.rs"]
 mod texture_scope;
 
 use buffer_scope_history::{BufferScopeHistory, BufferSegment};

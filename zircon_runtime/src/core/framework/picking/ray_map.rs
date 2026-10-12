@@ -419,7 +419,7 @@ impl RayMap {
 }
 
 #[cfg(test)]
-#[path = "ray_map/tests/rebuild_capacity_tests.rs"]
+#[path = "ray_map/tests/rebuild_capacity.rs"]
 /// 挂载 [`RayMap::rebuild`] 的空输入结果与生产源码预留表达式检查。
 ///
 /// 性能采样测试带忽略标记，只有被显式选中时才运行；其样本每次新建映射。

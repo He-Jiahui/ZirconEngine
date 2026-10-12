@@ -1,5 +1,8 @@
+#[path = "admission/policy_index.rs"]
 mod policy_index;
+#[path = "admission/project_lock.rs"]
 mod project_lock;
+#[path = "admission/project_resolution.rs"]
 mod project_resolution;
 pub use project_lock::{capture_project_package_lock, ProjectPackageLockProviderError};
 

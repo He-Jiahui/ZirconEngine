@@ -1,24 +1,43 @@
 //! Editor、Hub 与 Runtime 共用的中立项目值与持久化契约。
 //! 文件系统准入、运行时加载和项目生命周期仍由各宿主实现。
 
+#[path = "activation_operation_id/mod.rs"]
 mod activation_operation_id;
+#[path = "asset_ref/mod.rs"]
 mod asset_ref;
+#[path = "canonical_descriptor_identity.rs"]
 mod canonical_descriptor_identity;
+#[path = "engine_compatibility/mod.rs"]
 mod engine_compatibility;
+#[path = "manifest_digest.rs"]
 mod manifest_digest;
+#[path = "manifest_digest_parse_error.rs"]
 mod manifest_digest_parse_error;
+#[path = "manifest_summary/mod.rs"]
 mod manifest_summary;
+#[path = "package_lock.rs"]
 mod package_lock;
+#[path = "persisted_asset_reference.rs"]
 mod persisted_asset_reference;
+#[path = "project_guid.rs"]
 mod project_guid;
+#[path = "project_guid_parse_error.rs"]
 mod project_guid_parse_error;
+#[path = "project_identity.rs"]
 mod project_identity;
+#[path = "project_launch_intent.rs"]
 mod project_launch_intent;
+#[path = "project_launch_intent_error.rs"]
 mod project_launch_intent_error;
+#[path = "project_name/mod.rs"]
 mod project_name;
+#[path = "rel_path/mod.rs"]
 mod rel_path;
+#[path = "retired_asset_ref_migration/mod.rs"]
 mod retired_asset_ref_migration;
+#[path = "session_lock/mod.rs"]
 pub mod session_lock;
+#[path = "template_pack/mod.rs"]
 mod template_pack;
 
 pub use activation_operation_id::{
@@ -81,4 +100,5 @@ pub use template_pack::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

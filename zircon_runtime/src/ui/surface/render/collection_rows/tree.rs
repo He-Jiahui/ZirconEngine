@@ -267,5 +267,5 @@ fn contains_ascii_case(value: &str, needle: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "tree/tests/capacity_tests.rs"]
+#[path = "tree/tests/capacity.rs"]
 mod capacity_tests;

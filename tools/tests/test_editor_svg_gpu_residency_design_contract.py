@@ -4,7 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 VISUAL_ROOT = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets"
 )
 KEYS = VISUAL_ROOT / "keys.rs"
@@ -22,7 +22,7 @@ IMAGE_RESOURCES = ROOT / (
     "stream/image_resources.rs"
 )
 PRESENTER = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/present.rs"
+    "zircon_editor/src/ui/retained/contract/presenter/gpu/present.rs"
 )
 WGPU_IMAGE_CACHE = ROOT / "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache.rs"
 WGPU_IMAGE_RESOURCE = ROOT / (
@@ -32,7 +32,7 @@ WGPU_SHARED_IMAGE_REGISTRY = ROOT / (
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shared_image_registry.rs"
 )
 WGPU_IMAGE_ALLOCATION_LEDGER = ROOT / (
-    "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/"
+    "zircon_runtime/crates/zr_rhi_wgpu/src/"
     "shared_image_registry/allocation_ledger.rs"
 )
 WGPU_UI_SURFACE = ROOT / "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs"
@@ -50,16 +50,16 @@ WGPU_SUBMISSION = ROOT / (
     "zircon_runtime/crates/zr_rhi_wgpu/src/production/submission.rs"
 )
 WGPU_UI_IMAGE_RETIREMENT = ROOT / (
-    "zircon_runtime/crates/zr_rhi_wgpu/src/production/submission/"
+    "zircon_runtime/crates/zr_rhi_wgpu/src/submission/"
     "ui_image_retirement.rs"
 )
 RHI_UI_SURFACE = ROOT / "zircon_runtime/crates/zr_rhi/src/ui_surface.rs"
 EDITOR_GPU_STATS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs"
+    "zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs"
 )
-EDITOR_UI_PERF = ROOT / "zircon_editor/src/ui/retained_host/ui_perf.rs"
+EDITOR_UI_PERF = ROOT / "zircon_editor/src/ui/retained/ui_perf.rs"
 EDITOR_UI_PERF_CATALOG = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui_perf/counter_catalog.rs"
+    "zircon_editor/src/ui/retained/ui_perf/counter_catalog.rs"
 )
 
 

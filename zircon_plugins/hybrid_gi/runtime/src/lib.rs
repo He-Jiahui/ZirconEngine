@@ -13,10 +13,15 @@ use zircon_runtime::render_graph::{
 };
 use zircon_runtime::rhi::{TextureFormat, TextureUsage};
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "gi/mod.rs"]
 mod hybrid_gi;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "provider.rs"]
 mod provider;
+#[path = "executors.rs"]
 mod render_pass_executors;
 #[cfg(test)]
 #[path = "test_support/tests/mod.rs"]

@@ -2,9 +2,13 @@
 pub const PLUGIN_ID: &str = "animation";
 pub const ANIMATION_PLAYBACK_CONFIG_KEY: &str = "animation.playback_settings";
 
+#[path = "clip_event.rs"]
 mod clip_event;
+#[path = "manager/mod.rs"]
 mod manager;
+#[path = "module.rs"]
 mod module;
+#[path = "sequence.rs"]
 mod sequence;
 
 pub use clip_event::ProjectAnimationClipEventSampler;

@@ -11,8 +11,11 @@ use zircon_runtime_interface::ui::component::{
     UiComponentKeyboardAction, UiComponentState, UiDragSourceMetadata, UiValidationState, UiValue,
 };
 
+#[path = "state_model/command_catalog.rs"]
 mod command_catalog;
+#[path = "state_model/table_index.rs"]
 mod table_index;
+#[path = "state_model/tree_index.rs"]
 mod tree_index;
 
 pub use command_catalog::{CatalogNavigation, CommandCatalog};
@@ -1025,7 +1028,7 @@ impl UiComponentStateModel {
 }
 
 #[cfg(test)]
-#[path = "state_model/tests/selected_output_capacity_tests.rs"]
+#[path = "../state_model/tests/selected_output_capacity.rs"]
 mod selected_output_capacity_tests;
 
 #[derive(Clone, Copy, Default)]

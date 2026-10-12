@@ -74,15 +74,15 @@ CARGO_GATE_ANCHORS = (
     "cargo test -p zircon_runtime --lib --locked",
 )
 ROOT_ENTRIES_GUARD_RELATIVES = (
-    "zircon_runtime/src/tests/runtime_absorption/root_entries.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/core_spine.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/navigation.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/animation_backlog.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/animation_status_json.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/root_seats.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/mirror_docs.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/runtime_root.rs",
+    "zircon_runtime/src/tests/contracts/root_entries.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/core_spine.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/module_families.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/module_families/navigation.rs",
+    "zircon_runtime/src/tests/contracts/module_families/animation_backlog.rs",
+    "zircon_runtime/src/tests/contracts/module_families/animation_status_json.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/module_families/root_seats.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/module_families/mirror_docs.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/runtime_root.rs",
 )
 
 

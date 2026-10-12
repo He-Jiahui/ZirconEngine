@@ -123,7 +123,7 @@ impl SceneModeRegistry {
 }
 
 #[cfg(test)]
-#[path = "scene_mode_registry/tests/entry_registration_tests.rs"]
+#[path = "scene_mode_registry/tests/entry_registration.rs"]
 mod entry_registration_tests;
 
 #[cfg(test)]

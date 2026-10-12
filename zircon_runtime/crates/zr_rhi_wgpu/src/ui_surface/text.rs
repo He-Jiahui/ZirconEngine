@@ -9,7 +9,9 @@ use zr_rhi::{
     UiSurfaceCommand, UiSurfaceDrawList, UiSurfaceResolvedCommandKind, UiSurfaceTextStyle,
 };
 
+#[path = "text/layout_evidence.rs"]
 mod layout_evidence;
+#[path = "text/font_sources.rs"]
 mod font_sources;
 use super::batching::DrawOp;
 use super::color_space::{target_color_mode, UiTargetColorMode};

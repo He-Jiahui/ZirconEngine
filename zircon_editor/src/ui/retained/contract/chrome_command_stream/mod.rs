@@ -1,0 +1,83 @@
+use super::data::{FrameRect, HostWindowPresentationData};
+pub(in crate::ui::retained_host::host_contract) use command::{
+    ChromeCommand, ChromeCommandKind, ChromeCommandLayer, ChromeImagePayload, ChromeImageUvRect,
+};
+use extraction::extract_chrome_commands;
+pub(in crate::ui::retained_host) use icon_atlas::invalidate_editor_icon_atlas;
+pub(in crate::ui::retained_host::host_contract) use replay::{
+    paint_chrome_command_stream_to_frame, repaint_chrome_command_stream_region,
+};
+pub(in crate::ui::retained_host::host_contract) use runtime_draw_list::{
+    ui_surface_draw_list_from_owned_stream, ui_surface_draw_list_from_owned_stream_with_generation,
+    ui_surface_draw_list_from_owned_stream_with_generation_and_residency,
+    ui_surface_draw_list_from_owned_stream_with_residency, ui_surface_draw_list_from_stream,
+    ui_surface_draw_list_from_stream_with_residency,
+};
+use stream::clamp_surface_size;
+pub(in crate::ui::retained_host::host_contract) use stream::{
+    ChromeCommandStream, ChromeImageResource, ChromeImageResources,
+};
+
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract) use extraction::chrome_command_from_recorded_for_test;
+
+#[path = "atlas.rs"]
+mod atlas;
+#[path = "command.rs"]
+mod command;
+#[path = "extraction.rs"]
+mod extraction;
+#[path = "icon_atlas.rs"]
+mod icon_atlas;
+#[path = "replay.rs"]
+mod replay;
+#[path = "../../../contract/chrome_command_stream/runtime_draw_list.rs"]
+mod runtime_draw_list;
+#[path = "stats.rs"]
+mod stats;
+#[path = "stream.rs"]
+mod stream;
+
+pub(in crate::ui::retained_host::host_contract) fn build_chrome_command_stream(
+    presentation: &HostWindowPresentationData,
+    surface_size: (u32, u32),
+    damage: Option<&FrameRect>,
+    include_image_bytes: bool,
+) -> ChromeCommandStream {
+    build_chrome_command_stream_with_residency(
+        presentation,
+        surface_size,
+        damage,
+        include_image_bytes,
+        |_, _| false,
+    )
+}
+
+pub(in crate::ui::retained_host::host_contract) fn build_chrome_command_stream_with_residency(
+    presentation: &HostWindowPresentationData,
+    surface_size: (u32, u32),
+    damage: Option<&FrameRect>,
+    include_image_bytes: bool,
+    is_resident: impl FnMut(&str, u64) -> bool,
+) -> ChromeCommandStream {
+    let surface_size = clamp_surface_size(surface_size);
+    let mut extraction =
+        extract_chrome_commands(presentation, surface_size, damage, include_image_bytes);
+    icon_atlas::pack_editor_icons_into_atlas(&mut extraction.commands);
+    let mut stream = ChromeCommandStream::from_extracted_commands(
+        surface_size,
+        extraction.clipped_damage,
+        extraction.commands,
+        extraction.render_sources,
+    );
+    stream.compact_image_resources_with_residency(is_resident);
+    stream
+}
+
+#[cfg(test)]
+#[path = "tests/atlas.rs"]
+mod atlas_tests;
+
+#[cfg(test)]
+#[path = "tests/cases.rs"]
+mod tests;

@@ -26,7 +26,7 @@ fn editor_production_sources_do_not_create_bare_threads() {
 
 #[test]
 fn production_source_scope_excludes_crate_and_module_test_files() {
-    let production_directory = Path::new("src/ui/retained_host/host_contract/surface_hit_test");
+    let production_directory = Path::new("src/ui/retained/contract/surface_hit_test");
     assert!(
         !is_test_directory_path(production_directory),
         "production directories ending in `_test` must remain in the ownership scan: {}",
@@ -38,7 +38,7 @@ fn production_source_scope_excludes_crate_and_module_test_files() {
         production_directory.display()
     );
 
-    let test_directory = Path::new("src/ui/retained_host/host_contract/tests");
+    let test_directory = Path::new("src/ui/retained/contract/tests");
     assert!(
         is_test_directory_path(test_directory),
         "a canonical `tests` directory must stay outside the production ownership scan: {}",

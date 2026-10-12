@@ -12,12 +12,19 @@ use super::emoji_shortcode::EmojiShortcodeRegistry;
 use super::html_subset;
 use super::{RichParseBudget, RichTextContentTrust, RichTextParseError};
 
+#[path = "parser/active_tags.rs"]
 mod active_tags;
+#[path = "parser/bidi_diagnostics.rs"]
 mod bidi_diagnostics;
+#[path = "parser/builder.rs"]
 mod builder;
+#[path = "parser/html.rs"]
 mod html;
+#[path = "parser/html_diagnostics.rs"]
 mod html_diagnostics;
+#[path = "parser/markdown.rs"]
 mod markdown;
+#[path = "parser/run_alignment.rs"]
 mod run_alignment;
 
 use active_tags::{current_link, current_style, ActiveTag, ActiveTagClose, ActiveTagStack};

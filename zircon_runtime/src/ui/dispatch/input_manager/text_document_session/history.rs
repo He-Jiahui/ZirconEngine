@@ -197,5 +197,5 @@ impl UiTextDocumentHistory {
 }
 
 #[cfg(test)]
-#[path = "tests/history.rs"]
+#[path = "../tests/history.rs"]
 mod tests;

@@ -16,9 +16,9 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/activation
-  - zircon_runtime/src/core/runtime/tests/registration
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs
+  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/tests/contracts/service_registry_lifecycle.rs
 doc_type: module-detail
 status: current
 ---

@@ -1,5 +1,6 @@
 use super::*;
 
+#[path = "../../manager/targeted_import/meta_preconditions.rs"]
 mod meta_preconditions;
 
 #[test]

@@ -1,6 +1,10 @@
+#[path = "diagnostic.rs"]
 mod diagnostic;
+#[path = "../../../asset/localization/localized_text_ref.rs"]
 mod localized_text_ref;
+#[path = "report.rs"]
 mod report;
+#[path = "text_direction.rs"]
 mod text_direction;
 
 pub use diagnostic::{UiLocalizationDiagnostic, UiLocalizationDiagnosticSeverity};

@@ -27,5 +27,5 @@ fn is_lowercase_plugin_package_segment(value: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "tests/token_optimization_tests.rs"]
+#[path = "tests/token_perf.rs"]
 mod optimization_tests;

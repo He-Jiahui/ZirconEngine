@@ -6,7 +6,9 @@ use crate::asset::assets::{
 };
 use crate::core::framework::render::RenderMaterialManagementRecordSet;
 
+#[path = "management/family.rs"]
 mod family;
+#[path = "management/record_sets.rs"]
 mod record_sets;
 
 /// Header totals for the combined asset management read model.

@@ -1,8 +1,14 @@
+#[path = "cpal_owner.rs"]
 mod cpal_owner;
+#[path = "device.rs"]
 mod device;
+#[path = "graph_compile.rs"]
 mod graph_compile;
+#[path = "graph_validation/mod.rs"]
 mod graph_validation;
+#[path = "manager.rs"]
 mod manager;
+#[path = "playback_data.rs"]
 mod playback_data;
 
 pub(crate) use cpal_owner::OwnerCpalBackend;

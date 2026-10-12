@@ -5,8 +5,11 @@ use thiserror::Error;
 
 use super::ShaderVariantKey;
 
+#[path = "variant_prewarm/budget.rs"]
 mod budget;
+#[path = "variant_prewarm/source.rs"]
 mod source;
+#[path = "variant_prewarm/toolchain.rs"]
 mod toolchain;
 
 pub use budget::{
@@ -472,5 +475,5 @@ fn record_dimension(
 mod tests;
 
 #[cfg(test)]
-#[path = "variant_prewarm/tests/optimization_batch_hx_runtime607_tests.rs"]
+#[path = "variant_prewarm/tests/perf.rs"]
 mod optimization_batch_hx_runtime607_tests;

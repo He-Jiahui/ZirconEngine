@@ -17,7 +17,7 @@ use super::{
 };
 
 #[cfg(test)]
-#[path = "selector/tests/allocation_tests.rs"]
+#[path = "../selector/tests/allocation.rs"]
 mod allocation_tests;
 
 pub(super) fn evaluate_selector(

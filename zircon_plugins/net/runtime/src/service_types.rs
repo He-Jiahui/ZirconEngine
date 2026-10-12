@@ -1,9 +1,16 @@
+#[path = "service_types/connections.rs"]
 mod connections;
+#[path = "service_types/diagnostics.rs"]
 mod diagnostics;
+#[path = "service_types/http_routes.rs"]
 mod http_routes;
+#[path = "service_types/listeners.rs"]
 mod listeners;
+#[path = "service_types/tcp.rs"]
 mod tcp;
+#[path = "service_types/udp.rs"]
 mod udp;
+#[path = "service_types/websocket.rs"]
 mod websocket;
 
 use std::sync::atomic::Ordering;

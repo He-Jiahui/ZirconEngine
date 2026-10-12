@@ -120,5 +120,5 @@ fn ends_with_ascii_case(value: &str, suffix: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "resource_kind/tests/performance_tests.rs"]
+#[path = "tests/perf.rs"]
 mod performance_tests;

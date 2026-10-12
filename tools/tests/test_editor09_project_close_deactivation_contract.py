@@ -9,11 +9,11 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 class Editor09ProjectCloseDeactivationContractTests(unittest.TestCase):
     def test_project_deactivation_is_an_infallible_local_retirement(self) -> None:
         api = (
-            REPO_ROOT / "zircon_editor/src/ui/host/editor_asset_manager/api.rs"
+            REPO_ROOT / "zircon_editor/src/ui/host/assets/api.rs"
         ).read_text(encoding="utf-8")
         bridge = (
             REPO_ROOT
-            / "zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/preview_trait_bridge.rs"
+            / "zircon_editor/src/ui/host/assets/manager/assets/preview_trait_bridge.rs"
         ).read_text(encoding="utf-8")
         project_access = (
             REPO_ROOT / "zircon_editor/src/ui/host/project_access.rs"
@@ -33,23 +33,23 @@ class Editor09ProjectCloseDeactivationContractTests(unittest.TestCase):
 
     def test_catalog_and_source_sync_identities_never_saturate_or_wrap(self) -> None:
         generation = (
-            REPO_ROOT / "zircon_editor/src/ui/host/editor_asset_manager/generation.rs"
+            REPO_ROOT / "zircon_editor/src/ui/host/assets/generation.rs"
         ).read_text(encoding="utf-8")
         state = (
             REPO_ROOT
-            / "zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/editor_asset_state.rs"
+            / "zircon_editor/src/ui/host/assets/manager/assets/editor_asset_state.rs"
         ).read_text(encoding="utf-8")
         deactivation = (
             REPO_ROOT
-            / "zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/project_deactivation.rs"
+            / "zircon_editor/src/ui/host/assets/manager/assets/project_deactivation.rs"
         ).read_text(encoding="utf-8")
         sync = (
             REPO_ROOT
-            / "zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs"
+            / "zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs"
         ).read_text(encoding="utf-8")
         preview = (
             REPO_ROOT
-            / "zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/request_preview_refresh.rs"
+            / "zircon_editor/src/ui/host/assets/preview_refresh/request_preview_refresh.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("fn next_catalog_identity(&self)", generation)
@@ -67,11 +67,11 @@ class Editor09ProjectCloseDeactivationContractTests(unittest.TestCase):
     def test_runtime_project_sync_commits_through_the_runtime_generation_fence(self) -> None:
         manager = (
             REPO_ROOT
-            / "zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/mod.rs"
+            / "zircon_editor/src/ui/host/assets/manager/assets/mod.rs"
         ).read_text(encoding="utf-8")
         sync = (
             REPO_ROOT
-            / "zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs"
+            / "zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("current_project_generation_snapshot()", manager)

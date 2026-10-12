@@ -51,19 +51,19 @@ fn registration_behavior_tests_stay_folder_backed() {
         ),
         (
             "core/runtime/tests/registration/structure/service_count_paths.rs",
-            include_str!("service_count_paths.rs"),
+            include_str!("../../structure/service_count_paths.rs"),
         ),
         (
             "core/runtime/tests/registration/structure/service_list_caches.rs",
-            include_str!("service_list_caches.rs"),
+            include_str!("../../structure/service_list_caches.rs"),
         ),
         (
             "core/runtime/tests/registration/structure/dependency_fast_paths.rs",
-            include_str!("dependency_fast_paths.rs"),
+            include_str!("../../structure/dependency_fast_paths.rs"),
         ),
         (
             "core/runtime/tests/registration/structure/duplicate_detection.rs",
-            include_str!("duplicate_detection.rs"),
+            include_str!("../../structure/duplicate_detection.rs"),
         ),
         (
             "core/runtime/tests/registration/structure/cleanup.rs",

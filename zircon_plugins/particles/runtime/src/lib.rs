@@ -1,12 +1,22 @@
+#[path = "asset.rs"]
 mod asset;
+#[path = "capability.rs"]
 mod capability;
+#[path = "component.rs"]
 mod component;
+#[path = "interop/mod.rs"]
 mod interop;
+#[path = "module.rs"]
 mod module;
+#[path = "package.rs"]
 mod package;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "render/mod.rs"]
 mod render;
+#[path = "service.rs"]
 mod service;
+#[path = "simulation/mod.rs"]
 mod simulation;
 
 pub use asset::{
@@ -68,4 +78,5 @@ pub use service::{
 pub use simulation::{ParticleSimulationError, ParticleSpriteSnapshot};
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

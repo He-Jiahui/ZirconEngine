@@ -453,4 +453,5 @@ fn render_text_atlas_bitmap_retry_frame_submission_deduplicates_retry_and_new_wo
     assert!(plan.frame_outcome.next_blocked_glyphs.is_empty());
 }
 
+#[path = "retry_frame/state.rs"]
 mod state;

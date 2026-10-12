@@ -7,7 +7,7 @@ use super::support::{png_dimensions, source};
 fn host_template_assets_are_toml_authority_for_editor_shells() {
     let assets: &[(&str, &[&str])] = &[
         (
-            "assets/ui/editor/components/workbench/shell/activity_drawer_window.zui",
+            "assets/ui/editor/workbench/shell/activity_drawer_window.zui",
             &[
                 "ActivityDrawerWindowRoot",
                 "ActivityDrawerWindowContentSlot",
@@ -249,8 +249,8 @@ fn workbench_reference_visual_asset_remains_design_baseline_not_runtime_overlay(
 
 #[test]
 fn critical_editor_shells_are_hard_cut_to_zui_assets() {
-    let registry = source("src/ui/template_runtime/builtin/template_documents.rs");
-    let runtime_host = source("src/ui/template_runtime/runtime/runtime_host.rs");
+    let registry = source("src/ui/runtime/builtin/documents.rs");
+    let runtime_host = source("src/ui/runtime/runtime/runtime_host.rs");
     for required in [
         "editor_main_frame.zui",
         "unreal/level_editor_window.zui",
@@ -470,7 +470,7 @@ fn welcome_startup_demo_routes_to_component_showcase_window() {
     assert!(welcome_asset.contains("id = \"Welcome/OpenStartupDemo\""));
     assert!(welcome_asset.contains("route = \"workbench.welcome.open_startup_demo\""));
 
-    let welcome_session = source("src/ui/retained_host/app/welcome_session/actions.rs");
+    let welcome_session = source("src/ui/retained/app/welcome_session/actions.rs");
     assert!(welcome_session.contains("OpenStartupDemo"));
     assert!(welcome_session.contains("editor.ui_component_showcase"));
     assert!(!welcome_session.contains("\"editor.material_demo_window\""));

@@ -1,8 +1,14 @@
+#[path = "capability.rs"]
 mod capability;
+#[path = "cpu/mod.rs"]
 mod cpu;
+#[path = "gpu/mod.rs"]
 mod gpu;
+#[path = "model/mod.rs"]
 mod model;
+#[path = "ops/mod.rs"]
 mod ops;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

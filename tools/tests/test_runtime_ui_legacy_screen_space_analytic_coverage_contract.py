@@ -4,11 +4,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 GEOMETRY = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/geometry.rs"
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/geometry.rs"
 )
-RENDER = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+RENDER = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
 SHADER = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/screen_space_ui.wgsl"
+    "zircon_runtime/src/graphics/scene/renderer/ui/shaders/screen_space_ui.wgsl"
 )
 
 

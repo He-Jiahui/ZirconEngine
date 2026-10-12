@@ -28,5 +28,7 @@ struct ScheduleHitEvent;
 #[derive(Debug, PartialEq, Eq)]
 struct ScheduleNoticeMessage;
 
+#[path = "conflict_graph/access_conflicts.rs"]
 mod access_conflicts;
+#[path = "conflict_graph/parallel_batches.rs"]
 mod parallel_batches;

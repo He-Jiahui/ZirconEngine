@@ -1,8 +1,12 @@
 //! Transport-neutral world query, watch, and invalidation contracts.
 
+#[path = "invalidation.rs"]
 mod invalidation;
+#[path = "lifecycle_target_change.rs"]
 mod lifecycle_target_change;
+#[path = "query.rs"]
 mod query;
+#[path = "watch.rs"]
 mod watch;
 
 pub use invalidation::{AssetReloadFrameApplyReportDto, InvalidationBatch, WorldFact};

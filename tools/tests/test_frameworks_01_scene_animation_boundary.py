@@ -273,7 +273,7 @@ class Frameworks01SceneAnimationBoundaryTests(unittest.TestCase):
     def test_pipeline_reset_preserves_reusable_compiled_asset_caches(self) -> None:
         pipeline_source = (
             REPO_ROOT
-            / "zircon_plugins/animation/runtime/src/evaluation/pipeline/animation_evaluation_pipeline.rs"
+            / "zircon_plugins/animation/runtime/src/evaluation/animation_evaluation_pipeline.rs"
         ).read_text(encoding="utf-8")
         pipeline_code = _rust_code_view(pipeline_source)
 
@@ -355,7 +355,7 @@ class Frameworks01SceneAnimationBoundaryTests(unittest.TestCase):
         pipeline = _rust_code_view(
             (
                 REPO_ROOT
-                / "zircon_plugins/animation/runtime/src/evaluation/pipeline/animation_evaluation_pipeline.rs"
+                / "zircon_plugins/animation/runtime/src/evaluation/animation_evaluation_pipeline.rs"
             ).read_text(encoding="utf-8")
         )
         tick = _rust_code_view(

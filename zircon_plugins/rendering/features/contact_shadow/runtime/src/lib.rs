@@ -12,7 +12,9 @@ use zircon_runtime::render_graph::{
     RenderGraphResourceAccessKind, RenderGraphResourceKind,
 };
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
@@ -30,7 +32,7 @@ pub const CONTACT_SHADOW_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 const CONTACT_SHADOW_SHADER_SOURCE: &str = include_str!("contact_shadow.wgsl");
 
 #[cfg(test)]
-#[path = "tests/wgpu_product_tests.rs"]
+#[path = "tests/gpu.rs"]
 mod wgpu_product_tests;
 
 /// 在环境遮蔽阶段读取深度、法线和最远 HZB，写入供后处理消费的短寿命可见度纹理。

@@ -85,5 +85,5 @@ impl std::fmt::Display for AnimationTrackPath {
 }
 
 #[cfg(test)]
-#[path = "track_path/tests/canonical_parse_tests.rs"]
+#[path = "track_path/tests/canonical_parse.rs"]
 mod canonical_parse_tests;

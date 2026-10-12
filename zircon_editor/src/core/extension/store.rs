@@ -1,4 +1,6 @@
+#[path = "store/batch.rs"]
 mod batch;
+#[path = "store/model.rs"]
 mod model;
 
 pub use batch::ContributionBatch;

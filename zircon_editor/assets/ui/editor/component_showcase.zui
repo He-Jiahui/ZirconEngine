@@ -25,8 +25,8 @@ widgets = [
   "res://ui/editor/components/showcase/showcase_state_panel.zui#ShowcaseStatePanel",
   "res://ui/editor/components/showcase/showcase_visual_section.zui#ShowcaseVisualSection",
   "res://ui/editor/components/showcase/showcase_input_section.zui#ShowcaseInputSection",
-  "res://ui/editor/components/showcase/showcase_selection_section.zui#ShowcaseSelectionSection",
-  "res://ui/editor/components/showcase/showcase_collections_section.zui#ShowcaseCollectionsSection",
+  "res://ui/editor/components/showcase/selection_section.zui#ShowcaseSelectionSection",
+  "res://ui/editor/components/showcase/collections_section.zui#ShowcaseCollectionsSection",
 ]
 styles = ["res://ui/theme/editor_base.zui", "res://ui/editor/theme/editor_tokens.zui"]
 

@@ -5,6 +5,7 @@
 //! 参见 [`AudioChannelLayout`] 与 [`AudioSpeakerChannel`]。
 //! Backend-neutral audio format data shared by assets and optional sound services.
 
+#[path = "channel_layout.rs"]
 mod channel_layout;
 
 pub use channel_layout::{AudioChannelLayout, AudioSpeakerChannel};

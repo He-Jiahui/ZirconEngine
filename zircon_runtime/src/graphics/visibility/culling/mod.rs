@@ -1,6 +1,12 @@
+#[path = "is_mesh_visible.rs"]
 pub(super) mod is_mesh_visible;
+#[path = "mesh_bounds.rs"]
 pub(super) mod mesh_bounds;
+#[path = "orthographic_visible.rs"]
 pub(super) mod orthographic_visible;
+#[path = "parallel_frustum.rs"]
 pub(super) mod parallel_frustum;
+#[path = "perspective_visible.rs"]
 pub(super) mod perspective_visible;
+#[path = "visibility_entries.rs"]
 pub(super) mod visibility_entries;

@@ -1,16 +1,30 @@
+#[path = "array_asset.rs"]
 mod array_asset;
+#[path = "build.rs"]
 mod build;
+#[path = "cube_asset.rs"]
 mod cube_asset;
+#[path = "cube_lut.rs"]
 mod cube_lut;
+#[path = "descriptor.rs"]
 mod descriptor;
+#[path = "external_source_cubemap.rs"]
 mod external_source_cubemap;
+#[path = "ibl_pmrem.rs"]
 mod ibl_pmrem;
+#[path = "lightmap_asset.rs"]
 mod lightmap_asset;
+#[path = "metadata.rs"]
 mod metadata;
+#[path = "normal_convention.rs"]
 mod normal_convention;
+#[path = "payload.rs"]
 mod payload;
+#[path = "texture_asset.rs"]
 mod texture_asset;
+#[path = "upload_support.rs"]
 mod upload_support;
+#[path = "zcube.rs"]
 mod zcube;
 
 pub use array_asset::{

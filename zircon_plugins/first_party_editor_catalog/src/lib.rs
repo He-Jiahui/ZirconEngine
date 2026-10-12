@@ -4,6 +4,7 @@
 //! fan-out from selected package ids to editor-side registration providers,
 //! keeping `zircon_editor` independent from concrete plugin crates.
 
+#[path = "catalog.rs"]
 mod catalog;
 
 #[cfg(test)]

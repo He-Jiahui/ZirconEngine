@@ -18,8 +18,8 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/activation
-  - zircon_runtime/src/core/runtime/tests/resolution
+  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/runtime/tests
   - zircon_runtime/src/tests/scene_boundary
   - zircon_editor/src/tests
 doc_type: workflow-detail

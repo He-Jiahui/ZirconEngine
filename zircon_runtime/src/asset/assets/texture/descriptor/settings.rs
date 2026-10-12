@@ -293,5 +293,5 @@ fn normalized_token(value: &str) -> Cow<'_, str> {
 }
 
 #[cfg(test)]
-#[path = "tests/settings_plugins07_setting_token_hotpath_tests.rs"]
+#[path = "../../../tests/settings_plugins07_setting_token_hotpath.rs"]
 mod plugins07_setting_token_hotpath_tests;

@@ -1,9 +1,14 @@
 //! Module and plugin descriptor helpers built on top of the core runtime.
 
+#[path = "contexts.rs"]
 mod contexts;
+#[path = "descriptors/mod.rs"]
 mod descriptors;
+#[path = "engine_module.rs"]
 mod engine_module;
+#[path = "engine_service.rs"]
 mod engine_service;
+#[path = "service_factory.rs"]
 mod service_factory;
 
 pub use crate::core::{

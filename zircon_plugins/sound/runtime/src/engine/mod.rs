@@ -5,10 +5,15 @@ mod dsp;
 #[cfg(test)]
 #[path = "filter/tests/mod.rs"]
 mod filter;
+#[path = "hrtf/mod.rs"]
 mod hrtf;
+#[path = "math.rs"]
 mod math;
+#[path = "occlusion/mod.rs"]
 mod occlusion;
+#[path = "source_environment/mod.rs"]
 mod source_environment;
+#[path = "state/mod.rs"]
 mod state;
 
 pub(crate) use hrtf::{SoundHrtfRenderState, SoundHrtfRenderStateKey};

@@ -15,8 +15,11 @@ use crate::text::parallel::raster_pool::{
 use crate::text::raster::{GlyphBitmap, SwashRasterRequest};
 use crate::text::{FontFaceId, InstancedFaceId, VariationCoords};
 
+#[path = "source_cache/lru.rs"]
 mod lru;
+#[path = "source_cache/report.rs"]
 mod report;
+#[path = "source_cache/worker.rs"]
 mod worker;
 
 use lru::{NativeBitmapAtlasSourceCacheEntry, NativeBitmapAtlasSourceLru};

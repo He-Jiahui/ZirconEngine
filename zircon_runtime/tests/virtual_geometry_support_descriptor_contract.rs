@@ -1,3 +1,4 @@
+#[path = "support/mod.rs"]
 mod support;
 
 use zircon_runtime::render_graph::RenderGraphComputeDispatchExtent;

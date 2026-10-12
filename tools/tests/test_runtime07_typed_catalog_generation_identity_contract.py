@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CATALOG_ROOT = (
     ROOT / "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog"
 )
-CATALOG = ROOT / "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs"
+CATALOG = ROOT / "zircon_runtime/src/plugin/runtime/catalog.rs"
 GENERATION = CATALOG_ROOT / "generation.rs"
 SNAPSHOT = CATALOG_ROOT / "snapshot.rs"
 PUBLICATION = CATALOG_ROOT / "publication.rs"

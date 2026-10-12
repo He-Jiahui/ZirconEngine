@@ -12,7 +12,7 @@ use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use crate::core::math::Real;
 
 #[cfg(test)]
-#[path = "sequence/tests/borrowed_encoding_tests.rs"]
+#[path = "../../../animation/asset/sequence/tests/borrowed_encoding.rs"]
 mod borrowed_encoding_tests;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

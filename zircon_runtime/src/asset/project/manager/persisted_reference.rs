@@ -117,5 +117,5 @@ fn store_unique_candidate<T>(unique: &mut Option<T>, candidate: T) -> bool {
 mod tests;
 
 #[cfg(test)]
-#[path = "persisted_reference/tests/unique_candidate_tests.rs"]
+#[path = "tests/unique_candidate.rs"]
 mod unique_candidate_tests;

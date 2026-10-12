@@ -1,4 +1,6 @@
+#[path = "asset/mod.rs"]
 mod asset;
+#[path = "document.rs"]
 mod document;
 
 pub use asset::{

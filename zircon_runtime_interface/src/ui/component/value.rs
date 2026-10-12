@@ -268,9 +268,9 @@ fn write_trim_float(text: &mut String, value: f64) {
 }
 
 #[cfg(test)]
-#[path = "value/tests/display_text_performance_tests.rs"]
+#[path = "value/tests/display_text_perf.rs"]
 mod display_text_performance_tests;
 
 #[cfg(test)]
-#[path = "value/tests/fixed_float_array_performance_tests.rs"]
+#[path = "value/tests/fixed_float_array_perf.rs"]
 mod fixed_float_array_performance_tests;

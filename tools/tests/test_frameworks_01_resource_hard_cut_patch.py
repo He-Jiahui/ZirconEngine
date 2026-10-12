@@ -287,7 +287,7 @@ class Frameworks01ResourceHardCutPatchTests(unittest.TestCase):
             "zircon_runtime/Cargo.toml": RUNTIME_MANIFEST_FIXTURE,
             "zircon_runtime/src/core/mod.rs": "pub mod resource;\n",
             "zircon_runtime/src/lib.rs": "pub mod core;\n",
-            "zircon_runtime/src/tests/runtime_absorption/resource_foundation.rs": (
+            "zircon_runtime/src/tests/contracts/resources.rs": (
                 '#[path = "resource_foundation/runtime_surface.rs"]\n'
                 "mod runtime_surface;\n"
             ),
@@ -673,7 +673,7 @@ class Frameworks01ResourceHardCutPatchTests(unittest.TestCase):
         )
         guard = (
             self.repo_root
-            / "zircon_runtime/src/tests/runtime_absorption/resource_foundation/resource_owner_boundary/mod.rs"
+            / "zircon_runtime/src/tests/contracts/resources/ownership/mod.rs"
         ).read_text(encoding="utf-8")
         self.assertIn("zircon_runtime/crates/zr_resource/src", guard)
         for path in (

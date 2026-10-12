@@ -1,6 +1,12 @@
+#[path = "automation.rs"]
 pub(crate) mod automation;
+#[path = "configure.rs"]
 pub(crate) mod configure;
+#[path = "dynamic_events.rs"]
 pub(crate) mod dynamic_events;
+#[path = "runtime_state.rs"]
 pub(crate) mod runtime_state;
+#[path = "sources.rs"]
 pub(crate) mod sources;
+#[path = "timeline.rs"]
 pub(crate) mod timeline;

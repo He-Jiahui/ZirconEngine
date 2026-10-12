@@ -1,6 +1,8 @@
 //! Shared, editor-side preview-scene lifecycle contract.
 
+#[path = "preview_scene.rs"]
 mod preview_scene;
+#[path = "preview_subject.rs"]
 mod preview_subject;
 
 pub use preview_scene::{

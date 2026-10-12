@@ -1,12 +1,22 @@
+#[path = "content_digest.rs"]
 mod content_digest;
+#[path = "engine_schema.rs"]
 mod engine_schema;
+#[path = "error.rs"]
 mod error;
+#[path = "identity.rs"]
 mod identity;
+#[path = "journal_range.rs"]
 mod journal_range;
+#[path = "policy.rs"]
 mod policy;
+#[path = "scheduler.rs"]
 mod scheduler;
+#[path = "snapshot_provenance.rs"]
 mod snapshot_provenance;
+#[path = "source_digest.rs"]
 mod source_digest;
+#[path = "store.rs"]
 mod store;
 
 pub use content_digest::AutosaveContentDigest;

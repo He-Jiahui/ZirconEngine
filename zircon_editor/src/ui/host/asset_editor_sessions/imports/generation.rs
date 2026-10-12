@@ -31,5 +31,5 @@ impl UiAssetImportGeneration {
 }
 
 #[cfg(test)]
-#[path = "generation/tests/hash_cache_tests.rs"]
+#[path = "../../imports/generation/tests/hash_cache.rs"]
 mod hash_cache_tests;

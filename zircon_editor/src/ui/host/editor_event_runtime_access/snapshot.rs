@@ -277,5 +277,5 @@ impl EditorHostEventController {
 }
 
 #[cfg(test)]
-#[path = "tests/snapshot_scene_viewport_route_tests.rs"]
+#[path = "../tests/snapshot_scene_viewport_route.rs"]
 mod scene_viewport_route_tests;

@@ -5,12 +5,19 @@ pub(crate) use action::dispatch_accessibility_action;
 pub(crate) use budget::{AccessibilityBuildBudget, AccessibilitySnapshotBudgetError};
 pub(crate) use extract::{accessibility_snapshot, accessibility_snapshot_bounded};
 
+#[path = "action.rs"]
 mod action;
+#[path = "budget.rs"]
 mod budget;
+#[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "extract.rs"]
 mod extract;
+#[path = "name.rs"]
 mod name;
+#[path = "semantic_text.rs"]
 mod semantic_text;
 
 #[cfg(feature = "accessibility-accesskit")]
+#[path = "accesskit.rs"]
 pub(crate) mod accesskit;

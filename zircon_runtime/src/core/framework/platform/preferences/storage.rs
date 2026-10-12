@@ -1,7 +1,12 @@
+#[path = "storage/snapshot.rs"]
 mod snapshot;
+#[path = "../storage/storage_contract.rs"]
 mod storage_contract;
+#[path = "storage/terminal.rs"]
 mod terminal;
+#[path = "storage/tickets.rs"]
 mod tickets;
+#[path = "storage/work_deadline.rs"]
 mod work_deadline;
 
 pub use snapshot::{PreferenceDurabilityState, PreferenceEviction, PreferenceReadSnapshot};

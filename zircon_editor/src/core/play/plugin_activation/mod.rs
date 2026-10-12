@@ -1,6 +1,10 @@
+#[path = "contract.rs"]
 mod contract;
+#[path = "native.rs"]
 mod native;
+#[path = "noop.rs"]
 mod noop;
+#[path = "report.rs"]
 mod report;
 
 pub use contract::{PluginBridgeActivation, SharedPluginBridgeActivation};

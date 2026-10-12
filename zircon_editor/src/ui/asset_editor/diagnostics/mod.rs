@@ -1,5 +1,8 @@
+#[path = "binding.rs"]
 mod binding;
+#[path = "contract.rs"]
 mod contract;
+#[path = "localization.rs"]
 mod localization;
 
 pub use binding::map_binding_diagnostic;

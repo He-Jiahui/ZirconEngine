@@ -1,21 +1,37 @@
 //! Networking framework contracts for transport, session, RPC, sync, and download surfaces.
 //! 本模块定义 Runtime 与网络插件共享的数据类型及 NetManager 服务契约；实际网络 I/O 由插件服务执行，HTTP/WebSocket 可通过可替换后端提供。
 
+#[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "download.rs"]
 mod download;
+#[path = "endpoint.rs"]
 mod endpoint;
+#[path = "error.rs"]
 mod error;
+#[path = "event.rs"]
 mod event;
+#[path = "http.rs"]
 mod http;
+#[path = "ids.rs"]
 mod ids;
+#[path = "manager.rs"]
 mod manager;
+#[path = "packet.rs"]
 mod packet;
+#[path = "reliable.rs"]
 mod reliable;
+#[path = "rpc.rs"]
 mod rpc;
+#[path = "session.rs"]
 mod session;
+#[path = "socket_id.rs"]
 mod socket_id;
+#[path = "sync.rs"]
 mod sync;
+#[path = "transport.rs"]
 mod transport;
+#[path = "websocket.rs"]
 mod websocket;
 
 pub use diagnostics::NetDiagnostics;

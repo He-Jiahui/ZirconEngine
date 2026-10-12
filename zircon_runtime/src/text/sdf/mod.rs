@@ -1,15 +1,26 @@
 //! Renderer-neutral signed-distance-field generation and decode contracts.
 
+#[path = "decode.rs"]
 mod decode;
+#[path = "fdsm_gen.rs"]
 mod fdsm_gen;
+#[path = "font_bake.rs"]
 pub(crate) mod font_bake;
+#[path = "generation_error.rs"]
 mod generation_error;
+#[path = "generation_scheduler.rs"]
 mod generation_scheduler;
+#[path = "generation_source.rs"]
 mod generation_source;
+#[path = "geometry_preprocess.rs"]
 mod geometry_preprocess;
+#[path = "glyph_data.rs"]
 mod glyph_data;
+#[path = "mode.rs"]
 mod mode;
+#[path = "offline/mod.rs"]
 mod offline;
+#[path = "params.rs"]
 mod params;
 
 pub(crate) use generation_error::SdfGlyphGenerationError;

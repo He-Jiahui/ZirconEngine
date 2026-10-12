@@ -9,11 +9,17 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::surface::UiSurface;
 
+#[path = "columns.rs"]
 mod columns;
+#[path = "mutation.rs"]
 mod mutation;
+#[path = "resize.rs"]
 mod resize;
+#[path = "selection.rs"]
 mod selection;
+#[path = "../../table/virtualization.rs"]
 mod virtualization;
+#[path = "../../table/width_mutation.rs"]
 mod width_mutation;
 
 const TABLE_OWNER_ROLES: [&str; 3] = ["table", "data-grid", "mui-x-data-grid"];

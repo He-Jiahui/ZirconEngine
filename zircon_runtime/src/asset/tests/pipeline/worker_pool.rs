@@ -23,9 +23,13 @@ use crate::core::diagnostics::DiagnosticStore;
 use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor, TaskPoolKind, TaskTimer};
 use crate::core::CoreError;
 
+#[path = "worker_pool/diagnostics.rs"]
 mod diagnostics;
+#[path = "worker_pool/lifecycle.rs"]
 mod lifecycle;
+#[path = "worker_pool/single_flight.rs"]
 mod single_flight;
+#[path = "worker_pool/task_pool.rs"]
 mod task_pool;
 
 fn single_worker_io_pool() -> TaskPool {

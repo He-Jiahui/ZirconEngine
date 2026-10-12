@@ -1,13 +1,21 @@
 //! 场景事件的类型注册、读游标和生命周期 lease 入口。
 //!
 
+#[path = "cursor.rs"]
 mod cursor;
+#[path = "id.rs"]
 mod id;
+#[path = "lease.rs"]
 mod lease;
+#[path = "metrics.rs"]
 mod metrics;
+#[path = "observer.rs"]
 mod observer;
+#[path = "queue.rs"]
 mod queue;
+#[path = "store.rs"]
 mod store;
+#[path = "subscription.rs"]
 mod subscription;
 
 pub use cursor::{EventCursor, EventReadIter};

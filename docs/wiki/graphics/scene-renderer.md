@@ -1,14 +1,14 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
+  - zircon_runtime/src/graphics/scene/renderer/mod.rs
+  - zircon_runtime/src/graphics/pipeline/pipeline/default_core2d.rs
+  - zircon_runtime/src/graphics/pipeline/pipeline/default_forward_plus.rs
+  - zircon_runtime/src/graphics/pipeline/pipeline/default_deferred.rs
   - zircon_runtime/src/graphics/feature/mod.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite
+  - zircon_runtime/src/graphics/scene/renderer/sprite
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
@@ -16,7 +16,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/render_product_submit
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/tests/compile_tests.rs
+  - zircon_runtime/src/graphics/pipeline/pipeline/tests/compile.rs
 doc_type: module-detail
 ---
 

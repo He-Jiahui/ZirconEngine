@@ -122,5 +122,5 @@ fn admit_linked_plugin_id<'a>(seen: &mut HashSet<&'a str>, plugin_id: &'a str) -
 }
 
 #[cfg(test)]
-#[path = "tests/linked_plugins_optimization_tests.rs"]
+#[path = "tests/linked_plugins_perf.rs"]
 mod optimization_tests;

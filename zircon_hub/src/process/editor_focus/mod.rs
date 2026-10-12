@@ -1,5 +1,8 @@
+#[path = "ack.rs"]
 mod ack;
+#[path = "probe.rs"]
 mod probe;
+#[path = "publish.rs"]
 mod publish;
 
 pub(crate) use ack::wait_for_project_editor_focus_ack;

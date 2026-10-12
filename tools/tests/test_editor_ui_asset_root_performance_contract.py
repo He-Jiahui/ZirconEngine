@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-ASSET_EDITOR_ROOT = ROOT / "zircon_editor/src/ui/asset_editor"
+ASSET_EDITOR_ROOT = ROOT / "zircon_editor/src/ui"
 
 
 def function_body(source: str, start: str, end: str) -> str:

@@ -6,11 +6,11 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use super::RenderShaderDefinitionValue;
 
 #[cfg(test)]
-#[path = "material_property_layout/tests/option_lookup_tests.rs"]
+#[path = "tests/option_lookup.rs"]
 mod option_lookup_tests;
 
 #[cfg(test)]
-#[path = "material_property_layout/tests/enum_description_tests.rs"]
+#[path = "tests/enum_description.rs"]
 mod enum_description_tests;
 
 const MATERIAL_OPTION_HASH_INDEX_MIN_OPTIONS: usize = 16;

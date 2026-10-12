@@ -296,5 +296,5 @@ fn index_active_cameras<'a, T: CameraDescriptorRef>(
 mod tests;
 
 #[cfg(test)]
-#[path = "tests/optimization_batch_iz_runtime639_tests.rs"]
+#[path = "tests/perf.rs"]
 mod optimization_batch_iz_runtime639_tests;

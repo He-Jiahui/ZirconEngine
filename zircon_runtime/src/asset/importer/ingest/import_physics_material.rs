@@ -14,5 +14,5 @@ pub(crate) fn import_physics_material(
 }
 
 #[cfg(test)]
-#[path = "tests/import_physics_material_plugins07_physics_material_source_tests.rs"]
+#[path = "../../../tests/import_physics_material_plugins07_physics_material.rs"]
 mod plugins07_physics_material_source_tests;

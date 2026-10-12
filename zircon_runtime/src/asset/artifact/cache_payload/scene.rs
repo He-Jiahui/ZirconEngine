@@ -1,7 +1,12 @@
+#[path = "scene/component.rs"]
 mod component;
+#[path = "scene/entity.rs"]
 mod entity;
+#[path = "scene/physics.rs"]
 mod physics;
+#[path = "scene/rendering.rs"]
 mod rendering;
+#[path = "scene/script.rs"]
 mod script;
 
 use serde::{Deserialize, Serialize};

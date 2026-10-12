@@ -13,7 +13,7 @@ use zircon_runtime::plugin::{
 use super::nodes::standard_node_descriptors;
 
 #[cfg(test)]
-#[path = "catalog/tests/borrowed_lookup_tests.rs"]
+#[path = "catalog/tests/borrowed_lookup.rs"]
 mod borrowed_lookup_tests;
 
 pub(crate) const BOOTSTRAP_BEHAVIOR_NODE_OWNER: PluginModuleId = PluginModuleId::from_raw(u32::MAX);

@@ -5,29 +5,29 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-APP = ROOT / "zircon_editor/src/ui/retained_host/app.rs"
-WORKSPACE = ROOT / "zircon_editor/src/ui/retained_host/app/assets/workspace.rs"
+APP = ROOT / "zircon_editor/src/ui/retained/app.rs"
+WORKSPACE = ROOT / "zircon_editor/src/ui/retained/app/assets/workspace.rs"
 RELOAD_CONFLICT = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/app/assets/workspace/active_scene_reload_conflict.rs"
+    / "zircon_editor/src/ui/app/assets/workspace/active_scene_reload_conflict.rs"
 )
-ASSET_RUNTIME_ACCESS = ROOT / "zircon_editor/src/ui/retained_host/app/asset_runtime_access.rs"
-ASSET_REFRESH = ROOT / "zircon_editor/src/ui/retained_host/app/assets/refresh.rs"
-ASSET_REFRESH_APPLY = ROOT / "zircon_editor/src/ui/retained_host/app/assets/refresh/apply.rs"
-ASSET_REFRESH_EVENTS = ROOT / "zircon_editor/src/ui/retained_host/app/assets/refresh/events.rs"
-BACKEND_REFRESH = ROOT / "zircon_editor/src/ui/retained_host/app/backend_refresh.rs"
+ASSET_RUNTIME_ACCESS = ROOT / "zircon_editor/src/ui/retained/app/asset_runtime_access.rs"
+ASSET_REFRESH = ROOT / "zircon_editor/src/ui/retained/app/assets/refresh.rs"
+ASSET_REFRESH_APPLY = ROOT / "zircon_editor/src/ui/retained/app/assets/refresh/apply.rs"
+ASSET_REFRESH_EVENTS = ROOT / "zircon_editor/src/ui/retained/app/assets/refresh/events.rs"
+BACKEND_REFRESH = ROOT / "zircon_editor/src/ui/retained/app/backend_refresh.rs"
 CORE_SCENE_RELOAD = ROOT / "zircon_editor/src/core/document/scene_reload.rs"
 CORE_SCENE_LOAD_JOB = ROOT / "zircon_editor/src/core/project/scene_load_job.rs"
 HOST_SCENE_SUBMISSION = ROOT / "zircon_editor/src/ui/host/editor_scene_document_submission.rs"
-HOST_TICK = ROOT / "zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs"
+HOST_TICK = ROOT / "zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs"
 HOST_ASSEMBLY = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs"
+    / "zircon_editor/src/ui/retained/app/startup/state/construction/assembly.rs"
 )
-PROJECT_CLOSE = ROOT / "zircon_editor/src/ui/retained_host/app/project_close.rs"
+PROJECT_CLOSE = ROOT / "zircon_editor/src/ui/retained/app/project_close.rs"
 RUNTIME_GENERATION = (
     ROOT
-    / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs"
+    / "zircon_runtime/src/asset/pipeline/manager/assets/runtime.rs"
 )
 RUNTIME_LEVEL_LIFECYCLE = (
     ROOT / "zircon_runtime/src/scene/module/level_manager_lifecycle.rs"
@@ -35,9 +35,9 @@ RUNTIME_LEVEL_LIFECYCLE = (
 AUTHORING_WORLD = ROOT / "zircon_editor/src/core/editing/authoring_world.rs"
 PROJECT_CLOSE_SOURCE = ROOT / "zircon_editor/src/ui/host/editor_manager_project.rs"
 EDITOR_SAVE_BATCH = ROOT / "zircon_editor/src/ui/host/editor_save_batch.rs"
-DOCUMENT_SAVE = ROOT / "zircon_editor/src/ui/retained_host/app/document_save.rs"
+DOCUMENT_SAVE = ROOT / "zircon_editor/src/ui/retained/app/document_save.rs"
 CLOSE_PROMPT_TESTS = (
-    ROOT / "zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs"
+    ROOT / "zircon_editor/src/ui/retained/app/tests/close_prompt.rs"
 )
 
 
@@ -206,7 +206,7 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
         workspace_file = WORKSPACE.read_text(encoding="utf-8")
         workspace = reload_active_scene_source()
         project_close = PROJECT_CLOSE_SOURCE.read_text(encoding="utf-8")
-        retained_close = (ROOT / "zircon_editor/src/ui/retained_host/app/project_close.rs").read_text(encoding="utf-8")
+        retained_close = (ROOT / "zircon_editor/src/ui/retained/app/project_close.rs").read_text(encoding="utf-8")
         level_lifecycle = RUNTIME_LEVEL_LIFECYCLE.read_text(encoding="utf-8")
         authoring_world = AUTHORING_WORLD.read_text(encoding="utf-8")
 
@@ -219,7 +219,7 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
         self.assertIn("active_scene_reload_retry_delay", workspace_file)
         self.assertIn("next_active_scene_reload_admission_retry", workspace_file)
         self.assertIn(
-            "admission_retry_backs_off_three_times_then_terminates", read_rust_test_file("zircon_editor/src/ui/retained_host/app/assets/tests/workspace_active_scene_reload_retry_tests.rs")
+            "admission_retry_backs_off_three_times_then_terminates", read_rust_test_file("zircon_editor/src/ui/app/assets/tests/workspace_active_scene_reload_retry.rs")
         )
         self.assertIn("checked_add", workspace)
         self.assertIn("admission retry limit", workspace)
@@ -229,7 +229,7 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
         self.assertIn("active_scene_reload_admission_retry_deadline()", refresh)
         self.assertIn("asset_maintenance_frame_update(", refresh)
         self.assertIn(
-            "empty_refresh_preserves_active_scene_retry_deadline", read_rust_test_file("zircon_editor/src/ui/retained_host/app/assets/tests/refresh_maintenance_frame_update_tests.rs")
+            "empty_refresh_preserves_active_scene_retry_deadline", read_rust_test_file("zircon_editor/src/ui/app/assets/tests/refresh_maintenance_frame_update.rs")
         )
         self.assertIn("active_scene_reload_admission:", app)
         self.assertIn("active_scene_reload_admission: None", assembly)
@@ -318,7 +318,7 @@ class ActiveSceneReloadGenerationContract(unittest.TestCase):
         conflict = RELOAD_CONFLICT.read_text(encoding="utf-8")
         save_all = DOCUMENT_SAVE.read_text(encoding="utf-8")
         project_close = PROJECT_CLOSE_SOURCE.read_text(encoding="utf-8")
-        retained_close = (ROOT / "zircon_editor/src/ui/retained_host/app/project_close.rs").read_text(encoding="utf-8")
+        retained_close = (ROOT / "zircon_editor/src/ui/retained/app/project_close.rs").read_text(encoding="utf-8")
         app = APP.read_text(encoding="utf-8")
         assembly = HOST_ASSEMBLY.read_text(encoding="utf-8")
         behavior = CLOSE_PROMPT_TESTS.read_text(encoding="utf-8")

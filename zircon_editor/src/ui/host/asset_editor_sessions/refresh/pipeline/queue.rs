@@ -189,5 +189,5 @@ impl UiAssetRefreshQueue {
 }
 
 #[cfg(test)]
-#[path = "tests/queue_optimization_tests.rs"]
+#[path = "../../../refresh/pipeline/tests/queue_perf.rs"]
 mod optimization_tests;

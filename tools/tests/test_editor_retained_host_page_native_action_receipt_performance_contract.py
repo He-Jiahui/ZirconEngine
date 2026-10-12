@@ -29,10 +29,10 @@ class HostPageNativeActionReceiptPerformanceContract(unittest.TestCase):
 
     def test_host_page_callback_carries_action_not_geometry(self):
         globals_source = source(
-            "zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs"
+            "zircon_editor/src/ui/retained/contract/globals/ui_context.rs"
         )
         callback_storage = source(
-            "zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/host.rs"
+            "zircon_editor/src/ui/retained/contract/globals/callbacks/host.rs"
         )
         callback_line = next(
             line
@@ -98,7 +98,7 @@ class HostPageNativeActionReceiptPerformanceContract(unittest.TestCase):
             "build_host_page_pointer_layout.rs"
         )
         pointer_layout = source(
-            "zircon_editor/src/ui/retained_host/app/pointer_layout/shell_chrome.rs"
+            "zircon_editor/src/ui/retained/app/pointer_layout/shell_chrome.rs"
         )
 
         for forbidden in [
@@ -113,10 +113,10 @@ class HostPageNativeActionReceiptPerformanceContract(unittest.TestCase):
 
     def test_callback_borrows_typed_receipt_target_without_pointer_dispatch(self):
         callback = source(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/host_page.rs"
+            "zircon_editor/src/ui/retained/dispatch/shared_pointer/host_page.rs"
         )
         click = source(
-            "zircon_editor/src/ui/retained_host/host_page_pointer/handle_click.rs"
+            "zircon_editor/src/ui/retained/host_page_pointer/handle_click.rs"
         )
 
         self.assertRegex(callback, re.compile(r"pointer_bridge\s*\.activation_target_for_route"))
@@ -129,7 +129,7 @@ class HostPageNativeActionReceiptPerformanceContract(unittest.TestCase):
 
     def test_host_page_route_intent_mirror_binding_is_removed(self):
         route_intent = source(
-            "zircon_editor/src/ui/retained_host/route_intent/map.rs"
+            "zircon_editor/src/ui/retained/route_intent/map.rs"
         )
 
         self.assertNotIn("HostPage(HostPagePointerRoute)", route_intent)

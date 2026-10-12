@@ -12,9 +12,9 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 机制 Wiki
   - docs/wiki/core-runtime/runtime-and-module-lifecycle.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/activation
-  - zircon_runtime/src/core/runtime/tests/resolution
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs
+  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/tests/contracts/service_registry_lifecycle.rs
 doc_type: mechanism-guide
 ---
 

@@ -358,5 +358,5 @@ fn merge_shader_module(
 }
 
 #[cfg(test)]
-#[path = "tests/permutation_registry.rs"]
+#[path = "../../manifest/tests/permutation_registry.rs"]
 mod tests;

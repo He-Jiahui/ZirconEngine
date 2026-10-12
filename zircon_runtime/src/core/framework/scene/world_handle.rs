@@ -17,5 +17,5 @@ impl WorldHandle {
 }
 
 #[cfg(test)]
-#[path = "tests/world_handle_optimization_batch_ic_runtime612_tests.rs"]
+#[path = "tests/world_handle_perf.rs"]
 mod optimization_batch_ic_runtime612_tests;

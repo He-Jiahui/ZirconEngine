@@ -485,9 +485,9 @@ macro_rules! assert_missing_include_token {
 mod environment;
 #[path = "environment_only_pbr.rs"]
 mod environment_only_pbr;
-#[path = "environment_specular_occlusion.rs"]
+#[path = "../../tests/environment_specular_occlusion.rs"]
 mod environment_specular_occlusion;
-#[path = "standard_material_surface_template.rs"]
+#[path = "../../tests/standard_material_surface_template.rs"]
 mod standard_material_surface_template;
 #[path = "standard_pbr_specialization.rs"]
 mod standard_pbr_specialization;

@@ -13,7 +13,7 @@ use crate::ui::workbench::state::{EditorState, EditorStateOperationError};
 use super::{EditorSessionMode, WelcomePaneSnapshot};
 
 #[cfg(test)]
-#[path = "editor_state_project/tests/reload_tests.rs"]
+#[path = "editor_state_project/tests/reload.rs"]
 mod reload_tests;
 
 /// Limits a reload decision to the dirty history shown when its prompt was published.

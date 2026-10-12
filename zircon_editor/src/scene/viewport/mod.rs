@@ -1,14 +1,24 @@
 //! Scene viewport state, handle overlays, and editor-owned camera interaction.
 
+#[path = "controller/mod.rs"]
 mod controller;
+#[path = "edit_mode_projection/mod.rs"]
 mod edit_mode_projection;
+#[path = "handle_screen_line.rs"]
 mod handle_screen_line;
+#[path = "handles/mod.rs"]
 mod handles;
+#[path = "interaction/mod.rs"]
 mod interaction;
+#[path = "interaction_extract/mod.rs"]
 mod interaction_extract;
+#[path = "pointer/mod.rs"]
 pub(crate) mod pointer;
+#[path = "projection.rs"]
 mod projection;
+#[path = "render_packet.rs"]
 mod render_packet;
+#[path = "settings.rs"]
 mod settings;
 
 pub use crate::core::editing::interactive_transform::PivotMode;

@@ -15,7 +15,7 @@ use super::super::ViewTemplateNodeData;
 use super::ViewTemplateNodeProjection;
 
 #[cfg(test)]
-#[path = "projection_composition/tests/hash_index_tests.rs"]
+#[path = "tests/hash_index.rs"]
 mod hash_index_tests;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -295,5 +295,5 @@ fn composition_counts_for_tests() -> (u64, u64, u64) {
 }
 
 #[cfg(test)]
-#[path = "tests/projection_composition.rs"]
+#[path = "../tests/projection_composition.rs"]
 mod tests;

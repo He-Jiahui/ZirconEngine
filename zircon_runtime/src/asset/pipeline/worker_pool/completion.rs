@@ -769,5 +769,5 @@ fn expire_scheduled_entry(
 }
 
 #[cfg(test)]
-#[path = "completion/tests/optimization_tests.rs"]
+#[path = "completion/tests/perf.rs"]
 mod optimization_tests;

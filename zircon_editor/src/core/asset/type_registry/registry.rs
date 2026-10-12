@@ -6,6 +6,7 @@ use super::{
     AssetTypePresentation, AssetTypeRegistryError,
 };
 
+#[path = "registry/batch.rs"]
 mod batch;
 
 pub(crate) use batch::AssetTypeRegistryBatchReport;
@@ -442,5 +443,5 @@ fn validate_new_context_command_owners(
 mod optimization_tests;
 
 #[cfg(test)]
-#[path = "registry/tests/optimization_batch_ii_editor619_tests.rs"]
+#[path = "registry/tests/perf.rs"]
 mod optimization_batch_ii_editor619_tests;

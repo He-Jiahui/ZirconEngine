@@ -370,5 +370,5 @@ fn write_output_manifest(
 mod tests;
 
 #[cfg(test)]
-#[path = "compile_host/tests/zero_copy_tail_finalization_tests.rs"]
+#[path = "tests/zero_copy_tail_finalization.rs"]
 mod zero_copy_tail_finalization_tests;

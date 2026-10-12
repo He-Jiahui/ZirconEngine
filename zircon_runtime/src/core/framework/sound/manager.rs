@@ -1,12 +1,22 @@
+#[path = "manager/acoustics.rs"]
 mod acoustics;
+#[path = "manager/automation_timeline.rs"]
 mod automation_timeline;
+#[path = "manager/backend.rs"]
 mod backend;
+#[path = "manager/dynamic_events.rs"]
 mod dynamic_events;
+#[path = "manager/mixer_graph.rs"]
 mod mixer_graph;
+#[path = "manager/output_device.rs"]
 mod output_device;
+#[path = "manager/playback.rs"]
 mod playback;
+#[path = "manager/render.rs"]
 mod render;
+#[path = "manager/runtime_settings.rs"]
 mod runtime_settings;
+#[path = "manager/source.rs"]
 mod source;
 
 pub use acoustics::SoundAcousticsManager;

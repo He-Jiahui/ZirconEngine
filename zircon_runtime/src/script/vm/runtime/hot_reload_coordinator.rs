@@ -18,8 +18,11 @@ use super::super::plugin::{
 use super::vm_plugin_slot_record::VmPluginSlotRecord;
 use super::vm_plugin_slot_state::VmPluginSlotState;
 
+#[path = "hot_reload_coordinator/gc.rs"]
 mod gc;
+#[path = "hot_reload_coordinator/gc_deadline.rs"]
 mod gc_deadline;
+#[path = "hot_reload_coordinator/gc_schedule.rs"]
 mod gc_schedule;
 
 use gc_schedule::GcNextDueSchedule;

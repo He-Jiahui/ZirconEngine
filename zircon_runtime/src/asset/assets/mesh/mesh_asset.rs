@@ -20,6 +20,7 @@ use super::{
     MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, MESH_ATTRIBUTE_UV1,
 };
 
+#[path = "mesh_asset/management.rs"]
 mod management;
 
 pub use self::management::{

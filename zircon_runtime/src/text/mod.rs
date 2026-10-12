@@ -1,36 +1,66 @@
 //! Shared runtime text services used by UI and render-side text consumers.
 
+#[path = "document/mod.rs"]
 pub(crate) mod document;
+#[path = "glyph_artifact.rs"]
 mod glyph_artifact;
+#[path = "hard_line.rs"]
 mod hard_line;
+#[path = "identity.rs"]
 mod identity;
+#[path = "joining_type.rs"]
 mod joining_type;
+#[path = "language.rs"]
 mod language;
+#[path = "layout_geometry.rs"]
 pub(crate) mod layout_geometry;
+#[path = "layout_session.rs"]
 mod layout_session;
+#[path = "model/mod.rs"]
 mod model;
+#[path = "module.rs"]
 mod module;
+#[path = "render_state.rs"]
 mod render_state;
+#[path = "runtime_artifact.rs"]
 mod runtime_artifact;
+#[path = "semantic_projection.rs"]
 mod semantic_projection;
+#[path = "service.rs"]
 mod service;
+#[path = "ui_style.rs"]
 mod ui_style;
+#[path = "unicode_data.rs"]
 mod unicode_data;
+#[path = "word_boundary.rs"]
 mod word_boundary;
 
+#[path = "atlas/mod.rs"]
 pub(crate) mod atlas;
+#[path = "cache/mod.rs"]
 pub(crate) mod cache;
+#[path = "cluster_geometry.rs"]
 mod cluster_geometry;
+#[path = "context.rs"]
 mod context;
+#[path = "font/mod.rs"]
 pub(crate) mod font;
 #[cfg(feature = "font-sdf-build-tool")]
+#[path = "font_sdf_build_tool/mod.rs"]
 pub mod font_sdf_build_tool;
+#[path = "layout/mod.rs"]
 pub(crate) mod layout;
+#[path = "native_bitmap_atlas.rs"]
 pub(crate) mod native_bitmap_atlas;
+#[path = "parallel/mod.rs"]
 pub(crate) mod parallel;
+#[path = "raster/mod.rs"]
 pub(crate) mod raster;
+#[path = "rich/mod.rs"]
 pub(crate) mod rich;
+#[path = "sdf/mod.rs"]
 pub(crate) mod sdf;
+#[path = "shaping/mod.rs"]
 pub(crate) mod shaping;
 
 pub use crate::core::framework::text::{

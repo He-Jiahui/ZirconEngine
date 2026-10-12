@@ -18,7 +18,7 @@ use super::{
 };
 
 #[cfg(test)]
-#[path = "replay_artifact/tests/borrowed_undo_tests.rs"]
+#[path = "replay_artifact/tests/borrowed_undo.rs"]
 mod borrowed_undo_tests;
 
 pub const UI_ASSET_EDITOR_BUG_REPORT_REPLAY_ARTIFACT_SCHEMA_VERSION: u32 = 1;

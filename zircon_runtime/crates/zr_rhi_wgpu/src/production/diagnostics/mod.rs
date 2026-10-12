@@ -5,7 +5,9 @@
 //! Neutral query planning and aggregation live in `zr_rhi`; this module owns
 //! only native staging-copy, mapping, and delivery behavior.
 
+#[path = "query.rs"]
 mod query;
+#[path = "readback/mod.rs"]
 mod readback;
 
 pub use query::{

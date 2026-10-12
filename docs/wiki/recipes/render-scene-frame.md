@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/core/framework/render/frame_extract/frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/mod.rs
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs
 implementation_files:

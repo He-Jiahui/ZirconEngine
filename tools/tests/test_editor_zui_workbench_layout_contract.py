@@ -6,30 +6,30 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOKENS = REPO_ROOT / "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
 TOOLBAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_top_toolbar.zui"
 )
 MAIN_BAND = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_main_band.zui"
 )
 INSPECTOR_PANEL = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_inspector_panel.zui"
 )
 WORKBENCH_WINDOW = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/windows/workbench_window.zui"
 )
 WORKBENCH_SKELETON = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_skeleton.zui"
 )
 COMPONENT_DRAWER = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_component_drawer.zui"
 )
 ACTIVITY_RAIL = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_activity_rail.zui"
 )
 RAIL_BUTTON = REPO_ROOT / (
@@ -38,11 +38,11 @@ RAIL_BUTTON = REPO_ROOT / (
 )
 LEGACY_WORKBENCH_SHELL = REPO_ROOT / "zircon_editor/assets/ui/editor/host/workbench_shell.zui"
 SCENE_TREE_PANEL = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_scene_tree_panel.zui"
 )
 STATUS_BAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_status_bar.zui"
 )
 SCENE_VIEWPORT_TOOLBAR = REPO_ROOT / "zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui"
@@ -380,7 +380,7 @@ class EditorZuiWorkbenchLayoutContractTests(unittest.TestCase):
     def test_scene_tree_rows_share_the_virtual_row_height_token(self):
         nodes = load_document(
             REPO_ROOT
-            / "zircon_editor/assets/ui/editor/components/workbench/shell/"
+            / "zircon_editor/assets/ui/editor/workbench/shell/"
             / "workbench_scene_tree_panel.zui"
         )["nodes"]
         row_nodes = [
@@ -456,7 +456,7 @@ class EditorZuiWorkbenchLayoutContractTests(unittest.TestCase):
     def test_viewport_toolbar_reveals_secondary_display_controls_by_width_tier(self):
         nodes = load_document(
             REPO_ROOT
-            / "zircon_editor/assets/ui/editor/components/workbench/shell/"
+            / "zircon_editor/assets/ui/editor/workbench/shell/"
             / "workbench_viewport_panel.zui"
         )["nodes"]
         self.assertNotIn("responsive_min_tier", nodes["viewport_lit"]["props"])

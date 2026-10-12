@@ -59,10 +59,10 @@ class RuntimeRenderLegacyNamingTests(unittest.TestCase):
             for relative_path in (
                 "zircon_runtime/src/core/framework/render/advanced_lighting/material_features.rs",
                 "zircon_runtime/src/core/framework/render/scene_extract.rs",
-                "zircon_runtime/src/core/framework/render/scene_extract/hybrid_gi/tests/cases.rs",
-                "zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs",
-                "zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests/cases.rs",
-                "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/baked_lighting.rs",
+                "zircon_runtime/src/core/framework/render/scene_extract/gi/tests/cases.rs",
+                "zircon_runtime/src/graphics/scene/resources/gpu_texture/asset_texture.rs",
+                "zircon_runtime/src/graphics/scene/resources/gpu_texture/tests/cases.rs",
+                "zircon_runtime/src/graphics/post/build_post_process_params/baked_lighting.rs",
             )
         }
 
@@ -77,14 +77,14 @@ class RuntimeRenderLegacyNamingTests(unittest.TestCase):
         self.assertIn(
             "hybrid_gi_pre_m4_settings_default_to_dynamic_custom_profile",
             sources[
-                "zircon_runtime/src/core/framework/render/scene_extract/hybrid_gi/tests/cases.rs"
+                "zircon_runtime/src/core/framework/render/scene_extract/gi/tests/cases.rs"
             ],
         )
         texture_source = sources[
-            "zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs"
+            "zircon_runtime/src/graphics/scene/resources/gpu_texture/asset_texture.rs"
         ]
         texture_tests = sources[
-            "zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests/cases.rs"
+            "zircon_runtime/src/graphics/scene/resources/gpu_texture/tests/cases.rs"
         ]
         self.assertIn("page_zero_bind_group_view", texture_source)
         self.assertIn("lightmap_page_zero_bind_group_view_descriptor", texture_source)

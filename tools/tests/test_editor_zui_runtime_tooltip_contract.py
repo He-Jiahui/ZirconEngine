@@ -22,20 +22,20 @@ WORKBENCH_TOOLTIP = REPO_ROOT / (
     "workbench/icon_tooltip.rs"
 )
 WORKBENCH_TOOLTIP_RESOLVER = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/workbench_tooltip.rs"
+    "zircon_editor/src/ui/runtime/tooltip.rs"
 )
 WORKBENCH_POINTER_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs"
+    "zircon_editor/src/ui/retained/dispatch/workbench/pointer.rs"
 )
 WORKBENCH_WINDOW = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/windows/workbench_window.zui"
 )
 WORKBENCH_TOOLTIP_METRICS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_tooltips/metrics.rs"
 )
 WORKBENCH_POINTER_TESTS = REPO_ROOT / (
-    "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
+    "zircon_editor/src/tests/host/callbacks/templates/"
     "workbench_pointer_preview.rs"
 )
 PLATFORM_INPUT = REPO_ROOT / (
@@ -51,36 +51,36 @@ KEYBOARD_EVENTS = REPO_ROOT / (
     "events/keyboard.rs"
 )
 WINDOW_EVENTS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/events.rs"
 )
 HOST_CALLBACKS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/host.rs"
+    "zircon_editor/src/ui/retained/contract/globals/callbacks/host.rs"
 )
 HOST_CALLBACK_METHODS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs"
+    "zircon_editor/src/ui/retained/contract/globals/ui_context.rs"
 )
 HOST_TOOLTIP = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/app/workbench_tooltip.rs"
+    "zircon_editor/src/ui/retained/app/tooltip.rs"
 )
 NATIVE_TOOLTIP_TARGET = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/native_pointer/"
     "tooltip_target.rs"
 )
 NATIVE_POINTER_ROOT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs"
+    "zircon_editor/src/ui/retained/contract/pointer.rs"
 )
 NATIVE_POINTER_MOVE = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/native_pointer/"
     "move_dispatch/entry/body.rs"
 )
 HOST_CALLBACK_WIRING = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/app/callback_wiring/host_shell/runtime.rs"
+    "zircon_editor/src/ui/retained/app/callback_wiring/host_shell/runtime.rs"
 )
 WINDOW_REDRAW = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs"
+    "zircon_editor/src/ui/retained/contract/window/redraw.rs"
 )
 EVENT_LOOP_LIFECYCLE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs"
 )
 
 

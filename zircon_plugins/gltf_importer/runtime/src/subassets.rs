@@ -17,12 +17,13 @@ use zircon_runtime::asset::{
 };
 use zircon_runtime::core::framework::render::{RenderMaterialTextureTransform, TextureUsageHint};
 
+#[path = "subassets/scene_traversal.rs"]
 mod scene_traversal;
 #[cfg(test)]
-#[path = "subassets/tests/scene_traversal_tests.rs"]
+#[path = "subassets/tests/scene_traversal.rs"]
 mod scene_traversal_tests;
 #[cfg(test)]
-#[path = "subassets/tests/texture_variant_tests.rs"]
+#[path = "subassets/tests/texture_variant.rs"]
 mod texture_variant_tests;
 
 pub(crate) use scene_traversal::add_gltf_scene_subassets;

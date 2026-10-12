@@ -20,7 +20,7 @@ use super::hot_reload_plan::UiAssetHotReloadPlan;
 use super::surface_index::UiAssetSurfaceHotReloadApplyReport;
 
 #[cfg(test)]
-#[path = "hot_reload_executor/tests/template_assets_capacity_tests.rs"]
+#[path = "tests/assets_capacity.rs"]
 mod template_assets_capacity_tests;
 
 #[derive(Clone, Debug, Default, PartialEq)]

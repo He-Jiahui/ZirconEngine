@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_editor/Cargo.toml
-  - zircon_editor/src/ui/retained_host/app
+  - zircon_editor/src/ui/retained/app
   - zircon_editor/src/ui/retained_host/scroll_surface_host.rs
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/invalidation.rs
@@ -82,7 +82,7 @@ related_code:
   - docs/crates/zircon_editor/assets/editor-page-function-icon-template-map.md
   - tools/profiling/ui/ui-profile-capture.ps1
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app
+  - zircon_editor/src/ui/retained/app
   - zircon_editor/src/ui/retained_host/scroll_surface_host.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/invalidation.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/presentation.rs

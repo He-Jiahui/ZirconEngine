@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::ops::{BitOr, BitOrAssign};
 
+#[path = "descriptors/pipeline.rs"]
 mod pipeline;
 
 pub use pipeline::{

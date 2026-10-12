@@ -6,26 +6,37 @@
 //! feature gate 让声明与 Native 消费者和运行时、编辑器辅助 API 保持边界清晰。
 
 #[cfg(feature = "declaration")]
+#[path = "declaration.rs"]
 mod declaration;
 #[cfg(feature = "native")]
+#[path = "dist.rs"]
 pub mod dist;
 #[cfg(feature = "editor")]
+#[path = "editor.rs"]
 pub mod editor;
 #[cfg(feature = "editor_contribution")]
+#[path = "editor_contribution.rs"]
 pub mod editor_contribution;
 #[cfg(feature = "runtime")]
+#[path = "manifest/mod.rs"]
 pub mod manifest;
 #[cfg(feature = "native")]
+#[path = "native.rs"]
 pub mod native;
 #[cfg(feature = "runtime")]
+#[path = "prelude.rs"]
 pub mod prelude;
 #[cfg(feature = "runtime")]
+#[path = "registration.rs"]
 pub mod registration;
 #[cfg(feature = "runtime")]
+#[path = "runtime.rs"]
 pub mod runtime;
 #[cfg(feature = "runtime")]
+#[path = "runtime_exports.rs"]
 mod runtime_exports;
 #[cfg(feature = "runtime")]
+#[path = "test.rs"]
 pub mod test;
 
 #[cfg(feature = "declaration")]

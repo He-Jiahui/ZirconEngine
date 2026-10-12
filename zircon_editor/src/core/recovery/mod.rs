@@ -1,16 +1,28 @@
 //! 恢复域汇集自动保存、文档日志、项目会话副作用台账和残留锁；宿主必须先取得项目会话权限再执行恢复计划。
 
+#[path = "autosave/mod.rs"]
 mod autosave;
+#[path = "autosave_adapter/mod.rs"]
 mod autosave_adapter;
+#[path = "autosave_catalog/mod.rs"]
 mod autosave_catalog;
+#[path = "autosave_diagnostics.rs"]
 mod autosave_diagnostics;
+#[path = "autosave_service.rs"]
 mod autosave_service;
+#[path = "autosave_shutdown.rs"]
 mod autosave_shutdown;
+#[path = "document_journal/mod.rs"]
 mod document_journal;
+#[path = "project_recovery_assessment.rs"]
 mod project_recovery_assessment;
+#[path = "project_session_effect_ledger/mod.rs"]
 mod project_session_effect_ledger;
+#[path = "restore_executor.rs"]
 mod restore_executor;
+#[path = "restore_flow.rs"]
 mod restore_flow;
+#[path = "session_guard.rs"]
 mod session_guard;
 
 pub use autosave::{

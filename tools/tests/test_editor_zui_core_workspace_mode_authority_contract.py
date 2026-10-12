@@ -30,23 +30,23 @@ REFERENCE_ACTIONS = REPO_ROOT / (
     "workbench/reference_menu_actions.rs"
 )
 PREVIEW_ACTIONS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/workbench_preview_actions.rs"
+    "zircon_editor/src/ui/retained/preview_actions.rs"
 )
 TEMPLATE_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
+    "zircon_editor/src/ui/runtime/builtin/"
     "workbench_module_template_bindings.rs"
 )
 INTERACTION_TESTS = REPO_ROOT / (
-    "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
+    "zircon_editor/src/tests/host/callbacks/templates/"
     "workbench_projection/interaction.rs"
 )
 DOCUMENT_MODULE_TESTS = REPO_ROOT / (
-    "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
+    "zircon_editor/src/tests/host/callbacks/templates/"
     "workbench_projection/document_module.rs"
 )
-ASSETS_WORKSPACE_ROUTE_TESTS = REPO_ROOT / "zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings/tests/assets_workspace_routes.rs"
+ASSETS_WORKSPACE_ROUTE_TESTS = REPO_ROOT / "zircon_editor/src/ui/runtime/builtin/tests/assets_workspace_routes.rs"
 SURFACE_CHROME_ROUTE_TESTS = REPO_ROOT / (
-    "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
+    "zircon_editor/src/tests/host/callbacks/templates/"
     "workbench_projection/surface_contract/chrome_routes.rs"
 )
 CORE_PANEL_TAB_ACTION = re.compile(

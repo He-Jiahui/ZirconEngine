@@ -1,3 +1,4 @@
+#[path = "projector.rs"]
 mod projector;
 
 use crate::core::framework::render::RenderComponentChangeArtifact;

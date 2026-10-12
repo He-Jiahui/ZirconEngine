@@ -262,5 +262,5 @@ pub(super) fn shader_entry_points(module: &naga::Module) -> Vec<ShaderEntryPoint
 }
 
 #[cfg(test)]
-#[path = "tests/import_shader_plugins07_builtin_shader_hotpath_tests.rs"]
+#[path = "../../tests/import_shader_plugins07_builtin_shader_hotpath.rs"]
 mod plugins07_builtin_shader_hotpath_tests;

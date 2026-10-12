@@ -21,6 +21,7 @@ use zircon_runtime_interface::ui::{
 };
 
 #[cfg(feature = "profiling")]
+#[path = "accessibility_text_input_actions/scale.rs"]
 mod scale;
 
 fn id(value: u64) -> UiNodeId {

@@ -1,0 +1,14 @@
+//! chip 内容的箭头资产门面；占位测量由 chip 本体提供，使文字与 SVG 共用密度。
+
+#[path = "chip_glyphs/chevron.rs"]
+mod chevron;
+#[path = "chip_glyphs/identity.rs"]
+mod identity;
+#[path = "chip_glyphs/metrics.rs"]
+mod metrics;
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use chevron::{
+    chip_can_paint_chevron, push_chip_chevron,
+};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use identity::chip_has_chevron;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::chip_glyph_chevron_reserve;

@@ -105,5 +105,5 @@ fn node_is_scrollable_candidate(node: &zircon_runtime_interface::ui::tree::UiTre
 }
 
 #[cfg(test)]
-#[path = "interaction/tests/first_scrollable_short_circuit_tests.rs"]
+#[path = "tests/first_scrollable_short_circuit.rs"]
 mod first_scrollable_short_circuit_tests;

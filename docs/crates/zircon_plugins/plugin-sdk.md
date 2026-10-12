@@ -3,7 +3,7 @@ related_code:
   - zircon_plugins/plugin_sdk/Cargo.toml
   - zircon_plugins/plugin_sdk/src/lib.rs
   - zircon_plugins/plugin_sdk/src/test.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
+  - zircon_plugins/animation/runtime/tests/physics_tick.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
   - zircon_runtime/src/core/framework/physics/query_interface.rs

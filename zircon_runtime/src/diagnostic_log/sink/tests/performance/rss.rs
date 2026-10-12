@@ -5,6 +5,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 #[cfg(windows)]
+#[path = "rss/windows.rs"]
 mod windows;
 
 #[cfg(windows)]

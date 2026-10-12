@@ -11,6 +11,7 @@ use self::result::{
     reject_hidden_tree_target, reject_stale_target,
 };
 
+#[path = "target/result.rs"]
 mod result;
 
 // 快照包含性是动作入口权限边界：隐藏节点不能操作，disabled 节点只保留 Focus 以维持辅助技术焦点语义。

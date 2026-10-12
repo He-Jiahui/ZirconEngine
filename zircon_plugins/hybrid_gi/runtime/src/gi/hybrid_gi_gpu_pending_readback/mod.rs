@@ -1,0 +1,41 @@
+#[path = "../scene_prepare_resources_access.rs"]
+mod scene_prepare_resources_access;
+
+use crate::hybrid_gi::renderer::HybridGiScenePrepareResourcesSnapshot;
+
+pub(in crate::hybrid_gi::renderer) struct HybridGiGpuPendingReadback {
+    pub(super) cache_word_count: usize,
+    pub(super) cache_buffer: wgpu::Buffer,
+    pub(super) completed_probe_word_count: usize,
+    pub(super) completed_probe_buffer: wgpu::Buffer,
+    pub(super) completed_trace_word_count: usize,
+    pub(super) completed_trace_buffer: wgpu::Buffer,
+    pub(super) irradiance_word_count: usize,
+    pub(super) irradiance_buffer: wgpu::Buffer,
+    pub(super) trace_lighting_word_count: usize,
+    pub(super) trace_lighting_buffer: wgpu::Buffer,
+    pub(super) trace_diagnostic_word_count: usize,
+    pub(super) trace_diagnostic_buffer: wgpu::Buffer,
+    pub(super) radiance_cache_dispatch_counter_buffer: wgpu::Buffer,
+    pub(super) radiance_cache_dispatch_counter_word_offset: usize,
+    pub(super) radiance_cache_dispatch_counter_word_count: usize,
+    pub(super) scene_prepare_resources: Option<HybridGiScenePrepareResourcesSnapshot>,
+    pub(super) _scene_prepare_atlas_texture: Option<wgpu::Texture>,
+    pub(super) _scene_prepare_atlas_view: Option<wgpu::TextureView>,
+    pub(super) _scene_prepare_atlas_upload_buffer: Option<wgpu::Buffer>,
+    pub(super) scene_prepare_atlas_slot_sample_buffers: Vec<(u32, wgpu::Buffer)>,
+    pub(super) _scene_prepare_capture_texture: Option<wgpu::Texture>,
+    pub(super) _scene_prepare_capture_views: Vec<wgpu::TextureView>,
+    pub(super) _scene_prepare_capture_upload_buffer: Option<wgpu::Buffer>,
+    pub(super) scene_prepare_capture_slot_sample_buffers: Vec<(u32, wgpu::Buffer)>,
+    pub(super) _scene_prepare_surface_cache_depth_texture: Option<wgpu::Texture>,
+    pub(super) _scene_prepare_surface_cache_depth_upload_buffer: Option<wgpu::Buffer>,
+    pub(super) scene_prepare_surface_cache_depth_slot_sample_buffers: Vec<(u32, wgpu::Buffer)>,
+    pub(super) _scene_prepare_probe_trace_tile_seed_buffer: Option<wgpu::Buffer>,
+    pub(super) _scene_prepare_probe_trace_tile_params_buffer: Option<wgpu::Buffer>,
+    pub(super) scene_prepare_probe_trace_tile_buffer: Option<wgpu::Buffer>,
+    pub(super) scene_prepare_probe_trace_indirect_args_buffer: Option<wgpu::Buffer>,
+    pub(super) scene_prepare_probe_trace_tile_word_count: usize,
+    pub(super) scene_prepare_probe_trace_tile_record_count: usize,
+    pub(super) scene_prepare_probe_trace_indirect_arg_word_count: usize,
+}

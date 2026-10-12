@@ -8,7 +8,7 @@ use super::{HitRecord, HitTarget, PointerHits, PointerId, RayMap};
 mod single_pass_tests;
 
 #[cfg(test)]
-#[path = "report/tests/optimization_batch_hv_runtime604_tests.rs"]
+#[path = "report/tests/perf.rs"]
 mod optimization_batch_hv_runtime604_tests;
 
 #[derive(Clone, Debug, Default, PartialEq)]

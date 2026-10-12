@@ -127,5 +127,5 @@ impl EditorTransactionEngine {
 }
 
 #[cfg(test)]
-#[path = "decision/tests/cases.rs"]
+#[path = "../../observation/decision/tests/cases.rs"]
 mod tests;

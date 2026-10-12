@@ -166,7 +166,7 @@ impl EditorUiHost {
 }
 
 #[cfg(test)]
-#[path = "tests/optimization_batch_editor830_layout_preset_capacity_tests.rs"]
+#[path = "tests/perf_batch_editor830_layout_preset_capacity.rs"]
 mod optimization_batch_editor830_layout_preset_capacity_tests;
 
 #[cfg(test)]

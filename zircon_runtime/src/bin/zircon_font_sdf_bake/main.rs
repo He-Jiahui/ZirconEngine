@@ -1,4 +1,6 @@
+#[path = "args.rs"]
 mod args;
+#[path = "write.rs"]
 mod write;
 
 use std::fs;

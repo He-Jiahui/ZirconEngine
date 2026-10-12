@@ -1,6 +1,10 @@
+#[path = "diagnostics_sink.rs"]
 mod diagnostics_sink;
+#[path = "orchestrator.rs"]
 mod orchestrator;
+#[path = "request.rs"]
 mod request;
+#[path = "settings.rs"]
 mod settings;
 
 pub use diagnostics_sink::{ScriptBuildDiagnosticsSink, ScriptDiagnosticProjectionReport};

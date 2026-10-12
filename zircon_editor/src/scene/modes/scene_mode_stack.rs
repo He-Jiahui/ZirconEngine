@@ -351,7 +351,7 @@ fn scene_mode_enter_failure((mode_id, message): (SceneModeId, String)) -> SceneM
 }
 
 #[cfg(test)]
-#[path = "tests/scene_mode_stack_optimization_batch_20260830br_editor_tests.rs"]
+#[path = "tests/scene_mode_stack_perf.rs"]
 mod optimization_batch_20260830br_editor_tests;
 
 impl std::fmt::Debug for SceneModeStack {

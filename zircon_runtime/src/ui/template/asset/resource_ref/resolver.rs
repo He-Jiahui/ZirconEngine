@@ -453,5 +453,5 @@ impl Default for UiResourceResolver {
 }
 
 #[cfg(test)]
-#[path = "resolver/tests/hash_invalidation_tests.rs"]
+#[path = "../resolver/tests/hash_invalidation.rs"]
 mod hash_invalidation_tests;

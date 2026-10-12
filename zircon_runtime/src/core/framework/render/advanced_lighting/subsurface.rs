@@ -134,5 +134,5 @@ pub fn burley_radial_pdf(radius_mm: Real, scatter_radius_mm: Real) -> Real {
 mod tests;
 
 #[cfg(test)]
-#[path = "subsurface/tests/diagnostic_capacity_tests.rs"]
+#[path = "../subsurface/tests/diagnostic_capacity.rs"]
 mod diagnostic_capacity_tests;

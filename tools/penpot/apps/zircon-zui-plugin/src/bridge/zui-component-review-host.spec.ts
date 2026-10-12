@@ -24,17 +24,17 @@ const directory =
 const strip = `${directory}/workbench_tab_strip.zui`;
 const tab = `${directory}/workbench_tab.zui`;
 const diagnostic =
-  'zircon_editor/assets/ui/editor/components/workbench/composites/feedback/workbench_diagnostic_row.zui';
+  'zircon_editor/assets/ui/editor/workbench/composites/feedback/diagnostic_row.zui';
 const statusItem =
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui';
+  'zircon_editor/assets/ui/editor/workbench/primitives/feedback/status_item.zui';
 const panelHeader =
-  'zircon_editor/assets/ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui';
+  'zircon_editor/assets/ui/editor/workbench/composites/chrome/panel_header.zui';
 const sectionTitle =
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui';
+  'zircon_editor/assets/ui/editor/workbench/primitives/chrome/section_title.zui';
 const button = `${directory}/workbench_button.zui`;
 const theme = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
 const activityWindow =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui';
+  'zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui';
 const editorMainFrame =
   'zircon_editor/assets/ui/editor/host/editor_main_frame.zui';
 const editorShell =
@@ -42,9 +42,9 @@ const editorShell =
 const levelEditorWindow =
   'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
 const notificationCenter =
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui';
+  'zircon_editor/assets/ui/editor/workbench/feedback/notification_center.zui';
 const tableRow =
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui';
+  'zircon_editor/assets/ui/editor/workbench/primitives/data/table_row.zui';
 
 describe('component slot review host', () => {
   const dependencies = new LayoutDependencies();

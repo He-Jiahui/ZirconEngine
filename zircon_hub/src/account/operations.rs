@@ -1,10 +1,12 @@
 //! Non-secret mutation recovery, isolated by the authenticated service identity.
 
+#[path = "operations/store.rs"]
 mod store;
 #[cfg(test)]
 #[path = "operations/tests/cases.rs"]
 mod tests;
 #[cfg(windows)]
+#[path = "operations/windows.rs"]
 mod windows;
 
 use super::{cloud::manifest::Manifest, AccountConfig, AccountError};

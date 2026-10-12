@@ -5,7 +5,7 @@ use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiNodeDefinition};
 
 #[cfg(test)]
-#[path = "hierarchy_projection/tests/streaming_traversal_tests.rs"]
+#[path = "tests/streaming_traversal.rs"]
 mod streaming_traversal_tests;
 
 pub(super) fn selection_summary(selection: &UiDesignerSelectionModel) -> String {

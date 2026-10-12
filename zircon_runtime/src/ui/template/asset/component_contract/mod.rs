@@ -1,3 +1,4 @@
+#[path = "validation.rs"]
 mod validation;
 
 pub use validation::component_contract_diagnostic;

@@ -25,12 +25,13 @@ use super::register::{
 };
 use super::typed_extension_point::TypedExtensionPoint;
 
+#[path = "../runtime_extension_registry/owner_revocation.rs"]
 mod owner_revocation;
 
 use owner_revocation::OwnerRevocationListener;
 
 #[cfg(test)]
-#[path = "runtime_extension_registry/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;
 
 /// 插件目录合并的可撤销贡献集合；冻结表供运行期读取，后续注册会开启新暂存阶段。
@@ -359,5 +360,5 @@ fn plugin_id_from_module_name(module_name: &str) -> Option<&str> {
 }
 
 #[cfg(test)]
-#[path = "tests/runtime_extension_registry_plugin_id_tests.rs"]
+#[path = "../tests/runtime_extension_registry_plugin_id.rs"]
 mod plugin_id_tests;

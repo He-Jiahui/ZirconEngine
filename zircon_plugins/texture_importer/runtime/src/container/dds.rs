@@ -599,5 +599,5 @@ fn fourcc_string<'a>(
 }
 
 #[cfg(test)]
-#[path = "tests/dds_plugins07_dds_layout_hotpath_tests.rs"]
+#[path = "../tests/dds_plugins07_dds_layout.rs"]
 mod plugins07_dds_layout_hotpath_tests;

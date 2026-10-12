@@ -1,5 +1,8 @@
+#[path = "input/mod.rs"]
 pub mod input;
+#[path = "navigation/mod.rs"]
 mod navigation;
+#[path = "pointer/mod.rs"]
 mod pointer;
 
 pub use input::{

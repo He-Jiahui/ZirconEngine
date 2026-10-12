@@ -1,13 +1,24 @@
+#[path = "arranged.rs"]
 mod arranged;
+#[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "focus_state.rs"]
 mod focus_state;
+#[path = "frame.rs"]
 mod frame;
+#[path = "hit.rs"]
 mod hit;
+#[path = "navigation/mod.rs"]
 mod navigation;
+#[path = "navigation_state.rs"]
 mod navigation_state;
+#[path = "persistent_sequence.rs"]
 mod persistent_sequence;
+#[path = "pointer/mod.rs"]
 mod pointer;
+#[path = "render/mod.rs"]
 mod render;
+#[path = "timeline.rs"]
 mod timeline;
 
 pub use arranged::{UiArrangedNode, UiArrangedSlotSummary, UiArrangedTree, UiCanvasLayerGroup};

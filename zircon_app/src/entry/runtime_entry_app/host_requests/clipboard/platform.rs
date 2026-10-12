@@ -2,7 +2,7 @@ use winit::window::Window;
 use zircon_runtime_interface::ui::dispatch::UiClipboardTransferFailure;
 
 #[cfg(windows)]
-#[path = "platform/windows.rs"]
+#[path = "../../../host_requests/clipboard/platform/windows.rs"]
 mod windows;
 
 #[cfg(windows)]

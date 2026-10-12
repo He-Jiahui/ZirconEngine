@@ -217,7 +217,9 @@ const AUTOCOMPLETE_THEME_SELECTORS: &[&str] = &[
     ".material-autocomplete-option",
 ];
 
+#[path = "../../lab_theme/core_components.rs"]
 mod core_components;
+#[path = "../../lab_theme/extended_components.rs"]
 mod extended_components;
 
 fn node<'a>(

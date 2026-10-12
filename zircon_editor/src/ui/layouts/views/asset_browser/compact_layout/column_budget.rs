@@ -73,7 +73,7 @@ fn side_panels_preserve_content(viewport_width: f32, side_widths: &[f32], gap: f
 }
 
 #[cfg(test)]
-#[path = "column_budget/tests/fast_width_tests.rs"]
+#[path = "../../column_budget/tests/fast_width.rs"]
 mod fast_width_tests;
 
 fn finite_non_negative(value: f32) -> f32 {
@@ -85,5 +85,5 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "tests/column_budget.rs"]
+#[path = "../tests/column_budget.rs"]
 mod tests;

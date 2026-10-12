@@ -90,5 +90,5 @@ impl AssetContextCommandDescriptor {
 }
 
 #[cfg(test)]
-#[path = "context_command/tests/optimization_tests.rs"]
+#[path = "context_command/tests/perf.rs"]
 mod optimization_tests;

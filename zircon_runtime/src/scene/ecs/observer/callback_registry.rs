@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::ObserverId;
 
 #[cfg(test)]
-#[path = "callback_registry/tests/vector_bucket_tests.rs"]
+#[path = "callback_registry/tests/vector_bucket.rs"]
 mod vector_bucket_tests;
 
 pub(super) trait IndexedObserver {

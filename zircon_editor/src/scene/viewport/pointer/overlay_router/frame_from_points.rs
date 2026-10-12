@@ -24,5 +24,5 @@ pub(in crate::scene::viewport::pointer) fn frame_from_points(
 }
 
 #[cfg(test)]
-#[path = "frame_from_points/tests/vec2_bounds_tests.rs"]
+#[path = "tests/vec2_bounds.rs"]
 mod vec2_bounds_tests;

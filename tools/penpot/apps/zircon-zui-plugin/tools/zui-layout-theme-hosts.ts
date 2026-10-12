@@ -32,35 +32,35 @@ interface EditorConsumer {
 const editorThemeComponents: EditorConsumer[] = [
   {
     sourcePath:
-      'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui',
+      'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui',
     label: 'Button',
     x: 32,
     y: 120,
   },
   {
     sourcePath:
-      'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui',
+      'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/field.zui',
     label: 'Field',
     x: 328,
     y: 120,
   },
   {
     sourcePath:
-      'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui',
+      'zircon_editor/assets/ui/editor/workbench/primitives/inputs/dropdown.zui',
     label: 'Dropdown',
     x: 32,
     y: 240,
   },
   {
     sourcePath:
-      'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui',
+      'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/tab.zui',
     label: 'Tab',
     x: 328,
     y: 240,
   },
   {
     sourcePath:
-      'zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui',
+      'zircon_editor/assets/ui/editor/components/workbench/primitives/data/divider.zui',
     label: 'Divider',
     x: 32,
     y: 360,

@@ -330,7 +330,7 @@ fn registration_event_id(registration: &RuntimeEventMirrorRegistration) -> &str 
 }
 
 #[cfg(test)]
-#[path = "event_mirror/tests/borrowed_unsubscribe_id_tests.rs"]
+#[path = "event_mirror/tests/borrowed_unsubscribe_id.rs"]
 mod borrowed_unsubscribe_id_tests;
 
 impl Drop for World {

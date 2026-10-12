@@ -398,5 +398,5 @@ pub(super) fn collider_shape_property_entry_capacity(shape: &ColliderShape) -> u
 mod tests;
 
 #[cfg(test)]
-#[path = "collider_shape/tests/reused_path_buffer_tests.rs"]
+#[path = "../../entries/tests/reused_path_buffer.rs"]
 mod reused_path_buffer_tests;

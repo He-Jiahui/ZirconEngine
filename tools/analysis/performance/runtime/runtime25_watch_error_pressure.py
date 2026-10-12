@@ -12,11 +12,11 @@ ROOT = Path(__file__).resolve().parents[4]
 CRITICAL_SOURCE_FILES = (
     "tools/analysis/performance/runtime/runtime25_watch_error_pressure.py",
     "tools/analysis/validation/zircon-validation-runtime25-watch-error-batch.ps1",
-    "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/watch_dispatch.rs",
+    "zircon_runtime/src/asset/pipeline/manager/assets/watch_dispatch.rs",
 )
 BASELINE_GIT_REVISION = "050d8e6c36cd1bf4f3ab0d8fc4df0864c1c29a3f"
 HEAD_BASELINE_GIT_BLOBS = {
-    "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/watch_dispatch.rs": (
+    "zircon_runtime/src/asset/pipeline/manager/assets/watch_dispatch.rs": (
         "e489f5f5c6fe152464b83869efce0fa154412b38"
     )
 }

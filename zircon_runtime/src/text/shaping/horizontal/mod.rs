@@ -1,5 +1,8 @@
+#[path = "backend.rs"]
 mod backend;
+#[path = "composition.rs"]
 mod composition;
+#[path = "direct.rs"]
 mod direct;
 
 use crate::text::layout_geometry::FiniteGeometryAccumulator;

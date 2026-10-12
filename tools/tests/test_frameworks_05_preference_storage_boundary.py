@@ -27,9 +27,9 @@ class Frameworks05PreferenceStorageBoundaryTests(unittest.TestCase):
 
     def test_runtime_contract_has_no_woc_or_editor_special_case(self) -> None:
         roots = (
-            REPO_ROOT / "zircon_runtime/src/core/framework/platform/preferences",
+            REPO_ROOT / "zircon_runtime/src/core/framework/platform",
             REPO_ROOT / "zircon_runtime/src/platform/preferences",
-            REPO_ROOT / "zircon_runtime/src/platform/service_types",
+            REPO_ROOT / "zircon_runtime/src/platform",
         )
         source = "\n".join(
             path.read_text(encoding="utf-8")

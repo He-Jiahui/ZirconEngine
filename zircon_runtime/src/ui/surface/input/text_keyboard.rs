@@ -1,6 +1,10 @@
+#[path = "text_keyboard/clipboard.rs"]
 mod clipboard;
+#[path = "text_keyboard/edit_actions.rs"]
 mod edit_actions;
+#[path = "text_keyboard/history.rs"]
 mod history;
+#[path = "text_keyboard/payload.rs"]
 mod payload;
 
 pub(super) use clipboard::{keyboard_clipboard_action, KeyboardClipboardAction};

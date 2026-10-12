@@ -1,8 +1,14 @@
+#[path = "error.rs"]
 mod error;
+#[path = "output.rs"]
 mod output;
+#[path = "phase.rs"]
 mod phase;
+#[path = "report.rs"]
 mod report;
+#[path = "status.rs"]
 mod status;
+#[path = "timing.rs"]
 mod timing;
 
 pub use error::EnvironmentIblSourceStagingError;

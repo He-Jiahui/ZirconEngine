@@ -1,27 +1,47 @@
 //! Shared runtime font database used by text shaping and raster paths.
 
+#[path = "asset_registration.rs"]
 mod asset_registration;
+#[path = "backend.rs"]
 mod backend;
+#[path = "composite_resolve.rs"]
 mod composite_resolve;
+#[path = "coverage.rs"]
 mod coverage;
+#[path = "database.rs"]
 mod database;
+#[path = "decoration_metrics.rs"]
 mod decoration_metrics;
+#[path = "default_families.rs"]
 mod default_families;
+#[path = "descriptors.rs"]
 mod descriptors;
+#[path = "face_metadata.rs"]
 mod face_metadata;
+#[path = "fallback.rs"]
 mod fallback;
+#[path = "fallback_cache.rs"]
 mod fallback_cache;
+#[path = "handle_registry.rs"]
 mod handle_registry;
+#[path = "instance.rs"]
 mod instance;
+#[path = "line_metrics.rs"]
 mod line_metrics;
+#[path = "matching.rs"]
 mod matching;
+#[path = "query.rs"]
 mod query;
+#[path = "runtime_asset.rs"]
 mod runtime_asset;
+#[path = "shared.rs"]
 mod shared;
+#[path = "source_manifest.rs"]
 mod source_manifest;
 #[cfg(test)]
 #[path = "tests/test_font_fixtures.rs"]
 mod test_font_fixtures;
+#[path = "vertical_metrics.rs"]
 mod vertical_metrics;
 
 pub(crate) use database::{

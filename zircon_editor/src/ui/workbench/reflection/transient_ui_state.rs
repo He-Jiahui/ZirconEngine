@@ -126,7 +126,7 @@ fn upsert_property(node: &mut UiNodeDescriptor, name: &str, value: bool) {
 }
 
 #[cfg(test)]
-#[path = "tests/transient_ui_state_performance_tests.rs"]
+#[path = "tests/transient_ui_state_perf.rs"]
 mod performance_tests;
 
 fn drawer_id_from_path(node_path: &str) -> Option<&str> {

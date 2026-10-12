@@ -13,20 +13,21 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 #[cfg(target_os = "windows")]
-#[path = "runtime_text_multilingual_product_framebuffer/dpi_product.rs"]
+#[path = "text_pixels/dpi_product.rs"]
 mod dpi_product;
-#[path = "runtime_text_multilingual_product_framebuffer/product_project_fixture.rs"]
+#[path = "text_pixels/product_project_fixture.rs"]
 mod product_project_fixture;
-#[path = "runtime_text_multilingual_product_framebuffer/product_renderer.rs"]
+#[path = "text_pixels/product_renderer.rs"]
 mod product_renderer;
-#[path = "runtime_text_multilingual_product_framebuffer/proof_assertions.rs"]
+#[path = "text_pixels/proof_assertions.rs"]
 mod proof_assertions;
-#[path = "runtime_text_multilingual_product_framebuffer/proof_commands.rs"]
+#[path = "text_pixels/proof_commands.rs"]
 mod proof_commands;
-#[path = "runtime_text_multilingual_product_framebuffer/proof_output.rs"]
+#[path = "text_pixels/proof_output.rs"]
 mod proof_output;
-#[path = "runtime_text_multilingual_product_framebuffer/proof_path.rs"]
+#[path = "text_pixels/proof_path.rs"]
 mod proof_path;
+#[path = "support/mod.rs"]
 mod support;
 use product_project_fixture::product_fixture;
 use product_renderer::{render_ui_extract_frame, ProductUiFrameRenderer, UiTextRasterFrameTrace};

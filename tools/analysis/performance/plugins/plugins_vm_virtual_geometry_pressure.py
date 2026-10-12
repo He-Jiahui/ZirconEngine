@@ -13,7 +13,7 @@ CRITICAL_SOURCE_FILES = (
     "tools/analysis/performance/plugins/plugins_vm_virtual_geometry_pressure.py",
     "zircon_plugins/zr_vm_language/runtime/src/call_site/script_call_table.rs",
     "zircon_plugins/zr_vm_language/runtime/src/call_site/tests/cases.rs",
-    "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs",
+    "zircon_plugins/virtual_geometry/runtime/src/apply_gpu_page_table_entries.rs",
 )
 BASELINE_GIT_REVISION = "ca3ac3cc6ad218d04a5cd469447cea2452441321"
 HEAD_BASELINE_GIT_BLOBS = {
@@ -23,7 +23,7 @@ HEAD_BASELINE_GIT_BLOBS = {
     "zircon_plugins/zr_vm_language/runtime/src/call_site/tests/cases.rs": (
         "c712e773a7e2263f871c0d78ef8a3605a7d03d24"
     ),
-    "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/apply_gpu_page_table_entries.rs": (
+    "zircon_plugins/virtual_geometry/runtime/src/apply_gpu_page_table_entries.rs": (
         "cea56884a27a27cca6f1fa135d6527b8b8a0157b"
     ),
 }

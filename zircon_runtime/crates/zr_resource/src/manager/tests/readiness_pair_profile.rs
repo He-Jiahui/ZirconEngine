@@ -833,5 +833,5 @@ fn exact_two_refresh_release_profile_emits_raw_paired_samples() {
     }
 }
 
-#[path = "readiness_pair_profile/batch_profile.rs"]
+#[path = "../../../tests/readiness_pair_profile/batch_profile.rs"]
 mod batch_profile;

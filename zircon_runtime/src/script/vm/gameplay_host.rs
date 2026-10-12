@@ -8,15 +8,25 @@ use crate::script::{
     VmError,
 };
 
+#[path = "gameplay_host/combat.rs"]
 mod combat;
+#[path = "gameplay_host/components.rs"]
 mod components;
+#[path = "gameplay_host/error.rs"]
 mod error;
+#[path = "gameplay_host/input.rs"]
 mod input;
+#[path = "gameplay_host/lifecycle.rs"]
 mod lifecycle;
+#[path = "gameplay_host/navigation.rs"]
 mod navigation;
+#[path = "gameplay_host/scene_transition.rs"]
 mod scene_transition;
+#[path = "gameplay_host/script_bindings.rs"]
 mod script_bindings;
+#[path = "gameplay_host/transform.rs"]
 mod transform;
+#[path = "gameplay_host/values.rs"]
 mod values;
 
 use combat::{current_hp, damage_entity, damage_entity_report, heal_entity, set_animation_bool};

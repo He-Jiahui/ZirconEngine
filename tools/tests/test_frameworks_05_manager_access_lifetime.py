@@ -10,22 +10,22 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 class Frameworks05ManagerAccessLifetimeTests(unittest.TestCase):
     def test_ui_text_resolves_project_asset_manager_only_for_bounded_operations(self) -> None:
         text_source = (
-            REPO_ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs"
+            REPO_ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/text.rs"
         ).read_text(encoding="utf-8")
         construct_source = (
-            REPO_ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs"
+            REPO_ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/construct.rs"
         ).read_text(encoding="utf-8")
         render_source = (
             REPO_ROOT
-            / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs"
+            / "zircon_runtime/src/graphics/scene/renderer/ui/render/record.rs"
         ).read_text(encoding="utf-8")
         scene_source = (
             REPO_ROOT
-            / "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs"
+            / "zircon_runtime/src/graphics/scene/renderer/core/render_scene/render_scene.rs"
         ).read_text(encoding="utf-8")
         graph_source = (
             REPO_ROOT
-            / "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs"
+            / "zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs"
         ).read_text(encoding="utf-8")
 
         constructor_source = text_source.split(

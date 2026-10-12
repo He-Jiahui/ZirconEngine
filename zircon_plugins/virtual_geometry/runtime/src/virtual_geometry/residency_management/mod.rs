@@ -1,9 +1,0 @@
-//! 集中处理页晋升、淘汰和槽位复用，维持驻留映射与待处理请求一致。
-mod clear_pending_request;
-mod evict_page;
-mod page_in_slot;
-mod promote_to_resident;
-mod promote_to_resident_in_slot;
-mod reserve_slot;
-mod take_free_slot;
-mod take_next_slot;

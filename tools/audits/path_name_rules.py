@@ -225,12 +225,31 @@ def make_moves(paths: list[str]) -> tuple[dict[str,str],list[dict]]:
             if new!=value:mapping[value]=new
     for old,new in PATH_NAMES.items():
         if old in mapping:mapping[old]=new
+    feature_folders={
+        "zircon_plugins/rendering/features/subsurface_scattering/":"zircon_plugins/rendering/features/subsurface/",
+        "zircon_plugins/sound/features/ray_traced_convolution_reverb/":"zircon_plugins/sound/features/ray_reverb/",
+        "zircon_plugins/sound/features/timeline_animation_track/":"zircon_plugins/sound/features/timeline/",
+    }
+    for old in paths:
+        for source,destination in feature_folders.items():
+            if old.startswith(source):mapping[old]=destination+old[len(source):]
+    short_leaves={
+        "animation_compiled_state_machine_contract.rs":"state_machine.rs",
+        "runtime_physics_animation_tick_contract.rs":"physics_tick.rs",
+        "runtime_environment_external_cubemap_import_staging_contract.rs":"cubemap_staging.rs",
+        "runtime_environment_ibl_artifact_source_identity_contract.rs":"ibl_identity.rs",
+        "feature_registration.rs":"register.rs",
+    }
+    for old in paths:
+        if path_units(old)>RELATIVE_LIMIT and old not in mapping and PurePosixPath(old).name in short_leaves:
+            mapping[old]=str(PurePosixPath(old).with_name(short_leaves[PurePosixPath(old).name]))
     # Shader manifests and their code are a package: retain sibling filenames.
     for role in ("compute","fullscreen"):
         for extension in ("wgsl","zshader"):
             old=f"zircon_runtime/tests/fixtures/shader_invocation/{role}_binding_probe/{role}_binding_probe.{extension}"
             if old in mapping:
-                mapping[old]=f"zircon_runtime/tests/fixtures/shaders/{role}/{role}_binding_probe.{extension}"
+                directory="screen" if role=="fullscreen" else role
+                mapping[old]=f"zircon_runtime/tests/fixtures/shaders/{directory}/{role}_binding_probe.{extension}"
     # A preexisting short destination always wins; moved files choose a distinct,
     # descriptive parent qualifier rather than overwriting or using a hash.
     occupied={p.casefold() for p in paths if p not in mapping}

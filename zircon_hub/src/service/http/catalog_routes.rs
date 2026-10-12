@@ -1,5 +1,6 @@
 use super::*;
 
+#[path = "catalog_routes/artifacts.rs"]
 pub(super) mod artifacts;
 
 pub(super) async fn catalog_entitlements(

@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/runtime/runtime.rs
-  - zircon_runtime/src/core/runtime/handle/activation
+  - zircon_runtime/src/core/runtime/handle
   - zircon_app/src/entry
 implementation_files:
   - zircon_runtime/src/core/runtime/state
@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - docs/wiki/core-runtime/runtime-and-module-lifecycle.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/activation
+  - zircon_runtime/src/core/runtime/tests
   - zircon_app/src/entry/tests/runtime_entry_source_guards
 doc_type: mechanism-case-study
 ---

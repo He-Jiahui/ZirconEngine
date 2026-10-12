@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_RS = ROOT / (
-    "zircon_runtime/src/core/framework/render/post_process/volume_registry.rs"
+    "zircon_runtime/src/core/framework/render/post/volume_registry.rs"
 )
 
 

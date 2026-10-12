@@ -263,7 +263,7 @@ impl UiModelProviderSchema {
 }
 
 #[cfg(test)]
-#[path = "model_schema/tests/field_lookup_performance_tests.rs"]
+#[path = "tests/field_lookup_perf.rs"]
 mod field_lookup_performance_tests;
 
 fn validate_model_identity(

@@ -9,7 +9,9 @@ use zircon_runtime::core::resource::ResourceScheme;
 
 const PERSISTED_ASSET_URI_PREFIXES: [&str; 4] = ["res://", "lib://", "package://", "builtin://"];
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

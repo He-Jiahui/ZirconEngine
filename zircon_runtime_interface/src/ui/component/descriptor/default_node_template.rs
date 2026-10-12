@@ -132,5 +132,5 @@ fn native_prefixes(value: &str) -> (String, String) {
 }
 
 #[cfg(test)]
-#[path = "default_node_template/tests/prefix_performance_tests.rs"]
+#[path = "tests/prefix_perf.rs"]
 mod prefix_performance_tests;

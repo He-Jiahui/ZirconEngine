@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/native_plugin_loader/dynamic_library_name.rs"
+    / "zircon_runtime/src/plugin/loader/dynamic_library_name.rs"
 )
 
 # 读取实现源码约束精确动态库名称：名称辅助函数预分配全部借用部分，并全部平台 branches 共享精确辅助函数。

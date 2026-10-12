@@ -51,5 +51,5 @@ fn breadcrumb_buffer(label: String) -> Vec<BreadcrumbModel> {
 }
 
 #[cfg(test)]
-#[path = "tests/breadcrumbs_optimization_tests.rs"]
+#[path = "tests/breadcrumbs_perf.rs"]
 mod optimization_tests;

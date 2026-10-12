@@ -1,14 +1,24 @@
 //! 图像资源契约门面：描述符先通过校验映射为视图形状，再由图形资源层创建纹理与采样器。
 //! 本模块只约束维度、格式、用途和回退语义，不跨越资源所有权边界。
+#[path = "asset_usage.rs"]
 mod asset_usage;
+#[path = "color_space.rs"]
 mod color_space;
+#[path = "descriptor.rs"]
 mod descriptor;
+#[path = "dimension.rs"]
 mod dimension;
+#[path = "fallback.rs"]
 mod fallback;
+#[path = "metadata.rs"]
 mod metadata;
+#[path = "metadata_validation.rs"]
 mod metadata_validation;
+#[path = "sampler.rs"]
 mod sampler;
+#[path = "shape.rs"]
 mod shape;
+#[path = "usage.rs"]
 mod usage;
 
 pub use asset_usage::RenderImageAssetUsage;

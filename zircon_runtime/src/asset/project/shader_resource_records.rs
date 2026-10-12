@@ -256,9 +256,9 @@ fn non_zero_revision_from_hash(hash: blake3::Hash) -> u64 {
 }
 
 #[cfg(test)]
-#[path = "shader_resource_records/tests/optimization_tests.rs"]
+#[path = "tests/shader_resource_perf.rs"]
 mod optimization_tests;
 
 #[cfg(test)]
-#[path = "shader_resource_records/tests/optimization_batch_jc_runtime642_tests.rs"]
+#[path = "shader_resource_records/tests/perf.rs"]
 mod optimization_batch_jc_runtime642_tests;

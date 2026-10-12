@@ -21,7 +21,7 @@ use super::super::DefaultSoundManager;
 const GRAPH_MUTATION_RETRY_LIMIT: usize = 8;
 
 #[cfg(test)]
-#[path = "sync/tests/retirement_tests.rs"]
+#[path = "../sync/tests/retirement.rs"]
 mod retirement_tests;
 
 #[cfg(test)]

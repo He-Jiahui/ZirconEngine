@@ -32,13 +32,21 @@ const UNKNOWN_PLAY_BACKEND_LOG_FRAME: u64 = 0;
 
 #[path = "play_gizmo.rs"]
 mod play_gizmo;
+#[path = "editor_host_event_controller/play_hierarchy.rs"]
 mod play_hierarchy;
+#[path = "editor_host_event_controller/play_inspector.rs"]
 mod play_inspector;
+#[path = "editor_host_event_controller/play_preview_input.rs"]
 mod play_preview_input;
+#[path = "editor_host_event_controller/play_viewport_pick.rs"]
 mod play_viewport_pick;
+#[path = "editor_host_event_controller/play_world_replacement.rs"]
 mod play_world_replacement;
+#[path = "../editor_host_event_controller/runtime_event_consumers.rs"]
 mod runtime_event_consumers;
+#[path = "editor_host_event_controller/runtime_shutdown.rs"]
 mod runtime_shutdown;
+#[path = "editor_host_event_controller/simulate_camera.rs"]
 mod simulate_camera;
 
 pub(crate) use play_gizmo::{PlayGizmoOverlaySnapshot, PlayGizmoPointerOutcome};
@@ -271,5 +279,5 @@ fn play_backend_diagnostic_source_label(diagnostic: &str) -> &str {
 }
 
 #[cfg(test)]
-#[path = "tests/editor_host_event_controller_lifecycle_contract_tests.rs"]
+#[path = "../tests/editor_host_event_controller_lifecycle_contract.rs"]
 mod lifecycle_contract_tests;

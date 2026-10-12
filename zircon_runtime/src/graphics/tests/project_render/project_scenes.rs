@@ -11,7 +11,9 @@ use crate::graphics::scene::{
 };
 use crate::graphics::{ViewportFrame, ViewportRenderFrame, WgpuRenderFramework};
 
+#[path = "project_scenes/pbr_matrix.rs"]
 mod pbr_matrix;
+#[path = "../project_scenes/reflection_probe_product.rs"]
 mod reflection_probe_product;
 
 use pbr_matrix::{

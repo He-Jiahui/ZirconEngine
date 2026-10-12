@@ -143,7 +143,7 @@ class RuntimeDynamicUiExtractGenerationContractTests(unittest.TestCase):
             "viewport_hud_key_change_publishes_one_new_allocation",
             "Arc::ptr_eq",
         ):
-            self.assertIn(anchor, (read_rust_test_file("zircon_editor/src/scene/viewport/controller/tests/scene_viewport_controller_build_runtime_overlay_ui.rs") if anchor in {"Arc::ptr_eq", "stable_viewport_hud_generation_reuses_the_same_allocation", "viewport_hud_key_change_publishes_one_new_allocation"} else overlay))
+            self.assertIn(anchor, (read_rust_test_file("zircon_editor/src/scene/viewport/controller/tests/build_runtime_overlay_ui.rs") if anchor in {"Arc::ptr_eq", "stable_viewport_hud_generation_reuses_the_same_allocation", "viewport_hud_key_change_publishes_one_new_allocation"} else overlay))
 
     def test_editor_world_space_ui_merge_is_generation_owned(self) -> None:
         state = read_editor_source("ui/retained_host/viewport/viewport_state.rs")
@@ -160,7 +160,7 @@ class RuntimeDynamicUiExtractGenerationContractTests(unittest.TestCase):
             "stable_world_space_generation_reuses_the_merged_allocation",
             "empty_world_space_generation_preserves_the_base_allocation",
         ):
-            self.assertIn(anchor, (read_rust_test_file("zircon_editor/src/ui/retained_host/viewport/tests/world_space_ui.rs") if anchor in {"empty_world_space_generation_preserves_the_base_allocation", "stable_world_space_generation_reuses_the_merged_allocation"} else world_space))
+            self.assertIn(anchor, (read_rust_test_file("zircon_editor/src/ui/retained/viewport/tests/world_space_ui.rs") if anchor in {"empty_world_space_generation_preserves_the_base_allocation", "stable_world_space_generation_reuses_the_merged_allocation"} else world_space))
 
 
 if __name__ == "__main__":

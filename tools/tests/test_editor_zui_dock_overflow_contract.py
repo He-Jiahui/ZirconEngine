@@ -36,14 +36,14 @@ class EditorZuiDockOverflowContractTests(unittest.TestCase):
 
     def test_layout_publishes_one_reserved_anchor_and_hidden_tab_authority(self):
         layout = source(
-            "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+            "zircon_editor/src/ui/layouts/windows/window/"
             "chrome_template_projection/dock_header.rs"
         )
         scene = source(
-            "zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs"
+            "zircon_editor/src/ui/layouts/windows/window/scene_projection.rs"
         )
         dock_patch = source(
-            "zircon_editor/src/ui/layouts/windows/workbench_host_window/"
+            "zircon_editor/src/ui/layouts/windows/window/"
             "scene_projection/dock_patch.rs"
         )
 
@@ -57,10 +57,10 @@ class EditorZuiDockOverflowContractTests(unittest.TestCase):
 
     def test_popup_uses_published_owner_geometry_for_paint_and_hit_testing(self):
         geometry = source(
-            "zircon_editor/src/ui/retained_host/host_contract/host_dock_overflow_menu.rs"
+            "zircon_editor/src/ui/retained/contract/host_dock_overflow_menu.rs"
         )
         painter = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/scene_layers/overlay/dock_overflow.rs"
         )
         routes = source(
@@ -95,17 +95,17 @@ class EditorZuiDockOverflowContractTests(unittest.TestCase):
             "scroll_dispatch/dock_overflow.rs"
         )
         keyboard = source(
-            "zircon_editor/src/ui/retained_host/host_contract/native_keyboard/"
+            "zircon_editor/src/ui/retained/contract/native_keyboard/"
             "target/dock_overflow.rs"
         )
         actions = source(
-            "zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs"
+            "zircon_editor/src/ui/retained/contract/native_keyboard/dispatch/actions.rs"
         )
         context = source(
-            "zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs"
+            "zircon_editor/src/ui/retained/contract/globals/ui_context.rs"
         )
         focus = source(
-            "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/focus.rs"
+            "zircon_editor/src/ui/retained/contract/window/event_loop/events/focus.rs"
         )
 
         for field in ("open", "surface_key", "hovered_tab_index", "scroll_offset"):
@@ -121,11 +121,11 @@ class EditorZuiDockOverflowContractTests(unittest.TestCase):
 
     def test_dock_popup_is_drawn_in_both_host_scene_paths(self):
         scene = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/scene_layers.rs"
         )
         componentized = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/scene_layers/overlay/componentized.rs"
         )
 

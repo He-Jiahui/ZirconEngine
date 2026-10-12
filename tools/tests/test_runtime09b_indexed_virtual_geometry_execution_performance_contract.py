@@ -5,11 +5,11 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 EXECUTION = (
     ROOT
-    / "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/execution.rs"
+    / "zircon_runtime/src/graphics/runtime/framework/extract/submit/debug/execution.rs"
 )
 ROOT_SOURCE = (
     ROOT
-    / "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs"
+    / "zircon_runtime/src/graphics/runtime/framework/extract/submit/debug.rs"
 )
 RECORD = (
     ROOT

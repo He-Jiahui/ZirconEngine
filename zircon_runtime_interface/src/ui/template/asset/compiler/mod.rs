@@ -1,5 +1,8 @@
+#[path = "binding_program.rs"]
 mod binding_program;
+#[path = "cache/mod.rs"]
 mod cache;
+#[path = "package/mod.rs"]
 mod package;
 
 pub use binding_program::{

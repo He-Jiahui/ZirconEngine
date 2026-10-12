@@ -25,5 +25,5 @@ pub(super) fn build_floating_windows(chrome: &EditorChromeSnapshot) -> Vec<Float
 }
 
 #[cfg(test)]
-#[path = "tests/floating_windows_optimization_batch_20260830bt_editor_tests.rs"]
+#[path = "tests/floating_windows_perf.rs"]
 mod optimization_batch_20260830bt_editor_tests;

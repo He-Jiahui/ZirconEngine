@@ -46,5 +46,5 @@ impl<'a> TensorProjection<'a> {
 }
 
 #[cfg(test)]
-#[path = "tensor_projection/tests/performance_tests.rs"]
+#[path = "tensor_projection/tests/perf.rs"]
 mod performance_tests;

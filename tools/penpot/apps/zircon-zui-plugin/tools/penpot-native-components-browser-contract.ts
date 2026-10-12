@@ -21,7 +21,7 @@ export async function verifyNativeComponentEdits(
     '../../../../..',
   );
   const buttonPath =
-    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui';
+    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui';
   const button = parseZuiDocument(
     await readFile(resolve(repo, buttonPath), 'utf8'),
   ).document;

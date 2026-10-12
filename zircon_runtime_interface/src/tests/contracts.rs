@@ -1,3 +1,4 @@
+#[path = "contracts/selector.rs"]
 mod selector;
 
 use crate::{

@@ -20,5 +20,5 @@ impl ViewRegistry {
 }
 
 #[cfg(test)]
-#[path = "tests/view_registry_descriptor_access_optimization_tests.rs"]
+#[path = "tests/registry_desc_access_perf.rs"]
 mod optimization_tests;

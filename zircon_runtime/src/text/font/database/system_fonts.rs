@@ -78,5 +78,5 @@ impl FontDatabase {
 }
 
 #[cfg(test)]
-#[path = "tests/system_fonts_optimization_batch_20260830cs_runtime_tests.rs"]
+#[path = "tests/system_fonts_perf.rs"]
 mod optimization_batch_20260830cs_runtime_tests;

@@ -13,18 +13,31 @@
 //! [`ResourceRecord`]、[`ResourceState`]、[`ResourceEvent`]。
 //! Shared resource identity and status DTOs for editor/runtime contracts.
 
+#[path = "asset_reference.rs"]
 mod asset_reference;
+#[path = "asset_uuid.rs"]
 mod asset_uuid;
+#[path = "diagnostic.rs"]
 mod diagnostic;
+#[path = "locator.rs"]
 mod locator;
+#[path = "marker.rs"]
 mod marker;
+#[path = "resource_event.rs"]
 mod resource_event;
+#[path = "resource_event_kind.rs"]
 mod resource_event_kind;
+#[path = "resource_handle.rs"]
 mod resource_handle;
+#[path = "resource_id.rs"]
 mod resource_id;
+#[path = "resource_record.rs"]
 mod resource_record;
+#[path = "stable_uuid.rs"]
 mod stable_uuid;
+#[path = "state.rs"]
 mod state;
+#[path = "untyped_handle.rs"]
 mod untyped_handle;
 
 pub use asset_reference::AssetReference;

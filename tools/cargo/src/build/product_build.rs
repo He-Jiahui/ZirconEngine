@@ -8,11 +8,17 @@ use std::process::{Child, Command, Stdio};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+#[path = "product_build/batch.rs"]
 mod batch;
+#[path = "product_build/build_set.rs"]
 mod build_set;
+#[path = "product_build/capture.rs"]
 mod capture;
+#[path = "product_build/cargo_protocol.rs"]
 mod cargo_protocol;
+#[path = "product_build/environment.rs"]
 mod environment;
+#[path = "product_build/runtime_cdylib.rs"]
 mod runtime_cdylib;
 
 #[cfg(test)]

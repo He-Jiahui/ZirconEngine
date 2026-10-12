@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OWNER = ROOT / "zircon_editor/src/ui/retained_host/detail_pointer"
+OWNER = ROOT / "zircon_editor/src/ui/retained/detail_pointer"
 
 
 def source(relative: str) -> str:
@@ -15,7 +15,7 @@ def source(relative: str) -> str:
 class DetailScrollChangeReceiptPerformanceContract(unittest.TestCase):
     def test_bridge_owns_only_scalar_layout_and_state(self):
         bridge = source(
-            "zircon_editor/src/ui/retained_host/detail_pointer/"
+            "zircon_editor/src/ui/retained/detail_pointer/"
             "scroll_surface_pointer_bridge.rs"
         )
 
@@ -39,10 +39,10 @@ class DetailScrollChangeReceiptPerformanceContract(unittest.TestCase):
 
     def test_direct_scroll_receipt_carries_changed_without_generic_dispatch(self):
         handler = source(
-            "zircon_editor/src/ui/retained_host/detail_pointer/handle_scroll.rs"
+            "zircon_editor/src/ui/retained/detail_pointer/handle_scroll.rs"
         )
         dispatch = source(
-            "zircon_editor/src/ui/retained_host/detail_pointer/"
+            "zircon_editor/src/ui/retained/detail_pointer/"
             "scroll_surface_pointer_dispatch.rs"
         )
 
@@ -60,11 +60,11 @@ class DetailScrollChangeReceiptPerformanceContract(unittest.TestCase):
 
     def test_scroll_layout_and_state_are_copy_scalar_values(self):
         layout = source(
-            "zircon_editor/src/ui/retained_host/detail_pointer/"
+            "zircon_editor/src/ui/retained/detail_pointer/"
             "scroll_surface_pointer_layout.rs"
         )
         state = source(
-            "zircon_editor/src/ui/retained_host/detail_pointer/"
+            "zircon_editor/src/ui/retained/detail_pointer/"
             "scroll_surface_pointer_state.rs"
         )
 
@@ -72,7 +72,7 @@ class DetailScrollChangeReceiptPerformanceContract(unittest.TestCase):
         self.assertIn("Clone, Copy", state)
 
     def test_host_state_does_not_duplicate_bridge_scroll_state(self):
-        host = source("zircon_editor/src/ui/retained_host/scroll_surface_host.rs")
+        host = source("zircon_editor/src/ui/retained/scroll_surface_host.rs")
         production = host.split("#[cfg(test)]", 1)[0]
 
         self.assertNotIn("state: ScrollSurfacePointerState", production)
@@ -83,9 +83,9 @@ class DetailScrollChangeReceiptPerformanceContract(unittest.TestCase):
 
     def test_scroll_constructors_have_no_mirror_identity_strings(self):
         bridge_new = source(
-            "zircon_editor/src/ui/retained_host/detail_pointer/new.rs"
+            "zircon_editor/src/ui/retained/detail_pointer/new.rs"
         )
-        host = source("zircon_editor/src/ui/retained_host/scroll_surface_host.rs")
+        host = source("zircon_editor/src/ui/retained/scroll_surface_host.rs")
         startup = source(
             "zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/"
             "state/interaction.rs"
@@ -100,7 +100,7 @@ class DetailScrollChangeReceiptPerformanceContract(unittest.TestCase):
     def test_all_detail_scroll_adapters_publish_only_changed_offsets(self):
         for name in ["console.rs", "asset_browser.rs"]:
             adapter = source(
-                "zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/" + name
+                "zircon_editor/src/ui/retained/app/detail_scroll_pointer/" + name
             )
             self.assertIn("if self", adapter, name)
             self.assertIn(".handle_scroll(UiPoint::new(x, y), delta)", adapter, name)
@@ -108,7 +108,7 @@ class DetailScrollChangeReceiptPerformanceContract(unittest.TestCase):
             self.assertNotIn("Ok(())", adapter, name)
 
         inspector = source(
-            "zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/inspector.rs"
+            "zircon_editor/src/ui/retained/app/detail_scroll_pointer/inspector.rs"
         )
         self.assertIn("route_workbench_inspector_scroll", inspector)
         self.assertIn("Ok(true) => return", inspector)
@@ -120,7 +120,7 @@ class DetailScrollChangeReceiptPerformanceContract(unittest.TestCase):
 
     def test_detail_layout_sync_publishes_only_changed_offsets(self):
         pointer_layout = source(
-            "zircon_editor/src/ui/retained_host/app/pointer_layout/detail_scrolls.rs"
+            "zircon_editor/src/ui/retained/app/pointer_layout/detail_scrolls.rs"
         )
 
         for pattern in [
@@ -141,7 +141,7 @@ class DetailScrollChangeReceiptPerformanceContract(unittest.TestCase):
 
     def test_detail_route_intent_mirror_binding_is_removed(self):
         route_intent = source(
-            "zircon_editor/src/ui/retained_host/route_intent/map.rs"
+            "zircon_editor/src/ui/retained/route_intent/map.rs"
         )
 
         self.assertNotIn("Detail(ScrollSurfacePointerRoute)", route_intent)
@@ -149,12 +149,12 @@ class DetailScrollChangeReceiptPerformanceContract(unittest.TestCase):
 
     def test_direct_cut_preserves_viewport_origin_clamp_and_tail_policy(self):
         handler = source(
-            "zircon_editor/src/ui/retained_host/detail_pointer/handle_scroll.rs"
+            "zircon_editor/src/ui/retained/detail_pointer/handle_scroll.rs"
         )
         viewport = source(
-            "zircon_editor/src/ui/retained_host/detail_pointer/viewport_frame.rs"
+            "zircon_editor/src/ui/retained/detail_pointer/viewport_frame.rs"
         )
-        host = source("zircon_editor/src/ui/retained_host/scroll_surface_host.rs")
+        host = source("zircon_editor/src/ui/retained/scroll_surface_host.rs")
 
         self.assertIn("viewport_origin_y", viewport)
         self.assertIn("self.clamp_scroll_offset()", handler)

@@ -1,7 +1,12 @@
+#[path = "editing.rs"]
 mod editing;
+#[path = "history.rs"]
 mod history;
+#[path = "lifecycle.rs"]
 mod lifecycle;
+#[path = "save.rs"]
 mod save;
+#[path = "sync.rs"]
 mod sync;
 
 use crate::core::asset::AssetToolkitOpenRoute;

@@ -1,6 +1,10 @@
+#[path = "capability.rs"]
 mod capability;
+#[path = "manager.rs"]
 mod manager;
+#[path = "module.rs"]
 mod module;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

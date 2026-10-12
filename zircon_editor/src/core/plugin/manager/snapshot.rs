@@ -115,7 +115,7 @@ fn build_active_extensions(
 }
 
 #[cfg(test)]
-#[path = "snapshot/tests/optimization_batch_ip_editor626_tests.rs"]
+#[path = "snapshot/tests/perf.rs"]
 mod optimization_batch_ip_editor626_tests;
 
 /// Immutable manager read model paired with exactly one catalog generation.

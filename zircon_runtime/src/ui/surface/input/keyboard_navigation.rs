@@ -73,5 +73,5 @@ fn normalized_direction_key(
 }
 
 #[cfg(test)]
-#[path = "keyboard_navigation/tests/single_normalize_tests.rs"]
+#[path = "tests/single_normalize.rs"]
 mod single_normalize_tests;

@@ -11,6 +11,7 @@ use zircon_runtime::asset::project::ProjectPaths;
 
 use crate::core::editor_message::{DocumentId, DocumentMessage};
 
+#[path = "lifecycle/retention_snapshot.rs"]
 mod retention_snapshot;
 
 pub use retention_snapshot::DocumentLifecycleRetentionSnapshot;

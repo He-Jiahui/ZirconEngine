@@ -721,7 +721,7 @@ fn remove_stale_shader_ide_files_in_dir(
 }
 
 #[cfg(test)]
-#[path = "ide_env_generation/tests/single_buffer_stub_header_tests.rs"]
+#[path = "tests/single_buffer_stub_header.rs"]
 mod single_buffer_stub_header_tests;
 
 #[cfg(test)]

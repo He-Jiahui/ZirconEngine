@@ -15,7 +15,7 @@ const SIDES = ['top', 'right', 'bottom', 'left'] as const;
 const WORKBENCH_WINDOW_SOURCE_PATH =
   'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
 const WORKBENCH_PREFERENCES_SOURCE_PATH =
-  'zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui';
+  'zircon_editor/assets/ui/editor/components/workbench/floating/preferences.zui';
 const table = (value: unknown): ZuiTable | undefined =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as ZuiTable)

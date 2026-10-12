@@ -1,12 +1,22 @@
+#[path = "animation/mod.rs"]
 mod animation;
+#[path = "asset/mod.rs"]
 mod asset;
+#[path = "docking/mod.rs"]
 mod docking;
+#[path = "draft/mod.rs"]
 mod draft;
+#[path = "editor_event_normalization.rs"]
 pub mod editor_event_normalization;
+#[path = "error.rs"]
 mod error;
+#[path = "inspector/mod.rs"]
 mod inspector;
+#[path = "selection/mod.rs"]
 mod selection;
+#[path = "viewport/mod.rs"]
 mod viewport;
+#[path = "welcome/mod.rs"]
 mod welcome;
 
 pub use animation::{dispatch_animation_binding, AnimationHostEvent};

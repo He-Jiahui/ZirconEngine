@@ -15,9 +15,13 @@
 //! # 参考
 //!
 //! 参见 [`GamepadButton`]、[`GamepadButtonSettings`]、[`GamepadButtonAxisSettings`]、[`GamepadButtonValueState`] 与 [`crate::core::framework::input::InputManager::frame_snapshot()`]。
+#[path = "axis_settings.rs"]
 mod axis_settings;
+#[path = "button.rs"]
 mod button;
+#[path = "settings.rs"]
 mod settings;
+#[path = "value_state.rs"]
 mod value_state;
 
 pub use self::{

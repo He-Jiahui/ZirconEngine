@@ -1,13 +1,16 @@
 use std::collections::HashSet;
 
+#[path = "material.rs"]
 mod material;
+#[path = "model.rs"]
 mod model;
+#[path = "scene.rs"]
 mod scene;
 
 use crate::asset::{AssetImportOutcome, AssetUri, ImportedAsset};
 
 #[cfg(test)]
-#[path = "tests/dedup_index_tests.rs"]
+#[path = "tests/dedup_index.rs"]
 mod dedup_index_tests;
 
 /// First-wave typed extraction stays explicit until the generic reflection plan lands.

@@ -7,12 +7,19 @@ use super::super::descriptors::FrozenModuleGraph;
 use super::super::state::{ModuleLifecycleCommand, ModuleLifecycleTransitionPermit};
 use super::CoreHandle;
 
+#[path = "activation/batch.rs"]
 mod batch;
+#[path = "activation/blocked_dependencies/mod.rs"]
 mod blocked_dependencies;
+#[path = "activation/blocked_unload.rs"]
 mod blocked_unload;
+#[path = "activation/module_lifecycle.rs"]
 mod module_lifecycle;
+#[path = "activation/service_lifecycle.rs"]
 mod service_lifecycle;
+#[path = "activation/startup.rs"]
 mod startup;
+#[path = "activation/unload_mutation.rs"]
 mod unload_mutation;
 
 use self::batch::transaction_set::LifecycleTransactionSet;

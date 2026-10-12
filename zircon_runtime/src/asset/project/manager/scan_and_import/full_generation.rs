@@ -776,9 +776,9 @@ fn verify_meta_preconditions(
 }
 
 #[cfg(test)]
-#[path = "full_generation/tests/optimization_batch_jk_runtime650_tests.rs"]
+#[path = "../full_generation/tests/perf.rs"]
 mod optimization_batch_jk_runtime650_tests;
 
 #[cfg(test)]
-#[path = "full_generation/tests/source_snapshot_tests.rs"]
+#[path = "../tests/source_snapshot.rs"]
 pub(super) mod source_snapshot_tests;

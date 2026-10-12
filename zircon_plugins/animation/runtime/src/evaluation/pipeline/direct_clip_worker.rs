@@ -108,5 +108,5 @@ pub(super) fn sample_direct_clip_pose_requests(
 }
 
 #[cfg(test)]
-#[path = "tests/direct_clip_worker_optimization_batch_20260830co_tests.rs"]
+#[path = "../tests/direct_clip_worker_perf.rs"]
 mod optimization_batch_20260830co_tests;

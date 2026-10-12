@@ -5,10 +5,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 PAINT_RECORDING = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_recording/record.rs"
+    "zircon_editor/src/ui/retained/contract/paint_recording/record.rs"
 )
 CHROME_EXTRACTION = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "chrome_command_stream/extraction/entry.rs"
 )
 PROFILE_MANIFEST = ROOT / "tools/profiling/shared/profile-capture-manifest.ps1"
@@ -45,11 +45,11 @@ class EditorChromePaintProfilingPerformanceContractTests(unittest.TestCase):
         source = PROFILE_MANIFEST.read_text(encoding="utf-8")
 
         self.assertIn(
-            '"zircon_editor/src/ui/retained_host/host_contract/paint_recording/record.rs"',
+            '"zircon_editor/src/ui/retained/contract/paint_recording/record.rs"',
             source,
         )
         self.assertIn(
-            '"zircon_editor/src/ui/retained_host/host_contract/'
+            '"zircon_editor/src/ui/retained/contract/'
             'chrome_command_stream/extraction/entry.rs"',
             source,
         )

@@ -62,5 +62,5 @@ impl AnimationClipEvaluator {
 }
 
 #[cfg(test)]
-#[path = "tests/diagnostics.rs"]
+#[path = "../tests/diagnostics.rs"]
 mod tests;

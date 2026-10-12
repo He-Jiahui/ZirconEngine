@@ -5,23 +5,23 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 TEXT_ENTRY = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_node_text.rs"
 )
 TEXT_COMMAND = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_node_text/command.rs"
 )
 TEXT_ELIGIBILITY = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_node_text/eligibility.rs"
 )
 TEXT_GEOMETRY = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_node_text/geometry.rs"
 )
 NODE_LABELS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_node_labels.rs"
 )
 

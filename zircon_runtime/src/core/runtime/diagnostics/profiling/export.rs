@@ -14,13 +14,15 @@ use zircon_runtime_interface::{
 
 use super::{analyze_counter_hotspots, analyze_hotspots, analyze_ui_hotspots};
 
+#[path = "export/json_writer.rs"]
 mod json_writer;
+#[path = "export/session_owner.rs"]
 mod session_owner;
 #[cfg(test)]
-#[path = "export/tests/session_owner_tests.rs"]
+#[path = "../../profiling/export/tests/session_owner.rs"]
 mod session_owner_tests;
 #[cfg(test)]
-#[path = "export/tests/streaming_tests.rs"]
+#[path = "export/tests/streaming.rs"]
 mod streaming_tests;
 
 use json_writer::write_json;

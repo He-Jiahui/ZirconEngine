@@ -13,7 +13,9 @@ use crate::core::{
     CoreResult, LifecycleState, ModuleContext, ModuleLifecycle, ServiceKind, StartupMode,
 };
 
+#[path = "../../behavior/activation/closure_atomicity.rs"]
 mod closure_atomicity;
+#[path = "../../behavior/activation/contention.rs"]
 mod contention;
 
 // 同时暴露首次构建、重复构建与清理的观察点，用于检验并发生命周期命令共用一次事务。

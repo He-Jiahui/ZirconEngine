@@ -1,14 +1,24 @@
 //! 高级光照的帧级数据和纯选择规则位于这里；资源驻留、通道编排及降级由 graphics 层消费后决定。
 //! 保持此边界可让场景提取和资产序列化不依赖 WGPU 资源生命周期。
+#[path = "cookie.rs"]
 mod cookie;
+#[path = "extract.rs"]
 mod extract;
+#[path = "irradiance_volume.rs"]
 mod irradiance_volume;
+#[path = "material_features.rs"]
 mod material_features;
+#[path = "material_usage.rs"]
 mod material_usage;
+#[path = "oit.rs"]
 mod oit;
+#[path = "planar.rs"]
 mod planar;
+#[path = "../../../render/advanced_lighting/screen_space_transmission.rs"]
 mod screen_space_transmission;
+#[path = "subsurface.rs"]
 mod subsurface;
+#[path = "volumetric.rs"]
 mod volumetric;
 
 pub use cookie::{CookieProjection, CookieWrapMode, LightCookieData};

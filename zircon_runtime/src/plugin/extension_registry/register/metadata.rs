@@ -303,5 +303,5 @@ fn normalize_custom_extension_token(token: &mut String) -> bool {
 }
 
 #[cfg(all(test, feature = "graphics"))]
-#[path = "metadata/tests/in_place_token_tests.rs"]
+#[path = "../../register/metadata/tests/in_place_token.rs"]
 mod in_place_token_tests;

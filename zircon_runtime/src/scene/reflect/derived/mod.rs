@@ -1,3 +1,4 @@
+#[path = "component_adapter.rs"]
 mod component_adapter;
 
 pub use component_adapter::{

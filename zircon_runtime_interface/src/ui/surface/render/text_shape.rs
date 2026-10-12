@@ -11,7 +11,7 @@ use super::{
 };
 
 #[cfg(test)]
-#[path = "text_shape/tests/performance_tests.rs"]
+#[path = "text_shape/tests/perf.rs"]
 mod performance_tests;
 
 fn default_text_font_weight() -> u16 {
@@ -869,9 +869,9 @@ fn grapheme_ceil(text: &str, offset: usize) -> usize {
 mod tests;
 
 #[cfg(test)]
-#[path = "text_shape/tests/resolved_layout_tests.rs"]
+#[path = "tests/resolved_layout.rs"]
 mod resolved_layout_tests;
 
 #[cfg(all(test, windows))]
-#[path = "text_shape/tests/projection_profile.rs"]
+#[path = "tests/projection_profile.rs"]
 mod projection_profile;

@@ -7,6 +7,7 @@ use thiserror::Error;
 use super::font::{FontCollectionRevision, FontCollectionService, SystemFontPolicy};
 use super::{compiled_unicode_data_snapshot, SharedTextLayoutSession, UnicodeDataSnapshot};
 
+#[path = "context/health.rs"]
 mod health;
 
 pub use health::TextRuntimeContextHealthSnapshot;

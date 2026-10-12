@@ -26,6 +26,7 @@ use super::line_box::aligned_x;
 use super::{virtual_fragment_sequence, visual_order};
 use crate::text::text_style;
 
+#[path = "rich_layout/profile.rs"]
 mod profile;
 
 use profile::{RichShapeProfilePhase, RichShapeProfileProvider};

@@ -10,43 +10,43 @@ ASSETS_ACTIVITY = ASSET_ROOT / "assets_activity.zui"
 EDITOR_TOKENS = ASSET_ROOT / "theme/editor_tokens.zui"
 HOST_ASSET_CONTROLS = ASSET_ROOT / "host/asset_surface_controls.zui"
 ASSET_POINTER_EVENTS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/click.rs"
+    "zircon_editor/src/ui/retained/app/asset_content_pointer/events/click.rs"
 )
 ASSET_POINTER_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/"
+    "zircon_editor/src/ui/retained/dispatch/shared_pointer/"
     "asset_content.rs"
 )
 BUILTIN_TEMPLATE_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs"
+    "zircon_editor/src/ui/runtime/builtin/bindings.rs"
 )
 ASSET_EVENT_EXECUTION_COMMON = REPO_ROOT / (
     "zircon_editor/src/ui/host/editor_event_execution/common.rs"
 )
 WORKBENCH_BUTTON_TAB_IDENTITY = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "style_selector/workbench_button/tab_like.rs"
 )
 POPUP_ROW_HIT_ROUTING = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/"
     "template_node/popup_rows/hit.rs"
 )
 KEYBOARD_OPTION_TARGET = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/native_keyboard/"
+    "zircon_editor/src/ui/retained/contract/native_keyboard/"
     "target/options.rs"
 )
 KEYBOARD_POPUP_ACTIONS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/native_keyboard/"
+    "zircon_editor/src/ui/retained/contract/native_keyboard/"
     "dispatch/actions.rs"
 )
 ASSET_ACTIVATION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "template_activation_semantics/asset.rs"
 )
 ASSET_CONTROL_IDS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/asset_control_ids.rs"
+    "zircon_editor/src/ui/retained/asset_control_ids.rs"
 )
 ASSET_TEXT_INPUT_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/text_input/edit/dispatch.rs"
+    "zircon_editor/src/ui/retained/contract/window/text_input/edit/dispatch.rs"
 )
 
 

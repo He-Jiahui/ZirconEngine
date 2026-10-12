@@ -51,7 +51,7 @@ fn normalize_project_relative_path(path: &Path) -> String {
 }
 
 #[cfg(test)]
-#[path = "source_path/tests/direct_join_tests.rs"]
+#[path = "../source_path/tests/direct_join.rs"]
 mod direct_join_tests;
 
 #[cfg(test)]

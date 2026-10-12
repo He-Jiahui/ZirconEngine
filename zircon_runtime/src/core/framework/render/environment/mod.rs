@@ -1,25 +1,46 @@
 //! 环境渲染契约的聚合门面：把天空盒、反射探针、辐照度、烘焙产物和运行时快照统一暴露给图形后端、插件与编辑器。
 //! 这里的类型只表达资源身份、采样布局和状态，不持有 GPU 资源所有权。
+#[path = "ambient.rs"]
 mod ambient;
+#[path = "cubemap_projection.rs"]
 mod cubemap_projection;
+#[path = "environment_brdf_lut.rs"]
 mod environment_brdf_lut;
+#[path = "environment_pbr_recipe.rs"]
 mod environment_pbr_recipe;
+#[path = "extract.rs"]
 mod extract;
+#[path = "ibl_bake_artifact.rs"]
 mod ibl_bake_artifact;
+#[path = "ibl_bake_artifact_blob.rs"]
 mod ibl_bake_artifact_blob;
+#[path = "../../../render/environment/ibl_bake_artifact_readback.rs"]
 mod ibl_bake_artifact_readback;
+#[path = "../../../render/environment/ibl_bake_artifact_resolution.rs"]
 mod ibl_bake_artifact_resolution;
+#[path = "ibl_bake_recipe.rs"]
 mod ibl_bake_recipe;
+#[path = "irradiance_comparison.rs"]
 mod irradiance_comparison;
+#[path = "lightmap.rs"]
 mod lightmap;
+#[path = "realtime_ibl_status.rs"]
 mod realtime_ibl_status;
+#[path = "reflection_probe.rs"]
 mod reflection_probe;
+#[path = "rgba16f.rs"]
 mod rgba16f;
+#[path = "runtime_snapshot.rs"]
 mod runtime_snapshot;
+#[path = "skybox/mod.rs"]
 mod skybox;
+#[path = "source_cubemap.rs"]
 mod source_cubemap;
+#[path = "source_cubemap_artifact.rs"]
 mod source_cubemap_artifact;
+#[path = "../source_cubemap_upload/mod.rs"]
 mod source_cubemap_upload;
+#[path = "../../../render/environment/source_irradiance_cubemap.rs"]
 mod source_irradiance_cubemap;
 
 pub use ambient::{ShL2Rgb, SH_L2_RGB_COEFFICIENT_COUNT};

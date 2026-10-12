@@ -1,5 +1,6 @@
 use super::*;
 
+#[path = "registry/persistence_service.rs"]
 mod persistence_service;
 
 #[test]

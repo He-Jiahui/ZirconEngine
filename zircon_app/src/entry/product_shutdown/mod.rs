@@ -1,9 +1,16 @@
+#[path = "coordinator.rs"]
 mod coordinator;
+#[path = "failure.rs"]
 mod failure;
+#[path = "failure_ledger.rs"]
 mod failure_ledger;
+#[path = "phase.rs"]
 mod phase;
+#[path = "retained_owner/mod.rs"]
 pub(in crate::entry) mod retained_owner;
+#[path = "terminal.rs"]
 mod terminal;
+#[path = "terminal_outcome.rs"]
 mod terminal_outcome;
 
 pub(crate) use coordinator::{

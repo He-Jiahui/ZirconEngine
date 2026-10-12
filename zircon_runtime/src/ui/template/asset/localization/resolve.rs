@@ -173,5 +173,5 @@ fn collect_locale_keys(path: &mut String, value: &Value, keys: &mut BTreeSet<Str
 }
 
 #[cfg(test)]
-#[path = "resolve/tests/performance_tests.rs"]
+#[path = "resolve/tests/perf.rs"]
 mod performance_tests;

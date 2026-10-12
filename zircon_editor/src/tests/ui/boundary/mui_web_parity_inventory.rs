@@ -293,7 +293,7 @@ fn mui_web_parity_pins_local_material_svg_icon_source() {
 #[test]
 fn editor_mui_web_parity_registers_local_material_icon_resolver() {
     let visual_assets =
-        editor_file("src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs");
+        editor_file("src/ui/retained/contract/paint/visual_assets.rs");
     for required_line in REQUIRED_MUI_ICON_RESOLVER_LINES {
         assert!(
             visual_assets.contains(required_line),
@@ -301,7 +301,7 @@ fn editor_mui_web_parity_registers_local_material_icon_resolver() {
         );
     }
     let mui_icons = editor_file(
-        "src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/mui_icons.rs",
+        "src/ui/retained/contract/paint/visual_assets/mui_icons.rs",
     );
     for required_line in REQUIRED_MUI_ICON_MODULE_LINES {
         assert!(

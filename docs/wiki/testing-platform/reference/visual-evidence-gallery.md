@@ -1,7 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/visual_artifacts.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/chrome_artifacts.rs
+  - zircon_editor/src/tests/host/callbacks/templates/breakpoints/visual_artifacts.rs
+  - zircon_editor/src/tests/host/menus/visual_screenshot/chrome_artifacts.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/component_atlas
   - zircon_runtime/tests/zui_native_visual_acceptance.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs

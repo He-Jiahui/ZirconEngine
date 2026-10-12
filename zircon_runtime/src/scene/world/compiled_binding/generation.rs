@@ -121,5 +121,5 @@ impl PartialEq for SceneBindingGenerations {
 }
 
 #[cfg(test)]
-#[path = "generation/tests/allocation_free_root_advance_tests.rs"]
+#[path = "../generation/tests/alloc_free_root_advance.rs"]
 mod allocation_free_root_advance_tests;

@@ -8,13 +8,17 @@ use crate::input::{
     InputFrameSnapshot,
 };
 
+#[path = "action_evaluator/consumed_input_index.rs"]
 mod consumed_input_index;
+#[path = "action_evaluator/frame_axis_index.rs"]
 mod frame_axis_index;
+#[path = "action_evaluator/generation.rs"]
 mod generation;
+#[path = "action_evaluator/workspace.rs"]
 mod workspace;
 
 #[cfg(test)]
-#[path = "action_evaluator/tests/button_state_single_pass_tests.rs"]
+#[path = "tests/button_state_single_pass.rs"]
 mod button_state_single_pass_tests;
 
 use consumed_input_index::ConsumedInputIndex;

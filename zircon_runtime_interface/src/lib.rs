@@ -3,29 +3,53 @@
 //! The Runtime DLL interface is an internal lockstep boundary under active
 //! hardening. It is not yet a stable external ABI.
 
+#[path = "buffer.rs"]
 pub mod buffer;
+#[path = "editor_command_execution.rs"]
 pub mod editor_command_execution;
+#[path = "editor_command_id.rs"]
 mod editor_command_id;
+#[path = "editor_contribution.rs"]
 pub mod editor_contribution;
+#[path = "export/mod.rs"]
 pub mod export;
+#[path = "handles.rs"]
 pub mod handles;
+#[path = "hub_protocol/mod.rs"]
 pub mod hub_protocol;
+#[path = "manifest.rs"]
 pub mod manifest;
+#[path = "math.rs"]
 pub mod math;
+#[path = "plugin_api.rs"]
 pub mod plugin_api;
+#[path = "plugin_diagnostics.rs"]
 pub mod plugin_diagnostics;
+#[path = "plugin_events.rs"]
 pub mod plugin_events;
+#[path = "profiling.rs"]
 pub mod profiling;
+#[path = "project/mod.rs"]
 pub mod project;
+#[path = "reflect/mod.rs"]
 pub mod reflect;
+#[path = "resource/mod.rs"]
 pub mod resource;
+#[path = "runtime_api/mod.rs"]
 pub mod runtime_api;
+#[path = "runtime_build_set/mod.rs"]
 pub mod runtime_build_set;
+#[path = "script_diagnostics/mod.rs"]
 pub mod script_diagnostics;
+#[path = "serialization/mod.rs"]
 pub mod serialization;
+#[path = "status.rs"]
 pub mod status;
+#[path = "ui/mod.rs"]
 pub mod ui;
+#[path = "version.rs"]
 pub mod version;
+#[path = "world_sync/mod.rs"]
 pub mod world_sync;
 
 pub use buffer::{
@@ -223,4 +247,5 @@ pub use version::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

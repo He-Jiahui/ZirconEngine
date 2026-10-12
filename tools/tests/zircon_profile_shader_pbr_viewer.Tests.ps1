@@ -300,9 +300,9 @@ Describe "zircon shader PBR viewer startup profile contract" {
             "zircon_app/src/bin/zircon_shader_pbr_viewer/main.rs",
             "zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs",
             "zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs",
-            "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/material_pipeline_publication.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs",
+            "zircon_runtime/src/graphics/scene/resources/resource_streamer/accessors.rs",
+            "zircon_runtime/src/graphics/mesh_pipeline_cache/material_pipeline_publish.rs",
+            "zircon_runtime/src/graphics/scene/mesh/mesh_pipeline_cache/shader_source.rs",
             "zircon_runtime/src/graphics/shader/template/assemble.rs",
             "zircon_runtime/src/graphics/shader/template/deferred_gbuffer.rs",
             "zircon_runtime/src/graphics/shader/template/taa_reactive_mask.rs",
@@ -362,7 +362,7 @@ Describe "zircon shader PBR viewer startup profile contract" {
             "zircon_runtime/src/asset/artifact/ibl_source_cubemap_bundle_manifest/error.rs",
             "zircon_runtime/src/asset/artifact/ibl_source_cubemap_bundle_manifest/manifest.rs",
             "zircon_runtime/src/asset/artifact/ibl_source_cubemap_bundle_manifest/mod.rs",
-            "zircon_runtime/src/asset/artifact/ibl_source_cubemap_bundle_manifest/payload_stamp.rs",
+            "zircon_runtime/src/asset/ibl_source_cubemap_bundle_manifest/payload_stamp.rs",
             "zircon_runtime/src/asset/artifact/ibl_source_cubemap_bundle_manifest/wire.rs",
             "zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs",
             "zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging/bundle_recovery.rs",
@@ -378,33 +378,33 @@ Describe "zircon shader PBR viewer startup profile contract" {
             "zircon_runtime/src/asset/importer/image_decode/source_metadata.rs",
             "zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs",
             "zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_blob.rs",
-            "zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_resolution.rs",
+            "zircon_runtime/src/core/render/environment/ibl_bake_artifact_resolution.rs",
             "zircon_runtime/src/core/framework/render/environment/source_cubemap_artifact.rs",
             "zircon_runtime/src/core/framework/render/environment/source_cubemap.rs",
             "zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs",
             "zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem.rs",
-            "zircon_runtime/src/core/framework/render/environment/source_cubemap/projection.rs",
+            "zircon_runtime/src/core/framework/render/source_cubemap/projection.rs",
             "zircon_runtime/src/core/framework/render/environment/source_cubemap/rebuild.rs",
-            "zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs",
+            "zircon_runtime/src/core/render/environment/source_irradiance_cubemap.rs",
             "zircon_runtime/src/core/framework/render/environment/environment_brdf_lut.rs",
             "zircon_runtime/src/core/framework/render/environment/skybox/mod.rs",
             "zircon_runtime/src/core/framework/render/environment/skybox/ibl_bake_key.rs",
             "zircon_runtime/src/core/framework/render/environment/skybox/mode.rs",
             "zircon_runtime/src/core/framework/render/environment/skybox/settings.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/procedural_sky/mod.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/procedural_sky/bake_key.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/procedural_sky/constants.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/procedural_sky/params.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/procedural_sky/resolved_sun.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/procedural_sky/sun_resolution.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/source_cubemap_environment/mod.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/source_cubemap_environment/equality.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/source_cubemap_environment/identity.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/source_cubemap_environment/provenance.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/source_cubemap_environment/state.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/source_cubemap_environment/upload.rs",
-            "zircon_runtime/src/core/framework/render/environment/skybox/source_cubemap_environment/upload_key.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_environment_only_pbr.wgsl",
+            "zircon_runtime/src/core/framework/render/skybox/procedural_sky/mod.rs",
+            "zircon_runtime/src/core/framework/render/skybox/procedural_sky/bake_key.rs",
+            "zircon_runtime/src/core/framework/render/skybox/procedural_sky/constants.rs",
+            "zircon_runtime/src/core/framework/render/skybox/procedural_sky/params.rs",
+            "zircon_runtime/src/core/framework/render/skybox/procedural_sky/resolved_sun.rs",
+            "zircon_runtime/src/core/framework/render/skybox/procedural_sky/sun_resolution.rs",
+            "zircon_runtime/src/core/framework/render/environment/skybox/cubemap/mod.rs",
+            "zircon_runtime/src/core/framework/render/environment/skybox/cubemap/equality.rs",
+            "zircon_runtime/src/core/framework/render/environment/skybox/cubemap/identity.rs",
+            "zircon_runtime/src/core/framework/render/skybox/cubemap/provenance.rs",
+            "zircon_runtime/src/core/framework/render/environment/skybox/cubemap/state.rs",
+            "zircon_runtime/src/core/framework/render/environment/skybox/cubemap/upload.rs",
+            "zircon_runtime/src/core/framework/render/skybox/cubemap/upload_key.rs",
+            "zircon_runtime/src/graphics/scene/deferred/shaders/environment_only_pbr.wgsl",
             "zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl",
             "zircon_runtime/src/graphics/shader/wgsl/zr_environment_core.wgsl",
             "zircon_runtime/src/graphics/shader/wgsl/zr_environment_generic_api.wgsl",
@@ -422,15 +422,15 @@ Describe "zircon shader PBR viewer startup profile contract" {
         $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
 
         foreach ($relativePath in @(
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_capture_wgpu.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_cpu_timing.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_resources.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_resources/execution_resource_cache.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_time_slice.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder.rs"
+            "zircon_runtime/src/graphics/scene/environment/realtime_ibl_capture_wgpu.rs",
+            "zircon_runtime/src/graphics/scene/environment/realtime_ibl_cpu_timing.rs",
+            "zircon_runtime/src/graphics/scene/environment/realtime_ibl_gpu_resources.rs",
+            "zircon_runtime/src/graphics/execution_resource_cache.rs",
+            "zircon_runtime/src/graphics/scene/environment/realtime_ibl_gpu_timestamps.rs",
+            "zircon_runtime/src/graphics/scene/environment/realtime_ibl_graph_plan.rs",
+            "zircon_runtime/src/graphics/scene/renderer/environment/realtime_ibl_runtime.rs",
+            "zircon_runtime/src/graphics/scene/environment/realtime_ibl_time_slice.rs",
+            "zircon_runtime/src/graphics/scene/environment/realtime_ibl_wgpu_recorder.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -441,12 +441,12 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
         foreach ($relativePath in @(
             "zircon_runtime/src/graphics/shader/wgsl/zr_procedural_sky.wgsl",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/realtime_ibl_capture.wgsl",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl",
-            "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/create_sky_pipeline.rs",
+            "zircon_runtime/src/graphics/scene/renderer/shaders/realtime_ibl_capture.wgsl",
+            "zircon_runtime/src/graphics/scene/renderer/shaders/skybox_procedural.wgsl",
+            "zircon_runtime/src/graphics/scene/overlay/construct/create_sky_pipeline.rs",
             "zircon_runtime/src/graphics/shader/template/module_registry.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs"
+            "zircon_runtime/src/graphics/scene/deferred/lighting_pipeline/shader_source.rs",
+            "zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -456,9 +456,9 @@ Describe "zircon shader PBR viewer startup profile contract" {
         $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
 
         foreach ($relativePath in @(
-            "zircon_plugins/rendering/features/reflection_probes/editor/src/capture/trigger.rs",
-            "zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/consume.rs",
-            "zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/request.rs"
+            "zircon_plugins/rendering/features/reflection_probes/editor/src/trigger.rs",
+            "zircon_plugins/rendering/features/reflection_probes/runtime/src/consume.rs",
+            "zircon_plugins/rendering/features/reflection_probes/runtime/src/request.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -469,16 +469,16 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
         foreach ($relativePath in @(
             "zircon_editor/src/ui/workbench/state/editor_state_render.rs",
-            "zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/execute.rs",
+            "zircon_plugins/rendering/features/reflection_probes/runtime/src/execute.rs",
             "zircon_runtime/src/core/framework/render/environment_capture.rs",
             "zircon_runtime/src/core/framework/render/frame_extract/world_snapshot_handle.rs",
             "zircon_runtime/src/core/framework/render/scene_extract/snapshot/aliases.rs",
-            "zircon_runtime/src/core/framework/render/scene_extract/snapshot/viewport_packet.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/completion.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/control_plane.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler/report.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/environment_capture_scene_batch.rs"
+            "zircon_runtime/src/core/framework/render/snapshot/viewport_packet.rs",
+            "zircon_runtime/src/graphics/runtime/framework/environment_capture_scheduler.rs",
+            "zircon_runtime/src/graphics/runtime/environment_capture_scheduler/completion.rs",
+            "zircon_runtime/src/graphics/environment_capture_scheduler/control_plane.rs",
+            "zircon_runtime/src/graphics/runtime/environment_capture_scheduler/report.rs",
+            "zircon_runtime/src/graphics/scene/renderer/environment/capture_scene_batch.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -489,16 +489,16 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
         foreach ($relativePath in @(
             "zircon_runtime/src/core/framework/render/frame_extract/post_process.rs",
-            "zircon_runtime/src/core/framework/render/post_process/color_space.rs",
-            "zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs",
-            "zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs",
-            "zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/style_settings.rs",
-            "zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_output_transfer/mod.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/output_transfer.wgsl",
-            "zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl"
+            "zircon_runtime/src/core/framework/render/post/color_space.rs",
+            "zircon_runtime/src/core/framework/render/post/effects.rs",
+            "zircon_runtime/src/core/render/post/effects/color_transform_settings.rs",
+            "zircon_runtime/src/core/framework/render/post/effects/style_settings.rs",
+            "zircon_runtime/src/graphics/pipeline/pipeline/resource_descriptors.rs",
+            "zircon_runtime/src/graphics/scene/renderer/post/constants/texture_formats.rs",
+            "zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs",
+            "zircon_runtime/src/graphics/scene/renderer/post/execute_output_transfer/mod.rs",
+            "zircon_runtime/src/graphics/scene/renderer/post/shaders/output_transfer.wgsl",
+            "zircon_runtime/src/graphics/scene/renderer/post/shaders/post.wgsl"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -508,10 +508,10 @@ Describe "zircon shader PBR viewer startup profile contract" {
         $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
 
         foreach ($relativePath in @(
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/tests/realtime_ibl_profile_test_support.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/cache.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/mod.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/variant.rs"
+            "zircon_runtime/src/graphics/scene/tests/realtime_ibl_profile_test_support.rs",
+            "zircon_runtime/src/graphics/scene/renderer/compiled_graph_cache/cache.rs",
+            "zircon_runtime/src/graphics/scene/renderer/compiled_graph_cache/mod.rs",
+            "zircon_runtime/src/graphics/scene/renderer/compiled_graph_cache/variant.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -522,11 +522,11 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
         foreach ($relativePath in @(
             "zircon_runtime/src/core/framework/render/environment/environment_pbr_recipe.rs",
-            "zircon_runtime/src/graphics/backend/render_backend/system_texture_generation_owner.rs",
-            "zircon_runtime/src/graphics/backend/render_backend/system_texture_generation_owner/environment_brdf_lut_rg16float.bin",
-            "zircon_runtime/src/graphics/backend/render_backend/system_texture_generation_owner/payloads.rs",
-            "zircon_runtime/src/graphics/backend/render_backend/system_texture_generation_owner/resources.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_brdf_lut.rs"
+            "zircon_runtime/src/graphics/backend/backend/textures.rs",
+            "zircon_runtime/src/graphics/backend/textures/environment_brdf_lut_rg16float.bin",
+            "zircon_runtime/src/graphics/backend/backend/textures/payloads.rs",
+            "zircon_runtime/src/graphics/backend/backend/textures/resources.rs",
+            "zircon_runtime/src/graphics/scene/renderer/core/core/environment_brdf_lut.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -537,15 +537,15 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
         foreach ($relativePath in @(
             "zircon_runtime/src/core/framework/render/environment/reflection_probe.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/capacity.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/gpu_layout.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/mod.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/report.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/resources.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/selection.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/slot_allocator.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/upload.rs"
+            "zircon_runtime/src/graphics/core/write_scene_uniform/write_scene_uniform.rs",
+            "zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/capacity.rs",
+            "zircon_runtime/src/graphics/scene/renderer/probe_buffer/gpu_layout.rs",
+            "zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/mod.rs",
+            "zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/report.rs",
+            "zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/resources.rs",
+            "zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/selection.rs",
+            "zircon_runtime/src/graphics/scene/renderer/probe_buffer/slot_allocator.rs",
+            "zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/upload.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -556,13 +556,13 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
         foreach ($relativePath in @(
             "zircon_runtime/src/graphics/scene/gpu_scene/layout.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/shaders/scatter.wgsl",
-            "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/shaders/setup.wgsl",
-            "zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl",
-            "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_pass.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl",
-            "zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl",
+            "zircon_runtime/src/graphics/scene/renderer/subsurface_pass/shaders/scatter.wgsl",
+            "zircon_runtime/src/graphics/scene/renderer/subsurface_pass/shaders/setup.wgsl",
+            "zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl",
+            "zircon_runtime/src/graphics/scene/renderer/lighting/light_grid_builder.rs",
+            "zircon_runtime/src/graphics/scene/renderer/lighting/light_grid_pass.rs",
+            "zircon_runtime/src/graphics/scene/renderer/lighting/shaders/zr_light_grid.wgsl",
+            "zircon_runtime/src/graphics/scene/renderer/mesh/shaders/zr_gpu_scene.wgsl",
             "zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_standard_pbr.wgsl",
             "zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_subsurface.wgsl",
             "zircon_runtime/src/graphics/shader/wgsl/zr_template_deferred_gbuffer.wgsl"
@@ -591,13 +591,13 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
         foreach ($relativePath in @(
             "zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_dispatch.rs",
-            "zircon_runtime/src/core/framework/render/environment/source_cubemap_upload/artifact.rs",
-            "zircon_runtime/src/core/framework/render/environment/source_cubemap_upload/build.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_ibl_hydration_cache.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/environment_ibl_compile_options.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap.rs",
+            "zircon_runtime/src/core/framework/render/source_cubemap_upload/artifact.rs",
+            "zircon_runtime/src/core/framework/render/source_cubemap_upload/build.rs",
+            "zircon_runtime/src/graphics/runtime/state/environment_ibl_hydration_cache.rs",
+            "zircon_runtime/src/graphics/runtime/framework/extract/submission/build.rs",
+            "zircon_runtime/src/graphics/submission/environment_ibl_compile_options.rs",
+            "zircon_runtime/src/graphics/runtime/extract/frame_submission_context.rs",
+            "zircon_runtime/src/graphics/scene/renderer/core/core/environment_cubemap.rs",
             "zircon_runtime/src/graphics/types/viewport_render_frame.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
@@ -609,10 +609,10 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
         foreach ($relativePath in @(
             "zircon_runtime/crates/zr_rhi_wgpu/src/production/buffer_upload_batch.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_capture_residency.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/render_framework_state.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap/upload_batch.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_texture_residency.rs"
+            "zircon_runtime/src/graphics/runtime/state/environment_capture_residency.rs",
+            "zircon_runtime/src/graphics/runtime/framework/state/state.rs",
+            "zircon_runtime/src/graphics/scene/core/core/environment_cubemap/upload_batch.rs",
+            "zircon_runtime/src/graphics/scene/renderer/core/texture_residency.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -620,9 +620,9 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
     It "binds environment cubemap staging observation to the frame upload publication boundary" {
         $repoRoot = "E:\Git\ZirconEngine"
-        $stagingPath = Join-Path $repoRoot "zircon_runtime\src\graphics\scene\scene_renderer\core\scene_renderer_core\environment_cubemap\upload_batch.rs"
-        $cubemapPath = Join-Path $repoRoot "zircon_runtime\src\graphics\scene\scene_renderer\core\scene_renderer_core\environment_cubemap.rs"
-        $queryPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\query_environment_runtime_snapshot\query_environment_runtime_snapshot.rs"
+        $stagingPath = Join-Path $repoRoot "zircon_runtime\src\graphics\scene\core\core\environment_cubemap\upload_batch.rs"
+        $cubemapPath = Join-Path $repoRoot "zircon_runtime\src\graphics\scene\renderer\core\core\environment_cubemap.rs"
+        $queryPath = Join-Path $repoRoot "zircon_runtime\src\graphics\query_environment_runtime_snapshot\snapshot.rs"
         $stagingSource = Get-Content -LiteralPath $stagingPath -Raw
         $cubemapSource = Get-Content -LiteralPath $cubemapPath -Raw
         $querySource = Get-Content -LiteralPath $queryPath -Raw
@@ -648,9 +648,9 @@ Describe "zircon shader PBR viewer startup profile contract" {
     It "projects bounded capture residency into the environment runtime snapshot" {
         $repoRoot = "E:\Git\ZirconEngine"
         $snapshotPath = Join-Path $repoRoot "zircon_runtime\src\core\framework\render\environment\runtime_snapshot.rs"
-        $queryPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\query_environment_runtime_snapshot\query_environment_runtime_snapshot.rs"
-        $residencyPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\render_framework_state\environment_capture_residency.rs"
-        $residentOutputPath = Join-Path $repoRoot "zircon_runtime\src\graphics\scene\scene_renderer\environment\environment_capture_source_submission.rs"
+        $queryPath = Join-Path $repoRoot "zircon_runtime\src\graphics\query_environment_runtime_snapshot\snapshot.rs"
+        $residencyPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\state\environment_capture_residency.rs"
+        $residentOutputPath = Join-Path $repoRoot "zircon_runtime\src\graphics\scene\environment\capture_source_submission.rs"
         $snapshotSource = Get-Content -LiteralPath $snapshotPath -Raw
         $querySource = Get-Content -LiteralPath $queryPath -Raw
         $residencySource = Get-Content -LiteralPath $residencyPath -Raw
@@ -685,10 +685,10 @@ Describe "zircon shader PBR viewer startup profile contract" {
     It "preaccounts persisted capture source payload bytes without scanning report payloads" {
         $repoRoot = "E:\Git\ZirconEngine"
         $contractPath = Join-Path $repoRoot "zircon_runtime\src\core\framework\render\environment_capture.rs"
-        $schedulerPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\environment_capture_scheduler.rs"
-        $reportPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\environment_capture_scheduler\report.rs"
-        $completionPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\environment_capture_scheduler\completion.rs"
-        $controlPlanePath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\render_framework\environment_capture_scheduler\control_plane.rs"
+        $schedulerPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\framework\environment_capture_scheduler.rs"
+        $reportPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\environment_capture_scheduler\report.rs"
+        $completionPath = Join-Path $repoRoot "zircon_runtime\src\graphics\runtime\environment_capture_scheduler\completion.rs"
+        $controlPlanePath = Join-Path $repoRoot "zircon_runtime\src\graphics\environment_capture_scheduler\control_plane.rs"
         $contractSource = Get-Content -LiteralPath $contractPath -Raw
         $schedulerSource = Get-Content -LiteralPath $schedulerPath -Raw
         $reportSource = Get-Content -LiteralPath $reportPath -Raw
@@ -720,7 +720,7 @@ Describe "zircon shader PBR viewer startup profile contract" {
             "zircon_runtime/src/graphics/shader/includes/zr_pbr_common.wgsl",
             "zircon_runtime/src/graphics/shader/includes/zr_pbr_extras_core.wgsl",
             "zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl",
-            "zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"
+            "zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -733,7 +733,7 @@ Describe "zircon shader PBR viewer startup profile contract" {
             "zircon_runtime/src/asset/assets/material/material_asset.rs",
             "zircon_runtime/src/core/framework/render/material/standard_material.rs",
             "zircon_runtime/src/core/framework/render/material/texture_transform.rs",
-            "zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs",
+            "zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/resource.rs",
             "zircon_runtime/src/graphics/scene/gpu_scene/bindless_material_payload.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
@@ -746,13 +746,13 @@ Describe "zircon shader PBR viewer startup profile contract" {
         foreach ($relativePath in @(
             "zircon_runtime/src/core/framework/render/advanced_lighting/material_features.rs",
             "zircon_runtime/src/core/framework/render/backend_types.rs",
-            "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/product/mesh_queue.rs",
+            "zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs",
             "zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs",
-            "zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge.rs"
+            "zircon_runtime/src/graphics/scene/resources/resource_streamer/ensure_material.rs",
+            "zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/commands.rs",
+            "zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue/stats.rs",
+            "zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue/stats_bridge.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }
@@ -763,10 +763,10 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
         foreach ($relativePath in @(
             "zircon_runtime/src/core/framework/render/frame_profile.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/frame_profiler/mesh_submission.rs",
-            "zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs",
-            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs"
+            "zircon_runtime/src/graphics/runtime/framework/frame_profiler/mesh_submission.rs",
+            "zircon_runtime/src/graphics/wgpu_render_framework/wgpu_render_framework.rs",
+            "zircon_runtime/src/graphics/scene/renderer/core/renderer/renderer.rs",
+            "zircon_runtime/src/graphics/scene/renderer/core/pipeline/pipeline.rs"
         )) {
             @($criticalSources | Where-Object { $_ -eq $relativePath }).Count | Should Be 1
         }

@@ -62,6 +62,7 @@ pub(in crate::scene) struct PreflightedDynamicScenePublication {
     next_id: EntityId,
 }
 
+#[path = "transaction/detached_entity_batch.rs"]
 mod detached_entity_batch;
 pub(crate) use detached_entity_batch::DetachPreparationOwner;
 pub use detached_entity_batch::{

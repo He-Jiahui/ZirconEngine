@@ -14,11 +14,11 @@ const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(
 ));
 const TEST_DEFAULT_SOURCE_CACHE_MAX_BYTES: usize = 8 * 1024 * 1024;
 
-#[path = "source_cache/readiness_generation.rs"]
+#[path = "../../tests/source_cache/readiness_generation.rs"]
 mod readiness_generation_tests;
 #[path = "source_cache/residency.rs"]
 mod residency_tests;
-#[path = "source_cache/worker_requests.rs"]
+#[path = "../../tests/source_cache/worker_requests.rs"]
 mod worker_request_tests;
 
 #[test]

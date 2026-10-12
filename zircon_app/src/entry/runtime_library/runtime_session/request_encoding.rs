@@ -182,5 +182,5 @@ impl Write for RuntimeRequestWriter {
 }
 
 #[cfg(test)]
-#[path = "request_encoding/tests/performance_tests.rs"]
+#[path = "tests/perf.rs"]
 mod performance_tests;

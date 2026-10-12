@@ -1,16 +1,30 @@
+#[path = "fallback/mod.rs"]
 mod fallback;
+#[path = "gpu_material_uniform/mod.rs"]
 mod gpu_material_uniform;
+#[path = "gpu_mesh/mod.rs"]
 mod gpu_mesh;
+#[path = "gpu_model/mod.rs"]
 mod gpu_model;
+#[path = "gpu_texture/mod.rs"]
 mod gpu_texture;
+#[path = "output_target_texture/mod.rs"]
 mod output_target_texture;
+#[path = "pipeline/mod.rs"]
 mod pipeline;
+#[path = "post_process_lut_texture/mod.rs"]
 mod post_process_lut_texture;
+#[path = "prepared/mod.rs"]
 mod prepared;
+#[path = "residency/mod.rs"]
 mod render_asset_residency;
+#[path = "renderer_shader_layout_contract.rs"]
 mod renderer_shader_layout_contract;
+#[path = "resource_streamer/mod.rs"]
 mod resource_streamer;
+#[path = "runtime/mod.rs"]
 mod runtime;
+#[path = "ui_texture.rs"]
 mod ui_texture;
 
 pub(crate) use fallback::fallback_shader_uri;

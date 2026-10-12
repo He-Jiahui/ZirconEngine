@@ -146,5 +146,5 @@ pub(crate) fn descriptor_only_advanced_slot_requires_capability_opt_in(
 }
 
 #[cfg(test)]
-#[path = "tests/advanced_slots_optimization_tests.rs"]
+#[path = "../tests/advanced_slots_perf.rs"]
 mod optimization_tests;

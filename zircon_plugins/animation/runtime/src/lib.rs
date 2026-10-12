@@ -1,15 +1,26 @@
 //! 动画运行时插件的公共 API：模块注册、采样契约、IK、蒙皮及状态机类型从此导出。
 //! 宿主通过插件清单激活帧系统，直接调用这些类型不会自动注册场景资源。
+#[path = "capability.rs"]
 mod capability;
+#[path = "channel_sampling/mod.rs"]
 mod channel_sampling;
+#[path = "evaluation/mod.rs"]
 mod evaluation;
+#[path = "gpu_skinning/mod.rs"]
 mod gpu_skinning;
+#[path = "ik/mod.rs"]
 mod ik;
+#[path = "manager.rs"]
 mod manager;
+#[path = "mask/mod.rs"]
 mod mask;
+#[path = "module.rs"]
 mod module;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "runtime_system.rs"]
 mod runtime_system;
+#[path = "state_machine/mod.rs"]
 mod state_machine;
 
 pub use capability::{

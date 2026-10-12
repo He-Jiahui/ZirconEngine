@@ -26,13 +26,21 @@ use crate::core::framework::{
     },
 };
 
+#[path = "gltf_importer/basic_import.rs"]
 mod basic_import;
+#[path = "gltf_importer/external_inputs.rs"]
 mod external_inputs;
+#[path = "gltf_importer/labeled_subassets.rs"]
 mod labeled_subassets;
+#[path = "gltf_importer/material_transforms.rs"]
 mod material_transforms;
+#[path = "gltf_importer/multi_primitive.rs"]
 mod multi_primitive;
+#[path = "gltf_importer/multi_scene.rs"]
 mod multi_scene;
+#[path = "gltf_importer/vertex_channels.rs"]
 mod vertex_channels;
+#[path = "gltf_importer/woc_required_extensions.rs"]
 mod woc_required_extensions;
 
 fn virtual_geometry_import_settings() -> toml::Table {

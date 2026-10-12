@@ -182,5 +182,5 @@ impl DamageReport {
 }
 
 #[cfg(test)]
-#[path = "tests/combat_performance_contract_tests.rs"]
+#[path = "tests/combat_perf_contract.rs"]
 mod performance_contract_tests;

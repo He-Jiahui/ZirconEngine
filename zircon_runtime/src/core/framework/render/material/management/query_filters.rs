@@ -7,7 +7,7 @@ use super::{
 use crate::core::framework::render::material::readiness_report::RenderMaterialReadinessStatus;
 
 #[cfg(test)]
-#[path = "query_filters/tests/capacity_tests.rs"]
+#[path = "tests/capacity.rs"]
 mod capacity_tests;
 
 const ACTIVE_QUERY_FILTER_MAX_COUNT: usize = 3;

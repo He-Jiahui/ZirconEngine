@@ -20,7 +20,7 @@ fn environment_only_pbr_reuses_caller_normalized_surface_inputs() {
     );
     let deferred_shading = wgsl_function_source(
         include_str!(
-            "../../../scene/scene_renderer/deferred/shaders/deferred_environment_only_pbr.wgsl"
+            "../../../scene/deferred/shaders/environment_only_pbr.wgsl"
         ),
         "fn shade_deferred_environment_only_pbr(",
     );
@@ -180,20 +180,20 @@ fn pbr_view_direction_has_one_owner_and_skips_redundant_endpoint_work() {
         (
             "environment-only deferred",
             include_str!(
-                "../../../scene/scene_renderer/deferred/shaders/deferred_environment_only_pbr.wgsl"
+                "../../../scene/deferred/shaders/environment_only_pbr.wgsl"
             ),
             "fn scene_view_dir_ws(",
             "let view_dir = zr_pbr_view_direction_ws(world_position);",
         ),
         (
             "generic deferred",
-            include_str!("../../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+            include_str!("../../../scene/deferred/shaders/deferred_lighting.wgsl"),
             "fn scene_view_dir_ws(",
             "let view_dir = zr_pbr_view_direction_ws(world_position);",
         ),
         (
             "fallback mesh",
-            include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"),
+            include_str!("../../../scene/renderer/mesh/shaders/fallback_mesh.wgsl"),
             "fn scene_view_dir_ws(",
             "let view_dir = zr_pbr_view_direction_ws(input.world_position);",
         ),
@@ -248,18 +248,18 @@ fn normalizer_contract_has_one_finite_length_owner() {
         (
             "environment-only Deferred",
             include_str!(
-                "../../../scene/scene_renderer/deferred/shaders/deferred_environment_only_pbr.wgsl"
+                "../../../scene/deferred/shaders/environment_only_pbr.wgsl"
             ),
             "fn normalize_or_zero(",
         ),
         (
             "generic Deferred",
-            include_str!("../../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+            include_str!("../../../scene/deferred/shaders/deferred_lighting.wgsl"),
             "fn normalize_or_zero(",
         ),
         (
             "fallback mesh",
-            include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"),
+            include_str!("../../../scene/renderer/mesh/shaders/fallback_mesh.wgsl"),
             "fn normalize_or_zero(",
         ),
     ] {
@@ -294,7 +294,7 @@ fn normalizer_contract_has_one_finite_length_owner() {
 
 #[test]
 fn fallback_mesh_deformed_frame_uses_the_finite_normalizer_owner() {
-    let fallback = include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl");
+    let fallback = include_str!("../../../scene/renderer/mesh/shaders/fallback_mesh.wgsl");
     let skinned_normal = wgsl_function_source(fallback, "fn skin_vertex_normal(");
     let skinned_tangent = wgsl_function_source(fallback, "fn skin_vertex_tangent(");
     let sampled_normal = wgsl_function_source(fallback, "fn sampled_world_normal(");
@@ -358,13 +358,13 @@ fn generic_pbr_indirect_reuses_caller_normalized_surface_inputs() {
         ),
         (
             "generic deferred lighting",
-            include_str!("../../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+            include_str!("../../../scene/deferred/shaders/deferred_lighting.wgsl"),
             "fn shade_deferred_lit(",
             "world_position,\n        normal,\n        view_dir,",
         ),
         (
             "fallback mesh",
-            include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"),
+            include_str!("../../../scene/renderer/mesh/shaders/fallback_mesh.wgsl"),
             "fn fs_main(",
             "input.world_position,\n        world_normal,\n        view_dir,",
         ),
@@ -390,7 +390,7 @@ fn generic_pbr_indirect_reuses_caller_normalized_surface_inputs() {
     }
 
     let deferred_subsurface = wgsl_function_source(
-        include_str!("../../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+        include_str!("../../../scene/deferred/shaders/deferred_lighting.wgsl"),
         "fn shade_deferred_subsurface_components(",
     );
     assert!(
@@ -422,13 +422,13 @@ fn pbr_punctual_lights_reuse_the_existing_light_vector_for_cone_visibility() {
         ),
         (
             "generic deferred",
-            include_str!("../../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+            include_str!("../../../scene/deferred/shaders/deferred_lighting.wgsl"),
             "fn punctual_light_visibility(",
             "normalize_or_zero",
         ),
         (
             "fallback mesh",
-            include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"),
+            include_str!("../../../scene/renderer/mesh/shaders/fallback_mesh.wgsl"),
             "fn punctual_light_visibility(",
             "normalize_or_zero",
         ),
@@ -478,17 +478,17 @@ fn pbr_punctual_lights_reject_out_of_range_before_normalizing_the_light_vector()
         ),
         (
             "generic deferred lighting",
-            include_str!("../../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+            include_str!("../../../scene/deferred/shaders/deferred_lighting.wgsl"),
             "fn shade_gpu_light_index(",
         ),
         (
             "generic deferred components",
-            include_str!("../../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl"),
+            include_str!("../../../scene/deferred/shaders/deferred_lighting.wgsl"),
             "fn shade_gpu_light_index_components(",
         ),
         (
             "fallback mesh",
-            include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl"),
+            include_str!("../../../scene/renderer/mesh/shaders/fallback_mesh.wgsl"),
             "fn shade_gpu_light_index(",
         ),
     ];

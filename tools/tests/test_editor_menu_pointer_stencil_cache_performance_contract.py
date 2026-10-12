@@ -6,7 +6,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 MENU_LAYOUT = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs"
+    / "zircon_editor/src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs"
 )
 
 

@@ -177,7 +177,7 @@ class Frameworks05ModuleIdentityChecks:
         )
         graphics_descriptor = (
             REPO_ROOT
-            / "zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs"
+            / "zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs"
         ).read_text(encoding="utf-8")
 
         self.assertTrue(neutral_owner.is_file())
@@ -362,7 +362,7 @@ class Frameworks05ModuleIdentityChecks:
         ).read_text(encoding="utf-8")
         core_spine = (
             REPO_ROOT
-            / "zircon_runtime/src/tests/runtime_absorption/builtin_modules/core_spine.rs"
+            / "zircon_runtime/src/tests/contracts/builtin_modules/core_spine.rs"
         ).read_text(encoding="utf-8")
 
         self.assertTrue(neutral_owner.is_file())
@@ -493,7 +493,7 @@ class Frameworks05ModuleIdentityChecks:
         ).read_text(encoding="utf-8")
         core_spine = (
             REPO_ROOT
-            / "zircon_runtime/src/tests/runtime_absorption/builtin_modules/core_spine.rs"
+            / "zircon_runtime/src/tests/contracts/builtin_modules/core_spine.rs"
         ).read_text(encoding="utf-8")
 
         self.assertFalse(legacy_contract.exists())

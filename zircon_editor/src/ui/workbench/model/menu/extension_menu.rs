@@ -213,9 +213,9 @@ fn collect_menu_operation_paths(
 }
 
 #[cfg(test)]
-#[path = "extension_menu/tests/operation_index_tests.rs"]
+#[path = "tests/operation_index.rs"]
 mod operation_index_tests;
 
 #[cfg(test)]
-#[path = "tests/optimization_batch_iz_editor639_tests.rs"]
+#[path = "tests/perf.rs"]
 mod optimization_batch_iz_editor639_tests;

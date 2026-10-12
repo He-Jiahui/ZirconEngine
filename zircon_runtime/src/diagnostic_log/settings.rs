@@ -191,7 +191,7 @@ impl From<DiagnosticLogFilterConfig> for DiagnosticLogSettings {
 }
 
 #[cfg(test)]
-#[path = "settings/tests/module_filters_single_buffer_tests.rs"]
+#[path = "settings/tests/module_filters_single_buffer.rs"]
 mod module_filters_single_buffer_tests;
 
 #[cfg(test)]

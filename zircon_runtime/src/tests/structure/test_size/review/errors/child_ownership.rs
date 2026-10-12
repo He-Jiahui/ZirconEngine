@@ -1,0 +1,33 @@
+//! 核对类型化错误审查的父子职责、源码清单及迁移锚点；子串与计数约束保留结构快照，后续合法新增需同步复核预期。
+use super::*;
+
+#[path = "ownership/budgets.rs"]
+mod budgets;
+#[path = "../../../../test_size/review/errors/ownership/delegation.rs"]
+mod delegation;
+#[path = "../../../../test_size/review/errors/ownership/review_guards.rs"]
+mod review_guards;
+#[path = "../../../../test_size/review/errors/ownership/root_child_rows.rs"]
+mod root_child_rows;
+#[path = "../../../../test_size/review/errors/ownership/root_inventory.rs"]
+mod root_inventory;
+#[path = "../../../../test_size/review/errors/ownership/root_paths.rs"]
+mod root_paths;
+#[path = "../../../../test_size/review/errors/ownership/root_sources.rs"]
+mod root_sources;
+#[path = "../../../../test_size/review/errors/ownership/structure_subtree.rs"]
+mod structure_subtree;
+
+pub(super) use root_child_rows::*;
+pub(super) use root_paths::*;
+pub(super) use root_sources::*;
+
+#[test]
+fn runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner() {
+    let sources = typed_error_child_ownership_sources();
+
+    delegation::assert_typed_error_child_ownership_is_folder_backed(&sources);
+    structure_subtree::assert_typed_error_structure_subtree_is_child_owned(&sources);
+    review_guards::assert_typed_error_review_guards_are_preserved(&sources);
+    budgets::assert_typed_error_child_ownership_budgets_are_focused(&sources);
+}

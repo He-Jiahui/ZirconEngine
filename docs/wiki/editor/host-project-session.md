@@ -1,14 +1,14 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/mod.rs
-  - zircon_editor/src/ui/retained_host/run_config.rs
+  - zircon_editor/src/ui/retained/mod.rs
+  - zircon_editor/src/ui/retained/run_config.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/host/editor_host_startup.rs
   - zircon_editor/src/core/project/mod.rs
   - zircon_editor/src/core/document/mod.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained/app.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/core/project/authority/mod.rs
   - zircon_editor/src/core/document/lifecycle.rs

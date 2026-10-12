@@ -163,5 +163,5 @@ fn preview_summary(preview_host: Option<&UiAssetPreviewHost>) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/preview_optimization_batch_20260830by_editor_tests.rs"]
+#[path = "tests/preview_perf.rs"]
 mod optimization_batch_20260830by_editor_tests;

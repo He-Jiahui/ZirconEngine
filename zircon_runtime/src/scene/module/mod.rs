@@ -10,13 +10,21 @@ use crate::core::{
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
+#[path = "core_error.rs"]
 mod core_error;
+#[path = "default_level_manager.rs"]
 mod default_level_manager;
+#[path = "level_display_name.rs"]
 mod level_display_name;
+#[path = "level_manager_contract.rs"]
 mod level_manager_contract;
+#[path = "level_manager_lifecycle.rs"]
 mod level_manager_lifecycle;
+#[path = "level_manager_project_io.rs"]
 mod level_manager_project_io;
+#[path = "scene_artifact_io.rs"]
 mod scene_artifact_io;
+#[path = "world_driver.rs"]
 mod world_driver;
 
 use core_error::scene_core_error;

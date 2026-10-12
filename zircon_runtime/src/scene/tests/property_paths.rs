@@ -9,6 +9,9 @@ use crate::scene::components::{
 };
 use crate::scene::world::World;
 
+#[path = "property_paths/read_paths.rs"]
 mod read_paths;
+#[path = "property_paths/runtime_mutation.rs"]
 mod runtime_mutation;
+#[path = "property_paths/write_validation.rs"]
 mod write_validation;

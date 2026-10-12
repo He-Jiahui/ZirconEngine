@@ -5,26 +5,26 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TEXT_SHAPE = ROOT / "zircon_runtime_interface/src/ui/surface/render/text_shape.rs"
 TEXT_SHAPE_TESTS = (
-    ROOT / "zircon_runtime_interface/src/ui/surface/render/text_shape/tests/resolved_layout_tests.rs"
+    ROOT / "zircon_runtime_interface/src/ui/surface/render/tests/resolved_layout.rs"
 )
 RESOLVED_LAYOUT = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout/rich_artifact_routes.rs"
+    / "zircon_runtime/src/graphics/scene/ui/resolved_layout/rich_artifact_routes.rs"
 )
 RICH_RENDER = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs"
 )
 TEXT_BATCHES = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_batches.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render/text_batches.rs"
 )
-SCREEN_RENDER = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+SCREEN_RENDER = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
 RICH_ROUTE_TESTS = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_artifact_routes.rs"
+    / "zircon_runtime/src/graphics/scene/ui/render/tests/rich_artifact_routes.rs"
 )
 RICH_PROJECTION_TESTS = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_projection_admission.rs"
+    / "zircon_runtime/src/graphics/scene/ui/render/tests/rich_project_admission.rs"
 )
 
 # 读取文本绘制运行投影，确认非空输入采用全有或全无结果，渲染器区分布局不匹配与缺失产物。

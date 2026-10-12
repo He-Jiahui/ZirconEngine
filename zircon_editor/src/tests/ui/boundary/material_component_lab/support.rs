@@ -96,7 +96,7 @@ pub(super) fn material_prototype_domain(key: &str) -> &'static str {
 
 pub(super) fn material_prototype_path(key: &str) -> PathBuf {
     editor_asset(&format!(
-        "assets/ui/editor/material_components/{}/material_{key}.zui",
+        "assets/ui/editor/{}/material_{key}.zui",
         material_prototype_domain(key)
     ))
 }
@@ -218,7 +218,7 @@ pub(super) fn numeric_prop(value: Option<&toml::Value>) -> Option<f64> {
 pub(super) fn material_prototype_files() -> &'static [PathBuf] {
     MATERIAL_PROTOTYPE_FILES
         .get_or_init(|| {
-            let dir = editor_asset("assets/ui/editor/material_components");
+            let dir = editor_asset("assets/ui/editor");
             let mut files = Vec::new();
             for domain in MATERIAL_COMPONENT_DOMAINS {
                 let domain_dir = dir.join(domain);

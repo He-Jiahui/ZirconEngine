@@ -342,7 +342,7 @@ def _classify_reference(relative_path: str, line: str, term: str) -> str:
     }:
         return "legacy-runtime-module-composition-debt"
     if normalized == (
-        "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project/selection.rs"
+        "zircon_runtime/src/plugin/runtime/catalog/project/selection.rs"
     ):
         return "legacy-runtime-plugin-selection-admission-debt"
     if normalized.startswith("zircon_runtime/src/render_graph/"):
@@ -352,7 +352,7 @@ def _classify_reference(relative_path: str, line: str, term: str) -> str:
     if normalized == "zircon_runtime/src/ui/component/state_reducer/state_model.rs":
         return "legacy-runtime-ui-event-dto-debt"
     if normalized == (
-        "zircon_runtime/src/ui/surface/surface/default_interactions/table/width_mutation.rs"
+        "zircon_runtime/src/ui/surface/surface/table/width_mutation.rs"
     ):
         return "legacy-runtime-ui-table-update-route-debt"
     if normalized == "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs":
@@ -373,15 +373,15 @@ def _classify_reference(relative_path: str, line: str, term: str) -> str:
         return "legacy-net-hyper-client-api-debt"
     if normalized == "zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs":
         return "external-hyper-http1-client-policy"
-    if normalized.startswith("zircon_runtime/src/scene/dynamic_scene/document/"):
+    if normalized.startswith("zircon_runtime/src/scene/dynamic/document/"):
         return "legacy-runtime-scene-document-debt"
     if (
-        normalized.startswith("zircon_runtime/src/ui/template/")
-        or normalized.startswith("zircon_editor/src/ui/template_runtime/")
-        or normalized.startswith("zircon_editor/src/ui/asset_editor/")
+        normalized.startswith("zircon_runtime/src/ui/")
+        or normalized.startswith("zircon_editor/src/ui/runtime/")
+        or normalized.startswith("zircon_editor/src/ui/")
     ):
         return "legacy-runtime-ui-template-debt"
-    if normalized.startswith("zircon_editor/src/ui/retained_host/") or normalized.startswith(
+    if normalized.startswith("zircon_editor/src/ui/retained/") or normalized.startswith(
         "zircon_editor/src/ui/layouts/"
     ):
         return "legacy-editor-ui-fixture-debt"

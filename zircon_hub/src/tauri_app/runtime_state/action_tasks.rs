@@ -19,6 +19,7 @@ use crate::tauri_app::action_id::HubActionId;
 use crate::tauri_app::HubActionRequest;
 use crate::tauri_app::HubViewModel;
 
+#[path = "action_tasks/queue_admission.rs"]
 mod queue_admission;
 
 use queue_admission::enqueue_background_action;

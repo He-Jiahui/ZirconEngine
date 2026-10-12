@@ -1,5 +1,7 @@
 // 对照前排序是为消除声明和组装顺序差异；依赖、目录与模块身份仍逐项比较。
+#[path = "../entry/collect.rs"]
 mod collect;
+#[path = "../entry/ordering.rs"]
 mod ordering;
 
 use super::StaticSoundContributions;

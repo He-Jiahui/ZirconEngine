@@ -193,5 +193,5 @@ impl ImporterRuntimeManifestBuilder {
 }
 
 #[cfg(test)]
-#[path = "tests/importer_runtime_performance_tests.rs"]
+#[path = "tests/importer_runtime_perf.rs"]
 mod performance_tests;

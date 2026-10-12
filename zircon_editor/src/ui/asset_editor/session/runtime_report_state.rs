@@ -279,11 +279,11 @@ fn unsafe_action_guidance_items(
 }
 
 #[cfg(test)]
-#[path = "runtime_report_state/tests/policy_index_tests.rs"]
+#[path = "tests/policy_index.rs"]
 mod policy_index_tests;
 
 #[cfg(test)]
-#[path = "runtime_report_state/tests/optimization_batch_ji_editor648_tests.rs"]
+#[path = "runtime_report_state/tests/perf.rs"]
 mod optimization_batch_ji_editor648_tests;
 
 fn action_binding_label(diagnostic: &UiActionPolicyDiagnostic) -> String {

@@ -7,7 +7,7 @@ from tools.analysis.performance.editor.editor_segmented_options_paint_pressure i
 
 ROOT = Path(__file__).resolve().parents[2]
 SEGMENTED = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_segmented_controls"
 )
 

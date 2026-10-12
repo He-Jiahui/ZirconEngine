@@ -147,7 +147,7 @@ describe('applyZuiExportFileToSourceRoot', () => {
     const fixture = expandedExport();
 
     try {
-      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor/components'), {
+      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor'), {
         recursive: true,
       });
       await writeFile(ownerPath, fixture.ownerSource, 'utf8');
@@ -211,7 +211,7 @@ describe('applyZuiExportFileToSourceRoot', () => {
     });
 
     try {
-      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor/components'), {
+      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor'), {
         recursive: true,
       });
       await writeFile(ownerPath, fixture.ownerSource, 'utf8');
@@ -256,7 +256,7 @@ describe('applyZuiExportFileToSourceRoot', () => {
     const fixture = expandedExport();
 
     try {
-      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor/components'), {
+      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor'), {
         recursive: true,
       });
       await writeFile(join(sourceRootPath, sourcePath), fixture.ownerSource, 'utf8');
@@ -290,7 +290,7 @@ describe('applyZuiExportFileToSourceRoot', () => {
     const fixture = expandedExport();
 
     try {
-      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor/components'), {
+      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor'), {
         recursive: true,
       });
       await writeFile(join(sourceRootPath, sourcePath), fixture.ownerSource, 'utf8');
@@ -332,7 +332,7 @@ describe('applyZuiExportFileToSourceRoot', () => {
     exported['penpot_source_exports'] = JSON.stringify(metadata);
 
     try {
-      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor/components'), {
+      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor'), {
         recursive: true,
       });
       await writeFile(join(sourceRootPath, sourcePath), fixture.ownerSource, 'utf8');
@@ -372,7 +372,7 @@ describe('applyZuiExportFileToSourceRoot', () => {
     exported['penpot_source_exports'] = JSON.stringify(metadata);
 
     try {
-      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor/components'), {
+      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor'), {
         recursive: true,
       });
       await writeFile(join(sourceRootPath, sourcePath), fixture.ownerSource, 'utf8');
@@ -414,7 +414,7 @@ describe('applyZuiExportFileToSourceRoot', () => {
     exported['penpot_source_exports'] = JSON.stringify(metadata);
 
     try {
-      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor/components'), {
+      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor'), {
         recursive: true,
       });
       await writeFile(join(sourceRootPath, sourcePath), fixture.ownerSource, 'utf8');
@@ -486,7 +486,7 @@ describe('applyZuiExportFileToSourceRoot', () => {
     exported['penpot_source_exports'] = JSON.stringify(metadata);
 
     try {
-      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor/components'), {
+      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor'), {
         recursive: true,
       });
       await writeFile(join(sourceRootPath, sourcePath), fixture.ownerSource, 'utf8');
@@ -519,7 +519,7 @@ describe('applyZuiExportFileToSourceRoot', () => {
     const fixture = expandedExport({ sourcePath: '../outside.zui' });
 
     try {
-      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor/components'), {
+      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor'), {
         recursive: true,
       });
       await writeFile(join(sourceRootPath, sourcePath), fixture.ownerSource, 'utf8');
@@ -575,7 +575,7 @@ describe('applyZuiExportFileToSourceRoot', () => {
     const fixture = expandedExport();
 
     try {
-      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor/components'), {
+      await mkdir(join(sourceRootPath, 'zircon_editor/assets/ui/editor'), {
         recursive: true,
       });
       await writeFile(join(sourceRootPath, sourcePath), fixture.ownerSource, 'utf8');

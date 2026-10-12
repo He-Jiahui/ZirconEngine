@@ -162,5 +162,5 @@ fn diagnostic_matches_reference(
 }
 
 #[cfg(test)]
-#[path = "resolution_report/tests/cached_diagnostic_index_tests.rs"]
+#[path = "../tests/cached_diagnostic_index.rs"]
 mod cached_diagnostic_index_tests;

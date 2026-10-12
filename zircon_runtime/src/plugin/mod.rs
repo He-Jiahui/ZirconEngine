@@ -1,16 +1,30 @@
+#[path = "bridge.rs"]
 mod bridge;
+#[path = "capability_status.rs"]
 mod capability_status;
+#[path = "core_profiles.rs"]
 mod core_profiles;
+#[path = "export_build_plan/mod.rs"]
 mod export_build_plan;
+#[path = "extension_registry/mod.rs"]
 mod extension_registry;
+#[path = "extension_registry_error.rs"]
 mod extension_registry_error;
+#[path = "native.rs"]
 pub mod native;
+#[path = "loader/mod.rs"]
 mod native_plugin_loader;
+#[path = "package_manifest/mod.rs"]
 mod package_manifest;
+#[path = "package_service/mod.rs"]
 pub mod package_service;
+#[path = "plugin_maturity.rs"]
 mod plugin_maturity;
+#[path = "runtime/mod.rs"]
 mod runtime_plugin;
+#[path = "runtime_profile.rs"]
 mod runtime_profile;
+#[path = "ui_component_descriptor.rs"]
 mod ui_component_descriptor;
 
 pub use bridge::{

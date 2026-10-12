@@ -1,5 +1,8 @@
+#[path = "gpu_texture_resource.rs"]
 mod gpu_texture_resource;
+#[path = "asset_texture.rs"]
 mod gpu_texture_resource_from_asset;
+#[path = "sampler_cache.rs"]
 mod sampler_cache;
 
 pub(crate) use gpu_texture_resource::GpuTextureResource;

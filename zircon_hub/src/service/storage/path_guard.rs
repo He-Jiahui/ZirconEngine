@@ -5,7 +5,9 @@ use std::{
     path::{Component, Path, PathBuf, Prefix},
 };
 
+#[path = "path_guard/private_access.rs"]
 mod private_access;
+#[path = "path_guard/windows.rs"]
 mod windows;
 
 const FILE_READ_ATTRIBUTES: u32 = 0x80;

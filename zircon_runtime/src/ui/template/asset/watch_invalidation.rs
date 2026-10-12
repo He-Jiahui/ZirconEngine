@@ -67,5 +67,5 @@ impl UiAssetDependencyIndex {
 }
 
 #[cfg(test)]
-#[path = "tests/watch_invalidation_optimization_tests.rs"]
+#[path = "tests/watch_invalidation_perf.rs"]
 mod optimization_tests;

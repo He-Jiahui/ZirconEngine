@@ -20,6 +20,7 @@ use zircon_runtime_interface::ui::surface::{
     UiTextAlign, UiTextRenderMode, UiTextWrap,
 };
 
+#[path = "support/mod.rs"]
 mod support;
 
 const TEXT_RASTER_SETTLE_MAX_FRAMES: u64 = 120;

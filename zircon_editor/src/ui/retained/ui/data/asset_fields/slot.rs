@@ -1,0 +1,207 @@
+//! 插槽明细保留源节点和槽位身份，编辑事件据此回到资产设计器的原始对象。
+use crate::ui::asset_editor;
+
+use super::row_model::{push_detail_row, semantic_label, UiAssetDetailFieldRow};
+
+const SLOT_DETAIL_ROW_MAX_COUNT: usize = 18;
+
+pub(super) fn slot_detail_rows(
+    data: &asset_editor::UiAssetEditorPanePresentation,
+) -> Vec<UiAssetDetailFieldRow> {
+    let mut rows = Vec::with_capacity(slot_detail_row_capacity(data));
+    push_detail_row(
+        &mut rows,
+        "Mount",
+        &data.inspector_mount,
+        "slot.mount.set",
+        "UiAssetSlotFieldMount",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Padding",
+        &data.inspector_slot_padding,
+        "slot.padding.set",
+        "UiAssetSlotFieldPadding",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Width preferred",
+        &data.inspector_slot_width_preferred,
+        "slot.layout.width.preferred.set",
+        "UiAssetSlotFieldWidthPreferred",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Height preferred",
+        &data.inspector_slot_height_preferred,
+        "slot.layout.height.preferred.set",
+        "UiAssetSlotFieldHeightPreferred",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        semantic_label("Semantic", &data.inspector_slot_semantic_path).as_str(),
+        &data.inspector_slot_semantic_value,
+        "slot.semantic.value.set",
+        "UiAssetSlotFieldSemanticValue",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Linear width weight",
+        &data.inspector_slot_linear_main_weight,
+        "slot.linear.width_weight.set",
+        "UiAssetSlotFieldLinearWidthWeight",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Linear width stretch",
+        &data.inspector_slot_linear_main_stretch,
+        "slot.linear.width_stretch.set",
+        "UiAssetSlotFieldLinearWidthStretch",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Linear height weight",
+        &data.inspector_slot_linear_cross_weight,
+        "slot.linear.height_weight.set",
+        "UiAssetSlotFieldLinearHeightWeight",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Linear height stretch",
+        &data.inspector_slot_linear_cross_stretch,
+        "slot.linear.height_stretch.set",
+        "UiAssetSlotFieldLinearHeightStretch",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Overlay anchor x",
+        &data.inspector_slot_overlay_anchor_x,
+        "slot.overlay.anchor_x.set",
+        "UiAssetSlotFieldOverlayAnchorX",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Overlay anchor y",
+        &data.inspector_slot_overlay_anchor_y,
+        "slot.overlay.anchor_y.set",
+        "UiAssetSlotFieldOverlayAnchorY",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Overlay position x",
+        &data.inspector_slot_overlay_position_x,
+        "slot.overlay.position_x.set",
+        "UiAssetSlotFieldOverlayPositionX",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Overlay position y",
+        &data.inspector_slot_overlay_position_y,
+        "slot.overlay.position_y.set",
+        "UiAssetSlotFieldOverlayPositionY",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Overlay z",
+        &data.inspector_slot_overlay_z_index,
+        "slot.overlay.z_index.set",
+        "UiAssetSlotFieldOverlayZ",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Grid row",
+        &data.inspector_slot_grid_row,
+        "slot.grid.row.set",
+        "UiAssetSlotFieldGridRow",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Grid column",
+        &data.inspector_slot_grid_column,
+        "slot.grid.column.set",
+        "UiAssetSlotFieldGridColumn",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Flow break before",
+        &data.inspector_slot_flow_break_before,
+        "slot.flow.break_before.set",
+        "UiAssetSlotFieldFlowBreakBefore",
+        false,
+        false,
+    );
+    push_detail_row(
+        &mut rows,
+        "Flow alignment",
+        &data.inspector_slot_flow_alignment,
+        "slot.flow.alignment.set",
+        "UiAssetSlotFieldFlowAlignment",
+        false,
+        false,
+    );
+    rows
+}
+
+fn slot_detail_row_capacity(data: &asset_editor::UiAssetEditorPanePresentation) -> usize {
+    let capacity = [
+        &data.inspector_mount,
+        &data.inspector_slot_padding,
+        &data.inspector_slot_width_preferred,
+        &data.inspector_slot_height_preferred,
+        &data.inspector_slot_semantic_value,
+        &data.inspector_slot_linear_main_weight,
+        &data.inspector_slot_linear_main_stretch,
+        &data.inspector_slot_linear_cross_weight,
+        &data.inspector_slot_linear_cross_stretch,
+        &data.inspector_slot_overlay_anchor_x,
+        &data.inspector_slot_overlay_anchor_y,
+        &data.inspector_slot_overlay_position_x,
+        &data.inspector_slot_overlay_position_y,
+        &data.inspector_slot_overlay_z_index,
+        &data.inspector_slot_grid_row,
+        &data.inspector_slot_grid_column,
+        &data.inspector_slot_flow_break_before,
+        &data.inspector_slot_flow_alignment,
+    ]
+    .into_iter()
+    .filter(|value| !value.is_empty())
+    .count();
+    debug_assert!(capacity <= SLOT_DETAIL_ROW_MAX_COUNT);
+    capacity
+}
+
+#[cfg(test)]
+#[path = "slot/tests/capacity.rs"]
+mod capacity_tests;

@@ -5,7 +5,7 @@ use super::workbench_skeleton::WorkbenchSkeleton;
 use super::{EditorRegion, EditorRegionRole, RegionBinding, WorkbenchConstraintTokenName};
 
 #[cfg(test)]
-#[path = "shell_regions_asset/tests/region_bitset_tests.rs"]
+#[path = "tests/region_bitset.rs"]
 mod region_bitset_tests;
 
 pub const WORKBENCH_SHELL_REGIONS_ASSET_KIND: &str = "layout_regions";

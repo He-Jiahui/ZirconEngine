@@ -21,6 +21,7 @@ use crate::ui::surface::input::{
 };
 use crate::ui::text::clamp_grapheme_boundary;
 
+#[path = "resolve/text_style_parsing.rs"]
 mod text_style_parsing;
 
 #[cfg(test)]

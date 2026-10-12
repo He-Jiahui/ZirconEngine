@@ -11,7 +11,7 @@ class EditorRetainedWorkbenchContributionProjectionContractTests(unittest.TestCa
 
     def test_controller_projects_real_contributions_and_capabilities(self) -> None:
         projection = self.read(
-            "zircon_editor/src/ui/host/editor_event_runtime_access/"
+            "zircon_editor/src/ui/host/"
             "workbench_projection.rs"
         )
 
@@ -41,7 +41,7 @@ class EditorRetainedWorkbenchContributionProjectionContractTests(unittest.TestCa
 
     def test_focus_dispatch_uses_the_authoritative_layout_query(self) -> None:
         source = self.read(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/layout/"
+            "zircon_editor/src/ui/retained/dispatch/layout/"
             "floating_window/dispatch.rs"
         )
 

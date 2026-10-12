@@ -3,10 +3,15 @@ use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
+#[path = "asset_mui_web_style/data_display.rs"]
 mod data_display;
+#[path = "asset_mui_web_style/feedback.rs"]
 mod feedback;
+#[path = "asset_mui_web_style/slots_native.rs"]
 mod slots_native;
+#[path = "asset_mui_web_style/state_icons.rs"]
 mod state_icons;
+#[path = "asset_mui_web_style/surface.rs"]
 mod surface;
 
 const MUI_WEB_STYLE_TOML: &str = r##"

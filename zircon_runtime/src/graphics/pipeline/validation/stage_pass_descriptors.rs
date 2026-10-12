@@ -22,5 +22,5 @@ pub(in crate::graphics::pipeline) fn stage_pass_descriptors(
 }
 
 #[cfg(test)]
-#[path = "tests/stage_pass_descriptors_optimization_tests.rs"]
+#[path = "tests/stage_pass_descs_perf.rs"]
 mod optimization_tests;

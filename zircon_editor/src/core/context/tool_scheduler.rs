@@ -19,7 +19,9 @@ use crate::core::tools::{
     ToolShutdownOutcome, ToolTransitionBatch, ToolTransitionRevision, WithdrawOutcome,
 };
 
+#[path = "tool_scheduler/error.rs"]
 mod error;
+#[path = "tool_scheduler/observation.rs"]
 mod observation;
 
 pub use error::ToolSchedulerServiceError;

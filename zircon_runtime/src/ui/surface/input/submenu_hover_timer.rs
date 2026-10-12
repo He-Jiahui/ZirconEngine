@@ -73,5 +73,5 @@ fn with_submenu_hover_route_policy(
 }
 
 #[cfg(test)]
-#[path = "submenu_hover_timer/tests/owned_event_tests.rs"]
+#[path = "submenu_hover_timer/tests/owned_event.rs"]
 mod owned_event_tests;

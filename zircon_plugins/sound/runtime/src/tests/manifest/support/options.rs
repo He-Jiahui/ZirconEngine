@@ -1,7 +1,11 @@
 // 选项静态投影同时供键集合与完整元数据测试使用；生产源由 sound_options 提供。
+#[path = "options/keys.rs"]
 mod keys;
+#[path = "options/parser.rs"]
 mod parser;
+#[path = "options/projection.rs"]
 mod projection;
+#[path = "options/state.rs"]
 mod state;
 
 pub(super) use keys::option_keys_from_plugin_toml;

@@ -1,4 +1,4 @@
-#[path = "../state/tests/normal_catalog_prepared_project.rs"]
+#[path = "../../state/tests/normal_catalog_prepared_project.rs"]
 mod normal_catalog_prepared_project;
 #[path = "../state/tests/reload_source_settlement.rs"]
 mod reload_source_settlement;

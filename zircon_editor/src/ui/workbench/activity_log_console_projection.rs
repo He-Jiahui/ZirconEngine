@@ -218,7 +218,7 @@ fn console_level(severity: LogSeverity) -> EditorConsoleMessageLevel {
 }
 
 #[cfg(test)]
-#[path = "activity_log_console_projection/tests/capacity_tests.rs"]
+#[path = "activity_log_console_project/tests/capacity.rs"]
 mod capacity_tests;
 
 #[cfg(test)]

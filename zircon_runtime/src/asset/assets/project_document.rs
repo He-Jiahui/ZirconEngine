@@ -1,6 +1,10 @@
+#[path = "project_document/codec.rs"]
 mod codec;
+#[path = "project_document/material.rs"]
 mod material;
+#[path = "project_document/model.rs"]
 mod model;
+#[path = "project_document/scene.rs"]
 mod scene;
 
 pub(in crate::asset) use codec::ProjectDocumentArtifact;

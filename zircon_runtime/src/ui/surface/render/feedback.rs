@@ -8,8 +8,11 @@ use zircon_runtime_interface::ui::{
     tree::UiTemplateNodeMetadata,
 };
 
+#[path = "feedback/colors.rs"]
 mod colors;
+#[path = "feedback/commands.rs"]
 mod commands;
+#[path = "feedback/state.rs"]
 mod state;
 
 use self::colors::{

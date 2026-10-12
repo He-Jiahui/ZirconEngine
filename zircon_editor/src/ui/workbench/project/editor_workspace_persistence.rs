@@ -6,7 +6,7 @@ use zircon_runtime::core::resource::io::atomic_write;
 use zircon_runtime::scene::world::SceneProjectError;
 
 #[cfg(test)]
-#[path = "editor_workspace_persistence/tests/borrowed_save_tests.rs"]
+#[path = "tests/borrowed_save.rs"]
 mod borrowed_save_tests;
 
 use super::editor_project_document::EditorWorkspaceRestoreDiagnostic;

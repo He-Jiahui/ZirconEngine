@@ -11,9 +11,9 @@ from tools.audits.runtime_domain_dependency_audit import _rust_code_view, _rust_
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FRAMEWORK_SHADER_ROOT = REPO_ROOT / "zircon_runtime/src/core/framework/render/shader"
 FRAMEWORK_RENDER_MOD = REPO_ROOT / "zircon_runtime/src/core/framework/render/mod.rs"
-INVOCATION_ROOT = REPO_ROOT / "zircon_runtime/src/graphics/shader/invocation"
+INVOCATION_ROOT = REPO_ROOT / "zircon_runtime/src/graphics/shader"
 GRAPHICS_SHADER_MOD = REPO_ROOT / "zircon_runtime/src/graphics/shader/mod.rs"
-INVOCATION_FIXTURE_ROOT = REPO_ROOT / "zircon_runtime/tests/fixtures/shader_invocation"
+INVOCATION_FIXTURE_ROOT = REPO_ROOT / "zircon_runtime/tests/fixtures/shaders"
 OLD_BUILDER_NAMES = {"ComputeDispatchBuilder", "FullscreenPassBuilder"}
 REQUIRED_INVOCATION_FILES = {
     "compiler.rs",

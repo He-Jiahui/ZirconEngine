@@ -5,35 +5,61 @@ use std::sync::OnceLock;
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::UiComponentDescriptor;
 
+#[path = "button_inputs.rs"]
 mod button_inputs;
+#[path = "data_display.rs"]
 mod data_display;
+#[path = "../../../catalog/material_foundation/data_display_editor.rs"]
 mod data_display_editor;
+#[path = "../../../catalog/material_foundation/data_display_subcomponents.rs"]
 mod data_display_subcomponents;
+#[path = "../../../catalog/material_foundation/data_display_table.rs"]
 mod data_display_table;
+#[path = "../../../catalog/material_foundation/data_display_visuals.rs"]
 mod data_display_visuals;
+#[path = "feedback.rs"]
 mod feedback;
+#[path = "../../../catalog/material_foundation/feedback_editor_overlays.rs"]
 mod feedback_editor_overlays;
+#[path = "form_controls.rs"]
 mod form_controls;
+#[path = "inputs.rs"]
 mod inputs;
+#[path = "lab_subcomponents.rs"]
 mod lab_subcomponents;
+#[path = "layout.rs"]
 mod layout;
+#[path = "layout_editor.rs"]
 mod layout_editor;
+#[path = "layout_mui.rs"]
 mod layout_mui;
+#[path = "../../../catalog/material_foundation/layout_transitions.rs"]
 mod layout_transitions;
+#[path = "layout_utilities.rs"]
 mod layout_utilities;
+#[path = "mui_x.rs"]
 mod mui_x;
+#[path = "navigation.rs"]
 mod navigation;
+#[path = "navigation_editor.rs"]
 mod navigation_editor;
+#[path = "../../../catalog/material_foundation/navigation_secondary.rs"]
 mod navigation_secondary;
+#[path = "../../../catalog/material_foundation/navigation_subcomponents.rs"]
 mod navigation_subcomponents;
+#[path = "selection_inputs.rs"]
 mod selection_inputs;
+#[path = "shared.rs"]
 mod shared;
+#[path = "../../../catalog/material_foundation/surface_subcomponents.rs"]
 mod surface_subcomponents;
+#[path = "surfaces.rs"]
 mod surfaces;
+#[path = "text_inputs.rs"]
 mod text_inputs;
 
 #[cfg(test)]
-#[path = "tests/capacity_tests.rs"]
+#[path = "tests/capacity.rs"]
 mod capacity_tests;
 
 static MATERIAL_EDITOR_FOUNDATION_REGISTRY: OnceLock<UiComponentDescriptorRegistry> =

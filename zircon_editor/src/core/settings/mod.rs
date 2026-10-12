@@ -1,18 +1,33 @@
+#[path = "authority.rs"]
 mod authority;
+#[path = "catalog/mod.rs"]
 mod catalog;
+#[path = "change_log.rs"]
 mod change_log;
+#[path = "defaults.rs"]
 mod defaults;
+#[path = "definition.rs"]
 mod definition;
+#[path = "io.rs"]
 mod io;
+#[path = "keymap_overrides.rs"]
 mod keymap_overrides;
+#[path = "mutation.rs"]
 mod mutation;
+#[path = "page.rs"]
 mod page;
+#[path = "persistence.rs"]
 mod persistence;
+#[path = "registry.rs"]
 mod registry;
+#[path = "scope.rs"]
 mod scope;
+#[path = "snapshot.rs"]
 mod snapshot;
+#[path = "startup.rs"]
 mod startup;
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;
 
 pub use crate::core::commands::EditorCommandPaletteMru;

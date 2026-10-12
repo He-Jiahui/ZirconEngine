@@ -11,7 +11,7 @@ use super::super::owner::PluginModuleId;
 use super::super::RuntimeExtensionRegistry;
 
 #[cfg(test)]
-#[path = "resource_registration/tests/poison_recovery_tests.rs"]
+#[path = "tests/poison_recovery.rs"]
 mod poison_recovery_tests;
 
 type ResourceApplyFn = Arc<dyn Fn(&mut World) -> Result<(), ResourceApplyError> + Send + Sync>;

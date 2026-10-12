@@ -1,7 +1,12 @@
+#[path = "compiler.rs"]
 mod compiler;
+#[path = "diagnostic.rs"]
 mod diagnostic;
+#[path = "fullscreen_pass.rs"]
 mod fullscreen_pass;
+#[path = "parameter_packer.rs"]
 mod parameter_packer;
+#[path = "resource_bindings.rs"]
 mod resource_bindings;
 
 pub use compiler::{

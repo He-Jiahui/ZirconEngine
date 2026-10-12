@@ -1,4 +1,6 @@
+#[path = "asset_error.rs"]
 mod asset_error;
+#[path = "asset_error_message.rs"]
 mod asset_error_message;
 
 pub(super) use asset_error::asset_error;

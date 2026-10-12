@@ -1,4 +1,6 @@
+#[path = "../../project/asset_workspace_state/inspector_resource_labels.rs"]
 mod inspector_resource_labels;
+#[path = "../../project/asset_workspace_state/content_browser_sync.rs"]
 mod content_browser_sync;
 
 use std::cell::{Cell, RefCell};
@@ -819,5 +821,5 @@ fn reference_snapshot(
 }
 
 #[cfg(test)]
-#[path = "asset_workspace_state/tests/performance_tests.rs"]
+#[path = "asset_workspace_state/tests/perf.rs"]
 mod performance_tests;

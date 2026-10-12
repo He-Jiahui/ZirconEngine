@@ -185,5 +185,5 @@ fn compaction_path(path: &std::path::Path) -> Result<PathBuf, DurableJournalErro
 }
 
 #[cfg(test)]
-#[path = "tests/store_optimization_batch_hw_editor605_tests.rs"]
+#[path = "tests/store_perf.rs"]
 mod optimization_batch_hw_editor605_tests;

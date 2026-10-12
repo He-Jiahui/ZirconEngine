@@ -193,5 +193,5 @@ pub const CANONICAL_ENVIRONMENT_PBR_RECIPE: EnvironmentPbrRecipe = EnvironmentPb
 };
 
 #[cfg(test)]
-#[path = "tests/environment_pbr_recipe.rs"]
+#[path = "../tests/environment_pbr_recipe.rs"]
 mod tests;

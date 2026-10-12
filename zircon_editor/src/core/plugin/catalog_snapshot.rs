@@ -164,5 +164,5 @@ impl EditorPluginCatalogSnapshot {
 mod optimization_tests;
 
 #[cfg(test)]
-#[path = "catalog_snapshot/tests/optimization_batch_iq_editor627_tests.rs"]
+#[path = "catalog_snapshot/tests/perf.rs"]
 mod optimization_batch_iq_editor627_tests;

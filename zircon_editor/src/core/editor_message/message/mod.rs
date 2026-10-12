@@ -1,16 +1,30 @@
+#[path = "delivery.rs"]
 mod delivery;
+#[path = "dirty_mark.rs"]
 mod dirty_mark;
+#[path = "document.rs"]
 mod document;
+#[path = "envelope.rs"]
 mod envelope;
+#[path = "focus.rs"]
 mod focus;
+#[path = "mode.rs"]
 mod mode;
+#[path = "payload.rs"]
 mod payload;
+#[path = "protocol.rs"]
 mod protocol;
+#[path = "request.rs"]
 mod request;
+#[path = "response.rs"]
 mod response;
+#[path = "scene_inspection/mod.rs"]
 mod scene_inspection;
+#[path = "schema_id.rs"]
 mod schema_id;
+#[path = "tool.rs"]
 mod tool;
+#[path = "transaction.rs"]
 mod transaction;
 
 pub use delivery::EditorMessageDelivery;

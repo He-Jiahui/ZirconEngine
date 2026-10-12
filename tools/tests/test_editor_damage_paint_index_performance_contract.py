@@ -4,16 +4,16 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 PAINT_INDEX = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/"
     "template_node/index.rs"
 )
-PAINT_INDEX_TESTS = ROOT / "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/index/tests/cases.rs"
+PAINT_INDEX_TESTS = ROOT / "zircon_editor/src/ui/retained/contract/node/index/tests/cases.rs"
 PRESENTATION_GENERATION = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/data/"
+    "zircon_editor/src/ui/retained/contract/data/"
     "presentation_generation.rs"
 )
 TEMPLATE_DRAW = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_node_pipeline/draw.rs"
 )
 COMPONENTIZED_OVERLAY = ROOT / (

@@ -295,5 +295,5 @@ fn budget_error(budget: &'static str, limit: usize) -> UiBindingExpressionEvalua
 }
 
 #[cfg(test)]
-#[path = "tests/evaluator.rs"]
+#[path = "../tests/evaluator.rs"]
 mod tests;

@@ -40,11 +40,17 @@ use super::plugin_render_feature_fixtures::{
     virtual_geometry_render_feature_descriptor,
 };
 
+#[path = "render_framework_bridge/advanced_providers.rs"]
 mod advanced_providers;
+#[path = "render_framework_bridge/history.rs"]
 mod history;
+#[path = "hybrid_gi_visual_export.rs"]
 mod hybrid_gi_visual_export;
+#[path = "render_framework_bridge/neural_compute.rs"]
 mod neural_compute;
+#[path = "render_framework_bridge/pipeline_profiles.rs"]
 mod pipeline_profiles;
+#[path = "render_framework_bridge/stats.rs"]
 mod stats;
 
 fn test_extract() -> RenderFrameExtract {

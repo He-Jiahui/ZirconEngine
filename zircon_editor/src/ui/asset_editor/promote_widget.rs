@@ -256,7 +256,7 @@ fn widget_slug(component_name: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "promote_widget/tests/optimization_batch_iw_editor633_tests.rs"]
+#[path = "promote_widget/tests/perf.rs"]
 mod optimization_batch_iw_editor633_tests;
 
 #[cfg(test)]

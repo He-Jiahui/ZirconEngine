@@ -299,7 +299,7 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "tests/browser_virtualization.rs"]
+#[path = "../tests/browser_virtualization.rs"]
 mod tests;
 use super::controls::BROWSER_CONTENT_LIST_ROW_HEIGHT;
 use super::thumbnail_grid::AssetThumbnailGridMetrics;

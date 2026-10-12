@@ -1,9 +1,13 @@
 //! 为编译依赖、Editor 文件诊断和运行时注册表查找提供各自的资源边界。
 //! 收集不执行加载；磁盘路径检查与运行时句柄解析需要由宿主分别配置。
 
+#[path = "collect.rs"]
 mod collect;
+#[path = "resolution_report.rs"]
 mod resolution_report;
+#[path = "resolve.rs"]
 mod resolve;
+#[path = "resolver.rs"]
 mod resolver;
 
 pub use collect::{collect_document_resource_dependencies, unique_resource_references};

@@ -1,7 +1,12 @@
+#[path = "construct.rs"]
 mod construct;
+#[path = "error.rs"]
 mod error;
+#[path = "format.rs"]
 mod format;
+#[path = "parse.rs"]
 mod parse;
+#[path = "serde.rs"]
 mod serde;
 
 use uuid::Uuid;

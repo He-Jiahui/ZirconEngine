@@ -1,12 +1,19 @@
 //! 内容下载内存状态与根网络服务之间的边界：清单、尝试、续传和进度由子模块管理，HTTP 通过 Core 服务句柄执行。
 //! 独立构造器仅创建离线状态；没有注册句柄时 fetch 不会隐式创建新的网络后端。
 
+#[path = "manager/attempts.rs"]
 mod attempts;
+#[path = "manager/bitmap.rs"]
 mod bitmap;
+#[path = "manager/http_fetch.rs"]
 mod http_fetch;
+#[path = "manager/manifest.rs"]
 mod manifest;
+#[path = "manager/progress.rs"]
 mod progress;
+#[path = "manager/resume.rs"]
 mod resume;
+#[path = "manager/state.rs"]
 mod state;
 
 use zircon_runtime::core::framework::net::NetManager;

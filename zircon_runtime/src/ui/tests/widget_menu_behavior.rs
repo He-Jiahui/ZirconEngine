@@ -22,6 +22,7 @@ use zircon_runtime_interface::ui::{
 
 use super::popup_test_support::assert_popup_node_open;
 
+#[path = "widget_menu_behavior/control_anchored_overlays.rs"]
 mod control_anchored_overlays;
 
 #[test]

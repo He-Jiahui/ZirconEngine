@@ -13,18 +13,31 @@ use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus};
 
 use super::UiSurface;
 
+#[path = "default_interactions/keyboard.rs"]
 mod keyboard;
+#[path = "default_interactions/popup.rs"]
 mod popup;
+#[path = "default_interactions/radio.rs"]
 mod radio;
+#[path = "default_interactions/range.rs"]
 mod range;
+#[path = "default_interactions/scrollbar.rs"]
 mod scrollbar;
+#[path = "default_interactions/semantics.rs"]
 mod semantics;
+#[path = "default_interactions/table/mod.rs"]
 mod table;
+#[path = "default_interactions/timers.rs"]
 mod timers;
+#[path = "default_interactions/toast_timer.rs"]
 mod toast_timer;
+#[path = "default_interactions/tree_view.rs"]
 mod tree_view;
+#[path = "default_interactions/tree_view_reparent.rs"]
 mod tree_view_reparent;
+#[path = "default_interactions/tree_view_support.rs"]
 mod tree_view_support;
+#[path = "../default_interactions/tree_view_virtualization.rs"]
 mod tree_view_virtualization;
 
 pub(super) use range::{range_navigation_action, UiDefaultRangeNavigationAction};
@@ -623,5 +636,5 @@ fn binding_targets_component_event(
 }
 
 #[cfg(test)]
-#[path = "tests/default_interactions_typed_component_event_tests.rs"]
+#[path = "../../tests/default_interactions_typed_component_event.rs"]
 mod typed_component_event_tests;

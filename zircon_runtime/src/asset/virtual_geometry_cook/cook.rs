@@ -412,5 +412,5 @@ fn append_u32(payload: &mut Vec<u8>, value: u32) {
 }
 
 #[cfg(test)]
-#[path = "cook/tests/single_allocation_page_payload_tests.rs"]
+#[path = "../cook/tests/single_alloc_page_payload.rs"]
 mod single_allocation_page_payload_tests;

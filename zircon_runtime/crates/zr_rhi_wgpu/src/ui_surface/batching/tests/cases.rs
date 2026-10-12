@@ -554,7 +554,7 @@ fn batch_plan_batches_disjoint_list_rows_by_depth_and_material() {
 }
 
 #[cfg(test)]
-#[path = "scale_and_cache.rs"]
+#[path = "../../../batching/tests/scale_and_cache.rs"]
 mod scale_and_cache;
 
 fn quad(z_index: i32, frame: UiSurfaceRect, color: [u8; 4]) -> UiSurfaceCommand {

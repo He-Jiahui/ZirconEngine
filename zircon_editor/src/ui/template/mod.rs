@@ -1,6 +1,10 @@
+#[path = "adapter.rs"]
 mod adapter;
+#[path = "catalog.rs"]
 mod catalog;
+#[path = "registry.rs"]
 mod registry;
+#[path = "service.rs"]
 mod service;
 
 pub use adapter::EditorTemplateAdapter;

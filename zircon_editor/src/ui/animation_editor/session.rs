@@ -3,15 +3,25 @@ use crate::core::editing::animation_document::{
 };
 use zircon_runtime::core::framework::animation::AnimationTrackPath;
 
+#[path = "session/curve_foundation.rs"]
 mod curve_foundation;
+#[path = "session/error.rs"]
 mod error;
+#[path = "session/graph.rs"]
 mod graph;
+#[path = "session/lifecycle.rs"]
 mod lifecycle;
+#[path = "session/parameters.rs"]
 mod parameters;
+#[path = "session/presentation.rs"]
 mod presentation;
+#[path = "session/sequence.rs"]
 mod sequence;
+#[path = "session/state_machine.rs"]
 mod state_machine;
+#[path = "session/support.rs"]
 mod support;
+#[path = "session/timeline_foundation.rs"]
 mod timeline_foundation;
 
 pub use curve_foundation::AnimationCurveFoundationView;

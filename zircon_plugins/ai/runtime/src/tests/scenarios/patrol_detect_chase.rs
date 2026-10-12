@@ -20,6 +20,7 @@ use crate::{AiRuntimePlugin, DefaultAiManager};
 
 use self::fixtures::*;
 
+#[path = "patrol_detect_chase/fixtures.rs"]
 mod fixtures;
 
 const PATROL_TARGET: [f32; 3] = [4.0, 0.0, 0.0];

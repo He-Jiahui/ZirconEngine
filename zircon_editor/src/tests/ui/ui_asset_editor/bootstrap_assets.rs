@@ -15,17 +15,18 @@ const UI_ASSET_EDITOR_PROJECTION_V2_TOML: &str = include_str!(concat!(
 ));
 const UI_ASSET_EDITOR_ACTION_BAR_V2_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui"
+    "/assets/ui/editor/workbench/chrome/ui_asset_action_bar.zui"
 ));
 const WORKBENCH_CAPTION_V2_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui"
+    "/assets/ui/editor/components/workbench/primitives/data/caption.zui"
 ));
 const WORKBENCH_LABEL_V2_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui"
+    "/assets/ui/editor/components/workbench/primitives/data/label.zui"
 ));
 
+#[path = "../bootstrap_assets/component_contracts.rs"]
 mod component_contracts;
 
 const V2_IMPORTED_CARD_TOML: &str = r#"
@@ -161,14 +162,14 @@ fn ui_asset_editor_v2_projection_asset_self_hosts_shell_regions() {
     assert_eq!(
         layout.imports.widgets,
         vec![
-            "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
-            "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
-            "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
-            "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow",
-            "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption",
-            "res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel",
-            "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
-            "res://ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui#WorkbenchUiAssetActionBar",
+            "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton",
+            "res://ui/editor/workbench/primitives/inputs/icon_button.zui#WorkbenchIconButton",
+            "res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput",
+            "res://ui/editor/components/workbench/primitives/data/tree_row.zui#WorkbenchTreeRow",
+            "res://ui/editor/components/workbench/primitives/data/caption.zui#WorkbenchCaption",
+            "res://ui/editor/components/workbench/primitives/data/label.zui#WorkbenchLabel",
+            "res://ui/editor/workbench/primitives/chrome/section_title.zui#WorkbenchSectionTitle",
+            "res://ui/editor/workbench/chrome/ui_asset_action_bar.zui#WorkbenchUiAssetActionBar",
         ],
         "the projected workbench must compose its controls from canonical Workbench primitives"
     );

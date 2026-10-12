@@ -568,5 +568,5 @@ fn normalize_full_suffix_owned(mut suffix: String) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/contract_plugins07_descriptor_normalization_hotpath_tests.rs"]
+#[path = "../tests/contract_plugins07_desc_normalization_hotpath.rs"]
 mod plugins07_descriptor_normalization_hotpath_tests;

@@ -1,21 +1,38 @@
 //! Editor command registry, keymap, and command-palette projection.
 
+#[path = "asset_write_target.rs"]
 mod asset_write_target;
+#[path = "contribution.rs"]
 mod contribution;
+#[path = "defaults.rs"]
 mod defaults;
+#[path = "descriptor.rs"]
 mod descriptor;
+#[path = "document_kind.rs"]
 mod document_kind;
+#[path = "eval_snapshot_handle.rs"]
 mod eval_snapshot_handle;
+#[path = "execution.rs"]
 mod execution;
+#[path = "key_chord.rs"]
 mod key_chord;
+#[path = "keymap.rs"]
 mod keymap;
+#[path = "menu.rs"]
 mod menu;
+#[path = "menu_model.rs"]
 mod menu_model;
+#[path = "palette.rs"]
 mod palette;
+#[path = "play_mode_predicate.rs"]
 mod play_mode_predicate;
+#[path = "presentation/mod.rs"]
 mod presentation;
+#[path = "registry.rs"]
 mod registry;
+#[path = "registry_handle.rs"]
 mod registry_handle;
+#[path = "when.rs"]
 mod when;
 
 pub use asset_write_target::AssetWriteTargetDescriptor;

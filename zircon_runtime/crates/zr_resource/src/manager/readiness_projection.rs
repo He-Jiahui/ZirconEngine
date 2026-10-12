@@ -751,5 +751,5 @@ fn hash_cycle_component(component: &[ResourceId], hasher: &mut impl Hasher) {
 }
 
 #[cfg(test)]
-#[path = "readiness_projection/tests/cases.rs"]
+#[path = "tests/readiness_project_cases.rs"]
 mod tests;

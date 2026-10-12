@@ -55,9 +55,13 @@ use super::{
     DEFAULT_VIEWPORT,
 };
 
+#[path = "events/gamepad.rs"]
 mod gamepad;
+#[path = "events/ime_preedit_adapter.rs"]
 pub(super) mod ime_preedit_adapter;
+#[path = "events/keyboard_ime.rs"]
 mod keyboard_ime;
+#[path = "events/keyboard_ime_v2.rs"]
 mod keyboard_ime_v2;
 
 impl RuntimeDynamicSession {

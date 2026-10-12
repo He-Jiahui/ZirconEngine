@@ -32,5 +32,5 @@ impl ResourceAliases {
 }
 
 #[cfg(test)]
-#[path = "resource_aliases/tests/performance_tests.rs"]
+#[path = "tests/perf.rs"]
 mod performance_tests;

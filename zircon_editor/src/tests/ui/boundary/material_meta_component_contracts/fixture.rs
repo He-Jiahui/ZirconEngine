@@ -462,6 +462,7 @@ const REQUIRED_VISUAL_DENSITY_TOKEN_ALIASES: &[(&str, &str)] = &[
     ),
 ];
 
+#[path = "../fixture/contracts.rs"]
 mod contracts;
 
 fn material_meta_document() -> &'static Value {

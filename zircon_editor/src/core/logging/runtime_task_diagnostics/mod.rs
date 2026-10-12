@@ -1,4 +1,6 @@
+#[path = "bridge.rs"]
 mod bridge;
+#[path = "report.rs"]
 mod report;
 
 pub(crate) use bridge::RuntimeTaskDiagnosticLogBridge;

@@ -130,5 +130,5 @@ fn unity_compatible_log_root() -> Option<PathBuf> {
 mod tests;
 
 #[cfg(test)]
-#[path = "tests/platform_optimization_batch_20260830bs_runtime_tests.rs"]
+#[path = "tests/platform_perf.rs"]
 mod optimization_batch_20260830bs_runtime_tests;

@@ -24,10 +24,10 @@ RUNTIME_POPUP_MENU = REPO_ROOT / (
     "zircon_runtime/src/ui/surface/render/popup_menu.rs"
 )
 WORKBENCH_COMPONENTS = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench"
+    "zircon_editor/assets/ui/editor/workbench"
 )
 WORKBENCH_CONTEXT_MENU_PROVIDER = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "workbench_context_menu/provider.rs"
 )
 

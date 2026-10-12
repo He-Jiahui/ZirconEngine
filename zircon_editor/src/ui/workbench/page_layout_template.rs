@@ -57,7 +57,7 @@ impl PageLayoutTemplate {
     pub fn material() -> Self {
         workbench_page(
             "material",
-            "res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui",
+            "res://ui/editor/modules/core/rendering/material_workspace.zui",
             LayoutPresetName::Authoring,
             authoring_drawers(),
             horizontal_split(),
@@ -67,7 +67,7 @@ impl PageLayoutTemplate {
     pub fn material_preview() -> Self {
         workbench_page(
             "material_preview",
-            "res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui",
+            "res://ui/editor/modules/core/rendering/material_workspace.zui",
             LayoutPresetName::Review,
             right_review_drawers(),
             CenterSplitLayout::SingleDocument,
@@ -106,7 +106,7 @@ impl PageLayoutTemplate {
     pub fn prefab() -> Self {
         workbench_page(
             "prefab",
-            "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui",
+            "res://ui/editor/world/extension_prefab_editor_workspace.zui",
             LayoutPresetName::Authoring,
             authoring_drawers(),
             CenterSplitLayout::SingleDocument,
@@ -116,7 +116,7 @@ impl PageLayoutTemplate {
     pub fn ui_designer() -> Self {
         workbench_page(
             "ui_designer",
-            "res://ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui",
+            "res://ui/editor/workbench/modules/core/ui/hud_workspace.zui",
             LayoutPresetName::Authoring,
             authoring_drawers(),
             horizontal_split(),
@@ -126,7 +126,7 @@ impl PageLayoutTemplate {
     pub fn ui_source() -> Self {
         workbench_page(
             "ui_source",
-            "res://ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui",
+            "res://ui/editor/workbench/modules/core/ui/hud_workspace.zui",
             LayoutPresetName::Focus,
             collapsed_drawers(),
             CenterSplitLayout::SingleDocument,
@@ -156,7 +156,7 @@ impl PageLayoutTemplate {
     pub fn asset_browser() -> Self {
         workbench_page(
             "asset_browser",
-            "res://ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
+            "res://ui/editor/modules/core/assets/assets_workspace.zui",
             LayoutPresetName::Review,
             right_review_drawers(),
             CenterSplitLayout::SingleDocument,
@@ -176,7 +176,7 @@ impl PageLayoutTemplate {
     pub fn runtime_diagnostics() -> Self {
         workbench_page(
             "runtime_diagnostics",
-            "res://ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui",
+            "res://ui/diagnostics/extension_runtime_diagnostics_workspace.zui",
             LayoutPresetName::Debug,
             bottom_debug_drawers(),
             horizontal_split(),

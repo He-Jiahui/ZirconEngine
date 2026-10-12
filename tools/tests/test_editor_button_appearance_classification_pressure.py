@@ -10,19 +10,19 @@ from tools.analysis.performance.editor.editor_button_appearance_classification_p
 
 ROOT = Path(__file__).resolve().parents[2]
 BUTTON_IDENTITY = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_buttons/identity.rs"
 )
 BUTTON_GLYPH = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_buttons/content/glyph.rs"
 )
 BUTTON_COMMANDS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_buttons/commands.rs"
 )
 BUTTON_CONTENT = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_buttons/content/entry.rs"
 )
 class EditorButtonAppearanceClassificationPressureTests(unittest.TestCase):

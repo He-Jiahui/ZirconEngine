@@ -15,7 +15,9 @@
 //! # 参考
 //!
 //! [`crate::core::framework::input::GamepadId`]、[`crate::core::framework::input::GamepadConnectionInfo`]、[`crate::core::framework::input::InputEvent`]、[`crate::core::framework::input::GamepadRumbleRequest`]
+#[path = "connection_info.rs"]
 mod connection_info;
+#[path = "id.rs"]
 mod id;
 
 pub use self::{connection_info::GamepadConnectionInfo, id::GamepadId};

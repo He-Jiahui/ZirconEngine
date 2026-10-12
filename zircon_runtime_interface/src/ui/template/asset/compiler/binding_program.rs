@@ -607,13 +607,13 @@ impl UiCompiledBindingProgram {
 }
 
 #[cfg(test)]
-#[path = "binding_program/tests/expression_stack_performance_tests.rs"]
+#[path = "../../../asset/compiler/tests/expression_stack_perf.rs"]
 mod expression_stack_performance_tests;
 
 #[cfg(test)]
-#[path = "binding_program/tests/payload_bitmap_performance_tests.rs"]
+#[path = "../../../asset/compiler/tests/payload_bitmap_perf.rs"]
 mod payload_bitmap_performance_tests;
 
 #[cfg(test)]
-#[path = "binding_program/tests/reference_bitmap_performance_tests.rs"]
+#[path = "../../../asset/compiler/tests/reference_bitmap_perf.rs"]
 mod reference_bitmap_performance_tests;

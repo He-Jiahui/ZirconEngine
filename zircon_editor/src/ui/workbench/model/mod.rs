@@ -1,23 +1,44 @@
+#[path = "breadcrumb_model.rs"]
 mod breadcrumb_model;
+#[path = "build/mod.rs"]
 mod build;
+#[path = "document_tab_model.rs"]
 mod document_tab_model;
+#[path = "document_tabs/mod.rs"]
 mod document_tabs;
+#[path = "document_workspace_model.rs"]
 mod document_workspace_model;
+#[path = "drawer_ring_model.rs"]
 mod drawer_ring_model;
+#[path = "empty_state/mod.rs"]
 mod empty_state;
+#[path = "floating_window_focus.rs"]
 mod floating_window_focus;
+#[path = "floating_window_model.rs"]
 mod floating_window_model;
+#[path = "host_page_tab_model.rs"]
 mod host_page_tab_model;
+#[path = "main_host_strip/mod.rs"]
 mod main_host_strip;
+#[path = "main_host_strip_model.rs"]
 mod main_host_strip_model;
+#[path = "main_host_strip_view_model.rs"]
 mod main_host_strip_view_model;
+#[path = "menu/mod.rs"]
 mod menu;
+#[path = "pane_action_model.rs"]
 mod pane_action_model;
+#[path = "pane_empty_state_model.rs"]
 mod pane_empty_state_model;
+#[path = "pane_tab.rs"]
 mod pane_tab;
+#[path = "pane_tab_model.rs"]
 mod pane_tab_model;
+#[path = "status_bar_model.rs"]
 mod status_bar_model;
+#[path = "tool_window_stack_model.rs"]
 mod tool_window_stack_model;
+#[path = "workbench_view_model.rs"]
 mod workbench_view_model;
 
 pub use breadcrumb_model::BreadcrumbModel;

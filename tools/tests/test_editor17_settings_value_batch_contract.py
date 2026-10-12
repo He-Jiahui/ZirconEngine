@@ -32,11 +32,11 @@ class Editor17SettingsValueBatchContractTests(unittest.TestCase):
 
     def test_workbench_reads_only_the_selected_category_value_batch(self) -> None:
         access = self.read(
-            "zircon_editor/src/ui/host/editor_event_runtime_access/"
+            "zircon_editor/src/ui/host/"
             "settings_projection.rs"
         )
         open_action = self.read(
-            "zircon_editor/src/ui/retained_host/app/settings_window_actions.rs"
+            "zircon_editor/src/ui/retained/app/settings_window_actions.rs"
         )
         option_action = self.read(
             "zircon_editor/src/ui/retained_host/app/pane_surface_actions/"
@@ -65,7 +65,7 @@ class Editor17SettingsValueBatchContractTests(unittest.TestCase):
             "pane_component_projection/settings_window/mod.rs"
         )
         data = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/data/"
+            "zircon_editor/src/ui/retained/contract/data/"
             "template_nodes/settings.rs"
         )
 
@@ -80,9 +80,9 @@ class Editor17SettingsValueBatchContractTests(unittest.TestCase):
         extension_access = self.read(
             "zircon_editor/src/ui/host/editor_event_runtime_access/extension_access.rs"
         )
-        app = self.read("zircon_editor/src/ui/retained_host/app.rs")
+        app = self.read("zircon_editor/src/ui/retained/app.rs")
         actions = self.read(
-            "zircon_editor/src/ui/retained_host/app/settings_window_actions.rs"
+            "zircon_editor/src/ui/retained/app/settings_window_actions.rs"
         )
         bridge = self.read(
             "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
@@ -129,7 +129,7 @@ class Editor17SettingsValueBatchContractTests(unittest.TestCase):
         )
 
     def test_extension_consumers_keep_independent_accepted_revision_caches(self) -> None:
-        app = self.read("zircon_editor/src/ui/retained_host/app.rs")
+        app = self.read("zircon_editor/src/ui/retained/app.rs")
         assembly = self.read(
             "zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/"
             "state/construction/assembly.rs"
@@ -142,9 +142,9 @@ class Editor17SettingsValueBatchContractTests(unittest.TestCase):
             self.assertNotIn("extension_projection_capabilities", source)
 
     def test_retained_app_keeps_plugin_template_sync_in_a_named_owner(self) -> None:
-        app = self.read("zircon_editor/src/ui/retained_host/app.rs")
+        app = self.read("zircon_editor/src/ui/retained/app.rs")
         owner = self.read(
-            "zircon_editor/src/ui/retained_host/app/plugin_template_documents.rs"
+            "zircon_editor/src/ui/retained/app/plugin_template_documents.rs"
         )
 
         self.assertLessEqual(len(app.splitlines()), 800)

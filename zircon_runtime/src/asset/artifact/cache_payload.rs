@@ -15,13 +15,21 @@ use crate::core::framework::render::{
 };
 use crate::core::framework::scene::physics::PhysicsMaterialMetadata;
 
+#[path = "cache_payload/font.rs"]
 mod font;
+#[path = "cache_payload/json_value.rs"]
 mod json_value;
+#[path = "cache_payload/material_shader.rs"]
 mod material_shader;
+#[path = "cache_payload/mesh.rs"]
 mod mesh;
+#[path = "cache_payload/model.rs"]
 mod model;
+#[path = "cache_payload/scene.rs"]
 mod scene;
+#[path = "cache_payload/toml_value.rs"]
 mod toml_value;
+#[path = "cache_payload/ui.rs"]
 mod ui;
 
 use font::ArtifactCacheFontAsset;
@@ -412,5 +420,5 @@ impl From<ArtifactCachePhysicsMaterialAsset> for PhysicsMaterialAsset {
 }
 
 #[cfg(test)]
-#[path = "cache_payload/tests/metadata_error_buffer_tests.rs"]
+#[path = "cache_payload/tests/metadata_error_buffer.rs"]
 mod metadata_error_buffer_tests;

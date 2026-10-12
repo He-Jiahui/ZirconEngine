@@ -60,5 +60,5 @@ impl EditorHostEventController {
 }
 
 #[cfg(test)]
-#[path = "tests/settings_projection.rs"]
+#[path = "../tests/settings_projection.rs"]
 mod tests;

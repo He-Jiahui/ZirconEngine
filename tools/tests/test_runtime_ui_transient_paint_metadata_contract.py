@@ -7,14 +7,14 @@ from tools.analysis.performance.runtime.runtime_ui_transient_paint_metadata_pres
 ROOT = Path(__file__).resolve().parents[2]
 COMMAND_SOURCE = ROOT / "zircon_runtime_interface/src/ui/surface/render/command.rs"
 PRODUCT_RENDER_SOURCE = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
 )
 PAINT_PROJECTION_SOURCE = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/paint_projection.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/render/paint_projection.rs"
 )
 TEXT_BATCHES_SOURCE = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_batches.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render/text_batches.rs"
 )
 
 # 确认产品绘制路径使用瞬时元素，文本阶段才分配代际元数据；压力模型分开计数两类成本。

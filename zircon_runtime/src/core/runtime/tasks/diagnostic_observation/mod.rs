@@ -1,8 +1,14 @@
+#[path = "batch.rs"]
 mod batch;
+#[path = "cursor.rs"]
 mod cursor;
+#[path = "identity.rs"]
 mod identity;
+#[path = "journal.rs"]
 mod journal;
+#[path = "observation.rs"]
 mod observation;
+#[path = "source.rs"]
 mod source;
 
 pub use batch::TaskDiagnosticBatch;

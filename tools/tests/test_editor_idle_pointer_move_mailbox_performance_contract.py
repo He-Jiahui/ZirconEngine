@@ -12,11 +12,11 @@ class EditorIdlePointerMoveMailboxPerformanceContract(unittest.TestCase):
     def test_event_loop_owns_one_bounded_latest_value_mailbox(self):
         event_loop = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop.rs"
         ).read_text()
         mailbox = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/pointer_move_mailbox.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/pointer_move_mailbox.rs"
         ).read_text()
 
         self.assertIn("pending_idle_pointer_move: UiIdlePointerMoveMailbox", event_loop)
@@ -28,7 +28,7 @@ class EditorIdlePointerMoveMailboxPerformanceContract(unittest.TestCase):
     def test_non_move_window_events_flush_the_pending_move_first(self):
         events = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/events.rs"
         ).read_text()
 
         flush = events.index("self.flush_pending_idle_pointer_move();")
@@ -41,11 +41,11 @@ class EditorIdlePointerMoveMailboxPerformanceContract(unittest.TestCase):
     def test_wait_and_proxy_boundaries_flush_the_latest_move(self):
         event_loop = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop.rs"
         ).read_text()
         lifecycle = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs"
         ).read_text()
 
         self.assertIn("self.flush_pending_idle_pointer_move();", lifecycle)
@@ -55,11 +55,11 @@ class EditorIdlePointerMoveMailboxPerformanceContract(unittest.TestCase):
     def test_capture_sensitive_moves_bypass_coalescing(self):
         mailbox = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/pointer_move_mailbox.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/pointer_move_mailbox.rs"
         ).read_text()
         ui_context = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs"
+            / "zircon_editor/src/ui/retained/contract/globals/ui_context.rs"
         ).read_text()
 
         self.assertIn("self.pressed_mouse_button_count != 0", mailbox)
@@ -73,11 +73,11 @@ class EditorIdlePointerMoveMailboxPerformanceContract(unittest.TestCase):
     def test_superseded_sequences_receive_an_explicit_terminal_outcome(self):
         mailbox = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/pointer_move_mailbox.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/pointer_move_mailbox.rs"
         ).read_text()
         outcome = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/input_outcome.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/input_outcome.rs"
         ).read_text()
 
         self.assertIn("UiCoalescedInputRange", mailbox)
@@ -93,11 +93,11 @@ class EditorIdlePointerMoveMailboxPerformanceContract(unittest.TestCase):
     def test_capture_counters_are_batched_once_at_flush(self):
         mailbox = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/pointer_move_mailbox.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/pointer_move_mailbox.rs"
         ).read_text()
         outcome = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/input_outcome.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/input_outcome.rs"
         ).read_text()
 
         defer_path = mailbox.split("pub(super) fn try_defer_idle_pointer_move", 1)[1].split(
@@ -112,7 +112,7 @@ class EditorIdlePointerMoveMailboxPerformanceContract(unittest.TestCase):
     def test_deferred_moves_translate_only_the_latest_metadata_at_flush(self):
         mailbox = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/pointer_move_mailbox.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/pointer_move_mailbox.rs"
         ).read_text()
 
         defer_path = mailbox.split("pub(super) fn try_defer_idle_pointer_move", 1)[1].split(
@@ -129,11 +129,11 @@ class EditorIdlePointerMoveMailboxPerformanceContract(unittest.TestCase):
     def test_reserved_metadata_defers_window_id_allocation(self):
         input_source = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/input.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/input.rs"
         ).read_text()
         metadata_source = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/metadata.rs"
+            / "zircon_editor/src/ui/retained/contract/window/metadata.rs"
         ).read_text()
         metadata_contract = (
             ROOT

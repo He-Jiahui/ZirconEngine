@@ -249,9 +249,9 @@ fn format_value(value: &Value) -> String {
 }
 
 #[cfg(test)]
-#[path = "theme_compare/tests/borrowed_rule_index_tests.rs"]
+#[path = "tests/borrowed_rule_index.rs"]
 mod borrowed_rule_index_tests;
 
 #[cfg(test)]
-#[path = "theme_compare/tests/optimization_batch_jd_editor643_tests.rs"]
+#[path = "theme_compare/tests/perf.rs"]
 mod optimization_batch_jd_editor643_tests;

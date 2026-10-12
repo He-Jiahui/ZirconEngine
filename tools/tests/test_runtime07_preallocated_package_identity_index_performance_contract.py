@@ -5,10 +5,10 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/runtime_plugin/package_validation/projection/build.rs"
+    / "zircon_runtime/src/plugin/runtime/validation/projection/build.rs"
 )
 REGRESSIONS = (
-    ROOT / "zircon_runtime/src/plugin/runtime_plugin/package_validation/projection/tests/cases.rs"
+    ROOT / "zircon_runtime/src/plugin/runtime/validation/projection/tests/cases.rs"
 )
 
 

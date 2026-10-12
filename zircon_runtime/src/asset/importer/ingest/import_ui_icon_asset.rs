@@ -21,5 +21,5 @@ pub(crate) fn import_ui_icon_asset(
 }
 
 #[cfg(test)]
-#[path = "tests/import_ui_icon_asset_plugins07_ui_icon_source_tests.rs"]
+#[path = "../../tests/import_ui_icon_asset_plugins07_ui_icon_source.rs"]
 mod plugins07_ui_icon_source_tests;

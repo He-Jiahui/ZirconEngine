@@ -23,6 +23,7 @@ const RENDER_ARTIFACT_BLOCK_EXTENSION: &str = "zr-render-block";
 const RENDER_ARTIFACT_MANIFEST_EXTENSION: &str = "zr-render-manifest";
 const RENDER_ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRRMAN01";
 
+#[path = "store/cook_publication.rs"]
 mod cook_publication;
 
 pub use cook_publication::{

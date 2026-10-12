@@ -144,7 +144,7 @@ impl ResourceManager {
 }
 
 #[cfg(test)]
-#[path = "registry_export/tests/optimization_tests.rs"]
+#[path = "registry_export/tests/perf.rs"]
 mod optimization_tests;
 
 #[cfg(test)]

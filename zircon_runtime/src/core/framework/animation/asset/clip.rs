@@ -10,7 +10,7 @@ use crate::core::math::Real;
 use crate::core::resource::AssetReference;
 
 #[cfg(test)]
-#[path = "clip/tests/borrowed_encoding_tests.rs"]
+#[path = "../../../animation/asset/clip/tests/borrowed_encoding.rs"]
 mod borrowed_encoding_tests;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

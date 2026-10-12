@@ -1,13 +1,24 @@
+#[path = "edit_state.rs"]
 mod edit_state;
+#[path = "geometry.rs"]
 mod geometry;
+#[path = "grapheme.rs"]
 mod grapheme;
+#[path = "hit_test.rs"]
 mod hit_test;
+#[path = "inline_widget.rs"]
 mod inline_widget;
+#[path = "layout_engine.rs"]
 mod layout_engine;
+#[path = "measure_cache.rs"]
 mod measure_cache;
+#[path = "presentation.rs"]
 mod presentation;
+#[path = "resolved_layout.rs"]
 mod resolved_layout;
+#[path = "rich_text.rs"]
 mod rich_text;
+#[path = "shaper.rs"]
 pub(crate) mod shaper;
 
 pub(crate) use edit_state::{

@@ -50,7 +50,7 @@ class Frameworks01ResourceHardCutMoveManifestTests(unittest.TestCase):
             "Cargo.toml": "[workspace]\nmembers = []\n",
             "Cargo.lock": "version = 3\n",
             "zircon_runtime/Cargo.toml": "[package]\nname = 'zircon_runtime'\n",
-            "zircon_runtime/src/tests/runtime_absorption/resource_foundation.rs": (
+            "zircon_runtime/src/tests/contracts/resources.rs": (
                 "mod runtime_surface;\n"
             ),
             "zircon_runtime/src/core/resource/mod.rs": "mod data;\npub mod io;\n",

@@ -9,9 +9,13 @@ use crate::scene::ecs::{
 };
 use crate::scene::EntityId;
 
+#[path = "../bundle_transaction/deferred_bundle_commit.rs"]
 mod deferred_bundle_commit;
+#[path = "../bundle_transaction/deferred_bundle_removals.rs"]
 mod deferred_bundle_removals;
+#[path = "../bundle_transaction/deferred_bundle_staging.rs"]
 mod deferred_bundle_staging;
+#[path = "bundle_transaction/staging.rs"]
 mod staging;
 
 use deferred_bundle_removals::PendingDeferredRemoval;

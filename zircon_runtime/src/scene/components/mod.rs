@@ -1,6 +1,8 @@
 //! ECS-style scene components plus schedule and scene-domain mobility glue.
 
+#[path = "render2d/mod.rs"]
 mod render2d;
+#[path = "scene/mod.rs"]
 mod scene;
 
 pub use crate::core::framework::scene::Mobility;

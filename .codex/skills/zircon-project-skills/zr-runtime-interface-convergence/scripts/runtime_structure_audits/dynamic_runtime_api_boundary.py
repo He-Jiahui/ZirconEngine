@@ -256,7 +256,7 @@ def dynamic_runtime_api_boundary_audit(root: Path) -> dict[str, object]:
         MIRROR_DOCS_GUARD
         in _read_text(
             root
-            / "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs"
+            / "zircon_runtime/src/tests/contracts/dynamic_api_session/mirror_docs.rs"
         )
     )
 

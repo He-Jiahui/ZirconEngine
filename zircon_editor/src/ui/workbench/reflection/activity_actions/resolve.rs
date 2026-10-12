@@ -31,5 +31,5 @@ pub(crate) fn activity_actions_for_tab(tab: &ViewTabSnapshot) -> Vec<UiActionDes
 }
 
 #[cfg(test)]
-#[path = "tests/resolve_optimization_tests.rs"]
+#[path = "tests/resolve_perf.rs"]
 mod optimization_tests;

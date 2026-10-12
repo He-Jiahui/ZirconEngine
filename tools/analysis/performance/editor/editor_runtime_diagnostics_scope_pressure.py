@@ -16,13 +16,13 @@ from typing import Any
 
 
 SOURCE_PATHS = (
-    "zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs",
-    "zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs",
-    "zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs",
-    "zircon_editor/src/ui/retained_host/ui/shell_content_presentation.rs",
-    "zircon_editor/src/ui/retained_host/ui/scoped_presentation.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/data/pane_presentation_patch.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/globals/state.rs",
+    "zircon_editor/src/ui/retained/app/runtime_diagnostics_visibility.rs",
+    "zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs",
+    "zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs",
+    "zircon_editor/src/ui/retained/ui/shell_content_presentation.rs",
+    "zircon_editor/src/ui/retained/ui/scoped_presentation.rs",
+    "zircon_editor/src/ui/retained/contract/data/pane_presentation_patch.rs",
+    "zircon_editor/src/ui/retained/contract/globals/state.rs",
 )
 
 SOURCE_GUARDS = {

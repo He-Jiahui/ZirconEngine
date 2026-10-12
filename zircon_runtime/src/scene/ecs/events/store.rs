@@ -12,6 +12,7 @@ use crate::scene::ecs::events::{
 use super::lease::EventReaderLeaseRegistry;
 use super::observer::{ErasedEventObserver, TypedEventObserver};
 
+#[path = "store/writer_grant.rs"]
 mod writer_grant;
 pub(in crate::scene) use writer_grant::EventWriterGrant;
 

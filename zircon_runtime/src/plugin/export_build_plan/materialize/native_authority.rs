@@ -152,5 +152,5 @@ fn read_inventory_manifest(
 }
 
 #[cfg(test)]
-#[path = "tests/native_authority.rs"]
+#[path = "../../materialize/tests/native_authority.rs"]
 mod tests;

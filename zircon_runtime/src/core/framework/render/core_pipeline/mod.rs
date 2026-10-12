@@ -1,14 +1,26 @@
+#[path = "packed_sort_key.rs"]
 mod packed_sort_key;
+#[path = "phase_item.rs"]
 mod phase_item;
+#[path = "phase_queue.rs"]
 mod phase_queue;
+#[path = "../../../render/core_pipeline/phase_queue_ordering_key.rs"]
 mod phase_queue_ordering_key;
+#[path = "phase_queue_summary.rs"]
 mod phase_queue_summary;
+#[path = "phase_sort.rs"]
 mod phase_sort;
+#[path = "phase_sort_decision.rs"]
 mod phase_sort_decision;
+#[path = "../../../render/core_pipeline/phase_sort_decision_field.rs"]
 mod phase_sort_decision_field;
+#[path = "../../../render/core_pipeline/phase_sort_key_breakdown.rs"]
 mod phase_sort_key_breakdown;
+#[path = "pipeline_kind.rs"]
 mod pipeline_kind;
+#[path = "render_phase.rs"]
 mod render_phase;
+#[path = "render_queue.rs"]
 mod render_queue;
 
 pub use packed_sort_key::packed_sort_key_u64;

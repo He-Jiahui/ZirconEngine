@@ -1,6 +1,8 @@
 //! Editor-owned projection state for transport-neutral runtime synchronization.
 
+#[path = "pump.rs"]
 mod pump;
+#[path = "watch_map.rs"]
 mod watch_map;
 
 pub use pump::{

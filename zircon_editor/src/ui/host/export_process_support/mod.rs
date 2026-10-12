@@ -1,5 +1,8 @@
+#[path = "child_guard.rs"]
 mod child_guard;
+#[path = "error.rs"]
 mod error;
+#[path = "output_capture.rs"]
 mod output_capture;
 
 pub(in crate::ui::host) use crate::core::process::{

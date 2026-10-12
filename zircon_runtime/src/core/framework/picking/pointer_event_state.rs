@@ -565,9 +565,9 @@ fn location_map(
 }
 
 #[cfg(test)]
-#[path = "tests/pointer_event_state_optimization_tests.rs"]
+#[path = "tests/pointer_event_state_perf.rs"]
 mod optimization_tests;
 
 #[cfg(test)]
-#[path = "pointer_event_state/tests/optimization_batch_hq_runtime598_tests.rs"]
+#[path = "pointer_event_state/tests/perf.rs"]
 mod optimization_batch_hq_runtime598_tests;

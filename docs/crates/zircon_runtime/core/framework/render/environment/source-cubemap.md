@@ -55,7 +55,7 @@ related_code:
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/sphere_reflection.rs
-  - zircon_runtime/tests/runtime_environment_ibl_artifact_source_identity_contract.rs
+  - zircon_runtime/tests/ibl_identity.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_asset_derived_contract.rs
   - zircon_runtime/tests/runtime_environment_wgpu_cubemap_sampling_contract.rs
   - dev/cmft/src/cmft/cubemapfilter.cpp
@@ -134,10 +134,10 @@ tests:
   - tools/tests/test_runtime_job_system_audit.py
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/tests/runtime_environment_source_cubemap_contract.rs
-  - zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs
+  - zircon_runtime/tests/cubemap_staging.rs
   - zircon_runtime/tests/runtime_environment_source_irradiance_cubemap_contract.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs
-  - zircon_runtime/tests/runtime_environment_ibl_artifact_source_identity_contract.rs
+  - zircon_runtime/tests/ibl_identity.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_asset_derived_contract.rs
   - zircon_runtime/tests/runtime_environment_wgpu_cubemap_sampling_contract.rs
   - zircon_runtime/tests/runtime_texture_zcube_source_cubemap_contract.rs

@@ -148,5 +148,5 @@ impl VisibilityContext {
 }
 
 #[cfg(test)]
-#[path = "tests/visibility_context_optimization_batch_20260830cg_runtime_tests.rs"]
+#[path = "../tests/visibility_context_perf.rs"]
 mod optimization_batch_20260830cg_runtime_tests;

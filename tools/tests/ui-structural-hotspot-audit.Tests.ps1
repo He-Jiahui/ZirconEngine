@@ -14,7 +14,7 @@ Describe "UI structural hotspot audit" {
         try {
             $sourceFiles = @(
                 "zircon_runtime/src/ui/surface.rs",
-                "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs",
+                "zircon_runtime/src/graphics/scene/renderer/ui/image.rs",
                 "zircon_runtime/crates/zr_rhi/src/ui_surface.rs",
                 "zircon_runtime/crates/zr_rhi/src/ui_surface/image_resources.rs",
                 "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs",
@@ -68,7 +68,7 @@ Describe "UI structural hotspot audit" {
         $outputRoot = Join-Path $fixtureRoot "evidence"
         try {
             $runtimeRoot = Join-Path $fixtureRoot "zircon_runtime\src\ui\layout"
-            $editorRoot = Join-Path $fixtureRoot "zircon_editor\src\ui\retained_host"
+            $editorRoot = Join-Path $fixtureRoot "zircon_editor\src\ui\retained"
             $ignoredRoot = Join-Path $fixtureRoot "zircon_runtime\src\ui\tests"
             $ignoredSuffixRoot = Join-Path $fixtureRoot "zircon_editor\src\ui\retained_host\paint_tests"
             New-Item -ItemType Directory `

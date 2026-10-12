@@ -5,9 +5,13 @@ use zircon_runtime_interface::ui::component::{
     UiComponentEvent, UiComponentEventKind, UiComponentKeyboardAction, UiComponentState, UiValue,
 };
 
+#[path = "../../component_state/keyboard/action_selection.rs"]
 mod action_selection;
+#[path = "../../component_state/keyboard/menu_navigation.rs"]
 mod menu_navigation;
+#[path = "../../component_state/keyboard/numeric_controls.rs"]
 mod numeric_controls;
+#[path = "../../component_state/keyboard/text_inputs.rs"]
 mod text_inputs;
 
 fn menu_option(id: &str, label: &str) -> UiValue {

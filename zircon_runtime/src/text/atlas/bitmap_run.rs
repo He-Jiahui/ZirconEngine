@@ -7,14 +7,23 @@ use super::{
     GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasRect, GlyphAtlasSet, GlyphAtlasShelfAllocator,
 };
 
+#[path = "bitmap_run/allocation.rs"]
 mod allocation;
+#[path = "bitmap_run/failure.rs"]
 mod failure;
+#[path = "bitmap_run/placeholder.rs"]
 mod placeholder;
+#[path = "bitmap_run/retry.rs"]
 mod retry;
+#[path = "bitmap_run/staged_upload.rs"]
 mod staged_upload;
+#[path = "bitmap_run/staging.rs"]
 mod staging;
+#[path = "bitmap_run/types.rs"]
 mod types;
+#[path = "bitmap_run/upload.rs"]
 mod upload;
+#[path = "bitmap_run/validation.rs"]
 mod validation;
 
 use allocation::{allocate_bitmap_source, mark_bitmap_dirty, record_bitmap_page_rebuild};

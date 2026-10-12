@@ -39,7 +39,7 @@ const workbenchSourcePath =
 const workbenchShellSourcePath =
   'zircon_editor/assets/ui/editor/unreal/editor_shell.zui';
 const workbenchTabSourcePath =
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui';
+  'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/tab.zui';
 const workbenchNodeId = 'editor_content';
 const workbenchGapPath = 'nodes.editor_content.layout.container.gap';
 const themeSourcePath =

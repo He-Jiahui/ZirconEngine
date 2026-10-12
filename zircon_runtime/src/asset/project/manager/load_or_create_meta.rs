@@ -69,5 +69,5 @@ pub(crate) fn mint_meta_for_migration(
 }
 
 #[cfg(test)]
-#[path = "load_or_create_meta/tests/matching_identity_tests.rs"]
+#[path = "tests/matching_identity.rs"]
 mod matching_identity_tests;

@@ -10,7 +10,9 @@ use super::{
     RenderArtifactResidencyClass, RenderSubresourceId, RENDER_ARTIFACT_MANIFEST_SCHEMA_VERSION,
 };
 
+#[path = "validation/mesh.rs"]
 mod mesh;
+#[path = "validation/texture.rs"]
 mod texture;
 
 use mesh::{block_at, validate_residency};

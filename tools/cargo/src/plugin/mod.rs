@@ -1,5 +1,10 @@
+#[path = "check.rs"]
 pub mod check;
+#[path = "diagnostic.rs"]
 pub mod diagnostic;
+#[path = "manifest_sync.rs"]
 pub mod manifest_sync;
+#[path = "scaffold/mod.rs"]
 pub mod scaffold;
+#[path = "validate.rs"]
 pub mod validate;

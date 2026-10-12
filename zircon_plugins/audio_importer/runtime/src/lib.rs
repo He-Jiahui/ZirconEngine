@@ -14,7 +14,9 @@ use zircon_runtime::asset::{
 };
 use zircon_runtime::core::framework::audio::{AudioChannelLayout, AudioSpeakerChannel};
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

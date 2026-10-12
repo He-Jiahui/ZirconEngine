@@ -17,9 +17,9 @@ import { reconcileReviewSource } from './zui-review-host';
 describe('property editor slot review host', () => {
   const repo = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../../', import.meta.url)));
   const sourcePath =
-    'zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui';
+    'zircon_editor/assets/ui/editor/workbench/inputs/property_editor_row.zui';
   const fieldPath =
-    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui';
+    'zircon_editor/assets/ui/editor/workbench/primitives/inputs/number_field.zui';
   const theme = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
   const dependencies = new LayoutDependencies();
   let component: ZuiDocument;
@@ -45,7 +45,7 @@ describe('property editor slot review host', () => {
     ]);
     expect(host.nodes!['review_value']).toEqual({
       component:
-        'res://ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui#WorkbenchNumberField',
+        'res://ui/editor/workbench/primitives/inputs/number_field.zui#WorkbenchNumberField',
     });
     expect(
       Object.values(result.projection.nodes!).some(

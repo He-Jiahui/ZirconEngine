@@ -2,7 +2,11 @@
 
 use super::*;
 
+#[path = "input_visibility/collapsed_layout.rs"]
 mod collapsed_layout;
+#[path = "input_visibility/focus_candidates.rs"]
 mod focus_candidates;
+#[path = "input_visibility/hit_visibility.rs"]
 mod hit_visibility;
+#[path = "input_visibility/pointer_routes.rs"]
 mod pointer_routes;

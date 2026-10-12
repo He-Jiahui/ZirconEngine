@@ -1,3 +1,0 @@
-mod build_virtual_geometry_cluster_raster_draws;
-mod virtual_geometry_cluster_streaming_tint;
-mod virtual_geometry_draw_range;

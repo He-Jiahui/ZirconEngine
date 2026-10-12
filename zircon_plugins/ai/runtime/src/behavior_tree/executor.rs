@@ -27,11 +27,17 @@ use super::{
     CompiledBehaviorNode, CompiledBehaviorTree,
 };
 
+#[path = "executor/abort.rs"]
 mod abort;
+#[path = "executor/condition.rs"]
 mod condition;
+#[path = "executor/effects.rs"]
 mod effects;
+#[path = "executor/integration.rs"]
 mod integration;
+#[path = "executor/selector.rs"]
 mod selector;
+#[path = "executor/support.rs"]
 mod support;
 
 /// Maximum number of behavior nodes an agent may evaluate during one tick.
@@ -45,19 +51,19 @@ const DEFAULT_BEHAVIOR_TREE_NODE_EVALUATION_BUDGET: usize = 4_096;
 const DEFAULT_BEHAVIOR_TREE_EVALUATION_DEPTH_BUDGET: usize = 256;
 
 #[cfg(test)]
-#[path = "executor/tests/parallel_allocation_tests.rs"]
+#[path = "tests/parallel_allocation.rs"]
 mod parallel_allocation_tests;
 
 #[cfg(test)]
-#[path = "executor/tests/node_state_allocation_tests.rs"]
+#[path = "tests/node_state_allocation.rs"]
 mod node_state_allocation_tests;
 
 #[cfg(test)]
-#[path = "executor/tests/observer_pass_allocation_tests.rs"]
+#[path = "tests/observer_pass_allocation.rs"]
 mod observer_pass_allocation_tests;
 
 #[cfg(test)]
-#[path = "executor/tests/tree_stack_allocation_tests.rs"]
+#[path = "tests/tree_stack_allocation.rs"]
 mod tree_stack_allocation_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -59,5 +59,5 @@ impl ProjectManager {
 }
 
 #[cfg(test)]
-#[path = "tests/package_assets_performance_tests.rs"]
+#[path = "tests/package_assets_perf.rs"]
 mod performance_tests;

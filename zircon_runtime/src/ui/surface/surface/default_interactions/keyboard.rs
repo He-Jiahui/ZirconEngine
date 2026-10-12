@@ -242,5 +242,5 @@ fn append_or_adopt_batch<T>(output: &mut Option<Vec<T>>, batch: Vec<T>) {
 }
 
 #[cfg(test)]
-#[path = "tests/keyboard_optimization_tests.rs"]
+#[path = "../tests/keyboard_perf.rs"]
 mod optimization_tests;

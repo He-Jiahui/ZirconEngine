@@ -1,0 +1,5 @@
+//! World 路径捕获先读取现有档案（缺失时使用空档案）；预览只报告本次快照，提交才原子写回。两次调用各自重载和捕获，不会把预览报告当作锁定计划。
+#[path = "commit.rs"]
+mod commit;
+#[path = "preview.rs"]
+mod preview;

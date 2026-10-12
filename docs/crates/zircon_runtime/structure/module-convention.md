@@ -4250,7 +4250,7 @@ R4.1/M3 的当前新增落地部分是 production-file budget guard 聚合层二
 
 
 
-Plugins 12 / Runtime 15 的当前新增结构项是把原始 animation/physics 跨插件测试从手写 CoreRuntime+Scene fixture 迁到 SDK `TestRuntime`。`zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs` 现在只保留行为用例和 `runtime.create_default_level()` / `runtime.tick_level_seconds(...)` 调用；大块 animation asset fixture 由 `runtime_physics_animation_tick_contract/animation_assets.rs` 承接，runtime setup/manager helper 由 `runtime_physics_animation_tick_contract/runtime_helpers.rs` 承接，target-id fallback tests 由 `runtime_physics_animation_tick_contract/target_resolution.rs` 承接。
+Plugins 12 / Runtime 15 的当前新增结构项是把原始 animation/physics 跨插件测试从手写 CoreRuntime+Scene fixture 迁到 SDK `TestRuntime`。`zircon_plugins/animation/runtime/tests/physics_tick.rs` 现在只保留行为用例和 `runtime.create_default_level()` / `runtime.tick_level_seconds(...)` 调用；大块 animation asset fixture 由 `runtime_physics_animation_tick_contract/animation_assets.rs` 承接，runtime setup/manager helper 由 `runtime_physics_animation_tick_contract/runtime_helpers.rs` 承接，target-id fallback tests 由 `runtime_physics_animation_tick_contract/target_resolution.rs` 承接。
 
 
 

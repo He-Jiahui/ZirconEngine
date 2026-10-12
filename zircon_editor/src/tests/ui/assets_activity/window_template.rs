@@ -15,7 +15,7 @@ fn asset_window_source() -> String {
 
 fn activity_drawer_window_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/ui/editor/components/workbench/shell/activity_drawer_window.zui");
+        .join("assets/ui/editor/workbench/shell/activity_drawer_window.zui");
     fs::read_to_string(path).expect("activity_drawer_window.zui should be readable")
 }
 
@@ -27,7 +27,7 @@ fn ui_layout_editor_window_source() -> String {
 
 fn workbench_component_source(relative_path: &str) -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/ui/editor/components/workbench")
+        .join("assets/ui/editor/workbench")
         .join(relative_path);
     fs::read_to_string(&path).unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()))
 }
@@ -43,7 +43,7 @@ fn asset_window_uses_activity_drawer_window_with_asset_browser_content() {
         "res://ui/editor/windows/asset_window.zui"
     );
     assert!(source.contains(
-        "res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"
+        "res://ui/editor/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"
     ));
     assert!(source.contains("shell_preset = \"jetbrains_shell\""));
     assert!(source.contains("panel_preset = \"fyrox_panel\""));
@@ -116,9 +116,9 @@ version = 2
 
 [imports]
 widgets = [
-  "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui#WorkbenchPanelHeader",
-  "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
-  "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui#WorkbenchTabStrip",
+  "res://ui/editor/workbench/composites/chrome/panel_header.zui#WorkbenchPanelHeader",
+  "res://ui/editor/workbench/inputs/property_editor_row.zui#WorkbenchPropertyEditorRow",
+  "res://ui/editor/workbench/primitives/inputs/tab_strip.zui#WorkbenchTabStrip",
 ]
 
 [root]

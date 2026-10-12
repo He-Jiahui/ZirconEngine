@@ -122,5 +122,5 @@ impl Display for RenderMaterialLightingModelParseError {
 impl std::error::Error for RenderMaterialLightingModelParseError {}
 
 #[cfg(test)]
-#[path = "lighting_model/tests/allocation_tests.rs"]
+#[path = "tests/allocation.rs"]
 mod allocation_tests;

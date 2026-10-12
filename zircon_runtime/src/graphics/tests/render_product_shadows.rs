@@ -18,6 +18,7 @@ use crate::render_graph::{
     RenderGraphResourceAccessKind, RenderGraphResourceKind,
 };
 
+#[path = "render_product_shadows/many_point_lights.rs"]
 mod many_point_lights;
 
 #[test]

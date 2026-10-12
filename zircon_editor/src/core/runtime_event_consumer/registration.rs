@@ -235,5 +235,5 @@ impl EditorRuntimeEventConsumerRegistry {
 mod tests;
 
 #[cfg(test)]
-#[path = "registration/tests/optimization_batch_hx_editor607_tests.rs"]
+#[path = "registration/tests/perf.rs"]
 mod optimization_batch_hx_editor607_tests;

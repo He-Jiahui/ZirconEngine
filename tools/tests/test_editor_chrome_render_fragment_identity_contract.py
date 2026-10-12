@@ -5,10 +5,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 RECORDED_MODEL = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/model.rs"
+    "zircon_editor/src/ui/retained/contract/paint_frame/recording/model.rs"
 )
 RECORDING_STATE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/state.rs"
+    "zircon_editor/src/ui/retained/contract/paint_frame/recording/state.rs"
 )
 FRAME_SCOPE = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/paint_frame/"

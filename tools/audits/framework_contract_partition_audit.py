@@ -583,7 +583,7 @@ def audit_framework_partition(repo_root: Path) -> dict[str, object]:
 
     return {
         "schema_version": 2,
-        "source_root": "zircon_runtime/src/core/framework",
+        "source_root": "zircon_runtime/src/core",
         "totals": totals,
         "domains": domains,
         "files": file_rows,

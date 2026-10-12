@@ -15,7 +15,7 @@ describe('layout catalog dependencies', () => {
     );
     const theme = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
     const component =
-      'zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui';
+      'zircon_editor/assets/ui/editor/workbench/primitives/chrome/section_title.zui';
     const dependencies = new LayoutDependencies();
     await dependencies.load(root, [theme, component]);
     const document = parseZuiDocument(

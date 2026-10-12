@@ -484,9 +484,9 @@ fn runtime_session_archive_diffs_slots_against_worlds() {
 #[test]
 fn runtime_session_archive_keeps_slot_mutation_surface_guarded() {
     let source = concat!(
-        include_str!("../../dynamic_scene/session/facade/mutation/rename/commit.rs"),
-        include_str!("../../dynamic_scene/session/facade/mutation/metadata/commit.rs"),
-        include_str!("../../dynamic_scene/session/facade/validation/invariants.rs"),
+        include_str!("../../dynamic/session/facade/mutation/rename/commit.rs"),
+        include_str!("../../dynamic/session/facade/mutation/metadata/commit.rs"),
+        include_str!("../../dynamic/session/facade/validation/invariants.rs"),
     );
 
     assert!(source.contains("pub fn rename_slot("));
@@ -500,7 +500,7 @@ fn runtime_session_archive_keeps_slot_mutation_surface_guarded() {
         "single-slot mutation must stay behind the archive's indexed commit boundary"
     );
 
-    let archive_source = include_str!("../../dynamic_scene/session/archive.rs");
+    let archive_source = include_str!("../../dynamic/session/archive.rs");
     assert!(
         !archive_source.contains("impl DerefMut for RuntimeSessionArchive"),
         "DerefMut would expose the authoritative slot Vec and let callers bypass its indexes"
@@ -514,9 +514,9 @@ fn runtime_session_archive_keeps_slot_mutation_surface_guarded() {
 #[test]
 fn runtime_session_archive_single_slot_commits_do_not_rebuild_every_index() {
     let source = concat!(
-        include_str!("../../dynamic_scene/session/slot_mutation/metadata/commit.rs"),
-        include_str!("../../dynamic_scene/session/slot_mutation/touch/commit.rs"),
-        include_str!("../../dynamic_scene/session/slot_mutation/remove/commit.rs"),
+        include_str!("../../dynamic/session/slot_mutation/metadata/commit.rs"),
+        include_str!("../../dynamic/session/slot_mutation/touch/commit.rs"),
+        include_str!("../../dynamic/session/slot_mutation/remove/commit.rs"),
     );
 
     assert!(
@@ -530,7 +530,7 @@ fn runtime_session_archive_single_slot_commits_do_not_rebuild_every_index() {
     assert!(source.contains("replace_slot_metadata"));
     assert!(source.contains("remove_indexed_slot"));
 
-    let archive_source = include_str!("../../dynamic_scene/session/archive.rs");
+    let archive_source = include_str!("../../dynamic/session/archive.rs");
     let upsert_start = archive_source
         .find("fn commit_slot_upsert")
         .expect("archive should keep the single-slot upsert owner");
@@ -546,10 +546,10 @@ fn runtime_session_archive_single_slot_commits_do_not_rebuild_every_index() {
 
 #[test]
 fn runtime_session_archive_retention_consumes_its_update_index() {
-    let source = include_str!("../../dynamic_scene/session/retention/prune/planning.rs");
+    let source = include_str!("../../dynamic/session/retention/prune/planning.rs");
     let commit_source = concat!(
-        include_str!("../../dynamic_scene/session/retention/prune/global/commit.rs"),
-        include_str!("../../dynamic_scene/session/retention/prune/tag/commit.rs"),
+        include_str!("../../dynamic/session/retention/prune/global/commit.rs"),
+        include_str!("../../dynamic/session/retention/prune/tag/commit.rs"),
     );
 
     assert!(source.contains("indexed_slots_by_update().rev()"));
@@ -569,7 +569,7 @@ fn runtime_session_archive_retention_consumes_its_update_index() {
         "retention preview must consume the archive's canonical slot-id order"
     );
 
-    let archive_source = include_str!("../../dynamic_scene/session/archive.rs");
+    let archive_source = include_str!("../../dynamic/session/archive.rs");
     let batch_start = archive_source
         .find("fn commit_staged_slot_rows")
         .expect("archive should keep the staged batch owner");

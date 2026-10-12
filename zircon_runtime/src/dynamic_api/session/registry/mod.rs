@@ -1,10 +1,18 @@
+#[path = "action_guard.rs"]
 mod action_guard;
+#[path = "allocation_registry.rs"]
 mod allocation_registry;
+#[path = "frame_activity.rs"]
 mod frame_activity;
+#[path = "frame_demand.rs"]
 mod frame_demand;
+#[path = "session_owner.rs"]
 mod session_owner;
+#[path = "session_slot.rs"]
 mod session_slot;
+#[path = "session_store.rs"]
 mod session_store;
+#[path = "wake_registration.rs"]
 mod wake_registration;
 
 #[cfg(test)]

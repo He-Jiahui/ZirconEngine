@@ -1,8 +1,14 @@
+#[path = "focus.rs"]
 mod focus;
+#[path = "interaction.rs"]
 mod interaction;
+#[path = "layout.rs"]
 mod layout;
+#[path = "render_order.rs"]
 mod render_order;
+#[path = "routing.rs"]
 mod routing;
+#[path = "scroll.rs"]
 mod scroll;
 
 pub use focus::UiRuntimeTreeFocusExt;

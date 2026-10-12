@@ -7,6 +7,7 @@ use std::sync::Arc;
 use zircon_runtime_interface::ui::template::{UiAssetError, UiNodeDefinitionKind};
 use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiSize};
 
+#[path = "asset_prototype_store/control_scope.rs"]
 mod control_scope;
 
 const FLAT_LAYOUT_ASSET_TOML: &str = r##"

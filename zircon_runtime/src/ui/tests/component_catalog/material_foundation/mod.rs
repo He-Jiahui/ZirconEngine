@@ -13,27 +13,49 @@ use zircon_runtime_interface::ui::style::{
 
 use super::{assert_has_event, assert_has_prop};
 
+#[path = "../../material_foundation/button_inputs.rs"]
 mod button_inputs;
+#[path = "../../material_foundation/data_display.rs"]
 mod data_display;
+#[path = "../../material_foundation/data_display_subcomponents.rs"]
 mod data_display_subcomponents;
+#[path = "../../material_foundation/editor_components.rs"]
 mod editor_components;
+#[path = "feedback.rs"]
 mod feedback;
+#[path = "../../material_foundation/folder_structure.rs"]
 mod folder_structure;
+#[path = "../../material_foundation/form_controls.rs"]
 mod form_controls;
+#[path = "inputs.rs"]
 mod inputs;
+#[path = "../../material_foundation/lab_subcomponents.rs"]
 mod lab_subcomponents;
+#[path = "layout.rs"]
 mod layout;
+#[path = "../../material_foundation/mui_surface_overlay.rs"]
 mod mui_surface_overlay;
+#[path = "../../material_foundation/mui_web_inventory.rs"]
 mod mui_web_inventory;
+#[path = "mui_x.rs"]
 mod mui_x;
+#[path = "../../material_foundation/mui_x_runtime.rs"]
 mod mui_x_runtime;
+#[path = "navigation.rs"]
 mod navigation;
+#[path = "../../material_foundation/navigation_editor.rs"]
 mod navigation_editor;
+#[path = "../../material_foundation/navigation_secondary.rs"]
 mod navigation_secondary;
+#[path = "../../material_foundation/planned_layers.rs"]
 mod planned_layers;
+#[path = "../../material_foundation/selection_inputs.rs"]
 mod selection_inputs;
+#[path = "../../material_foundation/surface_subcomponents.rs"]
 mod surface_subcomponents;
+#[path = "surfaces.rs"]
 mod surfaces;
+#[path = "../../material_foundation/virtualization.rs"]
 mod virtualization;
 
 fn assert_button_style_schema(

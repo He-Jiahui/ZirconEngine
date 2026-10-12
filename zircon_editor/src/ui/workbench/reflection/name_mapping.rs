@@ -74,5 +74,5 @@ pub(super) fn content_kind_name(kind: ViewContentKind) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "name_mapping/tests/single_pass_tests.rs"]
+#[path = "name_mapping/tests/single_pass.rs"]
 mod single_pass_tests;

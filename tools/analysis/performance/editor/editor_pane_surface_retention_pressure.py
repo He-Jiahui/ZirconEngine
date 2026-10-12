@@ -11,7 +11,7 @@ GEOMETRY_SEMANTIC_PANE_CLONE_SITES = 8
 
 CRITICAL_SOURCE_CONTRACTS = (
     (
-        "zircon_editor/src/ui/retained_host/host_contract/data/panes/pane.rs",
+        "zircon_editor/src/ui/retained/contract/data/panes/pane.rs",
         (
             "pub(crate) struct PaneData",
             "pub body_surface_frame: Option<Arc<UiSurfaceFrame>>",
@@ -22,7 +22,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/data/"
+        "zircon_editor/src/ui/retained/contract/data/"
         "pane_presentation_patch.rs",
         (
             "pub(crate) struct HostPanePresentationPatch",
@@ -35,7 +35,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/data/"
+        "zircon_editor/src/ui/retained/contract/data/"
         "presentation_paint_models.rs",
         (
             "pub(crate) fn paint_node_models(&self)",
@@ -47,7 +47,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/data/"
+        "zircon_editor/src/ui/retained/contract/data/"
         "presentation_generation.rs",
         (
             "pub(crate) struct HostPresentationGeneration",
@@ -56,7 +56,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs",
+        "zircon_editor/src/ui/retained/contract/data/host_root.rs",
         (
             "pub(crate) struct HostWindowPresentationData",
             "pub(crate) struct HostWindowGeometryPresentationData",
@@ -67,7 +67,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/ui/apply_presentation/scene_conversion.rs",
+        "zircon_editor/src/ui/retained/ui/apply_presentation/scene_conversion.rs",
         (
             "to_host_contract_host_scene_geometry_with_retained_panes",
             "current.left_dock.pane.clone()",
@@ -78,7 +78,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/globals/state.rs",
+        "zircon_editor/src/ui/retained/contract/globals/state.rs",
         (
             "Arc::make_mut(&mut self.host_presentation)",
             ".indexes_presentation(&self.host_presentation)",
@@ -93,7 +93,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/window/presentation.rs",
+        "zircon_editor/src/ui/retained/contract/window/presentation.rs",
         (
             "pub(crate) fn patch_host_presentation_dock",
             "pub(crate) fn patch_host_presentation_panes<R>",
@@ -102,7 +102,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/ui/scoped_presentation.rs",
+        "zircon_editor/src/ui/retained/ui/scoped_presentation.rs",
         (
             "ui.patch_host_presentation_panes(",
             "prepare_ui_asset_presentation_transaction",
@@ -112,7 +112,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+        "zircon_editor/src/ui/retained/contract/surface_hit_test/"
         "template_node/pane_nodes.rs",
         ("pane.template_nodes()",),
     ),
@@ -127,7 +127,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ("pane.template_nodes()",),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+        "zircon_editor/src/ui/retained/contract/surface_hit_test/"
         "template_node.rs",
         (
             "pub(crate) fn rebuild_pane_template_hit_artifacts",
@@ -137,7 +137,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+        "zircon_editor/src/ui/retained/contract/surface_hit_test/"
         "template_node/popup_rows.rs",
         (
             "for row in index.popup_rows().iter().rev().copied()",
@@ -145,7 +145,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+        "zircon_editor/src/ui/retained/contract/surface_hit_test/"
         "template_node/index.rs",
         (
             "pub(crate) fn rebind_paint_models",
@@ -155,7 +155,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/ui/shell_content_presentation.rs",
+        "zircon_editor/src/ui/retained/ui/shell_content_presentation.rs",
         (
             "fn presentation_paint_models_for_target(",
             "fn push_pane_paint_model(",
@@ -204,7 +204,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/app/native_windows/presentation.rs",
+        "zircon_editor/src/ui/retained/app/native_windows/presentation.rs",
         (
             "ui.set_native_floating_window_presentation(",
             "fn apply_native_floating_presentation_data(",
@@ -269,24 +269,24 @@ CRITICAL_SOURCE_CONTRACTS = (
 )
 
 FORBIDDEN_SOURCE_TOKENS = {
-    "zircon_editor/src/ui/retained_host/host_contract/data/"
+    "zircon_editor/src/ui/retained/contract/data/"
     "presentation_generation.rs": (
         "semantic_structure: Arc<HostWindowPresentationData>",
     ),
-    "zircon_editor/src/ui/retained_host/host_contract/globals/state.rs": (
+    "zircon_editor/src/ui/retained/contract/globals/state.rs": (
         "host_structure: Arc<HostWindowPresentationData>",
         "self.host_structure = Arc::clone(&self.host_presentation);",
         "semantic_structure_identity: Arc<HostPresentationSemanticIdentity>",
         "self.semantic_structure_identity = Arc::new(HostPresentationSemanticIdentity);",
     ),
-    "zircon_editor/src/ui/retained_host/ui/scoped_presentation.rs": (
+    "zircon_editor/src/ui/retained/ui/scoped_presentation.rs": (
         "pane.body_surface_frame = build_pane_template_surface_frame(",
         "ui.update_host_presentation_if(",
     ),
-    "zircon_editor/src/ui/retained_host/host_contract/window/presentation.rs": (
+    "zircon_editor/src/ui/retained/contract/window/presentation.rs": (
         "pub(crate) fn update_host_presentation_if",
     ),
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/"
     "template_node/pane_nodes.rs": (
         "match pane.kind.as_str()",
     ),
@@ -314,7 +314,7 @@ FORBIDDEN_SOURCE_TOKENS = {
         "&mut right_dock.pane",
         "&mut bottom_dock.pane",
     ),
-    "zircon_editor/src/ui/retained_host/app/native_windows/presentation.rs": (
+    "zircon_editor/src/ui/retained/app/native_windows/presentation.rs": (
         "ui.get_host_presentation_generation(",
         "ui.update_host_presentation(",
     ),

@@ -1,0 +1,21 @@
+#[path = "style/palette.rs"]
+mod palette;
+#[path = "style/radius.rs"]
+mod radius;
+#[path = "style/surface.rs"]
+mod surface;
+#[path = "style/text.rs"]
+mod text;
+#[path = "style/tokens.rs"]
+mod tokens;
+#[path = "style/variants.rs"]
+mod variants;
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use radius::alert_corner_radius;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use surface::{
+    alert_background_color, alert_border_color, alert_border_width,
+};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use text::{
+    alert_action_color, alert_icon_color, alert_text_color,
+};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use variants::alert_color_token;

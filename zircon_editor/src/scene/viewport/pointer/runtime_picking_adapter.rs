@@ -158,5 +158,5 @@ fn finite_or_large(value: f32) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "runtime_picking_adapter/tests/hit_capacity_tests.rs"]
+#[path = "tests/hit_capacity.rs"]
 mod hit_capacity_tests;

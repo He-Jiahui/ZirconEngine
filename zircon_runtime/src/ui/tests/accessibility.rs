@@ -118,9 +118,15 @@ fn assert_widget_binding_report(result: &UiInputDispatchResult) {
     );
 }
 
+#[path = "accessibility/activation_actions.rs"]
 mod activation_actions;
+#[path = "accessibility/description_references.rs"]
 mod description_references;
+#[path = "accessibility/extraction.rs"]
 mod extraction;
+#[path = "accessibility/focus_diagnostics.rs"]
 mod focus_diagnostics;
+#[path = "accessibility/naming_relations.rs"]
 mod naming_relations;
+#[path = "accessibility/value_actions.rs"]
 mod value_actions;

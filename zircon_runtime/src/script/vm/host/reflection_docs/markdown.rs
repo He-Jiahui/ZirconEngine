@@ -310,5 +310,5 @@ fn push_line(output: &mut String, line: &str) {
 }
 
 #[cfg(test)]
-#[path = "markdown/tests/capacity_tests.rs"]
+#[path = "markdown/tests/capacity.rs"]
 mod capacity_tests;

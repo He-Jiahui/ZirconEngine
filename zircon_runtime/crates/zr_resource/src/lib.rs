@@ -1,19 +1,32 @@
 //! Resource foundation layer: locators, ids, typed handles, registry, and runtime state.
 
+#[path = "data.rs"]
 mod data;
+#[path = "error.rs"]
 mod error;
+#[path = "event_stream.rs"]
 mod event_stream;
+#[path = "io/mod.rs"]
 pub mod io;
 
 #[doc(hidden)]
+#[path = "assembly.rs"]
 pub mod assembly;
+#[path = "lease.rs"]
 mod lease;
+#[path = "management_generation.rs"]
 mod management_generation;
+#[path = "manager/mod.rs"]
 mod manager;
+#[path = "mutation/mod.rs"]
 mod mutation;
+#[path = "readiness_generation.rs"]
 mod readiness_generation;
+#[path = "registry.rs"]
 mod registry;
+#[path = "runtime.rs"]
 mod runtime;
+#[path = "snapshot.rs"]
 mod snapshot;
 #[cfg(test)]
 #[path = "tests/test_profile.rs"]

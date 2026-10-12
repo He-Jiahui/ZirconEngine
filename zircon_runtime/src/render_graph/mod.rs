@@ -1,12 +1,20 @@
 //! Render graph construction and compilation.
 
+#[path = "access/mod.rs"]
 mod access;
+#[path = "builder.rs"]
 mod builder;
+#[path = "dump.rs"]
 mod dump;
+#[path = "error.rs"]
 mod error;
+#[path = "graph.rs"]
 mod graph;
+#[path = "resource_schema.rs"]
 mod resource_schema;
+#[path = "store_lint.rs"]
 mod store_lint;
+#[path = "types.rs"]
 mod types;
 
 pub use access::{
@@ -56,4 +64,5 @@ pub use types::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

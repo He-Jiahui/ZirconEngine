@@ -1,5 +1,8 @@
+#[path = "error.rs"]
 mod error;
+#[path = "id.rs"]
 mod id;
+#[path = "source.rs"]
 mod source;
 
 pub use error::NotificationIdentityError;

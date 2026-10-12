@@ -4,9 +4,13 @@
 //! the write-ahead-log protocol so framing, durable publication, and restart
 //! recovery do not accumulate in a single source file.
 
+#[path = "append.rs"]
 mod append;
+#[path = "frame_codec.rs"]
 mod frame_codec;
+#[path = "intent.rs"]
 mod intent;
+#[path = "recovery.rs"]
 mod recovery;
 #[cfg(test)]
 #[path = "tests/cases.rs"]

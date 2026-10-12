@@ -10,8 +10,13 @@ use crate::ui::workbench::view::ViewDescriptorId;
 use self::support::*;
 use super::support::{env_lock, EventRuntimeHarness};
 
+#[path = "graph.rs"]
 mod graph;
+#[path = "rebind.rs"]
 mod rebind;
+#[path = "sequence.rs"]
 mod sequence;
+#[path = "state_machine.rs"]
 mod state_machine;
+#[path = "support.rs"]
 mod support;

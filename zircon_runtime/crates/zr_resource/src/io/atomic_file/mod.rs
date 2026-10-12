@@ -1,10 +1,15 @@
 //! 单文件发布边界：先将完整字节写入同目录暂存，再由持有暂存的对象决定是否发布。
 //! 配置与场景保存依赖该边界避免半份文件；需要多文件一致性时使用持久化事务模块。
 
+#[path = "directory.rs"]
 mod directory;
+#[path = "pathing.rs"]
 mod pathing;
+#[path = "platform.rs"]
 mod platform;
+#[path = "recovery.rs"]
 mod recovery;
+#[path = "transaction.rs"]
 mod transaction;
 
 use std::fs;
@@ -87,4 +92,5 @@ pub fn stage_atomic_write(path: &Path, bytes: &[u8]) -> io::Result<PendingAtomic
 }
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

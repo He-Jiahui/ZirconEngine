@@ -6,46 +6,47 @@ use zircon_runtime_interface::ui::component::{
 
 use super::super::text_search::{contains_lowercase_query, starts_with_lowercase_query};
 
+#[path = "menu/submenu.rs"]
 mod submenu;
 
 #[cfg(test)]
-#[path = "menu/tests/search_capacity_tests.rs"]
+#[path = "../../keyboard/menu/tests/search_capacity.rs"]
 mod search_capacity_tests;
 
 #[cfg(test)]
-#[path = "menu/tests/search_streaming_tests.rs"]
+#[path = "../../keyboard/menu/tests/search_streaming.rs"]
 mod search_streaming_tests;
 
 #[cfg(test)]
-#[path = "menu/tests/typeahead_option_id_tests.rs"]
+#[path = "../../keyboard/menu/tests/typeahead_option_id.rs"]
 mod typeahead_option_id_tests;
 
 #[cfg(test)]
-#[path = "menu/tests/typeahead_text_normalization_tests.rs"]
+#[path = "../../../keyboard/menu/tests/typeahead_text_normalization.rs"]
 mod typeahead_text_normalization_tests;
 
 #[cfg(test)]
-#[path = "menu/tests/typeahead_append_reuse_tests.rs"]
+#[path = "../../keyboard/menu/tests/typeahead_append_reuse.rs"]
 mod typeahead_append_reuse_tests;
 
 #[cfg(test)]
-#[path = "menu/tests/typeahead_search_projection_tests.rs"]
+#[path = "../../keyboard/menu/tests/typeahead_search_project.rs"]
 mod typeahead_search_projection_tests;
 
 #[cfg(test)]
-#[path = "menu/tests/search_query_borrow_tests.rs"]
+#[path = "../../keyboard/menu/tests/search_query_borrow.rs"]
 mod search_query_borrow_tests;
 
 #[cfg(test)]
-#[path = "menu/tests/search_filter_accumulator_tests.rs"]
+#[path = "../../keyboard/menu/tests/search_filter_accumulator.rs"]
 mod search_filter_accumulator_tests;
 
 #[cfg(test)]
-#[path = "menu/tests/label_borrow_tests.rs"]
+#[path = "../../keyboard/menu/tests/label_borrow.rs"]
 mod label_borrow_tests;
 
 #[cfg(test)]
-#[path = "menu/tests/child_values_iterator_tests.rs"]
+#[path = "../../keyboard/menu/tests/child_values_iterator.rs"]
 mod child_values_iterator_tests;
 
 pub(super) use submenu::{close_active_submenu, open_focused_submenu};

@@ -129,7 +129,7 @@ impl UiAssetPaletteCatalog {
 }
 
 #[cfg(test)]
-#[path = "catalog/tests/optimization_batch_jg_editor646_tests.rs"]
+#[path = "catalog/tests/perf.rs"]
 mod optimization_batch_jg_editor646_tests;
 
 fn canonical_reference_imports(

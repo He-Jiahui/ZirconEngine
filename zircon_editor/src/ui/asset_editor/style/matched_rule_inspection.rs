@@ -8,11 +8,11 @@ use zircon_runtime_interface::ui::template::{
 use super::style_rule_declarations::{declaration_entries, UiStyleRuleDeclarationEntry};
 
 #[cfg(test)]
-#[path = "matched_rule_inspection/tests/single_projection_tests.rs"]
+#[path = "tests/single_projection.rs"]
 mod single_projection_tests;
 
 #[cfg(test)]
-#[path = "matched_rule_inspection/tests/optimization_batch_jl_editor651_tests.rs"]
+#[path = "matched_rule_inspection/tests/perf.rs"]
 mod optimization_batch_jl_editor651_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

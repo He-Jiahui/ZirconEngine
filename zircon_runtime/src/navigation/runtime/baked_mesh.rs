@@ -9,7 +9,9 @@ use crate::core::math::{Real, Vec3};
 
 use super::math::distance_xz;
 
+#[path = "baked_mesh/query_scratch.rs"]
 mod query_scratch;
+#[path = "baked_mesh/spatial_index.rs"]
 mod spatial_index;
 
 use query_scratch::{FallbackQueryScratch, PathOpenNode};
@@ -459,5 +461,5 @@ fn deduplicate_path_points(mut points: Vec<NavPathPoint>) -> Vec<NavPathPoint> {
 }
 
 #[cfg(test)]
-#[path = "tests/baked_mesh_performance_contract_tests.rs"]
+#[path = "tests/baked_mesh_perf_contract.rs"]
 mod performance_contract_tests;

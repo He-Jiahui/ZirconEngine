@@ -1,8 +1,14 @@
+#[path = "decision/mod.rs"]
 mod decision;
+#[path = "identity/mod.rs"]
 mod identity;
+#[path = "presentation.rs"]
 mod presentation;
+#[path = "progress/mod.rs"]
 mod progress;
+#[path = "service.rs"]
 mod service;
+#[path = "toast/mod.rs"]
 mod toast;
 
 #[cfg(test)]

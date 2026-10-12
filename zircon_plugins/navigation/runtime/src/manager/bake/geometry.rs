@@ -398,5 +398,5 @@ fn collider_geometry_error(message: impl Into<String>) -> NavigationError {
 }
 
 #[cfg(test)]
-#[path = "tests/geometry_collider_tests.rs"]
+#[path = "tests/geometry_collider.rs"]
 mod geometry_collider_tests;

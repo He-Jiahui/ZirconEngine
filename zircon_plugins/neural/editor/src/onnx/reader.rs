@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
+#[path = "reader/raw_data.rs"]
 mod raw_data;
 
 use raw_data::decode_f32;

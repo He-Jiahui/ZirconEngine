@@ -5,11 +5,11 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_HOST = (
-    ROOT / "zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs"
+    ROOT / "zircon_editor/src/ui/runtime/runtime/runtime_host.rs"
 )
 DYNAMIC_CONTROL_STATE = (
     ROOT
-    / "zircon_editor/src/ui/template_runtime/runtime/runtime_host/dynamic_control_state.rs"
+    / "zircon_editor/src/ui/runtime/runtime/runtime_host/dynamic_control_state.rs"
 )
 
 

@@ -20,5 +20,5 @@ pub(super) fn scene_view_descriptor() -> ViewDescriptor {
 }
 
 #[cfg(test)]
-#[path = "tests/scene_view_descriptor.rs"]
+#[path = "../tests/scene_view_descriptor.rs"]
 mod tests;

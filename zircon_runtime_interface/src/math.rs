@@ -1,8 +1,10 @@
 //! Stable math projection and versioned schema DTOs for runtime products.
 
+#[path = "math/schema.rs"]
 mod schema;
 
 #[cfg(test)]
+#[path = "math/tests/mod.rs"]
 mod tests;
 
 pub use schema::{

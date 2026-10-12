@@ -1,38 +1,73 @@
+#[path = "arranged.rs"]
 mod arranged;
+#[path = "arranged_visibility.rs"]
 mod arranged_visibility;
+#[path = "binding_targets.rs"]
 mod binding_targets;
+#[path = "binding_transaction.rs"]
 mod binding_transaction;
+#[path = "clipboard_transfers.rs"]
 mod clipboard_transfers;
+#[path = "component_state.rs"]
 mod component_state;
+#[path = "control_index.rs"]
 mod control_index;
+#[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "ecs_projection.rs"]
 mod ecs_projection;
+#[path = "focus.rs"]
 mod focus;
+#[path = "frame_hit_test.rs"]
 mod frame_hit_test;
+#[path = "host_font_assets.rs"]
 mod host_font_assets;
+#[path = "input/mod.rs"]
 pub(crate) mod input;
+#[path = "interaction_gate.rs"]
 mod interaction_gate;
+#[path = "invalidation.rs"]
 mod invalidation;
+#[path = "localized_text.rs"]
 mod localized_text;
+#[path = "mutation_snapshot.rs"]
 mod mutation_snapshot;
+#[path = "navigation_index.rs"]
 mod navigation_index;
+#[path = "node_pool.rs"]
 mod node_pool;
+#[path = "popup_stack.rs"]
 mod popup_stack;
+#[path = "property_mutation.rs"]
 mod property_mutation;
+#[path = "reflection_snapshot.rs"]
 mod reflection_snapshot;
+#[path = "render/mod.rs"]
 mod render;
+#[path = "render_fonts.rs"]
 mod render_fonts;
 pub use render_fonts::{current_ui_surface_font_snapshot, ui_surface_font_snapshot_for_context};
+#[path = "secure_text_values.rs"]
 mod secure_text_values;
+#[path = "session_identity.rs"]
 mod session_identity;
+#[path = "slots.rs"]
 mod slots;
+#[path = "subtree_mount.rs"]
 mod subtree_mount;
+#[path = "surface.rs"]
 mod surface;
+#[path = "text_artifact.rs"]
 mod text_artifact;
+#[path = "text_geometry.rs"]
 mod text_geometry;
+#[path = "text_shape.rs"]
 mod text_shape;
+#[path = "timeline.rs"]
 mod timeline;
+#[path = "virtual_list_materialization.rs"]
 mod virtual_list_materialization;
+#[path = "virtual_list_prototype_pool.rs"]
 mod virtual_list_prototype_pool;
 
 use zircon_runtime_interface::ui::{

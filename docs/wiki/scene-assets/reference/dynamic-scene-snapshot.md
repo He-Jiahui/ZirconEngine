@@ -1,19 +1,19 @@
 ---
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/document/read.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/write.rs
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task/loader.rs
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task/prepared.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene_asset/dynamic_scene.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/slot/capture.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/slot/restore.rs
+  - zircon_runtime/src/scene/dynamic/document/read.rs
+  - zircon_runtime/src/scene/dynamic/document/write.rs
+  - zircon_runtime/src/scene/dynamic/spawn_task/loader.rs
+  - zircon_runtime/src/scene/dynamic/spawn_task/prepared.rs
+  - zircon_runtime/src/scene/dynamic/scene_asset/dynamic.rs
+  - zircon_runtime/src/scene/dynamic/session/slot/capture.rs
+  - zircon_runtime/src/scene/dynamic/session/slot/restore.rs
 implementation_files:
-  - zircon_runtime/src/scene/dynamic_scene/document
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task
+  - zircon_runtime/src/scene/dynamic/document
+  - zircon_runtime/src/scene/dynamic/spawn_task
 plan_sources:
   - user: 2026-09-09 动态场景快照与实例化接口详解
 tests:
-  - zircon_runtime/src/scene/tests/dynamic_scene_session
+  - zircon_runtime/src/scene/tests/session
   - zircon_runtime/src/scene/tests/component_structure/project_serialization.rs
 doc_type: module-detail
 ---

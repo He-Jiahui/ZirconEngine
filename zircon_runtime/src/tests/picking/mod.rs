@@ -20,14 +20,19 @@ use crate::core::framework::render::{
 use crate::core::math::{Transform, UVec2, Vec2, Vec3};
 
 /// 拾取报告和调试指标回归，覆盖命中归约与仅有射线的指针行。
+#[path = "diagnostics.rs"]
 mod diagnostics;
 /// 命中排序、悬停策略、原语后端与共享投影存储的回归。
+#[path = "hits_and_hover.rs"]
 mod hits_and_hover;
 /// 完整拾取阶段报告及总开关禁用后清空交互状态的回归。
+#[path = "pipeline.rs"]
 mod pipeline;
 /// 按帧输入推进悬停、按压、拖拽、滚动与取消的事件顺序回归。
+#[path = "pointer_events.rs"]
 mod pointer_events;
 /// 相机射线、指针与视口准入，以及多指针和多相机射线键的回归。
+#[path = "rays.rs"]
 mod rays;
 
 /// 创建排序、悬停、诊断和事件用例共用的最小命中夹具。

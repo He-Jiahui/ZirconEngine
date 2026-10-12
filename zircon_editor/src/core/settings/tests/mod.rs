@@ -118,11 +118,17 @@ impl SettingsChangeSubscriber for ProjectLayerPrepareSubscriber {
     }
 }
 
+#[path = "autosave.rs"]
 mod autosave;
+#[path = "mutation.rs"]
 mod mutation;
+#[path = "persistence.rs"]
 mod persistence;
+#[path = "registry.rs"]
 mod registry;
+#[path = "unreal_snap_authority.rs"]
 mod unreal_snap_authority;
+#[path = "value_batch.rs"]
 mod value_batch;
 
 fn temporary_root(label: &str) -> PathBuf {

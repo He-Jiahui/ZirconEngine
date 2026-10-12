@@ -7,14 +7,14 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 REFACTOR = ROOT / "zircon_editor/src/core/asset/refactor/delete.rs"
 TESTS = ROOT / "zircon_editor/src/core/asset/refactor/tests/cases.rs"
-API = ROOT / "zircon_editor/src/ui/host/editor_asset_manager/api.rs"
+API = ROOT / "zircon_editor/src/ui/host/assets/api.rs"
 MANAGER = (
     ROOT
-    / "zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_refactor.rs"
+    / "zircon_editor/src/ui/host/assets/manager/assets/asset_refactor.rs"
 )
 EDITOR_ASSET_STATE = (
     ROOT
-    / "zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/editor_asset_state.rs"
+    / "zircon_editor/src/ui/host/assets/manager/assets/editor_asset_state.rs"
 )
 
 

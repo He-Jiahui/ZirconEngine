@@ -178,7 +178,7 @@ fn map_references<A, B>(
 }
 
 #[cfg(test)]
-#[path = "material/tests/single_pass_field_tests.rs"]
+#[path = "../material/tests/single_pass_field.rs"]
 mod single_pass_field_tests;
 
 #[cfg(test)]

@@ -12,6 +12,7 @@ use super::super::{
 use super::*;
 use crate::core::math::UVec2;
 
+#[path = "retry_frame.rs"]
 mod retry_frame;
 
 #[test]

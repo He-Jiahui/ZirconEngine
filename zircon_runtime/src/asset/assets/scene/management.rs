@@ -170,7 +170,7 @@ pub struct SceneEntityManagementRecordSet {
 }
 
 #[cfg(test)]
-#[path = "tests/management_optimization_batch_id_runtime614_tests.rs"]
+#[path = "tests/management_perf.rs"]
 mod optimization_batch_id_runtime614_tests;
 
 impl SceneAssetManagementRecordSetSummary {

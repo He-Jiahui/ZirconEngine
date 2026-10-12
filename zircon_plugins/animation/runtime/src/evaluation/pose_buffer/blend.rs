@@ -154,5 +154,5 @@ fn shortest_slerp(left: Quat, mut right: Quat, weight: f32) -> Quat {
 }
 
 #[cfg(test)]
-#[path = "tests/blend_optimization_tests.rs"]
+#[path = "tests/blend_perf.rs"]
 mod optimization_tests;

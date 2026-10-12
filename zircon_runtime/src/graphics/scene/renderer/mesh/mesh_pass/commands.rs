@@ -1,0 +1,478 @@
+use crate::core::framework::render::RenderPhase;
+
+use super::cached_mesh_draw_commands::MeshDrawCommandCacheStats;
+use super::indirect_draw_batcher::IndirectDrawBatcherStats;
+use super::mesh_draw_command::{DrawInstanceSource, MeshDrawArgs, MeshDrawCommand};
+
+#[path = "commands/builder.rs"]
+mod builder;
+#[path = "../../../mesh/commands/materialization_profile.rs"]
+mod materialization_profile;
+#[cfg(test)]
+#[path = "../commands/tests/cases.rs"]
+mod tests;
+
+#[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+use materialization_profile::{
+    MeshDrawCommandListProfile, MeshPassCommandMaterializationAccumulator,
+};
+
+pub(crate) use builder::{
+    build_environment_capture_command_buffers, build_hit_proxy_command_list,
+    build_mesh_pass_command_buffers, build_mesh_pass_command_buffers_cached,
+    build_mesh_pass_command_buffers_cached_parallel,
+};
+
+#[derive(Clone, Default)]
+pub(crate) struct MeshDrawCommandList {
+    commands: Vec<MeshDrawCommand>,
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    profile: MeshDrawCommandListProfile,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct MeshDrawCommandListStats {
+    pub(crate) command_count: usize,
+    pub(crate) direct_indexed_count: usize,
+    pub(crate) indirect_indexed_count: usize,
+    pub(crate) gpu_scene_instance_count: usize,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct MeshPassCommandBuffers {
+    depth_prepass: MeshDrawCommandList,
+    shadow: MeshDrawCommandList,
+    opaque: MeshDrawCommandList,
+    alpha_mask: MeshDrawCommandList,
+    advanced_pbr_opaque: MeshDrawCommandList,
+    transmission: MeshDrawCommandList,
+    transparent: MeshDrawCommandList,
+    half_resolution_transparent: MeshDrawCommandList,
+    velocity: MeshDrawCommandList,
+    taa_reactive_mask: MeshDrawCommandList,
+    cache_stats: MeshDrawCommandCacheStats,
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    materialization_stats: MeshPassCommandMaterializationAccumulator,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct MeshPassCommandBufferStats {
+    pub(crate) command_count: usize,
+    pub(crate) depth_prepass_command_count: usize,
+    pub(crate) shadow_command_count: usize,
+    pub(crate) opaque_command_count: usize,
+    pub(crate) alpha_mask_command_count: usize,
+    pub(crate) advanced_pbr_opaque_command_count: usize,
+    pub(crate) transmission_command_count: usize,
+    pub(crate) transparent_command_count: usize,
+    pub(crate) velocity_command_count: usize,
+    pub(crate) taa_reactive_mask_command_count: usize,
+    pub(crate) direct_indexed_count: usize,
+    pub(crate) indirect_indexed_count: usize,
+    pub(crate) gpu_scene_instance_count: usize,
+    pub(crate) cached_command_hit_count: usize,
+    pub(crate) command_rebuild_count: usize,
+    pub(crate) dynamic_command_count: usize,
+    pub(crate) cache_miss_count: usize,
+    pub(crate) cache_invalidated_transform_count: usize,
+    pub(crate) cache_invalidated_geometry_count: usize,
+    pub(crate) cache_invalidated_material_count: usize,
+    pub(crate) cache_invalidated_resolver_configuration_count: usize,
+    pub(crate) indirect_batch_count: usize,
+    pub(crate) indirect_batched_draw_count: usize,
+    pub(crate) indirect_fallback_draw_count: usize,
+    pub(crate) indirect_args_count: usize,
+}
+
+impl MeshDrawCommandList {
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
+
+    pub(crate) fn from_commands(commands: Vec<MeshDrawCommand>) -> Self {
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        let profile = MeshDrawCommandListProfile::from_existing_capacity(commands.capacity());
+        let mut list = Self {
+            commands,
+            #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+            profile,
+        };
+        list.sort();
+        list
+    }
+
+    pub(crate) fn push(&mut self, command: MeshDrawCommand) {
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        let previous_capacity = self.commands.capacity();
+        self.commands.push(command);
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        self.profile
+            .record_capacity_transition(previous_capacity, self.commands.capacity());
+    }
+
+    pub(crate) fn sort(&mut self) {
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        self.profile.record_sort(self.commands.len());
+        sort_mesh_draw_commands(&mut self.commands);
+    }
+
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    pub(crate) fn record_staging_merge(&mut self, moved: usize, visited: usize) {
+        self.profile.record_merge(moved, visited);
+    }
+
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    pub(crate) fn record_staging_arena_cost(&mut self, grow_count: usize, peak_capacity: usize) {
+        self.profile.record_arena_cost(grow_count, peak_capacity);
+    }
+
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    pub(crate) fn staging_arena_cost(&self) -> (usize, usize) {
+        self.profile.arena_cost()
+    }
+
+    pub(crate) fn commands(&self) -> &[MeshDrawCommand] {
+        &self.commands
+    }
+
+    pub(crate) fn into_commands(self) -> Vec<MeshDrawCommand> {
+        self.commands
+    }
+
+    fn extend_commands(&mut self, commands: Vec<MeshDrawCommand>) {
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        let previous_capacity = self.commands.capacity();
+        self.commands.extend(commands);
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        self.profile
+            .record_capacity_transition(previous_capacity, self.commands.capacity());
+    }
+
+    pub(crate) fn iter_phase(&self, phase: RenderPhase) -> impl Iterator<Item = &MeshDrawCommand> {
+        self.commands
+            .iter()
+            .filter(move |command| command.phase == phase)
+    }
+
+    pub(crate) fn stats(&self) -> MeshDrawCommandListStats {
+        summarize_mesh_draw_commands(&self.commands)
+    }
+}
+
+impl MeshPassCommandBuffers {
+    pub(crate) fn from_cached_command_hits(
+        commands: MeshDrawCommandList,
+        cache_stats: MeshDrawCommandCacheStats,
+    ) -> Self {
+        Self::from_command_list(commands, cache_stats)
+    }
+
+    pub(crate) fn extend(&mut self, other: Self) {
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        self.materialization_stats
+            .accumulate(other.materialization_stats);
+        append_command_list(&mut self.depth_prepass, other.depth_prepass);
+        append_command_list(&mut self.shadow, other.shadow);
+        append_command_list(&mut self.opaque, other.opaque);
+        append_command_list(&mut self.alpha_mask, other.alpha_mask);
+        append_command_list(&mut self.advanced_pbr_opaque, other.advanced_pbr_opaque);
+        append_command_list(&mut self.transmission, other.transmission);
+        append_command_list(&mut self.transparent, other.transparent);
+        append_command_list(
+            &mut self.half_resolution_transparent,
+            other.half_resolution_transparent,
+        );
+        append_command_list(&mut self.velocity, other.velocity);
+        append_command_list(&mut self.taa_reactive_mask, other.taa_reactive_mask);
+        self.cache_stats.accumulate(other.cache_stats);
+    }
+
+    fn from_command_list(
+        commands: MeshDrawCommandList,
+        cache_stats: MeshDrawCommandCacheStats,
+    ) -> Self {
+        let MeshDrawCommandList {
+            commands,
+            #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+                profile: command_arena_profile,
+        } = commands;
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        let mut materialization_stats = MeshPassCommandMaterializationAccumulator::from_build_arena(
+            command_arena_profile,
+            commands.len(),
+            cache_stats.cached_command_hit_count,
+        );
+        let mut depth_prepass = MeshDrawCommandList::new();
+        let mut shadow = MeshDrawCommandList::new();
+        let mut opaque = MeshDrawCommandList::new();
+        let mut alpha_mask = MeshDrawCommandList::new();
+        let mut advanced_pbr_opaque = MeshDrawCommandList::new();
+        let mut transmission = MeshDrawCommandList::new();
+        let mut transparent = MeshDrawCommandList::new();
+        let mut half_resolution_transparent = MeshDrawCommandList::new();
+        let mut velocity = MeshDrawCommandList::new();
+        let mut taa_reactive_mask = MeshDrawCommandList::new();
+
+        macro_rules! push_partitioned_command {
+            ($target:expr, $command:expr) => {{
+                #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+                materialization_stats.record_partition_move();
+                $target.push($command);
+            }};
+        }
+
+        for command in commands {
+            #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+            materialization_stats.record_partition_visit();
+            match command.phase {
+                RenderPhase::Prepass => push_partitioned_command!(depth_prepass, command),
+                RenderPhase::Shadow => push_partitioned_command!(shadow, command),
+                RenderPhase::Opaque3d => push_partitioned_command!(opaque, command),
+                RenderPhase::AlphaMask3d => push_partitioned_command!(alpha_mask, command),
+                RenderPhase::Transparent3d if is_late_forward_opaque(&command) => {
+                    push_partitioned_command!(advanced_pbr_opaque, command)
+                }
+                RenderPhase::Transparent3d if is_transmission(&command) => {
+                    push_partitioned_command!(transmission, command)
+                }
+                RenderPhase::Transparent3d if command.uses_half_resolution_transparency() => {
+                    push_partitioned_command!(half_resolution_transparent, command)
+                }
+                RenderPhase::Transparent3d => push_partitioned_command!(transparent, command),
+                RenderPhase::PostProcess
+                    if command.pipeline_kind == super::MeshPassPipelineKind::Velocity =>
+                {
+                    push_partitioned_command!(velocity, command)
+                }
+                RenderPhase::PostProcess
+                    if matches!(
+                        command.pipeline_kind,
+                        super::MeshPassPipelineKind::TaaReactiveMask
+                            | super::MeshPassPipelineKind::TaaReactiveMaterialMask
+                    ) =>
+                {
+                    push_partitioned_command!(taa_reactive_mask, command)
+                }
+                _ => {}
+            }
+        }
+
+        for command_list in [
+            &mut depth_prepass,
+            &mut shadow,
+            &mut opaque,
+            &mut alpha_mask,
+            &mut advanced_pbr_opaque,
+            &mut transmission,
+            &mut transparent,
+            &mut half_resolution_transparent,
+            &mut velocity,
+            &mut taa_reactive_mask,
+        ] {
+            command_list.sort();
+        }
+
+        Self {
+            depth_prepass,
+            shadow,
+            opaque,
+            alpha_mask,
+            advanced_pbr_opaque,
+            transmission,
+            transparent,
+            half_resolution_transparent,
+            velocity,
+            taa_reactive_mask,
+            cache_stats,
+            #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+            materialization_stats,
+        }
+    }
+
+    pub(crate) fn depth_prepass(&self) -> &MeshDrawCommandList {
+        &self.depth_prepass
+    }
+
+    pub(crate) fn shadow(&self) -> &MeshDrawCommandList {
+        &self.shadow
+    }
+
+    pub(crate) fn opaque(&self) -> &MeshDrawCommandList {
+        &self.opaque
+    }
+
+    pub(crate) fn alpha_mask(&self) -> &MeshDrawCommandList {
+        &self.alpha_mask
+    }
+
+    pub(crate) fn advanced_pbr_opaque(&self) -> &MeshDrawCommandList {
+        &self.advanced_pbr_opaque
+    }
+
+    pub(crate) fn transmission(&self) -> &MeshDrawCommandList {
+        &self.transmission
+    }
+
+    pub(crate) fn transparent(&self) -> &MeshDrawCommandList {
+        &self.transparent
+    }
+
+    pub(crate) fn half_resolution_transparent(&self) -> &MeshDrawCommandList {
+        &self.half_resolution_transparent
+    }
+
+    /// Keeps material-marked transparency visible whenever the compiled graph does not own the
+    /// half-resolution mesh pass. The merged list is re-sorted before indirect batching.
+    pub(crate) fn merge_half_resolution_transparent_into_transparent(&mut self) {
+        let half_resolution_transparent = std::mem::take(&mut self.half_resolution_transparent);
+        append_command_list(&mut self.transparent, half_resolution_transparent);
+    }
+
+    pub(crate) fn velocity(&self) -> &MeshDrawCommandList {
+        &self.velocity
+    }
+
+    pub(crate) fn taa_reactive_mask(&self) -> &MeshDrawCommandList {
+        &self.taa_reactive_mask
+    }
+
+    pub(crate) fn stats(&self) -> MeshPassCommandBufferStats {
+        let fallback_draw_count = self.command_count();
+        self.stats_with_indirect_plan(IndirectDrawBatcherStats {
+            fallback_draw_count,
+            ..IndirectDrawBatcherStats::default()
+        })
+    }
+
+    pub(crate) fn stats_with_indirect_plan(
+        &self,
+        indirect_stats: IndirectDrawBatcherStats,
+    ) -> MeshPassCommandBufferStats {
+        let depth_prepass = self.depth_prepass.stats();
+        let shadow = self.shadow.stats();
+        let opaque = self.opaque.stats();
+        let alpha_mask = self.alpha_mask.stats();
+        let advanced_pbr_opaque = self.advanced_pbr_opaque.stats();
+        let transmission = self.transmission.stats();
+        let transparent = self.transparent.stats();
+        let half_resolution_transparent = self.half_resolution_transparent.stats();
+        let velocity = self.velocity.stats();
+        let taa_reactive_mask = self.taa_reactive_mask.stats();
+        let lists = [
+            depth_prepass,
+            shadow,
+            opaque,
+            alpha_mask,
+            advanced_pbr_opaque,
+            transmission,
+            transparent,
+            half_resolution_transparent,
+            velocity,
+            taa_reactive_mask,
+        ];
+
+        MeshPassCommandBufferStats {
+            command_count: lists.iter().map(|stats| stats.command_count).sum(),
+            depth_prepass_command_count: depth_prepass.command_count,
+            shadow_command_count: shadow.command_count,
+            opaque_command_count: opaque.command_count,
+            alpha_mask_command_count: alpha_mask.command_count,
+            advanced_pbr_opaque_command_count: advanced_pbr_opaque.command_count,
+            transmission_command_count: transmission.command_count,
+            transparent_command_count: transparent
+                .command_count
+                .saturating_add(half_resolution_transparent.command_count),
+            velocity_command_count: velocity.command_count,
+            taa_reactive_mask_command_count: taa_reactive_mask.command_count,
+            direct_indexed_count: lists.iter().map(|stats| stats.direct_indexed_count).sum(),
+            indirect_indexed_count: lists.iter().map(|stats| stats.indirect_indexed_count).sum(),
+            gpu_scene_instance_count: lists
+                .iter()
+                .map(|stats| stats.gpu_scene_instance_count)
+                .sum(),
+            cached_command_hit_count: self.cache_stats.cached_command_hit_count,
+            command_rebuild_count: self.cache_stats.command_rebuild_count,
+            dynamic_command_count: self.cache_stats.dynamic_command_count,
+            cache_miss_count: self.cache_stats.cache_miss_count,
+            cache_invalidated_transform_count: self.cache_stats.cache_invalidated_transform_count,
+            cache_invalidated_geometry_count: self.cache_stats.cache_invalidated_geometry_count,
+            cache_invalidated_material_count: self.cache_stats.cache_invalidated_material_count,
+            cache_invalidated_resolver_configuration_count: self
+                .cache_stats
+                .cache_invalidated_resolver_configuration_count,
+            indirect_batch_count: indirect_stats.batch_count,
+            indirect_batched_draw_count: indirect_stats.batched_draw_count,
+            indirect_fallback_draw_count: indirect_stats.fallback_draw_count,
+            indirect_args_count: indirect_stats.indirect_args_count,
+        }
+    }
+
+    fn command_count(&self) -> usize {
+        [
+            self.depth_prepass.commands(),
+            self.shadow.commands(),
+            self.opaque.commands(),
+            self.alpha_mask.commands(),
+            self.advanced_pbr_opaque.commands(),
+            self.transmission.commands(),
+            self.transparent.commands(),
+            self.half_resolution_transparent.commands(),
+            self.velocity.commands(),
+            self.taa_reactive_mask.commands(),
+        ]
+        .iter()
+        .map(|commands| commands.len())
+        .sum()
+    }
+}
+
+fn is_late_forward_opaque(command: &MeshDrawCommand) -> bool {
+    command.pipeline_key().requires_forward_path() && !command.pipeline_key().pbr_transmission
+}
+
+fn is_transmission(command: &MeshDrawCommand) -> bool {
+    command.pipeline_key().pbr_transmission
+}
+
+fn append_command_list(target: &mut MeshDrawCommandList, source: MeshDrawCommandList) {
+    let MeshDrawCommandList {
+        commands,
+        #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+        profile,
+    } = source;
+    #[cfg(any(test, feature = "profiling", feature = "profiling-tracy"))]
+    {
+        target.profile.accumulate(profile);
+        target.profile.record_merge(commands.len(), commands.len());
+    }
+    target.extend_commands(commands);
+    target.sort();
+}
+
+fn sort_mesh_draw_commands(commands: &mut [MeshDrawCommand]) {
+    commands.sort_by_key(|command| {
+        (
+            command.phase.queue_order(),
+            command.sort_key,
+            command.pipeline_variant_id.value(),
+        )
+    });
+}
+
+fn summarize_mesh_draw_commands(commands: &[MeshDrawCommand]) -> MeshDrawCommandListStats {
+    let mut stats = MeshDrawCommandListStats::default();
+    for command in commands {
+        stats.command_count += 1;
+        match &command.draw_args {
+            MeshDrawArgs::DirectIndexed { .. } => stats.direct_indexed_count += 1,
+            MeshDrawArgs::IndexedIndirect { .. } => stats.indirect_indexed_count += 1,
+        }
+        let DrawInstanceSource::GpuSceneInstance {
+            first_instance_index,
+            instance_count,
+        } = &command.instance_source;
+        debug_assert!(first_instance_index.checked_add(*instance_count).is_some());
+        stats.gpu_scene_instance_count += *instance_count as usize;
+    }
+    stats
+}

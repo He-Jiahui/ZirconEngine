@@ -83,7 +83,7 @@ function Write-DamageSourceManifest {
             }
             critical_source_files = @(
                 [pscustomobject]@{
-                    relative_path = 'zircon_editor/src/ui/retained_host/host_contract/redraw.rs'
+                    relative_path = 'zircon_editor/src/ui/retained/contract/redraw.rs'
                     sha256 = $sourceHash
                     byte_length = 100
                 }

@@ -31,7 +31,9 @@ use crate::scene::{
 };
 
 #[cfg(feature = "animation")]
+#[path = "level_system/animation_runtime.rs"]
 mod animation_runtime;
+#[path = "level_system/frame_state.rs"]
 mod frame_state;
 #[cfg(feature = "physics-contracts")]
 #[path = "level_system/physics_runtime_enabled.rs"]

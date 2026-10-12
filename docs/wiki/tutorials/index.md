@@ -6,14 +6,14 @@ related_code:
   - zircon_runtime_interface/src/runtime_api
 implementation_files:
   - zircon_runtime/src/core/runtime/runtime.rs
-  - zircon_runtime/src/asset/project/manager
+  - zircon_runtime/src/asset/manager
   - zircon_editor/src/core/editor_operation.rs
 plan_sources:
   - user: 2026-09-09 扩展 ZirconEngine Wiki 教程与机制说明
   - docs/wiki/getting-started.md
 tests:
-  - zircon_runtime/src/core/runtime/tests
-  - zircon_runtime/src/asset/tests/project
+  - zircon_runtime/src/core/tests
+  - zircon_runtime/src/asset/tests
   - zircon_editor/src/tests
 doc_type: category-index
 ---

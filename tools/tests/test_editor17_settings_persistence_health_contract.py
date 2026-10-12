@@ -32,7 +32,7 @@ class Editor17SettingsPersistenceHealthContractTests(unittest.TestCase):
         mutation = self.read("zircon_editor/src/core/settings/mutation.rs")
         settings_module = self.read("zircon_editor/src/core/settings/mod.rs")
         settings_window = self.read(
-            "zircon_editor/src/ui/retained_host/app/settings_window_actions.rs"
+            "zircon_editor/src/ui/retained/app/settings_window_actions.rs"
         )
 
         self.assertIn("persistence_health_snapshot", mutation)

@@ -108,5 +108,5 @@ fn source_path(manifest_dir: &Path, source: &Path) -> PathBuf {
 }
 
 #[cfg(test)]
-#[path = "tests/manifest_performance_contract_tests.rs"]
+#[path = "tests/manifest_perf_contract.rs"]
 mod performance_contract_tests;

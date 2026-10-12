@@ -11,22 +11,22 @@ from tools.analysis.performance.editor.editor_window_resize_reflow_pressure impo
 
 ROOT = Path(__file__).resolve().parents[2]
 RESIZE_EVENTS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/resize.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/events/resize.rs"
 )
 EVENT_LOOP_LIFECYCLE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs"
 )
 EVENT_LOOP_REDRAW = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/redraw.rs"
 )
 EVENT_LOOP_STATE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop.rs"
 )
 SHELL_METRICS = ROOT / (
-    "zircon_editor/src/ui/retained_host/app/host_lifecycle/shell_metrics.rs"
+    "zircon_editor/src/ui/retained/app/host_lifecycle/shell_metrics.rs"
 )
 PRESENT_REDRAW = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs"
+    "zircon_editor/src/ui/retained/contract/window/event_loop/redraw/present.rs"
 )
 PROFILE_CAPTURE = ROOT / "tools/analysis/profiling/ui/ui-profile-capture.ps1"
 PROFILE_RESIZE = ROOT / "tools/analysis/profiling/ui/ui-profile-native-resize.ps1"

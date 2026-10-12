@@ -8,7 +8,9 @@ use super::{
     word_smart_line_break_chunks_with_provider, RichTextLayoutSource,
 };
 
+#[path = "rich/materialize.rs"]
 mod materialize;
+#[path = "rich/metrics.rs"]
 mod metrics;
 
 pub(crate) use materialize::layout_rich_line_with_provider;

@@ -1,4 +1,4 @@
-#[path = "native_host_modules.rs"]
+#[path = "../../tests/native_host_modules.rs"]
 mod native_host_modules;
 
 use zircon_runtime::core::framework::script::{

@@ -1,12 +1,20 @@
 //! 本模块以公开描述符注册表和状态事件入口约束编辑器组件目录；子测试分别负责目录、绑定和交互语义。
 
+#[path = "component_catalog/catalog_inventory.rs"]
 mod catalog_inventory;
+#[path = "component_catalog/complex_components.rs"]
 mod complex_components;
+#[path = "component_catalog/component_state.rs"]
 mod component_state;
+#[path = "component_catalog/data_binding.rs"]
 mod data_binding;
+#[path = "component_catalog/descriptor_contracts.rs"]
 mod descriptor_contracts;
+#[path = "component_catalog/material_foundation/mod.rs"]
 mod material_foundation;
+#[path = "component_catalog/registry_queries.rs"]
 mod registry_queries;
+#[path = "component_catalog/selection_state.rs"]
 mod selection_state;
 
 use std::collections::BTreeSet;

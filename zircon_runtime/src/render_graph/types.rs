@@ -7,6 +7,7 @@ use super::access::{
     RenderGraphResourceAccessRange, RenderGraphShaderStages, RenderGraphTextureSubresourceRange,
 };
 
+#[path = "types/compute_pipeline.rs"]
 mod compute_pipeline;
 
 pub use compute_pipeline::{

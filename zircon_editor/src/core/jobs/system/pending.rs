@@ -439,4 +439,5 @@ fn decrement_count<K: Ord + Clone>(map: &mut BTreeMap<K, usize>, key: &K) {
 }
 
 #[cfg(test)]
+#[path = "pending/tests/mod.rs"]
 mod tests;

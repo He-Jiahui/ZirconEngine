@@ -2,7 +2,7 @@ use super::super::{RenderCapabilityMismatchDetail, RenderCapabilitySummary};
 use super::AdvancedRenderFeature;
 
 #[cfg(test)]
-#[path = "provider_report/tests/capacity_tests.rs"]
+#[path = "tests/capacity.rs"]
 mod capacity_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

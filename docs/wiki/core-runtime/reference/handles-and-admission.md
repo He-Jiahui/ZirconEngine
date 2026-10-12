@@ -10,7 +10,7 @@ plan_sources:
   - user: 2026-09-09 完善 CoreHandle、CoreWeak 与服务准入说明
 tests:
   - zircon_runtime/src/core/runtime/tests/weak.rs
-  - zircon_runtime/src/core/runtime/tests/resolution
+  - zircon_runtime/src/core/runtime/tests
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation
 doc_type: module-detail
 ---

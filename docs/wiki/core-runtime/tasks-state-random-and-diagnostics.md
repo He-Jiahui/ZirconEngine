@@ -10,7 +10,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/tasks
   - zircon_runtime/src/core/runtime/state_machine
   - zircon_runtime/src/core/runtime/random
-  - zircon_runtime/src/core/runtime/diagnostics
+  - zircon_runtime/src/core/runtime
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md

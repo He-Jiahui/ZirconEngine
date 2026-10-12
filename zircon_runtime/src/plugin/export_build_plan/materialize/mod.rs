@@ -1,10 +1,18 @@
+#[path = "archive.rs"]
 mod archive;
+#[path = "copy.rs"]
 mod copy;
+#[path = "generated.rs"]
 mod generated;
+#[path = "native.rs"]
 mod native;
+#[path = "native_authority.rs"]
 mod native_authority;
+#[path = "package_lookup.rs"]
 mod package_lookup;
+#[path = "paths.rs"]
 mod paths;
+#[path = "report.rs"]
 mod report;
 
 use std::path::{Path, PathBuf};
@@ -346,5 +354,5 @@ impl ExportBuildPlan {
 }
 
 #[cfg(test)]
-#[path = "tests/mod_native_preflight_tests.rs"]
+#[path = "../../materialize/tests/mod_native_preflight.rs"]
 mod native_preflight_tests;

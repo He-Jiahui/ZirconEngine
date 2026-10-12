@@ -394,7 +394,7 @@ fn normalized_geometry_sources(
 }
 
 #[cfg(test)]
-#[path = "args/tests/borrowed_quality_tier_tests.rs"]
+#[path = "args/tests/borrowed_quality_tier.rs"]
 mod borrowed_quality_tier_tests;
 
 #[cfg(test)]

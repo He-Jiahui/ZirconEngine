@@ -1,22 +1,39 @@
+#[path = "backend/mod.rs"]
 mod backend;
+#[path = "controller.rs"]
 mod controller;
+#[path = "edit_policy/mod.rs"]
 mod edit_policy;
+#[path = "edit_protection.rs"]
 mod edit_protection;
+#[path = "embedded_backend/mod.rs"]
 mod embedded_backend;
+#[path = "error.rs"]
 mod error;
+#[path = "live_link.rs"]
 mod live_link;
+#[path = "mode.rs"]
 mod mode;
+#[path = "pending_edits/mod.rs"]
 mod pending_edits;
+#[path = "plugin_activation/mod.rs"]
 mod plugin_activation;
+#[path = "preview_frame.rs"]
 mod preview_frame;
+#[path = "preview_input.rs"]
 mod preview_input;
+#[path = "process_backend/mod.rs"]
 mod process_backend;
+#[path = "request.rs"]
 mod request;
+#[path = "simulate_camera.rs"]
 mod simulate_camera;
+#[path = "snapshot/mod.rs"]
 mod snapshot;
 #[cfg(test)]
 #[path = "tests/cases.rs"]
 mod tests;
+#[path = "transition_report.rs"]
 mod transition_report;
 
 #[cfg(test)]

@@ -2,14 +2,14 @@
 related_code:
   - zircon_editor/Cargo.toml
   - zircon_editor/src/ui/host
-  - zircon_editor/src/ui/retained_host
+  - zircon_editor/src/ui/retained
   - zircon_runtime/Cargo.toml
   - zircon_runtime_interface/Cargo.toml
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
 implementation_files:
   - zircon_editor/Cargo.toml
   - zircon_editor/src/ui/host
-  - zircon_editor/src/ui/retained_host
+  - zircon_editor/src/ui/retained
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
@@ -31,8 +31,8 @@ This backlog records libraries that were previously claimed as runtime dependenc
 
 | Candidate | Editor need | Expected owner | Runtime rule |
 |---|---|---|---|
-| `fontdue` | Current retained-host text measurement/raster fallback in `zircon_editor/src/ui/retained_host/host_contract/paint_text/`. | `zircon_editor/src/ui/retained_host` owns the existing fallback; migration to runtime UI text/glyphon/SDF belongs to the editor UI text plan. | Do not add to `zircon_runtime`. Keep as temporary editor-only debt until retained-host text rendering consumes the runtime UI text stack. |
-| `rfd` | Native file and folder dialogs for opening projects, importing external assets, choosing export directories, and selecting package destinations. | `zircon_editor/src/ui/host` owns the command surface; `zircon_editor/src/ui/retained_host` may adapt it to the retained window shell. | Do not add to `zircon_runtime` or `zircon_runtime_interface`. Runtime export and asset APIs should receive resolved paths/locators, not drive native dialogs. |
+| `fontdue` | Current retained-host text measurement/raster fallback in `zircon_editor/src/ui/retained_host/host_contract/paint_text/`. | `zircon_editor/src/ui/retained` owns the existing fallback; migration to runtime UI text/glyphon/SDF belongs to the editor UI text plan. | Do not add to `zircon_runtime`. Keep as temporary editor-only debt until retained-host text rendering consumes the runtime UI text stack. |
+| `rfd` | Native file and folder dialogs for opening projects, importing external assets, choosing export directories, and selecting package destinations. | `zircon_editor/src/ui/host` owns the command surface; `zircon_editor/src/ui/retained` may adapt it to the retained window shell. | Do not add to `zircon_runtime` or `zircon_runtime_interface`. Runtime export and asset APIs should receive resolved paths/locators, not drive native dialogs. |
 | `arboard` | Clipboard integration for editor text fields, inspector values, asset paths, node names, and future graph editors. | `zircon_editor/src/ui/host` owns editor commands and diagnostics; retained-host adapters may translate platform clipboard events. | Do not add to runtime. Runtime input/dispatch contracts may carry clipboard intent/results as DTOs only if a future UI plan needs them. |
 
 ## Admission Gate

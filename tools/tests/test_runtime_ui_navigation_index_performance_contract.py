@@ -3,7 +3,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SURFACE = ROOT / "zircon_runtime/src/ui/surface"
+SURFACE = ROOT / "zircon_runtime/src/ui"
 TREE_FOCUS = ROOT / "zircon_runtime/src/ui/tree/node/focus.rs"
 
 

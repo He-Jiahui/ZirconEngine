@@ -5,15 +5,15 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 PRIMARY_PRESS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "native_pointer/button_dispatch/primary_press.rs"
 )
 DISPATCH = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "native_popup_dismiss/dispatch.rs"
 )
 TARGET = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "native_popup_dismiss/target.rs"
 )
 

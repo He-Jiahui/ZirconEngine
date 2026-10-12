@@ -204,5 +204,5 @@ impl UiSurface {
 }
 
 #[cfg(test)]
-#[path = "tests/mutation_performance_tests.rs"]
+#[path = "../../table/tests/mutation_perf.rs"]
 mod performance_tests;

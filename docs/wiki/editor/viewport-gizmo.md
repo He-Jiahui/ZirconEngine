@@ -5,7 +5,7 @@ related_code:
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/handles/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/viewport/mod.rs
+  - zircon_editor/src/ui/retained/viewport/mod.rs
 implementation_files:
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller.rs
   - zircon_editor/src/scene/viewport/handles/handle_tool_registry.rs
@@ -18,7 +18,7 @@ plan_sources:
   - docs/editor/scene-viewport-gizmo-handle-overlays.md
   - docs/editor/viewport-interaction-boundary-split.md
 tests:
-  - zircon_editor/src/scene/viewport
+  - zircon_editor/src/scene
   - zircon_editor/src/ui/retained_host/viewport/tests
 doc_type: module-detail
 ---

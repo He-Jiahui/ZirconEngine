@@ -1,24 +1,43 @@
 //! 维护场景表及变形、几何辅助表的 CPU 镜像、上传准备和成功帧后的历史状态。
 //! 绑定槽与行布局须和共享 WGSL 的 group 3 一致；资源及提交边界由各子模块协作维护。
 
+#[path = "binding.rs"]
 mod binding;
+#[path = "bindless_material_payload.rs"]
 mod bindless_material_payload;
+#[path = "direct_upload.rs"]
 mod direct_upload;
+#[path = "gpu_scene.rs"]
 mod gpu_scene;
+#[path = "id_allocator.rs"]
 mod id_allocator;
+#[path = "journal_consumer.rs"]
 mod journal_consumer;
+#[path = "layout.rs"]
 mod layout;
+#[path = "morph.rs"]
 mod morph;
+#[path = "prepared_upload.rs"]
 mod prepared_upload;
+#[path = "prev_morph_weights.rs"]
 mod prev_morph_weights;
+#[path = "prev_skinned_palette.rs"]
 mod prev_skinned_palette;
+#[path = "prev_skinned_source.rs"]
 mod prev_skinned_source;
+#[path = "prev_transform.rs"]
 mod prev_transform;
+#[path = "skinned_palette_arena.rs"]
 mod skinned_palette_arena;
+#[path = "staged_upload.rs"]
 mod staged_upload;
+#[path = "staging_ring.rs"]
 mod staging_ring;
+#[path = "update_queue.rs"]
 mod update_queue;
+#[path = "upload.rs"]
 mod upload;
+#[path = "virtual_geometry.rs"]
 mod virtual_geometry;
 
 pub(crate) use binding::gpu_scene_bind_group_layout_entries;

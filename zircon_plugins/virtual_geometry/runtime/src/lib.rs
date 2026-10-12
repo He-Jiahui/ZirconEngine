@@ -8,13 +8,18 @@ use zircon_runtime::render_graph::{
 };
 use zircon_runtime::rhi::BufferUsage;
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "provider.rs"]
 mod provider;
+#[path = "executors.rs"]
 mod render_pass_executors;
 #[cfg(test)]
 #[path = "test_support/tests/mod.rs"]
 pub(crate) mod test_support;
+#[path = "geometry/mod.rs"]
 mod virtual_geometry;
 
 use render_pass_executors::{

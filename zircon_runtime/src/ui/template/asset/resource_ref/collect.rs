@@ -438,5 +438,5 @@ fn has_supported_scheme(uri: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "collect/tests/path_buffer_tests.rs"]
+#[path = "collect/tests/path_buffer.rs"]
 mod path_buffer_tests;

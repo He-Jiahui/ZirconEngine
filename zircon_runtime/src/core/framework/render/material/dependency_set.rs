@@ -37,5 +37,5 @@ fn extend_cloned_values<T: Clone>(target: &mut Vec<T>, source: &[T]) {
 }
 
 #[cfg(test)]
-#[path = "dependency_set/tests/streaming_reference_tests.rs"]
+#[path = "tests/streaming_reference.rs"]
 mod streaming_reference_tests;

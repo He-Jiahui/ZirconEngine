@@ -67,5 +67,5 @@ impl<'a> DirectReferenceCollector<'a> {
 }
 
 #[cfg(test)]
-#[path = "reference/tests/borrowed_dedup_tests.rs"]
+#[path = "../../../animation/asset/reference/tests/borrowed_dedup.rs"]
 mod borrowed_dedup_tests;

@@ -10,18 +10,19 @@ use super::{
     tree_view,
 };
 
+#[path = "keyboard/menu.rs"]
 mod menu;
 
 #[cfg(test)]
-#[path = "keyboard/tests/option_entry_streaming_tests.rs"]
+#[path = "../keyboard/tests/option_entry_streaming.rs"]
 mod option_entry_streaming_tests;
 
 #[cfg(test)]
-#[path = "keyboard/tests/option_id_streaming_tests.rs"]
+#[path = "../keyboard/tests/option_id_streaming.rs"]
 mod option_id_streaming_tests;
 
 #[cfg(test)]
-#[path = "keyboard/tests/indexed_entry_streaming_tests.rs"]
+#[path = "../keyboard/tests/indexed_entry_streaming.rs"]
 mod indexed_entry_streaming_tests;
 
 pub(super) fn apply_keyboard_action(

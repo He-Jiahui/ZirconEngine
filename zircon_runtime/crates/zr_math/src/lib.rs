@@ -5,14 +5,21 @@
 //! 提供共享数学值、数值阈值与受检运算；版本化的坐标、单位和精度契约由接口层定义。
 //! 当前运行时和渲染别名都使用 f32，各产品通过自己的数学公开入口使用这些定义。
 
+#[path = "conventions.rs"]
 mod conventions;
+#[path = "fallible.rs"]
 mod fallible;
+#[path = "numeric_policy.rs"]
 mod numeric_policy;
+#[path = "render_conversion.rs"]
 mod render_conversion;
+#[path = "space.rs"]
 mod space;
+#[path = "transform.rs"]
 mod transform;
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;
 
 pub use conventions::{

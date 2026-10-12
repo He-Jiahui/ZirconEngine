@@ -2,10 +2,15 @@ use crate::ui::template::{UiAssetLoader, UiDocumentCompiler};
 use toml::Value;
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
+#[path = "asset_mui_web_mui_x_style/agent_chat.rs"]
 mod agent_chat;
+#[path = "asset_mui_web_mui_x_style/charts.rs"]
 mod charts;
+#[path = "asset_mui_web_mui_x_style/data_grid.rs"]
 mod data_grid;
+#[path = "asset_mui_web_mui_x_style/date_time_pickers.rs"]
 mod date_time_pickers;
+#[path = "asset_mui_web_mui_x_style/tree_view.rs"]
 mod tree_view;
 
 const MUI_X_STYLE_TOML: &str = r##"

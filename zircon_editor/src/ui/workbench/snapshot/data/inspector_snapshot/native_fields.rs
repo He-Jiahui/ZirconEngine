@@ -122,5 +122,5 @@ fn title_case(name: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "native_fields/tests/cases.rs"]
+#[path = "../native_fields/tests/cases.rs"]
 mod tests;

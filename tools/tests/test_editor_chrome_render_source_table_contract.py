@@ -9,21 +9,21 @@ SOURCE_TABLE = ROOT / (
     "recording/source_table.rs"
 )
 RECORDED_MODEL = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/model.rs"
+    "zircon_editor/src/ui/retained/contract/paint_frame/recording/model.rs"
 )
 RECORDING_STATE = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/state.rs"
+    "zircon_editor/src/ui/retained/contract/paint_frame/recording/state.rs"
 )
 FRAME_SCOPE = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/paint_frame/"
     "recording_frame/source_scope.rs"
 )
 TEMPLATE_COMMANDS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_nodes/commands.rs"
 )
 HOST_COMMAND_MODEL = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "render_commands/command/model.rs"
 )
 PANE_TEMPLATE_PAINT = ROOT / (
@@ -39,7 +39,7 @@ EXTRACTION_COMMAND = ROOT / (
     "extraction/command.rs"
 )
 CHROME_COMMAND = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/command.rs"
+    "zircon_editor/src/ui/retained/contract/chrome_command_stream/command.rs"
 )
 STREAM_MODEL = ROOT / (
     "zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/"

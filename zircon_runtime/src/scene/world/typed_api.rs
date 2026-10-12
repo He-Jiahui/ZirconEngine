@@ -1,12 +1,19 @@
+#[path = "typed_api/bundle_entry.rs"]
 mod bundle_entry;
+#[path = "typed_api/bundle_transaction.rs"]
 mod bundle_transaction;
+#[path = "typed_api/component_mutation_effects.rs"]
 mod component_mutation_effects;
+#[path = "typed_api/component_row.rs"]
 mod component_row;
+#[path = "typed_api/dynamic_component_presence.rs"]
 mod dynamic_component_presence;
+#[path = "typed_api/fixed_components.rs"]
 pub(super) mod fixed_components;
+#[path = "typed_api/projection_rebuild.rs"]
 mod projection_rebuild;
 #[cfg(test)]
-#[path = "typed_api/tests/protected_authored_test_support.rs"]
+#[path = "tests/protected_authored_test_support.rs"]
 mod protected_authored_test_support;
 
 use std::collections::BTreeMap;

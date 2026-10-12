@@ -59,5 +59,5 @@ impl NetContentDownloadRuntimeManager {
 }
 
 #[cfg(test)]
-#[path = "tests/resume_nested_partial_chunk_tests.rs"]
+#[path = "../tests/resume_nested.rs"]
 mod nested_partial_chunk_tests;

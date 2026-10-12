@@ -517,5 +517,5 @@ fn text_command(
 }
 
 #[cfg(test)]
-#[path = "drag_overlay/tests/direct_hex_color_tests.rs"]
+#[path = "drag_overlay/tests/direct_hex_color.rs"]
 mod direct_hex_color_tests;

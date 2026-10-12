@@ -1,0 +1,35 @@
+#[path = "../../light_cookie/blit_pipeline.rs"]
+mod blit_pipeline;
+#[path = "../../light_cookie/executor.rs"]
+mod executor;
+#[path = "../../light_cookie/frame_plan.rs"]
+mod frame_plan;
+#[path = "../../light_cookie/profile.rs"]
+mod profile;
+#[path = "../../light_cookie/projection.rs"]
+mod projection;
+#[path = "../../light_cookie/resources.rs"]
+mod resources;
+
+pub(crate) use frame_plan::{
+    build_cookie_frame_plan, CookieFramePlan, CookieGpuMetadata, COOKIE_ATLAS_GRID_SIZE,
+    COOKIE_ATLAS_MAX_ENTRIES,
+};
+pub(crate) use projection::{directional_cookie_uv, point_octahedral_cookie_uv, spot_cookie_uv};
+pub(crate) use resources::{
+    light_cookie_bind_group_layout_entries, LightCookieAtlasResources, LIGHT_COOKIE_ATLAS_BINDING,
+    LIGHT_COOKIE_SAMPLER_BINDING,
+};
+
+pub const LIGHT_COOKIE_ATLAS_BUILD_EXECUTOR_ID: &str = "cookie.atlas_build";
+pub const LIGHT_COOKIE_ATLAS_RESOURCE: &str = "advanced_lighting.cookie_atlas";
+
+pub(crate) fn registrations(
+) -> Vec<crate::graphics::scene::scene_renderer::graph_execution::RenderPassExecutorRegistration> {
+    executor::registrations()
+}
+
+pub(crate) const COOKIE_PROJECTION_NONE: u32 = 0;
+pub(crate) const COOKIE_PROJECTION_DIRECTIONAL: u32 = 1;
+pub(crate) const COOKIE_PROJECTION_SPOT: u32 = 2;
+pub(crate) const COOKIE_PROJECTION_POINT_OCTAHEDRAL: u32 = 3;

@@ -158,5 +158,5 @@ fn finite_positive_or_default(value: f32, default_value: f32) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "tests/color_strike_optimization_batch_es_tests.rs"]
+#[path = "tests/color_strike_perf.rs"]
 mod optimization_batch_es_tests;

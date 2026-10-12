@@ -7,7 +7,7 @@ class RuntimeUiTableModuleStructureTests(unittest.TestCase):
         self.repo_root = Path(__file__).resolve().parents[2]
         self.table_root = (
             self.repo_root
-            / "zircon_runtime/src/ui/surface/surface/default_interactions/table"
+            / "zircon_runtime/src/ui/surface/surface/table"
         )
 
     def test_table_mutation_behavior_is_owned_by_named_child_module(self) -> None:

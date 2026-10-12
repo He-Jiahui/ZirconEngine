@@ -24,8 +24,11 @@ use crate::graphics::shader::{
     ShaderVariantCacheDisk, TaaReactiveMaskShaderTemplateRequest,
 };
 
+#[path = "shader_prewarm/execution_budget.rs"]
 mod execution_budget;
+#[path = "shader_prewarm/module_validation_cache.rs"]
 mod module_validation_cache;
+#[path = "shader_prewarm/wgpu_validation.rs"]
 mod wgpu_validation;
 
 pub use wgpu_validation::{

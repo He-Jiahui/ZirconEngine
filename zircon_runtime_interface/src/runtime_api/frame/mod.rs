@@ -1,6 +1,10 @@
+#[path = "frame_demand.rs"]
 mod frame_demand;
+#[path = "frame_shape.rs"]
 mod frame_shape;
+#[path = "highlight_set.rs"]
 mod highlight_set;
+#[path = "viewport_pick.rs"]
 mod viewport_pick;
 
 pub use frame_demand::{

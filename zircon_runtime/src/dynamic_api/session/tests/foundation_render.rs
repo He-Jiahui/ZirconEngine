@@ -25,7 +25,7 @@ const MIN_VISIBLE_PRIMITIVE_PIXELS: usize = 64;
 
 #[path = "foundation_render/f2_evidence.rs"]
 mod f2_evidence;
-#[path = "foundation_render/ui_input_frame_profile.rs"]
+#[path = "../../tests/foundation_render/ui_input_frame_profile.rs"]
 mod ui_input_frame_profile;
 use self::f2_evidence::{
     assert_f2_capture_png, write_f2_capture_png, FrameEvidence, FramePixelCounts, FrameSlot,

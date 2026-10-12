@@ -673,6 +673,7 @@ async function importZui(
     });
     sendSelectionState();
   } catch (error) {
+    console.error('[zircon-import-error]', error instanceof Error ? error.stack ?? error.message : errorMessage(error));
     if (assetBoard) removeNativeComponentAsset(assetBoard);
     lastImportedAssetBoard = previousBoard;
     lastImportedDocument = previousDocument;

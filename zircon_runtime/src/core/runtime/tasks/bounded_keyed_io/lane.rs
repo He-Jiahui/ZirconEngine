@@ -13,13 +13,18 @@ use super::{
 use crate::core::runtime::tasks::TaskPool;
 use crate::core::runtime::tasks::{JobScheduler, TaskTimer};
 
+#[path = "lane/coalescing.rs"]
 mod coalescing;
+#[path = "../lane/fence_prerequisites.rs"]
 mod fence_prerequisites;
 #[cfg(test)]
-#[path = "lane/tests/optimization_batch_it_runtime630_tests.rs"]
+#[path = "lane/tests/perf.rs"]
 mod optimization_batch_it_runtime630_tests;
+#[path = "lane/queue.rs"]
 mod queue;
+#[path = "lane/shutdown.rs"]
 mod shutdown;
+#[path = "lane/state.rs"]
 mod state;
 
 use coalescing::{coalesce_queued_generation, insert_ordered};

@@ -2,10 +2,15 @@ use std::error::Error;
 
 use super::EntryRunner;
 
+#[path = "headless/args.rs"]
 mod args;
+#[path = "headless/controller.rs"]
 mod controller;
+#[path = "headless/managed.rs"]
 mod managed;
+#[path = "headless/schedule.rs"]
 mod schedule;
+#[path = "headless/session.rs"]
 mod session;
 
 pub use controller::HeadlessController;

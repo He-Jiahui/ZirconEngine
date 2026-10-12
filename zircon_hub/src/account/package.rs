@@ -1,10 +1,13 @@
+#[path = "package/process.rs"]
 mod process;
+#[path = "package/project_lock.rs"]
 mod project_lock;
 pub(super) use project_lock::capture_project_lock;
 #[cfg(test)]
 #[path = "package/tests/cases.rs"]
 mod tests;
 #[cfg(windows)]
+#[path = "package/windows.rs"]
 mod windows;
 
 use super::{

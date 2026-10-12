@@ -1,4 +1,5 @@
 use super::*;
+#[path = "verify/preflight.rs"]
 mod preflight;
 use crate::{
     asset::pack::ZrPackReader,

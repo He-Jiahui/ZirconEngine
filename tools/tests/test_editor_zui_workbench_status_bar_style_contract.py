@@ -5,22 +5,22 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STATUS_BAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_status_bar.zui"
 )
 ACTIVITY_RAIL = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_activity_rail.zui"
 )
 TOP_TOOLBAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_top_toolbar.zui"
 )
 VIEWPORT_TOOLBAR = (
     REPO_ROOT / "zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui"
 )
 WORKBENCH_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
+    "zircon_editor/src/ui/runtime/builtin/"
     "workbench_window_template_bindings.rs"
 )
 THEME = REPO_ROOT / "zircon_editor/assets/ui/theme/editor_workbench_strict.zui"

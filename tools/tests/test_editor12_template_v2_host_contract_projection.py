@@ -14,10 +14,10 @@ def source(relative_path: str) -> str:
 class EditorPluginV2HostContractTests(unittest.TestCase):
     def test_template_v2_pane_has_one_generic_host_node_carrier(self) -> None:
         basic = source(
-            "zircon_editor/src/ui/retained_host/host_contract/data/panes/basic.rs"
+            "zircon_editor/src/ui/retained/contract/data/panes/basic.rs"
         )
         pane = source(
-            "zircon_editor/src/ui/retained_host/host_contract/data/panes/pane.rs"
+            "zircon_editor/src/ui/retained/contract/data/panes/pane.rs"
         )
 
         self.assertIn("struct TemplateV2PaneData", basic)
@@ -26,16 +26,16 @@ class EditorPluginV2HostContractTests(unittest.TestCase):
 
     def test_template_v2_payload_reaches_every_generic_host_consumer(self) -> None:
         conversion = source(
-            "zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs"
+            "zircon_editor/src/ui/retained/ui/apply_presentation/pane_conversion.rs"
         )
         projection = source(
-            "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_runtime_projection.rs"
+            "zircon_editor/src/ui/retained/ui/data/runtime_projection.rs"
         )
         consumers = {
-            "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/selection.rs": "template_nodes()",
-            "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs": "template_nodes()",
-            "zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/pane_frames/template_nodes/source.rs": "template_nodes()",
-            "zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/pane.rs": "&pane.template_v2.nodes",
+            "zircon_editor/src/ui/retained/contract/workbench/docks/pane/nodes/selection.rs": "template_nodes()",
+            "zircon_editor/src/ui/retained/contract/surface_hit_test/node/pane_nodes.rs": "template_nodes()",
+            "zircon_editor/src/ui/retained/contract/geometry/pane_frames/nodes/source.rs": "template_nodes()",
+            "zircon_editor/src/ui/retained/contract/data/world/builder/pane.rs": "&pane.template_v2.nodes",
         }
 
         self.assertIn("has_template_v2_payload", conversion)

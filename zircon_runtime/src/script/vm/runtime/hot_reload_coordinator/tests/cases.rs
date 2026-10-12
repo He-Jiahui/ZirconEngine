@@ -622,9 +622,9 @@ mod dispatch;
 mod gc;
 #[path = "reflection.rs"]
 mod reflection;
-#[path = "state_migration.rs"]
+#[path = "../../tests/state_migration.rs"]
 mod state_migration;
-#[path = "unload_atomicity.rs"]
+#[path = "../../tests/unload_atomicity.rs"]
 mod unload_atomicity;
 
 fn test_package(version: &str) -> VmPluginPackage {

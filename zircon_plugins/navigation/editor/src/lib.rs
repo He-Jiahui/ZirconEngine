@@ -1,10 +1,18 @@
+#[path = "bake_panel.rs"]
 mod bake_panel;
+#[path = "capability.rs"]
 mod capability;
+#[path = "extension_ids.rs"]
 mod extension_ids;
+#[path = "operation_command/mod.rs"]
 mod operation_command;
+#[path = "overlay.rs"]
 mod overlay;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "runtime_mirror.rs"]
 mod runtime_mirror;
+#[path = "viewport_overlay_provider.rs"]
 mod viewport_overlay_provider;
 
 #[cfg(test)]

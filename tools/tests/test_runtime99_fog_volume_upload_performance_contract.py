@@ -5,14 +5,14 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 MEDIA_INJECT = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/froxel/media_inject.rs"
 )
 EXECUTOR = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/media_inject.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/froxel/executors/media_inject.rs"
 )
 PERFORMANCE_TESTS = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/tests/performance_tests.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/froxel/media_inject/tests/perf.rs"
 )
 
 

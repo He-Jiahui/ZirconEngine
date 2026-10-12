@@ -266,5 +266,5 @@ fn dedupe(values: Vec<String>) -> Vec<String> {
 }
 
 #[cfg(test)]
-#[path = "export_validate_report/tests/diagnostic_dedup_tests.rs"]
+#[path = "tests/diagnostic_dedup.rs"]
 mod diagnostic_dedup_tests;

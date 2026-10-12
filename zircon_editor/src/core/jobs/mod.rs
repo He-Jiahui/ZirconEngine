@@ -1,24 +1,43 @@
+#[path = "admission.rs"]
 mod admission;
+#[path = "cancellation_token.rs"]
 mod cancellation_token;
+#[path = "category.rs"]
 mod category;
+#[path = "context.rs"]
 mod context;
+#[path = "error.rs"]
 mod error;
+#[path = "event.rs"]
 mod event;
+#[path = "event_journal/mod.rs"]
 pub(super) mod event_journal;
+#[path = "event_sink.rs"]
 mod event_sink;
+#[path = "id.rs"]
 mod id;
+#[path = "job.rs"]
 mod job;
+#[path = "limits.rs"]
 mod limits;
+#[path = "mutex_group.rs"]
 mod mutex_group;
+#[path = "progress.rs"]
 mod progress;
+#[path = "pump.rs"]
 mod pump;
+#[path = "quota_settings.rs"]
 mod quota_settings;
+#[path = "shutdown.rs"]
 mod shutdown;
+#[path = "spec.rs"]
 mod spec;
+#[path = "system/mod.rs"]
 mod system;
 #[cfg(test)]
 #[path = "tests/test_support.rs"]
 mod test_support;
+#[path = "ticket.rs"]
 mod ticket;
 
 pub use admission::{EditorJobAdmission, EditorJobAdmissionKey, EditorJobAdmissionRequest};
@@ -55,4 +74,5 @@ pub(crate) use test_support::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

@@ -177,7 +177,7 @@ fn workbench_diagnostic_row_exposes_required_status_item_slots() {
     assert_eq!(
         diagnostic.get("document_id").and_then(Value::as_str),
         Some(
-            "res://ui/editor/components/workbench/composites/feedback/workbench_diagnostic_row.zui"
+            "res://ui/editor/workbench/composites/feedback/diagnostic_row.zui"
         )
     );
     assert_eq!(

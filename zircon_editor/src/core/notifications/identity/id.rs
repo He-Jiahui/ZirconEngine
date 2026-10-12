@@ -50,5 +50,5 @@ fn valid_notification_id_syntax(value: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "id/tests/single_pass_validation_tests.rs"]
+#[path = "id/tests/single_pass_validation.rs"]
 mod single_pass_validation_tests;

@@ -158,5 +158,5 @@ fn rgba16f_cube_mip_chain_len(face_size: u32, mip_count: u32) -> Option<usize> {
 }
 
 #[cfg(test)]
-#[path = "tests/ibl_pmrem_optimization_batch_gw_runtime578_tests.rs"]
+#[path = "tests/ibl_pmrem_perf.rs"]
 mod optimization_batch_gw_runtime578_tests;

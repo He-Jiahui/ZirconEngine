@@ -292,5 +292,5 @@ fn normalize_real(value: Real) -> Real {
 }
 
 #[cfg(test)]
-#[path = "runtime_status/tests/single_pass_snapshot_tests.rs"]
+#[path = "tests/single_pass_snapshot.rs"]
 mod single_pass_snapshot_tests;

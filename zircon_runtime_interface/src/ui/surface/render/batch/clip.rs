@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::super::{UiClipMode, UiClipState};
 
 #[cfg(test)]
-#[path = "clip/tests/performance_tests.rs"]
+#[path = "clip/tests/perf.rs"]
 mod performance_tests;
 
 /// Canonical clip states referenced by one ordered batch plan.

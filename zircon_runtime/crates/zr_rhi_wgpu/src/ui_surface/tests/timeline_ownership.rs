@@ -43,7 +43,7 @@ fn every_native_context_has_one_render_device_and_typed_completion_owner() {
 fn standalone_and_offscreen_devices_share_the_initial_profile_factory() {
     let surface_setup = include_str!("../surface_setup.rs");
     let offscreen = include_str!(
-        "../../../../../src/graphics/backend/render_backend/render_backend_new_offscreen.rs"
+        "../../../../../src/graphics/backend/backend/render_backend_new_offscreen.rs"
     );
     let profile = include_str!("../../device_profile.rs");
 
@@ -60,7 +60,7 @@ fn image_pins_retire_with_their_submission_ticket() {
     let presentation = include_str!("../presentation.rs");
     let packet = include_str!("../../production/device/native_recording.rs");
     let submission = include_str!("../../production/submission.rs");
-    let retirement = include_str!("../../production/submission/ui_image_retirement.rs");
+    let retirement = include_str!("../../submission/ui_image_retirement.rs");
 
     assert!(!source.contains("on_submitted_work_done"));
     assert!(source.contains("packet.retain_ui_image_pins(pins)"));
@@ -83,7 +83,7 @@ fn image_pins_retire_with_their_submission_ticket() {
 #[test]
 fn shared_surface_present_uses_the_arc_device_owner_and_keeps_its_ticket() {
     let backend =
-        include_str!("../../../../../src/graphics/backend/render_backend/render_backend.rs");
+        include_str!("../../../../../src/graphics/backend/backend/backend.rs");
     let device = include_str!("../../production/device.rs");
     let source = include_str!("../../ui_surface.rs");
     let presentation = include_str!("../presentation.rs");

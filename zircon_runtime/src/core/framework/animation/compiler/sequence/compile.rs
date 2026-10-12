@@ -416,5 +416,5 @@ fn push_error(
 }
 
 #[cfg(test)]
-#[path = "tests/compile_optimization_tests.rs"]
+#[path = "../../../../animation/compiler/sequence/tests/compile_perf.rs"]
 mod optimization_tests;

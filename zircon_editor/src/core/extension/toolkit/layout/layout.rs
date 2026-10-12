@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::{ToolkitArea, ToolkitAreaSlot, ToolkitLayoutError};
 
 #[cfg(test)]
-#[path = "layout/tests/slot_bitset_tests.rs"]
+#[path = "layout/tests/slot_bitset.rs"]
 mod slot_bitset_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

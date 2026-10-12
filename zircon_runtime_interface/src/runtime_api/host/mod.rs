@@ -1,6 +1,10 @@
+#[path = "clipboard.rs"]
 mod clipboard;
+#[path = "host_requests.rs"]
 mod host_requests;
+#[path = "ui_action.rs"]
 mod ui_action;
+#[path = "ui_host_request.rs"]
 mod ui_host_request;
 
 pub use clipboard::{ZrRuntimeClipboardHostRequestV1, ZrRuntimeClipboardResultV1};

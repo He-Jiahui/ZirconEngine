@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OWNER = ROOT / "zircon_editor/src/ui/retained_host/welcome_recent_pointer"
+OWNER = ROOT / "zircon_editor/src/ui/retained/welcome_recent_pointer"
 
 
 def source(relative: str) -> str:
@@ -14,7 +14,7 @@ def source(relative: str) -> str:
 class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
     def test_bridge_no_longer_owns_a_generic_mirror_hit_surface(self):
         bridge = source(
-            "zircon_editor/src/ui/retained_host/welcome_recent_pointer/"
+            "zircon_editor/src/ui/retained/welcome_recent_pointer/"
             "welcome_recent_pointer_bridge.rs"
         )
 
@@ -43,7 +43,7 @@ class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
 
     def test_route_is_copy_index_action_without_project_path(self):
         route = source(
-            "zircon_editor/src/ui/retained_host/welcome_recent_pointer/"
+            "zircon_editor/src/ui/retained/welcome_recent_pointer/"
             "welcome_recent_pointer_route.rs"
         )
 
@@ -56,7 +56,7 @@ class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
     def test_handlers_use_direct_infallible_arithmetic_hit(self):
         handlers = "\n".join(
             source(
-                "zircon_editor/src/ui/retained_host/welcome_recent_pointer/" + name
+                "zircon_editor/src/ui/retained/welcome_recent_pointer/" + name
             )
             for name in [
                 "welcome_recent_pointer_bridge_handle_click.rs",
@@ -65,7 +65,7 @@ class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
             ]
         )
         route = source(
-            "zircon_editor/src/ui/retained_host/welcome_recent_pointer/"
+            "zircon_editor/src/ui/retained/welcome_recent_pointer/"
             "welcome_recent_pointer_bridge_project_route.rs"
         )
 
@@ -83,11 +83,11 @@ class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
 
     def test_dispatch_carries_changed_and_state_is_copy(self):
         dispatch = source(
-            "zircon_editor/src/ui/retained_host/welcome_recent_pointer/"
+            "zircon_editor/src/ui/retained/welcome_recent_pointer/"
             "welcome_recent_pointer_dispatch.rs"
         )
         state = source(
-            "zircon_editor/src/ui/retained_host/welcome_recent_pointer/"
+            "zircon_editor/src/ui/retained/welcome_recent_pointer/"
             "welcome_recent_pointer_state.rs"
         )
 
@@ -97,7 +97,7 @@ class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
 
     def test_click_uses_committed_layout_without_chrome_snapshot(self):
         click = source(
-            "zircon_editor/src/ui/retained_host/app/welcome_recent_pointer/click.rs"
+            "zircon_editor/src/ui/retained/app/welcome_recent_pointer/click.rs"
         )
 
         self.assertIn("use_committed_pointer_layout", click)
@@ -106,11 +106,11 @@ class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
 
     def test_shared_click_borrows_one_committed_action_target(self):
         callback = source(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/"
+            "zircon_editor/src/ui/retained/dispatch/shared_pointer/"
             "welcome_recent.rs"
         )
         route = source(
-            "zircon_editor/src/ui/retained_host/welcome_recent_pointer/"
+            "zircon_editor/src/ui/retained/welcome_recent_pointer/"
             "welcome_recent_pointer_bridge_project_route.rs"
         )
 
@@ -120,13 +120,13 @@ class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
         self.assertNotIn("path: String", route)
 
     def test_bridge_is_the_single_welcome_pointer_state_owner(self):
-        app = source("zircon_editor/src/ui/retained_host/app.rs")
+        app = source("zircon_editor/src/ui/retained/app.rs")
         startup = source(
             "zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/"
             "state/interaction.rs"
         )
         pointer_layout = source(
-            "zircon_editor/src/ui/retained_host/app/pointer_layout/welcome_recent.rs"
+            "zircon_editor/src/ui/retained/app/pointer_layout/welcome_recent.rs"
         )
 
         self.assertNotIn("welcome_recent_pointer_state:", app)
@@ -135,16 +135,16 @@ class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
 
     def test_adapters_publish_only_changed_state(self):
         click = source(
-            "zircon_editor/src/ui/retained_host/app/welcome_recent_pointer/click.rs"
+            "zircon_editor/src/ui/retained/app/welcome_recent_pointer/click.rs"
         )
         move = source(
-            "zircon_editor/src/ui/retained_host/app/welcome_recent_pointer/motion.rs"
+            "zircon_editor/src/ui/retained/app/welcome_recent_pointer/motion.rs"
         )
         scroll = source(
-            "zircon_editor/src/ui/retained_host/app/welcome_recent_pointer/scroll.rs"
+            "zircon_editor/src/ui/retained/app/welcome_recent_pointer/scroll.rs"
         )
         pointer_layout = source(
-            "zircon_editor/src/ui/retained_host/app/pointer_layout/welcome_recent.rs"
+            "zircon_editor/src/ui/retained/app/pointer_layout/welcome_recent.rs"
         )
 
         self.assertIn("size_state_changed || dispatch.pointer.changed", click)
@@ -157,7 +157,7 @@ class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
 
     def test_welcome_route_intent_mirror_binding_is_removed(self):
         route_intent = source(
-            "zircon_editor/src/ui/retained_host/route_intent/map.rs"
+            "zircon_editor/src/ui/retained/route_intent/map.rs"
         )
 
         self.assertNotIn("WelcomeRecent(WelcomeRecentPointerRouteIntent)", route_intent)
@@ -165,11 +165,11 @@ class WelcomeRecentDirectReceiptPerformanceContract(unittest.TestCase):
 
     def test_native_paint_remains_bounded_to_visible_rows(self):
         painter = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/welcome/recent_projects.rs"
         )
         rows = source(
-            "zircon_editor/src/ui/retained_host/host_contract/"
+            "zircon_editor/src/ui/retained/contract/"
             "paint_workbench_renderer/welcome/recent_projects/rows.rs"
         )
 

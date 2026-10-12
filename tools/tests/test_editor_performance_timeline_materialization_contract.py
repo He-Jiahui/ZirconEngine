@@ -6,7 +6,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 TIMELINE = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/performance_timeline.rs"
+    / "zircon_editor/src/ui/retained/ui/data/performance_timeline.rs"
 )
 
 

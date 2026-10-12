@@ -14,7 +14,7 @@ use super::{EditorKeyChord, EditorKeyChordSignature, EditorKeyboardChordInput, W
 mod tests;
 
 #[cfg(test)]
-#[path = "keymap/tests/optimization_batch_jo_editor654_tests.rs"]
+#[path = "keymap/tests/perf.rs"]
 mod optimization_batch_jo_editor654_tests;
 
 const DEFAULT_KEYMAP_TOML: &str =

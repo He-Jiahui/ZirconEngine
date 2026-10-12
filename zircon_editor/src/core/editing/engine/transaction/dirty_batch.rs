@@ -333,5 +333,5 @@ impl EditorTransactionEngine {
 }
 
 #[cfg(test)]
-#[path = "tests/dirty_batch_optimization_tests.rs"]
+#[path = "tests/dirty_batch_perf.rs"]
 mod optimization_tests;

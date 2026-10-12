@@ -27,5 +27,5 @@ impl AssetWatchError {
 }
 
 #[cfg(test)]
-#[path = "tests/asset_watch_error_optimization_batch_gt_runtime575_tests.rs"]
+#[path = "tests/asset_watch_error_perf.rs"]
 mod optimization_batch_gt_runtime575_tests;

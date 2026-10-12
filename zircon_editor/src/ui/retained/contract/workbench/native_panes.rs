@@ -1,0 +1,66 @@
+#[path = "native_panes/assets.rs"]
+mod assets;
+#[path = "native_panes/content.rs"]
+mod content;
+#[path = "native_panes/diagnostics.rs"]
+mod diagnostics;
+#[path = "native_panes/hierarchy.rs"]
+mod hierarchy;
+#[path = "native_panes/scrollbar.rs"]
+mod scrollbar;
+#[path = "native_panes/viewport.rs"]
+mod viewport;
+
+use super::super::data::{
+    FrameRect, HostPaneInteractionStateData, HostTextInputFocusData, HostViewportImageSet, PaneData,
+};
+use super::super::paint_frame::HostRgbaFrame;
+
+pub(in crate::ui::retained_host::host_contract) use hierarchy::{
+    hierarchy_row_frame, hierarchy_viewport_frame,
+};
+pub(in crate::ui::retained_host::host_contract) use scrollbar::draw_hierarchy_scrollbar;
+pub(super) use scrollbar::draw_vertical_scrollbar;
+#[cfg(test)]
+pub(crate) use scrollbar::paint_scrollbar_component_for_test;
+
+pub(in crate::ui::retained_host::host_contract) fn draw_pane_debug_overlay(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+) -> bool {
+    diagnostics::draw_pane_debug_overlay(frame, pane, body, clip)
+}
+
+pub(in crate::ui::retained_host::host_contract) fn draw_viewport_image(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+    viewport_images: &HostViewportImageSet,
+) -> bool {
+    viewport::draw_viewport_image(frame, pane, body, clip, viewport_images, None)
+}
+
+pub(in crate::ui::retained_host::host_contract) fn draw_viewport_image_for_surface(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+    viewport_images: &HostViewportImageSet,
+    surface_key: Option<&str>,
+) -> bool {
+    viewport::draw_viewport_image(frame, pane, body, clip, viewport_images, surface_key)
+}
+
+pub(in crate::ui::retained_host::host_contract) fn draw_native_pane_content(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+    interaction: &HostPaneInteractionStateData,
+    text_input_focus: Option<&HostTextInputFocusData>,
+) -> bool {
+    content::draw_native_pane_content(frame, pane, body, clip, interaction, text_input_focus)
+}

@@ -253,5 +253,5 @@ fn collect_preview_mock_schema_items(value: &Value, base: &str, items: &mut Vec<
 }
 
 #[cfg(test)]
-#[path = "mock_suggestions/tests/borrowed_root_tests.rs"]
+#[path = "tests/borrowed_root.rs"]
 mod borrowed_root_tests;

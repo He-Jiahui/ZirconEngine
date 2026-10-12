@@ -1,28 +1,53 @@
+#[path = "application_handler/mod.rs"]
 mod application_handler;
+#[path = "application_lifecycle/mod.rs"]
 mod application_lifecycle;
+#[path = "config/mod.rs"]
 mod config;
+#[path = "construct.rs"]
 mod construct;
+#[path = "converters/mod.rs"]
 mod converters;
+#[path = "device_events/mod.rs"]
 mod device_events;
+#[path = "event_dispatch.rs"]
 mod event_dispatch;
+#[path = "event_loop_policy/mod.rs"]
 mod event_loop_policy;
+#[path = "failure.rs"]
 mod failure;
+#[path = "file_drag_drop/mod.rs"]
 mod file_drag_drop;
+#[path = "frame_capture.rs"]
 mod frame_capture;
+#[path = "frame_loop.rs"]
 mod frame_loop;
 #[cfg(feature = "gamepad-gilrs")]
+#[path = "gamepad/mod.rs"]
 mod gamepad;
+#[path = "host_requests/mod.rs"]
 mod host_requests;
+#[path = "ime_input/mod.rs"]
 mod ime_input;
+#[path = "keyboard_input/mod.rs"]
 mod keyboard_input;
+#[path = "mvp_input_probe.rs"]
 mod mvp_input_probe;
+#[path = "pointer_input/mod.rs"]
 mod pointer_input;
+#[path = "runtime_product_diagnostics.rs"]
 mod runtime_product_diagnostics;
+#[path = "surface_present/mod.rs"]
 mod surface_present;
+#[path = "window_attributes/mod.rs"]
 mod window_attributes;
+#[path = "window_creation.rs"]
 mod window_creation;
+#[path = "window_events/mod.rs"]
 mod window_events;
+#[path = "window_lifecycle/mod.rs"]
 mod window_lifecycle;
+#[path = "window_surface/mod.rs"]
 mod window_surface;
 
 use std::{num::NonZeroU64, sync::Arc};

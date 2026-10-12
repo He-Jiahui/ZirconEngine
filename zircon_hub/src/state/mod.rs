@@ -1,10 +1,18 @@
+#[path = "action_history.rs"]
 mod action_history;
+#[path = "hub_message/mod.rs"]
 mod hub_message;
+#[path = "hub_snapshot.rs"]
 mod hub_snapshot;
+#[path = "navigation.rs"]
 mod navigation;
+#[path = "project_view.rs"]
 mod project_view;
+#[path = "scope.rs"]
 mod scope;
+#[path = "task_cancellation.rs"]
 mod task_cancellation;
+#[path = "task_status.rs"]
 mod task_status;
 
 pub use action_history::{

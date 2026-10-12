@@ -1,6 +1,9 @@
 //! 包发现以规范化根目录和显式预算界定磁盘扫描；它解析清单与来源，但推迟字节码读取到被选中的包真正装载时。
+#[path = "vm_plugin_package_discovery/io.rs"]
 mod io;
+#[path = "vm_plugin_package_discovery/limits.rs"]
 mod limits;
+#[path = "vm_plugin_package_discovery/payload_cache.rs"]
 mod payload_cache;
 
 use std::fs;

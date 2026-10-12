@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine UI Wiki
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
+  - zircon_runtime/src/tests/contracts/ui_architecture.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
 doc_type: module-detail
 ---

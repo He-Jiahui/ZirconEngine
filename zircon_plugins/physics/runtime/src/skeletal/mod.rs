@@ -1,4 +1,6 @@
+#[path = "profile.rs"]
 mod profile;
+#[path = "runtime.rs"]
 mod runtime;
 
 pub use profile::{

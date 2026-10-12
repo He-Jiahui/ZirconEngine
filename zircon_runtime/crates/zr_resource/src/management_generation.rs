@@ -1200,4 +1200,5 @@ pub(crate) fn resource_management_id_maps_from_ordered_pages(
 }
 
 #[cfg(test)]
+#[path = "management_generation/tests/mod.rs"]
 mod tests;

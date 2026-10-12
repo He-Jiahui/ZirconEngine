@@ -24,6 +24,7 @@ use super::{
 };
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
+#[path = "../projection_cache/render_command_index.rs"]
 mod render_command_index;
 
 use render_command_index::ViewTemplateRenderCommandIndex;

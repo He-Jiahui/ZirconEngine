@@ -1,7 +1,12 @@
+#[path = "graph.rs"]
 mod graph;
+#[path = "parameters.rs"]
 mod parameters;
+#[path = "pose.rs"]
 mod pose;
+#[path = "sampling.rs"]
 mod sampling;
+#[path = "state_machine.rs"]
 mod state_machine;
 
 use std::sync::{Arc, Mutex, MutexGuard};

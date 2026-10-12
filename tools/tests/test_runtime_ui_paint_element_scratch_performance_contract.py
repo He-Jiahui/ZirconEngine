@@ -4,10 +4,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 COMMAND = ROOT / "zircon_runtime_interface/src/ui/surface/render/command.rs"
-RENDER = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+RENDER = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
 PAINT_PROJECTION = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/paint_projection.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/render/paint_projection.rs"
 )
 
 # 确认渲染命令写入可复用瞬时绘制缓冲，UI 计划器每帧复用同一缓冲区。

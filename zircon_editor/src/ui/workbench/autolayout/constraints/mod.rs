@@ -1,6 +1,10 @@
+#[path = "aggregation.rs"]
 mod aggregation;
+#[path = "axis_factory.rs"]
 mod axis_factory;
+#[path = "defaults.rs"]
 mod defaults;
+#[path = "merge.rs"]
 mod merge;
 
 pub(crate) use aggregation::aggregate_row_constraints;

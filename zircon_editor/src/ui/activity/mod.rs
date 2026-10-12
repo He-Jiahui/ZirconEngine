@@ -1,6 +1,10 @@
+#[path = "decision/mod.rs"]
 mod decision;
+#[path = "slot.rs"]
 mod slot;
+#[path = "view.rs"]
 mod view;
+#[path = "window.rs"]
 mod window;
 
 #[cfg(test)]

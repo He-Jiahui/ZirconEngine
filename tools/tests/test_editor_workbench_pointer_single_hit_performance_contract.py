@@ -9,12 +9,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class EditorWorkbenchPointerSingleHitPerformanceContract(unittest.TestCase):
     def test_surface_projection_publishes_pointer_identity_and_tooltip_eligibility(self):
-        host_nodes = (ROOT / "zircon_editor/src/ui/template_runtime/host_nodes.rs").read_text()
+        host_nodes = (ROOT / "zircon_editor/src/ui/runtime/host_nodes.rs").read_text()
         projection = (
-            ROOT / "zircon_editor/src/ui/template_runtime/runtime/projection.rs"
+            ROOT / "zircon_editor/src/ui/runtime/runtime/projection.rs"
         ).read_text()
         adapter = (
-            ROOT / "zircon_editor/src/ui/template_runtime/retained_adapter.rs"
+            ROOT / "zircon_editor/src/ui/runtime/retained_adapter.rs"
         ).read_text()
 
         self.assertIn("pub surface_node_id: Option<UiNodeId>", host_nodes)
@@ -32,15 +32,15 @@ class EditorWorkbenchPointerSingleHitPerformanceContract(unittest.TestCase):
     def test_move_index_is_a_hover_superset_without_relaxing_press_dispatch(self):
         dispatch = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/dispatch.rs"
+            / "zircon_editor/src/ui/retained/contract/node/surface_frame_builder/dispatch.rs"
         ).read_text()
         index = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/index.rs"
+            / "zircon_editor/src/ui/retained/contract/surface_hit_test/node/index.rs"
         ).read_text()
         hit = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/hit.rs"
+            / "zircon_editor/src/ui/retained/contract/surface_hit_test/node/hit.rs"
         ).read_text()
 
         self.assertIn("fn accepts_pointer_move", dispatch)
@@ -61,19 +61,19 @@ class EditorWorkbenchPointerSingleHitPerformanceContract(unittest.TestCase):
     def test_native_move_returns_the_single_hit_identity_to_tooltip_observation(self):
         pointer = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/pointer.rs"
+            / "zircon_editor/src/ui/retained/contract/window/event_loop/events/pointer.rs"
         ).read_text()
         entry = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/entry.rs"
+            / "zircon_editor/src/ui/retained/contract/pointer/motion/entry.rs"
         ).read_text()
         tooltip = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/icon_tooltip.rs"
+            / "zircon_editor/src/ui/retained/dispatch/templates/workbench/icon_tooltip.rs"
         ).read_text()
         callbacks = (
             ROOT
-            / "zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/host.rs"
+            / "zircon_editor/src/ui/retained/contract/globals/callbacks/host.rs"
         ).read_text()
 
         native_dispatch = pointer.index("dispatch_native_pointer_move")

@@ -17,5 +17,5 @@ pub(super) fn register_activity_routes(
 }
 
 #[cfg(test)]
-#[path = "tests/activity_routes_performance_tests.rs"]
+#[path = "../tests/activity_routes_perf.rs"]
 mod performance_tests;

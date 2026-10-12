@@ -1,5 +1,7 @@
 //! 编辑器探针命令只持有序列化请求与框架句柄；项目发布与捕获执行分别拥有各自的资源边界。
+#[path = "../publication.rs"]
 mod publication;
+#[path = "../trigger.rs"]
 mod trigger;
 
 pub use publication::{

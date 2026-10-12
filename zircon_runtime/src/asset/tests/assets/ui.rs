@@ -245,9 +245,13 @@ uri = "res://ui/icons/run.svg"
 
 const INVALID_UI_TOML: &str = "not = [";
 
+#[path = "ui/importer.rs"]
 mod importer;
+#[path = "ui/project_manager.rs"]
 mod project_manager;
+#[path = "ui/references.rs"]
 mod references;
+#[path = "ui/wrappers.rs"]
 mod wrappers;
 
 use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;

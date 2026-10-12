@@ -1,11 +1,20 @@
+#[path = "host_command_admission_error.rs"]
 mod host_command_admission_error;
+#[path = "host_command_broker.rs"]
 mod host_command_broker;
+#[path = "access_error.rs"]
 mod host_command_broker_access_error;
+#[path = "host_command_broker_error.rs"]
 mod host_command_broker_error;
+#[path = "host_command_dispatch.rs"]
 mod host_command_dispatch;
+#[path = "host_command_execution.rs"]
 mod host_command_execution;
+#[path = "window_command_complete.rs"]
 mod host_window_command_completion;
+#[path = "platform_window_command_error.rs"]
 mod platform_window_command_error;
+#[path = "window_command_failure.rs"]
 mod window_command_failure;
 
 pub(crate) use host_command_admission_error::HostCommandAdmissionError;

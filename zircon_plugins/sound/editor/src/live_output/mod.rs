@@ -1,4 +1,6 @@
+#[path = "controller.rs"]
 mod controller;
+#[path = "model.rs"]
 mod model;
 
 pub use controller::SoundEditorLiveOutputController;

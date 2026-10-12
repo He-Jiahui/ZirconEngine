@@ -4,18 +4,31 @@
 //! defines the curated editor-layout surface and keeps cache consumers off a
 //! monolithic projection implementation.
 
+#[path = "view_projection/build.rs"]
 mod build;
+#[path = "view_projection/component_semantics.rs"]
 mod component_semantics;
+#[path = "view_projection/materialization.rs"]
 mod materialization;
+#[path = "view_projection/metadata.rs"]
 mod metadata;
+#[path = "view_projection/node_projection.rs"]
 mod node_projection;
+#[path = "view_projection/projection_cache.rs"]
 mod projection_cache;
+#[path = "view_projection/projection_composition.rs"]
 mod projection_composition;
+#[path = "view_projection/projection_error.rs"]
 mod projection_error;
+#[path = "view_projection/projection_patch.rs"]
 mod projection_patch;
+#[path = "view_projection/resource_generation.rs"]
 mod resource_generation;
+#[path = "view_projection/retained_binding.rs"]
 mod retained_binding;
+#[path = "view_projection/store_cache.rs"]
 mod store_cache;
+#[path = "view_projection/visual_assets.rs"]
 mod visual_assets;
 
 pub(crate) use build::{

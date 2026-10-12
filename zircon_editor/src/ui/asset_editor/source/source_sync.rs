@@ -608,11 +608,11 @@ fn invalid_prefix(diagnostics: &[String], message: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "source_sync/tests/hash_membership_tests.rs"]
+#[path = "source_sync/tests/hash_membership.rs"]
 mod hash_membership_tests;
 
 #[cfg(test)]
-#[path = "source_sync/tests/optimization_batch_jt_editor659_tests.rs"]
+#[path = "source_sync/tests/perf.rs"]
 mod optimization_batch_jt_editor659_tests;
 
 #[cfg(test)]

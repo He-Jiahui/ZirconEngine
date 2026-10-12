@@ -1,6 +1,8 @@
 //! Sequence semantic validation and canonical track IR.
 
+#[path = "compile.rs"]
 mod compile;
+#[path = "model.rs"]
 mod model;
 
 pub use compile::compile_animation_sequence;

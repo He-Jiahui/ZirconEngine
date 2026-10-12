@@ -22,9 +22,13 @@ use crate::scene::modes::SceneModeRegistration;
 
 use contribution_descriptors::{validate_asset_importer, validate_menu_item_path};
 
+#[path = "editor_extension/contribution_descriptors.rs"]
 mod contribution_descriptors;
+#[path = "editor_extension/template_contributions.rs"]
 mod template_contributions;
+#[path = "editor_extension/view_descriptor.rs"]
 mod view_descriptor;
+#[path = "editor_extension/viewport_overlay_provider.rs"]
 mod viewport_overlay_provider;
 
 pub use contribution_descriptors::{
@@ -713,9 +717,9 @@ fn insert_unique<T>(
 }
 
 #[cfg(test)]
-#[path = "editor_extension/tests/optimization_batch_ik_editor621_tests.rs"]
+#[path = "editor_extension/tests/perf.rs"]
 mod optimization_batch_ik_editor621_tests;
 
 #[cfg(test)]
-#[path = "editor_extension/tests/optimization_batch_editor826_template_binding_tests.rs"]
+#[path = "tests/perf_batch_editor826_template_binding.rs"]
 mod optimization_batch_editor826_template_binding_tests;

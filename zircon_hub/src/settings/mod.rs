@@ -1,5 +1,8 @@
+#[path = "config_path.rs"]
 mod config_path;
+#[path = "hub_config.rs"]
 mod hub_config;
+#[path = "paths.rs"]
 mod paths;
 
 pub use config_path::default_hub_config_path;

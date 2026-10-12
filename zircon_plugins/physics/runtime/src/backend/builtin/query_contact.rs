@@ -1,9 +1,16 @@
+#[path = "query_contact/contact.rs"]
 mod contact;
+#[path = "query_contact/filter.rs"]
 mod filter;
+#[path = "query_contact/geometry.rs"]
 mod geometry;
+#[path = "query_contact/mode.rs"]
 mod mode;
+#[path = "query_contact/overlap.rs"]
 mod overlap;
+#[path = "query_contact/raycast.rs"]
 mod raycast;
+#[path = "query_contact/sweep.rs"]
 mod sweep;
 
 use zircon_runtime::core::framework::physics::{

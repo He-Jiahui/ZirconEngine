@@ -1,5 +1,6 @@
 //! GPU device and surface management.
 
+#[path = "backend/mod.rs"]
 mod render_backend;
 
 #[cfg(test)]

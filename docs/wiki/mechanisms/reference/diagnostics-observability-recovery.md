@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/core/runtime/diagnostics
+  - zircon_runtime/src/core/runtime
   - zircon_runtime/src/core/runtime/tasks/diagnostics
   - zircon_runtime/src/diagnostic_log
   - zircon_runtime/src/dynamic_api/session/profile.rs
@@ -13,7 +13,7 @@ plan_sources:
   - docs/wiki/core-runtime/diagnostic-log.md
   - docs/wiki/app-runtime-api/reference/profiling-diagnostics.md
 tests:
-  - zircon_runtime/src/core/runtime/diagnostics
+  - zircon_runtime/src/core/runtime
   - zircon_runtime/src/core/runtime/tasks/diagnostics
   - zircon_runtime/src/diagnostic_log/sink/tests
 doc_type: mechanism-case-study

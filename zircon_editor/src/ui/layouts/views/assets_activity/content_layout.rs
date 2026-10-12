@@ -228,5 +228,5 @@ fn hide_controls<'a>(
 }
 
 #[cfg(test)]
-#[path = "content_layout/tests/indexed_lookup_tests.rs"]
+#[path = "../content_layout/tests/indexed_lookup.rs"]
 mod indexed_lookup_tests;

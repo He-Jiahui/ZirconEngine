@@ -12,7 +12,7 @@ plan_sources:
   - docs/plans/mvp/index.md
 tests:
   - zircon_editor/src/core/editing/engine
-  - zircon_editor/src/core/editing/engine/transaction
+  - zircon_editor/src/core/editing/engine
 doc_type: module-detail
 ---
 

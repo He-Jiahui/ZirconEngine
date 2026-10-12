@@ -3,7 +3,9 @@
 //! Editor and headless callers consume immutable preflight views from this module. Actual source
 //! mutation will be committed by the project-asset generation owner in a later transaction slice.
 
+#[path = "delete_preflight.rs"]
 mod delete_preflight;
+#[path = "relocation_preflight.rs"]
 mod relocation_preflight;
 
 pub use delete_preflight::{

@@ -207,5 +207,5 @@ fn pending_play_failure_toast_message(failures: &[PlayPendingEditApplyFailure]) 
 }
 
 #[cfg(test)]
-#[path = "resolve/tests/failure_single_buffer_tests.rs"]
+#[path = "../resolve/tests/failure_single_buffer.rs"]
 mod failure_single_buffer_tests;

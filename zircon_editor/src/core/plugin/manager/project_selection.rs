@@ -100,5 +100,5 @@ pub(super) fn editor_package_enablement(
 }
 
 #[cfg(test)]
-#[path = "project_selection/tests/optimization_batch_io_editor625_tests.rs"]
+#[path = "project_selection/tests/perf.rs"]
 mod optimization_batch_io_editor625_tests;

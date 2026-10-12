@@ -2,7 +2,7 @@
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
 const NOTIFICATION_CENTER_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui"
+    "../../../../assets/ui/editor/workbench/feedback/notification_center.zui"
 );
 
 #[test]

@@ -12,22 +12,22 @@ COMPONENTIZED_WINDOW = ROOT / (
     "workbench/componentized_window.rs"
 )
 WORKBENCH_PROJECTION = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs"
+    "zircon_editor/src/ui/retained/ui/windows.rs"
 )
 GEOMETRY_APPLY = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/apply_presentation/geometry.rs"
+    "zircon_editor/src/ui/retained/ui/apply_presentation/geometry.rs"
 )
-STATE = ROOT / "zircon_editor/src/ui/retained_host/host_contract/globals/state.rs"
+STATE = ROOT / "zircon_editor/src/ui/retained/contract/globals/state.rs"
 INDEX = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/"
     "template_node/index.rs"
 )
 PERSISTENT_BUCKETS = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/"
     "template_node/index/persistent_buckets.rs"
 )
 PATCH = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/"
     "template_node/index/geometry_patch.rs"
 )
 

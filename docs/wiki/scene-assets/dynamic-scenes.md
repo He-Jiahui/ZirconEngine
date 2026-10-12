@@ -1,16 +1,16 @@
 ---
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/world_operations.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/schema.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/archive.rs
+  - zircon_runtime/src/scene/dynamic/mod.rs
+  - zircon_runtime/src/scene/dynamic/scene/world_operations.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn/transaction.rs
+  - zircon_runtime/src/scene/dynamic/document/schema.rs
+  - zircon_runtime/src/scene/dynamic/session/archive.rs
 implementation_files:
   - zircon_runtime/src/scene/dynamic_scene
 plan_sources:
   - user: 2026-09-09 动态场景与序列化说明
 tests:
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests/cases.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn/transaction/tests/cases.rs
   - zircon_runtime/src/scene/dynamic_scene/session
 doc_type: module-detail
 ---

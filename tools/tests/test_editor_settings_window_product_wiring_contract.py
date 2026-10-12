@@ -15,7 +15,7 @@ class EditorSettingsWindowProductWiringContractTests(unittest.TestCase):
         dispatch = self.read(
             "zircon_editor/src/ui/host/editor_event_execution/dispatch.rs"
         )
-        event_bridge = self.read("zircon_editor/src/ui/retained_host/event_bridge.rs")
+        event_bridge = self.read("zircon_editor/src/ui/retained/event_bridge.rs")
         side_effects = self.read(
             "zircon_editor/src/ui/retained_host/app/host_lifecycle/"
             "dispatch_effects/side_effects.rs"
@@ -33,11 +33,11 @@ class EditorSettingsWindowProductWiringContractTests(unittest.TestCase):
 
     def test_product_projection_reads_only_current_authorities_on_open(self) -> None:
         access = self.read(
-            "zircon_editor/src/ui/host/editor_event_runtime_access/"
+            "zircon_editor/src/ui/host/"
             "settings_projection.rs"
         )
         action = self.read(
-            "zircon_editor/src/ui/retained_host/app/settings_window_actions.rs"
+            "zircon_editor/src/ui/retained/app/settings_window_actions.rs"
         )
 
         self.assertIn("self.context().settings().snapshot()", access)
@@ -81,19 +81,19 @@ class EditorSettingsWindowProductWiringContractTests(unittest.TestCase):
             "pane_component_projection/settings_window/mod.rs"
         )
         painter = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/commands.rs"
         )
         visible_rows = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_settings_window/visible_rows.rs"
         )
         dispatch = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_nodes/specialized/secondary.rs"
         )
         hit_test = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/"
+            "zircon_editor/src/ui/retained/contract/surface_hit_test/"
             "template_node/popup_rows/settings.rs"
         )
         selection = self.read(

@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/system_anchors.rs"
+    / "zircon_runtime/src/plugin/runtime/validation/system_anchors.rs"
 )
 
 # 读取实现源码约束预分配注册系统锚点索引：两侧注册迭代器贡献容量边界，并锚点索引应为预分配先于单次遍历插入。

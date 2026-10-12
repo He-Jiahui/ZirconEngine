@@ -15,7 +15,7 @@ plan_sources:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
   - zircon_runtime/src/core/manager/tests/cases.rs
-  - zircon_runtime/src/core/runtime/tests/resolution
+  - zircon_runtime/src/core/runtime/tests
 doc_type: module-detail
 status: current
 ---

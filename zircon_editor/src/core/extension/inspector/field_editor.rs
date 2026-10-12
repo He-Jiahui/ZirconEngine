@@ -318,5 +318,5 @@ fn curve_placeholder_editor(_init: FieldEditorInit) -> FieldEditorInstance {
 }
 
 #[cfg(test)]
-#[path = "tests/field_editor_performance_contract_tests.rs"]
+#[path = "tests/field_editor_perf_contract.rs"]
 mod performance_contract_tests;

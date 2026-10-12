@@ -1,11 +1,18 @@
 use std::collections::HashMap;
 
+#[path = "graph/access_allocation_table.rs"]
 mod access_allocation_table;
+#[path = "graph/access_index.rs"]
 mod access_index;
+#[path = "graph/compute_binding_access_packet.rs"]
 mod compute_binding_access_packet;
+#[path = "graph/compute_dispatch_access_packet.rs"]
 mod compute_dispatch_access_packet;
+#[path = "graph/external_access_packet.rs"]
 mod external_access_packet;
+#[path = "graph/resource_state_plan.rs"]
 mod resource_state_plan;
+#[path = "graph/transient_allocation.rs"]
 mod transient_allocation;
 
 use super::access::{

@@ -1,7 +1,10 @@
 //! Glyph rasterization policy and backend routing.
 
+#[path = "policy.rs"]
 mod policy;
+#[path = "service/mod.rs"]
 mod service;
+#[path = "swash/mod.rs"]
 mod swash;
 
 pub(crate) use policy::{

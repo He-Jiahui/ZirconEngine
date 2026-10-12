@@ -6,6 +6,7 @@ use crate::core::resource::UntypedResourceHandle;
 
 use super::RenderArtifactManifestError;
 
+#[path = "contract/mesh.rs"]
 mod mesh;
 
 pub use mesh::{

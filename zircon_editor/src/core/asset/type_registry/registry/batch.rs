@@ -414,9 +414,9 @@ fn finalize_entry(
 }
 
 #[cfg(test)]
-#[path = "tests/batch_optimization_batch_20260830cj_editor_tests.rs"]
+#[path = "tests/batch_perf.rs"]
 mod optimization_batch_20260830cj_editor_tests;
 
 #[cfg(test)]
-#[path = "tests/optimization_batch_ij_editor620_tests.rs"]
+#[path = "tests/registry_type_perf.rs"]
 mod optimization_batch_ij_editor620_tests;

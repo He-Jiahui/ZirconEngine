@@ -1,7 +1,9 @@
 //! 渲染可选特性的身份和清单归属中心；具体图贡献及设备资源由特性 crate 与图形宿主负责。
 pub const RENDERING_MODULE_NAME: &str = "rendering.runtime";
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

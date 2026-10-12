@@ -78,5 +78,5 @@ fn layout_preset_name(locator: &AssetUri) -> Option<String> {
 }
 
 #[cfg(test)]
-#[path = "layout_preset_assets/tests/optimization_tests.rs"]
+#[path = "layout_preset_assets/tests/perf.rs"]
 mod optimization_tests;

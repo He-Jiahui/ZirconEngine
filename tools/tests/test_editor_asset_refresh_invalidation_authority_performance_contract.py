@@ -5,9 +5,9 @@ import unittest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 ASSET_ACCESS = REPO_ROOT / "zircon_editor/src/ui/host/editor_event_runtime_access/asset_access.rs"
-SNAPSHOT_SYNC = REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs"
-REFRESH_APPLY = REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/refresh/apply.rs"
-REFRESH_ROOT = REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/refresh.rs"
+SNAPSHOT_SYNC = REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/refresh/snapshots.rs"
+REFRESH_APPLY = REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/refresh/apply.rs"
+REFRESH_ROOT = REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/refresh.rs"
 WORKSPACE_STATE = REPO_ROOT / "zircon_editor/src/ui/workbench/project/asset_workspace_state.rs"
 ITEM_GENERATION = REPO_ROOT / "zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_item_generation.rs"
 

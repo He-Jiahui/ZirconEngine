@@ -635,5 +635,5 @@ fn latest_active<T: Clone>(
 }
 
 #[cfg(test)]
-#[path = "registry/tests/editor_operation_segments_tests.rs"]
+#[path = "../registry/tests/editor_operation_segments.rs"]
 mod editor_operation_segments_tests;

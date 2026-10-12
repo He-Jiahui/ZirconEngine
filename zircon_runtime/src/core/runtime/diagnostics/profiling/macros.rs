@@ -94,5 +94,5 @@ macro_rules! profile_counter {
 }
 
 #[cfg(test)]
-#[path = "macros/tests/dynamic_name_handoff_tests.rs"]
+#[path = "../../profiling/macros/tests/dynamic_name_handoff.rs"]
 mod dynamic_name_handoff_tests;

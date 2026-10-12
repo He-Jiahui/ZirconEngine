@@ -7,6 +7,7 @@ use crate::core::framework::time::{
 
 use super::frame_clock::FrameClockRebaseReceipt;
 
+#[path = "time/product_policy.rs"]
 mod product_policy;
 
 pub use product_policy::{ProductTimePolicies, ProductTimePolicyDigest};

@@ -113,5 +113,5 @@ fn category_path_key(presentation: &SettingsPresentation) -> String {
 }
 
 #[cfg(test)]
-#[path = "settings_catalog/tests/optimization_batch_hy_editor608_tests.rs"]
+#[path = "settings_catalog/tests/perf.rs"]
 mod optimization_batch_hy_editor608_tests;

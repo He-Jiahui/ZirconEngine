@@ -1,11 +1,11 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/backend/render_backend/graphics_debugger_capture.rs
+  - zircon_runtime/src/graphics/backend/backend/capture.rs
   - zircon_runtime/crates/zr_rhi/src/diagnostic_query.rs
   - zircon_runtime/crates/zr_rhi/src/diagnostic_readback.rs
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/query_stats/query_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/capture_frame/capture_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/query_stats/query_stats.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
 plan_sources:
   - docs/wiki/graphics/rust-api-reference.md

@@ -1,6 +1,7 @@
 //! 时间戳与管线统计先按帧规划原生查询，解析、映射和投递随后绑定场景提交票据。
 //! Submission-bound native query allocation, resolve, and ordered delivery.
 
+#[path = "query/support.rs"]
 mod support;
 
 use std::collections::{HashMap, VecDeque};

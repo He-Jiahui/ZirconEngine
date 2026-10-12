@@ -17,9 +17,9 @@ fn sources(relatives: &[&str]) -> String {
 #[test]
 fn animation_editor_shell_uses_canonical_sequence_and_graph_templates() {
     let panes = sources(&[
-        "src/ui/retained_host/host_contract/data/panes.rs",
-        "src/ui/retained_host/host_contract/data/panes/pane.rs",
-        "src/ui/retained_host/host_contract/data/panes/animation.rs",
+        "src/ui/retained/contract/data/panes.rs",
+        "src/ui/retained/contract/data/panes/pane.rs",
+        "src/ui/retained/contract/data/panes/animation.rs",
     ]);
     let sequence_asset = source("assets/ui/editor/host/animation_sequence_body.zui");
     let graph_asset = source("assets/ui/editor/host/animation_graph_body.zui");

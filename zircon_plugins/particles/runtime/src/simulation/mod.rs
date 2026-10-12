@@ -1,5 +1,8 @@
+#[path = "cpu.rs"]
 mod cpu;
+#[path = "pool.rs"]
 mod pool;
+#[path = "rng.rs"]
 mod rng;
 
 pub(crate) use cpu::ParticleSystemInstance;

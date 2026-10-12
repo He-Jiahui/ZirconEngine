@@ -1,11 +1,20 @@
+#[path = "contract.rs"]
 mod contract;
+#[path = "cook/mod.rs"]
 mod cook;
+#[path = "io_frontier.rs"]
 mod io_frontier;
+#[path = "io_priority.rs"]
 mod io_priority;
+#[path = "loader/mod.rs"]
 mod loader;
+#[path = "manifest_loader/mod.rs"]
 mod manifest_loader;
+#[path = "plan.rs"]
 mod plan;
+#[path = "store.rs"]
 mod store;
+#[path = "validation.rs"]
 mod validation;
 
 pub use contract::{

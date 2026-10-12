@@ -509,5 +509,5 @@ pub(super) fn quoted_into(value: &str, output: &mut String) {
 }
 
 #[cfg(test)]
-#[path = "types/tests/map_serialize_performance_tests.rs"]
+#[path = "../types/tests/map_serialize_perf.rs"]
 mod map_serialize_performance_tests;

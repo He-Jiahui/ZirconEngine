@@ -524,17 +524,17 @@ fn category_for_kind(kind: AiBehaviorNodeKind) -> BehaviorNodeCategory {
 }
 
 #[cfg(test)]
-#[path = "compile/tests/implementation_slots_tests.rs"]
+#[path = "tests/implementation_slots.rs"]
 mod implementation_slots_tests;
 
 #[cfg(test)]
-#[path = "compile/tests/reachable_abort_tests.rs"]
+#[path = "compile/tests/reachable_abort.rs"]
 mod reachable_abort_tests;
 
 #[cfg(test)]
-#[path = "compile/tests/random_selector_weights_tests.rs"]
+#[path = "tests/random_selector_weights.rs"]
 mod random_selector_weights_tests;
 
 #[cfg(test)]
-#[path = "tests/compile_parent_index_performance_tests.rs"]
+#[path = "tests/compile_parent_index_perf.rs"]
 mod parent_index_performance_tests;

@@ -1,20 +1,20 @@
 ---
 related_code:
-  - zircon_editor/src/ui/asset_editor
+  - zircon_editor/src/ui
   - zircon_editor/src/ui/host/asset_editor_sessions
-  - zircon_editor/src/ui/host/editor_asset_manager
+  - zircon_editor/src/ui/host/assets
   - zircon_editor/src/core/project/scene_document.rs
   - zircon_editor/src/core/project/scene_load_job.rs
-  - zircon_editor/src/core/editing/engine/transaction
+  - zircon_editor/src/core/editing/engine
 implementation_files:
-  - zircon_editor/src/ui/asset_editor
+  - zircon_editor/src/ui
   - zircon_editor/src/ui/host/asset_editor_sessions
-  - zircon_editor/src/ui/host/editor_asset_manager
+  - zircon_editor/src/ui/host/assets
 plan_sources:
   - user: 2026-09-09 完善 ZirconEngine 公开接口、机制案例、教程与最佳实践
 tests:
   - zircon_editor/src/ui/host/asset_editor_sessions
-  - zircon_editor/src/ui/host/editor_asset_manager
+  - zircon_editor/src/ui/host/assets
   - zircon_editor/src/core/project/tests/scene_document.rs
 doc_type: module-detail
 ---
@@ -152,9 +152,9 @@ Unreal package dirty 通常挂在 UObject/package；ZirconEngine 以 history sav
 
 ## 来源与测试
 
-- Asset editor：[zircon_editor/src/ui/asset_editor](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/asset_editor)
+- Asset editor：[zircon_editor/src/ui](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/asset_editor)
 - Sessions：[zircon_editor/src/ui/host/asset_editor_sessions](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/host/asset_editor_sessions)
-- Manager：[zircon_editor/src/ui/host/editor_asset_manager](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/host/editor_asset_manager)
+- Manager：[zircon_editor/src/ui/host/assets](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/host/editor_asset_manager)
 - Scene tests：[zircon_editor/src/core/project/tests/scene_document.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/core/project/tests/scene_document.rs)
 
 ## Session API 责任矩阵

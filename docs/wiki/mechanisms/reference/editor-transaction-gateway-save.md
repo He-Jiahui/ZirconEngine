@@ -11,7 +11,7 @@ implementation_files:
 plan_sources:
   - docs/wiki/editor/commands-transactions.md
 tests:
-  - zircon_editor/src/tests/editing/transaction_engine
+  - zircon_editor/src/tests/transaction_engine
   - zircon_editor/src/tests/editing/node_ops/gateway_recovery.rs
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
 doc_type: mechanism-case-study

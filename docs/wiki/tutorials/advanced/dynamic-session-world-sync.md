@@ -1,11 +1,11 @@
 ---
 related_code:
   - zircon_runtime/src/dynamic_api/session.rs
-  - zircon_runtime/src/dynamic_api/session/registry
+  - zircon_runtime/src/dynamic_api/session
   - zircon_runtime/src/dynamic_api/session/world_sync.rs
   - zircon_editor/src/core/play/live_link.rs
 implementation_files:
-  - zircon_runtime/src/dynamic_api/session
+  - zircon_runtime/src/dynamic_api
   - zircon_runtime/src/dynamic_api/session/world_sync.rs
   - zircon_editor/src/core/play/live_link.rs
 plan_sources:

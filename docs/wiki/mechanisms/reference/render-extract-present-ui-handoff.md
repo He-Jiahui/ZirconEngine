@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract
-  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
+  - zircon_runtime/src/graphics/runtime/framework/mod.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
 plan_sources:
   - docs/wiki/graphics/architecture.md

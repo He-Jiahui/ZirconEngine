@@ -1,8 +1,14 @@
+#[path = "arena.rs"]
 mod arena;
+#[path = "asset.rs"]
 mod asset;
+#[path = "compiled.rs"]
 mod compiled;
+#[path = "graph.rs"]
 mod graph;
+#[path = "repeat.rs"]
 mod repeat;
+#[path = "style.rs"]
 mod style;
 
 pub use arena::{

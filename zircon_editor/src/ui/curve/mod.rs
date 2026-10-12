@@ -3,7 +3,9 @@
 //! Runtime assets retain curve evaluation and mutation authority. This module only defines the
 //! view, selection, and coordinate vocabulary shared by animation and inspector toolkits.
 
+#[path = "canvas.rs"]
 mod canvas;
+#[path = "model.rs"]
 mod model;
 
 #[cfg(test)]

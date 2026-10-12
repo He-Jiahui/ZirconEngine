@@ -12,7 +12,9 @@ use crate::plugin::PluginShaderModuleSource;
 
 use super::{PluginModuleId, RuntimeExtensionRegistry};
 
+#[path = "access/metadata.rs"]
 mod metadata;
+#[path = "access/runtime_core.rs"]
 mod runtime_core;
 
 impl RuntimeExtensionRegistry {
@@ -106,5 +108,5 @@ fn sorted_unique_interface_owners(
 }
 
 #[cfg(test)]
-#[path = "access/tests/interface_owner_dedup_tests.rs"]
+#[path = "../access/tests/interface_owner_dedup.rs"]
 mod interface_owner_dedup_tests;

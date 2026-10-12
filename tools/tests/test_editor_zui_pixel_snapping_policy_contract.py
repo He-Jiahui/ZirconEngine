@@ -8,7 +8,7 @@ WORKBENCH_WINDOW = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/windows/workbench_window.zui"
 )
 STATUS_BAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_status_bar.zui"
 )
 DIVIDER = REPO_ROOT / (
@@ -52,7 +52,7 @@ ICON_BUTTON = REPO_ROOT / (
     "workbench_icon_button.zui"
 )
 ACTIVITY_DRAWER_WINDOW = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "activity_drawer_window.zui"
 )
 WELCOME = REPO_ROOT / "zircon_editor/assets/ui/editor/welcome.zui"
@@ -124,23 +124,23 @@ RUNTIME_POLICY_BOUNDARY_FILES = tuple(
     )
 )
 NATIVE_SLIDER_CONTEXT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_sliders/commands/context.rs"
 )
 NATIVE_FRACTIONAL_CONTROL_GEOMETRY_FILES = tuple(
     REPO_ROOT / path
     for path in (
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         "template_buttons/geometry.rs",
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         "template_dropdowns/geometry.rs",
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         "template_fields/geometry.rs",
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         "template_fields/search.rs",
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         "material_primitives/text_field/geometry.rs",
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         "template_chips/geometry.rs",
     )
 )

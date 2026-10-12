@@ -224,5 +224,5 @@ fn map_swash_error(error: SwashRasterError) -> TextGlyphRasterError {
 mod tests;
 
 #[cfg(test)]
-#[path = "glyph_raster_service/tests/performance_tests.rs"]
+#[path = "glyph_raster_service/tests/perf.rs"]
 mod performance_tests;

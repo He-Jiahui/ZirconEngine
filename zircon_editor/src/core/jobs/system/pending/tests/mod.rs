@@ -19,5 +19,7 @@ impl PendingTask for ReplaceablePendingTask {
     }
 }
 
+#[path = "admission.rs"]
 mod admission;
+#[path = "fairness.rs"]
 mod fairness;

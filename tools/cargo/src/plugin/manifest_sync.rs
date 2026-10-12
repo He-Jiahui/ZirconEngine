@@ -8,6 +8,7 @@ use syn::{Expr, Item, Lit};
 use toml::map::Map;
 use toml::Value;
 
+#[path = "manifest_sync/declaration.rs"]
 mod declaration;
 
 pub const GENERATED_MANIFEST_HEADER: &str =

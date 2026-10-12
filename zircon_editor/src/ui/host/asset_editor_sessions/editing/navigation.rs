@@ -145,5 +145,5 @@ impl EditorUiHost {
 }
 
 #[cfg(test)]
-#[path = "navigation/tests/capacity_tests.rs"]
+#[path = "../../editing/navigation/tests/capacity.rs"]
 mod capacity_tests;

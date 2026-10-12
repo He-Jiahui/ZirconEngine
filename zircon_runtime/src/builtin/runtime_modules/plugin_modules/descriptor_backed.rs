@@ -29,5 +29,5 @@ pub(in crate::builtin::runtime_modules) fn descriptor_backed_module(
 }
 
 #[cfg(test)]
-#[path = "tests/descriptor_backed.rs"]
+#[path = "../../plugin_modules/tests/descriptor_backed.rs"]
 mod tests;

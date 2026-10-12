@@ -163,5 +163,5 @@ impl EditorTransactionEngine {
 }
 
 #[cfg(test)]
-#[path = "engine_state/tests/hash_index_tests.rs"]
+#[path = "tests/hash_index.rs"]
 mod hash_index_tests;

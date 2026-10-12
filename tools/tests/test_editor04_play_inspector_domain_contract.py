@@ -42,7 +42,7 @@ class Editor04PlayInspectorDomainContractTests(unittest.TestCase):
         self.assertIn("snapshot.inspector = play_inspector", snapshot)
 
     def test_retained_tick_refreshes_play_inspector_after_hierarchy_sync(self) -> None:
-        tick = read("zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs")
+        tick = read("zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs")
 
         hierarchy = tick.index("self.sync_active_hierarchy_world();")
         inspector = tick.index("self.sync_active_play_inspector();")

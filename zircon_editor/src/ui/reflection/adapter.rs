@@ -222,5 +222,5 @@ fn menu_binding_projection(binding: &EditorUiBinding) -> (UiEventKind, String, S
 }
 
 #[cfg(test)]
-#[path = "tests/adapter_optimization_batch_df_editor343_tests.rs"]
+#[path = "tests/adapter_perf.rs"]
 mod optimization_batch_df_editor343_tests;

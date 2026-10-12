@@ -1,10 +1,17 @@
 //! 条件表达式的作者数据、编译和求值边界；状态机只接收已编译程序。
+#[path = "../compile.rs"]
 mod compile;
+#[path = "../../compiled_condition_expression.rs"]
 mod compiled_condition_expression;
+#[path = "../condition_expression.rs"]
 mod condition_expression;
+#[path = "../compile_error.rs"]
 mod condition_expression_compile_error;
+#[path = "../evaluate.rs"]
 mod evaluate;
+#[path = "../instruction.rs"]
 mod instruction;
+#[path = "../parameter_table.rs"]
 mod parameter_table;
 
 pub use compiled_condition_expression::CompiledConditionExpression;

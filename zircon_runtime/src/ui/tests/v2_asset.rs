@@ -30,14 +30,23 @@ use crate::ui::v2::{
     UiV2StyleResolver, UiV2SurfaceBuilder, UiZuiAssetLoader,
 };
 
+#[path = "v2_asset/asset_loading.rs"]
 mod asset_loading;
+#[path = "v2_asset/composite_components.rs"]
 mod composite_components;
+#[path = "v2_asset/default_controls.rs"]
 mod default_controls;
+#[path = "v2_asset/demo_and_builder.rs"]
 mod demo_and_builder;
+#[path = "v2_asset/file_cache.rs"]
 mod file_cache;
+#[path = "v2_asset/performance_guards.rs"]
 mod performance_guards;
+#[path = "v2_asset/pixel_snapping.rs"]
 mod pixel_snapping;
+#[path = "v2_asset/range_controls.rs"]
 mod range_controls;
+#[path = "v2_asset/style_runtime.rs"]
 mod style_runtime;
 
 fn v2_document(asset_id: &str, root: &str) -> UiV2AssetDocument {

@@ -39,12 +39,12 @@ fn runtime_ui_golden_is_hard_cut_to_zui_fixtures() {
 #[test]
 fn runtime_fixture_host_tests_are_hard_cut_to_zui_paths() {
     let pane_body_documents_mod =
-        source("src/tests/host/template_runtime/pane_body_documents/mod.rs");
+        source("src/tests/host/runtime/pane_body_documents/mod.rs");
     let pane_body_documents = format!(
         "{}\n{}\n{}",
-        source("src/tests/host/template_runtime/pane_body_documents/support.rs"),
-        source("src/tests/host/template_runtime/pane_body_documents/runtime_v2_fixtures.rs"),
-        source("src/tests/host/template_runtime/pane_body_documents/asset_contracts.rs")
+        source("src/tests/host/runtime/pane_body_documents/support.rs"),
+        source("src/tests/host/runtime/pane_body_documents/runtime_v2_fixtures.rs"),
+        source("src/tests/host/runtime/pane_body_documents/asset_contracts.rs")
     );
     let material_surface_assets =
         source("src/tests/ui/boundary/global_material_surface_assets/contracts.rs");

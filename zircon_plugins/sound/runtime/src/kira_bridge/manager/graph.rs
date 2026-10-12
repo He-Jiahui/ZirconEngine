@@ -16,6 +16,7 @@ use super::super::graph_compile::{
 };
 use super::KiraEngine;
 
+#[path = "graph/transaction.rs"]
 mod transaction;
 
 impl<B: Backend> KiraEngine<B> {

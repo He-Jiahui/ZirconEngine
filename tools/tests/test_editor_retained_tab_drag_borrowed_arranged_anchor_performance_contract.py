@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "zircon_editor/src/ui/retained_host/tab_drag/strip_hitbox.rs"
+SOURCE = ROOT / "zircon_editor/src/ui/retained/tab_drag/strip_hitbox.rs"
 
 
 def source() -> str:

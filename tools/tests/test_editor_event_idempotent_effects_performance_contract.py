@@ -9,7 +9,7 @@ SELECTION = ROOT / "zircon_editor/src/ui/host/editor_event_execution/selection_e
 HIERARCHY = ROOT / "zircon_editor/src/ui/host/editor_event_execution/hierarchy_event.rs"
 MENU = ROOT / "zircon_editor/src/ui/host/editor_event_execution/menu_action.rs"
 HIERARCHY_TEST = (
-    ROOT / "zircon_editor/src/tests/host/retained_callback_dispatch/hierarchy.rs"
+    ROOT / "zircon_editor/src/tests/host/callbacks/hierarchy.rs"
 )
 CONSOLE_TEST = ROOT / "zircon_editor/src/tests/editor_event/runtime/console.rs"
 

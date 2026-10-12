@@ -1,9 +1,10 @@
+#[path = "palette/locale_projection.rs"]
 mod locale_projection;
 #[cfg(test)]
 #[path = "palette/tests/localization_tests.rs"]
 mod localization_tests;
 #[cfg(test)]
-#[path = "palette/tests/optimization_batch_ir_editor629_tests.rs"]
+#[path = "palette/tests/perf.rs"]
 mod optimization_batch_ir_editor629_tests;
 #[cfg(test)]
 #[path = "palette/tests/performance_tests.rs"]

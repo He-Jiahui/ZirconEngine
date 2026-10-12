@@ -1,7 +1,12 @@
+#[path = "write/animation.rs"]
 mod animation;
+#[path = "write/camera.rs"]
 mod camera;
+#[path = "write/lighting.rs"]
 mod lighting;
+#[path = "write/mesh.rs"]
 mod mesh;
+#[path = "write/physics.rs"]
 mod physics;
 
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};

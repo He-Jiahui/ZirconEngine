@@ -25,12 +25,19 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
 };
 
+#[path = "runtime_input_ownership/drag_drop.rs"]
 mod drag_drop;
+#[path = "runtime_input_ownership/high_precision_dispatch.rs"]
 mod high_precision_dispatch;
+#[path = "runtime_input_ownership/input_method.rs"]
 mod input_method;
+#[path = "runtime_input_ownership/owner_validation.rs"]
 mod owner_validation;
+#[path = "runtime_input_ownership/popup_tooltip.rs"]
 mod popup_tooltip;
+#[path = "runtime_input_ownership/route_trace.rs"]
 mod route_trace;
+#[path = "runtime_input_ownership/transaction.rs"]
 mod transaction;
 
 #[test]

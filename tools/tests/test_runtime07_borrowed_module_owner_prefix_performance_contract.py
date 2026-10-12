@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/runtime_plugin/module_validation/names/owner_prefix.rs"
+    / "zircon_runtime/src/plugin/runtime/module_validation/names/owner_prefix.rs"
 )
 
 # 读取实现源码约束借用模块归属前缀：成功路径借用现有名称与归属，并成功路径不分配归属前缀。

@@ -1,0 +1,50 @@
+//! Inspector 专用入口位于 secondary 分派中，命中后接管整行并抑制后续 fallback；未匹配属性返回 false。
+//! handled 不表示有可见命令，窄行或祖先裁剪可令所有子命令被跳过。
+
+use super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::render_commands::HostPaintCommand;
+use super::template_inspector_row_kind::{inspector_row_kind, InspectorRowKind};
+
+#[path = "inspector_rows/disclosure.rs"]
+mod disclosure;
+#[path = "inspector_rows/primitives.rs"]
+mod primitives;
+#[path = "inspector_rows/resource.rs"]
+mod resource;
+#[path = "inspector_rows/shadow.rs"]
+mod shadow;
+#[path = "inspector_rows/style.rs"]
+mod style;
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_inspector_row_commands(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    opacity: f32,
+) -> bool {
+    match inspector_row_kind(node) {
+        Some(InspectorRowKind::Resource(resource)) => {
+            resource::push_resource_row(commands, node, rect, clip, order, resource, opacity);
+            true
+        }
+        Some(InspectorRowKind::Disclosure) => {
+            disclosure::push_disclosure_row(commands, node, rect, clip, order, opacity);
+            true
+        }
+        Some(InspectorRowKind::ShadowSelect) => {
+            shadow::push_shadow_select_row(commands, node, rect, clip, order, opacity);
+            true
+        }
+        Some(InspectorRowKind::ShadowCheck) => {
+            shadow::push_shadow_check_row(commands, node, rect, clip, order, opacity);
+            true
+        }
+        None => false,
+    }
+}
+
+#[cfg(test)]
+#[path = "inspector_rows_tests/tests/mod.rs"]
+mod tests;

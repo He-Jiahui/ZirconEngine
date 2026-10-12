@@ -376,7 +376,7 @@ fn enum_label(option: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "shared/tests/enum_label_tests.rs"]
+#[path = "../shared/tests/enum_label.rs"]
 mod enum_label_tests;
 
 pub(super) fn int_prop(name: &str, default: i64) -> UiPropSchema {

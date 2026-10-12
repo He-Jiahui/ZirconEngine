@@ -1,6 +1,7 @@
 use super::activity_virtualization::{ActivityAssetBinding, ActivityAssetVirtualization};
 use std::collections::BTreeMap;
 
+#[path = "../paint_metadata/scrollbar_descriptors.rs"]
 mod scrollbar_descriptors;
 
 use scrollbar_descriptors::{build_scrollbar_descriptors, AssetContentScrollbarDescriptors};
@@ -883,5 +884,5 @@ fn finite_content_extent(extent: f32) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "paint_metadata/tests/capacity_tests.rs"]
+#[path = "../paint_metadata/tests/capacity.rs"]
 mod capacity_tests;

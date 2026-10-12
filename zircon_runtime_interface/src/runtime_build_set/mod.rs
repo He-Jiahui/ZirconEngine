@@ -1,23 +1,41 @@
 //! 动态库加载前的 BuildSet 身份与会话建立后的模块组合回执共用的中立契约。
 //! 冻结的 InterfaceSpec 同时驱动构建时 ABI 槽表生成与装载前一致性校验。
 
+#[path = "artifact_identity.rs"]
 mod artifact_identity;
+#[path = "artifact_manifest.rs"]
 mod artifact_manifest;
+#[path = "build_mode.rs"]
 mod build_mode;
+#[path = "build_set_expectation.rs"]
 mod build_set_expectation;
+#[path = "build_set_id.rs"]
 mod build_set_id;
+#[path = "composition_receipt.rs"]
 mod composition_receipt;
+#[path = "composition_target.rs"]
 mod composition_target;
+#[path = "digest.rs"]
 mod digest;
+#[path = "identity_encoding_error.rs"]
 mod identity_encoding_error;
+#[path = "identity_format_error.rs"]
 mod identity_format_error;
+#[path = "interface_spec.rs"]
 mod interface_spec;
+#[path = "module_profile.rs"]
 mod module_profile;
+#[path = "payload_schema.rs"]
 mod payload_schema;
+#[path = "session_profile.rs"]
 mod session_profile;
+#[path = "slot_catalog.rs"]
 mod slot_catalog;
+#[path = "target_model.rs"]
 mod target_model;
+#[path = "trusted_host.rs"]
 mod trusted_host;
+#[path = "validation_error.rs"]
 mod validation_error;
 
 pub use artifact_identity::ZrRuntimeArtifactIdentityV1;

@@ -56,5 +56,5 @@ fn keyboard_text_contains_control(text: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "payload/tests/byte_control_tests.rs"]
+#[path = "payload/tests/byte_control.rs"]
 mod byte_control_tests;

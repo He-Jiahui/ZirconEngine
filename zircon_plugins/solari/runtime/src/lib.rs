@@ -7,7 +7,9 @@ pub const SOLARI_PROVIDER_ID: &str = "plugin.solari.runtime";
 pub const SOLARI_UNAVAILABLE_MESSAGE: &str =
     "Solari realtime raytraced lighting pass executor is not implemented yet";
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

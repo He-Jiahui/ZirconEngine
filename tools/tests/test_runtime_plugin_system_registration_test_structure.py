@@ -10,7 +10,7 @@ class RuntimePluginSystemRegistrationTestStructureTests(unittest.TestCase):
             / "zircon_runtime/src/plugin/extension_registry/register/system_registration.rs"
         )
         tests_path = (
-            repo_root / "zircon_runtime/src/plugin/extension_registry/register/system_registration/tests/cases.rs"
+            repo_root / "zircon_runtime/src/plugin/extension_registry/register/tests/cases.rs"
         )
 
         owner = owner_path.read_text(encoding="utf-8")

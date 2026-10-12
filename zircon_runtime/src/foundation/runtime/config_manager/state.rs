@@ -162,5 +162,5 @@ fn duration_ms(nanos: u64) -> f64 {
 mod tests;
 
 #[cfg(test)]
-#[path = "state/tests/percentile_stack_tests.rs"]
+#[path = "../state/tests/percentile_stack.rs"]
 mod percentile_stack_tests;

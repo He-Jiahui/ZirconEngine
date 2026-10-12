@@ -5,7 +5,9 @@ use super::{
 use zircon_runtime::asset::{AssetImportContext, AssetImportError};
 use zircon_runtime::core::framework::render::RenderImageDimension;
 
+#[path = "ktx1.rs"]
 mod ktx1;
+#[path = "ktx2.rs"]
 mod ktx2;
 
 pub(super) fn parse_ktx1(

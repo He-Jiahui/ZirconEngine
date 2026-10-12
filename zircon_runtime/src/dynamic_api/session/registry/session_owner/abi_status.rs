@@ -44,5 +44,5 @@ impl OwnedSessionStatus {
 }
 
 #[cfg(test)]
-#[path = "tests/abi_status.rs"]
+#[path = "../tests/abi_status.rs"]
 mod tests;

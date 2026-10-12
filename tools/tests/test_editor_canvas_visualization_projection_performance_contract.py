@@ -6,12 +6,12 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 HEATMAP_ROOT = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    / "zircon_editor/src/ui/retained/contract/paint/"
     "template_weight_heatmap.rs"
 )
 HEATMAP_GEOMETRY = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    / "zircon_editor/src/ui/retained/contract/paint/"
     "template_weight_heatmap/geometry.rs"
 )
 

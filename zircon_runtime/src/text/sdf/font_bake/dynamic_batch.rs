@@ -209,5 +209,5 @@ pub(super) fn missing_outline(key: &SdfAtlasGlyphKey) -> SdfGlyphGenerationError
 }
 
 #[cfg(test)]
-#[path = "tests/dynamic_batch_optimization_batch_20260830by_runtime_tests.rs"]
+#[path = "tests/dynamic_batch_perf.rs"]
 mod optimization_batch_20260830by_runtime_tests;

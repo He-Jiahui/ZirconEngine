@@ -1,9 +1,16 @@
+#[path = "behavior_layout.rs"]
 mod behavior_layout;
+#[path = "cleanup.rs"]
 mod cleanup;
+#[path = "../../structure/dependency_fast_paths.rs"]
 mod dependency_fast_paths;
+#[path = "../../structure/duplicate_detection.rs"]
 mod duplicate_detection;
+#[path = "module_layout.rs"]
 mod module_layout;
+#[path = "../../structure/service_count_paths.rs"]
 mod service_count_paths;
+#[path = "../../structure/service_list_caches.rs"]
 mod service_list_caches;
 
 // 集中提供注册、提交和服务列表的源码视图，让结构约束检查可跨拆分文件追踪同一事务。

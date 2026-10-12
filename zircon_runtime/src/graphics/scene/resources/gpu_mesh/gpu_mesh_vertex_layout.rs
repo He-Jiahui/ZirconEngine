@@ -66,5 +66,5 @@ impl GpuMeshVertex {
 }
 
 #[cfg(test)]
-#[path = "tests/gpu_mesh_vertex_layout.rs"]
+#[path = "../../gpu_mesh/tests/gpu_mesh_vertex_layout.rs"]
 mod tests;

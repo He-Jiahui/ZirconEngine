@@ -36,21 +36,21 @@ fn record_with_issue_counts(
     record
 }
 
-#[path = "page_navigation.rs"]
+#[path = "../../tests/page_navigation.rs"]
 mod page_navigation;
-#[path = "query_controls.rs"]
+#[path = "../../tests/query_controls.rs"]
 mod query_controls;
-#[path = "query_execution.rs"]
+#[path = "../../tests/query_execution.rs"]
 mod query_execution;
-#[path = "query_facets.rs"]
+#[path = "../../tests/query_facets.rs"]
 mod query_facets;
-#[path = "query_filters.rs"]
+#[path = "../../tests/query_filters.rs"]
 mod query_filters;
-#[path = "query_result_actions.rs"]
+#[path = "../../tests/query_result_actions.rs"]
 mod query_result_actions;
-#[path = "query_result_state.rs"]
+#[path = "../../tests/query_result_state.rs"]
 mod query_result_state;
-#[path = "query_state.rs"]
+#[path = "../../tests/query_state.rs"]
 mod query_state;
-#[path = "record_views.rs"]
+#[path = "../../tests/record_views.rs"]
 mod record_views;

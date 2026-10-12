@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs"
+    / "zircon_runtime/src/plugin/runtime/descriptor/builder/desc_builder.rs"
 )
 
 # 读取实现源码约束精确运行时描述符元数据：元数据连接预分配借用部分，并构造器构建两侧元数据字符串不带格式器。

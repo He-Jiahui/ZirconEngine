@@ -66,7 +66,7 @@ impl PlayProcessCommand {
 }
 
 #[cfg(test)]
-#[path = "command/tests/borrowed_arguments_tests.rs"]
+#[path = "command/tests/borrowed_arguments.rs"]
 mod borrowed_arguments_tests;
 
 pub(super) fn runtime_executable_next_to_current_process(

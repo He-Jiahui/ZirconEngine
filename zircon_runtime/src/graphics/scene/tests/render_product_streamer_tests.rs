@@ -21,11 +21,11 @@ use crate::graphics::backend::RenderBackend;
 
 use super::resources::ResourceStreamer;
 
-#[path = "../render_product_streamer_tests/tests/material_runtime.rs"]
+#[path = "material_runtime.rs"]
 mod material_runtime;
-#[path = "../render_product_streamer_tests/tests/readiness_diagnostics.rs"]
+#[path = "readiness_diagnostics.rs"]
 mod readiness_diagnostics;
-#[path = "../render_product_streamer_tests/tests/texture_slot_diagnostics.rs"]
+#[path = "texture_slot_diagnostics.rs"]
 mod texture_slot_diagnostics;
 
 fn missing_refs_material() -> MaterialAsset {

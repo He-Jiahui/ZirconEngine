@@ -6,6 +6,7 @@ use crate::ui::text::{
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiEditableTextState, UiRenderCommand};
 #[cfg(feature = "profiling")]
+#[path = "text_prewarm/profile.rs"]
 mod profile;
 #[cfg(feature = "profiling")]
 pub(super) use profile::{

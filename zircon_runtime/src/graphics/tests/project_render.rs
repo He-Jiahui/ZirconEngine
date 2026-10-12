@@ -29,9 +29,11 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::graphics::{SceneRenderer, WgpuRenderFramework};
 
 const GPU_SCENE_TEST_WGSL: &str =
-    include_str!("../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+    include_str!("../scene/renderer/mesh/shaders/zr_gpu_scene.wgsl");
 
+#[path = "project_render/project_scenes.rs"]
 mod project_scenes;
+#[path = "project_render/render_quality.rs"]
 mod render_quality;
 
 fn unique_temp_project_root(label: &str) -> PathBuf {

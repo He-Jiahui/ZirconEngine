@@ -116,5 +116,5 @@ fn load_skeleton_snapshot(
 }
 
 #[cfg(test)]
-#[path = "tests/graph_cache_optimization_tests.rs"]
+#[path = "../tests/graph_cache_perf.rs"]
 mod optimization_tests;

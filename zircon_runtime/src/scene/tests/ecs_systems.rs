@@ -47,10 +47,17 @@ fn expect_query_error<T>(result: Result<T, QueryEntityError>) -> QueryEntityErro
     }
 }
 
+#[path = "ecs_systems/commands.rs"]
 mod commands;
+#[path = "ecs_systems/events.rs"]
 mod events;
+#[path = "ecs_systems/many_single_queries.rs"]
 mod many_single_queries;
+#[path = "ecs_systems/param_set_commands.rs"]
 mod param_set_commands;
+#[path = "ecs_systems/removal_local.rs"]
 mod removal_local;
+#[path = "ecs_systems/run_window_filters.rs"]
 mod run_window_filters;
+#[path = "ecs_systems/state_params.rs"]
 mod state_params;

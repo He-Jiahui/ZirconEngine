@@ -1,5 +1,6 @@
 use super::*;
 
+#[path = "jobs.rs"]
 mod jobs;
 
 #[test]

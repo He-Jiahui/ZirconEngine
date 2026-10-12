@@ -325,7 +325,7 @@ fn component_owned_text_control_ids(
 }
 
 #[cfg(test)]
-#[path = "tests/materialization_command_ref_tests.rs"]
+#[path = "../tests/materialization_command_ref.rs"]
 mod command_ref_tests;
 
 fn component_owned_frame_by_control_id(

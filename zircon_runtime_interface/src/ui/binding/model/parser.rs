@@ -563,7 +563,7 @@ impl<'a> BindingParser<'a> {
 }
 
 #[cfg(test)]
-#[path = "parser/tests/string_performance_tests.rs"]
+#[path = "parser/tests/string_perf.rs"]
 mod string_performance_tests;
 
 fn require_arity(
@@ -627,11 +627,11 @@ fn unsigned_argument(
 }
 
 #[cfg(test)]
-#[path = "parser/tests/constructed_entry_performance_tests.rs"]
+#[path = "../../model/parser/tests/constructed_entry_perf.rs"]
 mod constructed_entry_performance_tests;
 
 #[cfg(test)]
-#[path = "parser/tests/collection_view_performance_tests.rs"]
+#[path = "../../model/parser/tests/collection_view_perf.rs"]
 mod collection_view_performance_tests;
 
 fn invalid_constructor(constructor: &str, reason: &str) -> UiBindingParseError {

@@ -12,7 +12,9 @@ use crate::container::support::{
 };
 use zircon_runtime::asset::{AssetImportContext, AssetImportError};
 
+#[path = "ktx2/dfd.rs"]
 mod dfd;
+#[path = "../ktx2/supercompression.rs"]
 mod supercompression;
 
 use supercompression::{expand_standard_supercompressed_levels, level_entry_offset};
@@ -392,7 +394,7 @@ fn validate_metadata_ranges_do_not_overlap_level_payloads(
 }
 
 #[cfg(test)]
-#[path = "tests/ktx2_plugins07_metadata_hotpath_tests.rs"]
+#[path = "../../tests/ktx2_plugins07_metadata.rs"]
 mod plugins07_metadata_hotpath_tests;
 
 fn validate_level_uncompressed_byte_length(

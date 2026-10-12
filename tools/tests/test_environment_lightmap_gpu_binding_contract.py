@@ -7,11 +7,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ENVIRONMENT_MODULE = (
-    REPO_ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs"
+    REPO_ROOT / "zircon_runtime/src/graphics/scene/renderer/environment/mod.rs"
 )
 LIGHTMAP_BINDING = (
     REPO_ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/environment/lightmap_binding.rs"
 )
 FORWARD_BINDINGS = REPO_ROOT / (
     "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/"

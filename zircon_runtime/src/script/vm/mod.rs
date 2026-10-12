@@ -1,16 +1,30 @@
+#[path = "backend/mod.rs"]
 mod backend;
+#[path = "behavior_bridge.rs"]
 mod behavior_bridge;
+#[path = "capability_set.rs"]
 mod capability_set;
+#[path = "gameplay_host.rs"]
 mod gameplay_host;
+#[path = "gc_bridge/mod.rs"]
 mod gc_bridge;
+#[path = "handles.rs"]
 mod handles;
+#[path = "host/mod.rs"]
 mod host;
+#[path = "host_interface/mod.rs"]
 mod host_interface;
+#[path = "module/mod.rs"]
 mod module;
+#[path = "plugin/mod.rs"]
 mod plugin;
+#[path = "reflection/mod.rs"]
 mod reflection;
+#[path = "runtime/mod.rs"]
 mod runtime;
+#[path = "runtime_context.rs"]
 mod runtime_context;
+#[path = "scene_system.rs"]
 mod scene_system;
 #[cfg(test)]
 #[path = "tests/cases.rs"]

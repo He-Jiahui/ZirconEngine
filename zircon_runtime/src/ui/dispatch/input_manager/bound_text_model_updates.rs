@@ -21,7 +21,9 @@ use crate::ui::surface::UiSurfaceSessionIdentityHandle;
 
 use super::{manager::UiInputManager, text_focus_lifecycle::finish_pending_text_focus_loss};
 
+#[path = "bound_text_model_updates/profile.rs"]
 mod profile;
+#[path = "../bound_text_model_updates/transaction.rs"]
 mod transaction;
 
 use transaction::{apply_now, committed_document_state, receipt};
@@ -533,5 +535,5 @@ pub(super) fn apply_request(
 }
 
 #[cfg(test)]
-#[path = "bound_text_model_updates/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

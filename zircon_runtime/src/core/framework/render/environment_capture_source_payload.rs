@@ -161,5 +161,5 @@ fn checked_source_payload_byte_len(face_size: u32, mip_count: u32) -> Option<usi
 }
 
 #[cfg(test)]
-#[path = "tests/environment_capture_source_payload.rs"]
+#[path = "../../render/tests/environment_capture_source_payload.rs"]
 mod tests;

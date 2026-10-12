@@ -5,13 +5,13 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 VERTEX_SOURCE = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/sprite/build_sprite_vertices.rs"
 )
 BATCH_SOURCE = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/sprite/prepared_batches.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/sprite/prepared_batches.rs"
 )
 RENDERER_SOURCE = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/sprite/sprite_renderer.rs"
 )
 RECORD = (
     ROOT
@@ -62,7 +62,7 @@ class Runtime99EStreamingSpriteBatchProjectionContract(unittest.TestCase):
 
     def test_behavior_and_performance_evidence_are_recorded(self) -> None:
         tests = (
-            ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests/cases.rs"
+            ROOT / "zircon_runtime/src/graphics/scene/renderer/sprite/tests/cases.rs"
         ).read_text(encoding="utf-8")
         record = RECORD.read_text(encoding="utf-8")
 

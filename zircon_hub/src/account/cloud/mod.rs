@@ -1,11 +1,19 @@
+#[path = "blob.rs"]
 mod blob;
+#[path = "commit.rs"]
 pub(super) mod commit;
+#[path = "head.rs"]
 pub(super) mod head;
+#[path = "manifest.rs"]
 pub(crate) mod manifest;
+#[path = "package_lock.rs"]
 pub(crate) mod package_lock;
 #[cfg(feature = "desktop")]
+#[path = "snapshot.rs"]
 pub(crate) mod snapshot;
 #[cfg(feature = "desktop")]
+#[path = "staging.rs"]
 pub(crate) mod staging;
 #[cfg(feature = "desktop")]
+#[path = "sync.rs"]
 pub(crate) mod sync;

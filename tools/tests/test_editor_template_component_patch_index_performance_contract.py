@@ -4,12 +4,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs"
+SOURCE = ROOT / "zircon_editor/src/ui/runtime/runtime/pane_payload_projection.rs"
 SURFACE_SOURCE = (
     ROOT
-    / "zircon_editor/src/ui/template_runtime/runtime/runtime_host/dynamic_control_state.rs"
+    / "zircon_editor/src/ui/runtime/runtime/runtime_host/dynamic_control_state.rs"
 )
-PROJECTION_SOURCE = ROOT / "zircon_editor/src/ui/template_runtime/runtime/projection.rs"
+PROJECTION_SOURCE = ROOT / "zircon_editor/src/ui/runtime/runtime/projection.rs"
 
 sys.path.insert(0, str(ROOT / "tools"))
 from tools.analysis.performance.ui.ui_component_patch_index_pressure import run

@@ -627,5 +627,5 @@ fn merge_parameter_kinds(
 }
 
 #[cfg(test)]
-#[path = "tests/compile_optimization_batch_20260830co_runtime_tests.rs"]
+#[path = "../tests/compile_perf.rs"]
 mod optimization_batch_20260830co_runtime_tests;

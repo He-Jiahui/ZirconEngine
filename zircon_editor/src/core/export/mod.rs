@@ -1,8 +1,12 @@
 //! Headless export-pipeline orchestration owned by the editor core.
 
+#[path = "inventory.rs"]
 mod inventory;
+#[path = "pipeline.rs"]
 mod pipeline;
+#[path = "preset.rs"]
 mod preset;
+#[path = "stages/mod.rs"]
 mod stages;
 
 pub(crate) use inventory::{

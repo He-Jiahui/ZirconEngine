@@ -14,11 +14,17 @@ use crate::core::framework::render::ShaderAssetKind;
 use crate::core::resource::ResourceState;
 use crate::plugin::PluginPackageManifest;
 
+#[path = "zmeta/compound_shader.rs"]
 mod compound_shader;
+#[path = "zmeta/metadata_lifecycle.rs"]
 mod metadata_lifecycle;
+#[path = "zmeta/package_roots.rs"]
 mod package_roots;
+#[path = "zmeta/preview_state_cas.rs"]
 mod preview_state_cas;
+#[path = "zmeta/schema_v7.rs"]
 mod schema_v7;
+#[path = "zmeta/shader_diagnostics_fixture.rs"]
 mod shader_diagnostics_fixture;
 
 fn multi_asset_importer(extension: &'static str) -> FunctionAssetImporter {

@@ -1,5 +1,8 @@
+#[path = "center.rs"]
 mod center;
+#[path = "error.rs"]
 mod error;
+#[path = "model.rs"]
 mod model;
 
 #[cfg(test)]

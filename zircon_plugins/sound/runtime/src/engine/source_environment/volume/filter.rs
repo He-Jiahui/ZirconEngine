@@ -25,5 +25,5 @@ pub(in crate::engine::source_environment) fn low_pass_block(
 }
 
 #[cfg(test)]
-#[path = "tests/filter.rs"]
+#[path = "../../volume/tests/filter.rs"]
 mod tests;

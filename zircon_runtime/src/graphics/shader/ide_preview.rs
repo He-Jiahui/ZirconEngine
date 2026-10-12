@@ -207,5 +207,5 @@ fn shader_template_assembly_error_message(error: ShaderTemplateAssemblyError) ->
 }
 
 #[cfg(test)]
-#[path = "tests/ide_preview_optimization_batch_20260830ca_runtime_tests.rs"]
+#[path = "tests/ide_preview_perf.rs"]
 mod optimization_batch_20260830ca_runtime_tests;

@@ -1,9 +1,16 @@
+#[path = "anchor.rs"]
 mod anchor;
+#[path = "atlas.rs"]
 mod atlas;
+#[path = "bounds.rs"]
 mod bounds;
+#[path = "extract.rs"]
 mod extract;
+#[path = "image_mode.rs"]
 mod image_mode;
+#[path = "rect.rs"]
 mod rect;
+#[path = "sprite.rs"]
 mod sprite;
 
 pub use anchor::RenderSpriteAnchor;

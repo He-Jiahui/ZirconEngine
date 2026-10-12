@@ -1,0 +1,870 @@
+use super::*;
+use crate::ui::layouts::common::model_rc;
+use crate::ui::layouts::views::{
+    blank_viewport_chrome, scene_viewport_chrome, SceneViewportChromeData,
+};
+use crate::ui::widgets::common::drawer_slot_key;
+use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
+
+pub(super) fn side_pane(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    slots: &[ActivityDrawerSlot],
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+) -> PaneData {
+    let template_v2_data = std::collections::BTreeMap::new();
+    side_pane_with_template_v2_data(
+        model,
+        chrome,
+        slots,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        &template_v2_data,
+    )
+}
+
+pub(crate) fn side_pane_with_template_v2_data(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    slots: &[ActivityDrawerSlot],
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
+) -> PaneData {
+    let Some(selection) = side_pane_selection(model, slots) else {
+        return blank_pane();
+    };
+    let stack = selection.stack;
+    let tab = selection.tab;
+    pane_from_tab_with_template_v2_data(
+        &tab.instance_id.0,
+        drawer_slot_key(stack.slot),
+        &tab.title,
+        &tab.icon_key,
+        tab.content_kind,
+        tab.empty_state.as_ref(),
+        find_tab_snapshot(chrome, &tab.instance_id.0),
+        chrome,
+        ui_asset_panes.get(&tab.instance_id.0),
+        animation_panes.get(&tab.instance_id.0),
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        template_v2_data,
+    )
+}
+
+pub(crate) fn document_pane(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+) -> PaneData {
+    let template_v2_data = std::collections::BTreeMap::new();
+    document_pane_with_template_v2_data(
+        model,
+        chrome,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        &template_v2_data,
+    )
+}
+
+pub(crate) fn document_pane_with_template_v2_data(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
+) -> PaneData {
+    let Some(tab) = document_pane_selection(model) else {
+        return blank_pane();
+    };
+    pane_from_tab_with_template_v2_data(
+        &tab.instance_id.0,
+        "",
+        &tab.title,
+        &tab.icon_key,
+        tab.content_kind,
+        tab.empty_state.as_ref(),
+        find_tab_snapshot(chrome, &tab.instance_id.0),
+        chrome,
+        ui_asset_panes.get(&tab.instance_id.0),
+        animation_panes.get(&tab.instance_id.0),
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        template_v2_data,
+    )
+}
+
+pub(super) fn pane_from_tab(
+    instance_id: &str,
+    slot: &str,
+    title: &str,
+    icon_key: &str,
+    kind: ViewContentKind,
+    empty_state: Option<&PaneEmptyStateModel>,
+    snapshot: Option<&ViewTabSnapshot>,
+    chrome: &EditorChromeSnapshot,
+    ui_asset_pane: Option<&crate::ui::asset_editor::UiAssetEditorPanePresentation>,
+    animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+) -> PaneData {
+    let template_v2_data = std::collections::BTreeMap::new();
+    pane_from_tab_with_template_v2_data(
+        instance_id,
+        slot,
+        title,
+        icon_key,
+        kind,
+        empty_state,
+        snapshot,
+        chrome,
+        ui_asset_pane,
+        animation_pane,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        &template_v2_data,
+    )
+}
+
+pub(super) fn pane_from_tab_with_template_v2_data(
+    instance_id: &str,
+    slot: &str,
+    title: &str,
+    icon_key: &str,
+    kind: ViewContentKind,
+    empty_state: Option<&PaneEmptyStateModel>,
+    snapshot: Option<&ViewTabSnapshot>,
+    chrome: &EditorChromeSnapshot,
+    ui_asset_pane: Option<&crate::ui::asset_editor::UiAssetEditorPanePresentation>,
+    animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
+) -> PaneData {
+    let (subtitle, info, show_toolbar) = pane_metadata(kind, snapshot, chrome);
+    let viewport = match kind {
+        ViewContentKind::Scene => scene_viewport_chrome(&chrome.scene_viewport_settings),
+        _ => blank_viewport_chrome(),
+    };
+    let (
+        empty_title,
+        empty_body,
+        primary_action_label,
+        primary_action_id,
+        secondary_action_label,
+        secondary_action_id,
+        secondary_hint,
+    ) = empty_state
+        .map(|state| {
+            (
+                state.title.clone(),
+                state.body.clone(),
+                state
+                    .primary_action
+                    .as_ref()
+                    .map(|action| action.label.clone())
+                    .unwrap_or_default(),
+                state
+                    .primary_action
+                    .as_ref()
+                    .map(action_id_from_model)
+                    .unwrap_or_default(),
+                state
+                    .secondary_action
+                    .as_ref()
+                    .map(|action| action.label.clone())
+                    .unwrap_or_default(),
+                state
+                    .secondary_action
+                    .as_ref()
+                    .map(action_id_from_model)
+                    .unwrap_or_default(),
+                state.secondary_hint.clone().unwrap_or_default(),
+            )
+        })
+        .unwrap_or_else(|| {
+            (
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+            )
+        });
+    let pane_presentation = build_pane_presentation(
+        title,
+        icon_key,
+        &subtitle,
+        &info,
+        empty_state,
+        show_toolbar,
+        &viewport,
+        snapshot,
+        chrome,
+        animation_pane,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        template_v2_data,
+    );
+    let native_body = build_native_body(
+        kind,
+        chrome,
+        &info,
+        &pane_presentation,
+        module_plugins,
+        build_export,
+        ui_asset_pane,
+        animation_pane,
+    );
+
+    PaneData {
+        id: instance_id.into(),
+        slot: slot.into(),
+        kind: pane_kind_key(kind).into(),
+        title: title.into(),
+        icon_key: icon_key.into(),
+        subtitle: subtitle.into(),
+        info: info.into(),
+        show_empty: empty_state.is_some(),
+        empty_title: SharedString::from(empty_title),
+        empty_body: SharedString::from(empty_body),
+        primary_action_label: SharedString::from(primary_action_label),
+        primary_action_id: SharedString::from(primary_action_id),
+        secondary_action_label: SharedString::from(secondary_action_label),
+        secondary_action_id: SharedString::from(secondary_action_id),
+        secondary_hint: SharedString::from(secondary_hint),
+        show_toolbar,
+        viewport,
+        native_body,
+        pane_presentation,
+    }
+}
+
+fn build_native_body(
+    kind: ViewContentKind,
+    chrome: &EditorChromeSnapshot,
+    info: &str,
+    pane_presentation: &Option<PanePresentation>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+    ui_asset_pane: Option<&crate::ui::asset_editor::UiAssetEditorPanePresentation>,
+    animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
+) -> PaneNativeBodyData {
+    let mut native_body = PaneNativeBodyData::default();
+    match kind {
+        ViewContentKind::Hierarchy => {
+            native_body.hierarchy = hierarchy_pane_data(chrome);
+        }
+        ViewContentKind::Inspector => {
+            native_body.inspector = inspector_pane_data(chrome, info);
+        }
+        ViewContentKind::Console => {
+            native_body.console = console_pane_data(chrome);
+        }
+        ViewContentKind::PerformanceTimeline => {
+            native_body.performance_timeline = performance_timeline_pane_data(pane_presentation);
+        }
+        ViewContentKind::ModulePlugins => {
+            native_body.module_plugins = module_plugins.clone();
+        }
+        ViewContentKind::BuildExport => {
+            native_body.build_export = build_export.clone();
+        }
+        ViewContentKind::GeneratedBottom => {
+            native_body.generated_bottom = generated_bottom_pane_data(pane_presentation);
+        }
+        ViewContentKind::UiAssetEditor => {
+            native_body.ui_asset = ui_asset_pane.cloned().unwrap_or_default();
+        }
+        ViewContentKind::AnimationSequenceEditor | ViewContentKind::AnimationGraphEditor => {
+            native_body.animation = animation_pane
+                .cloned()
+                .map(animation_pane_data)
+                .unwrap_or_default();
+        }
+        _ => {}
+    }
+    native_body
+}
+
+pub(crate) fn find_tab_snapshot<'a>(
+    chrome: &'a EditorChromeSnapshot,
+    instance_id: &str,
+) -> Option<&'a ViewTabSnapshot> {
+    for drawer in chrome.workbench.drawers.values() {
+        if let Some(tab) = drawer
+            .tabs
+            .iter()
+            .find(|tab| tab.instance_id.0.as_str() == instance_id)
+        {
+            return Some(tab);
+        }
+    }
+
+    for page in &chrome.workbench.main_pages {
+        match page {
+            MainPageSnapshot::Workbench { workspace, .. } => {
+                if let Some(tab) = find_in_workspace(workspace, instance_id) {
+                    return Some(tab);
+                }
+            }
+            MainPageSnapshot::Exclusive { view, .. } if view.instance_id.0 == instance_id => {
+                return Some(view);
+            }
+            MainPageSnapshot::Exclusive { .. } => {}
+        }
+    }
+
+    for window in &chrome.workbench.floating_windows {
+        if let Some(tab) = find_in_workspace(&window.workspace, instance_id) {
+            return Some(tab);
+        }
+    }
+
+    None
+}
+
+fn shared_string_list(
+    items: Vec<String>,
+) -> crate::ui::retained_host::primitives::ModelRc<crate::ui::retained_host::primitives::SharedString>
+{
+    model_rc(items.into_iter().map(SharedString::from).collect())
+}
+
+fn animation_pane_data(
+    animation_pane: crate::ui::animation_editor::AnimationEditorPanePresentation,
+) -> AnimationEditorPaneViewData {
+    AnimationEditorPaneViewData {
+        nodes: Default::default(),
+        mode: animation_pane.mode.into(),
+        asset_path: animation_pane.asset_path.into(),
+        status: animation_pane.status.into(),
+        selection: animation_pane.selection_summary.into(),
+        current_frame: animation_pane.current_frame as i32,
+        timeline_start_frame: animation_pane.timeline_start_frame as i32,
+        timeline_end_frame: animation_pane.timeline_end_frame as i32,
+        playback_label: animation_pane.playback_label.into(),
+        track_items: shared_string_list(animation_pane.track_items),
+        parameter_items: shared_string_list(animation_pane.parameter_items),
+        node_items: shared_string_list(animation_pane.node_items),
+        state_items: shared_string_list(animation_pane.state_items),
+        transition_items: shared_string_list(animation_pane.transition_items),
+    }
+}
+
+pub(crate) fn blank_pane() -> PaneData {
+    PaneData {
+        id: SharedString::default(),
+        slot: SharedString::default(),
+        kind: "Placeholder".into(),
+        title: SharedString::default(),
+        icon_key: SharedString::default(),
+        subtitle: SharedString::default(),
+        info: SharedString::default(),
+        show_empty: false,
+        empty_title: SharedString::default(),
+        empty_body: SharedString::default(),
+        primary_action_label: SharedString::default(),
+        primary_action_id: SharedString::default(),
+        secondary_action_label: SharedString::default(),
+        secondary_action_id: SharedString::default(),
+        secondary_hint: SharedString::default(),
+        show_toolbar: false,
+        viewport: blank_viewport_chrome(),
+        native_body: PaneNativeBodyData::default(),
+        pane_presentation: None,
+    }
+}
+
+#[cfg(test)]
+#[path = "pane_projection/tests/perf.rs"]
+mod optimization_batch_hp_editor597_tests;
+
+fn build_pane_presentation(
+    title: &str,
+    icon_key: &str,
+    subtitle: &str,
+    info: &str,
+    empty_state: Option<&PaneEmptyStateModel>,
+    show_toolbar: bool,
+    viewport: &SceneViewportChromeData,
+    snapshot: Option<&ViewTabSnapshot>,
+    chrome: &EditorChromeSnapshot,
+    animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
+    runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
+    module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
+) -> Option<PanePresentation> {
+    let pane_template = snapshot.and_then(|snapshot| snapshot.pane_template.as_ref())?;
+    let mut context = PanePayloadBuildContext::new(chrome);
+    if let Some(animation_pane) = animation_pane {
+        context = context.with_animation_pane(animation_pane);
+    }
+    if let Some(runtime_diagnostics) = runtime_diagnostics {
+        context = context.with_runtime_diagnostics(runtime_diagnostics);
+    }
+    context = context.with_module_plugins(module_plugins);
+    context = context.with_build_export(build_export);
+    if let Some(snapshot) = template_v2_data.get(&pane_template.body.document_id) {
+        context = context.with_template_v2_snapshot(snapshot);
+    }
+
+    Some(PanePresentation::new(
+        PaneShellPresentation::new(
+            title,
+            icon_key,
+            subtitle,
+            info,
+            empty_state.map(empty_state_presentation),
+            show_toolbar,
+            viewport.clone(),
+        ),
+        build_pane_body_presentation(&pane_template.body, &context),
+    ))
+}
+
+fn empty_state_presentation(empty_state: &PaneEmptyStateModel) -> PaneEmptyStatePresentation {
+    PaneEmptyStatePresentation {
+        title: empty_state.title.clone(),
+        body: empty_state.body.clone(),
+        primary_action: empty_state.primary_action.as_ref().map(action_presentation),
+        secondary_action: empty_state
+            .secondary_action
+            .as_ref()
+            .map(action_presentation),
+        secondary_hint: empty_state.secondary_hint.clone().unwrap_or_default(),
+    }
+}
+
+fn action_presentation(action: &PaneActionModel) -> PaneActionPresentation {
+    PaneActionPresentation {
+        label: action.label.clone(),
+        action_id: action_id_from_model(action),
+    }
+}
+
+fn pane_metadata(
+    kind: ViewContentKind,
+    snapshot: Option<&ViewTabSnapshot>,
+    chrome: &EditorChromeSnapshot,
+) -> (String, String, bool) {
+    match kind {
+        ViewContentKind::Welcome => (
+            chrome.welcome.subtitle.clone(),
+            chrome.welcome.status_message.clone(),
+            false,
+        ),
+        ViewContentKind::Project => (
+            if chrome.project_overview.project_name.is_empty() {
+                chrome.project_path.clone()
+            } else {
+                chrome.project_overview.project_name.clone()
+            },
+            format!(
+                "{} folders • {} assets",
+                chrome.project_overview.folder_count, chrome.project_overview.asset_count
+            ),
+            false,
+        ),
+        ViewContentKind::Assets => (
+            chrome
+                .asset_activity
+                .selected_folder_id
+                .clone()
+                .unwrap_or_else(|| "res://".to_string()),
+            format!(
+                "{} folders • {} assets",
+                chrome.asset_activity.visible_folders.len(),
+                chrome.asset_activity.visible_assets.len()
+            ),
+            false,
+        ),
+        ViewContentKind::Hierarchy => (
+            format!("{} nodes", chrome.scene_entries.len()),
+            "Hierarchy selection drives Scene and Inspector".to_string(),
+            false,
+        ),
+        ViewContentKind::Inspector => (
+            "Selection Inspector".to_string(),
+            chrome
+                .inspector
+                .as_ref()
+                .map(|inspector| format!("Node {}", inspector.id))
+                .unwrap_or_default(),
+            false,
+        ),
+        ViewContentKind::Scene => (
+            format!("{} x {}", chrome.viewport_size.x, chrome.viewport_size.y),
+            String::new(),
+            true,
+        ),
+        ViewContentKind::Game => (
+            format!("{} x {}", chrome.viewport_size.x, chrome.viewport_size.y),
+            String::new(),
+            false,
+        ),
+        ViewContentKind::Console => ("Task Output".to_string(), chrome.status_line.clone(), false),
+        ViewContentKind::RuntimeDiagnostics => (
+            "Runtime Services".to_string(),
+            "Render, physics, and animation diagnostics".to_string(),
+            false,
+        ),
+        ViewContentKind::PerformanceTimeline => (
+            "Runtime and Editor CPU Timeline".to_string(),
+            "Frame rows, span summaries, hotspots, and capture controls".to_string(),
+            false,
+        ),
+        ViewContentKind::ModulePlugins => (
+            "Project Plugins".to_string(),
+            "Builtin and native plugin packages".to_string(),
+            false,
+        ),
+        ViewContentKind::BuildExport => (
+            "Desktop Targets".to_string(),
+            "Windows, Linux, and macOS export plans".to_string(),
+            false,
+        ),
+        ViewContentKind::GeneratedBottom => (
+            "Generated Output".to_string(),
+            "Componentized generated editor feedback panels".to_string(),
+            false,
+        ),
+        ViewContentKind::PrefabEditor => (
+            payload_path(snapshot).unwrap_or_else(|| "Prefab Workspace".to_string()),
+            "Prefab editor host slot is ready. Asset-specific tooling is still placeholder.".into(),
+            false,
+        ),
+        ViewContentKind::AssetBrowser => (
+            chrome.asset_browser.project_name.clone(),
+            format!(
+                "{} folders • {} assets",
+                chrome.asset_browser.visible_folders.len(),
+                chrome.asset_browser.visible_assets.len()
+            ),
+            false,
+        ),
+        ViewContentKind::UiAssetEditor => (
+            payload_path(snapshot).unwrap_or_else(|| "UI Asset Editor".to_string()),
+            "Live UI asset preview and source editing session".to_string(),
+            false,
+        ),
+        ViewContentKind::UiComponentShowcase => (
+            "UI Component Showcase".to_string(),
+            "Runtime component semantics and editor bindings".to_string(),
+            false,
+        ),
+        ViewContentKind::AnimationSequenceEditor => (
+            payload_path(snapshot).unwrap_or_else(|| "Animation Sequence".to_string()),
+            "Sequence timeline and property-track authoring".to_string(),
+            false,
+        ),
+        ViewContentKind::AnimationGraphEditor => (
+            payload_path(snapshot).unwrap_or_else(|| "Animation Graph".to_string()),
+            "Graph and state-machine authoring surface".to_string(),
+            false,
+        ),
+        ViewContentKind::Placeholder => (
+            "Missing View".to_string(),
+            "This pane was restored from layout state but the descriptor is unavailable.".into(),
+            false,
+        ),
+    }
+}
+
+fn hierarchy_pane_data(chrome: &EditorChromeSnapshot) -> HierarchyPaneViewData {
+    HierarchyPaneViewData {
+        nodes: Default::default(),
+        hierarchy_nodes: model_rc(
+            chrome
+                .scene_entries
+                .iter()
+                .map(|entry| SceneNodeData {
+                    id: entry.entity.to_string().into(),
+                    name: entry.display_name.clone().into(),
+                    depth: entry.depth as i32,
+                    selected: chrome.scene_entries.is_selected(entry.entity),
+                })
+                .collect(),
+        ),
+    }
+}
+
+fn inspector_pane_data(chrome: &EditorChromeSnapshot, info: &str) -> InspectorPaneViewData {
+    let inspector = chrome.inspector.as_ref();
+    InspectorPaneViewData {
+        nodes: Default::default(),
+        info: SharedString::from(info),
+        inspector_name: inspector
+            .map(|inspector| inspector.name.clone())
+            .unwrap_or_default()
+            .into(),
+        inspector_parent: inspector
+            .map(|inspector| inspector.parent.clone())
+            .unwrap_or_default()
+            .into(),
+        inspector_x: inspector
+            .map(|inspector| inspector.translation[0].clone())
+            .unwrap_or_default()
+            .into(),
+        inspector_y: inspector
+            .map(|inspector| inspector.translation[1].clone())
+            .unwrap_or_default()
+            .into(),
+        inspector_z: inspector
+            .map(|inspector| inspector.translation[2].clone())
+            .unwrap_or_default()
+            .into(),
+        delete_enabled: chrome.inspector.is_some(),
+        plugin_components: inspector
+            .map(|inspector| {
+                inspector
+                    .plugin_components
+                    .iter()
+                    .map(|component| super::InspectorPluginComponentViewData {
+                        component_id: component.component_id.clone(),
+                        display_name: component.display_name.clone(),
+                        customization_available: component.customization_available,
+                        customization_ui_document: component.customization_ui_document.clone(),
+                        customization_template_id: component.customization_template_id.clone(),
+                        diagnostic: component.diagnostic.clone(),
+                        properties: component
+                            .properties
+                            .iter()
+                            .map(|property| super::InspectorPluginComponentPropertyViewData {
+                                field_id: property.field_id.clone(),
+                                label: property.label.clone(),
+                                value: property.value.clone(),
+                                value_kind: property.value_kind.clone(),
+                                editable: property.editable,
+                            })
+                            .collect(),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
+    }
+}
+
+fn console_pane_data(chrome: &EditorChromeSnapshot) -> ConsolePaneViewData {
+    ConsolePaneViewData {
+        nodes: Default::default(),
+        output: chrome.console_output.clone(),
+    }
+}
+
+fn generated_bottom_pane_data(
+    pane_presentation: &Option<PanePresentation>,
+) -> GeneratedBottomPaneViewData {
+    let Some(PanePayload::GeneratedBottomV1(payload)) = pane_presentation
+        .as_ref()
+        .map(|presentation| &presentation.body.payload)
+    else {
+        return GeneratedBottomPaneViewData::default();
+    };
+
+    GeneratedBottomPaneViewData {
+        nodes: Default::default(),
+        status: payload.status.clone().into(),
+    }
+}
+
+fn performance_timeline_pane_data(
+    pane_presentation: &Option<PanePresentation>,
+) -> PerformanceTimelinePaneViewData {
+    let Some(PanePayload::PerformanceTimelineV1(payload)) = pane_presentation
+        .as_ref()
+        .map(|presentation| &presentation.body.payload)
+    else {
+        return PerformanceTimelinePaneViewData::default();
+    };
+
+    PerformanceTimelinePaneViewData {
+        frame_rows: model_rc(
+            payload
+                .frame_rows
+                .iter()
+                .map(|row| PerformanceTimelineFrameRowViewData {
+                    stream: row.stream.clone().into(),
+                    name: row.name.clone().into(),
+                    frame_index: row.frame_index,
+                    duration_label: row.duration_label.clone().into(),
+                    budget_label: row.budget_label.clone().into(),
+                    budget_usage_label: row.budget_usage_label.clone().into(),
+                    duration_ratio: row.duration_ratio,
+                    bar_fill_ratio: row.bar_fill_ratio,
+                    budget_marker_ratio: row.budget_marker_ratio,
+                    over_budget: row.over_budget,
+                })
+                .collect(),
+        ),
+        span_rows: model_rc(
+            payload
+                .span_summary_rows
+                .iter()
+                .map(|row| PerformanceTimelineSpanRowViewData {
+                    stream: row.stream.clone().into(),
+                    category: row.category.clone().into(),
+                    name: row.name.clone().into(),
+                    path: row.path.clone().into(),
+                    duration_label: row.duration_label.clone().into(),
+                    depth: row.depth,
+                })
+                .collect(),
+        ),
+        hotspot_rows: model_rc(
+            payload
+                .hotspot_rows
+                .iter()
+                .map(|row| PerformanceTimelineHotspotRowViewData {
+                    stream: row.stream.clone().into(),
+                    category: row.category.clone().into(),
+                    name: row.name.clone().into(),
+                    path: row.path.clone().into(),
+                    total_label: row.total_label.clone().into(),
+                    average_label: row.average_label.clone().into(),
+                    count_label: row.count_label.clone().into(),
+                })
+                .collect(),
+        ),
+        capture_controls: model_rc(
+            payload
+                .capture_controls
+                .iter()
+                .map(|control| PerformanceTimelineCaptureControlViewData {
+                    label: control.label.clone().into(),
+                    action_id: control.action_id.clone().into(),
+                    enabled: control.enabled,
+                })
+                .collect(),
+        ),
+        summary: payload.summary.clone().into(),
+        session_label: payload.session_label.clone().into(),
+        output_label: payload.output_label.clone().into(),
+    }
+}
+
+fn payload_path(snapshot: Option<&ViewTabSnapshot>) -> Option<String> {
+    snapshot
+        .and_then(|view| {
+            view.serializable_payload
+                .get("path")
+                .or_else(|| view.serializable_payload.get("asset_id"))
+        })
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+}
+
+fn action_id_from_model(action: &PaneActionModel) -> String {
+    match action.binding.as_ref().map(EditorUiBinding::payload) {
+        Some(EditorUiBindingPayload::MenuAction { action_id }) => action_id.clone(),
+        Some(EditorUiBindingPayload::EditorCommand { command_id }) => command_id.clone(),
+        _ => String::new(),
+    }
+}
+
+fn pane_kind_key(kind: ViewContentKind) -> &'static str {
+    match kind {
+        ViewContentKind::Welcome => "Welcome",
+        ViewContentKind::Project => "Project",
+        ViewContentKind::Hierarchy => "Hierarchy",
+        ViewContentKind::Inspector => "Inspector",
+        ViewContentKind::Scene => "Scene",
+        ViewContentKind::Game => "Game",
+        ViewContentKind::Assets => "Assets",
+        ViewContentKind::Console => "Console",
+        ViewContentKind::PrefabEditor => "PrefabEditor",
+        ViewContentKind::AssetBrowser => "AssetBrowser",
+        ViewContentKind::UiAssetEditor => "UiAssetEditor",
+        ViewContentKind::UiComponentShowcase => "UiComponentShowcase",
+        ViewContentKind::AnimationSequenceEditor => "AnimationSequenceEditor",
+        ViewContentKind::AnimationGraphEditor => "AnimationGraphEditor",
+        ViewContentKind::RuntimeDiagnostics => "RuntimeDiagnostics",
+        ViewContentKind::PerformanceTimeline => "PerformanceTimeline",
+        ViewContentKind::ModulePlugins => "ModulePlugins",
+        ViewContentKind::BuildExport => "BuildExport",
+        ViewContentKind::GeneratedBottom => "GeneratedBottom",
+        ViewContentKind::Placeholder => "Placeholder",
+    }
+}
+
+fn find_in_workspace<'a>(
+    workspace: &'a crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot,
+    instance_id: &str,
+) -> Option<&'a ViewTabSnapshot> {
+    match workspace {
+        crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot::Split {
+            first, second, ..
+        } => {
+            find_in_workspace(first, instance_id).or_else(|| find_in_workspace(second, instance_id))
+        }
+        crate::ui::workbench::snapshot::DocumentWorkspaceSnapshot::Tabs { tabs, .. } => tabs
+            .iter()
+            .find(|tab| tab.instance_id.0.as_str() == instance_id),
+    }
+}

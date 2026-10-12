@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - docs/wiki/core-runtime/service-registry-and-dependencies.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/resolution/behavior
+  - zircon_runtime/src/core/runtime/tests/behavior
   - zircon_runtime/src/asset/tests
 doc_type: mechanism-case-study
 ---

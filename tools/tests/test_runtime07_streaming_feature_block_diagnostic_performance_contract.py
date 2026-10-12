@@ -5,7 +5,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     ROOT
-    / "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/diagnostic.rs"
+    / "zircon_runtime/src/plugin/runtime/catalog/feature_report/diagnostic.rs"
 )
 
 

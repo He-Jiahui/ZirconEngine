@@ -606,7 +606,7 @@ impl From<&ProjectManifest> for RuntimeLoadedProjectManifest {
 }
 
 #[cfg(test)]
-#[path = "project/tests/runtime61_characterization.rs"]
+#[path = "../project/tests/runtime61_characterization.rs"]
 mod runtime61_characterization;
 #[cfg(test)]
 #[path = "project/tests/cases.rs"]

@@ -151,5 +151,5 @@ fn normalized_finite(value: f32, fallback: f32) -> f32 {
 }
 
 #[cfg(test)]
-#[path = "tests/material_features.rs"]
+#[path = "../tests/material_features.rs"]
 mod tests;

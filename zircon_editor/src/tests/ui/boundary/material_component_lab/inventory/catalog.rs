@@ -12,7 +12,7 @@ use super::super::support::*;
 
 #[test]
 fn material_component_prototypes_are_grouped_by_functional_domain_folder() {
-    let root = editor_asset("assets/ui/editor/material_components");
+    let root = editor_asset("assets/ui/editor");
     let entries = fs::read_dir(&root)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", root.display()))
         .map(|entry| {

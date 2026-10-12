@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/material
-  - zircon_runtime/src/graphics/pipeline
+  - zircon_runtime/src/graphics
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
 implementation_files:
   - zircon_runtime/src/graphics/material/mod.rs
@@ -10,7 +10,7 @@ implementation_files:
 plan_sources:
   - docs/wiki/graphics/mesh-material-texture.md
 tests:
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache
+  - zircon_runtime/src/graphics/tests/meshes
   - zircon_runtime/src/graphics/material/shading_models
 doc_type: api-reference
 ---

@@ -434,5 +434,5 @@ fn owned_blocked_result(
 }
 
 #[cfg(test)]
-#[path = "tests/blocked_unload_optimization_batch_fo_tests.rs"]
+#[path = "tests/blocked_unload_perf.rs"]
 mod optimization_batch_fo_tests;

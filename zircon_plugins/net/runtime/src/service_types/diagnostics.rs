@@ -58,5 +58,5 @@ fn drain_bounded_events(events: &mut VecDeque<NetEvent>, max_events: usize) -> V
 }
 
 #[cfg(test)]
-#[path = "tests/diagnostics_bounded_event_drain_tests.rs"]
+#[path = "../tests/diagnostics_bounded_event_drain.rs"]
 mod bounded_event_drain_tests;

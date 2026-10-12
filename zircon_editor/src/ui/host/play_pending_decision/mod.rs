@@ -1,10 +1,16 @@
+#[path = "adapter.rs"]
 mod adapter;
+#[path = "error.rs"]
 mod error;
+#[path = "model.rs"]
 mod model;
+#[path = "publish.rs"]
 mod publish;
+#[path = "resolve.rs"]
 mod resolve;
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;
 
 pub(super) use adapter::PlayPendingEditDecisionAdapter;

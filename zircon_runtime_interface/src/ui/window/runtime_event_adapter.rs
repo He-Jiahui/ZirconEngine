@@ -717,15 +717,15 @@ fn gamepad_axis_name(axis: u32) -> String {
 }
 
 #[cfg(test)]
-#[path = "runtime_event_adapter/tests/key_name_performance_tests.rs"]
+#[path = "tests/key_name_perf.rs"]
 mod key_name_performance_tests;
 
 #[cfg(test)]
-#[path = "runtime_event_adapter/tests/batch_capacity_performance_tests.rs"]
+#[path = "tests/batch_capacity_perf.rs"]
 mod batch_capacity_performance_tests;
 
 #[cfg(test)]
-#[path = "runtime_event_adapter/tests/accessibility_payload_performance_tests.rs"]
+#[path = "tests/accessibility_payload_perf.rs"]
 mod accessibility_payload_performance_tests;
 
 #[cfg(test)]

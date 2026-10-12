@@ -12,7 +12,7 @@ use super::{
 };
 
 #[cfg(test)]
-#[path = "autosave_service/tests/diagnostic_capacity_tests.rs"]
+#[path = "autosave_service/tests/diagnostic_capacity.rs"]
 mod diagnostic_capacity_tests;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -1,8 +1,12 @@
 //! Capability-gated registration and stable callback handles for VM-owned engine extensions.
 
+#[path = "callback.rs"]
 mod callback;
+#[path = "descriptor.rs"]
 mod descriptor;
+#[path = "error.rs"]
 mod error;
+#[path = "registry.rs"]
 mod registry;
 
 pub use callback::{VmCallbackHandle, VmInterfaceCaller};

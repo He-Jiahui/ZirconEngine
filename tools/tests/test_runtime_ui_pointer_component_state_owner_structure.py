@@ -16,7 +16,7 @@ class RuntimeUiPointerComponentStateOwnerStructureTests(unittest.TestCase):
         )
         child_path = (
             repo_root
-            / "zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs"
+            / "zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs"
         )
 
         owner = owner_path.read_text(encoding="utf-8")
@@ -94,7 +94,7 @@ class RuntimeUiPointerComponentStateOwnerStructureTests(unittest.TestCase):
         runtime_plan = mirrors[1].read_text(encoding="utf-8")
         for current_path in (
             "zircon_runtime/src/ui/surface/surface/pointer_component_events.rs",
-            "zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs",
+            "zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs",
             "tools/tests/test_runtime_ui_pointer_component_state_owner_structure.py",
         ):
             self.assertIn(current_path, runtime_plan)
@@ -103,7 +103,7 @@ class RuntimeUiPointerComponentStateOwnerStructureTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         source = (
             repo_root
-            / "zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs"
+            / "zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs"
         ).read_text(encoding="utf-8")
         implementation = source.split("#[cfg(test)]", 1)[0]
         single_path = implementation.split(

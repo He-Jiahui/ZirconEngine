@@ -747,7 +747,7 @@ fn drop_oldest(state: &mut ResourceEventLogState) {
 }
 
 #[cfg(test)]
-#[path = "event_stream/tests/publication_index_tests.rs"]
+#[path = "event_stream/tests/publication_index.rs"]
 mod publication_index_tests;
 
 #[cfg(test)]

@@ -1,8 +1,11 @@
 //! 为编译缓存和包验证提供确定性输入修订、失效阶段与作者性能提示。
 //! 报告描述所需工作；实际热重载执行另有 watch 计划和事务边界。
 
+#[path = "diagnostic.rs"]
 mod diagnostic;
+#[path = "fingerprint.rs"]
 mod fingerprint;
+#[path = "graph.rs"]
 mod graph;
 
 pub use diagnostic::{

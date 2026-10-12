@@ -1,7 +1,12 @@
+#[path = "catalog.rs"]
 mod catalog;
+#[path = "entry.rs"]
 mod entry;
+#[path = "instantiate.rs"]
 mod instantiate;
+#[path = "native_slots.rs"]
 mod native_slots;
+#[path = "placement.rs"]
 mod placement;
 
 pub(crate) use catalog::UiAssetPaletteCatalog;

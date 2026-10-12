@@ -1,17 +1,29 @@
 //! 运行期窗口状态按创建意图、最新请求、OS 观测和 Host 生效结果分别发布。
 //! 各自代数独立推进，调用方须根据回执来源判断状态，不能把请求当成已经生效。
 
+#[path = "constraints.rs"]
 mod constraints;
+#[path = "create_spec.rs"]
 mod create_spec;
+#[path = "effective/mod.rs"]
 mod effective;
+#[path = "error.rs"]
 mod error;
+#[path = "generation.rs"]
 mod generation;
+#[path = "geometry.rs"]
 mod geometry;
+#[path = "mode.rs"]
 mod mode;
+#[path = "observed.rs"]
 mod observed;
+#[path = "placement.rs"]
 mod placement;
+#[path = "reconciliation.rs"]
 mod reconciliation;
+#[path = "requested.rs"]
 mod requested;
+#[path = "snapshot.rs"]
 mod snapshot;
 
 // Requested creation and constraints.

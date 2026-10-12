@@ -11,6 +11,7 @@ use crate::ui::layout::{
 
 use super::surface::UiSurface;
 
+#[path = "virtual_list_materialization/identity.rs"]
 mod identity;
 
 pub use identity::{UiVirtualListItemIdentity, UiVirtualListItemKey, UiVirtualListNodeBinding};

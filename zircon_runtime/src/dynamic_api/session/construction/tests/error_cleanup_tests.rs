@@ -422,5 +422,5 @@ fn byte_slice(bytes: &[u8]) -> ZrByteSlice {
 }
 
 #[cfg(windows)]
-#[path = "../error_cleanup_tests/tests/receipt_publication.rs"]
+#[path = "receipt_publication.rs"]
 mod receipt_publication;

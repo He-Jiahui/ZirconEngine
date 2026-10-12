@@ -24,7 +24,7 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_runtime_projects_focus_modality_into_retained_attributes(self):
         projection = source(
-            "zircon_editor/src/ui/template_runtime/runtime/projection.rs"
+            "zircon_editor/src/ui/runtime/runtime/projection.rs"
         )
 
         self.assertIn(
@@ -37,9 +37,9 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
         self.assertIn("component_state.flags.focus_visible", projection)
 
     def test_retained_adapter_and_host_node_preserve_runtime_focus_modality(self):
-        adapter = source("zircon_editor/src/ui/template_runtime/retained_adapter.rs")
+        adapter = source("zircon_editor/src/ui/runtime/retained_adapter.rs")
         projection = source(
-            "zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs"
+            "zircon_editor/src/ui/retained/ui/windows.rs"
         )
 
         self.assertIn(
@@ -51,7 +51,7 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_editor_selector_keeps_pointer_focus_semantic_but_visually_quiet(self):
         selector = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/state.rs"
         )
 
@@ -69,7 +69,7 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_prominent_commands_use_the_shared_focus_authority(self):
         command = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_button/command.rs"
         )
 
@@ -93,7 +93,7 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
         for relative_path in outline_sources:
             with self.subTest(relative_path=relative_path):
                 painter = source(
-                    "zircon_editor/src/ui/retained_host/host_contract/"
+                    "zircon_editor/src/ui/retained/contract/"
                     f"paint_template_nodes/{relative_path}"
                 )
                 production = painter.split("#[cfg(test)]", maxsplit=1)[0]
@@ -103,7 +103,7 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_material_state_layer_keeps_selection_distinct_from_focus(self):
         state_layer = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "material_state_layer/state.rs"
         )
         production = state_layer.split("#[cfg(test)]", maxsplit=1)[0]
@@ -123,11 +123,11 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_selected_chrome_does_not_reuse_the_focus_outline(self):
         icon_border = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_icon_button/selection/border.rs"
         )
         generic_border = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_style/colors/border.rs"
         )
 
@@ -151,11 +151,11 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_semantic_accent_content_does_not_borrow_the_focus_token(self):
         text_color = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_style/colors/text.rs"
         )
         icon_glyph = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_icon_button/selection/glyph.rs"
         )
 
@@ -170,11 +170,11 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_status_controls_reserve_focus_ring_for_focus_and_drop_target(self):
         chips = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_status_control/chips.rs"
         )
         icons = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_status_control/icons.rs"
         )
 
@@ -186,23 +186,23 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_active_content_uses_accent_instead_of_focus_ring(self):
         chips = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_chips/style.rs"
         ).split("#[cfg(test)]", maxsplit=1)[0]
         dropdown = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_dropdown/palette.rs"
         )
         toast = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_toast/palette.rs"
         ).split("#[cfg(test)]", maxsplit=1)[0]
         toast_state = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_toast/state.rs"
         ).split("#[cfg(test)]", maxsplit=1)[0]
         tint = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "visual_assets/tint.rs"
         )
 
@@ -220,7 +220,7 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_pressed_dropdowns_and_rows_do_not_draw_keyboard_focus_outlines(self):
         dropdown_border = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_dropdown/colors/border.rs"
         )
         row_borders = (
@@ -249,7 +249,7 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
         for relative_path, function_name in row_borders:
             with self.subTest(relative_path=relative_path):
                 painter = source(
-                    "zircon_editor/src/ui/retained_host/host_contract/"
+                    "zircon_editor/src/ui/retained/contract/"
                     f"paint_template_nodes/{relative_path}"
                 )
                 border_function = painter.split(function_name, maxsplit=1)[1]
@@ -257,7 +257,7 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_selection_control_hot_states_do_not_impersonate_focus(self):
         border = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_selection_control/selection/border.rs"
         )
 
@@ -269,15 +269,15 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_pressed_shell_chrome_does_not_reuse_keyboard_focus_color(self):
         alert_state = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_alert/state.rs"
         ).split("#[cfg(test)]", maxsplit=1)[0]
         dialog_border = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_dialogs/style/colors/border.rs"
         )
         text_field_surface = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_text_field/surface.rs"
         )
 
@@ -288,11 +288,11 @@ class EditorUiFocusVisibleContractTests(unittest.TestCase):
 
     def test_tooltip_content_uses_accent_while_focus_ring_remains_an_outline(self):
         palette = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_tooltip/palette.rs"
         )
         state = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "style_selector/workbench_tooltip/state.rs"
         )
 

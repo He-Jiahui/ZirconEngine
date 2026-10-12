@@ -6,7 +6,7 @@ use super::{clip::UiBatchClipStates, UiBatchKey, UiBatchRange, UiBatchSplitReaso
 use crate::ui::surface::UiPaintElement;
 
 #[cfg(test)]
-#[path = "plan/tests/performance_tests.rs"]
+#[path = "plan/tests/perf.rs"]
 mod performance_tests;
 
 /// Ordered draw-call plan derived from paint elements.

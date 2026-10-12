@@ -36,5 +36,5 @@ impl From<WorldHandle> for RenderWorldSnapshotHandle {
 }
 
 #[cfg(test)]
-#[path = "tests/world_snapshot_handle.rs"]
+#[path = "../tests/world_snapshot_handle.rs"]
 mod tests;

@@ -2,6 +2,9 @@
 
 //! Editor-authored scene state and viewport tooling.
 
+#[path = "modes/mod.rs"]
 pub mod modes;
+#[path = "selection/mod.rs"]
 pub mod selection;
+#[path = "viewport/mod.rs"]
 pub mod viewport;

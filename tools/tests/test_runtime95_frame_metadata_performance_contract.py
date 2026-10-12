@@ -5,17 +5,17 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 LIGHT_BUFFER = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/lighting/light_buffer.rs"
 )
 LIGHT_BUFFER_PERFORMANCE = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer/tests/performance_tests.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/lighting/light_buffer/tests/perf.rs"
 )
 COOKIE_PLAN = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/light_cookie/frame_plan.rs"
 )
 COOKIE_PLAN_PERFORMANCE = (
-    ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan/tests/performance_tests.rs"
+    ROOT / "zircon_runtime/src/graphics/scene/renderer/light_cookie/frame_plan/tests/perf.rs"
 )
 
 

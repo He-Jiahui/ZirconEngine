@@ -6,12 +6,12 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 COMMANDS = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    / "zircon_editor/src/ui/retained/contract/paint/"
     "template_table_rows/commands.rs"
 )
 CELL_TEXT = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    / "zircon_editor/src/ui/retained/contract/paint/"
     "template_table_rows/cells/text.rs"
 )
 

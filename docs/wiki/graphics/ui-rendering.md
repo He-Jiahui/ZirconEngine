@@ -1,13 +1,13 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
   - zircon_runtime/src/core/framework/render/ui_submission.rs
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface
+  - zircon_runtime/crates/zr_rhi_wgpu/src
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合

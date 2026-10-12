@@ -1,13 +1,13 @@
 ---
 related_code:
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/ui/retained_host/mod.rs
+  - zircon_editor/src/ui/retained/mod.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/core/project/authority/project_authority.rs
   - zircon_editor/src/core/project/authority/open_project.rs
   - zircon_app/src/entry
 implementation_files:
-  - zircon_editor/src/ui/retained_host
+  - zircon_editor/src/ui/retained
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/core/project/authority
 plan_sources:
@@ -225,7 +225,7 @@ assert!(result.first_frame_presented());
 ## 来源与测试
 
 - Host 导出：[zircon_editor/src/lib.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/lib.rs)
-- Host 实现：[zircon_editor/src/ui/retained_host](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/retained_host)
+- Host 实现：[zircon_editor/src/ui/retained](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/ui/retained_host)
 - 项目授权：[zircon_editor/src/core/project/authority](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_editor/src/core/project/authority)
 - 项目测试：[zircon_editor/src/core/project/authority/tests/cases.rs](https://github.com/He-Jiahui/ZirconEngine/blob/main/zircon_editor/src/core/project/authority/tests/cases.rs)
 - App 集成：[zircon_app/src/entry](https://github.com/He-Jiahui/ZirconEngine/tree/main/zircon_app/src/entry)

@@ -1,6 +1,8 @@
 //! 为接口层的数据树补充运行时算法，表面将布局、输入路由和命中索引连接为同一帧的几何消费者。
 
+#[path = "hit_test.rs"]
 mod hit_test;
+#[path = "node/mod.rs"]
 mod node;
 
 pub(crate) use hit_test::{

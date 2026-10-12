@@ -7,7 +7,7 @@ use zircon_runtime::scene::{EntityId, LevelSystem};
 use super::AnimationEvaluationPipeline;
 
 #[cfg(test)]
-#[path = "pose_apply/tests/performance_tests.rs"]
+#[path = "../tests/pose_apply_perf.rs"]
 mod optimization_batch_20260830cp_tests;
 
 pub(super) fn apply_pose_transforms_to_scene_nodes(

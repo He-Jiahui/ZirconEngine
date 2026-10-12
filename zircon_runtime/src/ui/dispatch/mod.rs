@@ -1,6 +1,10 @@
+#[path = "input_manager/mod.rs"]
 mod input_manager;
+#[path = "navigation/mod.rs"]
 mod navigation;
+#[path = "pointer/mod.rs"]
 mod pointer;
+#[path = "visited_node_set.rs"]
 mod visited_node_set;
 
 pub use input_manager::{

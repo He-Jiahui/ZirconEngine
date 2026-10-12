@@ -194,7 +194,7 @@ fn create_session_connects_the_runtime_wake_sink_to_the_asset_completion_produce
     let ffi_source = include_str!("../session/ffi.rs");
     let wake_source = include_str!("../session/registry/wake_registration.rs");
     let state_source = include_str!("../session/state.rs");
-    let queue_source = include_str!("../../scene/dynamic_scene/asset_reload/queue.rs");
+    let queue_source = include_str!("../../scene/dynamic/asset_reload/queue.rs");
 
     let wake_adapter = wake_source
         .find("fn channel_wake(&self) -> ChannelWakeCallback")

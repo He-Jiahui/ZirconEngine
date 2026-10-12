@@ -10,8 +10,11 @@ use crate::text::shaping::{
 };
 use crate::text::{TextRange, TextStyle};
 
+#[path = "logical_virtual_line/fragment.rs"]
 mod fragment;
+#[path = "logical_virtual_line/glyph_projection.rs"]
 mod glyph_projection;
+#[path = "logical_virtual_line/input_validation.rs"]
 mod input_validation;
 
 pub(crate) use fragment::CanonicalLogicalVirtualLineFragment;

@@ -1,8 +1,14 @@
+#[path = "segmented_controls/commands.rs"]
 mod commands;
+#[path = "segmented_controls/metadata.rs"]
 mod metadata;
+#[path = "segmented_controls/segments.rs"]
 mod segments;
+#[path = "segmented_controls/state.rs"]
 mod state;
+#[path = "segmented_controls/style.rs"]
 mod style;
+#[path = "segmented_controls/tabs.rs"]
 mod tabs;
 
 use zircon_runtime_interface::ui::{

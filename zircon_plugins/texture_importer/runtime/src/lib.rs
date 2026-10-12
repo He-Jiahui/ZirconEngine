@@ -1,12 +1,22 @@
+#[path = "array.rs"]
 mod array;
+#[path = "capability.rs"]
 mod capability;
+#[path = "container/mod.rs"]
 mod container;
+#[path = "cubemap.rs"]
 mod cubemap;
+#[path = "importers.rs"]
 mod importers;
+#[path = "manifest_source.rs"]
 mod manifest_source;
+#[path = "mipgen/mod.rs"]
 mod mipgen;
+#[path = "normal_convention.rs"]
 mod normal_convention;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "transcode/mod.rs"]
 mod transcode;
 
 pub use array::import_texture_array_manifest;
@@ -27,4 +37,5 @@ pub use plugin::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

@@ -1,6 +1,8 @@
 //! Runtime asset subsystem: project manifests, loading, import, and pipeline runtime support.
 
+#[path = "module.rs"]
 mod module;
+#[path = "prelude.rs"]
 pub mod prelude;
 
 pub use module::{
@@ -8,26 +10,47 @@ pub use module::{
     PROJECT_ASSET_MANAGER_NAME, RESOURCE_MANAGER_NAME,
 };
 
+#[path = "artifact/mod.rs"]
 pub mod artifact;
+#[path = "assets/mod.rs"]
 pub mod assets;
+#[path = "facade/mod.rs"]
 pub mod facade;
+#[path = "formats/mod.rs"]
 mod formats;
+#[path = "importer/mod.rs"]
 pub mod importer;
+#[path = "load/mod.rs"]
 mod load;
+#[path = "management.rs"]
 mod management;
+#[path = "mesh_sdf_cook/mod.rs"]
 mod mesh_sdf_cook;
+#[path = "migration/mod.rs"]
 pub mod migration;
+#[path = "mutation/mod.rs"]
 pub mod mutation;
+#[path = "pack/mod.rs"]
 pub mod pack;
+#[path = "pipeline/mod.rs"]
 pub mod pipeline;
+#[path = "project/mod.rs"]
 pub mod project;
+#[path = "reference_resolution_error.rs"]
 mod reference_resolution_error;
+#[path = "reference_resolver.rs"]
 mod reference_resolver;
+#[path = "registry/mod.rs"]
 pub mod registry;
+#[path = "replace_file_meta_temp.rs"]
 mod replace_file_meta_temp;
+#[path = "runtime_asset_path.rs"]
 mod runtime_asset_path;
+#[path = "safe_project_path.rs"]
 mod safe_project_path;
+#[path = "virtual_geometry_cook/mod.rs"]
 mod virtual_geometry_cook;
+#[path = "watch/mod.rs"]
 pub mod watch;
 
 pub(crate) use artifact::ArtifactStore;
@@ -188,6 +211,7 @@ pub(crate) use reference_resolver::{resolve_project_reference, ResolvedProjectRe
 pub use reference_resolver::{ReferenceRepair, ReferenceRepairKind};
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;
 
 #[cfg(test)]

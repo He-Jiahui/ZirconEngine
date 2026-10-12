@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::template::{
 };
 
 #[cfg(test)]
-#[path = "validation/tests/single_lookup_tests.rs"]
+#[path = "validation/tests/single_lookup.rs"]
 mod single_lookup_tests;
 
 pub(super) fn validate_node_tree<'a>(

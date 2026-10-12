@@ -1,7 +1,10 @@
 //! 交互提取模块将身份、值产品和渲染发布协议一起提供给控制器，指针调用方必须处理未准备状态。
 
+#[path = "cache.rs"]
 mod cache;
+#[path = "extract.rs"]
 mod extract;
+#[path = "key.rs"]
 mod key;
 #[cfg(test)]
 #[path = "tests/cases.rs"]

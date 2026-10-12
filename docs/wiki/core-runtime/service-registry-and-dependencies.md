@@ -15,8 +15,8 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/registration
-  - zircon_runtime/src/core/runtime/tests/resolution
+  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/runtime/tests
   - zircon_runtime/src/core/runtime/descriptors/tests/module_order_tests.rs
 doc_type: module-detail
 status: current

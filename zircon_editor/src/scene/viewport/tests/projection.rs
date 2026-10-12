@@ -51,7 +51,7 @@ fn shared_projection_context_matches_its_camera_and_normalized_viewport() {
 
 #[test]
 fn pointer_candidate_pipeline_constructs_projection_context_once() {
-    let root = include_str!("../pointer/candidates/precision_candidates_from_layout.rs");
+    let root = include_str!("../../pointer/candidates/precision_candidates_from_layout.rs");
     let leaf_sources = [
         include_str!("../pointer/candidates/handle_candidate.rs"),
         include_str!("../pointer/candidates/projected_ring_segments.rs"),

@@ -29,12 +29,19 @@ use super::{
     WgpuTextureUploadBatch,
 };
 
+#[path = "device/capabilities.rs"]
 pub(super) mod capabilities;
+#[path = "device/context.rs"]
 mod context;
+#[path = "device/diagnostics.rs"]
 mod diagnostics;
+#[path = "device/native_recording.rs"]
 mod native_recording;
+#[path = "device/native_submission.rs"]
 mod native_submission;
+#[path = "../device/native_surface_recording.rs"]
 mod native_surface_recording;
+#[path = "device/surface_lifecycle.rs"]
 mod surface_lifecycle;
 
 use capabilities::production_caps;

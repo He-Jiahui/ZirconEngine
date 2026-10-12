@@ -1,6 +1,10 @@
+#[path = "error.rs"]
 mod error;
+#[path = "projection.rs"]
 mod projection;
+#[path = "projector.rs"]
 mod projector;
+#[path = "resolver.rs"]
 mod resolver;
 
 pub(crate) use error::{
@@ -13,5 +17,5 @@ pub(crate) use resolver::{
 };
 
 #[cfg(test)]
-#[path = "tests/cases.rs"]
+#[path = "../../tests/component_projector_cases.rs"]
 mod tests;

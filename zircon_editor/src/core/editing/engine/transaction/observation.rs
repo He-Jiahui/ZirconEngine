@@ -1,5 +1,6 @@
 use super::{EditorTransactionEngine, EngineState, HistoryContextId, HistoryStatus};
 
+#[path = "observation/decision.rs"]
 mod decision;
 pub use decision::HistoryDecisionToken;
 

@@ -1,6 +1,6 @@
 //! 状态栏动态文案必须使用有限空间省略及共享文字token。
 const WORKBENCH_STATUS_ITEM_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui"
+    "../../../../assets/ui/editor/workbench/primitives/feedback/status_item.zui"
 );
 
 #[test]

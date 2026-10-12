@@ -182,5 +182,5 @@ fn resource_diagnostic(
 }
 
 #[cfg(test)]
-#[path = "resolve/tests/hash_dedup_tests.rs"]
+#[path = "resolve/tests/hash_dedup.rs"]
 mod hash_dedup_tests;

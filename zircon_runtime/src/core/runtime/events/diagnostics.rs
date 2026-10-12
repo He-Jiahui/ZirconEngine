@@ -305,5 +305,5 @@ fn update_max(target: &AtomicU64, candidate: u64) {
 mod tests;
 
 #[cfg(test)]
-#[path = "diagnostics/tests/optimization_batch_js_runtime658_tests.rs"]
+#[path = "diagnostics/tests/perf.rs"]
 mod optimization_batch_js_runtime658_tests;

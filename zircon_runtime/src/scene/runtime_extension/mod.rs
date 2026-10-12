@@ -1,5 +1,8 @@
+#[path = "error.rs"]
 mod error;
+#[path = "plan.rs"]
 mod plan;
+#[path = "registration.rs"]
 mod registration;
 
 pub use error::WorldRuntimeExtensionError;

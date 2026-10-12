@@ -1,8 +1,11 @@
 #[cfg(test)]
 #[path = "tests/export.rs"]
 mod export;
+#[path = "model.rs"]
 mod model;
+#[path = "overlay.rs"]
 mod overlay;
+#[path = "schedule_sections.rs"]
 mod schedule_sections;
 #[cfg(test)]
 #[path = "tests/schedule_sections_tests.rs"]

@@ -21,5 +21,5 @@ impl InspectorSnapshot {
 }
 
 #[cfg(test)]
-#[path = "tests/rotation.rs"]
+#[path = "../tests/rotation.rs"]
 mod tests;

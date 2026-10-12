@@ -28,5 +28,5 @@ pub(crate) fn builtin_editor_plugin_descriptors() -> Vec<EditorPluginDescriptor>
 }
 
 #[cfg(test)]
-#[path = "tests/catalog_gen_optimization_batch_20260830bw_editor_tests.rs"]
+#[path = "tests/catalog_gen_perf.rs"]
 mod optimization_batch_20260830bw_editor_tests;

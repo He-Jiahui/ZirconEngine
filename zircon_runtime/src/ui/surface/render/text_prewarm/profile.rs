@@ -4,6 +4,7 @@ use crate::text::parallel::shape_pool::TextParallelShapeBatchReport;
 use crate::text::CompiledRichTextCacheReport;
 use crate::ui::text::UiTextMeasureCache;
 
+#[path = "profile/session.rs"]
 mod session;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

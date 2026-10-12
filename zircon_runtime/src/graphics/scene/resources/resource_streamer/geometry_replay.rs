@@ -150,5 +150,5 @@ impl RenderSceneGeometryReplayState {
 }
 
 #[cfg(test)]
-#[path = "tests/geometry_replay.rs"]
+#[path = "../tests/geometry_replay.rs"]
 mod tests;

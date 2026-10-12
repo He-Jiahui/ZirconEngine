@@ -1,7 +1,10 @@
 //! 将作者资产、编译实例和运行时表面的构造入口集中在模板命名空间。
 //! 编辑器通过这里加载与编译；布局、输入和渲染在生成的表面上运行，热重载还需登记资产与表面的关联。
+#[path = "asset/mod.rs"]
 mod asset;
+#[path = "build/mod.rs"]
 mod build;
+#[path = "instance.rs"]
 mod instance;
 
 pub use asset::{

@@ -38,7 +38,7 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
 
     let details_id = "res://ui/editor/unreal/components/details.zui";
     let axis_id =
-        "res://ui/editor/components/workbench/primitives/chrome/workbench_axis_value_field.zui";
+        "res://ui/editor/workbench/primitives/chrome/axis_value_field.zui";
     for asset_id in [details_id, axis_id] {
         let physical_path = assets
             .join(asset_id.strip_prefix("res://").expect("resource asset"))

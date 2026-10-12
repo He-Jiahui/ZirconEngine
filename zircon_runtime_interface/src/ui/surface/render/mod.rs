@@ -1,24 +1,45 @@
 //! UI surface 渲染用的数据契约与后端无关的诊断视图导出入口；GPU 提交由 Runtime RHI 实现。
+#[path = "batch.rs"]
 mod batch;
+#[path = "brush.rs"]
 mod brush;
+#[path = "cache.rs"]
 mod cache;
+#[path = "command.rs"]
 mod command;
+#[path = "command_kind.rs"]
 mod command_kind;
+#[path = "debug.rs"]
 mod debug;
+#[path = "editable_text.rs"]
 mod editable_text;
+#[path = "extract.rs"]
 mod extract;
+#[path = "frame_extract.rs"]
 mod frame_extract;
+#[path = "limits.rs"]
 mod limits;
+#[path = "list.rs"]
 mod list;
+#[path = "paint.rs"]
 mod paint;
+#[path = "parity.rs"]
 mod parity;
+#[path = "resolved_style.rs"]
 mod resolved_style;
+#[path = "text_effects.rs"]
 mod text_effects;
+#[path = "text_geometry/mod.rs"]
 mod text_geometry;
+#[path = "text_layout.rs"]
 mod text_layout;
+#[path = "text_shape.rs"]
 mod text_shape;
+#[path = "typography.rs"]
 mod typography;
+#[path = "visual_asset_ref.rs"]
 mod visual_asset_ref;
+#[path = "visualizer.rs"]
 mod visualizer;
 
 pub use batch::{

@@ -208,9 +208,9 @@ def _classify_server_token(
         return "editor-scene-comment-debt"
     if normalized in {
         "zircon_editor/src/ui/host/resource_access.rs",
-        "zircon_editor/src/ui/retained_host/app.rs",
-        "zircon_editor/src/ui/retained_host/app/assets.rs",
-        "zircon_editor/src/ui/retained_host/app/host_lifecycle.rs",
+        "zircon_editor/src/ui/retained/app.rs",
+        "zircon_editor/src/ui/retained/app/assets.rs",
+        "zircon_editor/src/ui/retained/app/host_lifecycle.rs",
     }:
         return "editor-asset-resource-owner-debt"
     return "unclassified-non-network-server"

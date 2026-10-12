@@ -167,5 +167,5 @@ fn invalid_plugin_option<T>(message: String) -> Result<T, RuntimeExtensionRegist
 }
 
 #[cfg(test)]
-#[path = "tests/plugin_option_optimization_tests.rs"]
+#[path = "../../validation/tests/plugin_option_perf.rs"]
 mod optimization_tests;

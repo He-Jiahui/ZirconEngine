@@ -17,7 +17,7 @@ class ViewportToolbarPointerGenerationPerformanceContract(unittest.TestCase):
             "viewport_toolbar_pointer_bridge.rs"
         )
         sync = source(
-            "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs"
+            "zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs"
         )
 
         self.assertIn("Weak<UiHitTestGrid>", bridge)
@@ -30,7 +30,7 @@ class ViewportToolbarPointerGenerationPerformanceContract(unittest.TestCase):
 
     def test_frame_projection_consumes_authoritative_hit_entries(self):
         sync = source(
-            "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs"
+            "zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs"
         )
         compact = "".join(sync.split())
 
@@ -39,7 +39,7 @@ class ViewportToolbarPointerGenerationPerformanceContract(unittest.TestCase):
 
     def test_stable_frame_projection_reserves_the_retained_control_bound(self):
         sync = source(
-            "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs"
+            "zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs"
         )
 
         self.assertIn("let existing_capacity = existing.len();", sync)
@@ -63,15 +63,15 @@ class ViewportToolbarPointerGenerationPerformanceContract(unittest.TestCase):
 
     def test_control_validation_uses_one_borrowed_descriptor(self):
         route = source(
-            "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/route_for_control.rs"
+            "zircon_editor/src/ui/retained/viewport_toolbar_pointer/route_for_control.rs"
         )
         click = source(
-            "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/handle_click.rs"
+            "zircon_editor/src/ui/retained/viewport_toolbar_pointer/handle_click.rs"
         )
         frame = source(
-            "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs"
+            "zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs"
         )
-        module = source("zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/mod.rs")
+        module = source("zircon_editor/src/ui/retained/viewport_toolbar_pointer/mod.rs")
 
         self.assertIn("enum ViewportToolbarControlRoute", route)
         self.assertIn("fn control_route_for_id", route)
@@ -99,9 +99,9 @@ class ViewportToolbarPointerGenerationPerformanceContract(unittest.TestCase):
 
     def test_stable_product_click_compares_before_layout_allocation(self):
         app = source(
-            "zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/click.rs"
+            "zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/click.rs"
         )
-        sync = source("zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync.rs")
+        sync = source("zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync.rs")
 
         self.assertIn(".sync_single_surface(", app)
         self.assertNotIn("build_viewport_toolbar_pointer_layout_with_size", app)
@@ -111,7 +111,7 @@ class ViewportToolbarPointerGenerationPerformanceContract(unittest.TestCase):
 
     def test_route_dispatch_never_builds_full_chrome_snapshot(self):
         mapping = source(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/viewport/route_mapping.rs"
+            "zircon_editor/src/ui/retained/dispatch/viewport/route_mapping.rs"
         )
         snapshot = source("zircon_editor/src/ui/host/editor_event_runtime_access/snapshot.rs")
 

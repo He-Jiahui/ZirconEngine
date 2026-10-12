@@ -5,10 +5,10 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 SCENE_TRACE_SUPPORT = (
     ROOT
-    / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support.rs"
+    / "zircon_plugins/hybrid_gi/runtime/src/gi/scene_trace_support.rs"
 )
 PERFORMANCE_TESTS = (
-    ROOT / "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support/tests/performance_tests.rs"
+    ROOT / "zircon_plugins/hybrid_gi/runtime/src/gi/scene_trace_support/tests/perf.rs"
 )
 
 

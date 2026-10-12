@@ -6,6 +6,7 @@ use super::callback_dispatcher::{TaskCallback, TaskCallbackDispatcher};
 use super::pool::{assist_current_thread_once, TaskPoolYield};
 use super::{JobSchedulerDiagnosticsState, TaskDescriptor, TaskId, TaskState, TaskStatus};
 
+#[path = "job_handle/task_node.rs"]
 mod task_node;
 
 pub(crate) use task_node::TaskNode;

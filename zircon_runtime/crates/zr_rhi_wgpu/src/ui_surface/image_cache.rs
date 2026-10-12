@@ -14,6 +14,7 @@ use super::shared_image_registry::{
 };
 use super::{WgpuUiExternalImage, WgpuUiSurfaceExternalImageProvider};
 
+#[path = "image_cache/resource.rs"]
 mod resource;
 
 pub(super) use resource::WgpuUiImageResource;
@@ -603,7 +604,7 @@ fn committed_image_prepare_generation(
 }
 
 #[cfg(test)]
-#[path = "tests/image_cache_residency_tests.rs"]
+#[path = "tests/image_cache_residency.rs"]
 mod residency_tests;
 
 pub(super) fn take_image_source_pixels(

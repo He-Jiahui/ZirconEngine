@@ -289,5 +289,5 @@ where
 }
 
 #[cfg(test)]
-#[path = "tests/registry_performance_tests.rs"]
+#[path = "tests/registry_perf.rs"]
 mod performance_tests;

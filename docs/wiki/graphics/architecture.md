@@ -1,13 +1,13 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
+  - zircon_runtime/src/graphics/runtime/framework/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/mod.rs
   - zircon_runtime/src/render_graph/mod.rs
   - zircon_runtime/crates/zr_rhi/src/device/render_device.rs
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
+  - zircon_runtime/src/graphics/wgpu_render_framework/wgpu_render_framework.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_render/render_frame.rs
   - zircon_runtime/src/render_graph/builder/compile.rs
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合

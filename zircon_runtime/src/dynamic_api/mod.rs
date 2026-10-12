@@ -1,12 +1,20 @@
 //! Dynamic runtime library API exported through `zircon_runtime_interface`.
 
+#[path = "bounded_json.rs"]
 mod bounded_json;
+#[path = "camera_controller.rs"]
 mod camera_controller;
+#[path = "exports.rs"]
 mod exports;
+#[path = "frame.rs"]
 mod frame;
+#[path = "runtime_loop.rs"]
 mod runtime_loop;
+#[path = "session.rs"]
 mod session;
+#[path = "shader_prewarm.rs"]
 mod shader_prewarm;
+#[path = "surface.rs"]
 mod surface;
 
 pub use exports::zircon_runtime_get_api_v8;
@@ -26,4 +34,5 @@ pub use shader_prewarm::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

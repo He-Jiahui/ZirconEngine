@@ -7,11 +7,13 @@ use std::time::Instant;
 
 use crossbeam_channel::{bounded, Receiver, SendTimeoutError, Sender};
 
+#[path = "session_owner/abi_status.rs"]
 pub(super) mod abi_status;
+#[path = "session_owner/runtime.rs"]
 pub(super) mod runtime;
 
 #[cfg(all(test, windows))]
-#[path = "session_owner/tests/receipt_publication.rs"]
+#[path = "tests/receipt_publication.rs"]
 pub(in crate::dynamic_api::session) mod receipt_publication;
 
 use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};

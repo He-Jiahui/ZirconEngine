@@ -1,15 +1,25 @@
 //! Read-only runtime diagnostics snapshots for editor and tooling surfaces.
 //! 这里定义跨模块只读数据契约；采集器在 runtime_diagnostics 中解析服务，再供编辑器和日志使用。
 
+#[path = "animation.rs"]
 mod animation;
+#[path = "devtools.rs"]
 mod devtools;
+#[path = "frame_diagnostics.rs"]
 mod frame_diagnostics;
+#[path = "physics.rs"]
 mod physics;
+#[path = "physics_backend.rs"]
 mod physics_backend;
+#[path = "profiling/mod.rs"]
 pub mod profiling;
+#[path = "render.rs"]
 mod render;
+#[path = "render_stats_store/mod.rs"]
 mod render_stats_store;
+#[path = "snapshot.rs"]
 mod snapshot;
+#[path = "store.rs"]
 mod store;
 
 pub use animation::RuntimeAnimationDiagnostics;

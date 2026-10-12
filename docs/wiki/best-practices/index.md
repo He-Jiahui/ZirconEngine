@@ -1,19 +1,19 @@
 ---
 related_code:
-  - zircon_runtime/src/core/runtime
+  - zircon_runtime/src/core
   - zircon_runtime/src/core/manager
   - zircon_editor/src/core/editing
   - zircon_plugins/plugin_sdk/src
   - zircon_runtime/src/graphics
 implementation_files:
-  - zircon_runtime/src/core/runtime
+  - zircon_runtime/src/core
   - zircon_editor/src/core/editing
   - zircon_plugins/plugin_sdk/src
 plan_sources:
   - user: 2026-09-09 扩展 ZirconEngine Wiki 教程与机制说明
   - docs/wiki/rust-api.md
 tests:
-  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/tests
   - zircon_editor/src/tests
   - zircon_plugins/plugin_sdk/src
 doc_type: category-index

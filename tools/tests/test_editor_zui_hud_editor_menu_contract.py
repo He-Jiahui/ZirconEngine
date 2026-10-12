@@ -19,10 +19,10 @@ WINDOW_MENU_STATE = REPO_ROOT / (
     "workbench/window_menu_state.rs"
 )
 CONTROL_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs"
+    "zircon_editor/src/ui/retained/dispatch/workbench/control.rs"
 )
 MODULE_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings.rs"
+    "zircon_editor/src/ui/runtime/builtin/module_template_bindings.rs"
 )
 NAVIGATION = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
@@ -33,11 +33,11 @@ OBSERVABILITY_NAVIGATION = REPO_ROOT / (
     "workbench/extension_module_navigation/specs/ui_diagnostics/observability.rs"
 )
 EXTENSION_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/"
+    "zircon_editor/src/ui/runtime/builtin/bindings/"
     "ui_diagnostics.rs"
 )
 OBSERVABILITY_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/"
+    "zircon_editor/src/ui/runtime/builtin/bindings/"
     "ui_diagnostics/observability.rs"
 )
 

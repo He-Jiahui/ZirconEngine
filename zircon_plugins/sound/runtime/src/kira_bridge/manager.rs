@@ -12,8 +12,11 @@ use zircon_runtime::core::framework::sound::{SoundMixerGraph, SoundPlaybackId, S
 
 use super::cpal_owner::OwnerCpalBackend;
 
+#[path = "manager/graph.rs"]
 mod graph;
+#[path = "manager/lifecycle.rs"]
 mod lifecycle;
+#[path = "manager/playback.rs"]
 mod playback;
 
 const DEFAULT_LOGICAL_RESOURCE_CAPACITY: usize = 128;

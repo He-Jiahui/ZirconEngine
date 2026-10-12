@@ -1,6 +1,10 @@
+#[path = "budget.rs"]
 mod budget;
+#[path = "error.rs"]
 mod error;
+#[path = "migrate.rs"]
 mod migrate;
+#[path = "../retired_asset_reference.rs"]
 mod retired_asset_reference;
 
 pub use budget::{

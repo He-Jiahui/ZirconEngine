@@ -7,16 +7,16 @@ class RuntimePluginDescriptorProvidedInterfaceProjectionTests(unittest.TestCase)
         repo_root = Path(__file__).resolve().parents[2]
         sources = {
             "descriptor": repo_root
-            / "zircon_runtime/src/plugin/runtime_plugin/descriptor.rs",
+            / "zircon_runtime/src/plugin/runtime/descriptor.rs",
             "builder": repo_root
-            / "zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs",
+            / "zircon_runtime/src/plugin/runtime/descriptor/builder/desc_builder.rs",
             "access": repo_root
-            / "zircon_runtime/src/plugin/runtime_plugin/descriptor/access.rs",
+            / "zircon_runtime/src/plugin/runtime/descriptor/access.rs",
             "rows": repo_root
-            / "zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/rows.rs",
+            / "zircon_runtime/src/plugin/runtime/descriptor/package_manifest/rows.rs",
             "physics plugin": repo_root / "zircon_plugins/physics/runtime/src/plugin.rs",
             "descriptor tests": repo_root
-            / "zircon_runtime/src/tests/plugin_extensions/runtime_plugin_descriptor.rs",
+            / "zircon_runtime/src/tests/plugins/runtime_plugin_desc.rs",
         }
         text = {
             name: path.read_text(encoding="utf-8")

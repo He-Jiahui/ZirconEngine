@@ -1,3 +1,4 @@
+#[path = "agent/writeback.rs"]
 mod writeback;
 
 use std::collections::{HashMap, HashSet};

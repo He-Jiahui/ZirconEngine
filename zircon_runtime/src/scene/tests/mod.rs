@@ -1,53 +1,101 @@
 //! 以真实世界行为和源码边界断言共同守护场景服务；锁恢复测试只保证服务仍可访问，不承诺中途写入会回滚。
 
+#[path = "asset_scene.rs"]
 mod asset_scene;
+#[path = "authoring_boundary.rs"]
 mod authoring_boundary;
+#[path = "component_structure.rs"]
 mod component_structure;
+#[path = "derived_state.rs"]
 mod derived_state;
 #[cfg(feature = "physics-contracts")]
+#[path = "dynamic_scene.rs"]
 mod dynamic_scene;
+#[path = "dynamic_scene_asset_reload.rs"]
 mod dynamic_scene_asset_reload;
+#[path = "session/mod.rs"]
 mod dynamic_scene_session;
+#[path = "ecs_archetype_index_structure.rs"]
 mod ecs_archetype_index_structure;
+#[path = "ecs_cached_query_iter_structure.rs"]
 mod ecs_cached_query_iter_structure;
+#[path = "ecs_change_detection.rs"]
 mod ecs_change_detection;
+#[path = "ecs_commands.rs"]
 mod ecs_commands;
+#[path = "ecs_component_storage_structure.rs"]
 mod ecs_component_storage_structure;
+#[path = "ecs_detached_entity_batch_performance.rs"]
 mod ecs_detached_entity_batch_performance;
+#[path = "ecs_dynamic_components_structure.rs"]
 mod ecs_dynamic_components_structure;
+#[path = "ecs_event_mirror.rs"]
 mod ecs_event_mirror;
+#[path = "ecs_events_messages.rs"]
 mod ecs_events_messages;
+#[path = "ecs_hierarchy_structure.rs"]
 mod ecs_hierarchy_structure;
+#[path = "ecs_identity_storage.rs"]
 mod ecs_identity_storage;
+#[path = "ecs_node_records_structure.rs"]
 mod ecs_node_records_structure;
+#[path = "ecs_observers_messages.rs"]
 mod ecs_observers_messages;
+#[path = "ecs_performance_acceptance.rs"]
 mod ecs_performance_acceptance;
+#[path = "ecs_query.rs"]
 mod ecs_query;
+#[path = "ecs_query_combinations.rs"]
 mod ecs_query_combinations;
+#[path = "ecs_query_data_structure.rs"]
 mod ecs_query_data_structure;
+#[path = "ecs_query_filter_structure.rs"]
 mod ecs_query_filter_structure;
+#[path = "ecs_query_many.rs"]
 mod ecs_query_many;
+#[path = "ecs_query_single.rs"]
 mod ecs_query_single;
+#[path = "ecs_query_state_structure.rs"]
 mod ecs_query_state_structure;
+#[path = "ecs_query_structure.rs"]
 mod ecs_query_structure;
+#[path = "ecs_reflect/mod.rs"]
 mod ecs_reflect;
+#[path = "ecs_schedule.rs"]
 mod ecs_schedule;
+#[path = "ecs_schedule_conflict_graph_structure.rs"]
 mod ecs_schedule_conflict_graph_structure;
+#[path = "ecs_schedule_parallel_executor_structure.rs"]
 mod ecs_schedule_parallel_executor_structure;
+#[path = "ecs_scheduled_native_systems.rs"]
 mod ecs_scheduled_native_systems;
+#[path = "ecs_system_query_cache.rs"]
 mod ecs_system_query_cache;
+#[path = "ecs_systems.rs"]
 mod ecs_systems;
+#[path = "ecs_typed_api.rs"]
 mod ecs_typed_api;
+#[path = "ecs_worker_command_buffers.rs"]
 mod ecs_worker_command_buffers;
+#[path = "inspection.rs"]
 mod inspection;
+#[path = "level_system_frame_state.rs"]
 mod level_system_frame_state;
+#[path = "physics_animation_components.rs"]
 mod physics_animation_components;
+#[path = "property_paths.rs"]
 mod property_paths;
+#[path = "render_dirty_journal/mod.rs"]
 mod render_dirty_journal;
+#[path = "render_extract.rs"]
 mod render_extract;
+#[path = "render_post_process_extract.rs"]
 mod render_post_process_extract;
+#[path = "semantics.rs"]
 mod semantics;
+#[path = "support.rs"]
 mod support;
+#[path = "world_basics.rs"]
 mod world_basics;
 
 use crate::scene::{DefaultLevelManager, RuntimeObject, RuntimeSystem};

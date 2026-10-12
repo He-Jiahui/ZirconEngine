@@ -111,12 +111,12 @@ class PluginExtensionRegistryFinalizeCoverageTests(unittest.TestCase):
         )
         catalog_boundaries = (
             (
-                "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs",
+                "zircon_runtime/src/plugin/runtime/catalog/extension_report/runtime.rs",
                 "fn runtime_extension_report",
                 "RuntimeExtensionCatalogReport",
             ),
             (
-                "zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report.rs",
+                "zircon_runtime/src/plugin/runtime/catalog/project_extension_report.rs",
                 "fn runtime_extension_report_for_project",
                 "RuntimeExtensionCatalogReport",
             ),

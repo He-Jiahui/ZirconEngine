@@ -1,0 +1,185 @@
+#[path = "../geometry/activity_rail_buttons.rs"]
+mod activity_rail_buttons;
+#[path = "../geometry/clickable_frames.rs"]
+mod clickable_frames;
+#[path = "../geometry/drawer_tabs.rs"]
+mod drawer_tabs;
+#[path = "../geometry/frame_math.rs"]
+mod frame_math;
+#[path = "../geometry/hit_samples.rs"]
+mod hit_samples;
+#[path = "geometry/layout.rs"]
+mod layout;
+#[path = "../geometry/native_hierarchy.rs"]
+mod native_hierarchy;
+#[path = "../geometry/pane_frames.rs"]
+mod pane_frames;
+#[path = "../geometry/pane_profile_controls.rs"]
+mod pane_profile_controls;
+#[path = "../geometry/resize_splitters.rs"]
+mod resize_splitters;
+#[path = "../geometry/rounded_shapes.rs"]
+mod rounded_shapes;
+#[path = "geometry/tabs.rs"]
+mod tabs;
+#[path = "geometry/text_runs.rs"]
+mod text_runs;
+
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract) use pane_frames::collect_surface_frame_controls;
+
+use super::super::componentized_workbench_regions::{
+    authored_level_viewport, owns_authored_level_viewport, owns_ordinary_panes,
+};
+use super::super::data::HostWindowPresentationData;
+use super::super::presenter::HostPresenterBackend;
+use super::{UiProfileGeometry, UiProfileLogicalSize, UiProfileSize};
+use crate::ui::retained_host::primitives::PhysicalSize;
+use activity_rail_buttons::collect_activity_rail_profile_buttons;
+use clickable_frames::collect_clickable_frames;
+use drawer_tabs::collect_drawer_tabs;
+use frame_math::visible_profile_frame;
+use hit_samples::collect_hit_samples;
+use layout::profile_layout;
+use native_hierarchy::collect_native_hierarchy_profiles;
+use pane_profile_controls::collect_pane_profile_controls;
+use resize_splitters::collect_resize_splitters;
+use rounded_shapes::collect_rounded_shapes;
+use tabs::{collect_document_tabs, collect_host_page_tabs};
+use text_runs::collect_text_runs;
+
+impl UiProfileGeometry {
+    pub(in crate::ui::retained_host::host_contract) fn from_presentation(
+        presentation: &HostWindowPresentationData,
+        size: &PhysicalSize,
+        winit_scale_factor: f32,
+        backend: HostPresenterBackend,
+    ) -> Self {
+        Self::from_presentation_with_sequence(presentation, size, winit_scale_factor, backend, 0)
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn from_presentation_with_sequence(
+        presentation: &HostWindowPresentationData,
+        size: &PhysicalSize,
+        winit_scale_factor: f32,
+        backend: HostPresenterBackend,
+        capture_sequence: u64,
+    ) -> Self {
+        let scale_factor = if winit_scale_factor.is_finite() && winit_scale_factor > 0.0 {
+            f64::from(winit_scale_factor)
+        } else {
+            1.0
+        };
+        let logical_size = UiProfileLogicalSize {
+            width: f64::from(size.width) / scale_factor,
+            height: f64::from(size.height) / scale_factor,
+        };
+        let scene = &presentation.host_scene_data;
+        let resize_splitters = collect_resize_splitters(&scene.resize_layer);
+        let authored = owns_ordinary_panes(presentation);
+        let document_tabs = scene
+            .document_surfaces()
+            .iter()
+            .filter(|document| !owns_authored_level_viewport(presentation, document))
+            .flat_map(collect_document_tabs)
+            .collect::<Vec<_>>();
+        let drawer_tabs = collect_drawer_tabs(presentation);
+        let host_page_tabs = if authored {
+            Vec::new()
+        } else {
+            collect_host_page_tabs(&scene.page_chrome.tab_frames)
+        };
+        let activity_rail_buttons = if authored {
+            Vec::new()
+        } else {
+            collect_activity_rail_profile_buttons(scene)
+        };
+        let pane_controls = collect_pane_profile_controls(presentation);
+        let native_hierarchy = collect_native_hierarchy_profiles(presentation);
+        let clickable_frames = collect_clickable_frames(
+            &resize_splitters,
+            &document_tabs,
+            &drawer_tabs,
+            &host_page_tabs,
+            &activity_rail_buttons,
+            &pane_controls.viewport_toolbar_controls,
+            &pane_controls.template_controls,
+        );
+        let hit_samples = collect_hit_samples(&clickable_frames, presentation);
+
+        Self {
+            schema_version: 4,
+            presenter_backend: backend.label(),
+            capture_sequence,
+            window_client_size: UiProfileSize {
+                width: size.width,
+                height: size.height,
+            },
+            winit_scale_factor,
+            window_client_logical_size: logical_size,
+            layout: profile_layout(&scene.layout),
+            resize_splitters,
+            document_tabs,
+            drawer_tabs,
+            host_page_tabs,
+            activity_rail_buttons,
+            viewport_frame: scene
+                .document_surfaces()
+                .iter()
+                .find_map(|document| authored_level_viewport(presentation, document))
+                .map_or_else(
+                    || visible_profile_frame(&presentation.host_layout.viewport_content_frame),
+                    |viewport| visible_profile_frame(&viewport.clip),
+                ),
+            viewport_toolbar_controls: pane_controls.viewport_toolbar_controls,
+            template_controls: pane_controls.template_controls,
+            welcome_recent_frame: pane_controls.welcome_recent_frame,
+            asset_browser_content_frame: pane_controls.asset_browser_content_frame,
+            clickable_frames,
+            hit_samples,
+            rounded_shapes: Vec::new(),
+            text_runs: Vec::new(),
+            submitted_gpu_text: None,
+            normal_window_evidence: None,
+            native_hierarchy,
+        }
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn from_presentation_with_stream(
+        presentation: &HostWindowPresentationData,
+        size: &PhysicalSize,
+        winit_scale_factor: f32,
+        backend: HostPresenterBackend,
+        stream: &super::super::chrome_command_stream::ChromeCommandStream,
+    ) -> Self {
+        Self::from_presentation_with_stream_sequence(
+            presentation,
+            size,
+            winit_scale_factor,
+            backend,
+            stream,
+            0,
+        )
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn from_presentation_with_stream_sequence(
+        presentation: &HostWindowPresentationData,
+        size: &PhysicalSize,
+        winit_scale_factor: f32,
+        backend: HostPresenterBackend,
+        stream: &super::super::chrome_command_stream::ChromeCommandStream,
+        capture_sequence: u64,
+    ) -> Self {
+        Self {
+            rounded_shapes: collect_rounded_shapes(stream),
+            text_runs: collect_text_runs(stream),
+            ..Self::from_presentation_with_sequence(
+                presentation,
+                size,
+                winit_scale_factor,
+                backend,
+                capture_sequence,
+            )
+        }
+    }
+}

@@ -147,9 +147,9 @@ fn indexed_completion_bitmap<'a>(
 }
 
 #[cfg(test)]
-#[path = "tests/bitmap_completion_index_tests.rs"]
+#[path = "../tests/bitmap.rs"]
 mod completion_index_tests;
 
 #[cfg(test)]
-#[path = "tests/bitmap_batched_resume_apply_tests.rs"]
+#[path = "../tests/bitmap_batched.rs"]
 mod batched_resume_apply_tests;

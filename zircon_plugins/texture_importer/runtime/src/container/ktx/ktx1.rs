@@ -326,5 +326,5 @@ fn level_payload_label(level_index: u32) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/ktx1_plugins07_ktx1_hotpath_tests.rs"]
+#[path = "../../tests/ktx1_plugins07_ktx1_hotpath.rs"]
 mod plugins07_ktx1_hotpath_tests;

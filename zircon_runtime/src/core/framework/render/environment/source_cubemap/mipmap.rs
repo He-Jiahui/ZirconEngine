@@ -439,5 +439,5 @@ fn add_weighted(accumulator: &mut [Real; 4], texel: [Real; 4], weight: Real) {
 }
 
 #[cfg(test)]
-#[path = "tests/mipmap.rs"]
+#[path = "../tests/mipmap.rs"]
 mod tests;

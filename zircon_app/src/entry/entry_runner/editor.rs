@@ -56,14 +56,19 @@ use zircon_editor::core::project::ProjectAuthority;
 use super::super::runtime_library::{LoadedRuntime, RuntimeSession};
 
 #[cfg(feature = "target-editor-host")]
+#[path = "editor/composition.rs"]
 mod composition;
 #[cfg(feature = "target-editor-host")]
+#[path = "editor/ownership.rs"]
 mod ownership;
 #[cfg(feature = "target-editor-host")]
+#[path = "editor/play_session_factory.rs"]
 mod play_session_factory;
 #[cfg(feature = "target-editor-host")]
+#[path = "editor/project_automation.rs"]
 mod project_automation;
 #[cfg(feature = "target-editor-host")]
+#[path = "editor/startup_diagnostics.rs"]
 mod startup_diagnostics;
 
 #[cfg(feature = "target-editor-host")]
@@ -714,4 +719,5 @@ fn hub_handshake_project_root(intent: &ProjectLaunchIntent) -> PathBuf {
 }
 
 #[cfg(all(test, feature = "target-editor-host"))]
+#[path = "editor/tests/mod.rs"]
 mod tests;

@@ -289,5 +289,5 @@ fn validate_value_kind(
 }
 
 #[cfg(test)]
-#[path = "validation/tests/hash_membership_tests.rs"]
+#[path = "validation/tests/hash_membership.rs"]
 mod hash_membership_tests;

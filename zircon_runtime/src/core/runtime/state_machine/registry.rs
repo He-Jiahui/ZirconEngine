@@ -107,5 +107,5 @@ impl StateRegistry {
 }
 
 #[cfg(test)]
-#[path = "registry/tests/optimization_batch_jn_runtime653_tests.rs"]
+#[path = "registry/tests/perf.rs"]
 mod optimization_batch_jn_runtime653_tests;

@@ -7,21 +7,21 @@ related_code:
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
-  - zircon_editor/src/ui/retained_host/mod.rs
+  - zircon_editor/src/ui/retained/mod.rs
 implementation_files:
   - zircon_editor/src/ui/workbench/layout/workbench_layout.rs
   - zircon_editor/src/ui/workbench/view/view_registry.rs
   - zircon_editor/src/ui/workbench/window_registry/editor_window_registry.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch
+  - zircon_editor/src/ui/retained/ui.rs
+  - zircon_editor/src/ui/retained/dispatch
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 编辑器详细 Wiki
   - .codex/plans/布局系统.md
   - .codex/plans/Zircon Editor Workbench Shell V1.md
   - docs/editor/editor-workbench-shell.md
 tests:
-  - zircon_editor/src/ui/workbench
+  - zircon_editor/src/ui
   - zircon_editor/src/ui/retained_host/app/tests
   - zircon_editor/tests/integration_contracts.rs
 doc_type: module-detail

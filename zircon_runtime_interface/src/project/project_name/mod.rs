@@ -1,4 +1,6 @@
+#[path = "error.rs"]
 mod error;
+#[path = "validate.rs"]
 mod validate;
 
 pub use error::ProjectNameError;

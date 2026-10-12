@@ -9,6 +9,7 @@ use std::{
     path::{Component, Path, Prefix},
 };
 
+#[path = "windows/identity.rs"]
 mod identity;
 pub(crate) use identity::same_file;
 

@@ -1,12 +1,21 @@
 //! 性能入口枚举日志速率、调用者数、作用域规则数和 sink 延迟的完整 54 组合。
+#[path = "case.rs"]
 mod case;
+#[path = "configuration.rs"]
 mod configuration;
+#[path = "critical.rs"]
 mod critical;
+#[path = "output.rs"]
 mod output;
+#[path = "pacing.rs"]
 mod pacing;
+#[path = "report.rs"]
 mod report;
+#[path = "resources.rs"]
 mod resources;
+#[path = "rss.rs"]
 mod rss;
+#[path = "validation.rs"]
 mod validation;
 
 use std::time::Duration;

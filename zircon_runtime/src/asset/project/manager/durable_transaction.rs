@@ -487,5 +487,5 @@ fn validate_real_directory(path: &Path) -> Result<(), AssetImportError> {
 mod tests;
 
 #[cfg(test)]
-#[path = "tests/durable_transaction_recovery_policy_tests.rs"]
+#[path = "../../manager/tests/durable_transaction_recovery_policy.rs"]
 mod recovery_policy_tests;

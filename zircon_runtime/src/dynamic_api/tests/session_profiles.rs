@@ -159,7 +159,7 @@ fn project_session_startup_reuses_one_prepared_project_manager_snapshot() {
     let asset_contract_source =
         include_str!("../../asset/pipeline/manager/asset_manager/asset_manager.rs");
     let asset_manager_source =
-        include_str!("../../asset/pipeline/manager/service_contracts/asset_manager_contract.rs");
+        include_str!("../../asset/manager/service_contracts/asset_manager_contract.rs");
     let open_project_assets_source = project_source
         .split("pub(super) fn open_project_assets")
         .nth(1)
@@ -214,7 +214,7 @@ fn linked_plugin_catalog_reaches_prepared_project_codec_consumer_transactionally
     let project_source = include_str!("../session/project.rs");
     let construction_source = include_str!("../session/construction.rs");
     let catalog_source = include_str!(
-        "../../plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs"
+        "../../plugin/runtime/catalog/contributions/extension.rs"
     );
     assert!(
         construction_source.contains("runtime_extensions_handle()")

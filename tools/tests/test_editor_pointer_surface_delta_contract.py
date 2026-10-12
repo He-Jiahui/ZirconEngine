@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOLBAR_REBUILD = ROOT / (
-    "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs"
+    "zircon_editor/src/ui/retained/viewport_toolbar_pointer/rebuild_surface.rs"
 )
 OVERLAY_REBUILD = ROOT / (
     "zircon_editor/src/scene/viewport/pointer/overlay_router/rebuild_surface.rs"

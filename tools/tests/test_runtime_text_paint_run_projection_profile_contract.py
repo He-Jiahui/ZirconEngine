@@ -7,7 +7,7 @@ TEXT_SHAPE = (
     ROOT / "zircon_runtime_interface/src/ui/surface/render/text_shape.rs"
 )
 PROFILE_BENCH = (
-    ROOT / "zircon_runtime_interface/src/ui/surface/render/text_shape/tests/projection_profile.rs"
+    ROOT / "zircon_runtime_interface/src/ui/surface/render/tests/projection_profile.rs"
 )
 PROFILE_PLAN = (
     ROOT

@@ -10,7 +10,7 @@ def read_source(path: str) -> str:
 class EditorAssetPointerSnapshotProjectionContractTests(unittest.TestCase):
     def test_pointer_publication_uses_the_narrow_projection(self) -> None:
         source = read_source(
-            "zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces/sync.rs"
+            "zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces/sync.rs"
         )
         self.assertIn("snapshot.pointer_projection()", source)
         self.assertNotIn("Arc::new(snapshot.clone())", source)

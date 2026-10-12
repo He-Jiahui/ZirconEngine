@@ -11,21 +11,21 @@ from tools.analysis.performance.runtime.runtime_ui_render_dependency_product_pre
 
 
 ROOT = Path(__file__).resolve().parents[2]
-IMAGE = ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs"
+IMAGE = ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/image.rs"
 TEXT_SEGMENT_CACHE = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/text/segment_cache.rs"
 )
 SDF_PREPARED_ATLAS = (
     ROOT / "zircon_runtime/src/text/sdf/font_bake/prepared_atlas.rs"
 )
 SDF_COMPILED_SEGMENTS = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/segment_product.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/segment_product.rs"
 )
 SDF_VERTEX_BUFFER = (
     ROOT
-    / "zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertex_buffer.rs"
+    / "zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/vertex_buffer.rs"
 )
 UNREAL_FONT_CACHE = (
     ROOT

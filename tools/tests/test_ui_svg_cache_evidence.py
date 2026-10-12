@@ -10,19 +10,19 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools/analysis/performance/ui/ui_svg_cache_evidence.py"
 REQUIRED_SOURCE_PATHS = (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/svg/cache.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/svg/pixels.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/loading/cache.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/loading/async_loader.rs",
-    "zircon_editor/src/ui/retained_host/app/assets/refresh.rs",
-    "zircon_editor/src/ui/retained_host/ui_perf.rs",
-    "zircon_editor/src/ui/retained_host/ui_perf/counter_catalog.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs",
+    "zircon_editor/src/ui/retained/contract/paint/visual_assets/svg/cache.rs",
+    "zircon_editor/src/ui/retained/contract/paint/visual_assets/svg/pixels.rs",
+    "zircon_editor/src/ui/retained/contract/paint/visual_assets/loading/cache.rs",
+    "zircon_editor/src/ui/retained/contract/paint/loading/async_loader.rs",
+    "zircon_editor/src/ui/retained/app/assets/refresh.rs",
+    "zircon_editor/src/ui/retained/ui_perf.rs",
+    "zircon_editor/src/ui/retained/ui_perf/counter_catalog.rs",
+    "zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs",
     "zircon_runtime/crates/zr_rhi/src/ui_surface.rs",
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs",
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs",
     "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shared_image_registry.rs",
-    "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shared_image_registry/allocation_ledger.rs",
+    "zircon_runtime/crates/zr_rhi_wgpu/src/shared_image_registry/allocation_ledger.rs",
     "tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1",
 )
 DEVICE_IMAGE_BUDGET_BYTES = 64 * 1024 * 1024

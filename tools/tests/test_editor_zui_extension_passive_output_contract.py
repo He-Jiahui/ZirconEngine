@@ -18,12 +18,12 @@ RUNTIME_SOURCE_ROOTS = (
     ),
     REPO_ROOT
     / (
-        "zircon_editor/src/ui/template_runtime/builtin/"
+        "zircon_editor/src/ui/runtime/builtin/"
         "workbench_extension_module_template_bindings"
     ),
 )
 RUNTIME_SOURCE_FILES = (
-    REPO_ROOT / "zircon_editor/src/ui/retained_host/workbench_preview_actions.rs",
+    REPO_ROOT / "zircon_editor/src/ui/retained/preview_actions.rs",
 )
 
 

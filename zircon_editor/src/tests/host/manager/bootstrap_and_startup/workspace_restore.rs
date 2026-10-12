@@ -482,9 +482,9 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
         _ => panic!("serialized startup must retain the split document topology"),
     };
     let shell_presentation_source =
-        include_str!("../../../../ui/layouts/windows/workbench_host_window/shell_presentation.rs");
+        include_str!("../../../../ui/layouts/windows/window/shell_presentation.rs");
     let host_scene_source =
-        include_str!("../../../../ui/layouts/windows/workbench_host_window/host_data.rs");
+        include_str!("../../../../ui/layouts/windows/window/host_data.rs");
     assert!(shell_presentation_source.contains("project_document_leaves"));
     assert!(shell_presentation_source.contains("retained_scene_data"));
     assert!(host_scene_source.contains("struct HostWindowSceneData"));

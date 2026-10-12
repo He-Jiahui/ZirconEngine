@@ -1,7 +1,8 @@
+#[path = "metadata_validation/format.rs"]
 mod format;
 
 #[cfg(test)]
-#[path = "metadata_validation/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;
 
 use self::format::{

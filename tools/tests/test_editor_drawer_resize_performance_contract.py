@@ -6,7 +6,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 MOVEMENT = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs"
+    / "zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/movement.rs"
 )
 
 

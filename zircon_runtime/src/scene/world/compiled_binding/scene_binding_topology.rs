@@ -156,5 +156,5 @@ fn scene_binding_removal_roots(
 }
 
 #[cfg(test)]
-#[path = "tests/scene_binding_topology_optimization_tests.rs"]
+#[path = "tests/topology_perf.rs"]
 mod optimization_tests;

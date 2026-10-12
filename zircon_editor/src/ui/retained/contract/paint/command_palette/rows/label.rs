@@ -1,0 +1,38 @@
+//! 候选主标题的单行绘制入口；先判断行可见性，再把借用文本交给拥有内容的命令。
+
+use super::super::super::super::data::FrameRect;
+use super::super::super::super::paint_geometry::intersect;
+use super::super::super::render_commands::HostPaintCommand;
+use super::super::layout::{command_palette_metrics, row_label_rect};
+
+#[path = "label/style.rs"]
+mod style;
+
+use style::command_row_label_text_style;
+
+pub(super) fn push_command_row_label(
+    commands: &mut Vec<HostPaintCommand>,
+    row_rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    text: &str,
+    color: [u8; 4],
+    opacity: f32,
+) {
+    if text.is_empty() || intersect(row_rect, clip).is_none() {
+        return;
+    }
+    let metrics = command_palette_metrics();
+    let style = command_row_label_text_style(color, &metrics);
+    commands.push(HostPaintCommand::text(
+        row_label_rect(row_rect),
+        Some(clip.clone()),
+        order,
+        text.to_string(),
+        style.color,
+        style.font_size,
+        style.line_height,
+        style.paint_style,
+        opacity,
+    ));
+}

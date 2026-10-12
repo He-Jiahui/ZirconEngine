@@ -30,9 +30,13 @@ use super::support::{
     project_model_handle, project_physics_material_handle, unique_temp_project_root,
 };
 
+#[path = "asset_scene/hierarchy_sources.rs"]
 mod hierarchy_sources;
+#[path = "asset_scene/mesh_bindings.rs"]
 mod mesh_bindings;
+#[path = "asset_scene/product_fields.rs"]
 mod product_fields;
+#[path = "asset_scene/render2d.rs"]
 mod render2d;
 
 fn asset_reference(uri: &str) -> AssetReference {

@@ -48,5 +48,5 @@ impl UiAssetSourceBuffer {
 mod tests;
 
 #[cfg(test)]
-#[path = "source_buffer/tests/shared_text_tests.rs"]
+#[path = "source_buffer/tests/shared_text.rs"]
 mod shared_text_tests;

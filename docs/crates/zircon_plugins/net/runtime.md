@@ -119,7 +119,7 @@ related_code:
   - zircon_plugins/net/features/replication/runtime/src/tests/budget.rs
   - zircon_plugins/net/features/replication/runtime/src/tests/collect_apply.rs
   - zircon_plugins/net/features/replication/runtime/src/tests/delta_interest.rs
-  - zircon_plugins/net/features/replication/runtime/src/tests/feature_registration.rs
+  - zircon_plugins/net/features/replication/runtime/src/tests/register.rs
   - zircon_plugins/net/features/replication/runtime/src/tests/interpolation.rs
   - zircon_plugins/net/features/replication/runtime/src/tests/lifecycle.rs
   - zircon_plugins/net/features/replication/runtime/src/tests/schedule.rs
@@ -138,7 +138,7 @@ related_code:
   - zircon_plugins/net/features/reliable_udp/runtime/src/manager/stats.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests/delivery.rs
-  - zircon_plugins/net/features/reliable_udp/runtime/src/tests/feature_registration.rs
+  - zircon_plugins/net/features/reliable_udp/runtime/src/tests/register.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests/packet.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests/receive.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests/recovery.rs
@@ -156,7 +156,7 @@ related_code:
   - zircon_plugins/net/features/content_download/runtime/src/manager/state.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests/attempts.rs
-  - zircon_plugins/net/features/content_download/runtime/src/tests/feature_registration.rs
+  - zircon_plugins/net/features/content_download/runtime/src/tests/register.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests/http_fetch.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests/manifest.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests/progress.rs
@@ -277,7 +277,7 @@ implementation_files:
   - zircon_plugins/net/features/replication/runtime/src/tests/budget.rs
   - zircon_plugins/net/features/replication/runtime/src/tests/collect_apply.rs
   - zircon_plugins/net/features/replication/runtime/src/tests/delta_interest.rs
-  - zircon_plugins/net/features/replication/runtime/src/tests/feature_registration.rs
+  - zircon_plugins/net/features/replication/runtime/src/tests/register.rs
   - zircon_plugins/net/features/replication/runtime/src/tests/interpolation.rs
   - zircon_plugins/net/features/replication/runtime/src/tests/lifecycle.rs
   - zircon_plugins/net/features/replication/runtime/src/tests/schedule.rs
@@ -296,7 +296,7 @@ implementation_files:
   - zircon_plugins/net/features/reliable_udp/runtime/src/manager/stats.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests/delivery.rs
-  - zircon_plugins/net/features/reliable_udp/runtime/src/tests/feature_registration.rs
+  - zircon_plugins/net/features/reliable_udp/runtime/src/tests/register.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests/packet.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests/receive.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests/recovery.rs
@@ -332,7 +332,7 @@ implementation_files:
   - zircon_plugins/net/features/content_download/runtime/src/manager/state.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests/attempts.rs
-  - zircon_plugins/net/features/content_download/runtime/src/tests/feature_registration.rs
+  - zircon_plugins/net/features/content_download/runtime/src/tests/register.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests/http_fetch.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests/manifest.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests/progress.rs

@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use super::{canonical::bytes_to_hex, ProductReceipt, ProductReceiptError};
 
 #[cfg(windows)]
+#[path = "receipt_writer/windows_publication.rs"]
 mod windows_publication;
 
 static TEMPORARY_RECEIPT_SEQUENCE: AtomicU64 = AtomicU64::new(0);

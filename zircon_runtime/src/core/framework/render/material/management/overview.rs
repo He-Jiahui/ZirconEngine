@@ -152,5 +152,5 @@ impl RenderMaterialManagementOverviewRecord {
 }
 
 #[cfg(test)]
-#[path = "overview/tests/streaming_query_tests.rs"]
+#[path = "../../../../render/material/overview/tests/streaming_query.rs"]
 mod streaming_query_tests;

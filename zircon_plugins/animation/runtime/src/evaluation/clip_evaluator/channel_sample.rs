@@ -89,5 +89,5 @@ fn lerp_array<const N: usize>(left: &[Real; N], right: &[Real; N], weight: Real)
 }
 
 #[cfg(test)]
-#[path = "tests/channel_sample.rs"]
+#[path = "../tests/channel_sample.rs"]
 mod tests;

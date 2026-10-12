@@ -54,15 +54,25 @@ use zircon_runtime_interface::ui::{
     template::UiCompiledBindingProgram,
 };
 
+#[path = "surface/compiled_binding_event_index.rs"]
 mod compiled_binding_event_index;
+#[path = "surface/default_interactions.rs"]
 mod default_interactions;
+#[path = "surface/event_routing.rs"]
 mod event_routing;
+#[path = "surface/font_generation.rs"]
 mod font_generation;
+#[path = "surface/frame_publication.rs"]
 mod frame_publication;
+#[path = "surface/interaction_state.rs"]
 mod interaction_state;
+#[path = "surface/pointer_component_events.rs"]
 mod pointer_component_events;
+#[path = "surface/property_transaction.rs"]
 mod property_transaction;
+#[path = "surface/rebuild.rs"]
 mod rebuild;
+#[path = "surface/virtual_window.rs"]
 mod virtual_window;
 
 use compiled_binding_event_index::UiCompiledBindingEventIndex;

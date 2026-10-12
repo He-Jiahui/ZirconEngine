@@ -10,7 +10,9 @@ use zircon_runtime_interface::ui::v2::{
     UiV2AssetDocument, UiV2AssetKind, UI_V2_ASSET_SCHEMA_VERSION,
 };
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{

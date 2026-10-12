@@ -1,5 +1,6 @@
 use zircon_runtime_interface::ui::layout::UiVirtualListWindow;
 
+#[path = "virtualization/materialization.rs"]
 mod materialization;
 
 pub use materialization::{

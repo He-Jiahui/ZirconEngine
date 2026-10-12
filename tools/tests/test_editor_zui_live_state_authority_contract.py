@@ -10,7 +10,7 @@ from tools.tests.test_editor_zui_base_radius_hierarchy_contract import (
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ASSET_ROOT = REPO_ROOT / "zircon_editor/assets"
 TOP_TOOLBAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_top_toolbar.zui"
 )
 HOST_WORKBENCH_SHELL = REPO_ROOT / (
@@ -18,20 +18,20 @@ HOST_WORKBENCH_SHELL = REPO_ROOT / (
 )
 HIERARCHY_SURFACE = REPO_ROOT / "zircon_editor/assets/ui/editor/hierarchy.zui"
 VIEWPORT_PANEL = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_viewport_panel.zui"
 )
 EDITOR_TOKENS = REPO_ROOT / "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
 ACTIVITY_RAIL = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_activity_rail.zui"
 )
 SCENE_TREE_PANEL = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_scene_tree_panel.zui"
 )
 INSPECTOR_PANEL = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_inspector_panel.zui"
 )
 TRANSPORT_CONTROLS = REPO_ROOT / (
@@ -43,22 +43,22 @@ WORKBENCH_BRIDGE = REPO_ROOT / (
     "workbench/componentized_window.rs"
 )
 WORKBENCH_TEMPLATE_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
+    "zircon_editor/src/ui/runtime/builtin/"
     "workbench_window_template_bindings.rs"
 )
 BUILTIN_TEMPLATE_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs"
+    "zircon_editor/src/ui/runtime/builtin/bindings.rs"
 )
 WORKBENCH_TOOLBAR_BREAKPOINT_TESTS = REPO_ROOT / (
-    "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
+    "zircon_editor/src/tests/host/callbacks/templates/"
     "workbench_toolbar_breakpoints/overflow.rs"
 )
 WORKBENCH_MAIN_MENU_BINDING_TESTS = REPO_ROOT / (
-    "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
+    "zircon_editor/src/tests/host/callbacks/templates/"
     "workbench_window_menus/main_menu_bindings.rs"
 )
 WORKBENCH_MODULE_NAVIGATION_TESTS = REPO_ROOT / (
-    "zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/"
+    "zircon_editor/src/tests/host/callbacks/templates/"
     "workbench_module_navigation/workspace_selection.rs"
 )
 BLEND_SPACE_TRANSPORT = WORKBENCH_BRIDGE.parent / "blend_space_transport.rs"
@@ -68,7 +68,7 @@ REFERENCE_MENU_ACTIONS = REPO_ROOT / (
 )
 WORKBENCH_WINDOW = REPO_ROOT / "zircon_editor/assets/ui/editor/windows/workbench_window.zui"
 COMPONENT_DRAWER = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/shell/"
+    "zircon_editor/assets/ui/editor/workbench/shell/"
     "workbench_component_drawer.zui"
 )
 WINDOW_MENU_STATE = REPO_ROOT / (

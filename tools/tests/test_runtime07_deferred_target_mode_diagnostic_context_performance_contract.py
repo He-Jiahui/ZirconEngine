@@ -5,10 +5,10 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 TARGET_MODES = (
     ROOT
-    / "zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/target_modes.rs"
+    / "zircon_runtime/src/plugin/export_build_plan/manifest/target_modes.rs"
 )
 ALLOCATION_TESTS = (
-    ROOT / "zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/target_modes/tests/allocation_tests.rs"
+    ROOT / "zircon_runtime/src/plugin/manifest/target_modes/tests/allocation.rs"
 )
 
 

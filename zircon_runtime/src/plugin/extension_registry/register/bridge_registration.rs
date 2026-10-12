@@ -156,5 +156,5 @@ impl RuntimeExtensionRegistry {
 }
 
 #[cfg(test)]
-#[path = "tests/bridge_registration.rs"]
+#[path = "../../register/tests/bridge_registration.rs"]
 mod tests;

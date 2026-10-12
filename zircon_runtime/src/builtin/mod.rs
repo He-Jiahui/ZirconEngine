@@ -1,3 +1,4 @@
+#[path = "runtime_modules.rs"]
 mod runtime_modules;
 
 pub use runtime_modules::RuntimePluginId;

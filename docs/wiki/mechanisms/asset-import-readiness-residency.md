@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/asset/facade/load_state.rs
   - zircon_runtime/src/core/resource/mod.rs
 implementation_files:
-  - zircon_runtime/src/asset/project
+  - zircon_runtime/src/asset
   - zircon_runtime/src/asset/pipeline/manager
   - zircon_runtime/src/asset/facade
 plan_sources:
@@ -14,7 +14,7 @@ plan_sources:
   - docs/wiki/scene-assets/project-assets.md
   - docs/wiki/scene-assets/resource-runtime.md
 tests:
-  - zircon_runtime/src/asset/tests/project
+  - zircon_runtime/src/asset/tests
   - zircon_runtime/src/asset/tests/pipeline
   - zircon_runtime/src/asset/tests/facade
 doc_type: mechanism-guide
@@ -86,6 +86,6 @@ root Loaded + direct Loaded + recursive Reloading
 
 ## 参考实现与测试
 
-- 实现：`zircon_runtime/src/asset/project`、`asset/facade/load_state.rs`、`core/resource/mod.rs`。
+- 实现：`zircon_runtime/src/asset`、`asset/facade/load_state.rs`、`core/resource/mod.rs`。
 - 相关概念页：[项目资产与导入管线](../scene-assets/project-assets.md)、[资源句柄与运行时注册表](../scene-assets/resource-runtime.md)。
 - 测试覆盖 importer 选择、artifact cache、依赖 readiness、reload 和恢复失败。

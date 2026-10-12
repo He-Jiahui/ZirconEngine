@@ -1,6 +1,7 @@
 //! 动态 Runtime 剪贴板请求的宿主完成与类型化结果回送边界。
 //! 平台动作在目标窗口线程完成后才回送结果；请求失败仍应产生明确失败回执。
 
+#[path = "platform.rs"]
 mod platform;
 
 use winit::event_loop::ActiveEventLoop;

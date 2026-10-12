@@ -31,5 +31,5 @@ fn canonicalize_nested_value(value: &mut Value) {
 }
 
 #[cfg(test)]
-#[path = "tests/canonical_performance_tests.rs"]
+#[path = "tests/canonical_perf.rs"]
 mod performance_tests;

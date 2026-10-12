@@ -1,3 +1,4 @@
+#[path = "style_state/stylesheet_state.rs"]
 mod stylesheet_state;
 
 use self::stylesheet_state::style_rule_insert_replay_bundle;

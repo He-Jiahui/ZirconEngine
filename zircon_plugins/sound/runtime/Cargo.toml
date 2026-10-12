@@ -12,5 +12,5 @@ zircon_runtime_interface = { workspace = true }
 kira = "0.12.2"
 
 [dev-dependencies]
-zircon_plugin_sound_ray_traced_convolution_runtime = { path = "../features/ray_traced_convolution_reverb/runtime" }
-zircon_plugin_sound_timeline_animation_runtime = { path = "../features/timeline_animation_track/runtime" }
+zircon_plugin_sound_ray_traced_convolution_runtime = { path = "../features/ray_reverb/runtime" }
+zircon_plugin_sound_timeline_animation_runtime = { path = "../features/timeline/runtime" }

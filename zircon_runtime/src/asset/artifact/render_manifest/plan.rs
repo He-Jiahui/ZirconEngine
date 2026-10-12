@@ -197,9 +197,9 @@ fn dependency_frontier_seed(scope: RenderArtifactLoadScope, selected: &[bool]) -
 mod tests;
 
 #[cfg(test)]
-#[path = "plan/tests/optimization_batch_ja_runtime640_tests.rs"]
+#[path = "plan/tests/perf.rs"]
 mod optimization_batch_ja_runtime640_tests;
 
 #[cfg(test)]
-#[path = "tests/plan_optimization_batch_ha_runtime582_tests.rs"]
+#[path = "tests/plan_perf.rs"]
 mod optimization_batch_ha_runtime582_tests;

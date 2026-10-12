@@ -1,7 +1,12 @@
+#[path = "behavior_tree/catalog.rs"]
 mod catalog;
+#[path = "behavior_tree/compile.rs"]
 mod compile;
+#[path = "behavior_tree/executor.rs"]
 mod executor;
+#[path = "behavior_tree/nodes/mod.rs"]
 mod nodes;
+#[path = "behavior_tree/random_selector_weights.rs"]
 mod random_selector_weights;
 
 pub(crate) const SUBTREE_TARGET_PARAMETER_KEY: &str = "behavior_tree";

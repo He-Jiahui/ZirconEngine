@@ -1,6 +1,10 @@
+#[path = "config_manager/commit_fence.rs"]
 mod commit_fence;
+#[path = "config_manager/state.rs"]
 mod state;
+#[path = "config_manager/worker.rs"]
 mod worker;
+#[path = "config_manager/writer.rs"]
 mod writer;
 
 use std::collections::HashMap;

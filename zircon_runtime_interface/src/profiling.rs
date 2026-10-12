@@ -5,6 +5,7 @@ use crate::handles::ZrRuntimeSessionHandle;
 use crate::runtime_build_set::ZrRuntimeModuleCompositionReceiptV1;
 use crate::status::ZrStatus;
 
+#[path = "profiling/session_path.rs"]
 mod session_path;
 
 pub use session_path::{profile_session_basename, PROFILE_SESSION_BASENAME_MAX_BYTES};

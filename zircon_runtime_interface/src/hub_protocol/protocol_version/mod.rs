@@ -1,3 +1,4 @@
+#[path = "serde.rs"]
 mod serde;
 
 pub use serde::HubProtocolVersionV1;

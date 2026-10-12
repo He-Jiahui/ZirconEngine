@@ -182,7 +182,7 @@ fn hash(value: OsString, flag: &str) -> Result<[u8; 32], FontSdfCliError> {
 }
 
 #[cfg(test)]
-#[path = "args/tests/borrowed_codepoint_range_tests.rs"]
+#[path = "../args/tests/borrowed_codepoint_range.rs"]
 mod borrowed_codepoint_range_tests;
 
 #[cfg(test)]

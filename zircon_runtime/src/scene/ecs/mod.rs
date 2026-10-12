@@ -1,41 +1,76 @@
 //! Local scene ECS scheduling, resource, and event primitives.
 
+#[path = "archetype/mod.rs"]
 mod archetype;
+#[path = "bundle.rs"]
 mod bundle;
+#[path = "bundle_transaction_diagnostics.rs"]
 mod bundle_transaction_diagnostics;
+#[path = "change_detection/mod.rs"]
 mod change_detection;
+#[path = "channel.rs"]
 mod channel;
+#[path = "commands/mod.rs"]
 mod commands;
+#[path = "component/mod.rs"]
 mod component;
+#[path = "entity/mod.rs"]
 mod entity;
+#[path = "events/mod.rs"]
 mod events;
+#[path = "frame_performance_diagnostics.rs"]
 mod frame_performance_diagnostics;
+#[path = "internal_scene_system.rs"]
 mod internal_scene_system;
+#[path = "lifecycle.rs"]
 mod lifecycle;
+#[path = "messages/mod.rs"]
 mod messages;
+#[path = "native_system_schedule_diagnostics.rs"]
 mod native_system_schedule_diagnostics;
+#[path = "observer/mod.rs"]
 mod observer;
+#[path = "query/mod.rs"]
 mod query;
+#[path = "removal.rs"]
 mod removal;
+#[path = "resource/mod.rs"]
 mod resource;
+#[path = "resource_store/mod.rs"]
 mod resource_store;
+#[path = "scene_system_descriptor.rs"]
 mod scene_system_descriptor;
+#[path = "scene_system_plan_descriptor.rs"]
 mod scene_system_plan_descriptor;
+#[path = "scene_system_registry.rs"]
 mod scene_system_registry;
+#[path = "schedule.rs"]
 mod schedule;
+#[path = "schedule_execution.rs"]
 mod schedule_execution;
 
 pub(crate) use schedule_execution::{schedule_owner_changed_error, ScheduleExecution};
+#[path = "schedule_build_receipt.rs"]
 mod schedule_build_receipt;
+#[path = "schedule_conflict_graph.rs"]
 mod schedule_conflict_graph;
+#[path = "schedule_error.rs"]
 mod schedule_error;
+#[path = "schedule_parallel_executor.rs"]
 mod schedule_parallel_executor;
+#[path = "schedule_runner.rs"]
 mod schedule_runner;
+#[path = "schedule_stage_plan.rs"]
 mod schedule_stage_plan;
+#[path = "storage/mod.rs"]
 mod storage;
+#[path = "storage_type.rs"]
 mod storage_type;
+#[path = "system/mod.rs"]
 mod system;
+#[path = "system_set.rs"]
 mod system_set;
+#[path = "tick_context.rs"]
 mod tick_context;
 
 pub use crate::core::framework::scene::SystemStage;

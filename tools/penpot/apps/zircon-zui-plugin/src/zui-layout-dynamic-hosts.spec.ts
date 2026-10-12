@@ -51,7 +51,7 @@ describe('dynamic layout review host projection', () => {
     const before = cloneZuiDocument(source);
     const result = prepareDynamicReviewState(
       source,
-      'zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui',
+      'zircon_editor/assets/ui/editor/core/index/additional_module_workspaces.zui',
     );
 
     expect(result.changes).toEqual(['inject-deterministic-authored-host-state']);
@@ -89,7 +89,7 @@ describe('dynamic layout review host projection', () => {
     });
     const result = prepareDynamicReviewState(
       source,
-      'zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui',
+      'zircon_editor/assets/ui/editor/workbench/modules/core/index/module_workspace.zui',
     );
 
     expect(result.state?.selectedNodeIds).toEqual(['effect_workspace_body']);
@@ -118,7 +118,7 @@ describe('dynamic layout review host projection', () => {
 
     const result = prepareDynamicReviewState(
       source,
-      'zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui',
+      'zircon_editor/assets/ui/editor/animation/extension_blend_space_workspace.zui',
     );
 
     expect(result.changes).toEqual([

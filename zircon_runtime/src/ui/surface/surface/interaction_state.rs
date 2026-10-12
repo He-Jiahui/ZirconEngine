@@ -120,5 +120,5 @@ impl UiSurface {
 }
 
 #[cfg(test)]
-#[path = "tests/interaction_state_optimization_tests.rs"]
+#[path = "tests/interaction_state_perf.rs"]
 mod optimization_tests;

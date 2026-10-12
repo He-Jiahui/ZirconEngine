@@ -56,7 +56,7 @@ class Editor07TimelineGenerationContractTests(unittest.TestCase):
             "pane_component_projection/timeline_strip.rs"
         )
         host_data = source(
-            "zircon_editor/src/ui/retained_host/host_contract/data/"
+            "zircon_editor/src/ui/retained/contract/data/"
             "template_nodes/timeline_strip.rs"
         )
 
@@ -67,19 +67,19 @@ class Editor07TimelineGenerationContractTests(unittest.TestCase):
 
     def test_painter_consumes_generation_without_tick_formatting_or_model_reads(self) -> None:
         painter = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_timeline_strip.rs"
         )
         surface = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_timeline_strip/surface.rs"
         )
         text = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_timeline_strip/text.rs"
         )
         keys = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+            "zircon_editor/src/ui/retained/contract/paint/"
             "template_timeline_strip/keys.rs"
         )
 

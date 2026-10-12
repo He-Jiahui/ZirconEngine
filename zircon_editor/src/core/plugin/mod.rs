@@ -6,23 +6,41 @@ pub(crate) fn project_native_plugin_directory(
     project_root.join("zircon_plugins")
 }
 
+#[path = "admission.rs"]
 mod admission;
+#[path = "capability_report.rs"]
 mod capability_report;
+#[path = "catalog.rs"]
 mod catalog;
+#[path = "catalog_gen.rs"]
 mod catalog_gen;
+#[path = "catalog_snapshot.rs"]
 mod catalog_snapshot;
+#[path = "catalog_store.rs"]
 mod catalog_store;
+#[path = "descriptor.rs"]
 mod descriptor;
+#[path = "extension_catalog_report.rs"]
 mod extension_catalog_report;
+#[path = "extension_materialization.rs"]
 mod extension_materialization;
+#[path = "isolation.rs"]
 mod isolation;
+#[path = "lifecycle_message_bridge.rs"]
 mod lifecycle_message_bridge;
+#[path = "manager.rs"]
 mod manager;
+#[path = "materializer.rs"]
 mod materializer;
+#[path = "panel_source.rs"]
 mod panel_source;
+#[path = "phases.rs"]
 mod phases;
+#[path = "projection.rs"]
 mod projection;
+#[path = "registration.rs"]
 mod registration;
+#[path = "sdk/mod.rs"]
 pub mod sdk;
 
 // Catalog read and validation surface.

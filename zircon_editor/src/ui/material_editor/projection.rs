@@ -397,7 +397,7 @@ fn diagnostic_row_for_error(error: RenderMaterialValidationError) -> MaterialEdi
 }
 
 #[cfg(test)]
-#[path = "projection/tests/optimization_batch_in_editor624_tests.rs"]
+#[path = "projection/tests/perf.rs"]
 mod optimization_batch_in_editor624_tests;
 #[cfg(test)]
 #[path = "projection/tests/row_capacity_tests.rs"]

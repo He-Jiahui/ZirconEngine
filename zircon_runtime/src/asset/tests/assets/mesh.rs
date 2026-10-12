@@ -16,12 +16,19 @@ use crate::core::framework::render::RenderMeshTopology;
 use crate::core::math::{Vec2, Vec3};
 use crate::core::resource::ResourceId;
 
+#[path = "mesh/conversion_import.rs"]
 mod conversion_import;
+#[path = "mesh/document_roundtrip.rs"]
 mod document_roundtrip;
+#[path = "mesh/morph_targets.rs"]
 mod morph_targets;
+#[path = "mesh/normal_generation.rs"]
 mod normal_generation;
+#[path = "mesh/summaries.rs"]
 mod summaries;
+#[path = "mesh/tangent_generation.rs"]
 mod tangent_generation;
+#[path = "mesh/validation.rs"]
 mod validation;
 
 // TODO: [CR-ASSET-TEST-MESH-0006] 负向源码字符串检查未覆盖 UFCS 或空白变体；用语义或性能证据核验零拷贝约束。

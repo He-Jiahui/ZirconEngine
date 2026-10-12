@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools" / "performance" / "editor" / "editor_asset_selection_lookup_pressure.py"
 SELECTION = ROOT / "zircon_editor/src/ui/layouts/views/asset_browser/selection_text.rs"
 CONTEXT_MENU = ROOT / (
-    "zircon_editor/src/ui/retained_host/app/asset_content_pointer/context_menu.rs"
+    "zircon_editor/src/ui/retained/app/asset_content_pointer/context_menu.rs"
 )
 
 spec = importlib.util.spec_from_file_location("asset_selection_pressure", TOOL)

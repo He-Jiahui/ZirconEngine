@@ -167,5 +167,5 @@ impl RendererFeatureAsset {
 }
 
 #[cfg(test)]
-#[path = "renderer_feature_asset/tests/borrowed_capability_tests.rs"]
+#[path = "tests/borrowed_capability.rs"]
 mod borrowed_capability_tests;

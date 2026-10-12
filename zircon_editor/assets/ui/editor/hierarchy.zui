@@ -7,7 +7,7 @@ version = 2
 display_name = "Hierarchy"
 
 [imports]
-widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput"]
+widgets = ["res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput"]
 styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]

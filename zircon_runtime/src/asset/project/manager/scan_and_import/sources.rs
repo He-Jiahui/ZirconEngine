@@ -653,13 +653,13 @@ pub(super) fn source_mtime_unix_ms_for_import(
 mod tests;
 
 #[cfg(test)]
-#[path = "sources/tests/optimization_batch_je_runtime644_tests.rs"]
+#[path = "sources/tests/perf.rs"]
 mod optimization_batch_je_runtime644_tests;
 
 #[cfg(test)]
-#[path = "sources/tests/snapshot_failure_tests.rs"]
+#[path = "../sources/tests/snapshot_failure.rs"]
 mod snapshot_failure_tests;
 
 #[cfg(test)]
-#[path = "sources/tests/compound_discovery_tests.rs"]
+#[path = "../sources/tests/compound_discovery.rs"]
 mod compound_discovery_tests;

@@ -916,4 +916,5 @@ fn expired_absolute_deactivation_deadline_does_not_start_cleanup() {
     );
 }
 
+#[path = "../../behavior/module_lifecycle/shutdown.rs"]
 mod shutdown;

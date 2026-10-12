@@ -4,13 +4,21 @@ use zircon_runtime::core::framework::navigation::{
     NavSampleQuery, NavigationError,
 };
 
+#[path = "asset_ffi.rs"]
 mod asset_ffi;
+#[path = "bake.rs"]
 mod bake;
+#[path = "crowd.rs"]
 mod crowd;
+#[path = "detour.rs"]
 mod detour;
+#[path = "detour_result.rs"]
 mod detour_result;
+#[path = "fallback_query.rs"]
 mod fallback_query;
+#[path = "ffi.rs"]
 mod ffi;
+#[path = "tile_cache.rs"]
 mod tile_cache;
 
 pub use bake::{
@@ -123,4 +131,5 @@ impl RecastBackend {
 }
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

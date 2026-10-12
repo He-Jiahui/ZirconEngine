@@ -31,5 +31,5 @@ fn project_title_from_display_path(display_path: String) -> String {
 mod tests;
 
 #[cfg(test)]
-#[path = "display_project_path/tests/direct_title_tests.rs"]
+#[path = "tests/direct_title.rs"]
 mod direct_title_tests;

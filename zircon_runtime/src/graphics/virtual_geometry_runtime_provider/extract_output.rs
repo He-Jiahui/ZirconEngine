@@ -62,5 +62,5 @@ impl VirtualGeometryRuntimeExtractOutput {
 }
 
 #[cfg(test)]
-#[path = "tests/extract_output.rs"]
+#[path = "../tests/extract_output.rs"]
 mod tests;

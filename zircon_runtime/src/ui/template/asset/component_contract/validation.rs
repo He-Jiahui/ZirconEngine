@@ -657,7 +657,7 @@ impl<'a> ComponentPrivacyIndex<'a> {
 }
 
 #[cfg(test)]
-#[path = "validation/tests/hash_index_tests.rs"]
+#[path = "../validation/tests/hash_index.rs"]
 mod hash_index_tests;
 
 struct TargetRef {

@@ -391,5 +391,5 @@ fn cross3(a: [Real; 3], b: [Real; 3]) -> [Real; 3] {
 }
 
 #[cfg(test)]
-#[path = "tests/pmrem.rs"]
+#[path = "../tests/pmrem.rs"]
 mod tests;

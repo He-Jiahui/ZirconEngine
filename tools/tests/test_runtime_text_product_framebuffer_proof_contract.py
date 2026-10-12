@@ -6,11 +6,11 @@ ROOT = Path(__file__).resolve().parents[2]
 PRODUCT_TEST = ROOT / "zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs"
 PROOF_PATH = (
     ROOT
-    / "zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/proof_path.rs"
+    / "zircon_runtime/tests/text_pixels/proof_path.rs"
 )
 PRODUCT_RENDERER = (
     ROOT
-    / "zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/product_renderer.rs"
+    / "zircon_runtime/tests/text_pixels/product_renderer.rs"
 )
 
 # 读取产品帧缓冲证明，确认测试通过真实 WGPU 回读与像素断言连接源码目标。

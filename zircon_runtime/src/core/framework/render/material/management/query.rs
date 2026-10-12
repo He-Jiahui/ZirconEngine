@@ -172,5 +172,5 @@ fn page_overview_records(
 }
 
 #[cfg(test)]
-#[path = "query/tests/borrowed_filter_tests.rs"]
+#[path = "../query/tests/borrowed_filter.rs"]
 mod borrowed_filter_tests;

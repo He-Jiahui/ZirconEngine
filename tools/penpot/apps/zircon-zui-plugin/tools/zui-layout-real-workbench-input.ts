@@ -13,7 +13,7 @@ const owner = 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
 const theme = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
 const hostSources = ['zircon_editor/assets/ui/editor/host/editor_main_frame.zui', owner,
   'zircon_editor/assets/ui/editor/unreal/editor_shell.zui',
-  'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui', theme];
+  'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/tab.zui', theme];
 
 /** Use the established complete host preparation and its owning-source envelope. */
 export async function prepareRealWorkbenchInput(repoRoot: string, sourcePath: string,

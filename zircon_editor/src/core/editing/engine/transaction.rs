@@ -8,16 +8,27 @@ use super::{
     TransactionJournal, TransactionJournalError, TransactionRecord,
 };
 
+#[path = "transaction/dirty_batch.rs"]
 mod dirty_batch;
+#[path = "transaction/engine_state.rs"]
 mod engine_state;
+#[path = "transaction/exclusive_transition.rs"]
 mod exclusive_transition;
+#[path = "transaction/lifecycle.rs"]
 mod lifecycle;
+#[path = "transaction/observation.rs"]
 mod observation;
+#[path = "transaction/operation_gate.rs"]
 mod operation_gate;
+#[path = "transaction/operation_group.rs"]
 mod operation_group;
+#[path = "transaction/replay.rs"]
 mod replay;
+#[path = "transaction/save_token.rs"]
 mod save_token;
+#[path = "transaction/scope.rs"]
 mod scope;
+#[path = "transaction/volatile.rs"]
 mod volatile;
 
 pub use dirty_batch::{
@@ -35,5 +46,5 @@ use operation_group::{ActiveOperationGroup, OperationGroupReservation};
 pub const MAX_HISTORY_DETAIL_PAGE_SIZE: usize = 128;
 
 #[cfg(test)]
-#[path = "tests/transaction_performance_source_guards.rs"]
+#[path = "tests/transaction_perf_source_guards.rs"]
 mod performance_source_guards;

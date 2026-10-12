@@ -7,6 +7,7 @@ use super::{
     append_class, bool_attribute_any, bool_from_attributes_any, pascal_case, string_attribute_any,
 };
 
+#[path = "../mui_x_classes/data_grid.rs"]
 mod data_grid;
 
 pub(super) fn append_component_classes(
@@ -608,5 +609,5 @@ fn number_attribute_any_from_attributes(
 }
 
 #[cfg(test)]
-#[path = "mui_x_classes/tests/borrowed_owner_attribute_tests.rs"]
+#[path = "../tests/borrowed_owner_attribute.rs"]
 mod borrowed_owner_attribute_tests;

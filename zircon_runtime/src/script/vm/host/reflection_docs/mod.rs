@@ -1,6 +1,9 @@
 //! 文档入口用独立临时注册表收集内置描述符，因此生成宿主接口文档不需要启动 VM 管理器或场景。
+#[path = "markdown.rs"]
 mod markdown;
+#[path = "options.rs"]
 mod options;
+#[path = "writer.rs"]
 mod writer;
 
 pub use markdown::render_script_host_modules_markdown;

@@ -72,7 +72,7 @@ EDITOR_BACKLOG_ANCHORS = (
     "fontdue",
     "rfd",
     "arboard",
-    "zircon_editor/src/ui/host",
+    "zircon_editor/src/ui",
     "Do not add to `zircon_runtime`",
     "zircon_runtime_interface",
 )

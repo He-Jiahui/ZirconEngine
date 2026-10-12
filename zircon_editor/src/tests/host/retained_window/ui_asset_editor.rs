@@ -3,11 +3,11 @@
 fn ui_asset_editor_host_genericizes_collection_event_dispatch() {
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/callback_wiring.rs"
+        "/src/ui/retained/app/callback_wiring.rs"
     ));
     let ui_asset_editor = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/ui_asset_editor.rs"
+        "/src/ui/retained/app/ui_asset_editor.rs"
     ));
     assert!(
         wiring.contains("pane_surface_host.on_ui_asset_collection_event("),
@@ -93,23 +93,23 @@ fn ui_asset_editor_host_genericizes_collection_event_dispatch() {
 fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
     let wiring = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/callback_wiring.rs"
+        "/src/ui/retained/app/callback_wiring.rs"
     ));
     let ui_asset_editor = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/ui_asset_editor.rs"
+        "/src/ui/retained/app/ui_asset_editor.rs"
     ));
     let component_adapter = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/template_runtime/component_adapter/asset_editor.rs"
+        "/src/ui/runtime/component_adapter/asset_editor.rs"
     ));
     let pane_surface_actions = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/pane_surface_actions.rs"
+        "/src/ui/retained/app/pane_surface_actions.rs"
     ));
     let ui_asset_detail_routes = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/ui_asset_editor_detail_routes.rs"
+        "/src/ui/retained/app/asset_editor_detail_routes.rs"
     ));
 
     assert!(
@@ -242,7 +242,7 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
 fn ui_asset_editor_host_routes_emergency_shell_actions_through_manager_commands() {
     let ui_asset_editor = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/app/ui_asset_editor.rs"
+        "/src/ui/retained/app/ui_asset_editor.rs"
     ));
     let manager_workspace = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -250,11 +250,11 @@ fn ui_asset_editor_host_routes_emergency_shell_actions_through_manager_commands(
     ));
     let host_contract = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/host_contract/data/ui_asset.rs"
+        "/src/ui/retained/contract/data/ui_asset.rs"
     ));
     let pane_conversion = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion/mod.rs"
+        "/src/ui/retained/ui/data/pane_ui_asset_conversion/mod.rs"
     ));
 
     for action_id in [

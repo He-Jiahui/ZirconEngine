@@ -183,5 +183,5 @@ fn encode_nul_terminated_path(path: &Path) -> Vec<u16> {
 }
 
 #[cfg(all(test, windows))]
-#[path = "platform/tests/windows_path_encoding_tests.rs"]
+#[path = "../platform/tests/windows_path_encoding.rs"]
 mod windows_path_encoding_tests;

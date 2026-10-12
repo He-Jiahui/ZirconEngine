@@ -372,5 +372,5 @@ fn write_line(dump: &mut String, args: std::fmt::Arguments<'_>) {
 }
 
 #[cfg(test)]
-#[path = "inspection_dump/tests/capacity_tests.rs"]
+#[path = "inspection_dump/tests/capacity.rs"]
 mod capacity_tests;

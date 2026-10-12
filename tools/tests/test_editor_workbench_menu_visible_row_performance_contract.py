@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HOST = ROOT / "zircon_editor/src/ui/retained_host/host_contract"
+HOST = ROOT / "zircon_editor/src/ui/retained/contract"
 ROWS = HOST / "paint_workbench_renderer/menus/rows.rs"
 SCROLL = HOST / "paint_workbench_renderer/menus/geometry/scroll.rs"
 BAR = HOST / "paint_workbench_renderer/menus/bar.rs"

@@ -1,20 +1,36 @@
 //! Render hardware interface contracts and descriptors.
 
+#[path = "capabilities.rs"]
 mod capabilities;
+#[path = "descriptors.rs"]
 mod descriptors;
+#[path = "device.rs"]
 mod device;
+#[path = "device_fault.rs"]
 mod device_fault;
+#[path = "device_profile.rs"]
 mod device_profile;
+#[path = "diagnostic_query.rs"]
 mod diagnostic_query;
+#[path = "diagnostic_readback.rs"]
 mod diagnostic_readback;
+#[path = "memory.rs"]
 mod memory;
+#[path = "native_surface.rs"]
 mod native_surface;
+#[path = "submission.rs"]
 mod submission;
+#[path = "submission_packet.rs"]
 mod submission_packet;
+#[path = "surface.rs"]
 mod surface;
+#[path = "texture_copy/mod.rs"]
 mod texture_copy;
+#[path = "texture_view.rs"]
 mod texture_view;
+#[path = "ui_surface.rs"]
 mod ui_surface;
+#[path = "upload.rs"]
 mod upload;
 
 pub use capabilities::{
@@ -96,6 +112,7 @@ pub use ui_surface::{
 pub use upload::{BufferUpload, BufferUploadBatch, TextureUpload, TextureUploadBatch};
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;
 
 pub use ui_surface::{

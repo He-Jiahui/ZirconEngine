@@ -5,15 +5,15 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 DISCOVERY = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "native_keyboard/target/discovery.rs"
 )
 SEARCH = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "native_keyboard/target/search.rs"
 )
 HIT_INDEX = ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "surface_hit_test/template_node/index.rs"
 )
 

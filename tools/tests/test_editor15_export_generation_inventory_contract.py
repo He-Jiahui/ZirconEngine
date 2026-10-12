@@ -50,28 +50,28 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
 
     def test_wizard_streams_full_logs_but_retains_only_bounded_tails(self) -> None:
         wizard = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/mod.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/mod.rs"
         )
         plan = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/plan.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/plan.rs"
         )
         execution = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs"
         )
         capture = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/output_capture.rs"
+            "zircon_editor/src/ui/host/exports/wizard/execution/output_capture.rs"
         )
         job_state = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/job.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/job.rs"
         )
         view_model = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/view_model.rs"
         )
         tail = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/output_tail.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/output_tail.rs"
         )
         job = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/job.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/job.rs"
         )
 
         self.assertIn("mod output_tail;", wizard)
@@ -86,7 +86,7 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "sync_all",
             "full_output_is_written_while_only_tail_is_retained",
         ]:
-            self.assertIn(required, (read_rust_test_file("zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/tests/output_capture.rs") if required == "full_output_is_written_while_only_tail_is_retained" else capture))
+            self.assertIn(required, (read_rust_test_file("zircon_editor/src/ui/host/exports/wizard/execution/tests/output_capture.rs") if required == "full_output_is_written_while_only_tail_is_retained" else capture))
         for required in [
             "MAX_OUTPUT_TAIL_LINES",
             "push_bounded_output_line",
@@ -97,7 +97,7 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "pop_front()",
             "push_front",
         ]:
-            self.assertIn(required, (read_rust_test_file("zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/output_tail.rs") if required in {"tail_never_exceeds_limit", "terminal_vec_results_are_bounded_at_the_output_boundary", "truncation_marker_is_retained"} else tail))
+            self.assertIn(required, (read_rust_test_file("zircon_editor/src/ui/host/exports/export_build/wizard/tests/output_tail.rs") if required in {"tail_never_exceeds_limit", "terminal_vec_results_are_bounded_at_the_output_boundary", "truncation_marker_is_retained"} else tail))
         self.assertNotIn("lines.remove(", tail)
         self.assertIn("lines.drain(..dropped)", tail)
         self.assertIn("lines.insert(0", tail)
@@ -113,7 +113,7 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
 
     def test_incremental_output_line_scan_resumes_at_the_pending_suffix(self) -> None:
         capture = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/output_capture.rs"
+            "zircon_editor/src/ui/host/exports/wizard/execution/output_capture.rs"
         )
 
         self.assertIn("scan_from", capture)
@@ -122,25 +122,25 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
 
     def test_wizard_stage_output_events_are_delta_based_and_budgeted(self) -> None:
         run = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/run.rs"
         )
         job = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/job.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/job.rs"
         )
         controller = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/controller.rs"
         )
         event_transport = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/event_transport.rs"
+            "zircon_editor/src/ui/host/exports/wizard/controller/event_transport.rs"
         )
         event_transport_tests = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/event_transport/tests/astra_admission_tests.rs"
+            "zircon_editor/src/ui/host/exports/wizard/controller/tests/astra_admission.rs"
         )
         view_model = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/view_model.rs"
         )
         streaming_tests = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/streaming_output_tests.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/tests/streaming_output.rs"
         )
 
         for required in [
@@ -239,7 +239,7 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "zircon_editor/src/ui/host/native_dynamic_export_preparation/mod.rs"
         )
         manager = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/manager.rs"
+            "zircon_editor/src/ui/host/exports/export_build/manager.rs"
         )
 
         self.assertIn("mod inventory;", core_export)
@@ -270,22 +270,22 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
 
     def test_build_export_pane_projection_is_source_and_overlay_cached(self) -> None:
         projection = source(
-            "zircon_editor/src/ui/retained_host/app/build_export_projection.rs"
+            "zircon_editor/src/ui/retained/app/build_export_projection.rs"
         )
         cache = source(
-            "zircon_editor/src/ui/retained_host/app/build_export_projection/cache.rs"
+            "zircon_editor/src/ui/retained/app/build_export_projection/cache.rs"
         )
         targets = source(
-            "zircon_editor/src/ui/retained_host/app/build_export_projection/targets.rs"
+            "zircon_editor/src/ui/retained/app/build_export_projection/targets.rs"
         )
         sessions = source(
-            "zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state.rs"
+            "zircon_editor/src/ui/retained/app/wizard/session_state.rs"
         )
         actions = source(
-            "zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions.rs"
+            "zircon_editor/src/ui/retained/app/build_export_actions/host_actions.rs"
         )
         job_polling = source(
-            "zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/polling.rs"
+            "zircon_editor/src/ui/retained/app/host_actions/jobs/polling.rs"
         )
 
         for required in [
@@ -295,7 +295,7 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "unchanged_source_generation_reuses_cached_projection_without_filesystem_probes",
             "changed_source_generation_invalidates_cached_projection_once",
         ]:
-            self.assertIn(required, (read_rust_test_file("zircon_editor/src/ui/retained_host/app/build_export_projection/tests/cache.rs") if required in {"cached_base", "changed_source_generation_invalidates_cached_projection_once", "unchanged_source_generation_reuses_cached_projection_without_filesystem_probes"} else cache))
+            self.assertIn(required, (read_rust_test_file("zircon_editor/src/ui/retained/app/build_export_projection/tests/cache.rs") if required in {"cached_base", "changed_source_generation_invalidates_cached_projection_once", "unchanged_source_generation_reuses_cached_projection_without_filesystem_probes"} else cache))
         self.assertNotIn("std::fs::read_dir", cache)
         self.assertIn("rebuild_export_targets", targets)
         self.assertIn("std::fs::read_dir", targets)
@@ -313,10 +313,10 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
 
     def test_report_projection_parses_structured_stdout_once(self) -> None:
         projection = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/panel_projection.rs"
         )
         tests = source(
-            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_report_body_tests.rs"
+            "zircon_editor/src/ui/host/exports/export_build/wizard/tests/panel_report_body.rs"
         )
 
         self.assertIn("parsed_report_from_stdout", projection)

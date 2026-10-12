@@ -18,12 +18,13 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::asset_editor::style::style_rule_declarations::parse_declaration_literal;
 
+#[path = "binding_inspector/payload_editing.rs"]
 mod payload_editing;
 #[path = "payload_suggestions.rs"]
 mod payload_suggestions;
 
 #[cfg(test)]
-#[path = "binding_inspector/tests/optimization_batch_jk_editor650_tests.rs"]
+#[path = "binding_inspector/tests/perf.rs"]
 mod optimization_batch_jk_editor650_tests;
 #[path = "schema_projection.rs"]
 mod schema_projection;

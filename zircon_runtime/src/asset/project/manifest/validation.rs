@@ -130,5 +130,5 @@ mod astra_root_tests;
 mod optimization_tests;
 
 #[cfg(test)]
-#[path = "validation/tests/optimization_batch_ir_runtime629_tests.rs"]
+#[path = "validation/tests/perf.rs"]
 mod optimization_batch_ir_runtime629_tests;

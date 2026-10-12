@@ -4,8 +4,11 @@
 #[allow(unused_imports, clippy::single_component_path_imports)]
 use zr_runtime_dev_dylib as _;
 
+#[path = "core/mod.rs"]
 pub mod core;
+#[path = "scene/mod.rs"]
 pub mod scene;
+#[path = "ui/mod.rs"]
 pub mod ui;
 
 pub use core::commands::{
@@ -47,4 +50,5 @@ pub use ui::retained_host::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

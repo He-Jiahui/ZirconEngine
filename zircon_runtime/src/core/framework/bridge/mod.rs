@@ -1,8 +1,12 @@
 //! Neutral contracts for plugin-to-plugin interface calls.
 
+#[path = "contract.rs"]
 mod contract;
+#[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "interface_slot.rs"]
 mod interface_slot;
+#[path = "strong.rs"]
 mod strong;
 
 pub use contract::{

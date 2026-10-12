@@ -111,5 +111,5 @@ impl PartialEq for ViewportOverlayProviderRegistration {
 }
 
 #[cfg(test)]
-#[path = "viewport_overlay_provider/tests/optimization_tests.rs"]
+#[path = "viewport_overlay_provider/tests/perf.rs"]
 mod optimization_tests;

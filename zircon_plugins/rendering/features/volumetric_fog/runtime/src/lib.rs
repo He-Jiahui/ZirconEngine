@@ -1,5 +1,8 @@
+#[path = "capability.rs"]
 mod capability;
+#[path = "plugin.rs"]
 mod plugin;
+#[path = "render_feature.rs"]
 mod render_feature;
 
 pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
@@ -20,5 +23,5 @@ pub use render_feature::{
 mod tests;
 
 #[cfg(test)]
-#[path = "tests/wgpu_product_tests.rs"]
+#[path = "tests/gpu.rs"]
 mod wgpu_product_tests;

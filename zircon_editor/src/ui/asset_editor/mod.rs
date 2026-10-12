@@ -1,15 +1,28 @@
+#[path = "binding/mod.rs"]
 mod binding;
+#[path = "command.rs"]
 mod command;
+#[path = "contract.rs"]
 mod contract;
+#[path = "diagnostics/mod.rs"]
 mod diagnostics;
+#[path = "document_diff.rs"]
 mod document_diff;
+#[path = "node_projection.rs"]
 mod node_projection;
+#[path = "palette/mod.rs"]
 pub(crate) mod palette;
+#[path = "palette_target_chooser.rs"]
 mod palette_target_chooser;
+#[path = "presentation.rs"]
 mod presentation;
+#[path = "preview/mod.rs"]
 pub(crate) mod preview;
+#[path = "promote_widget.rs"]
 mod promote_widget;
+#[path = "replay_workspace.rs"]
 mod replay_workspace;
+#[path = "session/mod.rs"]
 mod session;
 
 pub(crate) fn project_authoring_document_to_v2(
@@ -29,10 +42,15 @@ pub(crate) fn serialize_authoring_document_as_v2(
 ) -> Result<String, UiAssetEditorSessionError> {
     session::lifecycle::v2_projection::serialize_v2_projection_document(document, None)
 }
+#[path = "source/mod.rs"]
 mod source;
+#[path = "style/mod.rs"]
 pub(crate) mod style;
+#[path = "tree/mod.rs"]
 pub(crate) mod tree;
+#[path = "undo_stack.rs"]
 mod undo_stack;
+#[path = "value_path.rs"]
 pub(crate) mod value_path;
 
 #[cfg(test)]

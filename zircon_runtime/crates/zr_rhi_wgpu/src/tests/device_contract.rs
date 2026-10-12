@@ -37,10 +37,17 @@ fn create_test_pipeline_layout(
         .unwrap()
 }
 
+#[path = "device_contract/basic_resources.rs"]
 mod basic_resources;
+#[path = "device_contract/bind_groups.rs"]
 mod bind_groups;
+#[path = "../../tests/device_contract/framework_boundary.rs"]
 mod framework_boundary;
+#[path = "../../tests/device_contract/invalid_descriptors.rs"]
 mod invalid_descriptors;
+#[path = "../../tests/device_contract/texture_sampler_descs.rs"]
 mod texture_sampler_descriptors;
+#[path = "device_contract/texture_views.rs"]
 mod texture_views;
+#[path = "../../tests/transfer_and_submissions.rs"]
 mod transfer_and_submissions;

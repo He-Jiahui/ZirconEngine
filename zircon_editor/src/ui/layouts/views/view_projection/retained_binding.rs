@@ -197,5 +197,5 @@ pub(super) fn text_binding_for_metadata(
 }
 
 #[cfg(test)]
-#[path = "tests/retained_binding_optimization_tests.rs"]
+#[path = "../tests/retained_binding_perf.rs"]
 mod optimization_tests;

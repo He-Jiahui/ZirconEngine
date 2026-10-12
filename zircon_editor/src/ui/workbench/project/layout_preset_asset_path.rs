@@ -50,5 +50,5 @@ fn sanitize_layout_preset_name(name: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "layout_preset_asset_path/tests/single_buffer_sanitizer_tests.rs"]
+#[path = "tests/single_buffer_sanitizer.rs"]
 mod single_buffer_sanitizer_tests;

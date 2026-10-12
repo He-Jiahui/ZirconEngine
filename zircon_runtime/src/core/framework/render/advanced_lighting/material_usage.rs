@@ -56,5 +56,5 @@ impl AdvancedPbrMaterialFrameUsage {
 }
 
 #[cfg(test)]
-#[path = "tests/material_usage.rs"]
+#[path = "../tests/material_usage.rs"]
 mod tests;

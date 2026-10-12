@@ -1,13 +1,23 @@
 //! 虚拟几何插件的提取、逐相机准备与提交后回读契约；内部状态由框架按相机历史键管理。
+#[path = "extract_output.rs"]
 mod extract_output;
+#[path = "gpu_completion.rs"]
 mod gpu_completion;
+#[path = "prepare_input.rs"]
 mod prepare_input;
+#[path = "prepare_output.rs"]
 mod prepare_output;
+#[path = "provider.rs"]
 mod provider;
+#[path = "../provider_registration.rs"]
 mod provider_registration;
+#[path = "../runtime_feedback.rs"]
 mod runtime_feedback;
+#[path = "runtime_state.rs"]
 mod runtime_state;
+#[path = "runtime_stats.rs"]
 mod runtime_stats;
+#[path = "runtime_update.rs"]
 mod runtime_update;
 
 pub use extract_output::VirtualGeometryRuntimeExtractOutput;

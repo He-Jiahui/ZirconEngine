@@ -185,9 +185,9 @@ fn has_repaired_shell_tab(
 }
 
 #[cfg(test)]
-#[path = "tests/repair_builtin_shell_layout_optimization_tests.rs"]
+#[path = "tests/repair_builtin_shell_layout_perf.rs"]
 mod optimization_tests;
 
 #[cfg(test)]
-#[path = "repair_builtin_shell_layout/tests/optimization_batch_iy_editor636_tests.rs"]
+#[path = "repair_builtin_shell_layout/tests/perf.rs"]
 mod optimization_batch_iy_editor636_tests;

@@ -1,9 +1,13 @@
 use zircon_runtime::asset::{AssetImportContext, AssetImportError};
 use zircon_runtime::core::framework::render::RenderImageDimension;
 
+#[path = "astc.rs"]
 mod astc;
+#[path = "dds.rs"]
 mod dds;
+#[path = "ktx/mod.rs"]
 mod ktx;
+#[path = "support.rs"]
 mod support;
 
 #[cfg(test)]
@@ -66,8 +70,9 @@ pub(crate) fn parse_container_info(
 }
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "tests/mod_plugins07_container_hotpath_tests.rs"]
+#[path = "../tests/mod_plugins07_container.rs"]
 mod plugins07_container_hotpath_tests;

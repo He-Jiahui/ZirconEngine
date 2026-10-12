@@ -205,5 +205,5 @@ fn f32_from_bytes(bytes: &[u8]) -> Option<f32> {
 }
 
 #[cfg(test)]
-#[path = "tests/apply_borrowed_interpolation_index_tests.rs"]
+#[path = "../tests/apply_borrowed.rs"]
 mod borrowed_interpolation_index_tests;

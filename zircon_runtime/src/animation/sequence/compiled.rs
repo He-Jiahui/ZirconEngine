@@ -170,5 +170,5 @@ pub fn apply_compiled_sequence_to_world(
 }
 
 #[cfg(test)]
-#[path = "tests/compiled_missing_track_capacity_tests.rs"]
+#[path = "tests/compiled_missing_track_capacity.rs"]
 mod compiled_missing_track_capacity_tests;

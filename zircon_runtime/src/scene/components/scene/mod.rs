@@ -1,14 +1,26 @@
+#[path = "activation.rs"]
 mod activation;
+#[path = "animation.rs"]
 mod animation;
+#[path = "camera.rs"]
 mod camera;
+#[path = "hierarchy.rs"]
 mod hierarchy;
+#[path = "identity.rs"]
 mod identity;
+#[path = "lighting.rs"]
 mod lighting;
+#[path = "mesh_renderer.rs"]
 mod mesh_renderer;
+#[path = "node.rs"]
 mod node;
+#[path = "physics.rs"]
 mod physics;
+#[path = "post_process.rs"]
 mod post_process;
+#[path = "reflection/mod.rs"]
 mod reflection;
+#[path = "transform.rs"]
 mod transform;
 
 pub use self::activation::{

@@ -1,12 +1,22 @@
+#[path = "authority_state.rs"]
 mod authority_state;
+#[path = "claim.rs"]
 mod claim;
+#[path = "identity.rs"]
 mod identity;
+#[path = "input_capture.rs"]
 mod input_capture;
+#[path = "limits.rs"]
 mod limits;
+#[path = "resource_catalog.rs"]
 mod resource_catalog;
+#[path = "resource_set.rs"]
 mod resource_set;
+#[path = "scheduler.rs"]
 mod scheduler;
+#[path = "snapshot.rs"]
 mod snapshot;
+#[path = "transition.rs"]
 mod transition;
 
 pub use authority_state::{ToolAuthorityState, ToolShutdownOutcome};

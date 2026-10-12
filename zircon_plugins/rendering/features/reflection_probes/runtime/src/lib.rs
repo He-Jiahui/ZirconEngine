@@ -2,8 +2,11 @@
 //! 反射探针运行时公共面；默认启用只提供提取声明，捕获由显式框架请求和资源消费接口完成。
 use zircon_runtime::graphics::RenderFeatureDescriptor;
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "capture/mod.rs"]
 mod capture;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};

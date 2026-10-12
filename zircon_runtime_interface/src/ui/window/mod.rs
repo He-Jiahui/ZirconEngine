@@ -1,11 +1,20 @@
+#[path = "event.rs"]
 mod event;
+#[path = "impact.rs"]
 mod impact;
+#[path = "input.rs"]
 mod input;
+#[path = "metadata.rs"]
 mod metadata;
+#[path = "metrics.rs"]
 mod metrics;
+#[path = "pump.rs"]
 mod pump;
+#[path = "runtime_event.rs"]
 mod runtime_event;
+#[path = "runtime_event_abi.rs"]
 mod runtime_event_abi;
+#[path = "runtime_event_adapter.rs"]
 mod runtime_event_adapter;
 
 pub use event::{

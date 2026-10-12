@@ -2,9 +2,9 @@
 mod abi;
 #[path = "fullscreen_pass/builder.rs"]
 mod builder;
-#[path = "fullscreen_pass/parameter_encoding.rs"]
+#[path = "../fullscreen_pass/parameter_encoding.rs"]
 mod parameter_encoding;
-#[path = "fullscreen_pass/pipeline_cache_key.rs"]
+#[path = "../fullscreen_pass/pipeline_cache_key.rs"]
 mod pipeline_cache_key;
 #[path = "fullscreen_pass/plan.rs"]
 mod plan;

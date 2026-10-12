@@ -32,10 +32,15 @@ struct FrameCounter {
 
 impl Resource for FrameCounter {}
 
+#[path = "dynamic_scene/archive_core.rs"]
 mod archive_core;
+#[path = "dynamic_scene/archive_manifest.rs"]
 mod archive_manifest;
+#[path = "dynamic_scene/archive_mutation.rs"]
 mod archive_mutation;
+#[path = "dynamic_scene/level_apply.rs"]
 mod level_apply;
+#[path = "dynamic_scene/scene_patch_document.rs"]
 mod scene_patch_document;
 
 fn cloud_layer_descriptor() -> ComponentTypeDescriptor {

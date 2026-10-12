@@ -3,21 +3,37 @@
 //! 缓存查询刷新 archetype 计划后使用稳定列位置，非缓存查询直接扫描世界实体；
 //! 借出的缓存迭代器同时借用 `QueryState`，阻止期间再次刷新计划而使列绑定过期。
 
+#[path = "cached_query_iter.rs"]
 mod cached_query_iter;
+#[path = "query_access.rs"]
 mod query_access;
+#[path = "query_access_error.rs"]
 mod query_access_error;
+#[path = "query_combinations_iter.rs"]
 mod query_combinations_iter;
+#[path = "query_combinations_mut_iter.rs"]
 mod query_combinations_mut_iter;
+#[path = "query_data.rs"]
 mod query_data;
+#[path = "query_entity_error.rs"]
 mod query_entity_error;
+#[path = "query_filter.rs"]
 mod query_filter;
+#[path = "query_iter.rs"]
 mod query_iter;
+#[path = "query_many_iter.rs"]
 mod query_many_iter;
+#[path = "query_many_mut_iter.rs"]
 mod query_many_mut_iter;
+#[path = "query_many_unique_mut_iter.rs"]
 mod query_many_unique_mut_iter;
+#[path = "query_mut_iter.rs"]
 mod query_mut_iter;
+#[path = "query_single_error.rs"]
 mod query_single_error;
+#[path = "query_state/mod.rs"]
 mod query_state;
+#[path = "unique_entities.rs"]
 mod unique_entities;
 
 pub use cached_query_iter::{

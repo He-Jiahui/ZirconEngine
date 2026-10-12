@@ -28,7 +28,9 @@ use self::result::{
     finish_replace_selected_text_mutation,
 };
 
+#[path = "replace/replacement.rs"]
 mod replacement;
+#[path = "replace/result.rs"]
 mod result;
 
 pub(in crate::ui::accessibility::action) fn dispatch_replace_selected_text(

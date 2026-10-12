@@ -5,9 +5,9 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = (
     ROOT
-    / "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/cache.rs"
+    / "zircon_editor/src/ui/retained/contract/paint_text/draw/layout/cache.rs"
 )
-LAYOUT = ROOT / "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs"
+LAYOUT = ROOT / "zircon_editor/src/ui/retained/contract/paint_text/draw/layout.rs"
 
 
 class EditorTextLayoutCachePerformanceContractTests(unittest.TestCase):

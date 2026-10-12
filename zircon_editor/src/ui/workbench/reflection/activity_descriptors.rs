@@ -9,7 +9,7 @@ use crate::ui::workbench::view::{DockPolicy, ViewDescriptor, ViewKind};
 use super::drawer_slot_preference::drawer_slot_preference;
 
 #[cfg(test)]
-#[path = "activity_descriptors/tests/capacity_tests.rs"]
+#[path = "activity_descriptors/tests/capacity.rs"]
 mod capacity_tests;
 
 /// 将ViewDescriptor转换为宿主可查询能力；调用方应先登记这些能力再发布活动快照。

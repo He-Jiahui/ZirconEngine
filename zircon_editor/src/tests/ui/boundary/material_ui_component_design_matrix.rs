@@ -242,7 +242,7 @@ fn material_ui_component_design_matrix_names_existing_zui_prototypes() {
         references.len()
     );
 
-    let prototype_dir = workspace_root().join("zircon_editor/assets/ui/editor/material_components");
+    let prototype_dir = workspace_root().join("zircon_editor/assets/ui/editor");
     let prototype_files = collect_material_prototype_file_names(&prototype_dir);
 
     for reference in references {

@@ -1,16 +1,30 @@
+#[path = "binary/mod.rs"]
 mod binary;
+#[path = "budget.rs"]
 mod budget;
+#[path = "error.rs"]
 mod error;
+#[path = "format.rs"]
 mod format;
+#[path = "load.rs"]
 mod load;
+#[path = "loaded.rs"]
 mod loaded;
+#[path = "migration/mod.rs"]
 mod migration;
+#[path = "payload_header.rs"]
 mod payload_header;
+#[path = "positional.rs"]
 mod positional;
+#[path = "schema_id.rs"]
 mod schema_id;
+#[path = "text/mod.rs"]
 mod text;
+#[path = "versioned_schema.rs"]
 mod versioned_schema;
+#[path = "write.rs"]
 mod write;
+#[path = "write_error.rs"]
 mod write_error;
 
 pub use budget::SerializationBudget;
@@ -29,4 +43,5 @@ pub use write::{
 pub use write_error::{CanonicalTextWriteError, WriteError};
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

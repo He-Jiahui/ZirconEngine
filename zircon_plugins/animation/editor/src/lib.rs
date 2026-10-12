@@ -1,6 +1,9 @@
 //! 编辑器插件的公共导出层；宿主只经插件声明和作者扩展入口读取本 crate。
+#[path = "capability.rs"]
 mod capability;
+#[path = "extension_ids.rs"]
 mod extension_ids;
+#[path = "plugin.rs"]
 mod plugin;
 
 #[cfg(test)]

@@ -127,7 +127,7 @@ impl LayoutManager {
 }
 
 #[cfg(test)]
-#[path = "focus/tests/borrowed_exclusive_page_comparison_tests.rs"]
+#[path = "../../../layout/focus/tests/borrowed_exclusive_page_comparison.rs"]
 mod borrowed_exclusive_page_comparison_tests;
 
 #[cfg(test)]

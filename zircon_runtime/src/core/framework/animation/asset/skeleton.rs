@@ -52,5 +52,5 @@ impl AnimationSkeletonAsset {
 }
 
 #[cfg(test)]
-#[path = "skeleton/tests/borrowed_encoding_tests.rs"]
+#[path = "../../../animation/asset/skeleton/tests/borrowed_encoding.rs"]
 mod borrowed_encoding_tests;

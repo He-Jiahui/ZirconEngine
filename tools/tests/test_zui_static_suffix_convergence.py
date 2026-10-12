@@ -22,7 +22,7 @@ ACTIVE_SUPPORT_FILES = [
     "zircon_editor/src/ui/host/asset_editor_sessions/mod.rs",
     "zircon_editor/src/ui/host/asset_editor_sessions/watcher.rs",
     "zircon_editor/src/ui/host/editor_event_execution/asset_event.rs",
-    "zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs",
+    "zircon_editor/src/ui/runtime/runtime/runtime_host.rs",
     "zircon_editor/src/ui/layouts/views/view_projection.rs",
     "zircon_editor/src/ui/asset_editor/session/promotion_state.rs",
     "zircon_editor/src/ui/asset_editor/style/theme_authoring.rs",
@@ -35,7 +35,7 @@ USER_VISIBLE_SAMPLE_PATHS = [
     "zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs",
     "zircon_editor/src/ui/layouts/views/asset_browser/tests",
     "zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs",
-    "zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs",
+    "zircon_editor/src/tests/host/menus/visual_screenshot.rs",
 ]
 
 EDITOR_UI_ASSET_EDITING_TEST_PATHS = [
@@ -47,11 +47,11 @@ EDITOR_UI_ASSET_EDITING_TEST_PATHS = [
 ]
 
 EDITOR_HOST_MANAGER_UI_ASSET_TEST_PATHS = [
-    "zircon_editor/src/tests/host/manager",
+    "zircon_editor/src/tests",
 ]
 
 EDITOR_UI_ASSET_EDITOR_TEST_PATHS = [
-    "zircon_editor/src/tests/ui/ui_asset_editor",
+    "zircon_editor/src/tests/ui",
 ]
 
 EDITOR_UI_ASSET_EDITOR_ALLOWED_RETIRED_SUFFIX_LINES = {
@@ -75,7 +75,7 @@ EDITOR_UI_COMPONENT_ADAPTER_TEST_PATHS = [
 
 EDITOR_RETAINED_HOST_PROJECTION_TEST_PATHS = [
     "zircon_editor/src/tests/host/retained_window/native_host_contract",
-    "zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection",
+    "zircon_editor/src/ui/retained/ui/tests/host_scene_projection",
 ]
 
 EDITOR_EXTENSION_CONTRACT_TEST_FILES = [
@@ -89,7 +89,7 @@ EDITOR_VIEW_PROJECTION_TEST_FILES = [
 ]
 
 RUNTIME_EXTENSION_COMPONENT_TEST_FILES = [
-    "zircon_runtime/src/tests/plugin_extensions/extension_registry_components.rs",
+    "zircon_runtime/src/tests/plugins/extension_registry_components.rs",
 ]
 
 RUNTIME_ASSET_UI_REFERENCE_TEST_FILES = [

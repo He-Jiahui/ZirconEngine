@@ -73,10 +73,15 @@ use super::text_prewarm::{
 use crate::text::TextDocumentKey;
 use crate::ui::text::{UiTextMeasureCache, UiTextViewport};
 
+#[path = "extract/one_shot.rs"]
 mod one_shot;
+#[path = "extract/owner_text_prewarm.rs"]
 mod owner_text_prewarm;
+#[path = "extract/pixel_snapping.rs"]
 mod pixel_snapping;
+#[path = "extract/popup_anchor.rs"]
 mod popup_anchor;
+#[path = "extract/text_layout_route.rs"]
 mod text_layout_route;
 
 pub use one_shot::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};

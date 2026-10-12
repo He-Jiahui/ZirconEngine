@@ -1,14 +1,24 @@
 //! Versioned animation resource schemas and their stable binary wire format.
 
+#[path = "binary.rs"]
 mod binary;
+#[path = "channel.rs"]
 mod channel;
+#[path = "clip.rs"]
 mod clip;
+#[path = "error.rs"]
 mod error;
+#[path = "graph.rs"]
 mod graph;
+#[path = "reference.rs"]
 mod reference;
+#[path = "sequence.rs"]
 mod sequence;
+#[path = "skeleton.rs"]
 mod skeleton;
+#[path = "state_kind.rs"]
 mod state_kind;
+#[path = "state_machine.rs"]
 mod state_machine;
 
 pub use channel::{

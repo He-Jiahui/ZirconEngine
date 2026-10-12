@@ -7,11 +7,13 @@ use zircon_runtime_interface::ui::style::UiThemeDocument;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiAssetKind};
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2AssetKind};
 
+#[path = "ui/document_loader.rs"]
 mod document_loader;
+#[path = "ui/resource_references.rs"]
 mod resource_references;
 
 #[cfg(test)]
-#[path = "ui/tests/optimization_batch_ix_runtime635_tests.rs"]
+#[path = "ui/tests/perf.rs"]
 mod optimization_batch_ix_runtime635_tests;
 
 use document_loader::{load_current_ui_document, load_ui_v2_document, load_zui_document};

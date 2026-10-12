@@ -564,15 +564,15 @@ impl Write for StableHashWriter {
 }
 
 #[cfg(test)]
-#[path = "command/tests/rgba_hex_performance_tests.rs"]
+#[path = "command/tests/rgba_hex_perf.rs"]
 mod rgba_hex_performance_tests;
 
 #[cfg(test)]
-#[path = "command/tests/text_box_decoration_performance_tests.rs"]
+#[path = "../../render/command/tests/text_box_decoration_perf.rs"]
 mod text_box_decoration_performance_tests;
 
 #[cfg(test)]
-#[path = "command/tests/debug_label_performance_tests.rs"]
+#[path = "command/tests/debug_label_perf.rs"]
 mod debug_label_performance_tests;
 
 #[cfg(test)]
@@ -580,7 +580,7 @@ mod debug_label_performance_tests;
 mod clip_tests;
 
 #[cfg(test)]
-#[path = "tests/command_cache_generation_tests.rs"]
+#[path = "tests/command_cache_generation.rs"]
 mod cache_generation_tests;
 
 fn render_clip_frame(frame: UiFrame, metrics: UiLayoutMetrics) -> UiFrame {

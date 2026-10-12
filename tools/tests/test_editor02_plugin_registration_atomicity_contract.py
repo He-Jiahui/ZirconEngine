@@ -42,7 +42,7 @@ class EditorPluginRegistrationAtomicityContractTests(unittest.TestCase):
             "zircon_editor/src/ui/host/editor_extension_registration.rs"
         )
         consumer_controller = self.read(
-            "zircon_editor/src/ui/host/editor_host_event_controller/runtime_event_consumers.rs"
+            "zircon_editor/src/ui/editor_host_event_controller/runtime_event_consumers.rs"
         )
         registration_lifecycle = self.read(
             "zircon_editor/src/core/runtime_event_consumer/host/contribution_lifecycle.rs"

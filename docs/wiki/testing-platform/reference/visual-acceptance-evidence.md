@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/tests/zui_native_visual_acceptance.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/tests/virtual_geometry_visbuffer_overlay_contract.rs
-  - zircon_editor/src/tests/workbench
+  - zircon_editor/src/tests
   - .github/workflows/mvp-editor-windows.yml
 implementation_files:
   - zircon_runtime/tests/zui_native_visual_acceptance
@@ -112,7 +112,7 @@ JSON 应包括 source fingerprint、profile、platform、adapter、viewport、as
 
 ## 9. 源码索引
 
-native capture 的分拆实现位于 `zircon_runtime/tests/zui_native_visual_acceptance/`；多语言产品帧测试位于 `zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/`；MVP F1-F4 workflow gate 位于 `.github/workflows/mvp-editor-windows.yml`。
+native capture 的分拆实现位于 `zircon_runtime/tests/zui_native_visual_acceptance/`；多语言产品帧测试位于 `zircon_runtime/tests/text_pixels/`；MVP F1-F4 workflow gate 位于 `.github/workflows/mvp-editor-windows.yml`。
 
 ## 10. 案例：RenderableEmpty
 

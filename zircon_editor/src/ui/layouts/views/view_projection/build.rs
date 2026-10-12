@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+#[path = "../build/unreal_dock_header_source.rs"]
 mod unreal_dock_header_source;
 pub(crate) use unreal_dock_header_source::UnrealDockHeaderSource;
 

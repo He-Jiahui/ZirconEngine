@@ -71,5 +71,5 @@ impl AssetCreationTemplateDescriptor {
 }
 
 #[cfg(test)]
-#[path = "creation_template/tests/optimization_tests.rs"]
+#[path = "creation_template/tests/perf.rs"]
 mod optimization_tests;

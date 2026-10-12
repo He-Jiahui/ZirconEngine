@@ -14,8 +14,11 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
 
+#[path = "layout_slots/flow_grid_masonry.rs"]
 mod flow_grid_masonry;
+#[path = "layout_slots/linear_free.rs"]
 mod linear_free;
+#[path = "layout_slots/overlay_scroll.rs"]
 mod overlay_scroll;
 
 // BUG: [CR-UI-TEST-0601] 测试在 measure.rs 查找已迁出的测量入口和排序文本，当前首个肯定断言必失败；证据：measure/traversal.rs 持有入口。

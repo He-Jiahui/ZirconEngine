@@ -14,7 +14,7 @@ plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/architecture/runtime-foundation-precision-and-scene-authority.md
 tests:
-  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/tests
   - zircon_runtime/src/core/runtime/random/tests
 doc_type: module-detail
 ---

@@ -1,8 +1,14 @@
+#[path = "command.rs"]
 mod command;
+#[path = "edit_target.rs"]
 mod edit_target;
+#[path = "error.rs"]
 mod error;
+#[path = "factory.rs"]
 mod factory;
+#[path = "pending_edit_retention.rs"]
 mod pending_edit_retention;
+#[path = "registration.rs"]
 mod registration;
 
 pub use command::OperationCommand;

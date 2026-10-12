@@ -12,7 +12,7 @@ class RuntimeNativeSystemAccessOwnerStructureTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         owner_path = (
             repo_root
-            / "zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access.rs"
+            / "zircon_runtime/src/plugin/loader/registration_manifest/system_access.rs"
         )
         owner = owner_path.read_text(encoding="utf-8")
 
@@ -77,9 +77,9 @@ class RuntimeNativeSystemAccessOwnerStructureTests(unittest.TestCase):
 
         structure_plan = mirrors[1].read_text(encoding="utf-8")
         for current_path in (
-            "zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access.rs",
-            "zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access/authority.rs",
-            "zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access/error.rs",
+            "zircon_runtime/src/plugin/loader/registration_manifest/system_access.rs",
+            "zircon_runtime/src/plugin/loader/system_access/authority.rs",
+            "zircon_runtime/src/plugin/loader/registration_manifest/system_access/error.rs",
             "tools/tests/test_runtime_native_system_access_owner_structure.py",
         ):
             self.assertIn(current_path, structure_plan)

@@ -43,5 +43,5 @@ impl MachineInstanceKey {
 }
 
 #[cfg(test)]
-#[path = "tests/machine_instance_key.rs"]
+#[path = "../tests/machine_instance_key.rs"]
 mod tests;

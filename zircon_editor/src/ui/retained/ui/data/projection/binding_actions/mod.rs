@@ -1,0 +1,10 @@
+#[path = "path.rs"]
+mod path;
+#[path = "primary.rs"]
+mod primary;
+
+pub(super) use self::path::{binding_path_action_id, push_binding_path_action_id};
+pub(super) use self::primary::{
+    primary_change_action_id, primary_click_action_id, primary_click_binding_id,
+    primary_submit_action_id,
+};

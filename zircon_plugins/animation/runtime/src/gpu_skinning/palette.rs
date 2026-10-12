@@ -122,5 +122,5 @@ fn compose_world(
 }
 
 #[cfg(test)]
-#[path = "tests/palette_optimization_tests.rs"]
+#[path = "tests/palette_perf.rs"]
 mod optimization_tests;

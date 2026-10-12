@@ -294,7 +294,7 @@ fn session_effect_states(effects: &[ProjectSessionEffectRecoveryEntry]) -> Strin
 }
 
 #[cfg(test)]
-#[path = "project_recovery_assessment/tests/session_effect_state_tests.rs"]
+#[path = "tests/session_effect_state.rs"]
 mod session_effect_state_tests;
 
 #[cfg(test)]

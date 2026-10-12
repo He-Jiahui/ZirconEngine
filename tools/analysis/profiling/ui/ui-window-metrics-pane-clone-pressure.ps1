@@ -57,8 +57,8 @@ function Export-ZirconUiWindowMetricsPaneClonePressure {
     }
 
     $relativeSources = @(
-        "zircon_editor/src/ui/retained_host/ui/apply_presentation/scene_conversion.rs",
-        "zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs"
+        "zircon_editor/src/ui/retained/ui/apply_presentation/scene_conversion.rs",
+        "zircon_editor/src/ui/retained/contract/data/host_root.rs"
     )
     $sources = [ordered]@{}
     foreach ($relativePath in $relativeSources) {

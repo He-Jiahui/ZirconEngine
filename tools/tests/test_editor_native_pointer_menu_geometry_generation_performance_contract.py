@@ -5,7 +5,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HOST = ROOT / "zircon_editor/src/ui/retained_host/host_contract"
+HOST = ROOT / "zircon_editor/src/ui/retained/contract"
 MENU_GEOMETRY_ROOT = HOST / "native_pointer/menu_geometry.rs"
 MENU_GEOMETRY = HOST / "native_pointer/menu_geometry"
 

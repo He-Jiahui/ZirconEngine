@@ -1,3 +1,4 @@
+#[path = "catalog.rs"]
 mod catalog;
 
 pub use catalog::{

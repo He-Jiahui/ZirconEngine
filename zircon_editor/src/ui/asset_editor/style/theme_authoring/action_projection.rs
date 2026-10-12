@@ -331,7 +331,7 @@ pub(super) fn resolve_local_clone_token_renames(
 }
 
 #[cfg(test)]
-#[path = "action_projection/tests/optimization_batch_jf_editor645_tests.rs"]
+#[path = "tests/perf.rs"]
 mod optimization_batch_jf_editor645_tests;
 
 pub(super) fn find_local_cloned_stylesheet<'a>(
@@ -365,5 +365,5 @@ pub(super) fn find_local_cloned_stylesheet<'a>(
 }
 
 #[cfg(test)]
-#[path = "tests/action_projection_optimization_tests.rs"]
+#[path = "../tests/action_projection_perf.rs"]
 mod optimization_tests;

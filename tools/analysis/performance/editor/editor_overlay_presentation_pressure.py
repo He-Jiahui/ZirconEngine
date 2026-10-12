@@ -8,7 +8,7 @@ from typing import Any
 
 CRITICAL_SOURCE_CONTRACTS = (
     (
-        "zircon_editor/src/ui/retained_host/host_contract/globals/state.rs",
+        "zircon_editor/src/ui/retained/contract/globals/state.rs",
         (
             "pub(crate) fn replace_close_prompt",
             "pub(crate) fn replace_asset_deletion_blocker",
@@ -35,7 +35,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ("dispatch_close_prompt_step", "dispatch_asset_deletion_blocker_step"),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/"
+        "zircon_editor/src/ui/retained/contract/"
         "paint_workbench_renderer/scene_layers/overlay/modal.rs",
         ("draw_asset_deletion_blocker", "draw_close_prompt"),
     ),

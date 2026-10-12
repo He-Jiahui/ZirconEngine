@@ -285,5 +285,5 @@ impl TextRasterWorkerPool {
 }
 
 #[cfg(test)]
-#[path = "tests/diagnostics_optimization_batch_hv_runtime605_tests.rs"]
+#[path = "tests/diagnostics_perf.rs"]
 mod optimization_batch_hv_runtime605_tests;

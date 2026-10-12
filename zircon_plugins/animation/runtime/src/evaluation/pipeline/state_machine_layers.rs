@@ -381,5 +381,5 @@ fn blend_layer_pose(
 }
 
 #[cfg(test)]
-#[path = "tests/state_machine_layers.rs"]
+#[path = "../tests/state_machine_layers.rs"]
 mod tests;

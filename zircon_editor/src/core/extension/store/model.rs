@@ -1,6 +1,10 @@
+#[path = "model/contribution_store.rs"]
 mod contribution_store;
+#[path = "model/lifecycle.rs"]
 mod lifecycle;
+#[path = "model/records.rs"]
 mod records;
+#[path = "model/snapshot.rs"]
 mod snapshot;
 
 pub use contribution_store::ContributionStore;

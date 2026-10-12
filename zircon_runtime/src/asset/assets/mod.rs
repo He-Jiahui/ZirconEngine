@@ -1,20 +1,37 @@
+#[path = "authoring.rs"]
 mod authoring;
+#[path = "data.rs"]
 mod data;
+#[path = "font.rs"]
 mod font;
 #[cfg(feature = "text")]
+#[path = "font_source.rs"]
 mod font_source;
+#[path = "imported.rs"]
 mod imported;
+#[path = "material/mod.rs"]
 mod material;
+#[path = "mesh/mod.rs"]
 mod mesh;
+#[path = "model/mod.rs"]
 mod model;
+#[path = "physics_material.rs"]
 mod physics_material;
+#[path = "project_document.rs"]
 pub(in crate::asset) mod project_document;
+#[path = "project_document_error.rs"]
 mod project_document_error;
+#[path = "scene/mod.rs"]
 mod scene;
+#[path = "shader/mod.rs"]
 mod shader;
+#[path = "sound.rs"]
 mod sound;
+#[path = "sprite_atlas/mod.rs"]
 mod sprite_atlas;
+#[path = "texture/mod.rs"]
 mod texture;
+#[path = "ui.rs"]
 mod ui;
 
 pub use authoring::{

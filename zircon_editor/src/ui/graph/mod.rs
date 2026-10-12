@@ -1,9 +1,14 @@
 //! Shared graph-authoring foundation for editor domain toolkits.
 
+#[path = "canvas.rs"]
 mod canvas;
+#[path = "commands.rs"]
 mod commands;
+#[path = "model.rs"]
 mod model;
+#[path = "node_widget.rs"]
 mod node_widget;
+#[path = "routing.rs"]
 mod routing;
 
 pub use canvas::{GraphCanvasState, GraphNodeDrag, GraphNodeMove, GraphSelection};

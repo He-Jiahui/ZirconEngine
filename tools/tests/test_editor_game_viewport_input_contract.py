@@ -28,7 +28,7 @@ class EditorGameViewportInputContractTests(unittest.TestCase):
 
     def test_native_host_uses_distinct_scene_and_game_callbacks(self) -> None:
         callbacks = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/pane.rs"
+            "zircon_editor/src/ui/retained/contract/globals/callbacks/pane.rs"
         )
         wiring = self.read(
             "zircon_editor/src/ui/retained_host/app/callback_wiring/"
@@ -59,17 +59,17 @@ class EditorGameViewportInputContractTests(unittest.TestCase):
 
     def test_game_keyboard_routes_before_editor_keymap_and_keeps_release_events(self) -> None:
         keyboard = self.read(
-            "zircon_editor/src/ui/retained_host/app/native_keyboard_actions.rs"
+            "zircon_editor/src/ui/retained/app/native_keyboard_actions.rs"
         )
         game_input = self.read(
-            "zircon_editor/src/ui/retained_host/app/viewport/game_input.rs"
+            "zircon_editor/src/ui/retained/app/viewport/game_input.rs"
         )
         unhandled = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/window/text_input/"
+            "zircon_editor/src/ui/retained/contract/window/text_input/"
             "keyboard/unhandled.rs"
         )
         tick = self.read(
-            "zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs"
+            "zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs"
         )
         shell_state = self.read("zircon_editor/src/ui/workbench/shell_state.rs")
 
@@ -100,11 +100,11 @@ class EditorGameViewportInputContractTests(unittest.TestCase):
             "events/focus.rs"
         )
         wiring = self.read(
-            "zircon_editor/src/ui/retained_host/app/callback_wiring/host_shell/"
+            "zircon_editor/src/ui/retained/app/callback_wiring/host_shell/"
             "runtime.rs"
         )
         game_input = self.read(
-            "zircon_editor/src/ui/retained_host/app/viewport/game_input.rs"
+            "zircon_editor/src/ui/retained/app/viewport/game_input.rs"
         )
         runtime_events = self.read("zircon_runtime/src/dynamic_api/session/events.rs")
 
@@ -132,13 +132,13 @@ class EditorGameViewportInputContractTests(unittest.TestCase):
             "zircon_editor/src/core/play/controller/preview_routing.rs"
         )
         tick = self.read(
-            "zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs"
+            "zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs"
         )
         preview = self.read(
-            "zircon_editor/src/ui/retained_host/app/play_preview_redraw.rs"
+            "zircon_editor/src/ui/retained/app/play_preview_redraw.rs"
         )
         images = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs"
+            "zircon_editor/src/ui/retained/contract/data/viewport_image.rs"
         )
         menu = self.read(
             "zircon_editor/src/ui/host/editor_event_execution/menu_action.rs"

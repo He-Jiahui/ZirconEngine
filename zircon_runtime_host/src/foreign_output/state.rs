@@ -17,6 +17,7 @@ use super::{
     RuntimeForeignOutputError, RuntimeForeignOutputMetricsSnapshot, RuntimeOwnedOutputReleaser,
 };
 
+#[path = "state/diagnostic.rs"]
 mod diagnostic;
 
 use diagnostic::render_diagnostic_line;

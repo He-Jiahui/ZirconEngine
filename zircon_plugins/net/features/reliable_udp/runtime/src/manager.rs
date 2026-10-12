@@ -11,13 +11,21 @@ use zircon_runtime::core::framework::net::{
 
 use crate::ReliableUdpWireHeader;
 
+#[path = "manager/assembly.rs"]
 mod assembly;
+#[path = "manager/delivery.rs"]
 mod delivery;
+#[path = "manager/receive.rs"]
 mod receive;
+#[path = "manager/recovery.rs"]
 mod recovery;
+#[path = "manager/resend.rs"]
 mod resend;
+#[path = "manager/send.rs"]
 mod send;
+#[path = "manager/state.rs"]
 mod state;
+#[path = "manager/stats.rs"]
 mod stats;
 
 pub(self) const RESEND_ATTEMPT_CAP_DIAGNOSTIC: &str =

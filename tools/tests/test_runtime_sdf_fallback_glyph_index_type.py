@@ -7,7 +7,7 @@ class RuntimeSdfFallbackGlyphIndexTypeTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         source = (
             repo_root
-            / "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs"
+            / "zircon_runtime/src/graphics/scene/renderer/ui/text/sdf_fallback.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("let mut glyph_index: usize = 0;", source)

@@ -1,12 +1,19 @@
 //! 组织 RPC 的 channel、dispatch、握手、配额、注册和会话状态；公开独立内存 manager 构造器。
 //! 调用方负责从真实连接导入控制/调用消息并发布响应，当前 feature factory 未取得根 NetManager。
 
+#[path = "manager/channel.rs"]
 mod channel;
+#[path = "manager/dispatch.rs"]
 mod dispatch;
+#[path = "manager/handshake.rs"]
 mod handshake;
+#[path = "manager/quota.rs"]
 mod quota;
+#[path = "manager/registry.rs"]
 mod registry;
+#[path = "manager/session.rs"]
 mod session;
+#[path = "manager/state.rs"]
 mod state;
 
 use std::sync::Arc;

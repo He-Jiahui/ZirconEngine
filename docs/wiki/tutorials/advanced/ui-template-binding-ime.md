@@ -17,11 +17,11 @@ related_code:
   - zircon_runtime_interface/src/ui/window/input/platform_event.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
 implementation_files:
-  - zircon_runtime/src/ui/template
+  - zircon_runtime/src/ui
   - zircon_runtime/src/ui/v2
   - zircon_runtime/src/ui/binding
   - zircon_runtime/src/ui/platform_input
-  - zircon_runtime/src/ui/dispatch/input_manager
+  - zircon_runtime/src/ui/dispatch
   - zircon_runtime/src/ui/text
 plan_sources:
   - user: 2026-09-09 扩充 ZirconEngine 公开接口教程、机制案例与最佳实践

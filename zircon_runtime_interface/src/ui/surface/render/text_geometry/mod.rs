@@ -8,20 +8,21 @@ use super::{
     UiTextWritingMode,
 };
 
+#[path = "source_map/mod.rs"]
 mod source_map;
 
 pub use source_map::{UiTextLineSourceMap, UiTextVisualBoundaryBias, UiTextVisualSpan};
 
 #[cfg(test)]
-#[path = "tests/source_map_tests.rs"]
+#[path = "tests/source_map.rs"]
 mod source_map_tests;
 
 #[cfg(test)]
-#[path = "tests/caret_performance_tests.rs"]
+#[path = "tests/caret_perf.rs"]
 mod caret_performance_tests;
 
 #[cfg(test)]
-#[path = "tests/decoration_performance_tests.rs"]
+#[path = "../tests/decoration_perf.rs"]
 mod decoration_performance_tests;
 
 const TEXT_SELECTION_COLOR: &str = "#4d89ff66";
@@ -490,5 +491,5 @@ fn line_contains_caret(line: &UiResolvedTextLine, offset: usize) -> bool {
 }
 
 #[cfg(test)]
-#[path = "tests/mod_performance_tests.rs"]
+#[path = "tests/mod_perf.rs"]
 mod performance_tests;

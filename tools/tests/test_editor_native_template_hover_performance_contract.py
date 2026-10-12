@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HOST_CONTRACT_ROOT = ROOT / "zircon_editor/src/ui/retained_host/host_contract"
+HOST_CONTRACT_ROOT = ROOT / "zircon_editor/src/ui/retained/contract"
 PAINT_HOVER = (
     HOST_CONTRACT_ROOT
     / "paint_template_nodes/template_node_pipeline/hover.rs"

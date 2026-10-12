@@ -1,8 +1,14 @@
+#[path = "change_tick.rs"]
 mod change_tick;
+#[path = "change_tick_window.rs"]
 mod change_tick_window;
+#[path = "component_mutation.rs"]
 mod component_mutation;
+#[path = "component_ticks.rs"]
 mod component_ticks;
+#[path = "stats.rs"]
 mod stats;
+#[path = "wrappers.rs"]
 mod wrappers;
 
 pub use change_tick::ChangeTick;

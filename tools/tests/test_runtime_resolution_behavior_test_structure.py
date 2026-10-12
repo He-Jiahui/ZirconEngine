@@ -10,7 +10,7 @@ class RuntimeResolutionBehaviorTestStructureTests(unittest.TestCase):
         )
         exact_path = (
             repo_root
-            / "zircon_runtime/src/core/runtime/tests/resolution/behavior/exact_dependency_resolution.rs"
+            / "zircon_runtime/src/core/runtime/tests/behavior/exact_dependency_resolution.rs"
         )
 
         behavior = behavior_path.read_text(encoding="utf-8")

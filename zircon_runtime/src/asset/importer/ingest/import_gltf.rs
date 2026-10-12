@@ -250,7 +250,7 @@ where
 }
 
 #[cfg(test)]
-#[path = "tests/import_gltf_plugins07_gltf_output_capacity_tests.rs"]
+#[path = "../../tests/import_gltf_plugins07_gltf_output_capacity.rs"]
 mod plugins07_gltf_output_capacity_tests;
 
 fn mesh_skin_assets_by_mesh(

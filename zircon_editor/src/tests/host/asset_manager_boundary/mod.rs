@@ -1,10 +1,10 @@
 // 通过编译期源文件证据约束资产边界：编辑器持有项目访问与变更流，资源类型使用规范接口。
 #[test]
 fn editor_asset_boundary_lives_in_editor_crate() {
-    let app_source = include_str!("../../../ui/retained_host/app.rs");
+    let app_source = include_str!("../../../ui/retained/app.rs");
     let ui_host_mod_source = include_str!("../../../ui/host/mod.rs");
     let startup_managers_source =
-        include_str!("../../../ui/retained_host/app/host_lifecycle/startup/resources/managers.rs");
+        include_str!("../../../ui/retained/app/host_lifecycle/startup/resources/managers.rs");
     let project_access_source = include_str!("../../../ui/host/project_access.rs");
     let asset_workspace_source =
         include_str!("../../../ui/workbench/project/asset_workspace_state.rs");
@@ -117,10 +117,10 @@ fn editor_asset_project_access_stays_host_owned_and_typed() {
     let module_source = include_str!("../../../ui/host/module.rs");
     let runtime_services_source = include_str!("../../../ui/host/runtime_services.rs");
     let default_manager_source = include_str!(
-        "../../../ui/host/editor_asset_manager/manager/default_editor_asset_manager/mod.rs"
+        "../../../ui/host/assets/manager/assets/mod.rs"
     );
     let relocation_source = include_str!(
-        "../../../ui/host/editor_asset_manager/manager/default_editor_asset_manager/project_relocation.rs"
+        "../../../ui/host/assets/manager/assets/project_relocation.rs"
     );
 
     assert!(
@@ -144,8 +144,8 @@ fn editor_asset_project_access_stays_host_owned_and_typed() {
 
 #[test]
 fn editor_host_uses_asset_owned_asset_change_stream() {
-    let app_source = include_str!("../../../ui/retained_host/app.rs");
-    let backend_refresh_source = include_str!("../../../ui/retained_host/app/backend_refresh.rs");
+    let app_source = include_str!("../../../ui/retained/app.rs");
+    let backend_refresh_source = include_str!("../../../ui/retained/app/backend_refresh.rs");
     let retained_asset_refresh_test_source =
         include_str!("../retained_asset_refresh/scene_reload.rs");
 
@@ -280,8 +280,8 @@ fn editor_asset_workspace_uses_canonical_resource_record() {
 
 #[test]
 fn editor_host_uses_canonical_resource_event() {
-    let app_source = include_str!("../../../ui/retained_host/app.rs");
-    let backend_refresh_source = include_str!("../../../ui/retained_host/app/backend_refresh.rs");
+    let app_source = include_str!("../../../ui/retained/app.rs");
+    let backend_refresh_source = include_str!("../../../ui/retained/app/backend_refresh.rs");
     let resource_access_test_source = include_str!("../resource_access/mod.rs");
     let retained_asset_refresh_test_source =
         include_str!("../retained_asset_refresh/scene_reload.rs");

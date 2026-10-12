@@ -8,20 +8,20 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 MANAGER = REPO_ROOT / "zircon_editor/src/ui/host/editor_asset_manager/manager"
 DEFAULT_MANAGER = MANAGER / "default_editor_asset_manager"
 CATALOG_GENERATION = MANAGER / "catalog_generation"
-API = REPO_ROOT / "zircon_editor/src/ui/host/editor_asset_manager/api.rs"
-RECORDS = REPO_ROOT / "zircon_editor/src/ui/host/editor_asset_manager/records.rs"
-GENERATION = REPO_ROOT / "zircon_editor/src/ui/host/editor_asset_manager/generation.rs"
-PREVIEW = REPO_ROOT / "zircon_editor/src/ui/host/editor_asset_manager/preview.rs"
+API = REPO_ROOT / "zircon_editor/src/ui/host/assets/api.rs"
+RECORDS = REPO_ROOT / "zircon_editor/src/ui/host/assets/records.rs"
+GENERATION = REPO_ROOT / "zircon_editor/src/ui/host/assets/generation.rs"
+PREVIEW = REPO_ROOT / "zircon_editor/src/ui/host/assets/preview.rs"
 WORKSPACE = REPO_ROOT / "zircon_editor/src/ui/workbench/project/asset_workspace_state.rs"
-RETAINED_SNAPSHOTS = REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs"
-BACKEND_REFRESH = REPO_ROOT / "zircon_editor/src/ui/retained_host/app/backend_refresh.rs"
-CHANGE_STREAM = REPO_ROOT / "zircon_editor/src/ui/host/editor_asset_manager/change_stream.rs"
-HOST_EVENT_DRAIN = REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/refresh/events/runtime.rs"
-HOST_STARTUP_DRAIN = REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/refresh/events/startup.rs"
+RETAINED_SNAPSHOTS = REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/refresh/snapshots.rs"
+BACKEND_REFRESH = REPO_ROOT / "zircon_editor/src/ui/retained/app/backend_refresh.rs"
+CHANGE_STREAM = REPO_ROOT / "zircon_editor/src/ui/host/assets/change_stream.rs"
+HOST_EVENT_DRAIN = REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/refresh/events/runtime.rs"
+HOST_STARTUP_DRAIN = REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/refresh/events/startup.rs"
 PROJECT_SYNC = MANAGER / "project_sync"
 WATCH_PROJECTION = DEFAULT_MANAGER / "watch_projection.rs"
 RETAINED_ASSET_REFRESH = (
-    REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets/refresh.rs"
+    REPO_ROOT / "zircon_editor/src/ui/retained/app/assets/refresh.rs"
 )
 
 
@@ -252,7 +252,7 @@ class Editor09AssetCatalogGenerationContractTests(unittest.TestCase):
             encoding="utf-8"
         )
         asset_module = (
-            REPO_ROOT / "zircon_editor/src/ui/host/editor_asset_manager/mod.rs"
+            REPO_ROOT / "zircon_editor/src/ui/host/assets/mod.rs"
         ).read_text(encoding="utf-8")
         build = (CATALOG_GENERATION / "build.rs").read_text(encoding="utf-8")
         details = (CATALOG_GENERATION / "details.rs").read_text(encoding="utf-8")

@@ -391,5 +391,5 @@ pub(super) fn projection_update_domains(
 mod tests;
 
 #[cfg(test)]
-#[path = "compute/tests/dirty_reason_performance_tests.rs"]
+#[path = "compute/tests/dirty_reason_perf.rs"]
 mod dirty_reason_performance_tests;

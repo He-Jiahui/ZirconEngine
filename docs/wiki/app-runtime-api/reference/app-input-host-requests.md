@@ -5,10 +5,10 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/gamepad
   - zircon_app/src/entry/runtime_entry_app/ime_input
   - zircon_app/src/entry/runtime_entry_app/file_drag_drop
-  - zircon_app/src/entry/runtime_entry_app/host_requests
+  - zircon_app/src/entry/host_requests
   - zircon_app/src/entry/tests/runtime_entry_input_guards
 implementation_files:
-  - zircon_app/src/entry/runtime_entry_app/host_requests
+  - zircon_app/src/entry/host_requests
   - zircon_app/src/entry/runtime_entry_app/keyboard_input
   - zircon_app/src/entry/runtime_entry_app/pointer_input
   - zircon_app/src/entry/runtime_entry_app/gamepad

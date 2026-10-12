@@ -1,6 +1,10 @@
+#[path = "../overlap/distance.rs"]
 mod distance;
+#[path = "../overlap/pairwise.rs"]
 mod pairwise;
+#[path = "../overlap/proxies.rs"]
 mod proxies;
+#[path = "../overlap/query.rs"]
 mod query;
 
 use zircon_runtime::core::framework::physics::{

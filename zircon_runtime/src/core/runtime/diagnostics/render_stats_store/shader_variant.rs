@@ -340,5 +340,5 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
 }
 
 #[cfg(test)]
-#[path = "tests/shader_variant.rs"]
+#[path = "../tests/shader_variant.rs"]
 mod tests;

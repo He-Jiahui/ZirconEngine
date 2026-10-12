@@ -12,11 +12,17 @@ use zircon_runtime_interface::ui::{
     template::{UiAssetError, UiAssetKind},
 };
 
+#[path = "asset/component_schema.rs"]
 mod component_schema;
+#[path = "asset/document_compiler.rs"]
 mod document_compiler;
+#[path = "asset/fixture_migration.rs"]
 mod fixture_migration;
+#[path = "asset/loader_validation.rs"]
 mod loader_validation;
+#[path = "asset/style_rule_ids.rs"]
 mod style_rule_ids;
+#[path = "asset/style_write_apis.rs"]
 mod style_write_apis;
 
 const IMPORTED_BUTTON_ASSET_TOML: &str = r##"

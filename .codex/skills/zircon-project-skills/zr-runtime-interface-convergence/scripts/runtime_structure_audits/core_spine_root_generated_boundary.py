@@ -53,30 +53,30 @@ EXPECTED_GENERATED_MIGRATION_DEBT_COUNT = 0
 EXPECTED_GENERATED_DECISION_COUNT = 3
 MIRROR_DOCS_GUARD = "runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts"
 ROOT_ENTRIES_GUARD_RELATIVES = (
-    "zircon_runtime/src/tests/runtime_absorption/root_entries.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/core_spine.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/navigation.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/animation_backlog.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/animation_status_json.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/root_seats.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/mirror_docs.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_entries/runtime_root.rs",
+    "zircon_runtime/src/tests/contracts/root_entries.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/core_spine.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/module_families.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/module_families/navigation.rs",
+    "zircon_runtime/src/tests/contracts/module_families/animation_backlog.rs",
+    "zircon_runtime/src/tests/contracts/module_families/animation_status_json.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/module_families/root_seats.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/module_families/mirror_docs.rs",
+    "zircon_runtime/src/tests/contracts/root_entries/runtime_root.rs",
 )
 ROOT_SURFACE_GUARD_RELATIVES = (
-    "zircon_runtime/src/tests/runtime_absorption/root_surface/public_surface.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_surface/graphics_alias.rs",
-    "zircon_runtime/src/tests/runtime_absorption/root_surface/docs.rs",
+    "zircon_runtime/src/tests/contracts/root_surface/public_surface.rs",
+    "zircon_runtime/src/tests/contracts/root_surface/graphics_alias.rs",
+    "zircon_runtime/src/tests/contracts/root_surface/docs.rs",
 )
 GENERATED_GUARD_RELATIVES = (
-    "zircon_runtime/src/tests/runtime_absorption/generated_code_guard/markers.rs",
-    "zircon_runtime/src/tests/runtime_absorption/generated_code_guard/behavior.rs",
-    "zircon_runtime/src/tests/runtime_absorption/generated_code_guard/scope.rs",
-    "zircon_runtime/src/tests/runtime_absorption/generated_code_guard/delegation.rs",
+    "zircon_runtime/src/tests/contracts/generated_code_guard/markers.rs",
+    "zircon_runtime/src/tests/contracts/generated_code_guard/behavior.rs",
+    "zircon_runtime/src/tests/contracts/generated_code_guard/scope.rs",
+    "zircon_runtime/src/tests/contracts/generated_code_guard/delegation.rs",
 )
 MIRROR_DOCS_GUARD_RELATIVES = (
-    "zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs",
-    "zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated/mirror_docs.rs",
+    "zircon_runtime/src/tests/contracts/core_spine_root_generated.rs",
+    "zircon_runtime/src/tests/contracts/core_spine_root_generated/mirror_docs.rs",
 )
 
 ROOT_ENTRIES_TEST_ANCHORS = (

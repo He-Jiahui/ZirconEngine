@@ -14,10 +14,15 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode, UiVisibility},
 };
 
+#[path = "taffy_layout_pass/arrangement.rs"]
 mod arrangement;
+#[path = "taffy_layout_pass/fallback_policy.rs"]
 mod fallback_policy;
+#[path = "taffy_layout_pass/grid_slots.rs"]
 mod grid_slots;
+#[path = "taffy_layout_pass/linear_slots.rs"]
 mod linear_slots;
+#[path = "taffy_layout_pass/routing_diagnostics.rs"]
 mod routing_diagnostics;
 
 fn tree_with_root(root_id: u64, container: UiContainerKind) -> UiTree {

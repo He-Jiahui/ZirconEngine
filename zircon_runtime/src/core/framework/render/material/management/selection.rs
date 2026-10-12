@@ -10,11 +10,11 @@ use super::{
 use crate::core::resource::ResourceId;
 
 #[cfg(test)]
-#[path = "selection/tests/id_capacity_tests.rs"]
+#[path = "../selection/tests/id_capacity.rs"]
 mod id_capacity_tests;
 
 #[cfg(test)]
-#[path = "selection/tests/optimization_batch_iy_runtime636_tests.rs"]
+#[path = "../selection/tests/perf.rs"]
 mod optimization_batch_iy_runtime636_tests;
 
 /// Full management records selected by material id, preserving request order.

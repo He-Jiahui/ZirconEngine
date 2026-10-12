@@ -130,5 +130,5 @@ pub(in crate::manager) fn replication_time_key(
 }
 
 #[cfg(test)]
-#[path = "tests/schedule_payload_clone_tests.rs"]
+#[path = "../tests/schedule_payload.rs"]
 mod payload_clone_tests;

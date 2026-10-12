@@ -337,7 +337,7 @@ fn selection_delta(
 }
 
 #[cfg(test)]
-#[path = "tests/play_hierarchy_projection_optimization_batch_tests.rs"]
+#[path = "tests/play_hierarchy_project_perf_batch.rs"]
 mod optimization_batch_tests;
 
 #[cfg(test)]

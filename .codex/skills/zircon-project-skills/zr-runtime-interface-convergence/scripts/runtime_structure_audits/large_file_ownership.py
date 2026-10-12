@@ -81,7 +81,7 @@ def large_file_owner_class(path: str) -> str:
         return "runtime-framework-render"
     if path.startswith("zircon_runtime/"):
         return "runtime-other"
-    if path.startswith("zircon_editor/src/ui/retained_host/"):
+    if path.startswith("zircon_editor/src/ui/retained/"):
         return "editor-retained-host"
     if path.startswith("zircon_editor/src/ui/"):
         return "editor-ui"

@@ -10,13 +10,18 @@ use crate::core::framework::navigation::{
 use crate::core::math::{Real, Transform, Vec3};
 use crate::scene::{LevelSystem, SceneNavigationRuntime, World};
 
+#[path = "runtime/avoidance.rs"]
 mod avoidance;
+#[path = "runtime/baked_mesh.rs"]
 mod baked_mesh;
+#[path = "runtime/math.rs"]
 mod math;
+#[path = "runtime/state.rs"]
 mod state;
 #[cfg(test)]
 #[path = "runtime/tests/cases.rs"]
 mod tests;
+#[path = "runtime/world_scan.rs"]
 mod world_scan;
 
 use avoidance::avoidance_adjusted_target;

@@ -27,5 +27,5 @@ fn append_title_word(title: &mut String, segment: &str) {
 }
 
 #[cfg(test)]
-#[path = "title_case/tests/cases.rs"]
+#[path = "../../../../tree/palette_drop/resolution/title_case/tests/cases.rs"]
 mod tests;

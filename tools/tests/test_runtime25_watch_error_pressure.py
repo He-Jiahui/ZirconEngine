@@ -6,7 +6,7 @@ from tools.analysis.performance.runtime.runtime25_watch_error_pressure import ru
 
 ROOT = Path(__file__).resolve().parents[2]
 WATCH_DISPATCH = ROOT / (
-    "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/watch_dispatch.rs"
+    "zircon_runtime/src/asset/pipeline/manager/assets/watch_dispatch.rs"
 )
 BATCH_VALIDATOR = ROOT / "tools/analysis/validation/zircon-validation-runtime25-watch-error-batch.ps1"
 

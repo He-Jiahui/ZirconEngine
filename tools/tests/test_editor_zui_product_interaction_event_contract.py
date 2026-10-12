@@ -19,27 +19,27 @@ LAYOUT_MENU_BRIDGE = REPO_ROOT / (
     "workbench/layout_menu.rs"
 )
 APP_EDIT = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/app/pane_surface_actions/edit.rs"
+    "zircon_editor/src/ui/retained/app/pane_surface_actions/edit.rs"
 )
 COMPONENT_LAB_EDIT = REPO_ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
     "workbench/component_lab_field_edit.rs"
 )
 CONTROL_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs"
+    "zircon_editor/src/ui/retained/dispatch/workbench/control.rs"
 )
 TEMPLATE_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
+    "zircon_editor/src/ui/runtime/builtin/"
     "workbench_window_template_bindings.rs"
 )
 BUILTIN_TEMPLATE_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs"
+    "zircon_editor/src/ui/runtime/builtin/bindings.rs"
 )
 PREVIEW_ACTIONS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/workbench_preview_actions.rs"
+    "zircon_editor/src/ui/retained/preview_actions.rs"
 )
 WELCOME_PRESENTATION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/apply_presentation.rs"
+    "zircon_editor/src/ui/retained/ui/apply_presentation.rs"
 )
 PROJECT_OVERVIEW = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/project_overview.zui"
@@ -57,11 +57,11 @@ PROJECT_OVERVIEW_NAVIGATION = REPO_ROOT / (
     "workbench/extension_module_navigation/specs/data_production.rs"
 )
 PROJECT_OVERVIEW_TEMPLATE_BINDINGS = REPO_ROOT / (
-    "zircon_editor/src/ui/template_runtime/builtin/"
+    "zircon_editor/src/ui/runtime/builtin/"
     "workbench_extension_module_template_bindings/render_asset_vfx.rs"
 )
 EXTENSION_PREVIEW_ACTIONS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs"
+    "zircon_editor/src/ui/retained/preview_actions/extensions.rs"
 )
 HIERARCHY = REPO_ROOT / "zircon_editor/assets/ui/editor/hierarchy.zui"
 INSPECTOR_PANE_BODY = REPO_ROOT / (
@@ -77,25 +77,25 @@ VIEW_TEMPLATE_PROJECTION = REPO_ROOT / (
     "zircon_editor/src/ui/layouts/views/view_projection/materialization.rs"
 )
 TEMPLATE_NODE_CONVERSION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs"
+    "zircon_editor/src/ui/retained/ui/node_conversion.rs"
 )
 TEMPLATE_ACTIVATION_ROUTE = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "template_activation_semantics/route.rs"
 )
 TEMPLATE_ACTIVATION_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "template_activation_semantics/dispatch.rs"
 )
 ASSET_ACTIVATION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "template_activation_semantics/asset.rs"
 )
 ASSET_CONTROL_IDS = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/asset_control_ids.rs"
+    "zircon_editor/src/ui/retained/asset_control_ids.rs"
 )
 PANE_SURFACE_CLICK = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/app/pane_surface_actions/click.rs"
+    "zircon_editor/src/ui/retained/app/pane_surface_actions/click.rs"
 )
 MENU_ACTION_FROM_ID = REPO_ROOT / (
     "zircon_editor/src/ui/workbench/event/menu_action_from_id.rs"

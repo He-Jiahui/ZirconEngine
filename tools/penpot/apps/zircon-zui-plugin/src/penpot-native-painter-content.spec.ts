@@ -35,7 +35,7 @@ describe('native painter review content', () => {
     const content = nativePainterContent({
       component: 'Snackbar',
       penpot_prefab_source:
-        'zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_toast.zui#WorkbenchToast',
+        'zircon_editor/assets/ui/editor/workbench/primitives/feedback/toast.zui#WorkbenchToast',
       props: { text: 'Asset imported', action_label: 'Open' },
     });
 

@@ -56,6 +56,7 @@ use super::super::{
     BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, ProductCompositionRequest,
 };
 
+#[path = "profile_bootstrap/first_party_runtime_plugins.rs"]
 mod first_party_runtime_plugins;
 
 const EDITOR_MODULE_NAME: &str = "EditorModule";

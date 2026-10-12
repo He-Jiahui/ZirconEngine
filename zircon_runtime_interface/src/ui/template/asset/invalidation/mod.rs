@@ -1,8 +1,14 @@
+#[path = "change.rs"]
 mod change;
+#[path = "diagnostic.rs"]
 mod diagnostic;
+#[path = "fingerprint.rs"]
 mod fingerprint;
+#[path = "impact.rs"]
 mod impact;
+#[path = "report.rs"]
 mod report;
+#[path = "stage.rs"]
 mod stage;
 
 pub use change::{UiAssetChange, UiInvalidationSnapshot};

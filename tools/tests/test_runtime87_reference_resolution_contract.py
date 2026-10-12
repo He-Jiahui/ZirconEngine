@@ -12,7 +12,7 @@ TARGETED = ROOT / "zircon_runtime/src/asset/project/manager/scan_and_import/targ
 CATALOG = ROOT / "zircon_runtime/src/asset/project/catalog_input_generation.rs"
 EDITOR_PROJECTION = (
     ROOT
-    / "zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/record_projection.rs"
+    / "zircon_editor/src/ui/host/assets/manager/project_sync/record_projection.rs"
 )
 REGISTRY_QUERY = ROOT / "zircon_runtime/src/asset/registry/query.rs"
 NATIVE_IMPORTER = ROOT / "zircon_runtime/src/asset/importer/native.rs"
@@ -22,22 +22,22 @@ MUTATION_RELOCATION_PREFLIGHT = (
     ROOT / "zircon_runtime/src/asset/mutation/relocation_preflight.rs"
 )
 RESOURCE_RECONCILIATION = (
-    ROOT / "zircon_runtime/src/asset/pipeline/manager/resource_sync/reconcile_project_resources.rs"
+    ROOT / "zircon_runtime/src/asset/manager/resource_sync/reconcile_project_resources.rs"
 )
 RESOURCE_REGISTRY = ROOT / "zircon_runtime/src/core/resource/mod.rs"
 ASSET_REGISTRY_RELOCATION = ROOT / "zircon_runtime/src/asset/registry/relocation.rs"
 PROJECT_RELOCATION = ROOT / "zircon_runtime/src/asset/project/manager/relocation.rs"
 PIPELINE_RELOCATION = (
-    ROOT / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/relocation.rs"
+    ROOT / "zircon_runtime/src/asset/pipeline/manager/assets/relocation.rs"
 )
-EDITOR_ASSET_API = ROOT / "zircon_editor/src/ui/host/editor_asset_manager/api.rs"
+EDITOR_ASSET_API = ROOT / "zircon_editor/src/ui/host/assets/api.rs"
 EDITOR_ASSET_RELOCATION = (
     ROOT
-    / "zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/project_relocation.rs"
+    / "zircon_editor/src/ui/host/assets/manager/assets/project_relocation.rs"
 )
 EDITOR_ASSET_TRAIT_BRIDGE = (
     ROOT
-    / "zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/preview_trait_bridge.rs"
+    / "zircon_editor/src/ui/host/assets/manager/assets/preview_trait_bridge.rs"
 )
 
 

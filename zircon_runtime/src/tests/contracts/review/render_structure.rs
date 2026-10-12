@@ -1,0 +1,350 @@
+fn assert_contains_all(label: &str, source: &str, anchors: &[&str]) {
+    let missing: Vec<&str> = anchors
+        .iter()
+        .copied()
+        .filter(|anchor| !source.contains(anchor))
+        .collect();
+    assert!(missing.is_empty(), "{label} missing anchors: {missing:?}");
+}
+
+fn assert_not_contains(label: &str, source: &str, anchors: &[&str]) {
+    let present: Vec<&str> = anchors
+        .iter()
+        .copied()
+        .filter(|anchor| source.contains(anchor))
+        .collect();
+    assert!(
+        present.is_empty(),
+        "{label} unexpected anchors: {present:?}"
+    );
+}
+
+#[test]
+fn render01_compiled_pipeline_cached_sources_are_immutable_and_frame_flags_are_precomputed() {
+    let compiled_pipeline =
+        include_str!("../../../graphics/pipeline/declarations/compiled_render_pipeline.rs");
+    let frame_context = include_str!(
+        "../../../graphics/runtime/framework/extract/submission/build.rs"
+    );
+
+    assert_contains_all(
+        "compiled pipeline immutable derived sources",
+        compiled_pipeline,
+        &[
+            "enabled_features: Vec<RendererFeatureAsset>",
+            "graph: CompiledRenderGraph",
+            "pub fn enabled_features(&self) -> &[RendererFeatureAsset]",
+            "pub fn graph(&self) -> &CompiledRenderGraph",
+            "pub(crate) fn from_parts(",
+        ],
+    );
+    assert_not_contains(
+        "compiled pipeline immutable derived sources",
+        compiled_pipeline,
+        &[
+            "pub enabled_features:",
+            "pub graph:",
+            "pub(crate) runtime_metadata:",
+        ],
+    );
+    assert_contains_all(
+        "frame context precomputed feature flags",
+        frame_context,
+        &["let runtime_features = compiled_pipeline.runtime_feature_flags();"],
+    );
+    assert_not_contains(
+        "frame context precomputed feature flags",
+        frame_context,
+        &[".enabled_features", ".capability_requirements"],
+    );
+}
+
+#[test]
+fn review_f16_compiled_scene_render_path_uses_split_owners() {
+    let render_mod = include_str!(
+        "../../../graphics/scene/renderer/core/render/render/mod.rs"
+    );
+    let render = include_str!(
+        "../../../graphics/scene/renderer/core/render/render/render.rs"
+    );
+    let foundation = include_str!(
+        "../../../graphics/scene/core/render/compiled_scene_frame_foundation.rs"
+    );
+    let mesh_preparation = include_str!(
+        "../../../graphics/render/prepare_compiled_scene_mesh_submission.rs"
+    );
+    let graph_preparation = include_str!(
+        "../../../graphics/core/render/prepare_compiled_scene_graph_frame.rs"
+    );
+    let success_commit = include_str!(
+        "../../../graphics/core/render/commit_compiled_scene_frame_success.rs"
+    );
+    let bind = include_str!(
+        "../../../graphics/core/render/bind_compiled_scene_graph_resources.rs"
+    );
+    let bind_ssao = include_str!(
+        "../../../graphics/core/render/bind_ssao_compute_graph_resources.rs"
+    );
+    let execute = include_str!(
+        "../../../graphics/core/render/execute_compiled_scene_graph_stages.rs"
+    );
+    let submit = include_str!(
+        "../../../graphics/scene/core/render/submit_compiled_scene_frame.rs"
+    );
+    let submit_hzb = include_str!(
+        "../../../graphics/core/submit_compiled_scene_frame/hzb_readback.rs"
+    );
+    let submit_tests = include_str!(
+        "../../../graphics/scene/renderer/core/render/render/tests/cases.rs"
+    );
+    let sprite_stage_selection = include_str!(
+        "../../../graphics/scene/core/render/render/sprite_stage_selection.rs"
+    );
+    let pipeline_resource_usage = include_str!(
+        "../../../graphics/scene/core/render/render/pipeline_resource_usage.rs"
+    );
+    let review_findings = concat!(
+        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    );
+    let render_index = include_str!("../../../../../docs/plans/zircon_runtime/render/index.md");
+    let runtime_07 = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+    );
+    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let framework_doc =
+        include_str!("../../../../../docs/rendering/render-framework-architecture.md");
+
+    assert_contains_all(
+        "render module split",
+        render_mod,
+        &[
+            "mod bind_compiled_scene_graph_resources;",
+            "mod bind_ssao_compute_graph_resources;",
+            "mod commit_compiled_scene_frame_success;",
+            "mod compiled_scene_frame_foundation;",
+            "mod execute_compiled_scene_graph_stages;",
+            "mod pipeline_resource_usage;",
+            "mod prepare_compiled_scene_graph_frame;",
+            "mod prepare_compiled_scene_mesh_submission;",
+            "mod sprite_stage_selection;",
+            "mod submit_compiled_scene_frame;",
+        ],
+    );
+
+    assert_contains_all(
+        "render orchestration",
+        render,
+        &[
+            "self.prepare_compiled_scene_frame_foundation(",
+            "self.prepare_compiled_scene_mesh_submission(",
+            "self.prepare_compiled_scene_graph_frame(",
+            "self.execute_compiled_scene_graph_stages(CompiledSceneGraphStageContext",
+            "self.submit_compiled_scene_frame(CompiledSceneFrameSubmissionContext",
+            "self.commit_compiled_scene_frame_success(CompiledSceneFrameSuccessContext",
+        ],
+    );
+    assert_not_contains(
+        "render orchestration",
+        render,
+        &[
+            "queue.submit([encoder.finish()])",
+            "release_transient_backings_into_pool",
+            "fn attach_scene_velocity_readback_stats",
+            "fn active_late_graph_stages",
+            "execute_graph_stage(",
+            "fn active_sprite_graph_stages(",
+            "fn pipeline_has_active_sprite_stage(",
+            "fn pipeline_writes_resource(",
+            "bind_compiled_scene_graph_resources(",
+            "gpu_scene_prepared_upload.commit(&mut self.gpu_scene)",
+        ],
+    );
+
+    assert_contains_all(
+        "compiled-scene foundation owner",
+        foundation,
+        &[
+            "pub(super) struct PreparedCompiledSceneFrameFoundation",
+            "pub(super) fn prepare_compiled_scene_frame_foundation(",
+            "self.write_scene_uniform(",
+            "MaterialPipelineFeatureSet::from_executor_ids(",
+        ],
+    );
+    assert_contains_all(
+        "compiled-scene mesh preparation owner",
+        mesh_preparation,
+        &[
+            "pub(super) struct PreparedCompiledSceneMeshSubmission",
+            "pub(super) fn prepare_compiled_scene_mesh_submission(",
+            "build_compiled_scene_draws(",
+            "project_compiled_scene_mesh_draw_lists",
+        ],
+    );
+    assert_contains_all(
+        "compiled-scene graph preparation owner",
+        graph_preparation,
+        &[
+            "pub(super) struct PreparedCompiledSceneGraphFrame",
+            "pub(super) fn prepare_compiled_scene_graph_frame",
+            "bind_compiled_scene_graph_resources(",
+            "validate_materialized_graph_resources",
+            "use super::pipeline_resource_usage::pipeline_writes_resource;",
+        ],
+    );
+    assert_contains_all(
+        "compiled-scene success commit owner",
+        success_commit,
+        &[
+            "pub(super) struct CompiledSceneFrameSuccessContext",
+            "pub(super) fn commit_compiled_scene_frame_success(",
+            "gpu_scene_prepared_upload.commit(&mut self.gpu_scene)",
+            "roll_prev_transforms_after_success()",
+        ],
+    );
+
+    assert_contains_all(
+        "compiled-scene sprite-stage selection owner",
+        sprite_stage_selection,
+        &[
+            "pub(super) fn active_sprite_graph_stages(",
+            "fn pipeline_has_active_sprite_stage(",
+            "fn compiled_scene_sprite_stage_list_owns_core2d_product_stages(",
+            "fn active_sprite_graph_stages_follow_unculled_sprite_passes(",
+        ],
+    );
+    assert_not_contains(
+        "compiled-scene sprite-stage selection owner",
+        sprite_stage_selection,
+        &["fn pipeline_writes_resource("],
+    );
+    assert_contains_all(
+        "compiled-scene pipeline resource usage owner",
+        pipeline_resource_usage,
+        &[
+            "pub(super) fn pipeline_writes_resource(",
+            "pipeline.writes_resource(resource_name)",
+        ],
+    );
+    assert_not_contains(
+        "compiled-scene pipeline resource usage owner",
+        pipeline_resource_usage,
+        &["RenderGraphResourceAccessKind::Write", ".graph.passes()"],
+    );
+
+    assert_contains_all(
+        "compiled-scene resource binding owner",
+        bind,
+        &[
+            "pub(super) struct CompiledSceneGraphResourceBindingFlags",
+            "pub(super) fn bind_compiled_scene_graph_resources",
+            "bind_frame_graph_resources(",
+            "bind_history_graph_resources(",
+            "materialize_transient_resources_with_pool",
+            "bind_execution_owned_graph_resources(",
+            "bind_plugin_graph_resources(",
+        ],
+    );
+    assert_contains_all(
+        "compiled-scene SSAO binding owner",
+        bind_ssao,
+        &[
+            "pub(super) fn bind_ssao_compute_graph_resources",
+            "prepare_ssao_compute_params_upload(",
+            "import_borrowed_buffer_with_physical_desc(",
+        ],
+    );
+    assert_contains_all(
+        "compiled-scene stage execution owner",
+        execute,
+        &[
+            "pub(super) struct CompiledSceneGraphStageContext",
+            "pub(super) fn execute_compiled_scene_graph_stages",
+            "execute_graph_stage(",
+            "self.render_scene_passes(",
+            "self.copy_history_textures(",
+            "fn active_late_graph_stages",
+        ],
+    );
+    assert_contains_all(
+        "compiled-scene submission owner",
+        submit,
+        &[
+            "pub(super) struct CompiledSceneFrameSubmissionContext",
+            "pub(super) fn submit_compiled_scene_frame",
+            "submit_graphics_command_buffers_with_frame_diagnostics_and_surface(",
+            "retire_transient_backings_after_submission(",
+            "self.transient_resource_pool.end_frame()",
+        ],
+    );
+    assert_contains_all(
+        "compiled-scene HZB readback attachment owner",
+        submit_hzb,
+        &[
+            "pub(super) fn attach_hzb_occlusion_readback_stats",
+            "collect_last_readback_stats()",
+            "set_hzb_occlusion_cull_report(report)",
+        ],
+    );
+    assert!(submit.contains("mod hzb_readback;"));
+    assert!(submit.contains("mod submission_order_tests;"));
+
+    assert!(
+        render.lines().count() < 500,
+        "render.rs should remain below the F16 orchestration budget"
+    );
+    assert!(foundation.lines().count() < 300);
+    assert!(mesh_preparation.lines().count() < 300);
+    assert!(graph_preparation.lines().count() < 300);
+    assert!(success_commit.lines().count() < 200);
+    assert!(
+        bind.lines().count() < 160,
+        "bind_compiled_scene_graph_resources.rs should remain a focused owner"
+    );
+    assert!(bind_ssao.lines().count() < 100);
+    assert!(
+        execute.lines().count() < 420,
+        "execute_compiled_scene_graph_stages.rs should remain a focused owner"
+    );
+    assert!(
+        submit.lines().count() < 650,
+        "submit_compiled_scene_frame.rs should remain a focused owner"
+    );
+    assert!(submit_hzb.lines().count() < 80);
+    assert!(submit_tests.lines().count() < 200);
+    assert!(
+        sprite_stage_selection.lines().count() < 180,
+        "sprite_stage_selection.rs should remain a focused owner"
+    );
+    assert!(
+        pipeline_resource_usage.lines().count() < 80,
+        "pipeline_resource_usage.rs should remain a focused owner"
+    );
+
+    let docs = [
+        review_findings,
+        render_index,
+        runtime_07,
+        convention,
+        framework_doc,
+    ]
+    .join("\n");
+    assert_contains_all(
+        "F16 status mirrors",
+        &docs,
+        &[
+            "F16 render_compiled_scene structure split status guard",
+            "compiled_scene_render_split_review_guard_static_passed_cargo_deferred",
+            "review_f16_compiled_scene_render_path_uses_split_owners",
+            "bind_compiled_scene_graph_resources.rs",
+            "execute_compiled_scene_graph_stages.rs",
+            "submit_compiled_scene_frame.rs",
+            "sprite_stage_selection.rs",
+            "pipeline_resource_usage.rs",
+            "compiled_scene_render_split_coremin_and_focused_tests_passed",
+        ],
+    );
+}
+
+#[path = "render_structure/submission.rs"]
+mod submission;

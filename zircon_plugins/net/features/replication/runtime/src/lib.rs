@@ -1,9 +1,13 @@
 //! 集中公开复制 feature、snapshot/delta manager、编译表和默认插值延迟。
 //! 公开算法入口由宿主连接到 ECS 世界、会话和传输后才构成产品同步通路。
 
+#[path = "capability.rs"]
 mod capability;
+#[path = "feature.rs"]
 mod feature;
+#[path = "manager.rs"]
 mod manager;
+#[path = "plugin.rs"]
 mod plugin;
 
 pub use capability::{NET_REPLICATION_FEATURE_CAPABILITY, RUNTIME_CAPABILITIES};
@@ -18,4 +22,5 @@ pub use plugin::{
 };
 
 #[cfg(test)]
+#[path = "tests/mod.rs"]
 mod tests;

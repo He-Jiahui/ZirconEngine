@@ -14,7 +14,7 @@ use zircon_runtime_interface::ui::{
 use super::super::painter_state::UiRenderPainterStateSource;
 
 #[cfg(test)]
-#[path = "shared/tests/direct_hex_color_tests.rs"]
+#[path = "../shared/tests/direct_hex_color.rs"]
 mod direct_hex_color_tests;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

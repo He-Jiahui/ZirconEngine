@@ -307,9 +307,9 @@ impl EventBusState {
 }
 
 #[cfg(test)]
-#[path = "publish/tests/single_disconnect_inline_tests.rs"]
+#[path = "publish/tests/single_disconnect_inline.rs"]
 mod single_disconnect_inline_tests;
 
 #[cfg(test)]
-#[path = "publish/tests/optimization_batch_jm_runtime652_tests.rs"]
+#[path = "publish/tests/perf.rs"]
 mod optimization_batch_jm_runtime652_tests;

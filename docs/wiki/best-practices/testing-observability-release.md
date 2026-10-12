@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/tests
   - zircon_editor/src/tests
 implementation_files:
   - zircon_runtime/src
@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - docs/wiki/contributing-docs.md
 tests:
-  - zircon_runtime/src/core/runtime/tests
+  - zircon_runtime/src/core/tests
   - zircon_editor/src/tests
   - tools/tests
 doc_type: reference-guide
@@ -96,7 +96,7 @@ Unreal 自动化测试和 Insights 结合功能与性能证据；Bevy 强调 sch
 
 ## 精确来源
 
-- `zircon_runtime/src/core/runtime/tests`：runtime 契约和生命周期测试。
+- `zircon_runtime/src/core/tests`：runtime 契约和生命周期测试。
 - `zircon_editor/src/tests`：编辑器事务、布局和工作台测试。
 - `tests`：端到端项目回归。
 - `docs/wiki/contributing-docs.md`：文档与验证规范。

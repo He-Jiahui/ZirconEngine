@@ -13,7 +13,7 @@ use crate::core::editor_message::{EditorViewInvalidationMask, ViewDirtySet};
 mod tests;
 
 #[cfg(test)]
-#[path = "watch_map/tests/optimization_batch_ir_editor628_tests.rs"]
+#[path = "watch_map/tests/perf.rs"]
 mod optimization_batch_ir_editor628_tests;
 
 /// One editor-owned projection rule for a runtime-issued watch token.

@@ -5,9 +5,9 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn shared_drag_capture_surface_uses_rust_owned_pointer_event_contract() {
-    let globals = source("src/ui/retained_host/host_contract/globals/ui_context.rs");
-    let wiring = source("src/ui/retained_host/app/callback_wiring/host_shell/drag_resize.rs");
-    let docking = source("src/ui/retained_host/app/workspace_docking.rs");
+    let globals = source("src/ui/retained/contract/globals/ui_context.rs");
+    let wiring = source("src/ui/retained/app/callback_wiring/host_shell/drag_resize.rs");
+    let docking = source("src/ui/retained/app/workspace_docking.rs");
 
     assert!(globals.contains("on_host_drag_pointer_event"));
     assert!(wiring.contains("host_shell.on_host_drag_pointer_event("));
@@ -32,11 +32,11 @@ fn shared_drag_capture_surface_uses_rust_owned_pointer_event_contract() {
 
 #[test]
 fn host_document_tab_drop_uses_componentized_workbench_layout_frames() {
-    let docking = source("src/ui/retained_host/app/workspace_docking.rs");
-    let docking_route = source("src/ui/retained_host/app/workspace_docking/drag_drop/route.rs");
-    let tab_drag = source("src/ui/retained_host/tab_drag.rs");
-    let route_resolution = source("src/ui/retained_host/tab_drag/route_resolution.rs");
-    let strip_hitbox = source("src/ui/retained_host/tab_drag/strip_hitbox.rs");
+    let docking = source("src/ui/retained/app/workspace_docking.rs");
+    let docking_route = source("src/ui/retained/app/workspace_docking/drag_drop/route.rs");
+    let tab_drag = source("src/ui/retained/tab_drag.rs");
+    let route_resolution = source("src/ui/retained/tab_drag/route_resolution.rs");
+    let strip_hitbox = source("src/ui/retained/tab_drag/strip_hitbox.rs");
 
     assert!(docking_route.contains("resolve_host_tab_drop_route_with_workbench_layout_frames("));
     assert!(docking_route.contains("let committed = self.committed_shell_state.as_ref()?;"));
@@ -60,17 +60,17 @@ fn host_document_tab_drop_uses_componentized_workbench_layout_frames() {
 #[test]
 fn host_shell_drag_uses_componentized_workbench_layout_frames() {
     let componentized_window = source(
-        "src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs",
+        "src/ui/retained/dispatch/workbench/componentized_window.rs",
     );
     let recompute_viewport =
-        source("src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs");
+        source("src/ui/retained/app/host_lifecycle/recompute_viewport.rs");
     let shell_template_bridges =
-        source("src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs");
-    let helpers = source("src/ui/retained_host/app/helpers.rs");
+        source("src/ui/retained/app/host_lifecycle/recompute/shell/bridges.rs");
+    let helpers = source("src/ui/retained/app/helpers.rs");
     let drawer_layout =
-        source("src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs");
-    let shell_pointer_bridge = source("src/ui/retained_host/shell_pointer/bridge.rs");
-    let drag_surface = source("src/ui/retained_host/shell_pointer/drag_surface.rs");
+        source("src/ui/retained/dispatch/templates/workbench/drawer_layout.rs");
+    let shell_pointer_bridge = source("src/ui/retained/shell_pointer/bridge.rs");
+    let drag_surface = source("src/ui/retained/shell_pointer/drag_surface.rs");
 
     assert!(componentized_window.contains("layout_frames(&self)"));
     assert!(componentized_window.contains("BuiltinWorkbenchWindowLayoutFrames"));
@@ -100,9 +100,9 @@ fn host_shell_drag_uses_componentized_workbench_layout_frames() {
 
 #[test]
 fn tab_drag_bridge_uses_shell_pointer_route_intent_resolution() {
-    let tab_drag_bridge = source("src/ui/retained_host/tab_drag/bridge.rs");
-    let shell_pointer_bridge = source("src/ui/retained_host/shell_pointer/bridge.rs");
-    let drag_surface = source("src/ui/retained_host/shell_pointer/drag_surface.rs");
+    let tab_drag_bridge = source("src/ui/retained/tab_drag/bridge.rs");
+    let shell_pointer_bridge = source("src/ui/retained/shell_pointer/bridge.rs");
+    let drag_surface = source("src/ui/retained/shell_pointer/drag_surface.rs");
 
     assert!(tab_drag_bridge.contains("HostShellPointerBridge"));
     assert!(tab_drag_bridge.contains("self.shell_pointer.drag_target_at(point)"));

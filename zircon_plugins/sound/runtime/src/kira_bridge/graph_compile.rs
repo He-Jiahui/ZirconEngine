@@ -13,8 +13,9 @@ use zircon_runtime::core::framework::sound::{
 use super::graph_validation::validate_graph;
 
 #[cfg(test)]
-#[path = "graph_compile/tests/performance_tests.rs"]
+#[path = "graph_compile/tests/perf.rs"]
 mod performance_tests;
+#[path = "graph_compile/routes.rs"]
 mod routes;
 
 use routes::expanded_post_effect_sends;

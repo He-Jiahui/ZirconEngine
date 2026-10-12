@@ -1,5 +1,8 @@
+#[path = "plugin_renderer_outputs/hybrid_gi.rs"]
 mod hybrid_gi;
+#[path = "plugin_renderer_outputs/particles.rs"]
 mod particles;
+#[path = "plugin_renderer_outputs/geometry.rs"]
 mod virtual_geometry;
 
 pub use self::hybrid_gi::{

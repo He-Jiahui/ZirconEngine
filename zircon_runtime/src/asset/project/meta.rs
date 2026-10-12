@@ -483,7 +483,7 @@ fn invalid_data(error: impl std::error::Error) -> std::io::Error {
 }
 
 #[cfg(test)]
-#[path = "meta/tests/optimization_batch_iw_runtime633_tests.rs"]
+#[path = "meta/tests/perf.rs"]
 mod optimization_batch_iw_runtime633_tests;
 
 #[cfg(test)]

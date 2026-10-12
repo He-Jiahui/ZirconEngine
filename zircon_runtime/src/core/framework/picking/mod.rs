@@ -1,26 +1,48 @@
 //! Runtime-owned picking contracts shared by editor tools, dev tools, and backends.
 
+#[path = "backend.rs"]
 mod backend;
+#[path = "debug_feed.rs"]
 mod debug_feed;
+#[path = "hit_data.rs"]
 mod hit_data;
+#[path = "hit_record.rs"]
 mod hit_record;
+#[path = "hit_target.rs"]
 mod hit_target;
+#[path = "hover_map.rs"]
 mod hover_map;
+#[path = "pickable.rs"]
 mod pickable;
+#[path = "pipeline.rs"]
 mod pipeline;
+#[path = "pointer_button.rs"]
 mod pointer_button;
+#[path = "pointer_event.rs"]
 mod pointer_event;
+#[path = "pointer_event_state.rs"]
 mod pointer_event_state;
+#[path = "pointer_hits.rs"]
 mod pointer_hits;
+#[path = "pointer_id.rs"]
 mod pointer_id;
+#[path = "pointer_input.rs"]
 mod pointer_input;
+#[path = "pointer_location.rs"]
 mod pointer_location;
+#[path = "pointer_phase.rs"]
 mod pointer_phase;
+#[path = "primitive_backend.rs"]
 mod primitive_backend;
+#[path = "ray.rs"]
 mod ray;
+#[path = "ray_map.rs"]
 mod ray_map;
+#[path = "report.rs"]
 mod report;
+#[path = "schedule_label.rs"]
 mod schedule_label;
+#[path = "settings.rs"]
 mod settings;
 
 pub use backend::{PickingBackend, PickingBackendCapability, PickingBackendInfo};

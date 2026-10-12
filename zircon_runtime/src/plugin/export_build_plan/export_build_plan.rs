@@ -209,5 +209,5 @@ fn merge_unique_diagnostics(
 mod tests;
 
 #[cfg(test)]
-#[path = "export_build_plan/tests/effective_fatal_diagnostics_tests.rs"]
+#[path = "tests/effective_fatal_diagnostics.rs"]
 mod effective_fatal_diagnostics_tests;

@@ -1,5 +1,8 @@
+#[path = "reconnect.rs"]
 mod reconnect;
+#[path = "state_machine.rs"]
 mod state_machine;
+#[path = "tls.rs"]
 mod tls;
 
 pub(crate) use reconnect::ReconnectPolicy;

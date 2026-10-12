@@ -1,3 +1,4 @@
+#[path = "staging/recovery.rs"]
 mod recovery;
 
 #[cfg(test)]

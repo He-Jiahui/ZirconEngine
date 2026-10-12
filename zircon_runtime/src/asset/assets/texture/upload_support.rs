@@ -1,8 +1,14 @@
+#[path = "upload_support/astc.rs"]
 mod astc;
+#[path = "upload_support/bytes.rs"]
 mod bytes;
+#[path = "upload_support/compressed.rs"]
 mod compressed;
+#[path = "upload_support/dds.rs"]
 mod dds;
+#[path = "upload_support/ktx.rs"]
 mod ktx;
+#[path = "upload_support/layout.rs"]
 mod layout;
 
 #[cfg(test)]

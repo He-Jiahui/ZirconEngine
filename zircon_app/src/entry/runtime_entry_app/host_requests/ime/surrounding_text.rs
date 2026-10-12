@@ -21,5 +21,5 @@ pub(super) fn runtime_ime_surrounding_text(
 }
 
 #[cfg(test)]
-#[path = "tests/surrounding_text.rs"]
+#[path = "../../../host_requests/ime/tests/surrounding_text.rs"]
 mod tests;

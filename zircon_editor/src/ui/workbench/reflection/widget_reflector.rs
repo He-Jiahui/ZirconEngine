@@ -148,5 +148,5 @@ pub struct WorkbenchWidgetReflectorSelection<'a> {
 }
 
 #[cfg(test)]
-#[path = "tests/widget_reflector_optimization_tests.rs"]
+#[path = "tests/widget_reflector_perf.rs"]
 mod optimization_tests;

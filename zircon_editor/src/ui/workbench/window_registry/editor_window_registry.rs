@@ -12,7 +12,7 @@ use super::{
 };
 
 #[cfg(test)]
-#[path = "editor_window_registry/tests/optimization_tests.rs"]
+#[path = "tests/perf.rs"]
 mod optimization_tests;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -296,5 +296,5 @@ fn instances_by_id(instances: &[ViewInstance]) -> HashMap<&str, &ViewInstance> {
 }
 
 #[cfg(test)]
-#[path = "tests/editor_window_registry_performance_tests.rs"]
+#[path = "../tests/editor_window_registry_perf.rs"]
 mod performance_tests;

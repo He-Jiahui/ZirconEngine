@@ -1,6 +1,10 @@
+#[path = "gap.rs"]
 mod gap;
+#[path = "journal.rs"]
 mod journal;
+#[path = "limits.rs"]
 mod limits;
+#[path = "snapshot.rs"]
 mod snapshot;
 
 pub use gap::EditorJobEventJournalGap;

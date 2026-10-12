@@ -40,5 +40,5 @@ pub(in crate::graphics::scene::resources) fn mesh_sdf_seed_from_primitives(
 }
 
 #[cfg(test)]
-#[path = "tests/prepared_mesh_sdf_optimization_batch_gu_runtime576_tests.rs"]
+#[path = "../../prepared/tests/prepared_mesh_sdf_perf.rs"]
 mod optimization_batch_gu_runtime576_tests;

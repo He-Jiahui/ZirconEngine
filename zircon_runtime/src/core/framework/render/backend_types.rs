@@ -1,11 +1,20 @@
+#[path = "backend_types/ambient_occlusion.rs"]
 mod ambient_occlusion;
+#[path = "backend_types/backend_status.rs"]
 mod backend_status;
+#[path = "backend_types/camera_target.rs"]
 mod camera_target;
+#[path = "backend_types/capability.rs"]
 mod capability;
+#[path = "backend_types/command.rs"]
 mod command;
+#[path = "backend_types/graph_reports.rs"]
 mod graph_reports;
+#[path = "backend_types/handles.rs"]
 mod handles;
+#[path = "backend_types/history.rs"]
 mod history;
+#[path = "backend_types/quality.rs"]
 mod quality;
 
 #[cfg(test)]
@@ -566,5 +575,5 @@ pub struct RenderStats {
 }
 
 #[cfg(test)]
-#[path = "tests/backend_types_reflection_probe_workload_tests.rs"]
+#[path = "../../render/tests/backend_types_reflection_probe_workload.rs"]
 mod reflection_probe_workload_tests;

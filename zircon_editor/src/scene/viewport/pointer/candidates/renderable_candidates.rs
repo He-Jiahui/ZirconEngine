@@ -55,5 +55,5 @@ fn admit_renderable_owner(
 }
 
 #[cfg(test)]
-#[path = "tests/renderable_candidates.rs"]
+#[path = "../tests/renderable_candidates.rs"]
 mod tests;

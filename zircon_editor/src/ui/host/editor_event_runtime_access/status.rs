@@ -64,5 +64,5 @@ impl EditorHostEventController {
 }
 
 #[cfg(test)]
-#[path = "tests/status_optimization_tests.rs"]
+#[path = "tests/status_perf.rs"]
 mod optimization_tests;

@@ -8,7 +8,7 @@ EXTRACT = (
     / "zircon_runtime/src/core/framework/render/advanced_lighting/extract.rs"
 )
 EXTRACT_TESTS = (
-    ROOT / "zircon_runtime/src/core/framework/render/advanced_lighting/extract/tests/cases.rs"
+    ROOT / "zircon_runtime/src/core/framework/render/extract/tests/cases.rs"
 )
 
 

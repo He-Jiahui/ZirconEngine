@@ -9,7 +9,7 @@ node = "root"
 
 [imports]
 widgets = [
-  "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer",
+  "res://ui/editor/modules/generated/generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer",
 ]
 styles = []
 

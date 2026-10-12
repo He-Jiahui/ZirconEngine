@@ -101,5 +101,5 @@ fn selector_is_broad(selector: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "diagnostic/tests/scroll_pressure_tests.rs"]
+#[path = "../diagnostic/tests/scroll_pressure.rs"]
 mod scroll_pressure_tests;

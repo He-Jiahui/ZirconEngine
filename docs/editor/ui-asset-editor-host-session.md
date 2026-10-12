@@ -645,7 +645,7 @@ The guard `ui_asset_editor_host_genericizes_detail_event_dispatch` now checks th
 
 ## Current Retained Host Boundary
 
-The active editor UI boundary is now Rust-owned. `zircon_editor/src/ui/retained_host` owns the host loop, retained input/callback dispatch, host-contract DTOs, pane projection, and native presentation glue. Deleted generated UI sources are no longer an implementation, test, or documentation authority.
+The active editor UI boundary is now Rust-owned. `zircon_editor/src/ui/retained` owns the host loop, retained input/callback dispatch, host-contract DTOs, pane projection, and native presentation glue. Deleted generated UI sources are no longer an implementation, test, or documentation authority.
 
 The current host-contract entry points are:
 

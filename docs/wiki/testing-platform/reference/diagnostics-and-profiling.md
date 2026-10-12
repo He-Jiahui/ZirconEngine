@@ -2,9 +2,9 @@
 related_code:
   - zircon_runtime/src/runtime_diagnostics
   - zircon_runtime/src/diagnostic_log
-  - zircon_runtime/src/core/runtime/diagnostics/profiling
+  - zircon_runtime/src/core/runtime/profiling
   - zircon_app/src/reference_cpu_presenter.rs
-  - zircon_editor/src/ui/workbench
+  - zircon_editor/src/ui
 implementation_files:
   - tools/analysis/profiling/shared/profile-capture-paths.ps1
   - tools/analysis/profiling/ui/ui-profile-capture.ps1

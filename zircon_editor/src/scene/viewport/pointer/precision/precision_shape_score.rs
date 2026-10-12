@@ -54,9 +54,9 @@ impl PrecisionShape {
 }
 
 #[cfg(test)]
-#[path = "precision_shape_score/tests/early_exit_tests.rs"]
+#[path = "tests/early_exit.rs"]
 mod early_exit_tests;
 
 #[cfg(test)]
-#[path = "precision_shape_score/tests/threshold_exit_tests.rs"]
+#[path = "tests/threshold_exit.rs"]
 mod threshold_exit_tests;

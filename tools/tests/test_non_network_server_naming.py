@@ -60,7 +60,7 @@ class NonNetworkServerNamingTests(unittest.TestCase):
                 "zircon_editor/src/ui/workbench/startup/display_project_path.rs": (
                     'display_project_path("\\\\\\\\?\\\\UNC\\\\server\\\\share\\\\ZirconProject");\n'
                 ),
-                "zircon_editor/src/ui/retained_host/app/module_plugin_actions/"
+                "zircon_editor/src/ui/retained/app/plugins/"
                 "project_policy/status.rs": (
                     'RuntimeTargetMode::ServerRuntime => "server",\n'
                 ),

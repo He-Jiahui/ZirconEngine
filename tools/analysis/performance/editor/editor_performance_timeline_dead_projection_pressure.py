@@ -12,11 +12,11 @@ from typing import Any
 
 
 SOURCE_PATHS = (
-    "zircon_editor/src/ui/retained_host/host_contract/data/panes/performance_timeline.rs",
-    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/performance_timeline.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/data/panes/pane.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/selection.rs",
-    "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs",
+    "zircon_editor/src/ui/retained/contract/data/panes/performance_timeline.rs",
+    "zircon_editor/src/ui/retained/ui/data/performance_timeline.rs",
+    "zircon_editor/src/ui/retained/contract/data/panes/pane.rs",
+    "zircon_editor/src/ui/retained/contract/workbench/docks/pane/nodes/selection.rs",
+    "zircon_editor/src/ui/retained/contract/surface_hit_test/node/pane_nodes.rs",
 )
 
 SOURCE_GUARDS = {

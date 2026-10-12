@@ -360,15 +360,15 @@ pub(super) fn source_locator(locator: &AssetUri) -> AssetUri {
 mod tests;
 
 #[cfg(test)]
-#[path = "asset_registry_index/tests/optimization_tests.rs"]
+#[path = "asset_registry_index/tests/perf.rs"]
 mod optimization_tests;
 
 #[cfg(test)]
-#[path = "asset_registry_index/tests/type_posting_tests.rs"]
+#[path = "asset_registry_index/tests/type_posting.rs"]
 mod type_posting_tests;
 
 #[cfg(test)]
-#[path = "asset_registry_index/tests/secondary_query_tests.rs"]
+#[path = "asset_registry_index/tests/secondary_query.rs"]
 mod secondary_query_tests;
 
 #[cfg(test)]
@@ -376,9 +376,9 @@ mod secondary_query_tests;
 mod build_tests;
 
 #[cfg(test)]
-#[path = "asset_registry_index/tests/incremental_referencer_pruning_tests.rs"]
+#[path = "tests/incremental_referencer_pruning.rs"]
 mod incremental_referencer_pruning_tests;
 
 #[cfg(test)]
-#[path = "asset_registry_index/tests/source_removal_pruning_tests.rs"]
+#[path = "tests/source_removal_pruning.rs"]
 mod source_removal_pruning_tests;

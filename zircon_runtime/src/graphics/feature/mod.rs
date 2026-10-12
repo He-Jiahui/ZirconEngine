@@ -1,9 +1,16 @@
+#[path = "builtin_render_feature/mod.rs"]
 mod builtin_render_feature;
+#[path = "builtin/mod.rs"]
 mod builtin_render_feature_descriptor;
+#[path = "compute_pass_descriptor/mod.rs"]
 mod compute_pass_descriptor;
+#[path = "render_feature/mod.rs"]
 mod render_feature;
+#[path = "render_feature_capability_requirement.rs"]
 mod render_feature_capability_requirement;
+#[path = "render_feature_descriptor/mod.rs"]
 mod render_feature_descriptor;
+#[path = "render_feature_pass_descriptor/mod.rs"]
 mod render_feature_pass_descriptor;
 
 pub(crate) use builtin_render_feature::descriptor_only_advanced_slot_requires_capability_opt_in;

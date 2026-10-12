@@ -37,5 +37,5 @@ fn elapsed_count_label(mut count: u64, unit: char) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/format_recent_project_time_performance_tests.rs"]
+#[path = "tests/format_recent_project_time_perf.rs"]
 mod performance_tests;

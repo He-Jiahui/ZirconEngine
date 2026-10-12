@@ -38,16 +38,16 @@ class Editor17SettingsPersistenceRetryContractTests(unittest.TestCase):
 
     def test_zui_bridge_and_pane_carry_one_health_generation_and_retry_scope(self) -> None:
         zui = self.read(
-            "zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui"
+            "zircon_editor/assets/ui/editor/components/workbench/floating/preferences.zui"
         )
         bridge = self.read(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/settings_window.rs"
+            "zircon_editor/src/ui/retained/dispatch/templates/workbench/settings_window.rs"
         )
         pane = self.read(
-            "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window/mod.rs"
+            "zircon_editor/src/ui/retained/ui/data/projection/settings_window/mod.rs"
         )
         node = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/node.rs"
+            "zircon_editor/src/ui/retained/contract/data/nodes/node.rs"
         )
 
         for name in [
@@ -63,13 +63,13 @@ class Editor17SettingsPersistenceRetryContractTests(unittest.TestCase):
 
     def test_retry_is_a_title_bar_icon_action_with_direct_hit_testing(self) -> None:
         geometry = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/settings_window_geometry.rs"
+            "zircon_editor/src/ui/retained/contract/settings_window_geometry.rs"
         )
         hit = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/settings.rs"
+            "zircon_editor/src/ui/retained/contract/node/popup_rows/settings.rs"
         )
         paint = self.read(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window/persistence_health.rs"
+            "zircon_editor/src/ui/contract/paint/settings_window/persistence_health.rs"
         )
 
         self.assertIn("persistence_retry", geometry)
@@ -86,10 +86,10 @@ class Editor17SettingsPersistenceRetryContractTests(unittest.TestCase):
 
     def test_notification_change_prepares_health_and_one_retained_refresh(self) -> None:
         notifications = self.read(
-            "zircon_editor/src/ui/retained_host/app/workbench_notifications.rs"
+            "zircon_editor/src/ui/retained/app/notifications.rs"
         )
         option = self.read(
-            "zircon_editor/src/ui/retained_host/app/pane_surface_actions/workbench_surface/option.rs"
+            "zircon_editor/src/ui/retained/app/pane_surface_actions/surface/option.rs"
         )
 
         self.assertIn("capture_settings_persistence_health_projection", notifications)

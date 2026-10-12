@@ -1,8 +1,14 @@
+#[path = "components/agent.rs"]
 mod agent;
+#[path = "components/modifier.rs"]
 mod modifier;
+#[path = "components/obstacle.rs"]
 mod obstacle;
+#[path = "components/off_mesh_bridge.rs"]
 mod off_mesh_bridge;
+#[path = "components/off_mesh_link.rs"]
 mod off_mesh_link;
+#[path = "components/surface.rs"]
 mod surface;
 
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;

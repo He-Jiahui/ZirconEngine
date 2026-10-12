@@ -48,31 +48,50 @@ use thumbnail_nodes::{append_asset_browser_thumbnail_slots, trim_asset_browser_t
 use toolbar_layout::apply_asset_browser_toolbar_layout;
 use utility_tabs::apply_asset_browser_utility_tab_typography;
 
+#[path = "asset_browser/compact_layout.rs"]
 mod compact_layout;
+#[path = "asset_browser/compact_table_layout.rs"]
 mod compact_table_layout;
+#[path = "asset_browser/labels.rs"]
 mod labels;
+#[path = "asset_browser/logical_paint_source.rs"]
 mod logical_paint_source;
+#[path = "asset_browser/name_compaction.rs"]
 mod name_compaction;
+#[path = "asset_browser/name_lines.rs"]
 mod name_lines;
+#[path = "asset_browser/reference_nodes.rs"]
 mod reference_nodes;
+#[path = "asset_browser/selection_text.rs"]
 mod selection_text;
+#[path = "asset_browser/source_tree_nodes.rs"]
 mod source_tree_nodes;
+#[path = "asset_browser/stack_layout.rs"]
 mod stack_layout;
+#[path = "asset_browser/state_marks.rs"]
 mod state_marks;
+#[path = "asset_browser/summary_layout.rs"]
 mod summary_layout;
+#[path = "asset_browser/summary_nodes.rs"]
 mod summary_nodes;
+#[path = "asset_browser/table_nodes.rs"]
 mod table_nodes;
 #[cfg(test)]
+#[path = "asset_browser/tests/mod.rs"]
 mod tests;
+#[path = "asset_browser/thumbnail_layout.rs"]
 mod thumbnail_layout;
+#[path = "asset_browser/thumbnail_nodes.rs"]
 mod thumbnail_nodes;
 #[cfg(test)]
 #[path = "asset_browser/tests/token_contracts.rs"]
 mod token_contracts;
+#[path = "asset_browser/toolbar_layout.rs"]
 mod toolbar_layout;
 #[cfg(test)]
-#[path = "asset_browser/tests/toolbar_responsiveness_tests.rs"]
+#[path = "asset_browser/tests/toolbar_responsiveness.rs"]
 mod toolbar_responsiveness_tests;
+#[path = "asset_browser/utility_tabs.rs"]
 mod utility_tabs;
 
 const ASSET_BROWSER_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/asset_browser.zui";

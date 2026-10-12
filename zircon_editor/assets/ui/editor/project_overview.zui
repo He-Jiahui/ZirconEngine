@@ -5,7 +5,7 @@ version = 2
 display_name = "Project Overview"
 
 [imports]
-widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"]
+widgets = ["res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton"]
 styles = ["res://ui/theme/editor_workbench_strict.zui"]
 
 [root]

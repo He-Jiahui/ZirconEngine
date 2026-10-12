@@ -2,10 +2,10 @@
 related_code:
   - zircon_runtime_interface/src/serialization/mod.rs
   - zircon_runtime_interface/src/version.rs
-  - zircon_runtime/src/asset/project
+  - zircon_runtime/src/asset
 implementation_files:
   - zircon_runtime_interface/src/serialization/mod.rs
-  - zircon_runtime/src/asset/project
+  - zircon_runtime/src/asset
 plan_sources:
   - docs/wiki/app-runtime-api/serialization-contracts.md
 tests:
@@ -105,7 +105,7 @@ Unreal 使用资产版本和 derived data key；Godot 场景文本保留显式�
 
 - `zircon_runtime_interface/src/serialization/mod.rs`：公开序列化契约。
 - `zircon_runtime_interface/src/version.rs`：版本常量。
-- `zircon_runtime/src/asset/project`：文档、artifact 和迁移入口。
+- `zircon_runtime/src/asset`：文档、artifact 和迁移入口。
 - `docs/wiki/app-runtime-api/serialization-contracts.md`：格式说明。
 
 ## API 参数说明

@@ -17,6 +17,7 @@ use super::slot::{slot_for_container_child, slot_padding, UiLayoutSlotIndex};
 use super::workspace::UiContainerMeasureScratch;
 use super::{axis::desired_axis, material::measure_material_content};
 
+#[path = "measure/traversal.rs"]
 mod traversal;
 
 pub(crate) use traversal::{measure_node, measure_node_incremental};

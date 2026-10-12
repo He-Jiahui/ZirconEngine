@@ -17,12 +17,19 @@ use crate::asset::{
 };
 use crate::core::math::{Vec2, Vec3};
 
+#[path = "importer/builtin_data.rs"]
 mod builtin_data;
+#[path = "importer/physics_animation.rs"]
 mod physics_animation;
+#[path = "importer/registry_errors.rs"]
 mod registry_errors;
+#[path = "importer/registry_priority.rs"]
 mod registry_priority;
+#[path = "importer/shader_model.rs"]
 mod shader_model;
+#[path = "importer/structure.rs"]
 mod structure;
+#[path = "importer/typed_toml_ui.rs"]
 mod typed_toml_ui;
 
 fn virtual_geometry_import_settings() -> toml::Table {

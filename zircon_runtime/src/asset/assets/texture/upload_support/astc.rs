@@ -68,5 +68,5 @@ pub(super) fn astc_upload_plan(
 }
 
 #[cfg(test)]
-#[path = "tests/astc_plugins07_astc_header_hotpath_tests.rs"]
+#[path = "../../tests/astc_plugins07_astc_header_hotpath.rs"]
 mod plugins07_astc_header_hotpath_tests;

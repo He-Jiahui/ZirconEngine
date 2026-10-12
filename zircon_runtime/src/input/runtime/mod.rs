@@ -11,12 +11,19 @@
 //!
 //! # 参考
 //! 参见 [`crate::input::module_descriptor`]、[`InputActionEvaluator`] 与 [`DefaultInputManager`]。
+#[path = "action_evaluator.rs"]
 mod action_evaluator;
+#[path = "default_input_action_manager.rs"]
 mod default_input_action_manager;
+#[path = "default_input_manager.rs"]
 mod default_input_manager;
+#[path = "event_buffer/mod.rs"]
 mod event_buffer;
+#[path = "input_driver.rs"]
 mod input_driver;
+#[path = "input_state.rs"]
 mod input_state;
+#[path = "recording.rs"]
 mod recording;
 
 pub use action_evaluator::InputActionEvaluator;

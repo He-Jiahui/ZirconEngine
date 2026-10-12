@@ -1,3 +1,4 @@
+#[path = "diagnostic.rs"]
 mod diagnostic;
 
 pub use diagnostic::{ScriptDiagnostic, ScriptDiagnosticSeverity, ScriptSourceLocation};

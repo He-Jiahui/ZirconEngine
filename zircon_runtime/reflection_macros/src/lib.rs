@@ -1,11 +1,17 @@
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
 
+#[path = "args.rs"]
 mod args;
+#[path = "attrs.rs"]
 mod attrs;
+#[path = "derive_type.rs"]
 mod derive_type;
+#[path = "function.rs"]
 mod function;
+#[path = "module.rs"]
 mod module;
+#[path = "tokens.rs"]
 mod tokens;
 
 #[cfg(test)]

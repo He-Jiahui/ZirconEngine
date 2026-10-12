@@ -1,9 +1,16 @@
+#[path = "admission.rs"]
 mod admission;
+#[path = "composition.rs"]
 mod composition;
+#[path = "composition_v2.rs"]
 mod composition_v2;
+#[path = "deletion.rs"]
 mod deletion;
+#[path = "lifecycle.rs"]
 mod lifecycle;
+#[path = "native.rs"]
 mod native;
+#[path = "routing.rs"]
 mod routing;
 
 pub(super) use admission::RuntimeImeInputAdmission;

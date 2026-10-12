@@ -27,26 +27,26 @@ class EditorPluginV2PaneDataProjectionTests(unittest.TestCase):
 
     def test_template_v2_snapshots_flow_to_all_pane_locations(self) -> None:
         payloads = source(
-            "zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads.rs"
+            "zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads.rs"
         )
         presentation = source(
-            "zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/presentation.rs"
+            "zircon_editor/src/ui/retained/app/host_lifecycle/recompute/presentation.rs"
         )
-        apply = source("zircon_editor/src/ui/retained_host/ui/apply_presentation.rs")
+        apply = source("zircon_editor/src/ui/retained/ui/apply_presentation.rs")
         shell = source(
-            "zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs"
+            "zircon_editor/src/ui/layouts/windows/window/shell_presentation.rs"
         )
         floating = source(
-            "zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs"
+            "zircon_editor/src/ui/layouts/windows/window/floating_windows.rs"
         )
         panes = source(
-            "zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs"
+            "zircon_editor/src/ui/layouts/windows/window/pane_projection.rs"
         )
         context = source(
-            "zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_presentation.rs"
+            "zircon_editor/src/ui/layouts/windows/window/pane_presentation.rs"
         )
         builders = source(
-            "zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/mod.rs"
+            "zircon_editor/src/ui/layouts/windows/window/payloads/mod.rs"
         )
 
         for text, name in [

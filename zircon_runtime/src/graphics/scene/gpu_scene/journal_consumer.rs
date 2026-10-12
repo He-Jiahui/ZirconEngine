@@ -13,7 +13,9 @@ use super::super::render_scene::{
     RenderScenePrimitiveHandle,
 };
 
+#[path = "journal_consumer/reprojection.rs"]
 mod reprojection;
+#[path = "journal_consumer/work.rs"]
 mod work;
 
 pub(crate) use reprojection::{

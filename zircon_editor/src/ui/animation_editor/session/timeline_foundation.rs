@@ -88,7 +88,7 @@ pub(super) fn project_sequence_timeline(
 }
 
 #[cfg(test)]
-#[path = "tests/timeline_foundation_optimization_tests.rs"]
+#[path = "tests/timeline_foundation_perf.rs"]
 mod optimization_tests;
 
 fn track_value_kind(track: &AnimationSequenceTrackAsset) -> &'static str {

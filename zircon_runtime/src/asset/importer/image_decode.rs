@@ -4,7 +4,9 @@ use image::{DynamicImage, GenericImageView, ImageFormat};
 
 use super::{AssetImportContext, AssetImportError};
 
+#[path = "image_decode/source_format_identity.rs"]
 mod source_format_identity;
+#[path = "image_decode/source_metadata.rs"]
 mod source_metadata;
 
 use source_format_identity::stable_source_format_identity;

@@ -18,7 +18,9 @@ use super::{
 };
 use crate::core::gateway::EditorRuntimeGatewayHandle;
 
+#[path = "controller/preview_routing.rs"]
 mod preview_routing;
+#[path = "controller/runtime_ownership.rs"]
 mod runtime_ownership;
 
 #[cfg(test)]

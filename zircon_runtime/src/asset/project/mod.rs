@@ -1,16 +1,30 @@
+#[path = "catalog_input_generation.rs"]
 mod catalog_input_generation;
+#[path = "generation_authority.rs"]
 mod generation_authority;
+#[path = "generation_observation.rs"]
 mod generation_observation;
+#[path = "import_receipt.rs"]
 mod import_receipt;
+#[path = "manager/mod.rs"]
 mod manager;
+#[path = "manifest.rs"]
 mod manifest;
+#[path = "meta.rs"]
 mod meta;
+#[path = "meta_preview_state.rs"]
 mod meta_preview_state;
+#[path = "meta_write_authority.rs"]
 mod meta_write_authority;
+#[path = "package_asset_registry.rs"]
 mod package_asset_registry;
+#[path = "paths.rs"]
 mod paths;
+#[path = "reference_diagnostics.rs"]
 mod reference_diagnostics;
+#[path = "script_manifest.rs"]
 mod script_manifest;
+#[path = "shader_resource_records.rs"]
 mod shader_resource_records;
 
 pub(crate) use catalog_input_generation::ProjectCatalogInputSource;

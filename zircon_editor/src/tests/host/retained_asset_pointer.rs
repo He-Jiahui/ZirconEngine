@@ -499,16 +499,16 @@ fn shared_asset_reference_pointer_bridge_scrolls_and_dispatches_reference_activa
 fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_business_abi() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let globals = [
-        "src/ui/retained_host/host_contract/globals.rs",
-        "src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs",
+        "src/ui/retained/contract/globals.rs",
+        "src/ui/retained/contract/globals/pane_context/callbacks.rs",
     ]
     .into_iter()
     .map(|path| std::fs::read_to_string(root.join(path)).expect(path))
     .collect::<Vec<_>>()
     .join("\n");
     let wiring = [
-        "src/ui/retained_host/app/callback_wiring.rs",
-        "src/ui/retained_host/app/callback_wiring/pane_surface/assets/controls.rs",
+        "src/ui/retained/app/callback_wiring.rs",
+        "src/ui/retained/app/pane_surface/assets/controls.rs",
     ]
     .into_iter()
     .map(|path| std::fs::read_to_string(root.join(path)).expect(path))
@@ -573,11 +573,11 @@ fn asset_surface_templates_map_no_preview_physics_and_animation_assets_to_specif
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let sequence_descriptor =
         std::fs::read_to_string(root.join(
-            "src/ui/host/builtin_views/activity_windows/animation_sequence_view_descriptor.rs",
+            "src/ui/host/activity_windows/animation_sequence_view_desc.rs",
         ))
         .expect("animation sequence descriptor");
     let graph_descriptor = std::fs::read_to_string(
-        root.join("src/ui/host/builtin_views/activity_windows/animation_graph_view_descriptor.rs"),
+        root.join("src/ui/host/activity_windows/animation_graph_view_desc.rs"),
     )
     .expect("animation graph descriptor");
 

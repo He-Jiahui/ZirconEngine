@@ -1,12 +1,20 @@
 //! Canonical editor-side asset type contracts.
 
+#[path = "activation.rs"]
 mod activation;
+#[path = "dirty/mod.rs"]
 mod dirty;
+#[path = "import_flow/mod.rs"]
 mod import_flow;
+#[path = "index.rs"]
 mod index;
+#[path = "refactor/mod.rs"]
 mod refactor;
+#[path = "source_authority.rs"]
 mod source_authority;
+#[path = "toolkit_route.rs"]
 mod toolkit_route;
+#[path = "type_registry/mod.rs"]
 mod type_registry;
 
 pub use activation::{

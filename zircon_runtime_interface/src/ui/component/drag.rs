@@ -147,7 +147,7 @@ impl UiDragSourceMetadata {
 }
 
 #[cfg(test)]
-#[path = "drag/tests/summary_performance_tests.rs"]
+#[path = "drag/tests/summary_perf.rs"]
 mod summary_performance_tests;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

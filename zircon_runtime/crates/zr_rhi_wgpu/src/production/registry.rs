@@ -16,10 +16,15 @@ use zr_rhi::{
     TextureHandle, TextureViewDesc, TextureViewHandle,
 };
 
+#[path = "registry/bindings.rs"]
 mod bindings;
+#[path = "registry/pipelines.rs"]
 mod pipelines;
+#[path = "registry/resources.rs"]
 mod resources;
+#[path = "registry/retirement.rs"]
 mod retirement;
+#[path = "registry/usage.rs"]
 mod usage;
 
 #[cfg(test)]

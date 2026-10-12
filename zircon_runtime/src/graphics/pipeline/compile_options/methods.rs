@@ -247,5 +247,5 @@ fn builtin_descriptor_capability_requires_explicit_opt_in(
 }
 
 #[cfg(test)]
-#[path = "tests/methods_optimization_batch_df_runtime413_tests.rs"]
+#[path = "tests/methods_perf.rs"]
 mod optimization_batch_df_runtime413_tests;

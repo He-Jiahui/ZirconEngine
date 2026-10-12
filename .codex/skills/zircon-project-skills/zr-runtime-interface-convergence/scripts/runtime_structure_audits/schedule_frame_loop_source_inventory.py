@@ -39,6 +39,6 @@ RUNTIME_03_GUARD_FILES = (
     "zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs",
     "zircon_runtime/src/dynamic_api/tests/session_profiles.rs",
     "zircon_runtime/src/tests/time.rs",
-    "zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop.rs",
-    "zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop/mirror_docs.rs",
+    "zircon_runtime/src/tests/contracts/schedule_frame_loop.rs",
+    "zircon_runtime/src/tests/contracts/schedule_frame_loop/mirror_docs.rs",
 )

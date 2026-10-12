@@ -542,10 +542,10 @@ class RuntimeIncrementalLayoutSnapshotPerformanceContract(unittest.TestCase):
         projection = EDITOR_PROJECTION.read_text(encoding="utf-8")
         catalog = (
             REPO_ROOT
-            / "zircon_editor/src/ui/retained_host/ui_perf/counter_catalog.rs"
+            / "zircon_editor/src/ui/retained/ui_perf/counter_catalog.rs"
         ).read_text(encoding="utf-8")
         ui_perf = (
-            REPO_ROOT / "zircon_editor/src/ui/retained_host/ui_perf.rs"
+            REPO_ROOT / "zircon_editor/src/ui/retained/ui_perf.rs"
         ).read_text(encoding="utf-8")
         gate = (
             REPO_ROOT / "tools/analysis/profiling/ui/ui-profile-counter-evidence.ps1"

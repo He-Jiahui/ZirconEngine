@@ -45,10 +45,10 @@ class ActivityRailStableRoutePerformanceContract(unittest.TestCase):
 
     def test_shared_dispatch_borrows_target_from_pointer_layout(self):
         callback = source(
-            "zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/activity_rail.rs"
+            "zircon_editor/src/ui/retained/dispatch/shared_pointer/activity_rail.rs"
         )
         bridge = source(f"{OWNER}/host_activity_rail_pointer_bridge.rs")
-        route_map = source("zircon_editor/src/ui/retained_host/route_intent/map.rs")
+        route_map = source("zircon_editor/src/ui/retained/route_intent/map.rs")
 
         self.assertRegex(callback, re.compile(r"pointer_bridge\s*\.target_for_button"))
         self.assertIn("pub(crate) fn target_for_button", bridge)

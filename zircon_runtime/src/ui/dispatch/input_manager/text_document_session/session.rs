@@ -478,9 +478,9 @@ fn public_selection(
 }
 
 #[cfg(test)]
-#[path = "session/tests/cases.rs"]
+#[path = "../session/tests/cases.rs"]
 mod tests;
 
 #[cfg(test)]
-#[path = "session/tests/committed_source_tests.rs"]
+#[path = "../session/tests/committed_source.rs"]
 mod committed_source_tests;

@@ -5,15 +5,15 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn shared_resize_surface_uses_rust_owned_pointer_event_contract() {
-    let globals = source("src/ui/retained_host/host_contract/globals/ui_context.rs");
-    let wiring = source("src/ui/retained_host/app/callback_wiring/host_shell/drag_resize.rs");
-    let docking = source("src/ui/retained_host/app/workspace_docking.rs");
+    let globals = source("src/ui/retained/contract/globals/ui_context.rs");
+    let wiring = source("src/ui/retained/app/callback_wiring/host_shell/drag_resize.rs");
+    let docking = source("src/ui/retained/app/workspace_docking.rs");
     let resize_capture =
-        source("src/ui/retained_host/app/workspace_docking/drawer_resize/capture.rs");
+        source("src/ui/retained/app/workspace_docking/drawer_resize/capture.rs");
     let resize_movement =
-        source("src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs");
-    let resize_surface = source("src/ui/retained_host/shell_pointer/resize_surface.rs");
-    let shell_pointer_bridge = source("src/ui/retained_host/shell_pointer/bridge.rs");
+        source("src/ui/retained/app/workspace_docking/drawer_resize/movement.rs");
+    let resize_surface = source("src/ui/retained/shell_pointer/resize_surface.rs");
+    let shell_pointer_bridge = source("src/ui/retained/shell_pointer/bridge.rs");
 
     assert!(globals.contains("on_host_resize_pointer_event"));
     assert!(wiring.contains("host_shell.on_host_resize_pointer_event("));
@@ -64,12 +64,12 @@ fn shared_resize_surface_uses_rust_owned_pointer_event_contract() {
 
 #[test]
 fn shell_pointer_bridge_uses_route_intent_only() {
-    let retained_host_mod = source("src/ui/retained_host/mod.rs");
-    let route_intent_map = source("src/ui/retained_host/route_intent/map.rs");
-    let shell_pointer_bridge = source("src/ui/retained_host/shell_pointer/bridge.rs");
-    let shell_pointer_route = source("src/ui/retained_host/shell_pointer/route.rs");
-    let drag_surface = source("src/ui/retained_host/shell_pointer/drag_surface.rs");
-    let resize_surface = source("src/ui/retained_host/shell_pointer/resize_surface.rs");
+    let retained_host_mod = source("src/ui/retained/mod.rs");
+    let route_intent_map = source("src/ui/retained/route_intent/map.rs");
+    let shell_pointer_bridge = source("src/ui/retained/shell_pointer/bridge.rs");
+    let shell_pointer_route = source("src/ui/retained/shell_pointer/route.rs");
+    let drag_surface = source("src/ui/retained/shell_pointer/drag_surface.rs");
+    let resize_surface = source("src/ui/retained/shell_pointer/resize_surface.rs");
 
     assert!(retained_host_mod.contains("pub(crate) mod route_intent;"));
     assert!(route_intent_map.contains("pub(crate) struct EditorRouteIntentMap"));
@@ -88,9 +88,9 @@ fn shell_pointer_bridge_uses_route_intent_only() {
 
 #[test]
 fn shell_drag_target_frames_are_immutable_and_lock_free() {
-    let drag_surface = source("src/ui/retained_host/shell_pointer/drag_surface.rs");
-    let drag_frames = source("src/ui/retained_host/shell_pointer/drag_frames.rs");
-    let effects = source("src/ui/retained_host/shell_pointer/effects.rs");
+    let drag_surface = source("src/ui/retained/shell_pointer/drag_surface.rs");
+    let drag_frames = source("src/ui/retained/shell_pointer/drag_frames.rs");
+    let effects = source("src/ui/retained/shell_pointer/effects.rs");
 
     assert!(drag_frames.contains("struct DragTargetFrames"));
     assert!(drag_frames.contains("struct DragHitGeometry"));
@@ -105,8 +105,8 @@ fn shell_drag_target_frames_are_immutable_and_lock_free() {
 
 #[test]
 fn unchanged_resize_geometry_does_not_rebuild_the_surface() {
-    let common = source("src/ui/retained_host/shell_pointer/common.rs");
-    let resize = source("src/ui/retained_host/shell_pointer/resize_surface.rs");
+    let common = source("src/ui/retained/shell_pointer/common.rs");
+    let resize = source("src/ui/retained/shell_pointer/resize_surface.rs");
 
     assert!(common.contains(") -> bool"));
     assert!(resize.contains("let mut changed = false;"));
@@ -116,8 +116,8 @@ fn unchanged_resize_geometry_does_not_rebuild_the_surface() {
 
 #[test]
 fn drawer_resize_capture_goes_through_reply() {
-    let shell_pointer_bridge = source("src/ui/retained_host/shell_pointer/bridge.rs");
-    let resize_surface = source("src/ui/retained_host/shell_pointer/resize_surface.rs");
+    let shell_pointer_bridge = source("src/ui/retained/shell_pointer/bridge.rs");
+    let resize_surface = source("src/ui/retained/shell_pointer/resize_surface.rs");
     let resize_dispatch = shell_pointer_bridge
         .split("fn dispatch_resize_event(")
         .nth(1)

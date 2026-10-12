@@ -290,7 +290,7 @@ pub(super) fn palette_insert_mode_label(mode: PaletteInsertMode) -> &'static str
 }
 
 #[cfg(test)]
-#[path = "ui_asset_editor_session/tests/owned_document_move_tests.rs"]
+#[path = "tests/ui_owned_document_move.rs"]
 mod owned_document_move_tests;
 
 pub(super) fn move_direction_label(direction: UiTreeMoveDirection) -> &'static str {

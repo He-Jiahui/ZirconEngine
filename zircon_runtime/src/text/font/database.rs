@@ -26,13 +26,21 @@ use super::fallback_cache::{CompositeFontIdentity, FallbackCaches};
 use super::instance::{EffectiveInstanceCache, FontInstanceRegistry};
 use super::matching::{font_family_identity, FontFamilyIdentity};
 
+#[path = "database/asset_lifecycle.rs"]
 mod asset_lifecycle;
+#[path = "database/error.rs"]
 mod error;
+#[path = "database/face_access.rs"]
 mod face_access;
+#[path = "database/face_matching.rs"]
 mod face_matching;
+#[path = "database/fallback_queries.rs"]
 mod fallback_queries;
+#[path = "database/instances.rs"]
 mod instances;
+#[path = "database/render_snapshot.rs"]
 mod render_snapshot;
+#[path = "database/system_fonts.rs"]
 mod system_fonts;
 
 pub(crate) use error::FontDatabaseError;
@@ -730,6 +738,7 @@ pub(super) fn read_font_source(source_path: &Path) -> Result<ReadFontSource, Fon
     })
 }
 
+#[path = "database/equivalence.rs"]
 mod equivalence;
 
 #[cfg(test)]

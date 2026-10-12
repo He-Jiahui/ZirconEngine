@@ -26,7 +26,7 @@ use crate::graphics::WgpuRenderFramework;
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 const GPU_SCENE_TEST_WGSL: &str =
-    include_str!("../../scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+    include_str!("../../scene/renderer/mesh/shaders/zr_gpu_scene.wgsl");
 
 pub(super) struct RenderFixture {
     root: PathBuf,

@@ -348,6 +348,7 @@ impl PluginDeclaration {
     }
 }
 
+#[path = "declaration/macros.rs"]
 mod macros;
 
 #[cfg(test)]

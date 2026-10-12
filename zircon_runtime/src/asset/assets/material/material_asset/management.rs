@@ -110,5 +110,5 @@ fn sort_material_management_records(records: &mut [MaterialAssetManagementRecord
 }
 
 #[cfg(test)]
-#[path = "tests/management_optimization_tests.rs"]
+#[path = "tests/management_perf.rs"]
 mod optimization_tests;

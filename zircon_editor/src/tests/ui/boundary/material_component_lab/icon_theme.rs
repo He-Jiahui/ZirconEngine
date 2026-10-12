@@ -40,7 +40,7 @@ const SVG_ICON_THEME_SELECTORS: &[&str] = &[
 
 #[test]
 fn material_component_lab_icon_sample_uses_runtime_descriptor_and_theme_selectors() {
-    let path = editor_asset("assets/ui/editor/material_components/data_display/material_icons.zui");
+    let path = editor_asset("assets/ui/editor/data_display/material_icons.zui");
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));
     let document = UiZuiAssetLoader::load_zui_str(&source)
@@ -67,7 +67,7 @@ fn material_component_lab_icon_sample_uses_runtime_descriptor_and_theme_selector
 #[test]
 fn material_component_lab_material_icon_sample_uses_svg_icon_descriptor_and_theme_selectors() {
     let path = editor_asset(
-        "assets/ui/editor/material_components/data_display/material_material_icons.zui",
+        "assets/ui/editor/data_display/material_material_icons.zui",
     );
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("{} should be readable: {error}", path.display()));

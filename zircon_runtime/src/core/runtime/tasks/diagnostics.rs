@@ -10,6 +10,7 @@ use crate::core::diagnostics::DiagnosticStore;
 use super::diagnostic_observation::TaskDiagnosticJournal;
 use super::{JobSchedulerReport, TaskDiagnosticIdentity, TaskDiagnosticKind, TaskDiagnosticSource};
 
+#[path = "diagnostics/snapshot.rs"]
 mod snapshot;
 
 use snapshot::{JobDiagnosticsSnapshot, JobLifecycleSnapshot, StableDiagnosticsSnapshot};

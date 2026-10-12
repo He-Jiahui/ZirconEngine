@@ -10,20 +10,35 @@ use std::{
     time::Duration,
 };
 
+#[path = "runtime_state/action_targets.rs"]
 mod action_targets;
+#[path = "runtime_state/action_tasks.rs"]
 pub(in crate::tauri_app) mod action_tasks;
+#[path = "runtime_state/build_actions.rs"]
 mod build_actions;
+#[path = "runtime_state/cloud_bindings.rs"]
 mod cloud_bindings;
+#[path = "runtime_state/editor_launch_actions.rs"]
 mod editor_launch_actions;
+#[path = "runtime_state/editor_process_ledger.rs"]
 mod editor_process_ledger;
+#[path = "runtime_state/learn_actions.rs"]
 mod learn_actions;
+#[path = "runtime_state/new_project_actions.rs"]
 mod new_project_actions;
+#[path = "runtime_state/output_actions.rs"]
 mod output_actions;
+#[path = "runtime_state/project_actions.rs"]
 mod project_actions;
+#[path = "runtime_state/project_delivery_actions.rs"]
 mod project_delivery_actions;
+#[path = "runtime_state/quick_actions.rs"]
 mod quick_actions;
+#[path = "runtime_state/scoped_views.rs"]
 mod scoped_views;
+#[path = "runtime_state/settings_actions.rs"]
 mod settings_actions;
+#[path = "runtime_state/window_geometry.rs"]
 mod window_geometry;
 
 pub(in crate::tauri_app) use window_geometry::{NormalWindowGeometry, WindowGeometrySample};

@@ -1,6 +1,10 @@
+#[path = "catalog.rs"]
 mod catalog;
+#[path = "descriptor_validation.rs"]
 mod descriptor_validation;
+#[path = "lifecycle/mod.rs"]
 mod lifecycle;
+#[path = "status.rs"]
 mod status;
 
 pub(crate) use catalog::{available_output_backends, available_output_devices};

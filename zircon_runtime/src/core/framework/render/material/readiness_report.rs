@@ -267,9 +267,9 @@ fn push_unique_with_recent_fast_path<T: PartialEq>(items: &mut Vec<T>, item: T) 
 }
 
 #[cfg(test)]
-#[path = "readiness_report/tests/recent_duplicate_fast_path_tests.rs"]
+#[path = "../../../render/material/tests/recent_duplicate_fast_path.rs"]
 mod recent_duplicate_fast_path_tests;
 
 #[cfg(test)]
-#[path = "readiness_report/tests/cases.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

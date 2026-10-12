@@ -773,17 +773,17 @@ fn claim_uses_revoked_kind(
 }
 
 #[cfg(test)]
-#[path = "tests/optimization_batch_editor827_tool_scheduler_promotion_tests.rs"]
+#[path = "../tests/perf_batch_editor827_tool_scheduler_promotion.rs"]
 mod optimization_batch_editor827_tool_scheduler_promotion_tests;
 
 #[cfg(test)]
-#[path = "tests/optimization_batch_editor828_tool_scheduler_revoke_capacity_tests.rs"]
+#[path = "../../tests/perf_batch_editor828_tool_scheduler_revoke_capacity.rs"]
 mod optimization_batch_editor828_tool_scheduler_revoke_capacity_tests;
 
 #[cfg(test)]
-#[path = "tests/optimization_batch_editor875_tool_scheduler_promotable_request_projection_tests.rs"]
+#[path = "../../tests/perf_batch_editor875_tool_scheduler_promotable.rs"]
 mod optimization_batch_editor875_tool_scheduler_promotable_request_projection_tests;
 
 #[cfg(test)]
-#[path = "tests/optimization_batch_editor876_tool_scheduler_shutdown_owned_drain_tests.rs"]
+#[path = "../../tests/perf_batch_editor876_tool_scheduler_shutdown_owned.rs"]
 mod optimization_batch_editor876_tool_scheduler_shutdown_owned_drain_tests;

@@ -523,5 +523,5 @@ impl<Host> Drop for SaveLease<'_, Host> {
 }
 
 #[cfg(test)]
-#[path = "registry/tests/optimization_batch_ih_editor618_tests.rs"]
+#[path = "registry/tests/perf.rs"]
 mod optimization_batch_ih_editor618_tests;

@@ -16,6 +16,7 @@ use super::runtime_state::action_tasks::{run_background_worker_loop, EditorLaunc
 use super::runtime_state::HubRuntimeSession;
 use super::view_model::HubViewModel;
 
+#[path = "commands/focus_refresh_gate.rs"]
 mod focus_refresh_gate;
 
 use focus_refresh_gate::FocusRefreshGate;

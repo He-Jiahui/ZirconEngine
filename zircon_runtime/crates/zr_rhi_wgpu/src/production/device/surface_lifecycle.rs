@@ -163,5 +163,5 @@ impl WgpuRenderDevice {
 }
 
 #[cfg(test)]
-#[path = "tests/surface_lifecycle.rs"]
+#[path = "../../device/tests/surface_lifecycle.rs"]
 mod tests;

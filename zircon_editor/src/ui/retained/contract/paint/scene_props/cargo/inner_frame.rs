@@ -1,0 +1,10 @@
+#[path = "../../cargo/inner_frame/edges.rs"]
+mod edges;
+#[path = "../../cargo/inner_frame/entry.rs"]
+mod entry;
+#[path = "../../cargo/inner_frame/grid.rs"]
+mod grid;
+#[path = "../../cargo/inner_frame/palette.rs"]
+mod palette;
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use entry::push_cargo_inner_frame;

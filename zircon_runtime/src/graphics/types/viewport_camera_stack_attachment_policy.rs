@@ -146,5 +146,5 @@ impl Default for ViewportCameraStackAttachmentPolicy {
 }
 
 #[cfg(test)]
-#[path = "tests/viewport_camera_stack_attachment_policy.rs"]
+#[path = "../tests/viewport_camera_stack_attachment_policy.rs"]
 mod tests;

@@ -48,7 +48,7 @@ class Editor04PlaySelectionDomainContractTests(unittest.TestCase):
         )
 
         tick = read(
-            "zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs"
+            "zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs"
         )
         selection = tick.index("sync_active_selection_world_domain")
         hierarchy = tick.index("sync_active_hierarchy_world")

@@ -1,10 +1,15 @@
 //! 通用 gizmo 命令边界：调用方收集临时命令或共享保留式资产，再提取为 RenderOverlayExtract 的线段。
 //! 命令层不持有视口或 GPU 状态；实际绘制与拾取由下游渲染覆盖层负责。
 
+#[path = "buffer.rs"]
 mod buffer;
+#[path = "command.rs"]
 mod command;
+#[path = "config.rs"]
 mod config;
+#[path = "extract.rs"]
 mod extract;
+#[path = "retained.rs"]
 mod retained;
 
 pub use buffer::GizmoBuffer;

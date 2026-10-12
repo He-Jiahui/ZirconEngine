@@ -1,4 +1,6 @@
+#[path = "disk.rs"]
 mod disk;
+#[path = "prewarm.rs"]
 mod prewarm;
 
 pub(crate) use disk::{

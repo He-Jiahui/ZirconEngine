@@ -44,5 +44,5 @@ fn next_start_index(snapshot_count: usize, visited_consumer_count: usize) -> Opt
 mod tests;
 
 #[cfg(test)]
-#[path = "round_robin/tests/reused_cursor_tests.rs"]
+#[path = "../../host/round_robin/tests/reused_cursor.rs"]
 mod reused_cursor_tests;

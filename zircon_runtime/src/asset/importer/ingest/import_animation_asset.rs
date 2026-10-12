@@ -78,5 +78,5 @@ pub(crate) fn import_animation_asset(
 }
 
 #[cfg(test)]
-#[path = "tests/import_animation_asset_plugins07_animation_hotpath_tests.rs"]
+#[path = "../../../tests/import_animation_asset_plugins07_animation_hotpath.rs"]
 mod plugins07_animation_hotpath_tests;

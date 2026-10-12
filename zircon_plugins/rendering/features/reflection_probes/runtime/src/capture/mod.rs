@@ -1,7 +1,11 @@
 //! 探针捕获的请求、框架执行、cubemap 朝向与结果消费边界；源发布由编辑器/资产管理器负责。
+#[path = "../consume.rs"]
 mod consume;
+#[path = "../execute.rs"]
 mod execute;
+#[path = "../face_view.rs"]
 mod face_view;
+#[path = "../request.rs"]
 mod request;
 
 pub use consume::{

@@ -10,7 +10,7 @@ WORKSPACE = ROOT / "zircon_editor/src/ui/workbench/project/asset_workspace_state
 EDITOR_STATE = ROOT / "zircon_editor/src/ui/workbench/project/editor_state_asset_workspace.rs"
 PRODUCT_TEST = (
     ROOT
-    / "zircon_editor/src/tests/host/retained_callback_dispatch/asset/direct_dispatch.rs"
+    / "zircon_editor/src/tests/host/callbacks/asset/direct_dispatch.rs"
 )
 
 

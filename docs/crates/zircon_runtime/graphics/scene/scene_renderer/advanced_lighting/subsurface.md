@@ -18,7 +18,7 @@ related_code:
   - zircon_runtime/src/graphics/shader/wgsl/zr_volumetric.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_subsurface.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_subsurface.wgsl
-  - zircon_plugins/rendering/features/subsurface_scattering/runtime/src/lib.rs
+  - zircon_plugins/rendering/features/subsurface/runtime/src/lib.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/advanced_lighting/subsurface.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/extract.rs
@@ -38,7 +38,7 @@ implementation_files:
   - zircon_runtime/src/graphics/shader/wgsl/zr_volumetric.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_subsurface.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_subsurface.wgsl
-  - zircon_plugins/rendering/features/subsurface_scattering/runtime/src/lib.rs
+  - zircon_plugins/rendering/features/subsurface/runtime/src/lib.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/PostProcess/PostProcessSubsurface.cpp
@@ -51,7 +51,7 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests.rs
   - zircon_runtime/src/graphics/tests/render_product_subsurface.rs
   - zircon_plugins/rendering/features/subsurface_scattering/runtime/src/tests.rs
-  - zircon_plugins/rendering/features/subsurface_scattering/editor/src/lib.rs
+  - zircon_plugins/rendering/features/subsurface/editor/src/lib.rs
 doc_type: module-detail
 ---
 

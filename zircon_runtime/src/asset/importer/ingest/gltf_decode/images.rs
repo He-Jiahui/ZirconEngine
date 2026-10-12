@@ -190,5 +190,5 @@ fn gltf_image_format(color: image::ColorType) -> Result<gltf::image::Format, Ass
 }
 
 #[cfg(test)]
-#[path = "images/tests/optimization_batch_runtime868_gltf_image_output_capacity_tests.rs"]
+#[path = "../../../../tests/perf_batch_runtime868_gltf_image_output_capacity.rs"]
 mod optimization_batch_runtime868_gltf_image_output_capacity_tests;

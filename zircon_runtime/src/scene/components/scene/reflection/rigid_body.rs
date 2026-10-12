@@ -184,7 +184,7 @@ fn normalized_enum_name_matches(value: &str, expected: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "rigid_body/tests/borrowed_enum_tests.rs"]
+#[path = "../../../scene/reflection/rigid_body/tests/borrowed_enum.rs"]
 mod borrowed_enum_tests;
 
 fn replace_if_changed<T>(current: &mut T, next: T) -> Result<bool, ReflectError>

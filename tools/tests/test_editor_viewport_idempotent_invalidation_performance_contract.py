@@ -7,16 +7,16 @@ ROOT = Path(__file__).resolve().parents[2]
 FEEDBACK = ROOT / "zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs"
 APPLY_COMMAND = (
     ROOT
-    / "zircon_editor/src/scene/viewport/controller/scene_viewport_controller_apply_command.rs"
+    / "zircon_editor/src/scene/viewport/controller/apply_command.rs"
 )
 ACCESSORS = (
     ROOT
-    / "zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs"
+    / "zircon_editor/src/scene/viewport/controller/accessors.rs"
 )
 VIEWPORT_EVENT = ROOT / "zircon_editor/src/ui/host/editor_event_execution/viewport_event.rs"
 PRODUCT_TEST = (
     ROOT
-    / "zircon_editor/src/tests/host/retained_callback_dispatch/viewport/typed_command.rs"
+    / "zircon_editor/src/tests/host/callbacks/viewport/typed_command.rs"
 )
 
 

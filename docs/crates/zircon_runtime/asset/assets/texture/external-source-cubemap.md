@@ -31,7 +31,7 @@ plan_sources:
 tests:
   - tools/tests/test_runtime_asset_schema_naming.py
   - zircon_runtime/tests/runtime_texture_external_cubemap_source_only_contract.rs
-  - zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs
+  - zircon_runtime/tests/cubemap_staging.rs
   - zircon_runtime/tests/runtime_texture_zcube_source_cubemap_contract.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs
 doc_type: module-detail

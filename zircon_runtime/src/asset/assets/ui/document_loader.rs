@@ -149,5 +149,5 @@ fn validate_zui_style_profile(document: &UiV2AssetDocument) -> Result<(), UiV2As
 }
 
 #[cfg(test)]
-#[path = "document_loader/tests/owned_schema_error_tests.rs"]
+#[path = "document_loader/tests/owned_schema_error.rs"]
 mod owned_schema_error_tests;

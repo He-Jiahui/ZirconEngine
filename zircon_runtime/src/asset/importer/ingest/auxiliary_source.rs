@@ -438,5 +438,5 @@ fn auxiliary_error(message: impl Into<String>) -> AssetImportError {
 }
 
 #[cfg(test)]
-#[path = "tests/auxiliary_source_opened_snapshot_tests.rs"]
+#[path = "../../ingest/tests/auxiliary_source_opened_snapshot.rs"]
 mod opened_snapshot_tests;

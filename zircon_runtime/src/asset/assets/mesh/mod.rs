@@ -1,13 +1,24 @@
+#[path = "attribute.rs"]
 mod attribute;
+#[path = "constants.rs"]
 mod constants;
+#[path = "indices.rs"]
 mod indices;
+#[path = "mesh_asset.rs"]
 mod mesh_asset;
+#[path = "mesh_sdf/mod.rs"]
 mod mesh_sdf;
+#[path = "metadata.rs"]
 mod metadata;
+#[path = "normals.rs"]
 mod normals;
+#[path = "tangents.rs"]
 mod tangents;
+#[path = "usage.rs"]
 mod usage;
+#[path = "validation.rs"]
 mod validation;
+#[path = "zmesh_document.rs"]
 mod zmesh_document;
 
 pub use attribute::{

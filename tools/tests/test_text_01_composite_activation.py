@@ -50,9 +50,9 @@ class Text01CompositeActivationTests(unittest.TestCase):
         self.assertIn("pub(super) fn candidate_faces_for_cluster(", composite_resolve)
 
     def test_default_font_record_is_the_only_project_activation_call_site(self) -> None:
-        text = source("zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs")
+        text = source("zircon_runtime/src/graphics/scene/renderer/ui/text.rs")
         font_assets = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs"
         )
         runtime_asset = source("zircon_runtime/src/text/font/runtime_asset.rs")
         self.assertNotIn("set_project_composite_font(", text)
@@ -67,9 +67,9 @@ class Text01CompositeActivationTests(unittest.TestCase):
         self.assertNotIn("publish_font_database", font_assets)
 
     def test_renderer_invalidation_consumes_semantic_font_asset_changes(self) -> None:
-        text = source("zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs")
+        text = source("zircon_runtime/src/graphics/scene/renderer/ui/text.rs")
         font_assets = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs"
         )
         render_state = source("zircon_runtime/src/text/render_state.rs")
 
@@ -105,12 +105,12 @@ class Text01CompositeActivationTests(unittest.TestCase):
             self.assertIn(semantic_consumer, invalidation)
 
     def test_native_prepare_report_does_not_duplicate_font_change_state(self) -> None:
-        text = source("zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs")
+        text = source("zircon_runtime/src/graphics/scene/renderer/ui/text.rs")
         fixtures = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/prepare_report.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/text/tests/prepare_report.rs"
         )
         resolved_batches = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs"
         )
 
         native_report = between(
@@ -172,10 +172,10 @@ class Text01CompositeActivationTests(unittest.TestCase):
 
     def test_renderer_admission_has_one_production_batch_path(self) -> None:
         font_assets = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs"
         )
         resolved_batches = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs"
         )
 
         self.assertNotIn("fn load_font_asset_record", font_assets)
@@ -184,7 +184,7 @@ class Text01CompositeActivationTests(unittest.TestCase):
         self.assertNotIn("fn resolve_text_batches(", resolved_batches)
         self.assertIn(
             "refresh_font_asset_records(",
-            source("zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs"),
+            source("zircon_runtime/src/graphics/scene/renderer/ui/text.rs"),
         )
 
     def test_sdf_raster_font_lookup_does_not_mutate_the_renderer_database(self) -> None:
@@ -193,7 +193,7 @@ class Text01CompositeActivationTests(unittest.TestCase):
             "zircon_runtime/src/text/sdf/font_bake/font_asset_cache.rs"
         )
         sdf_profile = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report/profile/sdf_residency.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/text/profile/sdf_residency.rs"
         )
 
         self.assertIn("#[cfg(test)]\npub(super) fn resolve_font_face", font_bake)
@@ -222,7 +222,7 @@ class Text01CompositeActivationTests(unittest.TestCase):
 
     def test_renderer_owns_explicit_system_font_discovery_before_state_snapshot(self) -> None:
         renderer = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs"
+            "zircon_runtime/src/graphics/scene/renderer/ui/text.rs"
         )
         render_state = source("zircon_runtime/src/text/render_state.rs")
         self.assertIn("font_collection", renderer)
@@ -245,16 +245,16 @@ class Text01CompositeActivationTests(unittest.TestCase):
 
     def test_core_render_framework_injects_the_core_owned_font_collection(self) -> None:
         create = source(
-            "zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs"
+            "zircon_runtime/src/graphics/graphics/host/create/create_render_framework.rs"
         )
         descriptor = source(
-            "zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs"
+            "zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs"
         )
         framework = source(
-            "zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs"
+            "zircon_runtime/src/graphics/runtime/wgpu_render_framework_construct/construct.rs"
         )
         renderer = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs"
+            "zircon_runtime/src/graphics/scene/core/scene_renderer_construct/construct.rs"
         )
 
         self.assertIn("font_collection_service_for_core(core)", create)
@@ -276,7 +276,7 @@ class Text01CompositeActivationTests(unittest.TestCase):
 
     def test_explicit_font_collection_is_the_scene_renderer_child_boundary(self) -> None:
         renderer = source(
-            "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs"
+            "zircon_runtime/src/graphics/scene/core/scene_renderer_construct/construct.rs"
         )
         explicit_boundary = between(
             renderer,
@@ -324,7 +324,7 @@ class Text01CompositeActivationTests(unittest.TestCase):
 
     def test_process_and_core_font_collection_entrypoints_document_their_owners(self) -> None:
         editor_paint_cache = source(
-            "zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/cache.rs"
+            "zircon_editor/src/ui/retained/contract/paint_text/draw/layout/cache.rs"
         )
         editor_window_host = source("zircon_editor/src/ui/host/window_host_manager.rs")
         layout_session = source("zircon_runtime/src/text/layout_session.rs")

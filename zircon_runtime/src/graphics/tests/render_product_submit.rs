@@ -37,6 +37,7 @@ use super::plugin_render_feature_fixtures::{
     pluginized_wgpu_render_framework_with_solari_provider,
 };
 
+#[path = "render_product_submit/profiles.rs"]
 mod profiles;
 
 #[test]

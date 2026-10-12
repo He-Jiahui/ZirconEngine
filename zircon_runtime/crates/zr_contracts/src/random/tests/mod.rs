@@ -1,5 +1,8 @@
+#[path = "algorithm.rs"]
 mod algorithm;
+#[path = "checkpoint.rs"]
 mod checkpoint;
+#[path = "state.rs"]
 mod state;
 
 use super::{RandomEntityKey, RandomPurposeKey, RandomStreamKey, RandomSystemKey, RandomWorldKey};

@@ -20,7 +20,7 @@ MIB = 1024 * 1024
 
 CRITICAL_SOURCE_CONTRACTS = (
     (
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         "visual_assets/loading/cache.rs",
         (
             "static VISUAL_ASSET_CACHE_EPOCH",
@@ -34,7 +34,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         "visual_assets/loading/async_loader.rs",
         (
             "begin_visual_asset_source_load",
@@ -44,7 +44,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/app/assets/refresh.rs",
+        "zircon_editor/src/ui/retained/app/assets/refresh.rs",
         (
             "VisualAssetCacheRefresh::Paths(paths)",
             "invalidate_visual_asset_pixel_paths",
@@ -52,7 +52,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+        "zircon_editor/src/ui/retained/contract/paint/"
         "visual_assets/svg/pixels.rs",
         ("visual_assets_render_svg_raster", "render_svg_tree_pixels"),
     ),
@@ -94,7 +94,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/"
+        "zircon_runtime/crates/zr_rhi_wgpu/src/"
         "shared_image_registry/allocation_ledger.rs",
         (
             "texture: Option<wgpu::Texture>",
@@ -146,7 +146,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_runtime/crates/zr_rhi_wgpu/src/production/submission/"
+        "zircon_runtime/crates/zr_rhi_wgpu/src/submission/"
         "ui_image_retirement.rs",
         (
             "HashMap<SubmissionTicket, WgpuUiImageInFlightPins>",
@@ -167,7 +167,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs",
+        "zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs",
         (
             "stats.image_device_allocation_count as f64",
             "stats.image_device_allocation_bytes as f64",
@@ -178,7 +178,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/ui_perf.rs",
+        "zircon_editor/src/ui/retained/ui_perf.rs",
         (
             'concat!($prefix, ".gpu_image_device_allocation_count")',
             'concat!($prefix, ".gpu_image_device_allocation_bytes")',
@@ -189,7 +189,7 @@ CRITICAL_SOURCE_CONTRACTS = (
         ),
     ),
     (
-        "zircon_editor/src/ui/retained_host/ui_perf/counter_catalog.rs",
+        "zircon_editor/src/ui/retained/ui_perf/counter_catalog.rs",
         (
             "GpuImageDeviceAllocationCount",
             "GpuImageDeviceAllocationBytes",

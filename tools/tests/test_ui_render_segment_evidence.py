@@ -10,12 +10,12 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools/analysis/performance/ui/ui_render_segment_evidence.py"
 REQUIRED_SOURCE_PATHS = (
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs",
-    "zircon_runtime/src/graphics/scene/scene_renderer/ui/text/segment_cache.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/render.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/render/record.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/image.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/text.rs",
+    "zircon_runtime/src/graphics/scene/renderer/ui/text/segment_cache.rs",
 )
 
 

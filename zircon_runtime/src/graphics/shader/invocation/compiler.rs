@@ -516,5 +516,5 @@ fn resource_access_satisfies(actual: ShaderResourceAccess, expected: ShaderResou
 mod tests;
 
 #[cfg(test)]
-#[path = "compute_dispatch/tests/resource_capacity_tests.rs"]
+#[path = "tests/resource_capacity.rs"]
 mod resource_capacity_tests;

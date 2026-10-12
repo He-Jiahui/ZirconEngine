@@ -4,11 +4,17 @@
 //! ClockDomainMarker 将 Time 的上下文与域类别关联，ClockDomainStamp 记录类别及两级代际。
 //! 本模块不采样或推进时间；外层 Runtime 持有真实时钟，World 持有虚拟与固定步时钟。
 //! ECS 消费已选择的快照，不在系统调用期间重新决定来源。
+#[path = "descriptor.rs"]
 mod descriptor;
+#[path = "id.rs"]
 mod id;
+#[path = "marker.rs"]
 mod marker;
+#[path = "registry.rs"]
 mod registry;
+#[path = "stamp.rs"]
 mod stamp;
+#[path = "unit.rs"]
 mod unit;
 
 pub use descriptor::ClockDomainDescriptor;

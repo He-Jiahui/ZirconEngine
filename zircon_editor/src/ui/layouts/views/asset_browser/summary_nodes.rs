@@ -214,7 +214,7 @@ fn summary_label_node(
 }
 
 #[cfg(test)]
-#[path = "summary_nodes/tests/capacity_tests.rs"]
+#[path = "summary_nodes/tests/capacity.rs"]
 mod capacity_tests;
 
 #[cfg(test)]

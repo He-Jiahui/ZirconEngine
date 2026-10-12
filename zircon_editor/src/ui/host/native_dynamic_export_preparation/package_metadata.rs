@@ -28,5 +28,5 @@ pub(super) fn sanitize_path_component(value: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/package_metadata_performance_tests.rs"]
+#[path = "../tests/package_metadata_perf.rs"]
 mod performance_tests;

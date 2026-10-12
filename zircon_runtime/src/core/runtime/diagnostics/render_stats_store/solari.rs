@@ -151,5 +151,5 @@ fn degradation_reason_counts(
 }
 
 #[cfg(test)]
-#[path = "tests/solari_performance_tests.rs"]
+#[path = "../tests/solari_perf.rs"]
 mod performance_tests;

@@ -1,7 +1,12 @@
+#[path = "constraint.rs"]
 mod constraint;
+#[path = "query_contact.rs"]
 mod query_contact;
+#[path = "runtime.rs"]
 mod runtime;
+#[path = "step.rs"]
 mod step;
+#[path = "trigger.rs"]
 mod trigger;
 
 pub use runtime::BuiltinPhysicsBackend;

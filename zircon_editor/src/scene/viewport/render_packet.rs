@@ -245,5 +245,5 @@ fn build_directional_light_gizmo(
 }
 
 #[cfg(test)]
-#[path = "render_packet/tests/reused_overlay_storage_tests.rs"]
+#[path = "render_packet/tests/reused_overlay_storage.rs"]
 mod reused_overlay_storage_tests;

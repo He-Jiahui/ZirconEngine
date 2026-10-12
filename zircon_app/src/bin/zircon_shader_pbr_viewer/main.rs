@@ -1,21 +1,37 @@
 //! 独立 PBR 诊断查看器的进程入口：配置与早期失败发布在主线程，场景/窗口状态交给事件循环宿主。
 //! 终态发布成功才返回记录中的退出码；无法建立记录的启动错误由最外层报告。
 
+#[path = "app.rs"]
 mod app;
+#[path = "args.rs"]
 mod args;
+#[path = "background_load.rs"]
 mod background_load;
+#[path = "camera.rs"]
 mod camera;
+#[path = "evidence_identity.rs"]
 mod evidence_identity;
+#[path = "frame_io.rs"]
 mod frame_io;
+#[path = "gpu_timing_evidence.rs"]
 mod gpu_timing_evidence;
+#[path = "hdri.rs"]
 mod hdri;
+#[path = "material_fixture.rs"]
 mod material_fixture;
+#[path = "presenter.rs"]
 mod presenter;
+#[path = "project_asset_fixture_validation.rs"]
 mod project_asset_fixture_validation;
+#[path = "project_assets.rs"]
 mod project_assets;
+#[path = "renderdoc.rs"]
 mod renderdoc;
+#[path = "scene.rs"]
 mod scene;
+#[path = "terminal_outcome.rs"]
 mod terminal_outcome;
+#[path = "work_paths.rs"]
 mod work_paths;
 
 use std::process::ExitCode;

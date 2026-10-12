@@ -4,15 +4,15 @@ const CANONICAL_SCENE: &str = include_str!("../src/graphics/shader/wgsl/zr_scene
 const SSAO_SHADERS: [(&str, &str); 3] = [
     (
         "evaluate",
-        include_str!("../src/graphics/scene/scene_renderer/post_process/shaders/ssao.wgsl"),
+        include_str!("../src/graphics/scene/renderer/post/shaders/ssao.wgsl"),
     ),
     (
         "spatial",
-        include_str!("../src/graphics/scene/scene_renderer/post_process/shaders/ssao_spatial_denoise.wgsl"),
+        include_str!("../src/graphics/scene/post/shaders/ssao_spatial_denoise.wgsl"),
     ),
     (
         "bilateral-upsample",
-        include_str!("../src/graphics/scene/scene_renderer/post_process/shaders/ssao_bilateral_upsample.wgsl"),
+        include_str!("../src/graphics/scene/post/shaders/ssao_bilateral_upsample.wgsl"),
     ),
 ];
 

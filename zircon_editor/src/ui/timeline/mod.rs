@@ -1,9 +1,14 @@
 //! Shared time-authoring foundation for animation and other editor toolkits.
 
+#[path = "keyframe_lane.rs"]
 mod keyframe_lane;
+#[path = "model.rs"]
 mod model;
+#[path = "ruler.rs"]
 mod ruler;
+#[path = "section_lane.rs"]
 mod section_lane;
+#[path = "track_list.rs"]
 mod track_list;
 
 pub use keyframe_lane::{keyframes_in_range, TimelineKeyframeLane};

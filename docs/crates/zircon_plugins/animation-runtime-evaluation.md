@@ -52,7 +52,7 @@ tests:
   - zircon_plugins/animation/runtime/tests/animation_target_table_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_pose_buffer_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_compiled_evaluator_contract.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
+  - zircon_plugins/animation/runtime/tests/physics_tick.rs
   - zircon_runtime/tests/resource_snapshot_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_pose_buffer_allocation_contract.rs
 validation:

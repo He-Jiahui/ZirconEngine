@@ -8,6 +8,7 @@ use crate::core::framework::render::{
     ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource,
 };
 
+#[path = "prewarm/worker.rs"]
 mod worker;
 
 pub(crate) fn prewarm_shader_variants_to_disk(

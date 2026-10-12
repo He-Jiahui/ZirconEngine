@@ -722,9 +722,9 @@ where
 }
 
 #[cfg(test)]
-#[path = "batch/tests/optimization_batch_hq_editor598_tests.rs"]
+#[path = "batch/tests/perf.rs"]
 mod optimization_batch_hq_editor598_tests;
 
 #[cfg(test)]
-#[path = "batch/tests/optimization_batch_editor826_template_binding_tests.rs"]
+#[path = "../../batch/tests/perf_batch_editor826_template_binding.rs"]
 mod optimization_batch_editor826_template_binding_tests;

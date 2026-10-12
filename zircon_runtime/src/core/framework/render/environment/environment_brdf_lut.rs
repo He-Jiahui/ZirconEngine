@@ -127,5 +127,5 @@ fn dot(lhs: [Real; 3], rhs: [Real; 3]) -> Real {
 }
 
 #[cfg(test)]
-#[path = "tests/environment_brdf_lut.rs"]
+#[path = "../tests/environment_brdf_lut.rs"]
 mod tests;

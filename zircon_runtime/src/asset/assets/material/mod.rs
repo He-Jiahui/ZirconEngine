@@ -1,11 +1,20 @@
+#[path = "alpha_mode.rs"]
 mod alpha_mode;
+#[path = "default_pbr.rs"]
 mod default_pbr;
+#[path = "dependency_set.rs"]
 mod dependency_set;
+#[path = "material_asset.rs"]
 mod material_asset;
+#[path = "material_control.rs"]
 mod material_control;
+#[path = "property_values.rs"]
 mod property_values;
+#[path = "texture_slot.rs"]
 mod texture_slot;
+#[path = "validation.rs"]
 mod validation;
+#[path = "zmaterial.rs"]
 mod zmaterial;
 
 pub use alpha_mode::AlphaMode;

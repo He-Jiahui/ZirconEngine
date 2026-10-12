@@ -142,5 +142,5 @@ fn load_clip_snapshot(
 }
 
 #[cfg(test)]
-#[path = "tests/graph_timing_cache_optimization_tests.rs"]
+#[path = "../tests/graph_timing_cache_perf.rs"]
 mod optimization_tests;

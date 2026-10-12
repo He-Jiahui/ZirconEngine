@@ -1,8 +1,14 @@
+#[path = "bundle.rs"]
 mod bundle;
+#[path = "catalog.rs"]
 mod catalog;
+#[path = "error.rs"]
 mod error;
+#[path = "locale.rs"]
 mod locale;
+#[path = "macros.rs"]
 mod macros;
+#[path = "service.rs"]
 mod service;
 
 #[cfg(test)]

@@ -7,25 +7,25 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKBENCH_COMPONENTS = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench"
+    "zircon_editor/assets/ui/editor/workbench"
 )
 WORKBENCH_WINDOW = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/windows/workbench_window.zui"
 )
 CONTEXT_MENU_PROVIDER = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/"
+    "zircon_editor/src/ui/retained/contract/"
     "workbench_context_menu/provider.rs"
 )
 ADORNMENT_SELECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_popup_row_adornments/selection.rs"
 )
 ADORNMENT_DISPATCH = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "template_popup_row_adornments/glyphs/dispatch.rs"
 )
 ICON_ALIASES = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/"
+    "zircon_editor/src/ui/retained/contract/paint/"
     "visual_assets/candidates/aliases.rs"
 )
 ASSET_CREATION_MENU = REPO_ROOT / (

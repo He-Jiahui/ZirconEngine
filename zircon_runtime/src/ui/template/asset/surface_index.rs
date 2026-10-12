@@ -10,6 +10,7 @@ use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTree, UiTreeError};
 
 use super::hot_reload_plan::{UiAssetHotReloadPlan, UiAssetHotReloadSurfaceDirtyReport};
 
+#[path = "surface_index/node_resource_registration.rs"]
 mod node_resource_registration;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

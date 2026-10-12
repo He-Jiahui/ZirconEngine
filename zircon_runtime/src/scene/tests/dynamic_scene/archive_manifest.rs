@@ -261,7 +261,7 @@ fn runtime_session_archive_manifest_filters_slots_without_restoring_worlds() {
 
 #[test]
 fn runtime_session_archive_manifest_filters_borrow_trimmed_search_terms() {
-    let source = include_str!("../../dynamic_scene/session/manifest/archive.rs");
+    let source = include_str!("../../dynamic/session/manifest/archive.rs");
 
     assert!(!source.contains("tag.trim().to_string()"));
     assert!(!source.contains("query.trim().to_string()"));

@@ -21,8 +21,11 @@ use zircon_runtime::core::runtime::tasks::JobScheduler;
 
 use super::{EditorContext, ToolSchedulerService};
 
+#[path = "builder/event_sinks.rs"]
 mod event_sinks;
+#[path = "builder/settings_locale_sync.rs"]
 mod settings_locale_sync;
+#[path = "builder/settings_persistence_health.rs"]
 mod settings_persistence_health;
 
 use event_sinks::{

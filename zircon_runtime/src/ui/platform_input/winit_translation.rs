@@ -1,6 +1,10 @@
+#[path = "winit_translation/ime.rs"]
 mod ime;
+#[path = "winit_translation/keyboard.rs"]
 mod keyboard;
+#[path = "winit_translation/pointer.rs"]
 mod pointer;
+#[path = "winit_translation/window.rs"]
 mod window;
 
 use winit::event::WindowEvent;

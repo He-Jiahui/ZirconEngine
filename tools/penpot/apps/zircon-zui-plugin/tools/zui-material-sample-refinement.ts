@@ -179,7 +179,7 @@ async function main() {
   for (const entry of catalog.entries) {
     if (
       !entry.sourcePath.startsWith(
-        'zircon_editor/assets/ui/editor/material_components/inputs/',
+        'zircon_editor/assets/ui/editor/inputs/',
       )
     )
       continue;
