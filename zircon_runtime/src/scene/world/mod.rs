@@ -1,7 +1,7 @@
 //! ECS world state, project I/O, and render extraction.
 
 mod bootstrap;
-mod change_detection;
+pub(in crate::scene) mod change_detection;
 mod commands;
 mod compiled_binding;
 mod component_access;
@@ -54,8 +54,10 @@ pub(crate) use project_io::SceneComponentSerializerRegistry;
 pub use project_io::SceneProjectError;
 pub(crate) use query_order::{StableQueryLocationIter, StableWorldEntityIter};
 pub(crate) use render_dirty_journal::{RenderDirtyEntityJournal, RenderDirtyWorldId};
+pub(crate) use transaction::DetachPreparationOwner;
 pub use transaction::{
-    DetachedEntityBatch, DetachedEntityBatchRestoreError, PreparedEntitySubtrees,
+    DetachedEntityBatch, DetachedEntityBatchRemoveError, DetachedEntityBatchRestoreError,
+    PreparedEntitySubtrees,
 };
 pub(in crate::scene) use transaction::{PreflightComponentRow, PreflightDynamicComponent};
 pub use world::World;

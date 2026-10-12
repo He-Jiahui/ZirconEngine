@@ -73,7 +73,7 @@ fn shared_document_tab_pointer_click_dispatches_focus_view_through_runtime_dispa
     let harness = EventRuntimeHarness::new("zircon_retained_document_tab_pointer_activate");
     let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
@@ -128,7 +128,7 @@ fn shared_document_tab_close_pointer_click_dispatches_close_view_through_runtime
     )
     .expect("asset browser open control should resolve")
     .expect("asset browser should open into the runtime");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,

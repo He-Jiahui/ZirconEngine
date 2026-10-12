@@ -8,6 +8,28 @@ from tools.jenkins.contracts import JenkinsError
 
 
 class SubmissionTests(unittest.TestCase):
+    def test_managed_dispatch_persists_actual_location_and_replay_is_read_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = State(Path(directory) / "state.sqlite3")
+            payload = {"repositoryId": "repo", "sessionId": "session", "requestId": "managed-request"}
+            class Manager:
+                base_url = "http://127.0.0.1:18080"
+                def __init__(self):
+                    self.calls = []
+                def _request_with_headers(self, path, **kwargs):
+                    self.calls.append((path, kwargs))
+                    return 201, b"", {"location": self.base_url + "/queue/item/21/"}
+                def _request(self, *args, **kwargs):
+                    raise AssertionError("Response headers must not be discarded")
+            manager = Manager()
+            first = dispatch_registered(state, payload, {"GENERATION": "1"}, manager=manager)
+            second = dispatch_registered(state, payload, {"GENERATION": "1"}, manager=manager)
+            self.assertEqual("http://127.0.0.1:18080/queue/item/21/", first["queueUrl"])
+            self.assertEqual(first["queueUrl"], second["queueUrl"])
+            self.assertEqual(1, len(manager.calls))
+            self.assertEqual("POST", manager.calls[0][1]["method"])
+            self.assertFalse(first["formalAcceptance"])
+
     def test_duplicate_request_has_no_second_http_side_effect(self):
         with tempfile.TemporaryDirectory() as directory:
             state = State(Path(directory) / "state.sqlite3")
@@ -209,6 +231,95 @@ class SubmissionTests(unittest.TestCase):
         self.assertEqual(fields["PATCH_REQUEST_REF"], "patch-ref")
         self.assertNotIn("SEALED_INPUT_REF", fields)
         self.assertNotIn("SOURCE_INPUT_DIGEST", fields)
+
+    def test_typed_top_level_source_and_runtime_refs_use_uppercase_form_fields(self):
+        from tools.jenkins.submission import _submission_fields
+        payload = {"repositoryId": "repo", "sessionId": "session", "requestId": "typed-request",
+                   "currentSourceRef": "current-ref", "sourcePreparationRef": "preparation-ref",
+                   "runtimeOperationId": "start-owned", "attemptId": "attempt-owned", "generation": 1,
+                   "driverDigest": "d" * 64, "parameters": {"rustEdition": "2021"}}
+        fields = _submission_fields(payload)
+        for name, value in (("CURRENT_SOURCE_REF", "current-ref"), ("SOURCE_PREPARATION_REF", "preparation-ref"),
+                            ("RUNTIME_OPERATION_ID", "start-owned"), ("ATTEMPT_ID", "attempt-owned"),
+                            ("GENERATION", "1"), ("STAGE_IMPLEMENTATION_DIGEST", "d" * 64), ("RUST_EDITION", "2021")):
+            self.assertEqual(value, fields[name])
+        self.assertNotIn("currentSourceRef", fields)
+        self.assertNotIn("sourcePreparationRef", fields)
+
+    def test_typed_identity_cannot_be_overridden_through_parameter_aliases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = State(Path(directory) / "state.sqlite3")
+            protected = (("currentSourceRef", "CURRENT_SOURCE_REF"), ("sourcePreparationRef", "SOURCE_PREPARATION_REF"),
+                         ("runtimeOperationId", "RUNTIME_OPERATION_ID"), ("attemptId", "ATTEMPT_ID"),
+                         ("generation", "GENERATION"), ("stageImplementationDigest", "STAGE_IMPLEMENTATION_DIGEST"))
+            for field, uppercase in protected:
+                for alias in (field, uppercase):
+                    with self.subTest(field=field, alias=alias):
+                        payload = {"repositoryId": "repo", "sessionId": "session", "requestId": "typed-request",
+                                   field: "owned", "parameters": {alias: "foreign"}}
+                        with self.assertRaises(JenkinsError) as raised:
+                            dispatch_registered(state, payload, {}, transport=lambda _: self.fail("unexpected POST"))
+                        self.assertEqual("submission_identity_override", raised.exception.code)
+            self.assertEqual([], state.list("jenkins_submission"))
+
+    def test_conflicting_aliases_without_top_level_identity_are_order_independent(self):
+        from tools.jenkins.submission import _submission_fields
+        for field, uppercase in (("currentSourceRef", "CURRENT_SOURCE_REF"), ("sourcePreparationRef", "SOURCE_PREPARATION_REF"),
+                                 ("runtimeOperationId", "RUNTIME_OPERATION_ID"), ("driverDigest", "STAGE_IMPLEMENTATION_DIGEST")):
+            for parameters in ({field: "owned", uppercase: "foreign"}, {uppercase: "foreign", field: "owned"}):
+                with self.subTest(field=field, parameters=parameters), self.assertRaises(JenkinsError) as raised:
+                    _submission_fields({"parameters": parameters})
+                self.assertEqual("submission_parameter_conflict", raised.exception.code)
+
+    def test_secondary_submission_cannot_change_or_drop_registered_typed_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = State(Path(directory) / "state.sqlite3")
+            original = request_payload(repository_id="repo", session_id="session", request_id="typed-request",
+                                       source_ref="a" * 64, source_digest="a" * 64,
+                                       coverage_ref="b" * 64, coverage_digest="b" * 64)
+            original.update(currentSourceRef="current-owned", sourcePreparationRef="preparation-owned",
+                            runtimeOperationId="start-owned", attemptId="attempt-owned", generation=1,
+                            stageImplementationDigest="d" * 64, buildRoot="D:/cargo-targets")
+            state.submit_request(original)
+            for field in ("currentSourceRef", "sourcePreparationRef", "runtimeOperationId", "attemptId",
+                          "generation", "stageImplementationDigest", "buildRoot"):
+                for action in ("replace", "drop"):
+                    with self.subTest(field=field, action=action):
+                        payload = {**original, "parameters": {"submissionRequestId": field + action}}
+                        if action == "replace":
+                            payload[field] = "foreign"
+                        else:
+                            payload.pop(field)
+                        with self.assertRaises(JenkinsError) as raised:
+                            submit(state, payload, transport=lambda _: self.fail("unexpected POST"))
+                        self.assertEqual("submission_identity_mismatch", raised.exception.code)
+            self.assertEqual(original, state.get_request("repo", "session", "typed-request")["payload"])
+            self.assertEqual([], state.list("jenkins_submission"))
+
+    def test_secondary_submission_cannot_invent_typed_identity_for_legacy_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = State(Path(directory) / "state.sqlite3")
+            original = request_payload(repository_id="repo", session_id="session", request_id="legacy-request",
+                                       source_ref="a" * 64, source_digest="a" * 64,
+                                       coverage_ref="b" * 64, coverage_digest="b" * 64)
+            state.submit_request(original)
+            for field in ("currentSourceRef", "sourcePreparationRef", "runtimeOperationId", "attemptId", "generation"):
+                with self.subTest(field=field), self.assertRaises(JenkinsError) as raised:
+                    submit(state, {**original, field: "foreign", "parameters": {"submissionRequestId": "flow"}},
+                           transport=lambda _: self.fail("unexpected POST"))
+                self.assertEqual("submission_identity_mismatch", raised.exception.code)
+            self.assertEqual([], state.list("jenkins_submission"))
+
+    def test_registered_dispatch_normalizes_and_checks_supplied_form_aliases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = State(Path(directory) / "state.sqlite3")
+            payload = {"repositoryId": "repo", "sessionId": "session", "requestId": "typed-request",
+                       "currentSourceRef": "current-owned", "runtimeOperationId": "start-owned"}
+            for fields in ({"currentSourceRef": "foreign"}, {"RUNTIME_OPERATION_ID": "foreign"},
+                           {"runtimeOperationId": "foreign", "RUNTIME_OPERATION_ID": "start-owned"}):
+                with self.subTest(fields=fields), self.assertRaises(JenkinsError):
+                    dispatch_registered(state, payload, fields, transport=lambda _: self.fail("unexpected POST"))
+            self.assertEqual([], state.list("jenkins_submission"))
 
 
 if __name__ == "__main__":

@@ -553,8 +553,10 @@ border_color = "$workbench_field_component_disabled_border"
 [[stylesheets.rules]]
 selector = ".workbench-tree-item:selected"
 [stylesheets.rules.set.self]
-background_color = "$workbench_selected"
-foreground_color = "$workbench_accent"
+background_color = "$editor.surface.selected"
+selected_hover_background_color = "$editor.surface.selected"
+inactive_selected_background_color = "$editor.surface.selected_inactive"
+foreground_color = "$editor.text.selected"
 border_color = "$workbench_accent"
 border_width = "$editor.control.border_width"
 

@@ -7,8 +7,30 @@ pub(crate) fn menu_item_row_frame(
     row_count: usize,
     row: usize,
 ) -> Option<FrameRect> {
-    let row_height = popup_row_height(node, menu_frame, row_count)?;
-    popup_row_frame(node, menu_frame, row_count, row, row_height)
+    let row_height = popup_row_height(node, menu_frame, row_count);
+    #[cfg(test)]
+    if row_height.is_none() {
+        eprintln!(
+            "popup-row rejection: stage=height node={} control={} row_count={} row={} frame=({},{},{},{}) padding=({},{},{},{}) spacing={}",
+            node.node_id, node.control_id, row_count, row,
+            menu_frame.x, menu_frame.y, menu_frame.width, menu_frame.height,
+            node.layout_padding_left, node.layout_padding_right,
+            node.layout_padding_top, node.layout_padding_bottom, node.layout_spacing,
+        );
+    }
+    let row_height = row_height?;
+    let result = popup_row_frame(node, menu_frame, row_count, row, row_height);
+    #[cfg(test)]
+    if result.is_none() {
+        eprintln!(
+            "popup-row rejection: stage=frame node={} control={} row_count={} row={} row_height={} frame=({},{},{},{}) padding=({},{},{},{}) spacing={}",
+            node.node_id, node.control_id, row_count, row, row_height,
+            menu_frame.x, menu_frame.y, menu_frame.width, menu_frame.height,
+            node.layout_padding_left, node.layout_padding_right,
+            node.layout_padding_top, node.layout_padding_bottom, node.layout_spacing,
+        );
+    }
+    result
 }
 
 pub(crate) fn menu_item_row_at_y(

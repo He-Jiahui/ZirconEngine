@@ -1,4 +1,5 @@
 import type { ZuiDiagnostic } from './bridge/zui-document';
+import type { PenpotFontResourceManifest } from './bridge/penpot-font-selection';
 import type { RenderedLayoutAudit } from './penpot-render-layout';
 
 export interface LayoutReviewCaseMessage {
@@ -31,6 +32,7 @@ export type PluginUiMessage =
        * editable semantic boards while primitive instances remain native.
        */
       nativeComponentMode?: 'full' | 'leaf' | 'semantic';
+      fontResources?: PenpotFontResourceManifest;
     }
   | {
       /** Set by the design-only visual harness before the next import. */
@@ -38,6 +40,7 @@ export type PluginUiMessage =
       mode: 'full' | 'leaf' | 'semantic';
     }
   | { type: 'export-zui' }
+  | { type: 'export-canvas-png'; expectedBoardId: string }
   | { type: 'set-preview-selection'; selected: boolean }
   | { type: 'audit-preview-layout'; requestId?: string }
   | { type: 'set-review-case'; reviewCase: LayoutReviewCaseMessage }
@@ -54,7 +57,15 @@ export type PluginHostMessage =
       layoutAudit?: RenderedLayoutAudit;
       reviewCase?: LayoutReviewCaseMessage;
     }
-  | { type: 'selection'; canExport: boolean; label: string | null }
+  | { type: 'selection'; canExport: boolean; label: string | null; boardId: string | null }
+  | {
+      type: 'canvas-png-ready';
+      boardId: string;
+      fileName: string;
+      bytes: Uint8Array;
+      width: number;
+      height: number;
+    }
   | {
       type: 'preview-audit';
       requestId?: string;

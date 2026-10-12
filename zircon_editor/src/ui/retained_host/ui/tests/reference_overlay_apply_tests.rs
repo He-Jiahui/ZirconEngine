@@ -196,7 +196,10 @@ fn apply_template_projection_from_host_template_bridge(ui: &UiHostWindow) {
         None,
         crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
         &floating_window_projection_bundle,
-        None,
+        crate::ui::retained_host::ui::PaneRuntimeContext {
+            template: None,
+            generated: None,
+        },
     );
 }
 
@@ -246,7 +249,10 @@ fn apply_template_projection_from_workbench_window_projection(
         Some(workbench_window_projection),
         crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
         &floating_window_projection_bundle,
-        None,
+        crate::ui::retained_host::ui::PaneRuntimeContext {
+            template: None,
+            generated: None,
+        },
     );
 }
 

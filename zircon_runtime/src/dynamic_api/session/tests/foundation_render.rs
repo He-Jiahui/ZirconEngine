@@ -238,18 +238,18 @@ fn assert_input_ingress(session: &mut RuntimeDynamicSession) {
         .drain_events();
     assert!(input_events.iter().any(|event| matches!(
         event,
-        InputEvent::CursorMoved { x, y } if *x == pointer[0] && *y == pointer[1]
+        &InputEvent::CursorMoved { x, y } if x == pointer[0] && y == pointer[1]
     )));
     assert!(input_events
         .iter()
         .any(|event| matches!(event, InputEvent::ButtonPressed(_))));
     assert!(input_events.iter().any(|event| matches!(
         event,
-        InputEvent::KeyboardInput {
+        &InputEvent::KeyboardInput {
             key_code,
             pressed: true,
             ..
-        } if *key_code == u32::from(b'W')
+        } if key_code == u32::from(b'W')
     )));
 
     for event in [
@@ -285,11 +285,11 @@ fn assert_input_ingress(session: &mut RuntimeDynamicSession) {
         .any(|event| matches!(event, InputEvent::ButtonReleased(InputButton::MouseLeft))));
     assert!(released_events.iter().any(|event| matches!(
         event,
-        InputEvent::KeyboardInput {
+        &InputEvent::KeyboardInput {
             key_code,
             pressed: false,
             ..
-        } if *key_code == u32::from(b'W')
+        } if key_code == u32::from(b'W')
     )));
 }
 

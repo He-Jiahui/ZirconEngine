@@ -1,3 +1,4 @@
+//! 不透明阴影管线省略片段阶段，因此此模板不评估材质；需要透明裁剪的材质使用独立 alpha 变体。
 fn zr_vs_main_impl(v: ZrVertexInput, instance_index: u32) -> ZrVertexOutput {
     return zr_build_vertex_output(
         instance_index,

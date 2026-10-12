@@ -119,6 +119,14 @@ def garbage_collect(payload: dict, state: State, repo_root: Path) -> dict:
     return result
 
 def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain: str = "maintenance") -> dict:
+    if action == "post-task-cache":
+        from .workflow.post_task_cache import handle as handle_post_task_cache
+        return handle_post_task_cache(action, payload, state, repo_root)
+    if payload.get("cacheKind") == "existing-build-cache":
+        if action != "cache-maintenance":
+            raise JenkinsError("unsupported_maintenance_action", "Existing build caches use the scoped maintenance protocol")
+        from .workflow.build_cache_gc import handle as handle_build_cache
+        return handle_build_cache(payload.get("phase"), payload, state, repo_root)
     if action in {"inventory", "inventory-maintenance"}: return response("accepted", operation_id=payload.get("operationId"), result=inventory(payload, state, repo_root))
     if action in {"gc", "gc-maintenance", "cache-maintenance"}: return response("accepted", operation_id=payload.get("operationId"), result=garbage_collect(payload, state, repo_root))
     raise JenkinsError("unsupported_maintenance_action", action)

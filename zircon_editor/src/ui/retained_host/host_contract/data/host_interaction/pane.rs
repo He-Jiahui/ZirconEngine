@@ -37,6 +37,8 @@ pub(crate) struct HostPaneInteractionStateData {
     pub pressed_template_down_y: f32,
     pub pressed_template_scale_factor: f32,
     pub template_focus_visible: bool,
+    /// Set only by real native focus dispatch; defaults are not live evidence.
+    pub template_focus_observed: bool,
     pub template_button_frame: FrameRect,
     pub hovered_template_control_id: SharedString,
     pub hovered_template_dispatch_kind: SharedString,
@@ -80,6 +82,7 @@ impl Default for HostPaneInteractionStateData {
             pressed_template_down_y: 0.0,
             pressed_template_scale_factor: 0.0,
             template_focus_visible: false,
+            template_focus_observed: false,
             template_button_frame: FrameRect::default(),
             hovered_template_control_id: SharedString::default(),
             hovered_template_dispatch_kind: SharedString::default(),

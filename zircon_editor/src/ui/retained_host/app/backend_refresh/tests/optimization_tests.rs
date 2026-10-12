@@ -223,7 +223,7 @@ fn editor57_hundred_thousand_asset_backend_plan_release_benchmark() {
     const MARKER: &str = "EDITOR57_100K_BACKEND_PLAN_SELECTION_SNAPSHOT_BENCH_V1";
 
     assert!(!cfg!(debug_assertions), "this timing gate requires Release");
-    let runtime = controller_with_catalog(ASSETS);
+    let (_core, runtime) = controller_with_catalog(ASSETS);
     let selected = "asset-000000";
     let changes = [EditorAssetChange {
         kind: EditorAssetChangeKind::CatalogChanged,
@@ -231,7 +231,7 @@ fn editor57_hundred_thousand_asset_backend_plan_release_benchmark() {
         uuid: Some(selected.to_string()),
         locator: Some("res://asset-000000.png".to_string()),
     }];
-    let warm_snapshot = runtime.editor_snapshot();
+    let warm_snapshot = runtime.editor_snapshot().unwrap();
     assert_eq!(warm_snapshot.asset_activity.visible_assets.len(), ASSETS);
     assert_eq!(
         warm_snapshot.asset_activity.selected_asset_uuid.as_deref(),
@@ -241,7 +241,7 @@ fn editor57_hundred_thousand_asset_backend_plan_release_benchmark() {
     let measure = |retired: bool| {
         let started = Instant::now();
         let plan = black_box(if retired {
-            let selected_uuid = runtime.editor_snapshot().asset_activity.selected_asset_uuid;
+            let selected_uuid = runtime.editor_snapshot().unwrap().asset_activity.selected_asset_uuid;
             retired_plan(
                 selected_uuid.as_deref(),
                 black_box(None),
@@ -292,7 +292,7 @@ fn editor57_hundred_thousand_asset_backend_plan_release_benchmark() {
     );
 }
 
-fn controller_with_catalog(asset_count: usize) -> EditorHostEventController {
+fn controller_with_catalog(asset_count: usize) -> (CoreRuntime, EditorHostEventController) {
     let core = CoreRuntime::new();
     let manager = Arc::new(EditorManager::new(&core.handle()).expect("editor manager"));
     let mut state = EditorState::with_default_selection_with_context(
@@ -350,7 +350,12 @@ fn controller_with_catalog(asset_count: usize) -> EditorHostEventController {
     ));
     state.mark_project_open();
     assert!(state.select_asset(Some("asset-000000".to_string())));
-    EditorHostEventController::new(state, manager)
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
+    (core, controller)
 }
 
 fn percentile(samples: &[u128], percentage: usize) -> u128 {

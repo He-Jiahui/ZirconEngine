@@ -3,6 +3,34 @@ use crate::scene::ecs::{
     RemovedComponentRetention, RemovedComponentRetentionMetrics, Resource, StorageType,
 };
 use crate::scene::{EntityId, World};
+use std::sync::{Arc, Mutex};
+
+/// The original clock leaf remains address independent during World moves.
+/// A copied World gets a fresh slot; staged retention carries the live slot.
+#[derive(Clone, Debug, Default)]
+pub(in crate::scene) struct ActiveChangeTickSlot(Arc<Mutex<Option<ChangeTick>>>);
+
+impl ActiveChangeTickSlot {
+    pub(in crate::scene) fn get(&self) -> Option<ChangeTick> {
+        *self.0.lock().unwrap_or_else(|p| p.into_inner())
+    }
+
+    pub(in crate::scene) fn replace(&self, tick: Option<ChangeTick>) -> Option<ChangeTick> {
+        let mut active = self.0.lock().unwrap_or_else(|p| p.into_inner());
+        std::mem::replace(&mut *active, tick)
+    }
+
+    pub(super) fn copied(&self) -> Self {
+        Self(Arc::new(Mutex::new(self.get())))
+    }
+}
+
+impl PartialEq for ActiveChangeTickSlot {
+    fn eq(&self, other: &Self) -> bool {
+        self.get() == other.get()
+    }
+}
+impl Eq for ActiveChangeTickSlot {}
 
 impl World {
     pub fn read_change_tick(&self) -> ChangeTick {
@@ -28,7 +56,11 @@ impl World {
         &mut self,
         tick: Option<ChangeTick>,
     ) -> Option<ChangeTick> {
-        std::mem::replace(&mut self.active_change_tick, tick)
+        self.active_change_tick.replace(tick)
+    }
+
+    pub(in crate::scene) fn active_change_tick_slot(&self) -> ActiveChangeTickSlot {
+        self.active_change_tick.clone()
     }
 
     pub(crate) fn mutation_change_tick(&mut self) -> ChangeTick {
@@ -44,7 +76,8 @@ impl World {
     /// overlap this write; returned query items must not retain either metadata field.
     pub(super) unsafe fn query_mutation_change_tick(world: *mut Self) -> ChangeTick {
         unsafe {
-            if let Some(tick) = std::ptr::addr_of!((*world).active_change_tick).read() {
+            let active = &*std::ptr::addr_of!((*world).active_change_tick);
+            if let Some(tick) = active.get() {
                 return tick;
             }
             let clock = &mut *std::ptr::addr_of_mut!((*world).change_tick);

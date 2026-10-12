@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { parse as parseToml } from 'smol-toml';
 import {
   cloneZuiDocument,
   parseZuiDocument,
@@ -9,7 +10,10 @@ import {
   type ZuiTable,
 } from '../src/bridge/zui-document';
 import type { LayoutDependencies } from './zui-layout-dependencies';
-import { prepareDynamicReviewState } from './zui-layout-dynamic-hosts';
+import {
+  prepareUnrealDockHeaderViews,
+  UNREAL_DOCK_HEADER_SOURCE,
+} from './zui-layout-unreal-dock-headers';
 import {
   applyWorkbenchPresentationProjection,
   prepareWorkbenchPresentationStructure,
@@ -34,13 +38,47 @@ const ASSET_WINDOW_SOURCE =
 const EDITOR_MAIN_FRAME_SOURCE =
   'zircon_editor/assets/ui/editor/host/editor_main_frame.zui';
 const WORKBENCH_SHELL_SOURCE =
-  'zircon_editor/assets/ui/editor/host/workbench_shell.zui';
+  'zircon_editor/assets/ui/editor/unreal/editor_shell.zui';
 const WORKBENCH_WINDOW_SOURCE =
-  'zircon_editor/assets/ui/editor/windows/workbench_window.zui';
-const WORKBENCH_MAIN_BAND_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui';
-const WORKBENCH_COMPONENT_DRAWER_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui';
+  'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
+const UNREAL_COMPONENT_SOURCES = [
+  [
+    'zircon_editor/assets/ui/editor/unreal/components/toolbar.zui',
+    'UnrealLevelEditorToolbar',
+  ],
+  [
+    'zircon_editor/assets/ui/editor/unreal/components/menus.zui',
+    'UnrealLevelEditorMenus',
+  ],
+  [
+    'zircon_editor/assets/ui/editor/unreal/components/menu_popups.zui',
+    'UnrealLevelEditorMenuPopups',
+  ],
+  [
+    'zircon_editor/assets/ui/editor/unreal/components/viewport.zui',
+    'UnrealLevelViewport',
+  ],
+  [
+    'zircon_editor/assets/ui/editor/unreal/components/outliner.zui',
+    'UnrealOutlinerPanel',
+  ],
+  [
+    'zircon_editor/assets/ui/editor/unreal/components/details.zui',
+    'UnrealDetailsPanel',
+  ],
+  [
+    'zircon_editor/assets/ui/editor/unreal/components/status_bar.zui',
+    'UnrealEditorStatusBar',
+  ],
+  [
+    'zircon_editor/assets/ui/editor/unreal/components/content_drawer.zui',
+    'UnrealContentDrawer',
+  ],
+  [
+    'zircon_editor/assets/ui/editor/unreal/components/bottom_activity_dock.zui',
+    'UnrealBottomActivityDock',
+  ],
+] as const;
 
 const UI_LAYOUT_EDITOR_MOUNTS = [
   [
@@ -127,6 +165,55 @@ const ASSET_WINDOW_MOUNTS = [
     ],
   ],
 ] as const;
+
+/** Attach the actual editor locale to both authored Unreal inputs and consumer hosts. */
+export async function prepareUnrealReviewTranslations(
+  repoRoot: string,
+  sourcePath: string,
+  document: ZuiDocument,
+  consumerProjection?: ZuiDocument,
+  workbenchPresentation?: Record<string, unknown>,
+): Promise<boolean> {
+  const source = resolve(repoRoot, sourcePath);
+  const unrealSources = [
+    EDITOR_MAIN_FRAME_SOURCE,
+    WORKBENCH_SHELL_SOURCE,
+    WORKBENCH_WINDOW_SOURCE,
+    ...UNREAL_COMPONENT_SOURCES.map(([path]) => path),
+  ];
+  if (!unrealSources.some((path) => resolve(repoRoot, path) === source))
+    return false;
+
+  const locale = workbenchPresentation?.['activeLocale'] ?? 'en';
+  if (locale !== 'en' && locale !== 'zh-CN')
+    throw new Error('Unreal review locale must be en or zh-CN');
+  const localePath = 'zircon_editor/assets/i18n/' + locale + '.toml';
+  const localeSource = parseToml(
+    await readFile(resolve(repoRoot, localePath), 'utf8'),
+  );
+  const translations = localeSource['translations'];
+  if (
+    localeSource['locale'] !== locale ||
+    !translations ||
+    typeof translations !== 'object' ||
+    Array.isArray(translations) ||
+    !Object.values(translations).every((value) => typeof value === 'string')
+  )
+    throw new Error('Unreal review translation source does not match its locale');
+
+  for (const projection of new Set([document, consumerProjection])) {
+    if (!projection) continue;
+    projection['penpot_i18n_tables'] = {
+      ...((projection['penpot_i18n_tables'] as ZuiTable | undefined) ?? {}),
+      editor: { locale, translations: structuredClone(translations) },
+    };
+    projection['penpot_dependency_sources'] = uniqueStrings([
+      ...strings(projection['penpot_dependency_sources']),
+      localePath,
+    ]);
+  }
+  return true;
+}
 
 export function requiredComponentSlots(document: ZuiDocument): string[] {
   if (document.asset.kind !== 'component') return [];
@@ -549,11 +636,11 @@ export async function prepareComponentReviewHost(
 }
 
 /**
- * EditorMainFrame is intentionally a minimal retained-runtime Slot host.  Its
- * real task bar, window tabs, and active window arrive from Rust state, which
- * Penpot cannot instantiate.  Build a design-only, reversible consumer from
- * the same authored Workbench Shell and Workbench Window assets instead of
- * putting example business content in the runtime source.
+ * Compose the authored Unreal editor shell and level-editor window for Penpot
+ * review.  The shell owns the retained host/document/pane contract; the level
+ * window is mounted as the real pane content.  No runtime-only task bar,
+ * document tab strip, legacy drawer shell, or snapshot-owned source view is
+ * invented here.
  */
 async function prepareEditorMainFrameReviewHost(
   repoRoot: string,
@@ -567,57 +654,42 @@ async function prepareEditorMainFrameReviewHost(
   projection: ZuiDocument;
   consumers: Array<{ sourcePath: string; component: string }>;
 } | null> {
-  const workbenchWindowInput = sourcePath.endsWith(WORKBENCH_WINDOW_SOURCE);
-  if (!workbenchWindowInput && !sourcePath.endsWith(EDITOR_MAIN_FRAME_SOURCE))
-    return null;
+  const windowInput = sourcePath.endsWith(WORKBENCH_WINDOW_SOURCE);
+  const frameInput = sourcePath.endsWith(EDITOR_MAIN_FRAME_SOURCE);
+  if (!windowInput && !frameInput) return null;
 
-  const frameSourcePath = EDITOR_MAIN_FRAME_SOURCE;
-  const frameDocument = workbenchWindowInput
-    ? parseZuiDocument(
-        await readFile(resolve(repoRoot, EDITOR_MAIN_FRAME_SOURCE), 'utf8'),
-      ).document
-    : sourceDocument;
-
-  const sourceNodes = frameDocument.nodes ?? {};
-  const frameRootId = frameDocument.root?.node;
-  const root = frameRootId ? sourceNodes[frameRootId] : undefined;
-  const taskBar = sourceNodes['task_bar_slot'];
-  const windowTabs = sourceNodes['window_tab_strip_slot'];
-  const activeWindow = sourceNodes['active_window_host_slot'];
-  if (
-    frameDocument.asset.kind !== 'view' ||
-    root?.component !== 'VerticalGroup' ||
-    taskBar?.component !== 'Slot' ||
-    taskBar.props?.['name'] !== 'task_bar' ||
-    windowTabs?.component !== 'Slot' ||
-    windowTabs.props?.['name'] !== 'window_tab_strip' ||
-    activeWindow?.component !== 'Slot' ||
-    activeWindow.props?.['name'] !== 'active_window_host'
-  )
-    throw new Error(
-      'EditorMainFrame review host does not match its Slot contract',
-    );
-
-  const [shell, authoredWindow, tab] = await Promise.all(
-    [WORKBENCH_SHELL_SOURCE, WORKBENCH_WINDOW_SOURCE, TAB_SOURCE].map(
-      async (path) =>
-        parseZuiDocument(await readFile(resolve(repoRoot, path), 'utf8'))
-          .document,
+  const [shell, authoredWindow, frame] = await Promise.all([
+    readFile(resolve(repoRoot, WORKBENCH_SHELL_SOURCE), 'utf8').then((text) =>
+      parseZuiDocument(text).document,
     ),
-  );
+    windowInput
+      ? Promise.resolve(sourceDocument)
+      : readFile(resolve(repoRoot, WORKBENCH_WINDOW_SOURCE), 'utf8').then(
+          (text) => parseZuiDocument(text).document,
+        ),
+    frameInput
+      ? Promise.resolve(sourceDocument)
+      : readFile(resolve(repoRoot, EDITOR_MAIN_FRAME_SOURCE), 'utf8').then(
+          (text) => parseZuiDocument(text).document,
+        ),
+  ]);
+
   if (
     shell.asset.kind !== 'view' ||
     !shell.root?.node ||
     !shell.nodes?.[shell.root.node] ||
-    authoredWindow.asset.kind !== 'view' ||
-    !authoredWindow.nodes?.['window_content'] ||
-    !tab.components?.['WorkbenchTab']
+    shell.nodes[shell.root.node].component !== 'UiHostWindow'
   )
-    throw new Error(
-      'EditorMainFrame review host is missing an authored Workbench consumer',
-    );
+    throw new Error('Unreal editor shell review host is not a rooted UiHostWindow');
+  if (
+    authoredWindow.asset.kind !== 'view' ||
+    !authoredWindow.root?.node ||
+    !authoredWindow.nodes?.[authoredWindow.root.node] ||
+    authoredWindow.nodes[authoredWindow.root.node].component !== 'Overlay'
+  )
+    throw new Error('Unreal level editor review host is not a rooted Overlay view');
 
-  const host = cloneZuiDocument(frameDocument);
+  const host = frameInput ? cloneZuiDocument(frame) : cloneZuiDocument(shell);
   host.asset = {
     ...host.asset,
     id: `${sourceDocument.asset.id}#review-host`,
@@ -628,320 +700,190 @@ async function prepareEditorMainFrameReviewHost(
       ...strings(host.imports?.['widgets']),
       ...strings(shell.imports?.['widgets']),
       ...strings(authoredWindow.imports?.['widgets']),
-      `${tab.asset.id}#WorkbenchTab`,
     ]),
     styles: uniqueStrings([
       ...strings(host.imports?.['styles']),
       ...strings(shell.imports?.['styles']),
       ...strings(authoredWindow.imports?.['styles']),
-      ...strings(tab.imports?.['styles']),
     ]),
   };
   host.tokens = {
     ...(host.tokens ?? {}),
     ...(shell.tokens ?? {}),
     ...(authoredWindow.tokens ?? {}),
-    ...(tab.tokens ?? {}),
   };
   host.stylesheets = mergeStylesheets(
     mergeStylesheets(host.stylesheets, shell.stylesheets),
-    mergeStylesheets(authoredWindow.stylesheets, tab.stylesheets),
+    authoredWindow.stylesheets,
   );
 
-  const hostNodes = host.nodes ?? {};
-  const taskBarHost = hostNodes['task_bar_slot'];
-  const windowTabHost = hostNodes['window_tab_strip_slot'];
-  const activeWindowHost = hostNodes['active_window_host_slot'];
-  if (!taskBarHost || !windowTabHost || !activeWindowHost)
-    throw new Error('EditorMainFrame review host lost a declared Slot');
+  const hostNodes = host.nodes ?? (host.nodes = {});
+  const shellPrefix = frameInput ? 'review_editor_shell' : '';
+  const windowPrefix = 'review_level_editor_window';
+  const shellMountParentPath = frameInput
+    ? instancePathForCallsite(EDITOR_MAIN_FRAME_SOURCE, 'active_window_host_slot')
+    : '[]';
+  let shellHost: ZuiNode | undefined;
+  if (frameInput) {
+    const activeWindowHost = hostNodes['active_window_host_slot'];
+    if (
+      !activeWindowHost ||
+      activeWindowHost.component !== 'Slot' ||
+      activeWindowHost.props?.['name'] !== 'active_window_host'
+    )
+      throw new Error(
+        'EditorMainFrame review host does not match its active_window_host Slot contract',
+      );
+    activeWindowHost.component = 'Container';
+    activeWindowHost.children = [];
+    mountViewIntoContainer(host, activeWindowHost, shell, shellPrefix);
+    shellHost = hostNodes[`${shellPrefix}__${shell.root.node}`];
+  } else {
+    shellHost = hostNodes[shell.root.node];
+  }
+  if (!shellHost)
+    throw new Error('Unreal editor shell review host lost its root node');
 
-  // EditorMainFrame's taskbar is host-owned state. The workbench menu belongs
-  // to the complete WorkbenchShell mounted below, so leave this empty when the
-  // product snapshot does not provide a taskbar consumer.
-  taskBarHost.component = 'Container';
-  taskBarHost.children = [];
-
-  // The frame tab is the active host window from the product snapshot. Page
-  // and document tabs are projected inside the Shell from their own DTO rows.
-  windowTabHost.component = 'HorizontalGroup';
-  windowTabHost.layout = {
-    ...(windowTabHost.layout ?? {}),
-    container: { kind: 'HorizontalBox', gap: '$editor.density.gap.xsmall' },
-  };
-  const presentationWindow = workbenchPresentation
-    ? record(workbenchPresentation['window'], 'workbenchPresentation.window')
-    : undefined;
-  windowTabHost.children = presentationWindow
-    ? [{ node: 'review_main_frame_tab_active_window' }]
-    : [];
-  if (presentationWindow)
-    hostNodes['review_main_frame_tab_active_window'] = {
-      component: `${tab.asset.id}#WorkbenchTab`,
-      props: {
-        text: stringValue(presentationWindow['title'], 'window.title'),
-        selected: true,
-        checked: true,
-        window_id: stringValue(presentationWindow['id'], 'window.id'),
-      },
-    };
-
-  // Mount the complete WorkbenchShell. The Window is then mounted at the
-  // Shell's WorkbenchBody frame; the Shell keeps its rails, document host,
-  // page/status chrome, and root drawer overlays beneath that layer.
-  activeWindowHost.component = 'Container';
-  activeWindowHost.children = [];
-  const mountedWindow = workbenchWindowInput ? sourceDocument : authoredWindow;
-  if (
-    mountedWindow.asset.kind !== 'view' ||
-    !mountedWindow.root?.node ||
-    !mountedWindow.nodes?.[mountedWindow.root.node]
-  )
-    throw new Error('WorkbenchWindow review host input is not a rooted view');
-  mountViewIntoContainer(host, activeWindowHost, shell, 'review_workbench_shell');
-  const shellBody = hostNodes['review_workbench_shell__body'];
-  if (!shellBody || shellBody.component !== 'HorizontalGroup')
-    throw new Error('WorkbenchShell review host is missing its WorkbenchBody');
-  const shellBodyLayout = { ...(shellBody.layout ?? {}) };
-  const shellBodyChildren = [...(shellBody.children ?? [])];
-  const bodyContentId = 'review_workbench_shell_body_content';
-  if (hostNodes[bodyContentId])
-    throw new Error(`EditorMainFrame review host node id collision: ${bodyContentId}`);
-  hostNodes[bodyContentId] = {
-    ...shellBody,
-    control_id: undefined,
-    children: shellBodyChildren,
-    layout: shellBodyLayout,
-    penpot_review_generated_host_layer: 'workbench-shell-body-content',
-  };
-  shellBody.component = 'Overlay';
-  shellBody.layout = {
-    ...shellBodyLayout,
-    container: { kind: 'Overlay', gap: 0.0 },
-  };
-  shellBody.children = [{ node: bodyContentId }];
-  mountViewIntoContainer(
-    host,
-    shellBody,
-    mountedWindow,
-    'review_workbench_window',
-  );
-  const snapshotPaneMounts = workbenchPresentation
-    ? await mountWorkbenchPresentationPaneViews(
-        repoRoot,
-        host,
-        workbenchPresentation,
-      )
-    : [];
+  const paneSurfaceId = shellPrefix
+    ? `${shellPrefix}__pane_surface`
+    : 'pane_surface';
+  const paneSurface = hostNodes[paneSurfaceId];
+  if (!paneSurface)
+    throw new Error('Unreal editor shell review host is missing pane_surface');
+  mountViewIntoContainer(host, paneSurface, authoredWindow, windowPrefix);
 
   const source = serializeZuiDocument(host);
   const projection = cloneZuiDocument(host);
-  annotateMountedSourceIdentity(
-    projection,
-    '',
-    frameSourcePath,
-    Object.keys(frameDocument.nodes ?? {}),
-    '[]',
-  );
-  annotateMountedSourceIdentity(
-    projection,
-    'review_workbench_shell',
-    WORKBENCH_SHELL_SOURCE,
-    Object.keys(shell.nodes ?? {}),
-    instancePathForCallsite(frameSourcePath, 'active_window_host_slot'),
-  );
-  annotateMountedSourceIdentity(
-    projection,
-    'review_workbench_window',
-    WORKBENCH_WINDOW_SOURCE,
-    Object.keys(mountedWindow.nodes ?? {}),
-    instancePathForCallsite(
-      WORKBENCH_SHELL_SOURCE,
-      'body',
-      instancePathForCallsite(frameSourcePath, 'active_window_host_slot'),
-    ),
-  );
-  for (const mount of snapshotPaneMounts)
+  if (frameInput)
     annotateMountedSourceIdentity(
       projection,
-      mount.prefix,
-      mount.sourcePath,
-      mount.sourceNodeIds,
+      '',
+      EDITOR_MAIN_FRAME_SOURCE,
+      Object.keys(frame.nodes ?? {}),
       '[]',
     );
+  annotateMountedSourceIdentity(
+    projection,
+    shellPrefix,
+    WORKBENCH_SHELL_SOURCE,
+    Object.keys(shell.nodes ?? {}),
+    shellMountParentPath,
+  );
+  annotateMountedSourceIdentity(
+    projection,
+    windowPrefix,
+    WORKBENCH_WINDOW_SOURCE,
+    Object.keys(authoredWindow.nodes ?? {}),
+    instancePathForCallsite(
+      WORKBENCH_SHELL_SOURCE,
+      'pane_surface',
+      shellMountParentPath,
+    ),
+  );
   if (workbenchPresentation)
     prepareWorkbenchPresentationStructure(projection, workbenchPresentation);
-  dependencies.embed(projection, frameSourcePath, themeSourcePath, {
-    preserveUnselectedBranchDefaults: true,
-  });
-  // The mounted active window contains the same retained dynamic branches as
-  // its standalone source. Keep the default Scene branch, but leave the
-  // component drawer's inactive authored branches untouched when the product
-  // snapshot does not identify an active drawer view for them.
-  const dynamicReviewContext = {
-    preserveUnselectedBranchDefaults: true,
+
+  // Embed only the authored roots participating in this host.  Their imports
+  // remain source-addressable for Penpot export and reconciliation.
+  const dependencySources = new Set<string>();
+  const embedRoot = (sourcePath: string): void => {
+    dependencies.embed(projection, sourcePath, themeSourcePath, {
+      preserveUnselectedBranchDefaults: true,
+    });
+    for (const path of strings(projection['penpot_dependency_sources']))
+      dependencySources.add(path);
+    projection['penpot_dependency_sources'] = [...dependencySources];
   };
-  prepareDynamicReviewState(
+  if (frameInput) embedRoot(EDITOR_MAIN_FRAME_SOURCE);
+  embedRoot(WORKBENCH_SHELL_SOURCE);
+  embedRoot(WORKBENCH_WINDOW_SOURCE);
+  const dockHeaders = await prepareUnrealDockHeaderViews(repoRoot, workbenchPresentation);
+  const mountedKinds = new Set<string>();
+  for (const [index, prepared] of dockHeaders.entries()) {
+    const observation = prepared.observation;
+    // These are the two actual authored mount slots in the level-editor view.
+    // Additional dock/floating surfaces require their own actual view hosts.
+    if (!['document', 'bottom'].includes(observation.kind) || mountedKinds.has(observation.kind))
+      throw new Error('Actual Header surface has no unique authored level-editor mount: ' +
+        observation.kind + ':' + observation.surfaceKey);
+    mountedKinds.add(observation.kind);
+    const control = observation.kind === 'document'
+      ? 'UnrealProjectDocumentContext' : 'BottomDrawerHeaderRoot';
+    const matches = Object.values(projection.nodes ?? {}).filter((node) => node.control_id === control);
+    if (matches.length !== 1)
+      throw new Error('Actual Header authored mount is missing or ambiguous: ' + control);
+    const target = matches[0];
+    target.component = 'Overlay';
+    target.layout = { ...(target.layout ?? {}), container: { kind: 'Overlay' },
+      height: { min: observation.viewport.height, preferred: observation.viewport.height,
+        max: observation.viewport.height, stretch: 'Fixed' } };
+    if (observation.kind === 'bottom') {
+      const drawers = workbenchPresentation?.['drawers'];
+      const bottom = Array.isArray(drawers)
+        ? drawers.find((drawer) => drawer && drawer.slot === 'bottom') : undefined;
+      if (!bottom || bottom.visible !== true || typeof bottom.extent !== 'number' ||
+          !Number.isFinite(bottom.extent) || bottom.extent <= 0)
+        throw new Error('Consumed bottom Header has no visible logical business drawer extent');
+      const shells = Object.values(projection.nodes ?? {})
+        .filter((node) => node.control_id === 'BottomDrawerShellRoot');
+      if (shells.length !== 1) throw new Error('Actual bottom Header lost its authored drawer shell');
+      shells[0].props = { ...(shells[0].props ?? {}), visibility: 'visible' };
+      shells[0].layout = { ...(shells[0].layout ?? {}),
+        height: { min: bottom.extent, preferred: bottom.extent, max: bottom.extent, stretch: 'Fixed' } };
+    }
+    const view = cloneZuiDocument(prepared.document);
+    dependencies.embed(view, UNREAL_DOCK_HEADER_SOURCE, themeSourcePath, {
+      preserveUnselectedBranchDefaults: true,
+    });
+    projection.imports = {
+      widgets: uniqueStrings([...strings(projection.imports?.['widgets']), ...strings(view.imports?.['widgets'])]),
+      styles: uniqueStrings([...strings(projection.imports?.['styles']), ...strings(view.imports?.['styles'])]),
+    };
+    projection.tokens = { ...(projection.tokens ?? {}), ...(view.tokens ?? {}) };
+    projection.stylesheets = mergeStylesheets(projection.stylesheets, view.stylesheets);
+    for (const path of strings(view['penpot_dependency_sources'])) dependencySources.add(path);
+    projection['penpot_dependency_sources'] = [...dependencySources];
+    // Only actual Source instance inputs determine layout. Observed row frames
+    // and mount rectangles remain evidence and are never copied into this view.
+    mountViewIntoContainer(projection, target, view, 'review_consumed_dock_header_' + index);
+  }
+  await prepareUnrealReviewTranslations(
+    repoRoot,
+    sourcePath,
     projection,
-    WORKBENCH_MAIN_BAND_SOURCE,
-    dynamicReviewContext,
-  );
-  prepareDynamicReviewState(
-    projection,
-    WORKBENCH_COMPONENT_DRAWER_SOURCE,
-    dynamicReviewContext,
+    undefined,
+    workbenchPresentation,
   );
   if (workbenchPresentation)
     applyWorkbenchPresentationProjection(projection, workbenchPresentation);
+
+  const consumers = new Map<string, string>();
+  const addConsumer = (path: string, component: string): void => {
+    if (!consumers.has(`${path}#${component}`)) consumers.set(`${path}#${component}`, component);
+  };
+  if (frameInput) addConsumer(EDITOR_MAIN_FRAME_SOURCE, 'view');
+  addConsumer(sourcePath, 'view');
+  addConsumer(WORKBENCH_SHELL_SOURCE, 'view');
+  addConsumer(WORKBENCH_WINDOW_SOURCE, 'view');
+  for (const [path, component] of UNREAL_COMPONENT_SOURCES)
+    addConsumer(path, component);
+  if (dockHeaders.length) addConsumer(UNREAL_DOCK_HEADER_SOURCE, 'view');
+  // The managed case source must contain the same mounted view as its Penpot
+  // projection. Business observations stay in the case DTO; the ordinary ZUI
+  // source retains the real node identity annotations used by source export.
+  const consumedSource = dockHeaders.length ? cloneZuiDocument(projection) : undefined;
+  if (consumedSource) {
+    for (const key of Object.keys(consumedSource))
+      if (key.startsWith('penpot_review_')) delete consumedSource[key];
+  }
   return {
-    source,
+    source: consumedSource ? serializeZuiDocument(consumedSource) : source,
     projection,
-    consumers: [
-      { sourcePath: frameSourcePath, component: 'view' },
-      { sourcePath, component: 'view' },
-      { sourcePath: WORKBENCH_SHELL_SOURCE, component: 'view' },
-      { sourcePath: WORKBENCH_WINDOW_SOURCE, component: 'view' },
-      { sourcePath: TAB_SOURCE, component: 'WorkbenchTab' },
-      {
-        sourcePath: WORKBENCH_MAIN_BAND_SOURCE,
-        component: 'WorkbenchMainBand',
-      },
-      {
-        sourcePath: WORKBENCH_COMPONENT_DRAWER_SOURCE,
-        component: 'WorkbenchComponentDrawer',
-      },
-      ...snapshotPaneMounts.map(({ sourcePath }) => ({
-        sourcePath,
-        component: 'view',
-      })),
-    ],
+    consumers: [...consumers].map(([key, component]) => ({
+      sourcePath: key.slice(0, key.lastIndexOf('#')),
+      component,
+    })),
   };
-}
-
-interface MountedWorkbenchSnapshotPane {
-  sourcePath: string;
-  prefix: string;
-  sourceNodeIds: string[];
-}
-
-/** Mount only the active source-authored pane bodies named by product state. */
-async function mountWorkbenchPresentationPaneViews(
-  repoRoot: string,
-  host: ZuiDocument,
-  presentation: Record<string, unknown>,
-): Promise<MountedWorkbenchSnapshotPane[]> {
-  const mounts: MountedWorkbenchSnapshotPane[] = [];
-  const mountedSourcePaths = new Set<string>();
-  const mount = async (
-    targetNodeId: string,
-    sourcePath: string | undefined,
-    mountPrefix: string,
-    context: string,
-  ): Promise<void> => {
-    if (!sourcePath) return;
-    if (!sourcePath.startsWith('zircon_editor/assets/'))
-      throw new Error(`${context} sourcePath is outside zircon_editor/assets`);
-    if (mountedSourcePaths.has(sourcePath))
-      throw new Error(
-        `Workbench snapshot repeats source view ${sourcePath}; its authored pane identity is ambiguous`,
-      );
-    mountedSourcePaths.add(sourcePath);
-    const view = parseZuiDocument(
-      await readFile(resolve(repoRoot, sourcePath), 'utf8'),
-    ).document;
-    if (view.asset.kind !== 'view' || !view.root?.node)
-      throw new Error(`${context} source is not a rooted ZUI view: ${sourcePath}`);
-    const target = host.nodes?.[targetNodeId];
-    if (!target)
-      throw new Error(`${context} target node is missing: ${targetNodeId}`);
-    mountViewIntoContainer(host, target, view, mountPrefix);
-    const nodeIds = Object.keys(view.nodes ?? {});
-    mounts.push({ sourcePath, prefix: mountPrefix, sourceNodeIds: nodeIds });
-    host.imports = {
-      widgets: uniqueStrings([
-        ...strings(host.imports?.['widgets']),
-        ...strings(view.imports?.['widgets']),
-      ]),
-      styles: uniqueStrings([
-        ...strings(host.imports?.['styles']),
-        ...strings(view.imports?.['styles']),
-      ]),
-    };
-    host.tokens = { ...(host.tokens ?? {}), ...(view.tokens ?? {}) };
-    host.stylesheets = mergeStylesheets(host.stylesheets, view.stylesheets);
-  };
-
-  const documents = record(
-    presentation['documents'],
-    'workbenchPresentation.documents',
-  );
-  const activeDocumentId = nullableString(
-    documents['activeId'],
-    'workbenchPresentation.documents.activeId',
-  );
-  const documentItems = unknownArray(
-    documents['items'],
-    'workbenchPresentation.documents.items',
-  ).map((item) => record(item, 'workbench document'));
-  if (activeDocumentId !== null) {
-    const activeDocument = documentItems.find(
-      (item) => item['id'] === activeDocumentId,
-    );
-    if (!activeDocument)
-      throw new Error(
-        `Workbench snapshot active document ${activeDocumentId} has no tab`,
-      );
-    await mount(
-      'review_workbench_shell__pane_surface',
-      nullablePath(activeDocument['sourcePath'], 'active document sourcePath'),
-      'review_workbench_document_content',
-      `Workbench document ${activeDocumentId}`,
-    );
-  }
-
-  const drawerEntries = unknownArray(
-    presentation['drawers'],
-    'workbenchPresentation.drawers',
-  ).map((item) => record(item, 'workbench drawer'));
-  const drawerSides: ReadonlyArray<readonly [string, readonly string[]]> = [
-    ['left', ['leftTop', 'leftBottom']],
-    ['right', ['rightTop', 'rightBottom']],
-    ['bottom', ['bottom']],
-  ];
-  for (const [side, slots] of drawerSides) {
-    const slotSet = new Set(slots);
-    const entries = drawerEntries.filter((entry) =>
-      slotSet.has(String(entry['slot'])),
-    );
-    const activeEntries = entries.filter(
-      (entry) => entry['visible'] === true && entry['mode'] !== 'collapsed',
-    );
-    if (activeEntries.length > 1)
-      throw new Error(
-        `Workbench snapshot has multiple visible ${side} drawers; their pane geometry is not representable by the authored Shell`,
-      );
-    const drawer = activeEntries[0];
-    if (!drawer) continue;
-    const activeTabId = nullableString(
-      drawer['activeTabId'],
-      `workbench ${side} drawer activeTabId`,
-    );
-    if (activeTabId === null) continue;
-    const tabs = unknownArray(drawer['tabs'], `workbench ${side} drawer tabs`)
-      .map((item) => record(item, `workbench ${side} drawer tab`));
-    const activeTab = tabs.find((item) => item['id'] === activeTabId);
-    if (!activeTab)
-      throw new Error(
-        `Workbench snapshot active ${side} drawer tab ${activeTabId} has no tab projection`,
-      );
-    const slot = stringValue(drawer['slot'], `workbench ${side} drawer slot`);
-    await mount(
-      `review_workbench_shell__${side}_drawer_content`,
-      nullablePath(activeTab['sourcePath'], `${slot} active sourcePath`),
-      `review_workbench_${slot}_content`,
-      `Workbench drawer ${slot}/${activeTabId}`,
-    );
-  }
-  return mounts;
 }
 
 /** Keep authored node identity on the design-only host projection for case selectors. */
@@ -1272,36 +1214,6 @@ function strings(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string')
     : [];
-}
-
-function record(value: unknown, context: string): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value))
-    throw new Error(`${context} must be an object`);
-  return value as Record<string, unknown>;
-}
-
-function stringValue(value: unknown, context: string): string {
-  if (typeof value !== 'string' || !value.trim())
-    throw new Error(`${context} must be a nonempty string`);
-  return value;
-}
-
-function nullableString(value: unknown, context: string): string | null {
-  if (value === null) return null;
-  return stringValue(value, context);
-}
-
-function nullablePath(value: unknown, context: string): string | undefined {
-  const path = nullableString(value, context);
-  if (path === null) return undefined;
-  if (!path.startsWith('zircon_editor/assets/'))
-    throw new Error(`${context} is outside zircon_editor/assets`);
-  return path;
-}
-
-function unknownArray(value: unknown, context: string): unknown[] {
-  if (!Array.isArray(value)) throw new Error(`${context} must be an array`);
-  return value;
 }
 
 function uniqueStrings(values: string[]): string[] {

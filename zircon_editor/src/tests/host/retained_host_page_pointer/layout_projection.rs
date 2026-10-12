@@ -7,7 +7,7 @@ use crate::ui::workbench::model::WorkbenchViewModel;
 #[test]
 fn host_page_receipt_projection_keeps_typed_page_identity_without_geometry() {
     let harness = EventRuntimeHarness::new("zircon_retained_host_page_receipt_projection");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,

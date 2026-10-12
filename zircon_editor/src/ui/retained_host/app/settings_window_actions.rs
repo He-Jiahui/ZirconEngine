@@ -6,7 +6,7 @@ use super::{HostInvalidationMask, RetainedEditorHost};
 
 impl RetainedEditorHost {
     pub(super) fn sync_settings_projections(&mut self) {
-        let snapshot = self.editor_manager.context().settings().snapshot();
+        let snapshot = self.runtime.context().settings().snapshot();
         if install_editor_v2_design_tokens(snapshot.as_ref()) {
             apply_host_appearance_from_tokens(snapshot.design_tokens());
             self.ui.sync_host_paint_theme();
@@ -22,7 +22,7 @@ impl RetainedEditorHost {
             return;
         };
         let (current_contribution_generation, current_enabled_capabilities) =
-            self.runtime.extension_projection_revision();
+            (match self.runtime.extension_projection_revision() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
         let current_locale = self.runtime.context().i18n().active_locale();
         let directory_is_stale = revision.contribution_generation
             != current_contribution_generation
@@ -31,7 +31,7 @@ impl RetainedEditorHost {
         let values_are_stale = revision.settings_generation != current_settings_generation;
 
         let refreshed = if directory_is_stale {
-            let projection = self.runtime.capture_settings_window_projection();
+            let projection = (match self.runtime.capture_settings_window_projection() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
             let selected_category_id = WorkbenchSettingsOpenState::retain_category_id(
                 &projection,
                 &revision.selected_category_id,
@@ -80,7 +80,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn open_workbench_settings_window(&mut self) {
-        let projection = self.runtime.capture_settings_window_projection();
+        let projection = (match self.runtime.capture_settings_window_projection() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
         let selected_category_id = WorkbenchSettingsOpenState::initial_category_id(&projection);
         let values = match self
             .runtime

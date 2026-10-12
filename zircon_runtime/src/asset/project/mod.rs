@@ -19,6 +19,8 @@ pub use catalog_input_generation::{
     ProjectCatalogInputRename,
 };
 pub(crate) use generation_authority::lock_project_generation;
+#[cfg(test)]
+pub(crate) use generation_authority::ProjectGenerationAdmissionObserver;
 pub(crate) use generation_observation::{ProjectGenerationObservation, ProjectGenerationPhase};
 pub use import_receipt::ProjectImportReceipt;
 pub(crate) use manager::{
@@ -26,7 +28,8 @@ pub(crate) use manager::{
     PreparedProjectSourceRelocation,
 };
 pub use manager::{
-    EditorDocumentCommitFault, EditorDocumentScope, ProjectManager, ScopedRuntimeProjectManager,
+    EditorDocumentCommitFault, EditorDocumentScope, ProjectActivationIdentity, ProjectManager,
+    ScopedRuntimeProjectManager,
 };
 pub use manifest::{ProjectManifest, ProjectManifestError};
 pub use meta::{

@@ -23,9 +23,14 @@ impl EditorHostEventController {
         true
     }
 
-    pub(crate) fn console_output(&self) -> ConsoleOutputSnapshot {
-        let mut shell = self.shell().lock();
-        activity_log_console_output_for_shell(&mut shell)
+    pub(crate) fn console_output(
+        &self,
+    ) -> Result<ConsoleOutputSnapshot, crate::ui::host::EditorError> {
+        Ok({
+            let manager = self.enter_editor_manager()?;
+            let mut shell = self.shell().lock();
+            activity_log_console_output_for_shell(&mut shell, &manager)?
+        })
     }
 
     pub fn set_status_task_progress(&self, progress: Option<StatusTaskProgressSnapshot>) {

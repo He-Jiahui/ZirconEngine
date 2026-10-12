@@ -7,14 +7,16 @@ use crate::ui::workbench::snapshot::{EditorChromeSnapshot, ViewContentKind};
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 impl RetainedEditorHost {
-    pub(super) fn collect_runtime_diagnostics_payload(&self) -> RuntimeDiagnosticsSnapshot {
+    pub(super) fn collect_runtime_diagnostics_payload(
+        &self,
+    ) -> Result<RuntimeDiagnosticsSnapshot, crate::ui::host::EditorError> {
         if self
             .runtime_diagnostics_refresh_target
             .should_collect_payload()
         {
             self.runtime_diagnostics_with_profile()
         } else {
-            RuntimeDiagnosticsSnapshot::default()
+            Ok(RuntimeDiagnosticsSnapshot::default())
         }
     }
 
@@ -22,14 +24,14 @@ impl RetainedEditorHost {
         &self,
         model: &WorkbenchViewModel,
         chrome: &EditorChromeSnapshot,
-    ) -> ModulePluginsPaneViewData {
+    ) -> Result<ModulePluginsPaneViewData, crate::ui::host::EditorError> {
         if pane_payload_visibility::should_collect_payload_for_kind(
             model,
             ViewContentKind::ModulePlugins,
         ) {
             self.module_plugins_pane_data(chrome)
         } else {
-            ModulePluginsPaneViewData::default()
+            Ok(ModulePluginsPaneViewData::default())
         }
     }
 
@@ -37,14 +39,14 @@ impl RetainedEditorHost {
         &self,
         model: &WorkbenchViewModel,
         chrome: &EditorChromeSnapshot,
-    ) -> BuildExportPaneViewData {
+    ) -> Result<BuildExportPaneViewData, crate::ui::host::EditorError> {
         if pane_payload_visibility::should_collect_payload_for_kind(
             model,
             ViewContentKind::BuildExport,
         ) {
             self.build_export_pane_data(chrome)
         } else {
-            BuildExportPaneViewData::default()
+            Ok(BuildExportPaneViewData::default())
         }
     }
 }

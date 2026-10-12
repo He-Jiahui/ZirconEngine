@@ -32,7 +32,7 @@ pub enum LoadError {
     #[error("malformed versioned binary payload: {source}")]
     MalformedBinary {
         #[source]
-        source: bincode::Error,
+        source: super::PositionalDecodeError,
     },
     #[error("invalid binary value-domain payload: {reason}")]
     InvalidBinaryPayload { reason: String },

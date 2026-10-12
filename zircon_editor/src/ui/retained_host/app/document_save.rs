@@ -1,6 +1,6 @@
 use crate::core::asset::SaveDirtyViewOutcomeStatus;
 use crate::core::extension::SaveReason;
-use crate::ui::host::{DirtyDocumentSaveOwner, DirtyDocumentSaveStart};
+use crate::ui::host::{DirtyDocumentSaveOwner, DirtyDocumentSaveStart, EditorError, EditorManager};
 
 use super::RetainedEditorHost;
 
@@ -18,14 +18,20 @@ impl RetainedEditorHost {
     }
 
     fn try_start_document_save_all(&mut self) {
-        let documents = match self.editor_manager.dirty_document_toolkits() {
+        let documents = match self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.dirty_document_toolkits())
+        {
             Ok(documents) => documents,
             Err(error) => {
                 self.set_status_line(error.to_string());
                 return;
             }
         };
-        match self.editor_manager.begin_dirty_document_save(
+        match EditorManager::begin_dirty_document_save(
+            self.editor_manager.clone(),
             DirtyDocumentSaveOwner::SaveAll,
             documents.into_iter().map(|document| document.document_id),
             SaveReason::SaveAll,
@@ -49,13 +55,20 @@ impl RetainedEditorHost {
         if self.pending_document_save_all {
             let result = match self
                 .editor_manager
-                .poll_dirty_document_save(DirtyDocumentSaveOwner::SaveAll)
-            {
+                .enter()
+                .map_err(crate::ui::host::EditorError::from)
+                .and_then(|manager| {
+                    manager.poll_dirty_document_save(DirtyDocumentSaveOwner::SaveAll)
+                }) {
                 Ok(Some(result)) => result,
                 Ok(None) => return,
                 Err(error) => {
                     self.pending_document_save_all = false;
-                    self.set_status_line(format!("Documents could not be saved: {error}"));
+                    let committed = match &error {
+                        EditorError::DirtySave { source } => source.committed_documents(),
+                        _ => 0,
+                    };
+                    self.set_status_line(format!("{committed} document source write(s) committed; save batch failed: {error}"));
                     return;
                 }
             };
@@ -72,14 +85,26 @@ impl RetainedEditorHost {
                 self.set_status_line(format!("Saved {saved} document(s)."));
             } else {
                 self.set_status_line(format!(
-                    "Saved {saved} document(s); {remaining} document(s) require attention."
+                    "Saved {saved} document(s); {remaining} document(s) require attention; {} source write(s) committed.", result.committed_documents()
                 ));
             }
         }
 
-        if self.queued_document_save_all
-            && self.editor_manager.dirty_document_save_owner().is_none()
+        if !self.queued_document_save_all {
+            return;
+        }
+        let owner = match self
+            .editor_manager
+            .enter()
+            .map(|manager| manager.dirty_document_save_owner())
         {
+            Ok(owner) => owner,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
+        if owner.is_none() {
             self.queued_document_save_all = false;
             self.try_start_document_save_all();
         }

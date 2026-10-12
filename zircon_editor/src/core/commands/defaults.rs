@@ -3,8 +3,8 @@ use std::str::FromStr;
 use zircon_runtime::scene::components::NodeKind;
 
 use crate::core::editor_event::{
-    ConsoleMessageFilter, ConsoleSourceFilter, EditorEvent, EditorEventTransient, LayoutCommand,
-    MenuAction, ViewDescriptorId,
+    ConsoleMessageFilter, ConsoleSourceFilter, EditorAssetEvent, EditorEvent, EditorEventTransient,
+    LayoutCommand, MenuAction, ViewDescriptorId,
 };
 use crate::core::editor_operation::EditorOperationPath;
 
@@ -336,12 +336,18 @@ fn append_view_commands(commands: &mut Vec<EditorCommandDescriptor>) {
         ("view.prefab.open", "editor.prefab"),
         ("view.asset_browser.open", "editor.asset_browser"),
     ] {
+        let event = if id == "view.asset_browser.open" {
+            // The canonical command retains the asset browser's preview refresh effect.
+            EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser)
+        } else {
+            EditorEvent::WorkbenchMenu(MenuAction::OpenView(ViewDescriptorId::new(view_id)))
+        };
         commands.push(command(
             id,
             EditorCommandCategory::View,
             "view",
             &[],
-            EditorEvent::WorkbenchMenu(MenuAction::OpenView(ViewDescriptorId::new(view_id))),
+            event,
             None,
             WhenClause::Always,
             ["view", "panel"],

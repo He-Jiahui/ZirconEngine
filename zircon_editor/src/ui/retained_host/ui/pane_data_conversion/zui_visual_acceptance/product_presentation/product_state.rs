@@ -33,7 +33,7 @@ use super::super::contract::hash_file;
 use super::managed_inputs;
 use super::{
     same_product_snapshot_state, workbench_snapshot_from_model, WorkbenchPresentationSnapshot,
-    CASE_SNAPSHOTS_SCHEMA, PRESENTATION_VERSION, WORKBENCH_SOURCE_PATH,
+    CASE_SNAPSHOTS_SCHEMA, PRESENTATION_VERSION, UNREAL_EDITOR_SOURCE_PATH,
 };
 
 const REVIEW_EMPTY_SCENE_URI: &str = "res://scenes/workbench-review-empty.scene.toml";
@@ -170,8 +170,10 @@ impl Drop for ProductWorkbenchLocaleOverlay {
 
 impl Drop for ProductWorkbenchMaterialization {
     fn drop(&mut self) {
-        let manager = self._controller.shell().lock().manager.clone();
-        let _ = close_editor_project(&manager);
+        let handle = self._controller.editor_manager_handle();
+        if let Ok(manager) = handle.enter() {
+            let _ = close_editor_project(&manager);
+        }
         if let Some(overlay) = &mut self.locale_overlay {
             let _ = overlay.restore();
         }
@@ -216,11 +218,12 @@ pub(super) fn materialize_product_workbench(
     core: &CoreHandle,
     app_preflighted_build_set: &ZrRuntimeBuildSetId,
 ) -> Result<ProductWorkbenchMaterialization, String> {
-    let manager = core
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = core
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .map_err(|error| {
             format!("App-preflighted CoreHandle has no active EditorManager: {error}")
         })?;
+    let manager = manager_handle.enter().map_err(|error| error.to_string())?;
     manager.configure_project_runtime_build_set(Some(app_preflighted_build_set.clone()));
     let settings_snapshot = manager.context().settings().snapshot();
     apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
@@ -228,7 +231,7 @@ pub(super) fn materialize_product_workbench(
     let project_root = review_project_root()?;
     let project_root = canonicalize_review_project_root(&project_root)?;
     let mut locale_overlay = ProductWorkbenchLocaleOverlay::install(&manager, locale)?;
-    let controller = match editor_controller_for(&project_root, manager.clone()) {
+    let controller = match editor_controller_for(&project_root, manager_handle.clone()) {
         Ok(controller) => controller,
         Err(error) => {
             let close_result = close_editor_project(&manager);
@@ -301,13 +304,27 @@ fn product_workbench_materialization(
     controller: EditorHostEventController,
     locale_overlay: ProductWorkbenchLocaleOverlay,
 ) -> Result<ProductWorkbenchMaterialization, String> {
-    let chrome = controller.chrome_snapshot();
-    let context = controller.project_command_eval_snapshot(&chrome);
-    let model = controller.build_workbench_view_model(&chrome, &context);
-    let layout = controller.current_layout();
-    let descriptors = controller.descriptors();
-    let preset_names = controller.preset_names();
-    let template_v2_data = controller.ui_template_pane_data_snapshots();
+    let chrome = controller
+        .chrome_snapshot()
+        .map_err(|error| error.to_string())?;
+    let context = controller
+        .project_command_eval_snapshot(&chrome)
+        .map_err(|error| error.to_string())?;
+    let model = controller
+        .build_workbench_view_model(&chrome, &context)
+        .map_err(|error| error.to_string())?;
+    let layout = controller
+        .current_layout()
+        .map_err(|error| error.to_string())?;
+    let descriptors = controller
+        .descriptors()
+        .map_err(|error| error.to_string())?;
+    let preset_names = controller
+        .preset_names()
+        .map_err(|error| error.to_string())?;
+    let template_v2_data = controller
+        .ui_template_pane_data_snapshots()
+        .map_err(|error| error.to_string())?;
     let active_locale = controller.context().i18n().active_locale();
     let snapshot = workbench_snapshot_from_model(
         repo_root,
@@ -475,12 +492,12 @@ pub(crate) fn export_product_workbench_case_snapshots_with_context(
         "longChinese".to_owned(),
         serde_json::to_value(long_chinese_snapshot).map_err(|e| e.to_string())?,
     );
-    let source_path = repo_root.join(WORKBENCH_SOURCE_PATH);
+    let source_path = repo_root.join(UNREAL_EDITOR_SOURCE_PATH);
     let value = json!({
         "schema": CASE_SNAPSHOTS_SCHEMA,
         "version": PRESENTATION_VERSION,
         "sourceFingerprint": {
-            "sourcePath": WORKBENCH_SOURCE_PATH,
+            "sourcePath": UNREAL_EDITOR_SOURCE_PATH,
             "sha256": hash_file(&source_path)?,
         },
         "managedSceneFingerprint": managed_scene_fingerprint,
@@ -614,7 +631,7 @@ fn hierarchy_row_named<'a>(
 
 fn editor_controller_for(
     project_root: &Path,
-    manager: std::sync::Arc<EditorManager>,
+    manager: zircon_runtime::core::runtime::ServiceHandle<EditorManager>,
 ) -> Result<EditorHostEventController, String> {
     let operation_id = REVIEW_PROJECT_OPERATION_IDS
         .get_or_init(|| ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new()))
@@ -682,7 +699,10 @@ fn apply_product_workbench_state(
 
     if state == ProductWorkbenchState::Empty {
         open_review_empty_scene(&materialization._controller)?;
-        let snapshot = materialization._controller.chrome_snapshot();
+        let snapshot = materialization
+            ._controller
+            .chrome_snapshot()
+            .map_err(|error| error.to_string())?;
         if !snapshot.scene_entries.is_empty() || snapshot.inspector.is_some() {
             return Err("managed fixture empty scene did not load with zero hierarchy rows and no inspector".into());
         }
@@ -822,7 +842,9 @@ fn open_review_empty_scene(controller: &EditorHostEventController) -> Result<(),
     let scene_uri = AssetUri::parse(REVIEW_EMPTY_SCENE_URI).map_err(|error| error.to_string())?;
     let ticket = controller.begin_scene_picker()?;
     controller.submit_scene_open_request(ticket, SceneOpenRequest::new(scene_uri))?;
-    let snapshot = controller.chrome_snapshot();
+    let snapshot = controller
+        .chrome_snapshot()
+        .map_err(|error| error.to_string())?;
     if !snapshot.scene_entries.is_empty() || snapshot.inspector.is_some() {
         return Err(format!(
             "project-owned empty scene {REVIEW_EMPTY_SCENE_URI} opened with authored scene rows"
@@ -836,13 +858,27 @@ fn refresh_product_workbench_materialization(
     materialization: &mut ProductWorkbenchMaterialization,
 ) -> Result<(), String> {
     let controller = &materialization._controller;
-    let chrome = controller.chrome_snapshot();
-    let context = controller.project_command_eval_snapshot(&chrome);
-    let model = controller.build_workbench_view_model(&chrome, &context);
-    let layout = controller.current_layout();
-    let descriptors = controller.descriptors();
-    let preset_names = controller.preset_names();
-    let template_v2_data = controller.ui_template_pane_data_snapshots();
+    let chrome = controller
+        .chrome_snapshot()
+        .map_err(|error| error.to_string())?;
+    let context = controller
+        .project_command_eval_snapshot(&chrome)
+        .map_err(|error| error.to_string())?;
+    let model = controller
+        .build_workbench_view_model(&chrome, &context)
+        .map_err(|error| error.to_string())?;
+    let layout = controller
+        .current_layout()
+        .map_err(|error| error.to_string())?;
+    let descriptors = controller
+        .descriptors()
+        .map_err(|error| error.to_string())?;
+    let preset_names = controller
+        .preset_names()
+        .map_err(|error| error.to_string())?;
+    let template_v2_data = controller
+        .ui_template_pane_data_snapshots()
+        .map_err(|error| error.to_string())?;
     let active_locale = controller.context().i18n().active_locale();
     let snapshot = workbench_snapshot_from_model(
         repo_root,
@@ -865,7 +901,8 @@ fn refresh_product_workbench_materialization(
 pub(super) fn close_product_workbench_materialization(
     mut materialization: ProductWorkbenchMaterialization,
 ) -> Result<(), String> {
-    let manager = materialization._controller.shell().lock().manager.clone();
+    let handle = materialization._controller.editor_manager_handle();
+    let manager = handle.enter().map_err(|error| error.to_string())?;
     close_editor_project(&manager)?;
     if let Some(overlay) = &mut materialization.locale_overlay {
         overlay.restore()?;

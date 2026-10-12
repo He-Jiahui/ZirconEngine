@@ -72,9 +72,16 @@ fn text_field_hover_uses_hover_outline_without_impersonating_keyboard_focus() {
 }
 
 #[test]
-fn text_field_dynamic_outlines_ignore_normal_style_overrides() {
+fn text_field_available_states_preserve_resolved_authored_colors() {
     let override_surface = UiStyleColor::Rgba(UiRgbaColor::from_u8(93, 97, 101, 255));
     let override_border = UiStyleColor::Rgba(UiRgbaColor::from_u8(106, 111, 116, 255));
+    let state_colors = std::collections::BTreeMap::from([
+        ("hover_background_color".into(), override_surface.clone()),
+        ("pressed_background_color".into(), override_surface.clone()),
+        ("focused_background_color".into(), override_surface.clone()),
+        ("hover_border_color".into(), override_border.clone()),
+        ("focus_border_color".into(), override_border.clone()),
+    ]);
 
     let mut normal = TemplatePaneNodeData::default();
     normal.button_style.element.background_color = Some(override_surface.clone());
@@ -82,36 +89,42 @@ fn text_field_dynamic_outlines_ignore_normal_style_overrides() {
     let normal_style = select_workbench_text_field_style(&normal, false);
 
     let mut hovered = TemplatePaneNodeData::default();
+    hovered.authored_field_colors = state_colors.clone();
     hovered.hovered = true;
     hovered.button_style.element.background_color = Some(override_surface.clone());
     hovered.button_style.element.border_color = Some(override_border.clone());
     let hovered_style = select_workbench_text_field_style(&hovered, false);
 
     let mut focused = TemplatePaneNodeData::default();
+    focused.authored_field_colors = state_colors.clone();
     focused.focused = true;
     focused.button_style.element.background_color = Some(override_surface.clone());
     focused.button_style.element.border_color = Some(override_border.clone());
     let focused_style = select_workbench_text_field_style(&focused, false);
 
     let mut pressed = TemplatePaneNodeData::default();
+    pressed.authored_field_colors = state_colors.clone();
     pressed.pressed = true;
     pressed.button_style.element.background_color = Some(override_surface.clone());
     pressed.button_style.element.border_color = Some(override_border.clone());
     let pressed_style = select_workbench_text_field_style(&pressed, false);
 
     let mut selected = TemplatePaneNodeData::default();
+    selected.authored_field_colors = state_colors.clone();
     selected.selected = true;
     selected.button_style.element.background_color = Some(override_surface.clone());
     selected.button_style.element.border_color = Some(override_border.clone());
     let selected_style = select_workbench_text_field_style(&selected, false);
 
     let mut checked = TemplatePaneNodeData::default();
+    checked.authored_field_colors = state_colors.clone();
     checked.checked = true;
     checked.button_style.element.background_color = Some(override_surface.clone());
     checked.button_style.element.border_color = Some(override_border.clone());
     let checked_style = select_workbench_text_field_style(&checked, false);
 
     let mut invalid = TemplatePaneNodeData::default();
+    invalid.authored_field_colors = state_colors.clone();
     invalid.validation_level = "error".into();
     invalid.button_style.element.background_color = Some(override_surface);
     invalid.button_style.element.border_color = Some(override_border);
@@ -119,18 +132,17 @@ fn text_field_dynamic_outlines_ignore_normal_style_overrides() {
 
     assert_eq!(normal_style.surface, [93, 97, 101, 255]);
     assert_eq!(normal_style.border, [106, 111, 116, 255]);
-    assert_eq!(hovered_style.surface, PALETTE.surface_input);
-    assert_eq!(hovered_style.border, PALETTE.surface_hover);
-    assert_eq!(focused_style.surface, PALETTE.surface_input);
-    assert_eq!(focused_style.border, PALETTE.focus_ring);
-    assert_eq!(pressed_style.surface, PALETTE.surface_input);
-    assert_eq!(pressed_style.border, PALETTE.surface_hover);
-    assert_ne!(pressed_style.border, PALETTE.focus_ring);
-    assert_eq!(selected_style.surface, PALETTE.surface_input);
-    assert_eq!(selected_style.border, PALETTE.separator_soft);
-    assert_eq!(checked_style.surface, PALETTE.surface_input);
-    assert_eq!(checked_style.border, PALETTE.separator_soft);
-    assert_eq!(invalid_style.surface, PALETTE.surface_input);
+    for style in [
+        hovered_style,
+        focused_style,
+        pressed_style,
+        selected_style,
+        checked_style,
+    ] {
+        assert_eq!(style.surface, [93, 97, 101, 255]);
+        assert_eq!(style.border, [106, 111, 116, 255]);
+    }
+    assert_eq!(invalid_style.surface, [93, 97, 101, 255]);
     assert_eq!(invalid_style.border, PALETTE.error);
 }
 
@@ -157,7 +169,7 @@ fn text_field_palette_projects_from_global_appearance_palette() {
 }
 
 #[test]
-fn asset_browser_toolbar_search_field_ignores_legacy_declared_chrome() {
+fn asset_browser_toolbar_search_field_preserves_resolved_authored_chrome() {
     let mut node = TemplatePaneNodeData {
         control_id: "SearchEdited".into(),
         ..TemplatePaneNodeData::default()
@@ -169,8 +181,6 @@ fn asset_browser_toolbar_search_field_ignores_legacy_declared_chrome() {
 
     let style = select_workbench_text_field_style(&node, true);
 
-    assert_eq!(style.surface, PALETTE.surface_input);
-    assert_eq!(style.border, PALETTE.separator_soft);
-    assert_ne!(style.surface, [1, 2, 3, 255]);
-    assert_ne!(style.border, [4, 5, 6, 255]);
+    assert_eq!(style.surface, [1, 2, 3, 255]);
+    assert_eq!(style.border, [4, 5, 6, 255]);
 }

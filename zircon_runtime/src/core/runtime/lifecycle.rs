@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
-use super::contexts::ModuleContext;
+use super::contexts::{ModuleCleanupContext, ModuleContext};
 use super::error::CoreResult;
 
 /// Immediate 服务参加模块启动计划；Lazy 服务留到按需解析时初始化。
@@ -91,12 +91,16 @@ pub trait ModuleLifecycle: Send + Sync {
         Ok(())
     }
 
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         Ok(())
     }
 
     /// 默认实现忽略 deadline 并调用 cleanup；需要限时清理的模块应覆盖此方法。
-    fn cleanup_until(&self, context: &ModuleContext, deadline: Instant) -> CoreResult<()> {
+    fn cleanup_until(
+        &self,
+        context: &ModuleCleanupContext<'_>,
+        deadline: Instant,
+    ) -> CoreResult<()> {
         let _ = deadline;
         self.cleanup(context)
     }

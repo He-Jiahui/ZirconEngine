@@ -22,6 +22,10 @@ param(
     [string]$ProfileSessionId = 'editor-ui-visual-acceptance',
     [ValidateSet('100', '150')]
     [string]$DpiProfile = '150',
+    [string]$MonitorDeviceName,
+    [string]$NormalFrameCaseBindings,
+    [string]$NormalFrameCaseProducerConfiguration,
+    [string[]]$CaptureCaseIds,
     [switch]$SkipInteractions,
     [switch]$PreservePointerPosition,
     [switch]$SkipVisualOracle
@@ -38,6 +42,101 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 . (Join-Path $repoRoot 'tools\analysis\visual\editor-ui-visual-interactions.ps1')
 . (Join-Path $repoRoot 'tools\analysis\visual\editor-ui-visual-matrix.ps1')
 $captureCases = @(Get-ZirconEditorVisualCaptureCases -DpiProfile $DpiProfile)
+if ($null -ne $CaptureCaseIds -and $CaptureCaseIds.Count -gt 0) {
+    $knownCaseIds = @($captureCases | ForEach-Object { [string]$_.CaseId })
+    if (@($CaptureCaseIds | Select-Object -Unique).Count -ne $CaptureCaseIds.Count -or
+        @($CaptureCaseIds | Where-Object { $_ -notin $knownCaseIds }).Count -gt 0) {
+        throw 'CaptureCaseIds must select unique existing official matrix cases.'
+    }
+    $captureCases = @($captureCases | Where-Object { [string]$_.CaseId -in $CaptureCaseIds })
+}
+$normalFrameBindings = $null
+if (-not [string]::IsNullOrWhiteSpace($NormalFrameCaseBindings)) {
+    $normalFrameBindings = Get-Content -LiteralPath $NormalFrameCaseBindings -Raw | ConvertFrom-Json
+    if ($normalFrameBindings.schema -ne 'dev.zircon.editor.normal-frame-case-bindings' -or
+        $normalFrameBindings.version -ne 1 -or $null -eq $normalFrameBindings.cases) {
+        throw 'Normal frame bindings require the actual version-1 case path/hash mapping.'
+    }
+}
+
+
+function Get-ZirconNormalCaseProducerFile {
+    param([Parameter(Mandatory = $true)][object]$Binding)
+    if ([string]$Binding.sha256 -notmatch '^[0-9a-f]{64}$') {
+        throw 'Normal business producer dependencies require exact SHA256 pins.'
+    }
+    $item = Get-Item -LiteralPath $Binding.path -Force -ErrorAction Stop
+    if ($item.PSIsContainer -or $item.FullName -notmatch '^[DEF]:\\cargo-targets\\zircon-local\\') {
+        throw 'Normal business producer dependencies must be physical approved artifact files.'
+    }
+    if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw 'Normal business producer dependencies cannot be reparse files.'
+    }
+    for ($ancestor = $item.Directory; $null -ne $ancestor; $ancestor = $ancestor.Parent) {
+        if (($ancestor.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'Normal business producer dependencies cannot traverse reparse directories.'
+        }
+    }
+    if ((Get-ZirconProfileFileSha256 -Path $item.FullName) -cne [string]$Binding.sha256) {
+        throw "Normal business producer dependency changed: $($item.FullName)"
+    }
+    return $item.FullName
+}
+
+function Assert-ZirconActualPreparedNormalCase {
+    param([object]$Produced, [object]$Receipt, [string]$ExpectedReceiptPath,
+        [string]$ExpectedCasePath, [string]$SeedPath, [string]$SeedSha256,
+        [string]$CurrentSeedSha256, [string]$CurrentCaseSha256)
+    if ([System.IO.Path]::GetFullPath($Produced.receiptPath) -ine $ExpectedReceiptPath -or
+        [System.IO.Path]::GetFullPath($Produced.caseJsonPath) -ine $ExpectedCasePath -or
+        [System.IO.Path]::GetFullPath($Receipt.caseJsonPath) -ine $ExpectedCasePath -or
+        [System.IO.Path]::GetFullPath($Receipt.seedProfilePath) -ine $SeedPath -or
+        [string]$Produced.caseJsonSha256 -notmatch '^[0-9a-f]{64}$' -or
+        [string]$Produced.caseSha256 -notmatch '^[0-9a-f]{64}$' -or
+        [string]$Produced.caseJsonSha256 -cne $CurrentCaseSha256 -or
+        [string]$Receipt.caseJsonSha256 -cne [string]$Produced.caseJsonSha256 -or
+        [string]$Receipt.caseSha256 -cne [string]$Produced.caseSha256 -or
+        [string]$Receipt.seedProfileSha256 -cne $SeedSha256 -or
+        $CurrentSeedSha256 -cne $SeedSha256) {
+        throw 'Actual case producer receipt, input frame or output case identity changed.'
+    }
+    foreach ($counter in @('structure', 'geometry', 'interaction', 'viewport', 'hitTest', 'theme', 'diagnostics')) {
+        if ($Produced.presentationCursor.$counter -ne $Receipt.presentationCursor.$counter) {
+            throw 'Actual producer console and immutable case receipt cursor differ.'
+        }
+    }
+}
+
+$normalCaseProducer = $null
+$normalCaseProducerConfigurationBinding = $null
+if (-not [string]::IsNullOrWhiteSpace($NormalFrameCaseProducerConfiguration)) {
+    if ($null -ne $normalFrameBindings) {
+        throw 'Choose an existing immutable case map or the actual live business producer.'
+    }
+    $producerConfigurationPath = (Resolve-Path -LiteralPath $NormalFrameCaseProducerConfiguration).Path
+    $normalCaseProducer = Get-Content -LiteralPath $producerConfigurationPath -Raw | ConvertFrom-Json
+    if ($normalCaseProducer.schema -ne 'dev.zircon.editor.normal-frame-case-producer' -or
+        $normalCaseProducer.version -ne 1) {
+        throw 'Normal business producer configuration requires the version-1 pinned artifact contract.'
+    }
+    $normalCaseProducerConfigurationBinding = [pscustomobject]@{
+        path = $producerConfigurationPath
+        sha256 = Get-ZirconProfileFileSha256 -Path $producerConfigurationPath
+        artifacts = $normalCaseProducer
+    }
+    foreach ($dependency in @('node', 'producer', 'contract', 'contractInputs')) {
+        Get-ZirconNormalCaseProducerFile -Binding $normalCaseProducer.$dependency | Out-Null
+    }
+    $expectedNode = 'D:\cargo-targets\zircon-local\penpot-public\tools\node\node-v24.19.0-win-x64\node.exe'
+    if ([System.IO.Path]::GetFullPath($normalCaseProducer.node.path) -ine $expectedNode -or
+        [System.IO.Path]::GetFileName($normalCaseProducer.producer.path) -cne 'normal-workbench-case-producer.mjs' -or
+        [System.IO.Path]::GetFileName($normalCaseProducer.contract.path) -cne 'normal-workbench-contracts.mjs' -or
+        [System.IO.Path]::GetFileName($normalCaseProducer.contractInputs.path) -cne 'normal-workbench-contract-inputs.json' -or
+        [System.IO.Path]::GetDirectoryName($normalCaseProducer.contract.path) -ine
+            [System.IO.Path]::GetDirectoryName($normalCaseProducer.contractInputs.path)) {
+        throw 'The live producer requires the verified Node and its existing audited contract module.'
+    }
+}
 
 function ConvertTo-ZirconEditorVisualCommandLineArgument {
     param([Parameter(Mandatory = $true)][string]$Value)
@@ -233,6 +332,7 @@ function Get-ZirconEditorVisualProjectSnapshot {
 }
 
 Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Windows.Forms
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -358,6 +458,30 @@ function Set-ZirconEditorVisualClientExtent {
     return $geometry
 }
 
+function Assert-ZirconEditorVisualMonitor {
+    param([Parameter(Mandatory = $true)][IntPtr]$Window)
+    $screen = [System.Windows.Forms.Screen]::FromHandle($Window)
+    $dpi = [ZirconEditorVisualCaptureNative]::GetDpiForWindow($Window)
+    if ($screen.DeviceName -ne $captureMonitor.DeviceName -or $dpi -ne $captureExpectedDpi) {
+        throw "Editor must remain on monitor '$($captureMonitor.DeviceName)' at real $captureExpectedDpi DPI; got '$($screen.DeviceName)' at $dpi DPI."
+    }
+}
+
+function Move-ZirconEditorVisualToCaptureMonitor {
+    param([Parameter(Mandatory = $true)][IntPtr]$Window)
+    $geometry = Get-ZirconEditorVisualClientGeometry -Window $Window
+    $windowLeft = $geometry.WindowLeft + ($captureMonitor.Bounds.Left - $geometry.ClientLeft)
+    $windowTop = $geometry.WindowTop + ($captureMonitor.Bounds.Top - $geometry.ClientTop)
+    if (-not [ZirconEditorVisualCaptureNative]::SetWindowPos(
+            $Window, [IntPtr](-1), $windowLeft, $windowTop,
+            $geometry.WindowWidth, $geometry.WindowHeight, 0x0040)) {
+        throw 'Could not position the Editor on the selected capture monitor.'
+    }
+    [ZirconEditorVisualCaptureNative]::DwmFlush() | Out-Null
+    Start-Sleep -Milliseconds 500
+    Assert-ZirconEditorVisualMonitor -Window $Window
+}
+
 function Save-ZirconEditorVisualClientScreenshot {
     param(
         [Parameter(Mandatory = $true)][IntPtr]$Window,
@@ -367,6 +491,7 @@ function Save-ZirconEditorVisualClientScreenshot {
         [switch]$PreservePointerPosition
     )
 
+    Assert-ZirconEditorVisualMonitor -Window $Window
     $geometry = Set-ZirconEditorVisualClientExtent -Window $Window -Width $Width -Height $Height
     [ZirconEditorVisualCaptureNative]::SetForegroundWindow($Window) | Out-Null
     if (-not $PreservePointerPosition) {
@@ -383,10 +508,12 @@ function Save-ZirconEditorVisualClientScreenshot {
     $bitmap = [System.Drawing.Bitmap]::new($Width, $Height)
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     try {
-        $virtualLeft = [ZirconEditorVisualCaptureNative]::GetSystemMetrics(76)
-        $virtualTop = [ZirconEditorVisualCaptureNative]::GetSystemMetrics(77)
-        $virtualWidth = [ZirconEditorVisualCaptureNative]::GetSystemMetrics(78)
-        $virtualHeight = [ZirconEditorVisualCaptureNative]::GetSystemMetrics(79)
+        # Tile exclusively within the selected physical display. A mixed-DPI
+        # virtual desktop must never supply pixels from a different monitor.
+        $virtualLeft = $captureMonitor.Bounds.Left
+        $virtualTop = $captureMonitor.Bounds.Top
+        $virtualWidth = $captureMonitor.Bounds.Width
+        $virtualHeight = $captureMonitor.Bounds.Height
         if ($virtualWidth -le 0 -or $virtualHeight -le 0) {
             throw 'Could not resolve the Windows virtual-screen extent.'
         }
@@ -412,7 +539,11 @@ function Save-ZirconEditorVisualClientScreenshot {
                 [ZirconEditorVisualCaptureNative]::DwmFlush() | Out-Null
                 Start-Sleep -Milliseconds 250
 
+                Assert-ZirconEditorVisualMonitor -Window $Window
                 $geometry = Get-ZirconEditorVisualClientGeometry -Window $Window
+                if ($geometry.ClientWidth -ne $Width -or $geometry.ClientHeight -ne $Height) {
+                    throw 'Editor client extent changed while positioning a capture tile.'
+                }
                 if ($geometry.ClientLeft -ne $desiredClientLeft -or
                     $geometry.ClientTop -ne $desiredClientTop) {
                     throw "Editor client stopped at ($($geometry.ClientLeft),$($geometry.ClientTop)); " +
@@ -485,8 +616,18 @@ function Wait-ZirconEditorVisualProfileGeometry {
 
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     do {
-        if (Test-Path -LiteralPath $Path -PathType Leaf) {
-            return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+        $directory = Split-Path -Parent $Path
+        $candidates = @(Get-ChildItem -LiteralPath $directory -Directory -Filter 'present-*' -ErrorAction SilentlyContinue | Sort-Object -Property Name -Descending)
+        foreach ($candidate in $candidates) {
+            $geometryPath = Join-Path $candidate.FullName 'ui_profile_geometry.json'
+            if (-not (Test-Path -LiteralPath $geometryPath -PathType Leaf)) { continue }
+            if ((Get-Item -LiteralPath $geometryPath).LastWriteTimeUtc -lt $Process.StartTime.ToUniversalTime()) { continue }
+            try { $geometry = Get-Content -LiteralPath $geometryPath -Raw | ConvertFrom-Json } catch { continue }
+            if ($geometry.window_client_size.width -ne $extent.Width -or
+                $geometry.window_client_size.height -ne $extent.Height -or
+                [Math]::Abs([double]$geometry.winit_scale_factor - [double]$extent.ExpectedWinitScaleFactor) -gt 0.0001) { continue }
+            $geometry | Add-Member -NotePropertyName capture_artifact_path -NotePropertyValue $geometryPath
+            return $geometry
         }
         if ($Process.HasExited) {
             throw "Editor exited before publishing presenter evidence (exit $($Process.ExitCode))."
@@ -643,6 +784,16 @@ try {
     if ($systemDpi -eq 0) {
         throw 'Could not query the Windows system DPI.'
     }
+    $captureMonitor = if ([string]::IsNullOrWhiteSpace($MonitorDeviceName)) {
+        [System.Windows.Forms.Screen]::PrimaryScreen
+    } else {
+        $matchingCaptureMonitors = @([System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.DeviceName -eq $MonitorDeviceName })
+        if ($matchingCaptureMonitors.Count -ne 1) {
+            throw "Capture monitor '$MonitorDeviceName' is unavailable. Connected monitors: $([string]::Join(', ', @([System.Windows.Forms.Screen]::AllScreens | ForEach-Object { $_.DeviceName })))"
+        }
+        $matchingCaptureMonitors[0]
+    }
+    $captureExpectedDpi = if ($DpiProfile -eq '100') { 96 } else { 144 }
     $captureResults = foreach ($extent in $captureCases) {
     $captureSessionId = '{0}-{1}' -f $ProfileSessionId, $extent.CaseId
     $profileDirectory = Join-Path $OutputDirectory (
@@ -670,7 +821,10 @@ try {
             ZIRCON_RUNTIME_LIBRARY = $runtime
             ZIRCON_ASSET_ROOT = $bundleAssetRoot
             ZIRCON_PROFILE_CAPTURE = '1'
-            ZIRCON_PROFILE_CAPTURE_SCREENSHOTS = '1'
+            # Desktop PNGs below are the acceptance pixels. Repainting a CPU
+            # reference on every observed present is unnecessary and expensive.
+            ZIRCON_PROFILE_CAPTURE_SCREENSHOTS = '0'
+            ZIRCON_PROFILE_CAPTURE_EVERY_PRESENT = '1'
             ZIRCON_PROFILE_OUTPUT_ROOT = $OutputDirectory
             ZIRCON_PROFILE_SESSION = $captureSessionId
             ZIRCON_PROFILE_WITHIN_PROCESS_WARMUP_PRESENTS = '0'
@@ -698,9 +852,12 @@ try {
             throw 'Editor did not create a titled render window within 90 seconds.'
         }
 
+        Move-ZirconEditorVisualToCaptureMonitor -Window $process.MainWindowHandle
+        Set-ZirconEditorVisualClientExtent -Window $process.MainWindowHandle -Width $extent.Width -Height $extent.Height | Out-Null
         $profileGeometry = Wait-ZirconEditorVisualProfileGeometry `
             -Process $process `
             -Path $profileGeometryPath
+        $profileGeometryPath = $profileGeometry.capture_artifact_path
         if ($profileGeometry.presenter_backend -ne 'gpu') {
             throw "Visual acceptance requires presenter_backend=gpu, got '$($profileGeometry.presenter_backend)'."
         }
@@ -936,8 +1093,165 @@ try {
             $windowDpiAfterInteractions -ne $extent.ExpectedWindowDpi) {
             throw "Capture case '$($extent.CaseId)' left the required $($extent.ExpectedWindowDpi)-DPI display during capture; GetDpiForWindow returned $windowDpiAfterInteractions. Keep the editor on a display with the requested DPI profile and rerun."
         }
+        $normalCasePreparation = $null
+        if ($null -ne $normalCaseProducer) {
+            if ($null -eq $projectBindingBefore -or $process.HasExited) {
+                throw 'Live normal case preparation requires this original official project window.'
+            }
+            if ((Get-ZirconProfileFileSha256 -Path $producerConfigurationPath) -cne
+                $normalCaseProducerConfigurationBinding.sha256) {
+                throw 'The normal producer configuration changed during this window capture.'
+            }
+            $producerFiles = @{}
+            foreach ($dependency in @('node', 'producer', 'contract', 'contractInputs')) {
+                $producerFiles[$dependency] = Get-ZirconNormalCaseProducerFile -Binding $normalCaseProducer.$dependency
+            }
+            $observedProfiles = @(
+                foreach ($presentDirectory in Get-ChildItem -LiteralPath $profileDirectory -Directory -Filter 'present-*') {
+                    $immutableProfile = Join-Path $presentDirectory.FullName 'ui_profile_geometry.json'
+                    if (-not [System.IO.File]::Exists($immutableProfile)) { continue }
+                    $observed = Get-Content -LiteralPath $immutableProfile -Raw | ConvertFrom-Json
+                    $normalProperty = $observed.PSObject.Properties['normal_window_evidence']
+                    if ($null -eq $normalProperty -or $null -eq $normalProperty.Value) { continue }
+                    $publicationProperty = $normalProperty.Value.PSObject.Properties['workbenchStatePublication']
+                    if ($null -eq $publicationProperty -or $null -eq $publicationProperty.Value) { continue }
+                    $publication = $publicationProperty.Value
+                    if ($publication.authority -ne 'normal-retained-workbench-projection' -or
+                        $publication.observed -ne $true -or $observed.presenter_backend -ne 'gpu') { continue }
+                    [pscustomobject]@{ path = $immutableProfile; captureSequence = $observed.capture_sequence }
+                }
+            )
+            $seed = $observedProfiles | Sort-Object captureSequence -Descending | Select-Object -First 1
+            if ($null -eq $seed) {
+                throw 'Pending: no immutable actual successful normal GPU frame has published its real business DTO.'
+            }
+            $seedSha256 = Get-ZirconProfileFileSha256 -Path $seed.path
+            $businessCaseDirectory = Join-Path $profileDirectory 'normal-business-case'
+            if ([System.IO.Directory]::Exists($businessCaseDirectory) -or
+                [System.IO.File]::Exists($businessCaseDirectory)) {
+                throw 'Live normal business case output must be unique; preserve the existing evidence.'
+            }
+            [System.IO.Directory]::CreateDirectory($businessCaseDirectory) | Out-Null
+            $producerArguments = @($producerFiles.producer, '--repo-root', $repoRoot,
+                '--profile', $seed.path, '--case-id', [string]$extent.CaseId,
+                '--output-dir', $businessCaseDirectory, '--contract-module', $producerFiles.contract)
+            $producerArgumentText = ($producerArguments | ForEach-Object {
+                ConvertTo-ZirconEditorVisualCommandLineArgument -Value $_
+            }) -join ' '
+            $producerStdout = Join-Path $businessCaseDirectory 'producer.stdout.json'
+            $producerStderr = Join-Path $businessCaseDirectory 'producer.stderr.log'
+            $producerProcess = Start-Process -FilePath $producerFiles.node -ArgumentList $producerArgumentText `
+                -WorkingDirectory $repoRoot -WindowStyle Hidden -PassThru `
+                -RedirectStandardOutput $producerStdout -RedirectStandardError $producerStderr
+            try {
+                if (-not $producerProcess.WaitForExit(60000)) {
+                    $producerProcess.Kill()
+                    $producerProcess.WaitForExit()
+                    throw 'Actual normal business case preparation exceeded its bounded 60-second deadline.'
+                }
+                $producerProcess.WaitForExit()
+                if ($producerProcess.ExitCode -ne 0 -or $process.HasExited) {
+                    throw 'Actual normal business producer failed or its original Editor window closed; preserve the evidence.'
+                }
+            }
+            finally { $producerProcess.Dispose() }
+            $prepared = Get-Content -LiteralPath $producerStdout -Raw | ConvertFrom-Json
+            $expectedProducerReceipt = Join-Path $businessCaseDirectory 'normal-workbench-case-receipt.json'
+            $expectedProducedCase = Join-Path $businessCaseDirectory 'normal-workbench-case.json'
+            if ([System.IO.Path]::GetFullPath($prepared.receiptPath) -ine $expectedProducerReceipt -or
+                [System.IO.Path]::GetFullPath($prepared.caseJsonPath) -ine $expectedProducedCase) {
+                throw 'Actual producer outputs must remain in this unique business case directory.'
+            }
+            $preparedCasePath = (Resolve-Path -LiteralPath $prepared.caseJsonPath).Path
+            $preparedReceiptPath = (Resolve-Path -LiteralPath $prepared.receiptPath).Path
+            $preparedReceipt = Get-Content -LiteralPath $preparedReceiptPath -Raw | ConvertFrom-Json
+            Assert-ZirconActualPreparedNormalCase -Produced $prepared -Receipt $preparedReceipt `
+                -ExpectedReceiptPath $expectedProducerReceipt -ExpectedCasePath $expectedProducedCase `
+                -SeedPath $seed.path -SeedSha256 $seedSha256 `
+                -CurrentSeedSha256 (Get-ZirconProfileFileSha256 -Path $seed.path) `
+                -CurrentCaseSha256 (Get-ZirconProfileFileSha256 -Path $preparedCasePath)
+            foreach ($dependency in @('node', 'producer', 'contract', 'contractInputs')) {
+                Get-ZirconNormalCaseProducerFile -Binding $normalCaseProducer.$dependency | Out-Null
+            }
+            $normalFrameBindings = [pscustomobject]@{
+                schema = 'dev.zircon.editor.normal-frame-case-bindings'
+                version = 1
+                cases = [pscustomobject]@{}
+            }
+            $normalFrameBindings.cases | Add-Member -NotePropertyName ([string]$extent.CaseId) -NotePropertyValue ([pscustomobject]@{
+                caseJsonPath = $preparedCasePath
+                caseJsonSha256 = [string]$prepared.caseJsonSha256
+            })
+            $generatedBindingsPath = Join-Path $businessCaseDirectory 'normal-frame-case-bindings.json'
+            $bindingsBytes = [System.Text.UTF8Encoding]::new($false).GetBytes(
+                ($normalFrameBindings | ConvertTo-Json -Depth 32) + [Environment]::NewLine)
+            $bindingsStream = [System.IO.File]::Open($generatedBindingsPath, [System.IO.FileMode]::CreateNew)
+            try { $bindingsStream.Write($bindingsBytes, 0, $bindingsBytes.Length) }
+            finally { $bindingsStream.Dispose() }
+            $producerReceipt = Join-Path $businessCaseDirectory 'normal-workbench-case-receipt.json'
+            $normalCasePreparation = [pscustomobject]@{
+                producer_configuration = $normalCaseProducerConfigurationBinding
+                producer_receipt_path = $producerReceipt
+                producer_receipt_sha256 = Get-ZirconProfileFileSha256 -Path $producerReceipt
+                observed_seed_profile_path = $seed.path
+                observed_seed_profile_sha256 = $seedSha256
+                generated_case_bindings_path = $generatedBindingsPath
+                generated_case_bindings_sha256 = Get-ZirconProfileFileSha256 -Path $generatedBindingsPath
+                case_sha256 = [string]$prepared.caseSha256
+                pixel_frame_verified = $false
+            }
+        }
+        $normalPixelAssociation = $null
+        if ($null -ne $normalFrameBindings) {
+            $bindingProperty = $normalFrameBindings.cases.PSObject.Properties[[string]$extent.CaseId]
+            if ($null -ne $bindingProperty) {
+                if ($null -eq $projectBindingBefore) {
+                    throw 'A matched normal frame requires the actual official project launch.'
+                }
+                $binding = $bindingProperty.Value
+                $casePath = (Resolve-Path -LiteralPath $binding.caseJsonPath -ErrorAction Stop).Path
+                if ([string]$binding.caseJsonSha256 -notmatch '^[0-9A-Fa-f]{64}$' -or
+                    (Get-ZirconProfileFileSha256 -Path $casePath) -cne ([string]$binding.caseJsonSha256).ToLowerInvariant()) {
+                    throw "Actual bound LayoutReviewCase input changed: $casePath"
+                }
+                $normalPixelsDirectory = Join-Path $profileDirectory 'normal-frame-pixels'
+                [System.IO.Directory]::CreateDirectory($normalPixelsDirectory) | Out-Null
+                $capturePython = Join-Path $repoRoot '.jenkins/runtime/python/python.exe'
+                $normalCapture = Join-Path $repoRoot 'tools/analysis/visual/capture-editor-normal-frame.py'
+                $normalCaptureOutput = & $capturePython -B -X utf8 $normalCapture `
+                    --profile-directory $profileDirectory --output-directory $normalPixelsDirectory `
+                    --case-json $casePath --project-root $projectBindingBefore.project_root `
+                    --pid $process.Id --hwnd $process.MainWindowHandle.ToInt64() `
+                    --expected-dpi $windowDpiAfterInteractions --timeout-ms 10000
+                if ($LASTEXITCODE -ne 0) {
+                    throw 'Actual same-window normal GPU/Win32 handshake failed; retain its pending receipt.'
+                }
+                $normalCaptureResult = ($normalCaptureOutput -join "`n") | ConvertFrom-Json
+                if ($normalCaptureResult.pixelFrameVerified -ne $true -or
+                    $normalCaptureResult.wholeUiAccepted -ne $false) {
+                    throw 'Normal capture did not return a pixel-only association receipt.'
+                }
+                $normalReceiptPath = (Resolve-Path -LiteralPath $normalCaptureResult.receipt).Path
+                $normalReceipt = Get-Content -LiteralPath $normalReceiptPath -Raw | ConvertFrom-Json
+                if ($normalReceipt.pid -ne $process.Id -or
+                    $normalReceipt.hwnd -ne $process.MainWindowHandle.ToInt64()) {
+                    throw 'Normal pixels came from a different actual process or window.'
+                }
+                $normalPixelAssociation = [pscustomobject]@{
+                    path = $normalReceiptPath
+                    sha256 = Get-ZirconProfileFileSha256 -Path $normalReceiptPath
+                    case_json_path = $casePath
+                    case_json_sha256 = ([string]$binding.caseJsonSha256).ToLowerInvariant()
+                    case_sha256 = $normalReceipt.caseSha256
+                }
+            }
+        }
         [pscustomobject]@{
             case_id = $extent.CaseId
+            process_id = $process.Id
+            window_handle = $process.MainWindowHandle.ToInt64()
+            normal_pixel_association = $normalPixelAssociation
+            normal_case_preparation = $normalCasePreparation
             requested_client_extent_pixels = [pscustomobject]@{
                 width = $extent.Width
                 height = $extent.Height
@@ -957,6 +1271,8 @@ try {
             winit_scale_factor = $winitScaleFactor
             expected_winit_scale_factor = $extent.ExpectedWinitScaleFactor
             capture_dpi_awareness_context = 'per_monitor_v2'
+            capture_monitor_device_name = $captureMonitor.DeviceName
+            capture_monitor_bounds = @{ x = $captureMonitor.Bounds.Left; y = $captureMonitor.Bounds.Top; width = $captureMonitor.Bounds.Width; height = $captureMonitor.Bounds.Height }
             profile_geometry_path = $profileGeometryPath
             profile_geometry_sha256 = Get-ZirconProfileFileSha256 -Path $profileGeometryPath
             profile_surface_width = $profileGeometry.window_client_size.width
@@ -1047,6 +1363,7 @@ $manifest = [pscustomobject]@{
     }
     assets = $bundleAssetBinding
     input_project = $projectProvenance
+    normal_case_producer = $normalCaseProducerConfigurationBinding
     launch_environment = [pscustomobject]@{
         zircon_runtime_library = $runtime
         zircon_asset_root = $bundleAssetRoot
@@ -1104,7 +1421,11 @@ if (-not $SkipVisualOracle) {
         foreach ($expectedExtent in $oracleCase.ExpectedExtents) {
             $oracleArguments += @('--expected-extent', $expectedExtent)
         }
-        & python @oracleArguments
+        $oraclePython = Join-Path $repoRoot '.jenkins\runtime\python\python.exe'
+        if (-not (Test-Path -LiteralPath $oraclePython -PathType Leaf)) {
+            throw "Bundled Python is unavailable: $oraclePython"
+        }
+        & $oraclePython -B -X utf8 @oracleArguments
         if ($LASTEXITCODE -ne 0) {
             throw "Editor UI visual oracle failed for '$($oracleCase.CaseId)' with exit code $LASTEXITCODE."
         }

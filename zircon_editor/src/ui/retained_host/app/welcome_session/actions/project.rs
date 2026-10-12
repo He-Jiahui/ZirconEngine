@@ -21,7 +21,9 @@ impl RetainedEditorHost {
             })
             .and_then(|intent| {
                 self.editor_manager
-                    .execute_project_launch_intent(intent)
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .and_then(|manager| manager.execute_project_launch_intent(intent))
                     .map_err(|error| error.to_string())
             })
             .map_err(|error| error.to_string())
@@ -55,7 +57,9 @@ impl RetainedEditorHost {
             })
             .and_then(|intent| {
                 self.editor_manager
-                    .execute_project_launch_intent(intent)
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .and_then(|manager| manager.execute_project_launch_intent(intent))
                     .map_err(|error| error.to_string())
             })
             .and_then(|session| self.apply_startup_session(session));

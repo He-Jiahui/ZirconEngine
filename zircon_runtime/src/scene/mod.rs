@@ -27,8 +27,9 @@ pub use level_system::{
 pub(crate) use module::resolve_default_level_manager;
 pub use module::{
     create_default_level, create_level, install_world_runtime_extension_plan, load_level_asset,
-    module_descriptor, prepare_level, DefaultLevelManager, PreparedLevel, PreparedLevelPublication,
-    SceneModule, WorldDriver, DEFAULT_LEVEL_MANAGER_NAME, WORLD_DRIVER_NAME,
+    module_descriptor, prepare_level, DefaultLevelManager, PreparedLevel,
+    PreparedLevelPublishError, SceneModule, WorldDriver, DEFAULT_LEVEL_MANAGER_NAME,
+    WORLD_DRIVER_NAME,
 };
 pub use navigation::{
     SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
@@ -42,6 +43,7 @@ pub use world_time::{
     FixedInterpolationContext, FixedInterpolationState, SimulationTickId, WorldTimeAdvanceError,
     WorldTimeControlError, WorldTimePolicyReceipt, WorldTimeState,
 };
+pub use zircon_runtime_interface::world_sync::LifecycleTargetChange;
 
 pub type EntityId = u64;
 pub type NodeId = EntityId;
@@ -109,8 +111,9 @@ pub use reflect::{
     ZrReflectValue,
 };
 pub use world::{
-    ComponentTypeRegistry, DetachedEntityBatch, DetachedEntityBatchRestoreError,
-    DynamicComponentInstance, PreparedEntitySubtrees, SceneError, SceneResult, World,
+    ComponentTypeRegistry, DetachedEntityBatch, DetachedEntityBatchRemoveError,
+    DetachedEntityBatchRestoreError, DynamicComponentInstance, PreparedEntitySubtrees, SceneError,
+    SceneResult, World,
 };
 
 pub use components::{default_render_layer_mask, Mobility, NodeKind, NodeRecord};

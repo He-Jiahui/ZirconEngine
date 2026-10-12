@@ -95,7 +95,7 @@ fn command_commit_envelope(command_id: &str) -> UiComponentEventEnvelope {
 
 fn command_commit_envelope_with_value(value: UiValue) -> UiComponentEventEnvelope {
     UiComponentEventEnvelope::new(
-        "res://ui/editor/windows/workbench_window.zui",
+        "res://ui/editor/unreal/level_editor_window.zui",
         "WorkbenchCommandPalette",
         UiComponentBindingTarget::new("command", "committed_command_id"),
         UiComponentEvent::Commit {

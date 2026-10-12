@@ -16,21 +16,24 @@ import os
 
 DOMAIN_MODULES = {
     "candidate": "source", "flow": "workflow", "stage": "workflow",
-    "patch": "patches",
+    "patch": "patches", "current-source": "current_source", "group": "workflow.group_protocol",
     "admission": "resources", "artifact": "artifacts", "receipt": "validation",
     "accept": "validation", "integration": "gitops", "notification": "notifications",
     "deployment": "deployment", "execution": "workflow", "maintenance": "maintenance",
 }
 
-READ_ACTIONS = {"query", "get", "status", "health", "validate", "observe", "observe-execution", "observe-flow"}
+READ_ACTIONS = {"query", "get", "status", "health", "validate", "observe", "observe-execution", "observe-flow", "observe-group"}
 RECOVERY_ACTIONS = {'cancel', 'cancel-flow', 'cancel-execution', 'reconcile-flow', 'reconcile-patch', 'reconcile-execution',
-                    'reconcile-maintenance', 'compensate', 'source-compensate', 'release', 'release-claim'}
+                    'reconcile-maintenance', 'compensate', 'source-compensate', 'release', 'release-claim', 'cancel-group'}
 
 
 def configured_build_payload(domain: str, action: str, payload: dict, repo_root: Path) -> dict:
     """Fence new writes to the current root while keeping historical recovery identities."""
     spec_path = repo_root / '.jenkins/deployment-spec.json'
-    if action in READ_ACTIONS | RECOVERY_ACTIONS or domain in {'integration', 'notification', 'deployment', 'accept', 'receipt'} or not spec_path.is_file():
+    if (action in READ_ACTIONS | RECOVERY_ACTIONS
+            or (domain == 'maintenance' and action == 'post-task-cache')
+            or domain in {'integration', 'notification', 'deployment', 'accept', 'receipt'}
+            or not spec_path.is_file()):
         return payload
     from .deployment.paths import resolve_paths
     from .deployment.spec import load_spec
@@ -56,6 +59,8 @@ def normalized_payload(payload: dict) -> dict:
 
 
 def authorization_action(domain: str, action: str, payload: dict) -> str:
+    if domain == "maintenance" and action == "post-task-cache":
+        return "gc" if payload.get("phase") == "gc" else "validation"
     if domain == "patch" and action in {"register", "submit", "prepare", "prepare-patch", "reconcile", "reconcile-patch", "cancel"}:
         return "implementation"
     if domain == "deployment" or (domain == "admission" and action == "activate-policy"):

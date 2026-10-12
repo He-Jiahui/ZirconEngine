@@ -31,13 +31,6 @@ impl EditorUiHost {
         Ok(true)
     }
 
-    pub fn keep_ui_asset_editor_local_and_save(
-        &self,
-        instance_id: &ViewInstanceId,
-    ) -> Result<String, EditorError> {
-        self.save_ui_asset_editor(instance_id)
-    }
-
     pub fn open_ui_asset_editor_diff_snapshot(
         &self,
         instance_id: &ViewInstanceId,

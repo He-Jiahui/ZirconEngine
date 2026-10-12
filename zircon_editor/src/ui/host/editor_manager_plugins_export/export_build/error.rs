@@ -14,6 +14,10 @@ use super::super::super::native_dynamic_export_preparation::NativeDynamicPrepara
 
 #[derive(Debug, Error)]
 pub enum EditorExportBuildError {
+    #[error(transparent)]
+    CoreService(#[from] zircon_runtime::core::CoreError),
+    #[error(transparent)]
+    EditorAccess(#[from] crate::ui::host::EditorError),
     #[error("export build failed for profile {}: {}", report.plan.profile.name, report.failure_reason().unwrap_or("unknown failure"))]
     ReportFailed {
         report: Box<super::report::EditorExportBuildReport>,

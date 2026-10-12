@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::marker::PhantomData;
 use std::ops::Deref;
 use std::panic::{self, AssertUnwindSafe};
 use std::sync::Arc;
@@ -15,6 +16,11 @@ use super::super::state::ServiceEntryFactory;
 use super::super::weak::CoreWeak;
 use super::{CoreHandle, RegisteredServiceIdentity};
 
+mod alias;
+
+use alias::GuardService;
+pub(crate) use alias::ServiceAliasSource;
+
 const RESOLUTION_STACK_FRAME_CAPACITY: usize = 1;
 
 /// A generation-bound service reference. It cannot invoke the service until
@@ -22,39 +28,31 @@ const RESOLUTION_STACK_FRAME_CAPACITY: usize = 1;
 pub struct ServiceHandle<T: ?Sized> {
     core: CoreWeak,
     identity: RegisteredServiceIdentity,
-    service: Arc<T>,
+    marker: PhantomData<fn() -> T>,
 }
 
 impl<T: ?Sized> ServiceHandle<T> {
-    fn new(core: CoreWeak, identity: RegisteredServiceIdentity, service: Arc<T>) -> Self {
+    fn new(core: CoreWeak, identity: RegisteredServiceIdentity) -> Self {
         Self {
             core,
             identity,
-            service,
+            marker: PhantomData,
         }
     }
+}
 
-    /// 每次调用前取得槽位许可；守卫存活期间卸载等待，旧代次或已停止的服务拒绝新调用。
+impl<T: Any + Send + Sync> ServiceHandle<T> {
+    /// Revalidates this exact generation and admits a call before acquiring its
+    /// payload. An idle handle retains neither the object nor projection code.
     pub fn enter(&self) -> Result<ServiceCallGuard<T>, CoreError> {
         let core = self.core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
-        core.begin_service_call(&self.identity)?;
-        Ok(ServiceCallGuard {
-            admission: ServiceCallAdmission {
-                core,
-                identity: self.identity.clone(),
-            },
-            service: Arc::clone(&self.service),
-        })
+        core.enter_service(&self.identity)
     }
 }
 
 impl<T: ?Sized> Clone for ServiceHandle<T> {
     fn clone(&self) -> Self {
-        Self::new(
-            self.core.clone(),
-            self.identity.clone(),
-            Arc::clone(&self.service),
-        )
+        Self::new(self.core.clone(), self.identity.clone())
     }
 }
 
@@ -66,22 +64,25 @@ impl<T: ?Sized> std::fmt::Debug for ServiceHandle<T> {
     }
 }
 
-/// An admitted service invocation. Dropping the guard releases the slot's
-/// in-flight count and allows an in-progress shutdown to continue draining.
+/// An admitted service invocation. Its payload and projection are released
+/// before the logical and physical admissions, allowing shutdown to drain.
+/// An idle handle owns neither of these payloads.
 pub struct ServiceCallGuard<T: ?Sized> {
+    // Release the projected object before announcing that this call drained.
+    service: GuardService<T>,
     admission: ServiceCallAdmission,
-    service: Arc<T>,
 }
 
 struct ServiceCallAdmission {
     core: CoreHandle,
     identity: RegisteredServiceIdentity,
+    source: Option<RegisteredServiceIdentity>,
 }
 
 impl<T: ?Sized> ServiceCallGuard<T> {
     /// Projects a registered wrapper while retaining exactly the same call admission.
     pub(crate) fn map<U: ?Sized>(self, project: impl FnOnce(&T) -> Arc<U>) -> ServiceCallGuard<U> {
-        let service = project(&self.service);
+        let service = GuardService::Owned(project(self.service.borrowed()));
         ServiceCallGuard {
             admission: self.admission,
             service,
@@ -101,13 +102,16 @@ impl<T: ?Sized> Deref for ServiceCallGuard<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.service.as_ref()
+        self.service.borrowed()
     }
 }
 
 impl Drop for ServiceCallAdmission {
     fn drop(&mut self) {
         self.core.release_service_call(&self.identity);
+        if let Some(source) = &self.source {
+            self.core.release_service_call(source);
+        }
     }
 }
 
@@ -236,18 +240,8 @@ impl CoreHandle {
         &self,
         identity: &RegisteredServiceIdentity,
     ) -> Result<ServiceCallGuard<T>, CoreError> {
-        loop {
-            match self.registered_service_resolution_for_identity(identity, ServiceKind::Manager)? {
-                RegisteredServiceResolution::Resolved(instance) => {
-                    let service = downcast_resolved_service(identity.service().as_str(), instance)?;
-                    return ServiceHandle::new(self.downgrade(), identity.clone(), service).enter();
-                }
-                RegisteredServiceResolution::Pending => {
-                    let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
-                    self.resolve_existing_service_inner(identity.service(), &mut stack)?;
-                }
-            }
-        }
+        self.validate_registered_service_identity(identity, ServiceKind::Manager)?;
+        self.checked_service_handle::<T>(identity.clone())?.enter()
     }
 
     pub fn resolve_plugin<T: Any + Send + Sync>(
@@ -270,32 +264,8 @@ impl CoreHandle {
         service_name: &str,
         expected_kind: ServiceKind,
     ) -> Result<ServiceHandle<T>, CoreError> {
-        loop {
-            match self.named_service_resolution(service_name, Some(expected_kind))? {
-                NamedServiceResolution::Resolved { instance, identity } => {
-                    let service = downcast_resolved_service(service_name, instance)?;
-                    return Ok(ServiceHandle::new(self.downgrade(), identity, service));
-                }
-                NamedServiceResolution::Pending(service_key) => {
-                    let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
-                    self.resolve_existing_service_inner(&service_key, &mut stack)?;
-                }
-            }
-        }
-    }
-
-    fn begin_service_call(&self, identity: &RegisteredServiceIdentity) -> Result<(), CoreError> {
-        let mut services = self.lock_services();
-        let Some(entry) = services.get_mut(identity.service()) else {
-            return Err(CoreError::MissingService(identity.service().to_string()));
-        };
-        validate_service_identity(
-            identity,
-            entry.index,
-            entry.generation,
-            identity.service().service_kind(),
-        )?;
-        entry.enter_call(identity.service().as_str())
+        let identity = self.registered_service_identity(service_name, expected_kind)?;
+        self.checked_service_handle(identity)
     }
 
     fn release_service_call(&self, identity: &RegisteredServiceIdentity) {
@@ -336,7 +306,9 @@ impl CoreHandle {
                 .iter()
                 .filter_map(|service_name| services.get(service_name))
                 .fold(0usize, |total, entry| {
-                    total.saturating_add(entry.in_flight_calls)
+                    total
+                        .saturating_add(entry.in_flight_calls)
+                        .saturating_add(usize::from(entry.initialization_owner.is_some()))
                 });
             if in_flight_calls == 0 {
                 return Ok(());
@@ -725,18 +697,24 @@ impl CoreHandle {
         if let Some(entry) = services.get_mut(service_key) {
             if entry.index == expected_index
                 && entry.generation == expected_generation
-                && entry.lifecycle == LifecycleState::Initializing
+                && matches!(
+                    entry.lifecycle,
+                    LifecycleState::Initializing | LifecycleState::Stopping
+                )
                 && entry.initialization_owner == Some(initialization_owner)
                 && entry.instance.is_none()
             {
                 entry.initialization_owner = None;
-                entry.lifecycle = LifecycleState::Registered;
+                if entry.lifecycle == LifecycleState::Initializing {
+                    entry.lifecycle = LifecycleState::Registered;
+                }
                 reset = true;
             }
         }
         drop(services);
         if reset {
             self.notify_service_resolution_changed();
+            self.inner.service_call_changed.notify_all();
         }
     }
 

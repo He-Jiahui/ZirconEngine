@@ -53,18 +53,18 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::host_lifecycle::recompute) fn build_recompute_shell_snapshot(
         &mut self,
         requested_shell_layout_reuse: bool,
-    ) -> RecomputeShellSnapshot {
+    ) -> Result<RecomputeShellSnapshot, crate::ui::host::EditorError> {
         let layout = {
             zircon_runtime::profile_scope!("editor", "retained_host", "recompute_read_layout");
-            self.runtime.current_layout()
+            self.runtime.current_layout()?
         };
         let descriptors = {
             zircon_runtime::profile_scope!("editor", "retained_host", "recompute_read_descriptors");
-            self.runtime.descriptors()
+            self.runtime.descriptors()?
         };
         let chrome = {
             zircon_runtime::profile_scope!("editor", "retained_host", "recompute_build_chrome");
-            self.build_chrome()
+            self.build_chrome()?
         };
         record_current_ui_perf_counter(UiPerfCounter::WorkbenchModelBuildCount, 1.0);
         let model = {
@@ -73,8 +73,8 @@ impl RetainedEditorHost {
                 "retained_host",
                 "recompute_build_workbench_model"
             );
-            let context = self.runtime.project_command_eval_snapshot(&chrome);
-            self.runtime.build_workbench_view_model(&chrome, &context)
+            let context = self.runtime.project_command_eval_snapshot(&chrome)?;
+            self.runtime.build_workbench_view_model(&chrome, &context)?
         };
         {
             zircon_runtime::profile_scope!(
@@ -92,6 +92,14 @@ impl RetainedEditorHost {
                     format!("Workbench template bridge chrome sync failed: {error}"),
                 );
             }
+        }
+        // The normal host's controller reads current typed scene references;
+        // the template runtime itself does not own project/world services.
+        let can_sync_content = self.runtime.content_browser_assets_to_sync()
+            .map(|targets| !targets.is_empty()).unwrap_or(false);
+        if let Err(error) = self.workbench_window_bridge.sync_content_browser_find_enabled(can_sync_content) {
+            emit_template_bridge_layout_error(self.runtime.context().logs(),
+                "editor_unreal_find_enabled", format!("Find enabled projection failed: {error}"));
         }
         let token_region_preferred = self.physical_shell_token_region_defaults();
         let geometry = {
@@ -132,7 +140,7 @@ impl RetainedEditorHost {
         } else {
             self.recompute_shell_template_bridge_layout_frames(&model)
         };
-        RecomputeShellSnapshot {
+        Ok(RecomputeShellSnapshot {
             layout,
             chrome,
             model,
@@ -142,7 +150,7 @@ impl RetainedEditorHost {
             descriptors,
             retained_pane_payloads: None,
             retained_shell_presentation: None,
-        }
+        })
     }
 
     fn physical_shell_token_region_defaults(&mut self) -> BTreeMap<ShellRegionId, f32> {

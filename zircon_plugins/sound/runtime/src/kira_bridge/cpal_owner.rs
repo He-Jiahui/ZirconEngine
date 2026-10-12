@@ -211,7 +211,7 @@ impl ProviderRetirement {
         });
         let worker_slot = Arc::clone(&provider_slot);
         let worker_shared = Arc::clone(&shared);
-        let (provider_ack, provider_ack_sender) = sync_channel(1);
+        let (provider_ack_sender, provider_ack) = sync_channel(1);
         let worker = match thread::Builder::new()
             .name(CPAL_RETIREMENT_THREAD_NAME.to_string())
             .spawn(move || {

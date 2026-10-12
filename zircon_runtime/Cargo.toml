@@ -40,10 +40,12 @@ required-features = ["script"]
 [[bin]]
 name = "zircon_export_validate"
 path = "src/bin/zircon_export_validate/main.rs"
+required-features = ["native-host"]
 
 [[bin]]
 name = "zircon_export_pack"
 path = "src/bin/zircon_export_pack/main.rs"
+required-features = ["native-host"]
 
 [[bin]]
 name = "zircon_shader_prewarm"
@@ -68,6 +70,7 @@ required-features = ["font-sdf-build-tool"]
 [[bin]]
 name = "zircon_package_service"
 path = "src/bin/zircon_package_service.rs"
+required-features = ["native-host"]
 
 [features]
 default = ["target-client"]
@@ -76,11 +79,31 @@ test-support = ["zr_resource/test-support"]
 runtime-ui-integration-tests = []
 backend-jolt = []
 core-min = []
+# Native asset authoring, filesystem watching, and dynamic plugin hosting are
+# outside the portable core and shared framework contracts.
+native-host = [
+    "core-min",
+    "dep:base64",
+    "dep:bevy_mikktspace",
+    "dep:chrono",
+    "dep:gltf",
+    "dep:goblin",
+    "dep:libloading",
+    "dep:meshopt",
+    "dep:notify",
+    "dep:ring",
+    "dep:ron",
+    "dep:same-file",
+    "dep:tobj",
+    "dep:zeroize",
+    "dep:zip",
+    "dep:zstd",
+]
 ai-contracts = []
 net-contracts = []
 physics-contracts = []
 sound-contracts = []
-animation = []
+animation = ["native-host"]
 diagnostic-log = []
 dynamic-api = [
     "animation",
@@ -93,7 +116,7 @@ dynamic-api = [
 # Build-only boundary aliases.  They are separate from the serialized
 # RuntimeProfileId/project feature vocabulary and can be narrowed in future
 # without changing existing development profiles.
-cooked-assets = ["core-min"]
+cooked-assets = ["native-host"]
 graphics-core = ["graphics"]
 runtime-api-core = ["dynamic-api"]
 shipping-runtime = [
@@ -122,18 +145,19 @@ shipping-editor = [
 ]
 editor-shipping = ["shipping-editor"]
 graphics = [
+    "native-host",
     "text",
     "dep:pollster",
     "dep:raw-window-handle",
     "dep:zr_rhi_wgpu",
 ]
 font-sdf-build-tool = ["graphics"]
-navigation = []
-script = ["diagnostic-log", "net-contracts"]
+navigation = ["native-host"]
+script = ["native-host", "diagnostic-log", "net-contracts"]
 text = [
+    "native-host",
     "dep:fdsm",
     "dep:fdsm-ttf-parser",
-    "dep:fontsdf",
     "dep:glyphon",
     "dep:icu_locale_core",
     "dep:icu_properties",
@@ -164,6 +188,7 @@ profiling-chrome = ["profiling"]
 profiling-tracy = ["profiling", "dep:tracing-subscriber", "dep:tracing-tracy"]
 profiling-memory = ["profiling"]
 default-platform = [
+    "native-host",
     "platform-window",
     "platform-winit",
     "platform-x11",
@@ -212,6 +237,7 @@ target-client = [
 ]
 target-server = [
     "core-min",
+    "native-host",
     "diagnostic-log",
     "platform-headless",
     "dep:naga",
@@ -237,42 +263,38 @@ target-editor-host = [
 [dependencies]
 accesskit = { version = "0.22.0", default-features = false, optional = true }
 arc-swap.workspace = true
-base64 = "0.22.1"
-bevy_mikktspace.workspace = true
-bincode.workspace = true
+base64 = { version = "0.22.1", optional = true }
+bevy_mikktspace = { workspace = true, optional = true }
 blake3.workspace = true
 bytemuck.workspace = true
-chrono = { version = "0.4.44", default-features = false, features = ["clock", "serde"] }
+chrono = { version = "0.4.44", default-features = false, features = ["clock", "serde"], optional = true }
 crossbeam-channel.workspace = true
 crossbeam-utils = "0.8.21"
 fdsm = { version = "0.8.0", optional = true }
 fdsm-ttf-parser = { version = "0.2.0", optional = true }
-fontsdf = { version = "0.5.3", optional = true }
 glam.workspace = true
-gltf.workspace = true
+gltf = { workspace = true, optional = true }
 glyphon = { version = "0.11.0", optional = true }
 icu_locale_core = { version = "=2.2.0", features = ["alloc"], optional = true }
 icu_properties = { version = "=2.2.0", optional = true }
 image.workspace = true
-meshopt.workspace = true
 naga = { workspace = true, optional = true }
 nalgebra = { version = "0.34.1", optional = true }
-notify.workspace = true
 pollster = { workspace = true, optional = true }
 raw-window-handle = { version = "0.6.2", optional = true }
 rayon = "1.11.0"
 robust = "1.2.0"
-ron = "0.12.1"
+ron = { version = "0.12.1", optional = true }
 rustybuzz = { version = "0.20.1", optional = true }
-same-file = "1.0.6"
+same-file = { version = "1.0.6", optional = true }
 serde.workspace = true
 serde_json = "1.0.149"
 self_cell = { workspace = true, optional = true }
 sha2.workspace = true
-swash = { version = "0.2.7", optional = true }
+swash = { version = "0.2.10", optional = true }
 sys-locale = { version = "0.3.2", optional = true }
 taffy = { version = "0.10", default-features = false, features = ["std", "block_layout", "flexbox", "grid", "content_size", "taffy_tree"], optional = true }
-tobj.workspace = true
+tobj = { workspace = true, optional = true }
 thiserror.workspace = true
 toml.workspace = true
 tracing.workspace = true
@@ -291,14 +313,9 @@ uuid.workspace = true
 wgpu = { workspace = true, optional = true }
 winit = { workspace = true, default-features = false, optional = true }
 woff2-patched = { version = "0.4.0", optional = true }
-libloading = "0.9.0"
-ring = "0.17.14"
-goblin = { version = "0.10.7", default-features = false, features = ["std", "pe32", "pe64"] }
-windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_LibraryLoader", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 libm = "0.2.16"
-zeroize = "1.8.2"
-zstd = "0.13.3"
-zip = { version = "9.0.0-pre2", default-features = false, features = ["deflate-flate2"] }
+zeroize = { version = "1.8.2", optional = true }
+zip = { version = "9.0.0-pre2", default-features = false, features = ["deflate-flate2"], optional = true }
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
 zircon_reflect_derive.workspace = true
 zircon_runtime_reflection_macros = { path = "reflection_macros" }
@@ -308,6 +325,20 @@ zr_dev_deps_dylib = { workspace = true, optional = true }
 zr_resource.workspace = true
 zr_rhi.workspace = true
 zr_rhi_wgpu = { workspace = true, optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+goblin = { version = "0.10.7", default-features = false, features = ["std", "pe32", "pe64"], optional = true }
+libloading = { version = "0.9.0", optional = true }
+meshopt = { workspace = true, optional = true }
+notify = { workspace = true, optional = true }
+ring = { version = "0.17.14", optional = true }
+zstd = { version = "0.13.3", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+uuid = { workspace = true, features = ["js"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_LibraryLoader", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 
 [build-dependencies]
 blake3.workspace = true

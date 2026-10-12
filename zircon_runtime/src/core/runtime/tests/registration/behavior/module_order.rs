@@ -149,5 +149,12 @@ fn module_lifecycle_default_hooks_are_noop_and_ready() {
     lifecycle.build(&context).unwrap();
     assert!(lifecycle.ready(&context).unwrap());
     lifecycle.finish(&context).unwrap();
-    lifecycle.cleanup(&context).unwrap();
+    runtime
+        .register_module(
+            ModuleDescriptor::new(&context.module_name, "default lifecycle cleanup")
+                .with_lifecycle(std::sync::Arc::new(lifecycle)),
+        )
+        .unwrap();
+    runtime.activate_module(&context.module_name).unwrap();
+    runtime.deactivate_module(&context.module_name).unwrap();
 }

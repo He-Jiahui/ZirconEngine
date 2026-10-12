@@ -1,0 +1,125 @@
+[asset]
+kind = "view"
+id = "res://ui/editor/unreal/level_editor_window.zui"
+version = 2
+display_name = "Unreal Level Editor"
+
+[root]
+node = "root"
+
+[imports]
+widgets = [
+  "res://ui/editor/unreal/components/toolbar.zui#UnrealLevelEditorToolbar",     
+  "res://ui/editor/unreal/components/menus.zui#UnrealLevelEditorMenus",
+  "res://ui/editor/unreal/components/menu_popups.zui#UnrealLevelEditorMenuPopups",
+  "res://ui/editor/unreal/components/viewport.zui#UnrealLevelViewport",
+  "res://ui/editor/unreal/components/outliner.zui#UnrealOutlinerPanel",
+  "res://ui/editor/unreal/components/details.zui#UnrealDetailsPanel",
+  "res://ui/editor/unreal/components/status_bar.zui#UnrealEditorStatusBar",
+  "res://ui/editor/unreal/components/content_drawer.zui#UnrealContentDrawer",
+]
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[nodes.root]
+component = "Overlay"
+control_id = "WorkbenchWindowRoot"
+pixel_snapping = "disabled"
+classes = ["unreal-editor-window"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "editor_content" }, { node = "content_drawer" }, { node = "menu_popups" }]
+
+[nodes.editor_content]
+component = "VerticalGroup"
+control_id = "UnrealLevelEditorContent"
+classes = ["unreal-editor-window"]
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "menu_bar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "project_context", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "toolbar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "main_band", slot = { layout = { linear_size = { rule = "Stretch", value = 1.0 } } } },
+  { node = "status_bar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+]
+
+[nodes.project_context]
+component = "HorizontalGroup"
+control_id = "UnrealProjectDocumentContext"
+props = { visibility = "collapsed", visible = false, background_color = "$editor.surface.0", layout_padding_left = "$editor.density.gap.regular", layout_padding_right = "$editor.density.gap.regular" }
+layout = { clip = true, container = { kind = "HorizontalBox" }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.document_header.height", preferred = "$editor.chrome.document_header.height", max = "$editor.chrome.document_header.height", stretch = "Fixed" } }
+children = [{ node = "project_context_text" }]
+
+[nodes.project_context_text]
+component = "Label"
+control_id = "UnrealProjectDocumentContextText"
+props = { text = "", font = "res://fonts/editor-ui.font.toml", font_family = "$editor.typography.ui.family", font_size = "$editor.typography.caption.size", line_height_ratio = "$editor.typography.line_height", foreground_color = "$editor.text.secondary", text_align = "left", text_overflow = "ellipsis", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.toolbar]
+component = "UnrealLevelEditorToolbar"
+control_id = "WorkbenchWindowTopToolbarRegion"
+classes = ["unreal-editor-toolbar"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
+
+[nodes.menu_bar]
+component = "UnrealLevelEditorMenus"
+control_id = "WorkbenchMenuBarRoot"
+classes = ["unreal-menu-bar"]
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+# Reference workbench: viewport 1 : right 1/3; Outliner .7 : Details 1.
+# Each pane owns its own scrolling; narrow windows retain the same dock hierarchy.
+[nodes.main_band]
+component = "HorizontalGroup"
+control_id = "WorkbenchWindowMainBandRegion"
+classes = ["unreal-editor-main"]
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "viewport", slot = { layout = { linear_size = { rule = "Stretch", value = 1.0 } } } },
+  { node = "right_dock", slot = { layout = { linear_size = { rule = "Stretch", value = 0.3333333333333333 } } } },
+]
+
+[nodes.viewport]
+component = "UnrealLevelViewport"
+control_id = "WorkbenchMainBandViewportPanel"
+classes = ["unreal-viewport"]
+layout = { clip = true, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.right_dock]
+component = "VerticalGroup"
+control_id = "UnrealRightDock"
+classes = ["unreal-dock"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 4.0 }, width = { min = 240.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "outliner", slot = { layout = { linear_size = { rule = "Stretch", value = 0.7 } } } },
+  { node = "details", slot = { layout = { linear_size = { rule = "Stretch", value = 1.0 } } } },
+]
+
+[nodes.outliner]
+component = "UnrealOutlinerPanel"
+control_id = "WorkbenchMainBandSceneTreePanel"
+classes = ["unreal-outliner", "unreal-dock"]
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 96.0, stretch = "Stretch" } }
+
+[nodes.details]
+component = "UnrealDetailsPanel"
+control_id = "WorkbenchMainBandInspectorPanel"
+classes = ["unreal-details", "unreal-dock"]
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 96.0, stretch = "Stretch" } }
+
+[nodes.status_bar]
+component = "UnrealEditorStatusBar"
+control_id = "WorkbenchWindowStatusBarRegion"
+classes = ["unreal-status-bar"]
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.menu_popups]
+component = "UnrealLevelEditorMenuPopups"
+control_id = "UnrealEditorMenuPopups"
+classes = ["unreal-menu-layer"]
+layout = { z_index = 180 }
+
+[nodes.content_drawer]
+component = "UnrealContentDrawer"
+control_id = "UnrealContentDrawerRegion"
+classes = ["unreal-content-drawer"]
+layout = { z_index = 160 }

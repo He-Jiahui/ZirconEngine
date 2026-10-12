@@ -33,8 +33,8 @@ fn region_bindings_map_semantic_regions_to_existing_drawer_slots() {
 
 #[test]
 /// 默认骨架提供预期六区域及模式，中心引用主band而非一个抽屉槽。
-fn jetbrains_workbench_skeleton_exposes_fixed_layout_regions() {
-    let skeleton = WorkbenchSkeleton::jetbrains_default();
+fn unreal_workbench_skeleton_exposes_fixed_layout_regions() {
+    let skeleton = WorkbenchSkeleton::unreal_default();
 
     assert_eq!(skeleton.regions.len(), 6);
     assert_eq!(
@@ -53,7 +53,7 @@ fn jetbrains_workbench_skeleton_exposes_fixed_layout_regions() {
         .region(EditorRegion::Center)
         .unwrap()
         .panel_asset
-        .ends_with("workbench_main_band.zui"));
+        .ends_with("viewport.zui"));
 }
 
 #[test]
@@ -78,7 +78,7 @@ fn shell_regions_asset_loads_verified_workbench_skeleton_regions() {
     );
     assert_eq!(
         skeleton.region(EditorRegion::Center).unwrap().panel_asset,
-        "res://ui/editor/components/workbench/shell/workbench_main_band.zui"
+        "res://ui/editor/unreal/components/viewport.zui"
     );
     assert_eq!(
         skeleton

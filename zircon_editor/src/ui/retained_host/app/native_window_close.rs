@@ -15,7 +15,12 @@ impl RetainedEditorHost {
             return CloseRequestResponse::KeepWindowShown;
         }
         self.recompute_if_dirty();
-        let dirty_documents = match self.editor_manager.dirty_document_toolkits() {
+        let dirty_documents = match self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.dirty_document_toolkits())
+        {
             Ok(documents) => documents,
             Err(error) => {
                 self.set_status_line(error.to_string());
@@ -31,7 +36,13 @@ impl RetainedEditorHost {
             }
         };
         if !dirty.is_empty() || dirty_project_scene_token.is_some() {
-            let close_instances = self.runtime.current_view_instance_ids();
+            let close_instances = match self.runtime.current_view_instance_ids() {
+                Ok(instance_ids) => instance_ids,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return CloseRequestResponse::KeepWindowShown;
+                }
+            };
             let mut prompt = super::close_prompt::PendingClosePrompt::new(
                 ClosePromptTarget::MainWindow,
                 close_instances,
@@ -58,11 +69,21 @@ impl RetainedEditorHost {
             return CloseRequestResponse::KeepWindowShown;
         }
         self.recompute_if_dirty();
-        let Some(instance_ids) = self.floating_window_close_instance_ids(window_id) else {
-            return CloseRequestResponse::KeepWindowShown;
+        let instance_ids = match self.floating_window_close_instance_ids(window_id) {
+            Ok(Some(instance_ids)) => instance_ids,
+            Ok(None) => return CloseRequestResponse::KeepWindowShown,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return CloseRequestResponse::KeepWindowShown;
+            }
         };
 
-        let dirty_documents = match self.editor_manager.dirty_document_toolkits() {
+        let dirty_documents = match self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.dirty_document_toolkits())
+        {
             Ok(documents) => documents,
             Err(error) => {
                 self.set_status_line(error.to_string());
@@ -83,7 +104,29 @@ impl RetainedEditorHost {
     }
 
     fn document_save_blocks_native_close(&mut self) -> bool {
-        if let Some(owner) = self.editor_manager.dirty_document_save_owner() {
+        if let Some(prompt) = self.pending_close_prompt.clone() {
+            self.show_close_prompt(&prompt);
+            self.set_status_line(if prompt.has_failed_save() {
+                "The previous save failed; resolve the close decision, Discard, or Cancel."
+                    .to_string()
+            } else {
+                "A close decision is already active.".to_string()
+            });
+            return true;
+        }
+        let save_owner = match self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map(|manager| manager.dirty_document_save_owner())
+        {
+            Ok(owner) => owner,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return true;
+            }
+        };
+        if let Some(owner) = save_owner {
             self.set_status_line(format!("Close is waiting for {owner} to finish saving."));
             return true;
         }

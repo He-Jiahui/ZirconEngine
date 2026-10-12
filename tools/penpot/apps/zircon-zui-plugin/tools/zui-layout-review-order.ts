@@ -22,7 +22,7 @@ export function layoutReviewPhase(entry: ReviewOrderEntry): number {
   if (
     path.includes('/workbench/shell/') ||
     /\/host\/(?:editor_main_frame|workbench_shell)\.zui$/.test(path) ||
-    path.endsWith('/windows/workbench_window.zui')
+    path.endsWith('/unreal/level_editor_window.zui')
   )
     return 2;
   if (path.includes('/workbench/modules/')) return 3;

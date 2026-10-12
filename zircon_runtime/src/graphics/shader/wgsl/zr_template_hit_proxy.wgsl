@@ -1,3 +1,4 @@
+/// 三个输出附件须与拾取管线、渲染附件和 CPU 回读保持同序；回读端负责插值法线的归一化。
 struct ZrHitProxyOutput {
     @location(0) token: u32,
     @location(1) world_position_depth: vec4<f32>,

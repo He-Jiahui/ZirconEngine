@@ -153,11 +153,119 @@ impl AssetManagerContract for ProjectAssetManager {
         &self,
         source_path: &std::path::Path,
     ) -> Result<ProjectImportReceipt, CoreError> {
+        self.import_model_source_for_scope(None, source_path)
+    }
+
+    fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError> {
+        self.import_asset_for_scope(None, uri)
+    }
+
+    fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError> {
+        let (
+            expected_generation,
+            expected_preparation_epoch,
+            previous_project_identities,
+            mut candidate,
+        ) = {
+            let _generation = self.project_generation_read();
+            let project = self.project_read();
+            let Some(active_project) = project.as_ref() else {
+                return Ok(Vec::new());
+            };
+            (
+                active_project.catalog_input_generation().sequence(),
+                self.current_project_preparation_epoch(),
+                project_resource_identities(active_project),
+                active_project.clone(),
+            )
+        };
+        let project_generation =
+            lock_project_generation(candidate.paths().root()).map_err(asset_error)?;
+        let (imported, prepared_files) = candidate
+            .prepare_full_generation(None)
+            .map_err(asset_error)?;
+        let prepared = self.prepare_project_resource_sync(&candidate)?;
+        let statuses = imported.iter().map(build_status_record).collect::<Vec<_>>();
+        let generation = self.project_generation_write();
+        let mut project = self.project_write();
+        let Some(active_project) = project.as_ref() else {
+            return Err(asset_error_message(
+                "project reimport lost its active project before commit",
+            ));
+        };
+        // An unchanged prepared-project reopen may retain its catalog but replace activation.
+        if active_project.activation_identity() != candidate.activation_identity()
+            || active_project.catalog_input_generation().sequence() != expected_generation
+            || self.current_project_preparation_epoch() != expected_preparation_epoch
+        {
+            return Err(asset_error_message(
+                "project reimport was superseded by a newer project generation",
+            ));
+        }
+        let batch = reconcile_project_resources(
+            ResourceMutationBatch::new(),
+            &previous_project_identities,
+            &candidate,
+        );
+        let commit_outcome = self.commit_project_resource_sync(
+            prepared,
+            batch,
+            || prepared_files.commit().map_err(asset_error),
+            || {
+                *project = Some(candidate);
+                drop(project);
+            },
+        )?;
+        drop(project_generation);
+        self.publish_project_generation(
+            generation,
+            imported
+                .into_iter()
+                .map(|metadata| {
+                    AssetChange::new(
+                        AssetChangeKind::Modified,
+                        metadata.primary_locator().clone(),
+                        None,
+                    )
+                })
+                .collect(),
+        );
+        commit_outcome.ensure_durable().map_err(asset_error)?;
+        Ok(statuses)
+    }
+}
+
+impl ProjectAssetManager {
+    /// Imports only into the specified activation, checking before preparation and again
+    /// under the original commit write gate. Ordinary catalog updates keep this identity.
+    pub fn import_asset_for_project(
+        &self,
+        expected: &crate::asset::project::ProjectActivationIdentity,
+        uri: &str,
+    ) -> Result<Option<AssetStatusRecord>, CoreError> {
+        self.import_asset_for_scope(Some(expected), uri)
+    }
+
+    /// Model imports use the same active-packet fence and original transaction owner.
+    pub fn import_model_source_for_project(
+        &self,
+        expected: &crate::asset::project::ProjectActivationIdentity,
+        source_path: &std::path::Path,
+    ) -> Result<crate::asset::project::ProjectImportReceipt, CoreError> {
+        self.import_model_source_for_scope(Some(expected), source_path)
+    }
+
+    fn import_model_source_for_scope(
+        &self,
+        expected: Option<&crate::asset::project::ProjectActivationIdentity>,
+        source_path: &std::path::Path,
+    ) -> Result<ProjectImportReceipt, CoreError> {
         const DEFAULT_PROJECT_MATERIAL_URI: &str = "res://materials/default.zmaterial";
 
         let (expected_generation, expected_preparation_epoch, mut candidate) = {
             let _generation = self.project_generation_read();
             let project = self.project_read();
+            require_import_activation(project.as_ref(), expected)?;
             let Some(active_project) = project.as_ref() else {
                 return Err(asset_error_message(
                     "model import requires an active directory project",
@@ -210,12 +318,15 @@ impl AssetManagerContract for ProjectAssetManager {
         );
         let generation = self.project_generation_write();
         let mut project = self.project_write();
+        require_import_activation(project.as_ref(), expected)?;
         let Some(active_project) = project.as_ref() else {
             return Err(asset_error_message(
                 "model import lost its active project before commit",
             ));
         };
-        if active_project.catalog_input_generation().sequence() != expected_generation
+        // An unchanged prepared-project reopen may retain its catalog but replace activation.
+        if active_project.activation_identity() != candidate.activation_identity()
+            || active_project.catalog_input_generation().sequence() != expected_generation
             || self.current_project_preparation_epoch() != expected_preparation_epoch
         {
             return Err(asset_error_message(
@@ -254,7 +365,11 @@ impl AssetManagerContract for ProjectAssetManager {
         Ok(receipt)
     }
 
-    fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError> {
+    fn import_asset_for_scope(
+        &self,
+        expected: Option<&crate::asset::project::ProjectActivationIdentity>,
+        uri: &str,
+    ) -> Result<Option<AssetStatusRecord>, CoreError> {
         let uri = AssetUri::parse(uri).map_err(asset_error)?;
         let (
             expected_generation,
@@ -264,11 +379,12 @@ impl AssetManagerContract for ProjectAssetManager {
             previous_source_records,
         ) = {
             let _generation = self.project_generation_read();
-            let indexed_source_path = self.indexed_project_source_path(&uri);
             let project = self.project_read();
+            require_import_activation(project.as_ref(), expected)?;
             let Some(active_project) = project.as_ref() else {
                 return Ok(None);
             };
+            let indexed_source_path = self.indexed_project_source_path(&uri);
             let source_path = match indexed_source_path {
                 Some(path) => path,
                 None if uri.scheme() == ResourceScheme::Res => active_project
@@ -309,12 +425,15 @@ impl AssetManagerContract for ProjectAssetManager {
             .map(build_status_record);
         let generation = self.project_generation_write();
         let mut project = self.project_write();
+        require_import_activation(project.as_ref(), expected)?;
         let Some(active_project) = project.as_ref() else {
             return Err(asset_error_message(
                 "targeted asset import lost its active project before commit",
             ));
         };
-        if active_project.catalog_input_generation().sequence() != expected_generation
+        // An unchanged prepared-project reopen may retain its catalog but replace activation.
+        if active_project.activation_identity() != candidate.activation_identity()
+            || active_project.catalog_input_generation().sequence() != expected_generation
             || self.current_project_preparation_epoch() != expected_preparation_epoch
         {
             return Err(asset_error_message(
@@ -339,78 +458,20 @@ impl AssetManagerContract for ProjectAssetManager {
         commit_outcome.ensure_durable().map_err(asset_error)?;
         Ok(status)
     }
+}
 
-    fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError> {
-        let (
-            expected_generation,
-            expected_preparation_epoch,
-            previous_project_identities,
-            mut candidate,
-        ) = {
-            let _generation = self.project_generation_read();
-            let project = self.project_read();
-            let Some(active_project) = project.as_ref() else {
-                return Ok(Vec::new());
-            };
-            (
-                active_project.catalog_input_generation().sequence(),
-                self.current_project_preparation_epoch(),
-                project_resource_identities(active_project),
-                active_project.clone(),
-            )
-        };
-        let project_generation =
-            lock_project_generation(candidate.paths().root()).map_err(asset_error)?;
-        let (imported, prepared_files) = candidate
-            .prepare_full_generation(None)
-            .map_err(asset_error)?;
-        let prepared = self.prepare_project_resource_sync(&candidate)?;
-        let statuses = imported.iter().map(build_status_record).collect::<Vec<_>>();
-        let generation = self.project_generation_write();
-        let mut project = self.project_write();
-        let Some(active_project) = project.as_ref() else {
-            return Err(asset_error_message(
-                "project reimport lost its active project before commit",
-            ));
-        };
-        if active_project.catalog_input_generation().sequence() != expected_generation
-            || self.current_project_preparation_epoch() != expected_preparation_epoch
-        {
-            return Err(asset_error_message(
-                "project reimport was superseded by a newer project generation",
-            ));
-        }
-        let batch = reconcile_project_resources(
-            ResourceMutationBatch::new(),
-            &previous_project_identities,
-            &candidate,
-        );
-        let commit_outcome = self.commit_project_resource_sync(
-            prepared,
-            batch,
-            || prepared_files.commit().map_err(asset_error),
-            || {
-                *project = Some(candidate);
-                drop(project);
-            },
-        )?;
-        drop(project_generation);
-        self.publish_project_generation(
-            generation,
-            imported
-                .into_iter()
-                .map(|metadata| {
-                    AssetChange::new(
-                        AssetChangeKind::Modified,
-                        metadata.primary_locator().clone(),
-                        None,
-                    )
-                })
-                .collect(),
-        );
-        commit_outcome.ensure_durable().map_err(asset_error)?;
-        Ok(statuses)
+fn require_import_activation(
+    project: Option<&crate::asset::project::ProjectManager>,
+    expected: Option<&crate::asset::project::ProjectActivationIdentity>,
+) -> Result<(), CoreError> {
+    if expected.is_some_and(|expected| {
+        project.is_none_or(|project| project.activation_identity() != expected)
+    }) {
+        return Err(asset_error_message(
+            "asset import belongs to an inactive project activation",
+        ));
     }
+    Ok(())
 }
 
 #[cfg(test)]

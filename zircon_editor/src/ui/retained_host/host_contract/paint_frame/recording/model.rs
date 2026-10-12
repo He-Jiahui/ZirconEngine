@@ -46,6 +46,7 @@ pub(in crate::ui::retained_host::host_contract) enum HostRecordedPaintKind {
         font_size: f32,
         line_height: f32,
         style: UiTextRunPaintStyle,
+        font_request: Option<crate::ui::retained_host::host_contract::paint_text::HostTextFontRequest>,
     },
     Image {
         resource_key: String,

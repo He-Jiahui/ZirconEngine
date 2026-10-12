@@ -7,7 +7,8 @@ fn browser_content_layout_keeps_source_tree_folders_out_of_asset_rows() {
         visible_folders: vec![AssetFolderSnapshot {
             folder_id: "res://materials".to_string(),
             ..AssetFolderSnapshot::default()
-        }],
+        }]
+        .into(),
         ..AssetWorkspaceSnapshot::default()
     };
 
@@ -23,5 +24,5 @@ fn browser_content_layout_keeps_source_tree_folders_out_of_asset_rows() {
     );
 
     assert!(browser.folder_ids.is_empty());
-    assert_eq!(activity.folder_ids, vec!["res://materials"]);
+    assert_eq!(activity.folder_ids, vec!["res://materials".to_string()]);
 }

@@ -1,13 +1,11 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use super::scene_system_registry::{
-    validate_native_system_execution_policy, validate_system_tick_policy,
-};
+use super::scene_system_plan_descriptor::SceneSystemPlanDescriptor;
 use super::{
-    BoxedRuntimeSceneSystem, BoxedSceneSystem, ResolvedScheduleEdge, SceneSystemDescriptor,
-    SceneSystemRegistry, ScheduleBuildReceipt, ScheduleConflictGraph, ScheduleError,
-    ScheduledSceneStep, SystemOrderingConstraint, SystemRef, SystemSetId, SystemStage,
+    ResolvedScheduleEdge, SceneSystemDescriptor, SceneSystemRegistry, ScheduleBuildReceipt,
+    ScheduleConflictGraph, ScheduleError, ScheduledSceneStep, SystemOrderingConstraint, SystemRef,
+    SystemSetId, SystemStage,
 };
 
 /// One tick's schedule snapshot, grouped by stage to avoid repeated stage scans.
@@ -28,17 +26,9 @@ impl SceneScheduleStagePlan {
         registry: &SceneSystemRegistry,
     ) -> Result<Self, ScheduleError> {
         let systems = registry.systems();
-        let native_systems = registry.native_systems();
-        for system in native_systems {
-            validate_native_system_execution_policy(
-                system.id(),
-                system.stage(),
-                system.tick_policy(),
-                system.has_deferred_commands(),
-            )?;
-        }
-        for system in registry.runtime_systems() {
-            validate_system_tick_policy(system.id(), system.stage(), system.tick_policy())?;
+        let plan_systems = registry.plan_systems();
+        for system in plan_systems {
+            system.validate_execution_policy()?;
         }
         let mut stage_order = Vec::with_capacity(stages.len());
         for stage in stages.iter().copied() {
@@ -48,8 +38,7 @@ impl SceneScheduleStagePlan {
         let internal_system_counts = internal_system_counts_by_stage(systems);
         let mut internal_systems_by_stage =
             internal_system_groups_with_capacity(&internal_system_counts);
-        let native_step_counts =
-            native_step_counts_by_stage(native_systems, registry.runtime_systems());
+        let native_step_counts = native_step_counts_by_stage(plan_systems);
         let mut native_steps_by_stage = native_step_groups_with_capacity(&native_step_counts);
         let native_conflict_graphs_by_stage =
             SystemStage::ORDER.map(|stage| registry.native_system_conflict_graph_for_stage(stage));
@@ -73,34 +62,8 @@ impl SceneScheduleStagePlan {
                         system.order = plan_order;
                         internal_systems_by_stage[stage.rank()].push(system);
                     }
-                    PlanNodeRef::Native(system) => {
-                        let worker_safe = system.supports_worker_dispatch();
-                        native_steps_by_stage[stage.rank()].push(ScheduledSceneStep::native(
-                            system.id(),
-                            system.stage(),
-                            plan_order,
-                            system.tick_policy(),
-                            worker_safe,
-                            system.access().has_conservative_world_access(),
-                        ));
-                        if system.has_deferred_commands() && !worker_safe {
-                            native_steps_by_stage[stage.rank()].push(
-                                ScheduledSceneStep::apply_deferred_after(
-                                    system.id(),
-                                    system.stage(),
-                                    plan_order,
-                                    system.tick_policy(),
-                                ),
-                            );
-                        }
-                    }
-                    PlanNodeRef::Runtime(system) => {
-                        native_steps_by_stage[stage.rank()].push(ScheduledSceneStep::runtime(
-                            system.id(),
-                            system.stage(),
-                            plan_order,
-                            system.tick_policy(),
-                        ));
+                    PlanNodeRef::External(system) => {
+                        system.append_steps(plan_order, &mut native_steps_by_stage[stage.rank()]);
                     }
                 }
             }
@@ -148,6 +111,14 @@ impl SceneScheduleStagePlan {
         self.build_receipt
     }
 
+    pub(crate) fn contains_native_system(&self, id: &str) -> bool {
+        self.native_steps_by_stage.iter().any(|steps| {
+            steps.iter().any(|step| {
+                matches!(step, ScheduledSceneStep::Native { id: step_id, .. } if step_id == id)
+            })
+        })
+    }
+
     pub(crate) fn native_system_deferred_key(&self, id: &str) -> Option<super::DeferredSystemKey> {
         for steps in &self.native_steps_by_stage {
             for step in steps {
@@ -188,21 +159,12 @@ fn internal_system_groups_with_capacity(
     std::array::from_fn(|stage_index| Vec::with_capacity(internal_system_counts[stage_index]))
 }
 
-fn native_step_counts_by_stage<'registry>(
-    systems: &[BoxedSceneSystem],
-    runtime_systems: impl Iterator<Item = &'registry BoxedRuntimeSceneSystem>,
+fn native_step_counts_by_stage(
+    systems: &[SceneSystemPlanDescriptor],
 ) -> [usize; SystemStage::COUNT] {
     let mut counts = [0_usize; SystemStage::COUNT];
     for system in systems {
-        let step_count = if system.has_deferred_commands() && !system.supports_worker_dispatch() {
-            2
-        } else {
-            1
-        };
-        counts[system.stage().rank()] += step_count;
-    }
-    for system in runtime_systems {
-        counts[system.stage().rank()] += 1;
+        counts[system.stage().rank()] += system.step_count();
     }
     counts
 }
@@ -216,48 +178,42 @@ fn native_step_groups_with_capacity(
 #[derive(Clone, Copy)]
 enum PlanNodeRef<'a> {
     Internal(&'a SceneSystemDescriptor),
-    Native(&'a BoxedSceneSystem),
-    Runtime(&'a BoxedRuntimeSceneSystem),
+    External(&'a SceneSystemPlanDescriptor),
 }
 
 impl<'a> PlanNodeRef<'a> {
     fn id(self) -> &'a str {
         match self {
             Self::Internal(system) => system.id.as_str(),
-            Self::Native(system) => system.id(),
-            Self::Runtime(system) => system.id(),
+            Self::External(system) => system.id(),
         }
     }
 
     fn stage(self) -> SystemStage {
         match self {
             Self::Internal(system) => system.stage,
-            Self::Native(system) => system.stage(),
-            Self::Runtime(system) => system.stage(),
+            Self::External(system) => system.stage(),
         }
     }
 
     fn order(self) -> i32 {
         match self {
             Self::Internal(system) => system.order,
-            Self::Native(system) => system.order(),
-            Self::Runtime(system) => system.order(),
+            Self::External(system) => system.order(),
         }
     }
 
     fn sets(self) -> &'a [SystemSetId] {
         match self {
             Self::Internal(system) => &system.sets,
-            Self::Native(system) => system.sets(),
-            Self::Runtime(system) => system.sets(),
+            Self::External(system) => system.sets(),
         }
     }
 
     fn constraints(self) -> &'a [SystemOrderingConstraint] {
         match self {
             Self::Internal(system) => &system.constraints,
-            Self::Native(system) => system.constraints(),
-            Self::Runtime(system) => system.constraints(),
+            Self::External(system) => system.constraints(),
         }
     }
 }
@@ -270,17 +226,12 @@ struct PlanNodes<'a> {
 impl<'a> PlanNodes<'a> {
     fn new(registry: &'a SceneSystemRegistry) -> Self {
         let systems = registry.systems();
-        let native_systems = registry.native_systems();
-        let runtime_system_count = registry.runtime_systems().count();
-        let mut stages_by_id =
-            HashMap::with_capacity(systems.len() + native_systems.len() + runtime_system_count);
+        let plan_systems = registry.plan_systems();
+        let mut stages_by_id = HashMap::with_capacity(systems.len() + plan_systems.len());
         for system in systems {
             stages_by_id.insert(system.id.as_str(), system.stage);
         }
-        for system in native_systems {
-            stages_by_id.insert(system.id(), system.stage());
-        }
-        for system in registry.runtime_systems() {
+        for system in plan_systems {
             stages_by_id.insert(system.id(), system.stage());
         }
         Self {
@@ -296,14 +247,9 @@ impl<'a> PlanNodes<'a> {
                 nodes.push(PlanNodeRef::Internal(system));
             }
         }
-        for system in self.registry.native_systems() {
+        for system in self.registry.plan_systems() {
             if system.stage() == stage {
-                nodes.push(PlanNodeRef::Native(system));
-            }
-        }
-        for system in self.registry.runtime_systems() {
-            if system.stage() == stage {
-                nodes.push(PlanNodeRef::Runtime(system));
+                nodes.push(PlanNodeRef::External(system));
             }
         }
         nodes

@@ -17,7 +17,7 @@ fn instance_id(harness: &ChildWindowHostHarness, descriptor: &str) -> ViewInstan
     harness
         .host
         .borrow()
-        .editor_manager
+        .editor_manager.enter().expect("editor manager admission")
         .current_view_instances()
         .into_iter()
         .find(|instance| instance.descriptor_id.0 == descriptor)
@@ -36,7 +36,7 @@ fn window_open_inspector_at_640_reveals_same_instance_with_live_child_callbacks(
         harness
             .host
             .borrow()
-            .editor_manager
+            .editor_manager.enter().expect("editor manager admission")
             .view_host_for_instance_key(&id.0),
         Some(ViewHost::Drawer(ActivityDrawerSlot::RightTop)),
         "resize alone preserves placement"
@@ -68,7 +68,7 @@ fn window_open_inspector_at_640_reveals_same_instance_with_live_child_callbacks(
     let host = harness.host.borrow();
     assert_eq!(
         host.runtime
-            .editor_snapshot()
+            .editor_snapshot().unwrap()
             .inspector
             .as_ref()
             .map(|snapshot| snapshot.name.as_str()),
@@ -89,7 +89,7 @@ fn window_open_hierarchy_at_640_reuses_authored_outliner_instance_in_native_owne
         harness
             .host
             .borrow()
-            .editor_manager
+            .editor_manager.enter().expect("editor manager admission")
             .view_host_for_instance_key(&id.0),
         Some(ViewHost::Drawer(ActivityDrawerSlot::LeftTop))
     );
@@ -113,7 +113,7 @@ fn window_open_hierarchy_at_640_reuses_authored_outliner_instance_in_native_owne
     let host = harness.host.borrow();
     assert_eq!(host.last_focused_callback_window, Some(window_id));
     assert_eq!(
-        host.editor_manager
+        host.editor_manager.enter().expect("editor manager admission")
             .current_view_instances()
             .iter()
             .filter(|instance| instance.descriptor_id.0 == "editor.hierarchy")
@@ -135,7 +135,7 @@ fn window_open_view_preserves_wide_dock_and_existing_custom_floating_owner() {
         harness
             .host
             .borrow()
-            .editor_manager
+            .editor_manager.enter().expect("editor manager admission")
             .view_host_for_instance_key(&id.0),
         Some(ViewHost::Drawer(ActivityDrawerSlot::RightTop))
     );
@@ -144,7 +144,7 @@ fn window_open_view_preserves_wide_dock_and_existing_custom_floating_owner() {
     let before = harness
         .host
         .borrow()
-        .editor_manager
+        .editor_manager.enter().expect("editor manager admission")
         .view_host_for_instance_key(&id.0);
     resize_root(&harness, 640);
     harness.dispatch_menu_action("workbench.view.open.editor.inspector");
@@ -152,7 +152,7 @@ fn window_open_view_preserves_wide_dock_and_existing_custom_floating_owner() {
         harness
             .host
             .borrow()
-            .editor_manager
+            .editor_manager.enter().expect("editor manager admission")
             .view_host_for_instance_key(&id.0),
         before
     );

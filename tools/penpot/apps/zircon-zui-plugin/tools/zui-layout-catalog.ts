@@ -17,6 +17,7 @@ import { LayoutDependencies } from './zui-layout-dependencies.js';
 import { prepareThemeReviewHost } from './zui-layout-theme-hosts';
 import {
   prepareComponentReviewHost,
+  prepareUnrealReviewTranslations,
   requiredComponentSlots,
 } from './zui-layout-component-hosts';
 import { prepareDynamicReviewState } from './zui-layout-dynamic-hosts';
@@ -173,10 +174,10 @@ export function isWorkbenchWindowReviewDocument(
   document: ZuiDocument | undefined,
 ): boolean {
   return (
-    document?.nodes?.['top_toolbar']?.control_id ===
+    document?.nodes?.['toolbar']?.control_id ===
       'WorkbenchWindowTopToolbarRegion' &&
-    document?.nodes?.['component_drawer_shell']?.control_id ===
-      'BottomDrawerShellRoot'
+    document?.nodes?.['content_drawer']?.control_id ===
+      'UnrealContentDrawerRegion'
   );
 }
 
@@ -404,6 +405,19 @@ async function generateCatalog(
       ) {
         hostFile = 'editor-host';
       }
+      // Standalone Unreal components need the same authored locale as the
+      // page host before either projection reaches localized text resolution.
+      if (
+        await prepareUnrealReviewTranslations(
+          repoRoot,
+          sourcePath,
+          input,
+          consumerHost?.projection,
+          cases[0]?.data['workbenchPresentation'] as
+            Record<string, unknown> | undefined,
+        )
+      )
+        dependencyChanges.push('embed-authored-editor-translations');
       if (consumerHost) {
         input['penpot_review_host'] = consumerHost.projection;
         input['penpot_dependency_sources'] = [
@@ -692,7 +706,7 @@ async function generateCatalog(
         'With the current bridge build, all six Penpot toolbar scenes again passed import/export capture. Original-size 640px [scroll start](evidence/penpot-default-640x520-dpi1.png) SHA-256 e06cebea46de08fc45e312895c3eb6819cd8d9add710e16f7377933e0cc7e294 shows file/run actions and early modules without overlap; [scroll end](evidence/penpot-scroll-after-640x520-dpi1.png) SHA-256 fc14f98bedf73d8f91d10e88549fbef7ec4922f700fd97002c694cfb3d113872 exposes Assets, VFX, HUD and trailing tools. This confirms only the Penpot toolbar projection: the containing window route, native scroll reachability and dual-end pixel comparison remain pending.',
       ];
     if (
-      sourcePath.endsWith('/host/workbench_shell.zui') &&
+      sourcePath.endsWith('/unreal/editor_shell.zui') &&
       prepared.document?.nodes?.['activity_rail']?.component === 'ActivityRail'
     )
       entry.sourceChanges = [
@@ -831,17 +845,14 @@ async function generateCatalog(
         'Reference: local Unreal Engine Slate SScrollBox (dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Widgets/Layout/SScrollBox.h) declares one EOrientation per scroll owner. The local route IDs, neutral Workbench tokens and retained host remain authoritative. Native wheel routing uses one scalar delta and prefers the inner owner; verify vertical scroll and the outer horizontal scrollbar in the real product and Penpot before acceptance.',
       ];
     if (
-      sourcePath.endsWith('/windows/workbench_window.zui') &&
+      sourcePath.endsWith('/unreal/level_editor_window.zui') &&
       isWorkbenchWindowReviewDocument(prepared.document)
     )
       entry.sourceChanges = [
         ...(entry.sourceChanges ?? []),
-        'Shared dependency defect: the 640x520 Workbench window previously showed overlapping toolbar labels/icons and a context-drawer action beyond the clipped viewport. The product window source is unchanged; the referenced workbench_top_toolbar.zui owns the source fix and dependency fingerprint must trigger this page for re-review.',
-        'Before correction: [original-size 640x520 screenshot](evidence/before-20260921-toolbar-overlap-640x520-dpi1.png) SHA-256 a1f39c5c7a47acfa99eb778ae011e2a5ab9e33e44f0c4b6abab401ee1644b976. Neither Penpot-only nor static toolbar tests can establish native page acceptance.',
-        'After the toolbar reflow, the full 640x520 page exposed four genuine segmented-control text-boundary defects in its component drawer. The drawer dependency now owns 48px of labeled height and 216px of three-option width without changing business labels; [failed pre-correction capture](evidence/before-20260924-drawer-segments-640x520-dpi1.png) SHA-256 8cc1516217f76f0554a824c09a78dc4f19e1ee411235127d8ec4fbd47874e89a. Recapture this entire page; do not promote the failed screenshot.',
-        'The same embedded drawer later exposed overlapping Alert/Tooltip content in the standalone 640x520 scroll-after scene; the shared .zui now allocates its full feedback children. [Original failing image](../workbench-component-drawer-81f5ad59/evidence/before-20260924-feedback-overlap-640x520-dpi1.png) SHA-256 feb4fec04fd2b73b4b3437c761b4b0af0e7388a5807b5053ac34cde2eab6f2ea. This window also needs fresh scroll-state and native screenshots.',
-        'Follow-up geometry revealed a 0.01px table card underneath feedback and an undersized lower-row parent; the same product drawer dependency now allocates both cards in its scroll flow. [Intermediate failing image](../workbench-component-drawer-81f5ad59/evidence/before-20260924-lower-row-collapse-640x520-dpi1.png) SHA-256 b9935ce5dc164068a6924883532b27882e4974ac91dc023428417df57112a8c0. Recheck this full page at original size after its dependency fingerprint changes.',
-        'ReactBits App Shell 3/4 compact-mode gap: this .zui authors an overflow menu, but its collapsed initial visibility does not establish a narrow-width route into the menu or drawer. Treat the 640x520 rail/toolbar/context transition as unimplemented until the product host, source state, Penpot capture and retained-host capture prove reachable controls without clipping.',
+        'The Unreal Level Editor window imports its dedicated menu, toolbar, viewport, Outliner, Details, status bar, popup and Content Drawer sources. Semantic host control identifiers remain bound to the engine.',
+        'The authored shell uses 26px/48px/32px menu, toolbar and status bands, an 80/20 main dock split and 4px panel gaps. Review the viewport toolbar groups, original dropdowns and More overflow at each required window size.',
+        'Acceptance requires a current real Penpot save and fresh same-file reopen, source-bound .zui export, and matching ordinary Editor HWND captures for the same source hashes and actual state. Native visual acceptance remains pending.',
       ];
     if (
       sourcePath.endsWith('/primitives/inputs/workbench_tab_strip.zui') &&
@@ -2017,7 +2028,7 @@ export function renderIndex(manifest: CatalogManifest): string {
   const discovery = manifest.sourceDiscovery
     ? `\n- Git 受控或未忽略源：${manifest.sourceDiscovery.controlledOrUnignoredSourceCount}\n- 扫描到的项目夹具：${(manifest.sourceDiscovery.projectOwnedScannedFixtures ?? []).map((fixture) => `\`${fixture.sourcePath}\``).join(', ') || '无'}\n- 显式项目夹具：${manifest.sourceDiscovery.explicitProjectFixtures.map((fixture) => `\`${fixture.sourcePath}\``).join(', ')}\n- 扫描排除根：${manifest.sourceDiscovery.excludedRoots.map((path) => `\`${path}\``).join(', ')}\n`
     : '';
-  return `# ZirconEngine .zui 双端布局目录\n\n- 生成时间：${manifest.generatedAt}\n- 已知源文件：${manifest.sourceCount}${discovery}\n- 布局参考：[ReactBits App UI 布局模式](../ui-and-layout/reactbits-app-shell-layout-modes.md)\n- 原文镜像：\`docs/ui/zui/{category}/{name}/{name}.zui\`\n- 每项验收记录：同目录 \`result.md\`\n- 引擎主图：\`preview.png\`；Penpot 主图：\`penpot.png\`\n- Penpot 展开输入：\`evidence/penpot-input.zui\`\n\n${sections.join('\n\n')}\n`;
+  return `# ZirconEngine .zui 双端布局目录\n\n- 生成时间：${manifest.generatedAt}\n- 已知源文件：${manifest.sourceCount}${discovery}\n- 当前编辑器入口：\`res://ui/editor/unreal/level_editor_window.zui\`\n- 布局参考：[虚幻编辑器来源与验收](../../plans/unreal-editor-source-cutover.md)\n- 原文镜像：\`docs/ui/zui/{category}/{name}/{name}.zui\`\n- 每项验收记录：同目录 \`result.md\`\n- 引擎主图：\`preview.png\`；Penpot 主图：\`penpot.png\`\n- Penpot 展开输入：\`evidence/penpot-input.zui\`\n\n${sections.join('\n\n')}\n`;
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {

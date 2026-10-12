@@ -137,6 +137,7 @@ fn optimization_wave_20260824p_runtime94_previous_transform_roll_uses_a_dirty_ke
     assert!(!implementation.contains("self.entries.values_mut()"));
 }
 
+// 计时仅包含 CPU 滚动 helper，变换复位、待滚动集合构造及队列清理均在计时之外。
 #[test]
 #[ignore = "managed release evidence"]
 fn optimization_wave_20260824p_runtime94_previous_transform_dirty_queue_evidence() {

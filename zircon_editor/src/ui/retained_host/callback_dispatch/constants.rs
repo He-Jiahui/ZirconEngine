@@ -2,8 +2,7 @@ use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 pub(crate) const VIEWPORT_SURFACE_ROOT_ID: UiNodeId = UiNodeId::new(1);
 pub(crate) const VIEWPORT_SURFACE_NODE_ID: UiNodeId = UiNodeId::new(2);
-pub(crate) const BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID: &str =
-    "res://ui/editor/host/workbench_shell.zui";
+pub(crate) use crate::ui::template_runtime::UNREAL_EDITOR_SHELL_DOCUMENT_ID;
 pub(crate) const BUILTIN_FLOATING_WINDOW_SOURCE_DOCUMENT_ID: &str =
     "res://ui/editor/host/floating_window_source.zui";
 pub(crate) const BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID: &str =

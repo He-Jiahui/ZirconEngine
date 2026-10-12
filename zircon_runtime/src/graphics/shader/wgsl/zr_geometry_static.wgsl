@@ -3,6 +3,8 @@ fn fetch_position(v: ZrVertexInput, instance_index: u32) -> vec3<f32> {
     return v.position;
 }
 
+// velocity 调用者已将 previous_position 放入 v.position，并在 fetch 外应用上一帧 world/camera 矩阵。
+// 此处转发对象空间位置，避免重复施加历史变换。
 fn fetch_prev_position(v: ZrVertexInput, instance_index: u32) -> vec3<f32> {
     _ = instance_index;
     return v.position;

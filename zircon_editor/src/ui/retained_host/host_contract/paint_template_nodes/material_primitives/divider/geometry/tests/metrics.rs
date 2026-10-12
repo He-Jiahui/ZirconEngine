@@ -63,3 +63,26 @@ fn divider_geometry_metrics_project_from_shared_host_metrics() {
         17.5
     );
 }
+
+#[test]
+fn authored_divider_font_scales_once_and_host_fallback_stays_physical() {
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        current_host_metrics, enter_host_paint_theme_scope,
+        host_paint_theme_snapshot_at_scale_for_test,
+    };
+    for scale in [1.0, 1.5] {
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(scale));
+
+        let authored = TemplatePaneNodeData {
+            font_size: 18.0,
+            ..Default::default()
+        };
+        let metrics = current_host_metrics();
+        assert_eq!(divider_font_size(&authored, 80.0), 18.0 * scale);
+        assert_eq!(
+            divider_font_size(&TemplatePaneNodeData::default(), 80.0),
+            metrics.font_body
+        );
+    }
+}

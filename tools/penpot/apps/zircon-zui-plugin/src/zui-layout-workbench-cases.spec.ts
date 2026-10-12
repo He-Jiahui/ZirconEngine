@@ -6,6 +6,7 @@ import { parseZuiDocument } from './bridge/zui-document';
 import {
   caseSha256,
   defaultReviewCases,
+  type WorkbenchStateSelector,
 } from '../tools/zui-layout-review-contract';
 import {
   buildWorkbenchReviewCases,
@@ -73,6 +74,7 @@ const marker = (
   schema: 'dev.zircon.editor.workbench-presentation' as const,
   version: 1 as const,
   activeLocale,
+  viewportSnap: { translationEnabled: false, rotationEnabled: true, scaleEnabled: false },
   stateFingerprint: name,
   sourceFingerprint: {
     sourcePath: WORKBENCH_WINDOW_SOURCE,
@@ -144,12 +146,27 @@ describe('product WorkbenchWindow case matrix', () => {
   );
 
   it('gives every requested size/state a factual product snapshot and one authored control', () => {
-    expect(cases).toHaveLength(81);
+    expect(cases).toHaveLength(84);
     expect(new Set(cases.map((item) => item.id)).size).toBe(cases.length);
     expect(cases.every((item) => item.data['workbenchPresentation'])).toBe(
       true,
     );
     expect(cases.every((item) => item.data['workbenchState'])).toBe(true);
+
+    const ownerDocuments = new Map<string, ReturnType<typeof parseZuiDocument>['document']>();
+    for (const item of cases) {
+      const selector = item.data['workbenchState'] as WorkbenchStateSelector;
+      for (const target of [selector, selector.scrollTarget].filter(
+        (target): target is WorkbenchStateSelector => target !== undefined,
+      )) {
+        if (!ownerDocuments.has(target.sourcePath))
+          ownerDocuments.set(target.sourcePath, parseZuiDocument(
+            readFileSync(resolve(repoRoot, target.sourcePath), 'utf8'),
+          ).document);
+        const authored = ownerDocuments.get(target.sourcePath)!.nodes?.[target.sourceNodeId];
+        expect(authored?.control_id, item.id + ':' + target.sourceNodeId).toBe(target.controlId);
+      }
+    }
     expect(
       cases.find((item) => item.id === 'selected-1280x800-dpi1.5')?.data,
     ).toMatchObject({
@@ -162,7 +179,7 @@ describe('product WorkbenchWindow case matrix', () => {
       cases.find((item) => item.id === 'focused-900x620-dpi1')?.data,
     ).toMatchObject({
       workbenchState: {
-        sourceNodeId: 'scene_search_field',
+        sourceNodeId: 'search',
         controlId: 'WorkbenchSceneSearchField',
       },
     });
@@ -170,7 +187,7 @@ describe('product WorkbenchWindow case matrix', () => {
       cases.find((item) => item.id === 'scroll-after-640x520-dpi1')?.data,
     ).toMatchObject({
       workbenchState: {
-        sourceNodeId: 'scene_tree',
+        sourceNodeId: 'tree',
         controlId: 'WorkbenchSceneTree',
       },
     });
@@ -178,8 +195,8 @@ describe('product WorkbenchWindow case matrix', () => {
       cases.find((item) => item.id === 'open-scroll-after-640x520-dpi1')?.data,
     ).toMatchObject({
       workbenchState: {
-        sourceNodeId: 'toolbar_main_menu',
-        scrollTarget: { sourceNodeId: 'scene_tree' },
+        sourceNodeId: 'file_popup',
+        scrollTarget: { sourceNodeId: 'tree' },
       },
     });
     expect(
@@ -187,7 +204,7 @@ describe('product WorkbenchWindow case matrix', () => {
         ?.data,
     ).toMatchObject({
       workbenchPresentation: { stateFingerprint: 'selected' },
-      workbenchState: { sourceNodeId: 'inspector_content' },
+      workbenchState: { sourceNodeId: 'content' },
     });
   });
 
@@ -208,23 +225,39 @@ describe('product WorkbenchWindow case matrix', () => {
   });
 
   it('opens one real popup at a time and uses product snapshots for long locales', () => {
+
+    const menuCases = cases.filter((item) => {
+      const selector = item.data['workbenchState'] as WorkbenchStateSelector;
+      return selector.sourcePath.endsWith('/unreal/components/menu_popups.zui')
+        && item.id.startsWith(selector.sourceNodeId + '-');
+    });
+    const menuIds = [...new Set(menuCases.map((item) =>
+      (item.data['workbenchState'] as WorkbenchStateSelector).sourceNodeId,
+    ))];
+    expect(menuIds).toHaveLength(12);
+    for (const menuId of menuIds)
+      for (const state of ['open', 'closed', 'focus-return'])
+        expect(menuCases.filter((item) =>
+          (item.data['workbenchState'] as WorkbenchStateSelector).sourceNodeId === menuId
+            && item.state === state,
+        ), menuId + ':' + state).toHaveLength(1);
     expect(
-      cases.find((item) => item.id === 'settings_window-open-900x620-dpi1')
+      cases.find((item) => item.id === 'settings_popup-open-900x620-dpi1')
         ?.data,
     ).toMatchObject({
       workbenchState: {
-        sourceNodeId: 'settings_window',
-        controlId: 'WorkbenchPreferences',
+        sourceNodeId: 'settings_popup',
+        controlId: 'UnrealSettingsMenuPopup',
       },
     });
     expect(
       cases.find(
-        (item) => item.id === 'toolbar_layout_menu-focus-return-900x620-dpi1',
+        (item) => item.id === 'window_popup-focus-return-900x620-dpi1',
       )?.data,
     ).toMatchObject({
       workbenchState: {
-        sourceNodeId: 'toolbar_layout_menu',
-        controlId: 'WorkbenchLayoutMenu',
+        sourceNodeId: 'window_popup',
+        controlId: 'UnrealWindowMenuPopup',
       },
     });
     const english = cases.find((item) => item.id === 'long-en-640x520-dpi1');

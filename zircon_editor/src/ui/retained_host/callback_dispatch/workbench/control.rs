@@ -3,7 +3,7 @@ use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, SelectionComma
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
-use zircon_runtime_interface::ui::binding::UiEventKind;
+use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventKind};
 
 use super::super::{
     common::{dispatch_editor_binding, merge_effects},
@@ -70,10 +70,41 @@ pub(crate) fn dispatch_componentized_workbench_binding(
 
 fn dispatch_componentized_workbench_binding_for_control(
     runtime: &EditorHostEventController,
-    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
     source_control_id: &str,
     binding: EditorUiBinding,
 ) -> Result<UiHostEventEffects, String> {
+    if let EditorUiBindingPayload::MenuAction { action_id } = binding.payload() {
+        if action_id == "workbench.content_drawer.sync_selection" {
+            if runtime.sync_selection_to_content_browser()?.is_empty() {
+                return Ok(UiHostEventEffects::default());
+            }
+            let chrome = runtime
+                .chrome_snapshot()
+                .map_err(|error| error.to_string())?;
+            bridge
+                .prepare_content_drawer_assets(&chrome.asset_browser)
+                .map_err(|error| error.to_string())?;
+            bridge
+                .reveal_content_drawer_selection()
+                .map_err(|error| error.to_string())?;
+            let mut effects = UiHostEventEffects::default();
+            effects.request_paint_only();
+            return Ok(effects);
+        }
+        if BuiltinWorkbenchWindowTemplateSurfaceBridge::is_content_drawer_asset_select_action(
+            action_id,
+        ) {
+            let Some(binding) = bridge.content_drawer_asset_selection_binding(source_control_id)
+            else {
+                return Err(
+                    "The content drawer asset row no longer belongs to the published catalog"
+                        .into(),
+                );
+            };
+            return dispatch_editor_binding(runtime, binding);
+        }
+    }
     if matches!(
         binding.payload(),
         EditorUiBindingPayload::SelectionCommand(SelectionCommand::SelectSceneNode { .. })
@@ -84,6 +115,14 @@ fn dispatch_componentized_workbench_binding_for_control(
         if let Some(entity) = bridge.scene_entity_for_control(control_id) {
             return dispatch_hierarchy_selection(runtime, entity);
         }
+    }
+    if matches!(binding.payload(), EditorUiBindingPayload::MenuAction { action_id }
+        if action_id.starts_with("workbench.unreal.") && action_id.ends_with(".open")
+            || action_id.starts_with("workbench.content_drawer."))
+    {
+        let mut effects = UiHostEventEffects::default();
+        effects.request_paint_only();
+        return Ok(effects);
     }
     dispatch_editor_binding(runtime, binding)
 }
@@ -141,7 +180,21 @@ pub(crate) fn dispatch_componentized_workbench_option_selected(
         .binding_for_control(control_id, UiEventKind::Change)
         .cloned()
     {
-        Some(binding) => dispatch_editor_binding(runtime, binding)?,
+        Some(binding) => {
+            let binding = if control_id == "SetViewMode"
+                && bridge.owns_content_drawer_control(control_id)
+            {
+                binding
+                    .with_arguments(vec![
+                        zircon_runtime_interface::ui::binding::UiBindingValue::string("browser"),
+                        zircon_runtime_interface::ui::binding::UiBindingValue::string(option_id),
+                    ])
+                    .map_err(|error| error.to_string())?
+            } else {
+                viewport_dropdown_binding_for_option(&binding, option_id)?
+            };
+            dispatch_editor_binding(runtime, binding)?
+        }
         None => UiHostEventEffects::default(),
     };
     effects.request_paint_only();
@@ -193,6 +246,28 @@ pub(crate) fn dispatch_componentized_workbench_menu_item_selected(
     control_id: &str,
     action_id: &str,
 ) -> Option<Result<UiHostEventEffects, String>> {
+    if bridge.owns_module_tools_menu(control_id) {
+        return match bridge.dispatch_module_tools_menu_item_state(control_id, action_id) {
+            Ok(Some(binding)) => Some(dispatch_editor_binding(runtime, binding).map(
+                |mut effects| {
+                    effects.request_paint_only();
+                    effects
+                },
+            )),
+            Ok(None) => Some(Ok(UiHostEventEffects::default())),
+            Err(error) => Some(Err(error.to_string())),
+        };
+    }
+    let asset_creation_chrome = if bridge.is_asset_creation_menu_action(control_id, action_id)
+        && bridge.popup_menu_item_is_selectable(control_id, action_id) == Some(true)
+    {
+        match runtime.chrome_snapshot() {
+            Ok(chrome) => Some(chrome),
+            Err(error) => return Some(Err(error.to_string())),
+        }
+    } else {
+        None
+    };
     let selected = match bridge.select_popup_menu_item(control_id, action_id) {
         Ok(Some(selected)) => selected,
         Ok(None) => return None,
@@ -201,7 +276,11 @@ pub(crate) fn dispatch_componentized_workbench_menu_item_selected(
     let mut effects = UiHostEventEffects::default();
     if selected {
         if bridge.is_asset_creation_menu_action(control_id, action_id) {
-            let chrome = runtime.chrome_snapshot();
+            let Some(chrome) = asset_creation_chrome.as_ref() else {
+                return Some(Err(format!(
+                    "asset creation menu action `{action_id}` is no longer available"
+                )));
+            };
             let Some(request) =
                 bridge.asset_creation_menu_request(&chrome.asset_browser, control_id, action_id)
             else {
@@ -313,3 +392,42 @@ pub(crate) fn dispatch_componentized_workbench_popup_cancelled(
     }
     Some(Ok(effects))
 }
+
+// Source option admission happens before rebinding. Keep the catalog/menu
+// payload contracts intact; viewport enum and numeric options own one argument.
+fn viewport_dropdown_binding_for_option(
+    binding: &EditorUiBinding,
+    option_id: &str,
+) -> Result<EditorUiBinding, String> {
+    let EditorUiBindingPayload::ViewportCommand(command) = binding.payload() else {
+        return Ok(binding.clone());
+    };
+    let argument = match command {
+        crate::ui::binding::ViewportCommand::SetGridVisibility(_) => {
+            UiBindingValue::Bool(match option_id {
+                "Hidden" => false,
+                "VisibleNoSnap" => true,
+                _ => return Err(format!("invalid grid visibility option: {option_id}")),
+            })
+        }
+        crate::ui::binding::ViewportCommand::SetTranslateSnap(_)
+        | crate::ui::binding::ViewportCommand::SetRotateSnapDegrees(_)
+        | crate::ui::binding::ViewportCommand::SetScaleSnap(_) => {
+            let value = option_id
+                .parse::<f64>()
+                .map_err(|_| format!("invalid viewport snap option: {option_id}"))?;
+            if !value.is_finite() || value <= 0.0 {
+                return Err(format!("invalid viewport snap option: {option_id}"));
+            }
+            UiBindingValue::Float(value)
+        }
+        _ => UiBindingValue::string(option_id),
+    };
+    binding
+        .with_arguments(vec![argument])
+        .map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+#[path = "tests/viewport_dropdown_semantics.rs"]
+mod viewport_dropdown_semantics;

@@ -69,6 +69,7 @@ pub use production::{
 pub use ui_surface::{
     WgpuUiExternalImage, WgpuUiExternalImageAlphaMode, WgpuUiExternalImageCopyReceipt,
     WgpuUiExternalImageCopyTarget, WgpuUiSharedImageRegistry, WgpuUiSurfaceContext,
+    WgpuUiSurfaceDiagnosticCompletionOwner, WgpuUiSurfaceDiagnosticReceiptCallback,
     WgpuUiSurfaceExternalImageProvider, WgpuUiSurfacePresenter,
 };
 

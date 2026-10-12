@@ -75,12 +75,11 @@ pub(super) fn asset_mutation_effects(
 
 pub(super) fn open_view(
     shell: &mut WorkbenchShellStateData,
+    manager: &crate::ui::host::EditorManager,
     descriptor_id: &str,
     status_line: &str,
 ) -> Result<ExecutionOutcome, EditorError> {
-    let instance_id = shell
-        .manager
-        .open_view(ViewDescriptorId::new(descriptor_id), None)?;
+    let instance_id = manager.open_view(ViewDescriptorId::new(descriptor_id), None)?;
     if descriptor_id == "editor.scene" {
         // Scene session lifetime follows the view lifecycle. Toolbar and
         // viewport command paths must never create sessions for stale IDs.
@@ -90,7 +89,7 @@ pub(super) fn open_view(
                 instance_id.0.clone(),
             ));
     }
-    let focused = shell.manager.focus_view(&instance_id)?;
+    let focused = manager.focus_view(&instance_id)?;
     shell.state.set_status_line(status_line);
     Ok(ExecutionOutcome {
         changed: focused || !instance_id.0.is_empty(),

@@ -25,6 +25,8 @@ def handle(action, payload, state, repo_root=None, *, domain="validation"):
         return authority.accept(payload["executionId"], payload.get("expected", {}))
     if action == "accept-flow":
         return authority.accept_flow(payload)
+    if action == "reconcile-request":
+        return authority.reconcile_request(payload)
     if action == "reconcile":
         return authority.get(payload["executionId"])
     raise ValueError(f"unknown validation action: {action}")

@@ -97,16 +97,9 @@ fn discard_requires_a_dirty_scene_generation_to_match_the_captured_plan() {
     let engine = EditorTransactionEngine::new(Context);
     let history = HistoryContextId::Global;
     let value = Arc::new(AtomicI64::new(0));
-    let id = engine
-        .execute_operation(
-            "close",
-            history,
-            Some("close"),
-            MergeMode::Ends,
-            Box::new(command(&value)),
-        )
-        .unwrap()
-        .transaction_id;
+    let mut scope = engine.begin("close", history).unwrap();
+    scope.set_merge_mode(MergeMode::Ends);
+    scope.push(command(&value)).unwrap();
     let first = engine
         .dirty_history_decision_token(history)
         .unwrap()
@@ -119,15 +112,7 @@ fn discard_requires_a_dirty_scene_generation_to_match_the_captured_plan() {
     assert!(!prompt.save_in_flight());
     assert!(prompt.has_dirty_project_scene());
     assert!(prompt.permits_discard(&[], Some(&first)));
-    engine
-        .execute_operation(
-            "close",
-            history,
-            Some("close"),
-            MergeMode::Ends,
-            Box::new(command(&value)),
-        )
-        .unwrap();
+    scope.push(command(&value)).unwrap();
     let current = engine
         .dirty_history_decision_token(history)
         .unwrap()
@@ -135,6 +120,7 @@ fn discard_requires_a_dirty_scene_generation_to_match_the_captured_plan() {
     assert!(!prompt.permits_discard(&[], Some(&current)));
     prompt.finish_save(Vec::new(), Some(current.clone()));
     assert!(prompt.permits_discard(&[], Some(&current)));
-    engine.cancel(id).unwrap();
+    scope.cancel().unwrap();
+    assert_eq!(value.load(Ordering::SeqCst), 0);
     assert!(prompt.permits_discard(&[], None));
 }

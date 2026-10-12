@@ -31,7 +31,11 @@ where
     get::<T>(world, entity, type_path)?;
     match world.remove::<T>(entity) {
         Ok(Some(_)) => Ok(true),
-        Ok(None) | Err(_) => Err(missing(entity, type_path)),
+        Ok(None) => Err(missing(entity, type_path)),
+        Err(error) if error.lifecycle_target_change().is_some() => {
+            Err(error.into_reflect_error(type_path.to_owned()))
+        }
+        Err(_) => Err(missing(entity, type_path)),
     }
 }
 

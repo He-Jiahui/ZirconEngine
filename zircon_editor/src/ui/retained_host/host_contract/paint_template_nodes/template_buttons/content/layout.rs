@@ -1,7 +1,7 @@
 //! 将真实字形宽度用于视觉居中，同时给文字保留裁剪保护空间；调用方负责随后检查内容框是否放得下。
 
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::metrics::{label_text_slot_width, max_label_slot_width};
+use super::metrics::{button_content_padding, label_text_slot_width, max_label_slot_width};
 
 const CENTER_FACTOR: f32 = 0.5;
 
@@ -27,7 +27,9 @@ pub(super) fn button_content_layout(
     let content_width = (visual_label_width + glyph_width + chevron_width).min(max_content_width);
     ButtonContentLayout {
         text_slot_width,
-        start_x: rect.x + centered_offset(rect.width, content_width),
+        start_x: rect.x
+            + button_content_padding(node)[0]
+            + centered_offset(max_content_width, content_width),
     }
 }
 

@@ -11,7 +11,7 @@ use crate::ui::settings::{
     SETTINGS_RETRY_PERSISTENCE_ACTION_ID, SETTINGS_SELECT_ENUM_ACTION_ID,
     SETTINGS_TOGGLE_BOOL_ACTION_ID,
 };
-use crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
+use crate::ui::template_runtime::builtin::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn dispatch_componentized_workbench_option_selected(
@@ -20,8 +20,10 @@ impl RetainedEditorHost {
         action_id: &str,
         option_id: &str,
     ) -> Option<Result<UiHostEventEffects, String>> {
-        if !self.active_activity_window_template_document_is(WORKBENCH_WINDOW_DOCUMENT_ID) {
-            return None;
+        match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) {
+            Ok(true) => {}
+            Ok(false) => return None,
+            Err(error) => return Some(Err(error.to_string())),
         }
         if !self.workbench_window_bridge.has_control(control_id) {
             return None;

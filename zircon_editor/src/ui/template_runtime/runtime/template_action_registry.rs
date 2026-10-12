@@ -4,11 +4,13 @@ use toml::Value;
 use zircon_runtime_interface::ui::{dispatch::UiTemplateActionInvocation, template::UiActionRef};
 
 use super::plugin_documents::EditorPluginV2DocumentOwner;
+use super::runtime_host::generated_bottom_pane::GeneratedBottomPane;
 use super::template_action_slot::TemplateActionSlot;
 
 #[derive(Default)]
 pub(super) struct TemplateActionRegistry {
     actions: BTreeMap<String, TemplateActionSlot>,
+    pub(super) generated_bottom_panes: BTreeMap<String, GeneratedBottomPane>,
     pane_binding_epochs: BTreeMap<String, u128>,
     // One mutable control-state snapshot serves every action binding in a pane/document generation.
     control_attributes_by_pane:
@@ -63,10 +65,22 @@ impl TemplateActionPaneKey {
 impl TemplateActionRegistry {
     pub(super) fn remove_pane(&mut self, pane_id: &str) {
         self.advance_pane_binding_epoch(pane_id);
+        self.generated_bottom_panes.remove(pane_id);
         let prefix = format!("template-v2/{pane_id}/");
         self.actions.retain(|token, _| !token.starts_with(&prefix));
         self.control_attributes_by_pane
             .retain(|key, _| key.pane_id != pane_id);
+    }
+
+    pub(super) fn advance_generated_bottom_epoch(&mut self, pane_id: &str) {
+        self.advance_pane_binding_epoch(pane_id);
+    }
+
+    pub(super) fn generated_bottom_epoch(&self, pane_id: &str) -> u128 {
+        self.pane_binding_epochs
+            .get(pane_id)
+            .copied()
+            .unwrap_or_default()
     }
 
     fn advance_pane_binding_epoch(&mut self, pane_id: &str) {
@@ -80,6 +94,15 @@ impl TemplateActionRegistry {
     }
 
     pub(super) fn remove_document(&mut self, document_id: &str) {
+        let retired_panes = self
+            .generated_bottom_panes
+            .iter()
+            .filter(|(_, holder)| holder.document_id == document_id)
+            .map(|(pane_id, _)| pane_id.clone())
+            .collect::<Vec<_>>();
+        for pane_id in retired_panes {
+            self.remove_pane(&pane_id);
+        }
         self.actions
             .retain(|_, slot| slot.document_id() != document_id);
         self.control_attributes_by_pane

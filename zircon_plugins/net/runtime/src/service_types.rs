@@ -20,6 +20,7 @@ use crate::poison_recovery::lock_recover;
 use crate::runtime_state::NetRuntimeState;
 use crate::websocket::WebSocketRuntimeBackend;
 use crate::HttpRuntimeBackend;
+use zircon_runtime::core::runtime::tasks::EngineThreadBudget;
 
 #[derive(Clone, Debug, Default)]
 pub struct NetDriver;
@@ -33,8 +34,12 @@ pub type NetRuntimeManager = DefaultNetManager;
 
 impl DefaultNetManager {
     pub fn for_mode(mode: NetRuntimeMode) -> Self {
+        Self::for_mode_with_thread_budget(mode, EngineThreadBudget::process_default())
+    }
+
+    pub fn for_mode_with_thread_budget(mode: NetRuntimeMode, budget: EngineThreadBudget) -> Self {
         Self {
-            state: Arc::new(NetRuntimeState::new(mode)),
+            state: Arc::new(NetRuntimeState::new(mode, budget)),
         }
     }
 

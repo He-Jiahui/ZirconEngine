@@ -64,8 +64,12 @@ fn streamed_binding_map_preserves_json_and_binary_wire_bytes() {
         serde_json::to_vec(&AllocatingMap(&map)).unwrap(),
     );
     assert_eq!(
-        bincode::serialize(&map).unwrap(),
-        bincode::serialize(&AllocatingMap(&map)).unwrap(),
+        crate::serialization::PositionalEncoding::FixedLittleEndian
+            .encode(&map)
+            .unwrap(),
+        crate::serialization::PositionalEncoding::FixedLittleEndian
+            .encode(&AllocatingMap(&map))
+            .unwrap(),
     );
 }
 

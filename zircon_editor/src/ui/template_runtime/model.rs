@@ -76,6 +76,34 @@ impl RetainedUiProjection {
 }
 
 impl RetainedUiProjectionSurfaceMetadataIndex {
+    /// These values belong to the current UiSurface state publication. An
+    /// absent state or alias must not be reconstructed from an old projection.
+    pub(crate) fn is_surface_state_attribute(key: &str) -> bool {
+        matches!(
+            key,
+            "hover"
+                | "hovered"
+                | "focus"
+                | "focused"
+                | "focus_visible"
+                | "focus-visible"
+                | "focusVisible"
+                | "active"
+                | "pressed"
+                | "checked"
+                | "disabled"
+                | "enabled"
+                | "expanded"
+                | "popup_open"
+                | "open"
+                | "selected"
+                | "dragging"
+                | "drop_hovered"
+                | "active_drag_target"
+                | "loading"
+        )
+    }
+
     pub(crate) fn apply_to(
         &self,
         control_id: Option<&str>,
@@ -88,9 +116,11 @@ impl RetainedUiProjectionSurfaceMetadataIndex {
         };
         // Authored metadata supplements the live surface; it must not reset runtime values.
         for (key, value) in &metadata.attributes {
-            attributes
-                .entry(key.clone())
-                .or_insert_with(|| value.clone());
+            if !Self::is_surface_state_attribute(key) {
+                attributes
+                    .entry(key.clone())
+                    .or_insert_with(|| value.clone());
+            }
         }
         style_tokens.extend(
             metadata

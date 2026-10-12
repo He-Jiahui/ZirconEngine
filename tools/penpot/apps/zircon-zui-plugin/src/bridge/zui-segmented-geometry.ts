@@ -20,6 +20,15 @@ export function segmentedGeometry(
         fill: s.colors.background,
         radius: 0,
       };
+    // Native tabs draw a separate ring at z+2, keeping selected/pressed state.
+    if (s.focusVisible && (s.focusBorderWidth ?? 0) > 0)
+      parts['focus-ring'] = {
+        x: 0, y: 0, width, height,
+        fill: 'transparent',
+        stroke: s.colors.focusBorder ?? s.colors.border,
+        strokeWidth: s.focusBorderWidth,
+        radius: 0,
+      };
     if (s.active && s.underlineHeight > 0)
       parts['underline'] = {
         x: 0,

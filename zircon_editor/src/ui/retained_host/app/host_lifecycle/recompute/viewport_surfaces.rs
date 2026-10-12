@@ -6,14 +6,14 @@ impl RetainedEditorHost {
     pub(super) fn sync_recompute_viewport_surfaces(
         &mut self,
         componentized_workbench_layout_frames: callback_dispatch::BuiltinWorkbenchWindowLayoutFrames,
-    ) {
+    ) -> Result<(), crate::ui::host::EditorError> {
         zircon_runtime::profile_scope!("editor", "retained_host", "recompute_viewport_surfaces");
         let document_viewport_toolbar_width = componentized_workbench_layout_frames
             .viewport_toolbar_frame
             .map(|frame| frame.width);
         let command_context = self.runtime.command_eval_ctx_for_source(
             &crate::core::editor_operation::EditorOperationSource::UiBinding,
-        );
+        )?;
         let (enter, exit) = {
             let commands = self.runtime.context().commands().lock();
             (
@@ -42,5 +42,6 @@ impl RetainedEditorHost {
             );
         self.viewport
             .submit_world_space_ui_surfaces(world_space_ui_surfaces);
+        Ok(())
     }
 }

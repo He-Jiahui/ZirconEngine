@@ -1,8 +1,8 @@
 use super::super::editor_error::{EditorError, UiAssetSaveStage};
 use super::super::editor_ui_host::EditorUiHost;
 use crate::core::extension::{
-    DocumentAutosavePayload, DocumentSourceWritePublication, DocumentSourceWriteReceipt, SaveCtx,
-    SaveReason, ToolkitSaveFailure,
+    DocumentAutosavePayload, DocumentSourceWritePublication, SaveCtx, SaveReason,
+    ToolkitSaveFailure,
 };
 use crate::ui::workbench::view::ViewInstanceId;
 
@@ -11,8 +11,7 @@ pub(super) fn save_animation_document(
     instance_id: &ViewInstanceId,
     context: &mut SaveCtx,
 ) -> Result<(), ToolkitSaveFailure> {
-    let (written_bytes, receipt) = host.save_animation_editor_canonical(instance_id)?;
-    context.record_serialized_project_source_write(written_bytes, receipt)?;
+    host.save_animation_editor_canonical(instance_id, context)?;
     Ok(())
 }
 
@@ -70,16 +69,11 @@ pub(super) fn animation_document_autosave_source_path(
 }
 
 impl EditorUiHost {
-    pub fn save_animation_editor(&self, instance_id: &ViewInstanceId) -> Result<(), EditorError> {
-        self.ensure_animation_editor_session(instance_id)?;
-        self.save_document_toolkit(instance_id, SaveReason::Explicit)?;
-        Ok(())
-    }
-
     fn save_animation_editor_canonical(
         &self,
         instance_id: &ViewInstanceId,
-    ) -> Result<(u64, DocumentSourceWriteReceipt), EditorError> {
+        context: &mut SaveCtx,
+    ) -> Result<(), ToolkitSaveFailure> {
         let (document_handle, expected_source) = {
             let sessions = self.lock_animation_editor_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {
@@ -96,20 +90,24 @@ impl EditorUiHost {
             .document_bytes()
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         drop(document);
+        let written_bytes =
+            u64::try_from(bytes.len()).map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let source_path = self.resolve_asset_locator_path(&asset_locator)?;
         let project = self.current_project_snapshot()?.ok_or_else(|| {
             EditorError::UiAsset(
                 "cannot save a canonical animation asset without an active project".to_string(),
             )
         })?;
-        let publication =
-            self.document_toolkits
-                .with_source_write(project.paths().root(), &source_path, |source_write| {
+        self.document_toolkits
+            .with_source_write(
+                project.paths().root(),
+                &source_path,
+                |source_write| -> Result<(), ToolkitSaveFailure> {
                     let outcome = source_write.commit_if_matches(&expected_source, &bytes);
                     if outcome.source_changed() {
-                        return Err(EditorError::DocumentSourceChanged {
+                        return Err(Box::new(EditorError::DocumentSourceChanged {
                             source_path: source_path.clone(),
-                        });
+                        }));
                     }
                     let publication = outcome.into_publication().map_err(|source| {
                         EditorError::UiAssetSaveIo {
@@ -118,36 +116,41 @@ impl EditorUiHost {
                             source,
                         }
                     })?;
+                    // Preserve the durable write before metadata or asset import can fail.
+                    let committed: Result<(), ToolkitSaveFailure> = match publication {
+                        DocumentSourceWritePublication::Durable(receipt) => context
+                            .record_serialized_project_source_write(written_bytes, receipt)
+                            .map_err(|source| Box::new(source) as ToolkitSaveFailure),
+                        DocumentSourceWritePublication::PublishedNotDurable(source) => {
+                            Err(Box::new(EditorError::UiAssetSaveIo {
+                                stage: UiAssetSaveStage::DurabilityBarrier,
+                                source_path: source_path.clone(),
+                                source,
+                            }))
+                        }
+                    };
                     let mut sessions = self.lock_animation_editor_sessions();
-                    let entry = sessions.get_mut(instance_id).ok_or_else(|| {
-                        EditorError::UiAsset(format!(
-                            "missing animation editor session {}",
-                            instance_id.0
-                        ))
-                    })?;
+                    let Some(entry) = sessions.get_mut(instance_id) else {
+                        // Retain the real durability I/O source if the session was retired.
+                        return match committed {
+                            Err(source) => Err(source),
+                            Ok(()) => Err(Box::new(EditorError::UiAsset(format!(
+                                "missing animation editor session {}",
+                                instance_id.0
+                            ))) as ToolkitSaveFailure),
+                        };
+                    };
                     entry.disk_source = bytes.clone();
-                    Ok(publication)
-                })
-                .map_err(|source| EditorError::UiAssetSaveIo {
-                    stage: UiAssetSaveStage::AtomicCommit,
-                    source_path: source_path.clone(),
-                    source,
-                })??;
-        let receipt = match publication {
-            DocumentSourceWritePublication::Durable(receipt) => receipt,
-            DocumentSourceWritePublication::PublishedNotDurable(source) => {
-                return Err(EditorError::UiAssetSaveIo {
-                    stage: UiAssetSaveStage::DurabilityBarrier,
-                    source_path,
-                    source,
-                });
-            }
-        };
+                    committed
+                },
+            )
+            .map_err(|source| EditorError::UiAssetSaveIo {
+                stage: UiAssetSaveStage::AtomicCommit,
+                source_path: source_path.clone(),
+                source,
+            })??;
         self.asset_manager()?
-            .import_asset(&asset_locator.to_string())
-            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-        let written_bytes =
-            u64::try_from(bytes.len()).map_err(|error| EditorError::UiAsset(error.to_string()))?;
-        Ok((written_bytes, receipt))
+            .import_asset(&asset_locator.to_string())?;
+        Ok(())
     }
 }

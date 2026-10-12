@@ -1,4 +1,6 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+
+use zircon_runtime::core::runtime::{ServiceCallGuard, ServiceHandle};
 
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::asset::{asset_manager_handle, project_asset_manager_handle, AssetManager};
@@ -13,8 +15,11 @@ use zircon_runtime::script::{
     HostHandle, PluginHostDriver, VmPluginManager, PLUGIN_HOST_DRIVER_NAME, VM_PLUGIN_MANAGER_NAME,
 };
 
+use crate::core::asset::{EditorAssetImportFlow, EditorAssetIndex};
 use crate::core::editing::authoring_world::AuthoringWorldSeed;
 use crate::core::extension::SaveReason;
+use crate::core::jobs::EditorJobSystem;
+use crate::core::logging::EditorLogService;
 use crate::ui::host::editor_asset_manager::{editor_asset_manager_handle, EditorAssetManager};
 use crate::ui::workbench::view::ViewInstanceId;
 
@@ -71,7 +76,7 @@ impl EditorHostRuntimeServices {
         })
     }
 
-    pub(super) fn config_manager(&self) -> Result<Arc<dyn ConfigManager>, EditorError> {
+    pub(super) fn config_manager(&self) -> Result<ServiceCallGuard<dyn ConfigManager>, EditorError> {
         let core = self.core()?;
         Ok(resolve_manager_service(
             &core,
@@ -79,7 +84,7 @@ impl EditorHostRuntimeServices {
         )?)
     }
 
-    pub(super) fn asset_manager(&self) -> Result<Arc<dyn AssetManager>, EditorError> {
+    pub(super) fn asset_manager(&self) -> Result<ServiceCallGuard<dyn AssetManager>, EditorError> {
         let core = self.core()?;
         Ok(resolve_manager_service(
             &core,
@@ -87,7 +92,7 @@ impl EditorHostRuntimeServices {
         )?)
     }
 
-    pub(super) fn editor_asset_manager(&self) -> Result<Arc<dyn EditorAssetManager>, EditorError> {
+    pub(super) fn editor_asset_manager(&self) -> Result<ServiceCallGuard<dyn EditorAssetManager>, EditorError> {
         let core = self.core()?;
         Ok(resolve_manager_service(
             &core,
@@ -116,7 +121,7 @@ impl EditorHostRuntimeServices {
         Ok(EditorVmHostCapabilityAccess { driver })
     }
 
-    pub(super) fn vm_plugin_manager(&self) -> Result<Arc<VmPluginManager>, EditorError> {
+    pub(super) fn vm_plugin_manager(&self) -> Result<ServiceCallGuard<VmPluginManager>, EditorError> {
         Ok(self
             .core()?
             .resolve_manager::<VmPluginManager>(VM_PLUGIN_MANAGER_NAME)?)
@@ -124,18 +129,22 @@ impl EditorHostRuntimeServices {
 
     pub(super) fn foreground_document_save_job(
         &self,
+        original: ServiceHandle<EditorManager>,
         instance_id: ViewInstanceId,
         reason: SaveReason,
     ) -> Result<ForegroundDocumentSaveJob, EditorError> {
-        let manager = self.editor_manager()?;
         Ok(ForegroundDocumentSaveJob::new(
-            Arc::downgrade(&manager),
+            original,
             instance_id,
             reason,
         ))
     }
 
-    pub(super) fn editor_manager(&self) -> Result<Arc<EditorManager>, EditorError> {
+    pub(super) fn editor_manager_handle(&self) -> Result<ServiceHandle<EditorManager>, EditorError> {
+        Ok(self.core()?.resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)?)
+    }
+
+    pub(super) fn editor_manager(&self) -> Result<ServiceCallGuard<EditorManager>, EditorError> {
         Ok(self
             .core()?
             .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?)
@@ -166,9 +175,26 @@ impl EditorProjectAssetRuntimeAccess {
         })
     }
 
-    pub(super) fn project_asset_manager(&self) -> Result<Arc<ProjectAssetManager>, CoreError> {
+    pub(super) fn asset_manager_identity(&self) -> Result<(CoreWeak, ManagerServiceHandle<dyn AssetManager>), CoreError> {
+        let core = self.core()?;
+        Ok((core.downgrade(), asset_manager_handle(&core)?))
+    }
+
+    pub(super) fn project_asset_manager(&self) -> Result<ServiceCallGuard<ProjectAssetManager>, CoreError> {
         let core = self.core()?;
         resolve_manager_service(&core, self.handle.clone())
+    }
+
+    pub(in crate::ui::host) fn create_import_flow(
+        &self,
+        jobs: EditorJobSystem,
+        index: Arc<Mutex<EditorAssetIndex>>,
+        logs: Arc<EditorLogService>,
+    ) -> Result<EditorAssetImportFlow, CoreError> {
+        // Keep the existing immediate service refusal, then release admission before queueing.
+        let manager = self.project_asset_manager()?;
+        drop(manager);
+        EditorAssetImportFlow::new(jobs, self.core.clone(), self.handle.clone(), index, logs)
     }
 
     fn core(&self) -> Result<CoreHandle, CoreError> {
@@ -181,12 +207,12 @@ impl EditorProjectAssetRuntimeAccess {
 /// A short-lived, typed config transaction that keeps the runtime alive through rollback.
 pub(super) struct EditorCapabilityConfiguration {
     _core: CoreHandle,
-    config: Arc<dyn ConfigManager>,
+    config: ServiceCallGuard<dyn ConfigManager>,
 }
 
 /// A short-lived VM host capability access that resolves the runtime driver once per bootstrap.
 pub(super) struct EditorVmHostCapabilityAccess {
-    driver: Arc<PluginHostDriver>,
+    driver: ServiceCallGuard<PluginHostDriver>,
 }
 
 impl EditorVmHostCapabilityAccess {

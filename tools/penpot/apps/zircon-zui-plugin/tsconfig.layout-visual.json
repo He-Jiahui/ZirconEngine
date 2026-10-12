@@ -18,6 +18,7 @@
     "tools/zui-layout-delivery-replay.ts",
     "tools/zui-layout-text-audit.ts",
     "tools/zui-layout-style-audit.ts",
-    "tools/zui-workbench-source-refinement.ts"
+    "tools/zui-workbench-source-refinement.ts",
+    "tools/zui-layout-real-metadata.test.ts"
   ]
 }

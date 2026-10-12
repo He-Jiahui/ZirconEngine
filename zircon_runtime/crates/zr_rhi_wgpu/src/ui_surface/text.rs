@@ -10,13 +10,14 @@ use zr_rhi::{
 };
 
 mod layout_evidence;
+mod font_sources;
 use super::batching::DrawOp;
 use super::color_space::{target_color_mode, UiTargetColorMode};
 use super::geometry::{
     command_effective_rect, full_projection_effective_rect, text_bounds_from_rect,
 };
 use layout_evidence::observe_buffer;
-use zr_rhi::{UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot};
+use zr_rhi::{UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot, UiSurfaceTextRequest};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct WgpuUiTextPrepareStats {
@@ -37,6 +38,8 @@ pub(super) struct WgpuUiTextRenderer {
     viewport: Viewport,
     atlas: TextAtlas,
     font_system: FontSystem,
+    font_revision: Option<(u64, u64)>,
+    target_format: wgpu::TextureFormat,
     swash_cache: SwashCache,
     batch_cache_key: Option<TextBatchCacheKey>,
     prepared_renderer_count: u64,
@@ -70,6 +73,8 @@ impl WgpuUiTextRenderer {
             viewport,
             atlas,
             font_system: FontSystem::new(),
+            font_revision: None,
+            target_format,
             swash_cache: SwashCache::new(),
             batch_cache_key: None,
             prepared_renderer_count: 0,
@@ -97,6 +102,21 @@ impl WgpuUiTextRenderer {
         draw_list: &UiSurfaceDrawList,
         draw_ops: &[DrawOp],
     ) -> WgpuUiTextPrepareStats {
+        if let Some(snapshot) = draw_list.font_snapshot() {
+            let revision = (snapshot.collection_id, snapshot.generation);
+            if snapshot.admission_error.is_some() || self.font_revision != Some(revision) {
+                if font_sources::install(snapshot, &mut self.font_system).is_err() {
+                    self.batches.clear(); self.batch_cache_key = None; self.layout_snapshot = None;
+                    return WgpuUiTextPrepareStats { text_prepare_failure_count: 1, ..Default::default() };
+                }
+                self.batches.clear();
+                self.layout_snapshot = None;
+                self.atlas = TextAtlas::with_color_mode(device, queue, &self._cache, self.target_format, text_color_mode(self.target_format));
+                self.font_revision = Some(revision);
+                self.swash_cache = SwashCache::new();
+                self.font_face_cache.clear(); self.batch_cache_key = None;
+            }
+        }
         let cache_key = text_batch_cache_key(draw_list, projection_size);
         if let Some(cache_key) = cache_key {
             if self.batch_cache_key == Some(cache_key) {
@@ -167,15 +187,31 @@ impl WgpuUiTextRenderer {
                     style,
                 );
                 if self.observe_layout {
-                    batch_observations.push(observe_buffer(
-                        &self.font_system,
-                        &mut self.font_face_cache,
-                        &buffer,
-                        command,
-                        *command_index,
-                        text,
-                        clip,
-                    ));
+                    let mut observation = observe_buffer(
+                        &self.font_system, &mut self.font_face_cache, &buffer,
+                        command, *command_index, text, clip,
+                        Some(UiSurfaceTextRequest {
+                            font_family: font_family.map(str::to_owned),
+                            font_weight,
+                            font_style: if matches!(style, UiSurfaceTextStyle::Emphasis | UiSurfaceTextStyle::StrongEmphasis) {
+                                "italic"
+                            } else {
+                                "normal"
+                            }.to_owned(),
+                            font_size,
+                            line_height,
+                        }),
+                    );
+                    if let Some(snapshot) = draw_list.font_snapshot() {
+                        for face in &mut observation.faces {
+                            if let Some(source) = snapshot.sources.iter().find(|source|
+                                source.face_index == face.face_index && source.raster_sha256 == face.sha256) {
+                                face.resource_path = source.resource_path.clone();
+                                face.resource_sha256 = source.resource_sha256.clone();
+                            }
+                        }
+                    }
+                    batch_observations.push(observation);
                 }
                 stats.text_shape_count = stats.text_shape_count.saturating_add(1);
                 buffers.push(buffer);
@@ -249,6 +285,8 @@ impl WgpuUiTextRenderer {
                 prepared_this_present: false,
                 retained_cache_copy_bytes: 0,
                 draw_list_generation: draw_list.generation(),
+                font_collection_id: self.font_revision.map(|revision| revision.0),
+                font_collection_generation: self.font_revision.map(|revision| revision.1),
                 runs: observed_runs,
             });
         }

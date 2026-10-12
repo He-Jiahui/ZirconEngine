@@ -19,9 +19,6 @@ fn pointer_sample_bursts_wait_for_one_frame_camera_apply() {
             .expect("headless runtime session");
         let mut idle = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
             .expect("idle headless runtime session");
-        let input = session
-            .resolve_input_manager()
-            .expect("runtime input manager");
         let (camera_before, generation_before) = camera_state(&session);
         let idle_generation_before = camera_state(&idle).1;
 
@@ -44,7 +41,14 @@ fn pointer_sample_bursts_wait_for_one_frame_camera_apply() {
             100.0 + sample_count as f32 * 0.1,
             100.0 + sample_count as f32 * 0.01,
         ];
-        assert_eq!(input.snapshot().cursor_position, latest);
+        assert_eq!(
+            session
+                .resolve_input_manager()
+                .expect("runtime input manager")
+                .snapshot()
+                .cursor_position,
+            latest
+        );
         assert_eq!(
             session.input_diagnostics.snapshot().pointer_move_count,
             sample_count as u64,
@@ -56,8 +60,13 @@ fn pointer_sample_bursts_wait_for_one_frame_camera_apply() {
             latest[0],
             latest[1],
         )));
-        assert!(!input.button_pressed(&InputButton::MouseRight));
-        let button_edges: Vec<_> = input
+        assert!(!session
+            .resolve_input_manager()
+            .expect("runtime input manager")
+            .button_pressed(&InputButton::MouseRight));
+        let button_edges: Vec<_> = session
+            .resolve_input_manager()
+            .expect("runtime input manager")
             .drain_events()
             .into_iter()
             .filter(|event| {
@@ -173,9 +182,6 @@ fn wheel_events_preserve_two_zoom_steps_with_one_world_commit() {
 fn touch_edges_reach_input_manager_in_order_before_the_frame() {
     let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
         .expect("headless runtime session");
-    let input = session
-        .resolve_input_manager()
-        .expect("runtime input manager");
     for (id, phase, x, y) in [
         (17, ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, 10.0, 10.0),
         (17, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, 20.0, 20.0),
@@ -192,8 +198,17 @@ fn touch_edges_reach_input_manager_in_order_before_the_frame() {
             y,
         )));
     }
-    assert_eq!(input.snapshot().cursor_position, [50.0, 50.0]);
-    let edges: Vec<_> = input
+    assert_eq!(
+        session
+            .resolve_input_manager()
+            .expect("runtime input manager")
+            .snapshot()
+            .cursor_position,
+        [50.0, 50.0]
+    );
+    let edges: Vec<_> = session
+        .resolve_input_manager()
+        .expect("runtime input manager")
         .drain_events()
         .into_iter()
         .filter_map(|event| match event {

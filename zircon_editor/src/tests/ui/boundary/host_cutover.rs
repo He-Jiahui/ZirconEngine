@@ -528,7 +528,11 @@ fn editor_ui_host_owns_asset_and_animation_editor_sessions() {
         "self.host.open_ui_asset_editor(path, mode)",
         "self.host.open_ui_asset_editor_by_id(asset_id, mode)",
         "self.host.ui_asset_editor_reflection(instance_id)",
-        "self.host.save_ui_asset_editor(instance_id)",
+        "pub fn save_ui_asset_editor(",
+        "original: ServiceHandle<Self>",
+        ".submit_document_toolkit_save(",
+        "let report = ticket.wait().map_err(EditorError::from)?;",
+        "manager.host.saved_ui_asset_editor_source(instance_id)",
     ] {
         assert!(
             asset_wrapper.contains(required),
@@ -670,9 +674,26 @@ fn document_toolkit_registry_owns_domain_save_and_close_lifecycle() {
         .expect("workspace state source");
 
     assert!(host.contains("DocumentToolkitRegistry<EditorUiHost>"));
-    assert!(host.contains("fn save_document_toolkit("));
-    assert!(ui_asset_save.contains("self.save_document_toolkit(instance_id"));
-    assert!(animation_save.contains("self.save_document_toolkit(instance_id"));
+    assert!(host.contains("fn submit_document_toolkit_save("));
+    assert!(!host.contains("ticket.wait()"));
+    assert!(ui_asset_save.contains("fn save_ui_asset_editor_session_canonical("));
+    assert!(animation_save.contains("fn save_animation_editor_session_canonical("));
+    assert!(!ui_asset_save.contains("self.save_document_toolkit(instance_id"));
+    assert!(!animation_save.contains("self.save_document_toolkit(instance_id"));
+    let asset_orchestration = std::fs::read_to_string(
+        host_root
+            .join("editor_manager_asset_editor")
+            .join("presentation.rs"),
+    )
+    .expect("asset blocking orchestration");
+    let animation_orchestration =
+        std::fs::read_to_string(host_root.join("editor_manager_animation_editor.rs"))
+            .expect("animation blocking orchestration");
+    for source in [&asset_orchestration, &animation_orchestration] {
+        assert!(source.contains("original: ServiceHandle<Self>"));
+        assert!(source.contains(".submit_document_toolkit_save("));
+        assert!(source.contains("ticket.wait()"));
+    }
     assert!(layout_commands.contains("self.begin_document_close(instance_id)?"));
     assert!(workspace.contains("self.clear_document_toolkits()?"));
 }

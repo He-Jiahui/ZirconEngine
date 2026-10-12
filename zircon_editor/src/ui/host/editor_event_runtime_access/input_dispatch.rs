@@ -24,7 +24,11 @@ impl EditorHostEventController {
         keyboard: &UiKeyboardInputEvent,
         source: EditorEventSource,
     ) -> Result<Option<EditorEventRecord>, String> {
-        let Some(command_id) = self.shell().lock().manager.resolve_keyboard_input(keyboard) else {
+        let Some(command_id) = self
+            .enter_editor_manager()
+            .map_err(|error| error.to_string())?
+            .resolve_keyboard_input(keyboard)
+        else {
             return Ok(None);
         };
         self.dispatch_keymap_command_id(&command_id, source)

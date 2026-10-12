@@ -42,12 +42,12 @@ fn root_welcome_recent_pointer_click_uses_projection_fallback_in_real_host() {
     assert!(host.welcome_recent_pointer_size.height > 0.0);
     assert!(host
         .runtime
-        .chrome_snapshot()
+        .chrome_snapshot().unwrap()
         .welcome
         .recent_projects
         .is_empty());
     assert_eq!(
-        host.runtime.editor_snapshot().status_line,
+        host.runtime.editor_snapshot().unwrap().status_line,
         "Removed recent project E:/Missing/RecentProject"
     );
 }
@@ -211,7 +211,7 @@ fn root_console_recompute_initializes_viewport_and_follows_first_overflow_withou
     }
 
     let host = harness.host.borrow();
-    let output = host.runtime.console_output();
+    let output = host.runtime.console_output().unwrap();
     let expected_tail = (console_content_extent(output.as_ref())
         - host.console_scroll_surface.size().height)
         .max(0.0);

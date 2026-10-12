@@ -126,6 +126,33 @@ impl AnimationEvaluationProjection {
         );
     }
 
+    fn reset_for_world_if_needed(&mut self, world: &World) {
+        let different_owner = self
+            .skeletons
+            .as_ref()
+            .is_some_and(|query| !query.is_bound_to(world))
+            || self
+                .clip_players
+                .as_ref()
+                .is_some_and(|query| !query.is_bound_to(world))
+            || self
+                .sequence_players
+                .as_ref()
+                .is_some_and(|query| !query.is_bound_to(world))
+            || self
+                .graph_players
+                .as_ref()
+                .is_some_and(|query| !query.is_bound_to(world))
+            || self
+                .state_machine_players
+                .as_ref()
+                .is_some_and(|query| !query.is_bound_to(world));
+        if different_owner {
+            // Cached IDs and paused-instance revisions share one owner.
+            *self = Self::default();
+        }
+    }
+
     fn scan(
         &mut self,
         world: &mut World,
@@ -139,6 +166,7 @@ impl AnimationEvaluationProjection {
             zircon_runtime::scene::AnimationStateTransitionRuntime,
         >,
     ) -> AnimationSceneTransaction {
+        self.reset_for_world_if_needed(world);
         let mut scan = AnimationSceneScan {
             next_graph_times: BTreeMap::new(),
             next_state_machine_times: BTreeMap::new(),

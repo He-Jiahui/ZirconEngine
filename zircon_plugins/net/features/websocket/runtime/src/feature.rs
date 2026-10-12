@@ -1,5 +1,6 @@
-use zircon_runtime::core::runtime::ServiceObject;
-use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind};
+use zircon_runtime::core::{
+    CoreError, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind,
+};
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name};
 
 use crate::websocket_runtime_backend;
@@ -48,6 +49,9 @@ pub fn module_descriptor() -> ModuleDescriptor {
         NET_WEBSOCKET_FEATURE_MODULE_NAME,
         "WebSocket client and server transport backend for the net plugin",
     )
+    .with_module_dependency(ModuleDependencySpec::named(
+        zircon_plugin_net_runtime::NET_MODULE_NAME,
+    ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(
             NET_WEBSOCKET_FEATURE_MODULE_NAME,
@@ -61,9 +65,19 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "DefaultNetManager",
         )],
         factory(|core| {
-            let manager = core.resolve_manager::<DefaultNetManager>(DEFAULT_NET_MANAGER_NAME)?;
-            manager.install_websocket_backend(websocket_runtime_backend());
-            Ok(manager as ServiceObject)
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            {
+                let manager =
+                    core.resolve_manager::<DefaultNetManager>(DEFAULT_NET_MANAGER_NAME)?;
+                manager.install_websocket_backend(websocket_runtime_backend());
+            }
+            core.register_service_alias::<DefaultNetManager, DefaultNetManager>(
+                DEFAULT_NET_MANAGER_NAME,
+                ServiceKind::Manager,
+                NET_WEBSOCKET_FEATURE_MANAGER_NAME,
+                ServiceKind::Manager,
+                |manager| manager,
+            )
         }),
     ))
 }

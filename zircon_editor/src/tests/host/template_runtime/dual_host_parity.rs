@@ -10,7 +10,7 @@ use zircon_runtime_interface::ui::component::{UiComponentAdapterResult, UiValue}
 
 const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "res://ui/editor/component_showcase.zui";
 const UI_ASSET_EDITOR_SHELL_DOCUMENT_ID: &str = "editor.ui_asset_editor";
-const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/windows/workbench_window.zui";
+const UNREAL_EDITOR_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/unreal/level_editor_window.zui";
 
 #[test]
 fn dual_host_parity_preserves_layout_attributes_and_routes_for_representative_documents() {
@@ -28,10 +28,10 @@ fn dual_host_parity_preserves_layout_attributes_and_routes_for_representative_do
         .unwrap();
 
     for document_id in [
-        UI_HOST_WINDOW_DOCUMENT_ID,
+        UNREAL_EDITOR_SHELL_DOCUMENT_ID,
         UI_ASSET_EDITOR_SHELL_DOCUMENT_ID,
         COMPONENT_SHOWCASE_DOCUMENT_ID,
-        WORKBENCH_WINDOW_DOCUMENT_ID,
+        UNREAL_EDITOR_WINDOW_DOCUMENT_ID,
     ] {
         let mut projection = runtime.project_document(document_id).unwrap();
         let mut service = EditorUiControlService::default();

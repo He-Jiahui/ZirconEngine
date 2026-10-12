@@ -9,6 +9,7 @@ use crate::ui::binding::{
 
 pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiBinding> {
     let mut bindings = BTreeMap::new();
+    super::unreal_editor_template_bindings::insert_unreal_editor_bindings(&mut bindings);
     insert_click(
         &mut bindings,
         "MenuAction",
@@ -116,7 +117,7 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "Workbench",
         "OpenAssetBrowserFromToolbar",
-        EditorUiBindingPayload::asset_command(AssetCommand::OpenAssetBrowser),
+        EditorUiBindingPayload::editor_command("view.asset_browser.open"),
     );
 
     insert_click(

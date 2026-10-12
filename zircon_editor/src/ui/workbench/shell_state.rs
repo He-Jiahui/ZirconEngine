@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex, MutexGuard};
+use zircon_runtime::core::runtime::ServiceHandle;
 
 use crate::core::asset::AssetTypeRegistry;
 use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
@@ -24,7 +25,7 @@ pub(crate) struct WorkbenchShellState {
 
 pub(crate) struct WorkbenchShellStateData {
     pub(crate) state: EditorState,
-    pub(crate) manager: Arc<EditorManager>,
+    pub(crate) manager: ServiceHandle<EditorManager>,
     pub(crate) transient: EditorTransientUiState,
     pub(crate) control_service: EditorUiControlService,
     pub(crate) contributions: ContributionStore,
@@ -55,14 +56,17 @@ impl WorkbenchShellStateData {
         changed
     }
 
-    pub(crate) fn focus_play_preview_view(&mut self) -> Result<bool, EditorError> {
-        let previous = self.manager.current_focused_view();
+    pub(crate) fn focus_play_preview_view(
+        &mut self,
+        manager: &EditorManager,
+    ) -> Result<bool, EditorError> {
+        let previous = manager.current_focused_view();
         let descriptor = self.play_preview_descriptor.clone();
-        let existing = self.manager.view_instance_id_for_descriptor(&descriptor);
-        let previous_document = play_preview_document::capture(&self.manager, existing.as_ref());
+        let existing = manager.view_instance_id_for_descriptor(&descriptor);
+        let previous_document = play_preview_document::capture(&manager, existing.as_ref());
         let (game_view, opened) = match existing {
             Some(instance) => (instance, false),
-            None => (self.manager.open_view(descriptor, None)?, true),
+            None => (manager.open_view(descriptor, None)?, true),
         };
         if previous.as_ref() == Some(&game_view) {
             if self.play_preview_restore_document.is_none() {
@@ -73,7 +77,7 @@ impl WorkbenchShellStateData {
         let changed = if opened {
             true
         } else {
-            self.manager.focus_view(&game_view)?
+            manager.focus_view(&game_view)?
         };
         if changed {
             self.play_preview_restore_view = previous;
@@ -82,17 +86,20 @@ impl WorkbenchShellStateData {
         Ok(changed)
     }
 
-    pub(crate) fn restore_pre_play_view(&mut self) -> Result<bool, EditorError> {
+    pub(crate) fn restore_pre_play_view(
+        &mut self,
+        manager: &EditorManager,
+    ) -> Result<bool, EditorError> {
         let mut changed = false;
         if let Some(instance) = self.play_preview_restore_document.as_ref() {
-            changed |= self.manager.focus_view(instance)?;
+            changed |= manager.focus_view(instance)?;
         }
         if let Some(instance) = self.play_preview_restore_view.as_ref() {
-            let is_game = self.manager.current_view_instances().iter().any(|view| {
+            let is_game = manager.current_view_instances().iter().any(|view| {
                 &view.instance_id == instance && view.descriptor_id == self.play_preview_descriptor
             });
             if !is_game && Some(instance) != self.play_preview_restore_document.as_ref() {
-                changed |= self.manager.focus_view(instance)?;
+                changed |= manager.focus_view(instance)?;
             }
         }
         self.play_preview_restore_document = None;
@@ -100,9 +107,11 @@ impl WorkbenchShellStateData {
         Ok(changed)
     }
 
-    pub(crate) fn play_preview_view_focused(&self) -> bool {
-        self.manager
-            .current_focused_view_matches(&self.play_preview_descriptor)
+    pub(crate) fn play_preview_view_focused(
+        &self,
+        manager: &EditorManager,
+    ) -> Result<bool, EditorError> {
+        Ok(manager.current_focused_view_matches(&self.play_preview_descriptor))
     }
 }
 
@@ -232,7 +241,7 @@ impl AssetTypeRegistryGenerationCache {
 }
 
 impl WorkbenchShellState {
-    pub(crate) fn new(state: EditorState, manager: Arc<EditorManager>) -> Self {
+    pub(crate) fn new(state: EditorState, manager: ServiceHandle<EditorManager>) -> Self {
         Self {
             state: Mutex::new(WorkbenchShellStateData {
                 state,

@@ -1,3 +1,5 @@
+import { captureViewportToolbarSlotPadding } from './penpot-viewport-toolbar';
+import { viewportToolbarContract, canonicalViewportToolbarParent } from './bridge/zui-viewport-toolbar';
 import { allocatedAuthoredGeometry } from './penpot-layout-allocation';
 import {
   captureAuthoringLayoutDraft,
@@ -9,6 +11,7 @@ import { captureSlotPadding } from './penpot-slot-padding';
 import { refreshNativePainterContent } from './penpot-control-content';
 import { fieldPaintShape } from './penpot-field-controls';
 import { fitNativeSingleLineTexts } from './penpot-text-overflow';
+import { findPenpotShapeAncestor } from './penpot-shape-ancestors';
 import {
   authoredGeometry,
   validateCapturedWrapAlignment,
@@ -51,7 +54,7 @@ import {
   rollbackNativeComponentAssetTransfer,
   transferNativeComponentAsset,
 } from './penpot-native-components';
-import { reviewDocumentForCase } from './bridge/zui-review-case.js';
+import { reviewDocumentForCase, importedActualNormalReviewCase } from './bridge/zui-review-case.js';
 import { canReuseReviewBoard } from './penpot-review-board-reuse';
 import { reviewHost, reconcileReviewSource } from './bridge/zui-review-host.js';
 import {
@@ -131,7 +134,7 @@ penpot.on('themechange', (theme) =>
   sendMessage({ type: 'theme', content: theme }),
 );
 const authoringLayout = createAuthoringLayoutRefresh(penpot, {
-  asset: () => lastImportedAssetBoard,
+  asset: () => selectedAssetBoard() ?? lastImportedAssetBoard,
   draft: (board, present) =>
     captureAuthoringLayoutDraft(board, captureAssetSnapshot, present),
   onError: (error) =>
@@ -149,6 +152,7 @@ penpot.on('finish', () => authoringLayout.dispose());
 
 penpot.ui.onMessage<PluginUiMessage>((message) => {
   if (message.type === 'ready' || message.type === 'inspect-selection') {
+    authoringLayout.bindSelection();
     sendMessage({ type: 'theme', content: penpot.theme });
     sendSelectionState();
     return;
@@ -159,6 +163,7 @@ penpot.ui.onMessage<PluginUiMessage>((message) => {
       message.source,
       message.replaceSelection,
       message.nativeComponentMode ?? pendingNativeComponentMode,
+      message.fontResources,
     );
     return;
   }
@@ -179,6 +184,10 @@ penpot.ui.onMessage<PluginUiMessage>((message) => {
     void exportSelectedZui();
     return;
   }
+  if (message.type === 'export-canvas-png') {
+    void exportSelectedCanvasPng(message.expectedBoardId);
+    return;
+  }
   if (message.type === 'set-preview-selection') {
     penpot.selection =
       message.selected && lastImportedAssetBoard
@@ -187,8 +196,20 @@ penpot.ui.onMessage<PluginUiMessage>((message) => {
     return;
   }
   if (message.type === 'audit-preview-layout') {
-    const assetBoard = lastImportedAssetBoard;
+    const assetBoard = lastImportedAssetBoard ?? selectedAssetBoard();
     if (!assetBoard) return;
+    // A reopened file has durable metadata but no previous worker import.
+    // Rebind the existing selected asset so authoring audit uses that saved board.
+    if (!lastImportedAssetBoard) {
+      const savedDocument = assetBoard.getSharedPluginData(
+        ZUI_METADATA_NAMESPACE,
+        ZUI_METADATA_DOCUMENT,
+      );
+      if (!savedDocument) return;
+      lastImportedAssetBoard = assetBoard;
+      lastImportedDocument = decodeZuiMetadata(savedDocument);
+      authoringLayout.bindSelection();
+    }
     void authoringLayout
       .flush(assetBoard)
       .then(() => {
@@ -232,6 +253,7 @@ async function setReviewCase(
     const originalFileName = metadata(previous, ZUI_METADATA_FILE_NAME);
     const baseline = reviewHost(original) ?? original;
     const document = reviewDocumentForCase(baseline, reviewCase);
+    bindFontResources(document,fontResourcesForShape(previous));
     const projection = projectZuiDocument(document);
     const reuseNativeBoard = canReuseReviewBoard(
       previous,
@@ -465,6 +487,7 @@ function applyReviewCasePresentation(
 }
 
 import { loadAssetImages } from './penpot-image-content';
+import { bindFontResources, copyFontResources, parseFontResourceManifest, fontResourcesForShape, type PenpotFontResourceManifest } from './bridge/penpot-font-selection';
 import { linearContentMeasurementsReady } from './penpot-linear-content';
 
 async function importZui(
@@ -472,12 +495,9 @@ async function importZui(
   source: string,
   replaceSelection = false,
   nativeComponentMode: 'full' | 'leaf' | 'semantic' = 'full',
+  fontResources?: PenpotFontResourceManifest,
 ): Promise<void> {
-  sendMessage({
-    type: 'status',
-    level: 'working',
-    message: `Importing ${fileName} · parsing source`,
-  });
+  reportImportProgress(fileName, 'parsing source');
   const undoBlock = penpot.history.undoBlockBegin();
   const resumeAuthoring = await authoringLayout.suspend();
   const previousBoard = lastImportedAssetBoard;
@@ -488,7 +508,12 @@ async function importZui(
     const parsed = parseZuiDocument(source);
     if (originalZuiSource(parsed.document) === undefined)
       parsed.document['penpot_original_source'] = source;
-    const document = reviewHost(parsed.document) ?? parsed.document;
+    const resources = fontResources ? parseFontResourceManifest(fontResources) : undefined;
+    bindFontResources(parsed.document,resources);
+    const host = reviewHost(parsed.document) ?? parsed.document;
+    const actualCase = importedActualNormalReviewCase(host);
+    const document = actualCase ? reviewDocumentForCase(host, actualCase) : host;
+    copyFontResources(parsed.document,document);
     reportImportProgress(fileName, 'projecting semantic nodes');
     const projection = projectZuiDocument(document);
     reportImportProgress(fileName, 'creating design board');
@@ -520,8 +545,107 @@ async function importZui(
         isReady: (snapshot) =>
           tableMeasurementsReady(snapshot) &&
           linearContentMeasurementsReady(importedBoard),
+        onDiagnostic: (diagnostic) => {
+          if (
+            diagnostic.event === 'sample' &&
+            diagnostic.sampleCount !== undefined &&
+            diagnostic.sampleCount !== 1 &&
+            diagnostic.sampleCount % 50 !== 0 &&
+            (diagnostic.sampleMs ?? 0) < 1_000
+          )
+            return;
+          const measurements =
+            diagnostic.sampleCount === undefined
+              ? ''
+              : ' · samples ' +
+                diagnostic.sampleCount +
+                ' · last sample ' +
+                diagnostic.sampleMs +
+                'ms · snapshot ' +
+                diagnostic.snapshotMs +
+                'ms · longest ' +
+                diagnostic.longestSampleMs +
+                'ms · ready ' +
+                diagnostic.lastReady;
+          reportImportProgress(
+            fileName,
+            'settling layout and text metrics · ' +
+              diagnostic.phase +
+              ' ' +
+              diagnostic.event +
+              ' · elapsed ' +
+              diagnostic.elapsedMs +
+              'ms' +
+              measurements,
+          );
+        },
       },
-      () => fitNativeSingleLineTexts(importedBoard),
+      () =>
+        fitNativeSingleLineTexts(importedBoard, (diagnostic) => {
+          const details = [
+            'elapsed ' + diagnostic.elapsedMs + 'ms',
+            diagnostic.operationMs === undefined
+              ? undefined
+              : 'operation ' + diagnostic.operationMs + 'ms',
+            diagnostic.fieldOrdinal === undefined
+              ? undefined
+              : 'field ' +
+                diagnostic.fieldOrdinal +
+                '/' +
+                (diagnostic.fieldCount ?? '?'),
+            diagnostic.shapeVisitCount === undefined
+              ? undefined
+              : 'visited ' + diagnostic.shapeVisitCount,
+            diagnostic.measurementOrdinal === undefined
+              ? undefined
+              : 'measure ' + diagnostic.measurementOrdinal,
+            diagnostic.styleKeyDigest
+              ? 'style ' + diagnostic.styleKeyDigest
+              : undefined,
+            diagnostic.widthReadCount === undefined
+              ? undefined
+              : 'width reads ' +
+                diagnostic.widthReadCount +
+                ' · total/max ' +
+                diagnostic.widthReadTotalMs +
+                '/' +
+                diagnostic.widthReadMaxMs +
+                'ms',
+            diagnostic.heightReadCount === undefined
+              ? undefined
+              : 'height reads ' +
+                diagnostic.heightReadCount +
+                ' · total/max ' +
+                diagnostic.heightReadTotalMs +
+                '/' +
+                diagnostic.heightReadMaxMs +
+                'ms',
+            diagnostic.cacheHit === undefined
+              ? undefined
+              : 'cache ' + (diagnostic.cacheHit ? 'hit' : 'miss'),
+            diagnostic.sampleCount === undefined
+              ? undefined
+              : 'samples ' +
+                diagnostic.sampleCount +
+                ' · last ' +
+                diagnostic.sampleMs +
+                'ms · snapshot ' +
+                diagnostic.snapshotMs +
+                'ms · longest ' +
+                diagnostic.longestSampleMs +
+                'ms · ready ' +
+                diagnostic.lastReady,
+          ]
+            .filter((detail): detail is string => detail !== undefined)
+            .join(' · ');
+          reportImportProgress(
+            fileName,
+            'settling layout and text metrics · single-line-text-fit ' +
+              diagnostic.event +
+              ' · ' +
+              details,
+          );
+        }),
     );
     reportImportProgress(fileName, 'writing reversible metadata');
     setMetadata(
@@ -529,6 +653,7 @@ async function importZui(
       ZUI_METADATA_DOCUMENT,
       encodeZuiMetadata(parsed.document),
     );
+    if (actualCase) setMetadata(assetBoard, 'review-case', JSON.stringify(actualCase));
     writeSemanticBaselines(assetBoard, document);
     if (replaced) removeNativeComponentAsset(replaced);
     lastImportedDocument = parsed.document;
@@ -655,6 +780,84 @@ async function exportSelectedZui(): Promise<void> {
   }
 }
 
+async function exportSelectedCanvasPng(expectedBoardId: string): Promise<void> {
+  sendMessage({
+    type: 'status',
+    level: 'working',
+    message: 'Exporting selected Canvas PNG',
+  });
+  try {
+    const assetBoard = selectedAssetBoard();
+    if (!assetBoard || assetBoard.id !== expectedBoardId) {
+      throw new Error('The selected saved ZUI asset Board changed before PNG export.');
+    }
+    const bridgeVersion = assetBoard.getSharedPluginData(
+      ZUI_METADATA_NAMESPACE,
+      ZUI_METADATA_BRIDGE_VERSION,
+    );
+    if (bridgeVersion !== String(PENPOT_BRIDGE_VERSION)) {
+      throw new Error('The selected Board has unsupported ZUI bridge metadata.');
+    }
+    const documentValue = assetBoard.getSharedPluginData(
+      ZUI_METADATA_NAMESPACE,
+      ZUI_METADATA_DOCUMENT,
+    );
+    if (!documentValue) {
+      throw new Error('The selected Board has no saved ZUI document metadata.');
+    }
+    decodeZuiMetadata(documentValue);
+
+    // Penpot's public shape renderer/exporter returns PNG bytes without changing
+    // the saved Board or replaying its source document.
+    const bytes = await assetBoard.export({ type: 'png', scale: 1 });
+    const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    if (
+      !(bytes instanceof Uint8Array) ||
+      bytes.byteLength < 24 ||
+      !pngSignature.every((value, index) => bytes[index] === value) ||
+      bytes[12] !== 0x49 ||
+      bytes[13] !== 0x48 ||
+      bytes[14] !== 0x44 ||
+      bytes[15] !== 0x52
+    ) {
+      throw new Error('Penpot shape export did not return a valid PNG byte stream.');
+    }
+    const header = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const width = header.getUint32(16, false);
+    const height = header.getUint32(20, false);
+    if (width === 0 || height === 0) {
+      throw new Error('Penpot shape export returned an empty PNG canvas.');
+    }
+    const fileName = sanitizeCanvasPngFileName(assetBoard.name);
+    sendMessage({
+      type: 'canvas-png-ready',
+      boardId: assetBoard.id,
+      fileName,
+      bytes,
+      width,
+      height,
+    });
+    sendMessage({
+      type: 'status',
+      level: 'success',
+      message: fileName + ' · ' + width + '×' + height,
+    });
+  } catch (error) {
+    sendMessage({
+      type: 'status',
+      level: 'error',
+      message: errorMessage(error),
+    });
+  }
+}
+
+function sanitizeCanvasPngFileName(value: string): string {
+  const tail = value.replaceAll('\\', '/').split('/').pop() || 'zircon-asset';
+  const stem = tail.replace(/\.(?:zui|png)$/i, '');
+  const safe = stem.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+  return (safe || 'zircon-asset') + '.png';
+}
+
 function writeSemanticBaselines(
   assetBoard: Board,
   document: ZuiDocument,
@@ -705,6 +908,7 @@ function captureAssetSnapshot(
   const currentKinds = new Map<string, CapturedContainerKind>();
   const siblingIndexByNode = new Map<string, number>();
   const sourceParents = sourceParentIndex(zuiNodes(document));
+  const toolbarSource = viewportToolbarContract(document);
 
   const visit = (shape: Shape, parentNodeId: string | null): void => {
     const role = metadata(shape, ZUI_METADATA_ROLE);
@@ -723,7 +927,9 @@ function captureAssetSnapshot(
         metadata(shape, ZUI_METADATA_VISUAL_DETACHED) === 'true'
           ? metadata(shape, ZUI_METADATA_VISUAL_DETACHED_PARENT) || null
           : null;
-      const effectiveParentNodeId = visualDetachedParentId ?? parentNodeId;
+      const effectiveParentNodeId = canonicalViewportToolbarParent(
+        toolbarSource, nodeId, visualDetachedParentId ?? parentNodeId,
+      );
       const siblingIndex = Number.parseInt(
         metadata(shape, ZUI_METADATA_CHILD_INDEX),
         10,
@@ -875,13 +1081,13 @@ function captureEditableState(
     baseline?.geometry,
     hasAutoLayoutParent(board),
   );
-  const slotPadding = captureSlotPadding(
+  const slotPadding = captureViewportToolbarSlotPadding(document, board, captureSlotPadding(
     board,
     baseline?.slotPadding,
     baseline === undefined &&
       hasAutoLayoutParent(board) &&
       metadata(board.parent!, ZUI_METADATA_ROLE) === ZUI_ROLE_NODE,
-  );
+  ));
   return {
     geometry,
     ...(slotPadding ? { slotPadding } : {}),
@@ -961,16 +1167,14 @@ function capturedLayoutPoint(
 
 function selectedAssetBoard(): Board | null {
   for (const selected of penpot.selection) {
-    let shape: Shape | null = selected;
-    while (shape) {
-      if (
+    const assetBoard = findPenpotShapeAncestor(
+      selected,
+      (shape) => shape.parent,
+      (shape) =>
         shape.type === 'board' &&
-        metadata(shape, ZUI_METADATA_ROLE) === ZUI_ROLE_ASSET
-      ) {
-        return shape;
-      }
-      shape = shape.parent;
-    }
+        metadata(shape, ZUI_METADATA_ROLE) === ZUI_ROLE_ASSET,
+    );
+    if (assetBoard?.type === 'board') return assetBoard;
   }
   return null;
 }
@@ -981,6 +1185,7 @@ function sendSelectionState(): void {
     type: 'selection',
     canExport: assetBoard !== null,
     label: assetBoard?.name ?? null,
+    boardId: assetBoard?.id ?? null,
   });
 }
 

@@ -207,9 +207,10 @@ fn editor_manager_saves_animation_sequence_editor_session_and_clears_dirty_metad
     write_sequence_asset(&asset_path);
 
     let runtime = editor_runtime_with_config_path(&config_path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     let instance_id = manager
         .open_view(ViewDescriptorId::new("editor.animation_sequence"), None)
         .unwrap();
@@ -235,7 +236,9 @@ fn editor_manager_saves_animation_sequence_editor_session_and_clears_dirty_metad
         "expected animation authoring edit to dirty the session before save"
     );
 
-    manager.save_animation_editor(&instance_id).unwrap();
+    drop(manager);
+    EditorManager::save_animation_editor(manager_handle.clone(), &instance_id).unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     let saved = AnimationSequenceAsset::from_bytes(&fs::read(&asset_path).unwrap()).unwrap();
     let saved_track_paths = saved

@@ -5,7 +5,7 @@ use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 use crate::ui::template_runtime::component_adapter::command::{
     editor_command_binding_for_envelope, COMMAND_DOMAIN,
 };
-use crate::ui::template_runtime::WORKBENCH_WINDOW_DOCUMENT_ID;
+use crate::ui::template_runtime::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 use zircon_runtime_interface::ui::component::{
     UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope, UiValue,
 };
@@ -63,7 +63,7 @@ fn is_command_palette_commit_route(
 
 fn command_palette_commit_envelope(control_id: &str, command_id: &str) -> UiComponentEventEnvelope {
     UiComponentEventEnvelope::new(
-        WORKBENCH_WINDOW_DOCUMENT_ID,
+        UNREAL_EDITOR_WINDOW_DOCUMENT_ID,
         control_id,
         UiComponentBindingTarget::new(COMMAND_DOMAIN, COMMITTED_COMMAND_ID),
         UiComponentEvent::Commit {

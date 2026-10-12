@@ -163,3 +163,59 @@ fn referencer_query_keeps_deterministic_uuid_order() {
     assert_eq!(expected, display_order);
     assert_eq!(index.get_referencers_by_uuid(dependency), expected);
 }
+
+#[test]
+fn path_prefix_postings_match_authoritative_scan_without_union() {
+    let index = AssetRegistryIndex::from_entries([
+        entry(
+            "prefix-res",
+            "res://game/materials/hero.asset",
+            AssetKind::Data,
+        ),
+        entry(
+            "prefix-package",
+            "package://game/materials/hero.asset",
+            AssetKind::Data,
+        ),
+        entry(
+            "prefix-preview",
+            "package://game/materials/hero.asset#preview",
+            AssetKind::Data,
+        ),
+        entry(
+            "prefix-longer",
+            "res://game/materials/heroine.asset",
+            AssetKind::Data,
+        ),
+        entry(
+            "prefix-other",
+            "res://game/materials/other.asset",
+            AssetKind::Data,
+        ),
+        entry(
+            "prefix-outside",
+            "res://outside/hero.asset",
+            AssetKind::Data,
+        ),
+    ])
+    .expect("fixture entries have unique identity");
+    for prefix in [
+        "",
+        "game/materials/hero",
+        "game/materials/hero.asset",
+        "game/materials/hero.asset#",
+        "not-found",
+    ] {
+        let expected = index
+            .entries_iter()
+            .filter(|entry| entry.path().path().starts_with(prefix))
+            .map(|entry| entry.uuid())
+            .collect::<Vec<_>>();
+        let actual = index
+            .get_assets(&AssetRegistryFilter::default().with_path_prefix(prefix))
+            .into_iter()
+            .map(|entry| entry.uuid())
+            .collect::<Vec<_>>();
+        assert_eq!(actual, expected, "prefix {prefix:?}");
+    }
+}

@@ -58,7 +58,24 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         }
         self.template_surface
             .refresh_after_state_change(self.runtime.as_ref())?;
+        // The actual caption is part of the toolbar's original measurement key.
+        self.refresh_unreal_viewport_toolbar_overflow()?;
         Ok(true)
+    }
+
+    pub(crate) fn popup_menu_item_is_selectable(
+        &self,
+        control_id: &str,
+        action_id: &str,
+    ) -> Option<bool> {
+        if self.owns_module_tools_menu(control_id) && !self.module_tools_menu_is_open(control_id) {
+            return Some(false);
+        }
+        self.control_string_array(control_id, "menu_items")
+            .iter()
+            .filter_map(|raw| template_popup_menu_item_state(raw))
+            .find(|item| item.action_id == action_id)
+            .map(|item| !item.disabled && !item.separator)
     }
 
     pub(crate) fn select_popup_menu_item(
@@ -66,6 +83,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         control_id: &str,
         action_id: &str,
     ) -> Result<Option<bool>, BuiltinHostWindowTemplateBridgeError> {
+        if self.owns_module_tools_menu(control_id) && !self.module_tools_menu_is_open(control_id) {
+            return Ok(Some(false));
+        }
         let menu_items = self.control_string_array(control_id, "menu_items");
         if menu_items.is_empty() {
             return Ok(None);
@@ -143,6 +163,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         control_id: &str,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
+        if control_id == "UnrealViewportToolbarOverflow" {
+            return self.close_unreal_viewport_overflow();
+        }
         if control_id == WORKBENCH_SETTINGS_WINDOW_CONTROL_ID {
             return self.close_settings_window();
         }

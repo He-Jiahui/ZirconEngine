@@ -119,6 +119,7 @@ fn compiled_spawn_rejects_a_target_generation_change_before_apply() {
     let error = apply_compiled_scene_spawn(&mut target, plan)
         .expect_err("a stale compiled spawn plan must not mutate the target");
 
+    assert_eq!(error.lifecycle_target_change(), None);
     assert_eq!(
         error,
         crate::scene::dynamic_scene::DynamicSceneError::TargetWorldChanged {
@@ -553,7 +554,7 @@ fn compiled_spawn_accepts_scene_declared_plugin_type_with_nonempty_target_catalo
 }
 
 #[test]
-fn compiled_spawn_commit_has_a_preflight_then_infallible_publication_boundary() {
+fn compiled_spawn_preflights_rows_before_publication_and_can_report_callback_interruption() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let commit_source = std::fs::read_to_string(
         manifest_root.join("src/scene/dynamic_scene/scene/spawn/commit.rs"),
@@ -565,7 +566,7 @@ fn compiled_spawn_commit_has_a_preflight_then_infallible_publication_boundary() 
 
     assert!(
         commit_source.contains("preflight_dynamic_scene_publication(")
-            && commit_source.contains("publish_preflighted_dynamic_scene(publication);")
+            && commit_source.contains("publish_preflighted_dynamic_scene(publication)?;")
             && !commit_source.contains("install_component_type_descriptors("),
         "dynamic scene commit must complete all target-local row and descriptor preflight before publication"
     );
@@ -579,10 +580,10 @@ fn compiled_spawn_commit_has_a_preflight_then_infallible_publication_boundary() 
         })
         .expect("read preflighted dynamic scene publication body");
     assert!(
-        !publication.contains("-> SceneResult")
+        publication.contains("-> Result<(), DynamicSceneError>")
             && !publication.contains("preflight_transferred_row(")
             && !publication.contains("registration_from_component_descriptor("),
-        "preflighted publication must not retain a recoverable validation or conversion path"
+        "publication may report callback interruption but must not retain recoverable row validation or conversion"
     );
     let preflight = world_transaction_source
         .split("pub(in crate::scene) fn preflight_dynamic_scene_publication")
@@ -789,5 +790,334 @@ fn preflight_schema_profile_counts_unique_affected_vm_catalog_path() {
             value, 1.0,
             "`{name}` must count the one canonical affected path, not the target catalog"
         );
+    }
+}
+
+mod public_scene_lifecycle_owner {
+    use super::*;
+    use crate::scene::components::{
+        ActiveSelf, Hierarchy, LocalTransform, Mobility, Name, RenderLayerMask,
+    };
+    use crate::scene::ecs::{
+        DeferredCommandError, DeferredCommandOperation, DeferredCommandTarget, LifecycleEventKind,
+        Resource, SystemStage,
+    };
+    use crate::scene::{DefaultLevelManager, DynamicSceneError, SceneError};
+    use std::sync::Mutex;
+    use zircon_runtime_interface::world_sync::LifecycleTargetChange;
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct SceneSentinel(u32);
+    impl Resource for SceneSentinel {}
+
+    fn checked_cancellation<T>(
+        result: Result<T, DynamicSceneError>,
+        target: LifecycleTargetChange,
+    ) -> Result<T, DynamicSceneError> {
+        assert_eq!(
+            result
+                .as_ref()
+                .err()
+                .and_then(|error| error.lifecycle_target_change()),
+            Some(target)
+        );
+        result
+    }
+
+    fn scene_fixture() -> (DynamicScene, [crate::scene::EntityId; 2]) {
+        let mut source = World::empty();
+        let first = source.spawn_node(NodeKind::Empty).unwrap();
+        let second = source.spawn_node(NodeKind::Empty).unwrap();
+        (DynamicScene::from_world(&source).unwrap(), [first, second])
+    }
+
+    macro_rules! observe_all_node_phases {
+        ($world:expr, $callback:expr) => {{
+            for kind in [LifecycleEventKind::Add, LifecycleEventKind::Insert] {
+                $world.observe_component_lifecycle::<Name>(kind, $callback.clone());
+                $world.observe_component_lifecycle::<Hierarchy>(kind, $callback.clone());
+                $world.observe_component_lifecycle::<LocalTransform>(kind, $callback.clone());
+                $world.observe_component_lifecycle::<ActiveSelf>(kind, $callback.clone());
+                $world.observe_component_lifecycle::<RenderLayerMask>(kind, $callback.clone());
+                $world.observe_component_lifecycle::<Mobility>(kind, $callback.clone());
+            }
+        }};
+    }
+
+    #[test]
+    fn public_scene_registration_pins_all_replay_phases_and_runs_new_system_after_publication() {
+        let (scene, _) = scene_fixture();
+        let mut target = World::empty();
+        let original = target.schedule().stage_plan();
+        let callbacks = Arc::new(AtomicUsize::new(0));
+        let systems = Arc::new(AtomicUsize::new(0));
+        let callback = {
+            let callbacks = Arc::clone(&callbacks);
+            let systems = Arc::clone(&systems);
+            let original = Arc::clone(&original);
+            move |world: &mut World, _: &crate::scene::ecs::ComponentLifecycleEvent| {
+                assert_eq!(
+                    world.node_records().len(),
+                    2,
+                    "every callback must see the completed scene"
+                );
+                assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                if callbacks.fetch_add(1, Ordering::SeqCst) == 0 {
+                    let systems = Arc::clone(&systems);
+                    world
+                        .register_native_system::<(), _>(
+                            "tests.public-scene.pending",
+                            SystemStage::Update,
+                            0,
+                            move |()| {
+                                systems.fetch_add(1, Ordering::SeqCst);
+                            },
+                        )
+                        .unwrap();
+                }
+                assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+            }
+        };
+        observe_all_node_phases!(target, callback);
+        let remap = scene.spawn_into(&mut target).unwrap();
+        assert_eq!(remap.len(), 2);
+        assert_eq!(
+            callbacks.load(Ordering::SeqCst),
+            24,
+            "two nodes each publish six default components and two lifecycle phases"
+        );
+        assert!(!Arc::ptr_eq(&original, &target.schedule().stage_plan()));
+        assert!(target.run_native_scene_system("tests.public-scene.pending"));
+        assert_eq!(systems.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn public_scene_world_replacement_cancels_stale_events_and_remap_with_colliding_identity() {
+        for retain_schedule in [false, true] {
+            let (scene, source_ids) = scene_fixture();
+            let mut target = World::empty();
+            target.component_id::<Name>();
+            target.component_id::<Mobility>();
+            let plan = compile_scene_spawn(&scene, &target).unwrap();
+            let target_ids = plan
+                .preview
+                .entity_remaps
+                .iter()
+                .map(|entry| entry.target_entity)
+                .collect::<Vec<_>>();
+            let original_plan = target.schedule().stage_plan();
+            let mut fresh = World::empty();
+            fresh.component_id::<Name>();
+            fresh.component_id::<Mobility>();
+            for (index, target_id) in target_ids.iter().copied().enumerate() {
+                assert_eq!(fresh.spawn_node(NodeKind::Empty).unwrap(), target_id);
+                fresh
+                    .rename_node(target_id, &format!("Fresh{index}"))
+                    .unwrap();
+            }
+            assert_eq!(
+                target.registered_component_id::<Name>(),
+                fresh.registered_component_id::<Name>()
+            );
+            assert_eq!(
+                target.registered_component_id::<Mobility>(),
+                fresh.registered_component_id::<Mobility>()
+            );
+            assert!(!target
+                .owner_identity()
+                .is_same_world(fresh.owner_identity()));
+            fresh.insert_resource(SceneSentinel(91));
+            fresh.record_deferred_command_error(DeferredCommandError::new(
+                DeferredCommandOperation::ReparentChecked,
+                DeferredCommandTarget::Resolved(target_ids[0]),
+                SceneError::Message("fresh scene diagnostics".into()),
+            ));
+            let fresh_calls = Arc::new(AtomicUsize::new(0));
+            let observed = Arc::clone(&fresh_calls);
+            fresh.commands().queue_fn(move |_| {
+                observed.fetch_add(1, Ordering::SeqCst);
+            });
+            let leaked = Arc::new(AtomicUsize::new(0));
+            for kind in [LifecycleEventKind::Add, LifecycleEventKind::Insert] {
+                let observed = Arc::clone(&leaked);
+                fresh.observe_component_lifecycle::<Name>(kind, move |_, _| {
+                    observed.fetch_add(1, Ordering::SeqCst);
+                });
+                let observed = Arc::clone(&leaked);
+                fresh.observe_component_lifecycle::<Mobility>(kind, move |_, _| {
+                    observed.fetch_add(1, Ordering::SeqCst);
+                });
+            }
+            let generation = fresh.world_generation();
+            let fresh = Arc::new(Mutex::new(Some(fresh)));
+            target.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |world, _| {
+                assert_eq!(world.node_records().len(), 2);
+                let mut replacement = fresh.lock().unwrap().take().unwrap();
+                if retain_schedule {
+                    *replacement.schedule_mut() = std::mem::take(world.schedule_mut());
+                    assert!(Arc::ptr_eq(
+                        &original_plan,
+                        &replacement.schedule().stage_plan()
+                    ));
+                }
+                *world = replacement;
+            });
+            assert!(matches!(
+                checked_cancellation(scene.spawn_into(&mut target), LifecycleTargetChange::World),
+                Err(DynamicSceneError::LifecycleTargetReplacedDuringCommit {
+                    target: LifecycleTargetChange::World
+                })
+            ));
+            assert_eq!(leaked.load(Ordering::SeqCst), 0);
+            assert_eq!(target.world_generation(), generation);
+            assert_eq!(
+                target.get_resource::<SceneSentinel>(),
+                Some(&SceneSentinel(91))
+            );
+            for (index, entity) in target_ids.into_iter().enumerate() {
+                assert_eq!(
+                    target.get::<Name>(entity),
+                    Some(&Name(format!("Fresh{index}")))
+                );
+            }
+            let errors = target.take_deferred_command_errors();
+            assert_eq!(errors.len(), 1);
+            assert_eq!(
+                errors[0].error(),
+                &SceneError::Message("fresh scene diagnostics".into())
+            );
+            assert_eq!(fresh_calls.load(Ordering::SeqCst), 0);
+            assert!(target.apply_deferred().is_success());
+            assert_eq!(fresh_calls.load(Ordering::SeqCst), 1);
+            assert_eq!(source_ids.len(), 2);
+        }
+    }
+
+    #[test]
+    fn compact_scene_cancels_replacement_in_the_final_replayed_callback() {
+        for schedule_only in [false, true] {
+            let (scene, _) = scene_fixture();
+            let mut target = World::empty();
+            let callbacks = Arc::new(AtomicUsize::new(0));
+            let observed = Arc::clone(&callbacks);
+            let callback =
+                move |world: &mut World, _: &crate::scene::ecs::ComponentLifecycleEvent| {
+                    let completed = observed.fetch_add(1, Ordering::SeqCst) + 1;
+                    assert!(completed <= 24);
+                    if completed == 24 {
+                        if schedule_only {
+                            *world.schedule_mut() = Default::default();
+                        } else {
+                            *world = World::empty();
+                        }
+                    }
+                };
+            observe_all_node_phases!(target, callback);
+            assert!(matches!(
+                checked_cancellation(scene.spawn_into(&mut target),
+                    if schedule_only { LifecycleTargetChange::Schedule } else { LifecycleTargetChange::World }),
+                Err(DynamicSceneError::LifecycleTargetReplacedDuringCommit { target })
+                    if target == (if schedule_only { LifecycleTargetChange::Schedule }
+                        else { LifecycleTargetChange::World })
+            ));
+            assert_eq!(callbacks.load(Ordering::SeqCst), 24);
+            assert_eq!(
+                target.node_records().len(),
+                if schedule_only { 2 } else { 0 }
+            );
+        }
+    }
+
+    #[test]
+    fn staged_level_scene_commit_propagates_schedule_replacement_cancellation() {
+        let (scene, _) = scene_fixture();
+        let manager = DefaultLevelManager::default();
+        let level = manager.create_level(World::empty(), Default::default());
+        let owner = level.with_world(|world| world.owner_identity().clone());
+        let callbacks = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&callbacks);
+        let fresh_calls = Arc::new(AtomicUsize::new(0));
+        let fresh_marker = Arc::clone(&fresh_calls);
+        level.with_world_mut(|world| {
+            world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |world, _| {
+                observed.fetch_add(1, Ordering::SeqCst);
+                *world.schedule_mut() = Default::default();
+                world.insert_resource(SceneSentinel(92));
+                let marker = Arc::clone(&fresh_marker);
+                world.commands().queue_fn(move |_| {
+                    marker.fetch_add(1, Ordering::SeqCst);
+                });
+            });
+        });
+        let staged = PreparedDynamicSceneSpawn::new(scene)
+            .unwrap()
+            .stage_into_level(&level, 1024 * 1024)
+            .unwrap();
+        assert!(matches!(
+            checked_cancellation(
+                staged.commit_into_level(&level),
+                LifecycleTargetChange::Schedule
+            ),
+            Err(DynamicSceneError::LifecycleTargetReplacedDuringCommit {
+                target: LifecycleTargetChange::Schedule
+            })
+        ));
+        assert_eq!(callbacks.load(Ordering::SeqCst), 1);
+        level.with_world_mut(|world| {
+            assert!(owner.is_same_world(world.owner_identity()));
+            assert_eq!(
+                world.node_records().len(),
+                2,
+                "cancellation after row publication does not roll rows back"
+            );
+            assert_eq!(
+                world.get_resource::<SceneSentinel>(),
+                Some(&SceneSentinel(92))
+            );
+            assert!(world.has_deferred_commands());
+            assert_eq!(fresh_calls.load(Ordering::SeqCst), 0);
+            assert!(world.apply_deferred().is_success());
+        });
+        assert_eq!(fresh_calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn compact_scene_observer_panic_releases_the_retained_original_execution() {
+        let (scene, _) = scene_fixture();
+        let mut target = World::empty();
+        let original = target.schedule().stage_plan();
+        let retained = Arc::new(Mutex::new(None));
+        let saved = Arc::clone(&retained);
+        let systems = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&systems);
+        target.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |world, _| {
+            let observed = Arc::clone(&observed);
+            world
+                .register_native_system::<(), _>(
+                    "tests.public-scene.panic-pending",
+                    SystemStage::Update,
+                    0,
+                    move |()| {
+                        observed.fetch_add(1, Ordering::SeqCst);
+                    },
+                )
+                .unwrap();
+            *saved.lock().unwrap() = Some(std::mem::replace(world, World::empty()));
+            panic!("public scene original panic");
+        });
+        let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            scene.spawn_into(&mut target)
+        }))
+        .unwrap_err();
+        assert_eq!(
+            panic.downcast_ref::<&'static str>(),
+            Some(&"public scene original panic")
+        );
+        assert!(target.node_records().is_empty());
+        let mut old = retained.lock().unwrap().take().unwrap();
+        assert_eq!(old.node_records().len(), 2);
+        assert!(!Arc::ptr_eq(&original, &old.schedule().stage_plan()));
+        assert!(old.run_native_scene_system("tests.public-scene.panic-pending"));
+        assert_eq!(systems.load(Ordering::SeqCst), 1);
     }
 }

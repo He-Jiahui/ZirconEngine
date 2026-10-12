@@ -15,4 +15,7 @@ mod text;
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use commands::push_field_commands;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use geometry::{
+    field_has_label_lane, is_field_value_text_command,
+};
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::workbench_field_metrics;

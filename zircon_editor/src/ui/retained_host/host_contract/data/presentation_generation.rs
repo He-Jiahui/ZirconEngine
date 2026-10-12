@@ -35,7 +35,8 @@ pub(crate) struct HostPresentationGeneration {
     diagnostics_generation: u64,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct HostPresentationGenerationCursor {
     structure: u64,
     geometry: u64,
@@ -47,6 +48,10 @@ pub(crate) struct HostPresentationGenerationCursor {
 }
 
 impl HostPresentationGenerationCursor {
+    pub(crate) fn same_business_generation(self, other: Self) -> bool {
+        self.structure == other.structure && self.geometry == other.geometry
+    }
+
     pub(crate) const fn new(
         structure: u64,
         interaction: u64,

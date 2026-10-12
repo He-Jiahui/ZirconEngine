@@ -1,3 +1,4 @@
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use zircon_runtime::asset::{watch::AssetChange, AssetManager};
 use zircon_runtime::core::framework::{
     asset::ResourceManager,
@@ -24,7 +25,9 @@ pub(super) fn subscribe_startup_change_events(
 ) -> StartupChangeEvents {
     let asset_change_events = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_subscribe_asset_changes");
-        asset_manager.subscribe_asset_changes_with_wake(background_event_wake.clone())
+        asset_manager.subscribe_asset_changes_with_wake(
+            capture_trace::wake_callback("runtime_asset_change", background_event_wake.clone()),
+        )
     };
     let editor_asset_change_events = {
         zircon_runtime::profile_scope!(
@@ -32,7 +35,9 @@ pub(super) fn subscribe_startup_change_events(
             "retained_host",
             "new_subscribe_editor_asset_changes"
         );
-        editor_asset_manager.subscribe_editor_asset_changes_with_wake(background_event_wake)
+        editor_asset_manager.subscribe_editor_asset_changes_with_wake(
+            capture_trace::wake_callback("editor_asset_change", background_event_wake),
+        )
     };
     let resource_change_events = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_subscribe_resource_changes");

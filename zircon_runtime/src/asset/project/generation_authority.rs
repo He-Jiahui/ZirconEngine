@@ -45,6 +45,8 @@ pub(crate) fn lock_project_generation(root: &Path) -> io::Result<ProjectGenerati
         io::Error::other("project generation authority exhausted its waiter ticket space")
     })?;
     state.waiters.push_back((ticket, identity.clone()));
+    #[cfg(test)]
+    tests::observe_waiter_admission();
 
     loop {
         let position = state
@@ -146,3 +148,6 @@ fn open_generation_lock_file(path: &Path) -> io::Result<(File, bool)> {
 #[cfg(test)]
 #[path = "tests/generation_authority.rs"]
 mod tests;
+
+#[cfg(test)]
+pub(crate) use tests::ProjectGenerationAdmissionObserver;

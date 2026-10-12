@@ -1,5 +1,5 @@
 use crate::ui::retained_host::app::{HostInvalidationMask, RetainedEditorHost};
-use crate::ui::template_runtime::WORKBENCH_WINDOW_DOCUMENT_ID;
+use crate::ui::template_runtime::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 use crate::ui::workbench::snapshot::StatusTaskProgressSnapshot;
 
 impl RetainedEditorHost {
@@ -12,7 +12,23 @@ impl RetainedEditorHost {
         if !self.runtime.set_retained_status_line(&message) {
             return;
         }
-        if !self.active_activity_window_template_document_is(WORKBENCH_WINDOW_DOCUMENT_ID) {
+        let active_template =
+            match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) {
+                Ok(active) => active,
+                Err(error) => {
+                    if let Ok(entry) = crate::core::logging::LogEntry::new(
+                        crate::core::logging::LogSource::editor(),
+                        crate::core::logging::LogSeverity::Error,
+                        error.to_string(),
+                        0,
+                        None,
+                    ) {
+                        let _ = self.runtime.context().logs().emit(entry);
+                    }
+                    return;
+                }
+            };
+        if !active_template {
             self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
             return;
         }

@@ -29,6 +29,7 @@ layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "S
 children = [
   { node = "hud_workspace_main" },
   { node = "hud_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+  { node = "hud_tools_menu", slot = { layout = { alignment = { horizontal = "Start", vertical = "Start" }, z_order = 30 } } },
 ]
 
 [nodes.hud_workspace_main]
@@ -239,3 +240,11 @@ events = [
   { id = "WorkbenchModule/HudLocaleEdit", event = "Change", route = "workbench.module.hud.locale.edit" },
   { id = "WorkbenchModule/HudLocaleCommit", event = "Submit", route = "workbench.module.hud.locale.commit" },
 ]
+
+[nodes.hud_tools_menu]
+component = "PopupMenu"
+control_id = "WorkbenchHudToolsMenu"
+widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "WorkbenchHudTools" }, open_property = "popup_open" }
+classes = ["workbench-popup-menu"]
+props = { visibility = "collapsed", popup_open = false, menu_items = [], component_role = "popup-menu", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.panel", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Fixed" } }

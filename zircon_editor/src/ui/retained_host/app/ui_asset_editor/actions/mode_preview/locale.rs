@@ -1,4 +1,5 @@
 use super::{RetainedEditorHost, UiAssetActionDispatch};
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -24,7 +25,9 @@ impl RetainedEditorHost {
     ) -> UiAssetActionDispatch {
         UiAssetActionDispatch::handled(
             self.editor_manager
-                .set_ui_asset_editor_locale_preview(instance_id, locale),
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| manager.set_ui_asset_editor_locale_preview(instance_id, locale)),
         )
     }
 }

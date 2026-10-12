@@ -23,6 +23,7 @@ impl ProjectAssetManager {
         // This scope also retains ownership of prepared and retired watcher threads until joined.
         let _watcher_operation = self.begin_project_watcher_operation()?;
         let preparation_epoch = self.begin_project_preparation();
+        project.begin_new_activation();
         self.clear_transaction_watch_echoes();
         let installed_importers = self.importer_registry_read().clone();
         *project.importer_mut().registry_mut() = installed_importers;

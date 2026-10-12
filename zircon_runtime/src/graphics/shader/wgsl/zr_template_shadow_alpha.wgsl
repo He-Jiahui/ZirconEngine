@@ -26,6 +26,7 @@ fn zr_apply_alpha_clip(surface: ZrSurfaceOutput) {
     }
 }
 
+// 求材质表面以复用透明裁剪，但不写颜色；深度附件记录未被丢弃的片段。
 fn zr_fs_main_impl(input: ZrVertexOutput) {
     let surface = zr_material_surface(input);
     zr_apply_alpha_clip(surface);

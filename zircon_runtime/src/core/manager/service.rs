@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::core::runtime::{
-    CoreHandle, CoreWeak, RegisteredServiceIdentity, RegistryName, ServiceCallGuard,
+    CoreHandle, CoreWeak, RegisteredServiceIdentity, RegistryName, ServiceCallGuard, ServiceObject,
 };
 use crate::core::CoreError;
 
@@ -90,6 +90,30 @@ impl<T: ?Sized + Send + Sync + 'static> RegisteredManagerService<T> {
     fn shared(&self) -> Arc<T> {
         Arc::clone(&self.inner)
     }
+
+    pub(crate) fn borrowed(&self) -> &T {
+        self.inner.as_ref()
+    }
+}
+
+/// Factory-only borrowed projection of an owned manager registration.
+/// The canonical binder validates the Core, exact generations, exact declared
+/// dependency and initializer. Alias sources are rejected; this returns
+/// registration metadata, never an owning reference to the projected service.
+pub fn register_manager_alias<T, U>(
+    core: &CoreHandle,
+    source: ManagerServiceHandle<T>,
+    target_service: &str,
+    project: for<'a> fn(&'a T) -> &'a U,
+) -> Result<ServiceObject, CoreError>
+where
+    T: ?Sized + Send + Sync + 'static,
+    U: ?Sized + Send + Sync + 'static,
+{
+    if !source.belongs_to(core) {
+        return Err(CoreError::ServiceUnavailable(source.service.to_string()));
+    }
+    core.register_registered_manager_alias(source.into_identity(), target_service, project)
 }
 
 impl<T: ?Sized + Send + Sync + 'static> fmt::Debug for RegisteredManagerService<T> {
@@ -136,6 +160,9 @@ impl ManagerServiceResolver for CoreHandle {
             ));
         }
         let identity = handle.into_identity();
+        if let Some(alias) = self.try_resolve_manager_alias::<T>(&identity)? {
+            return Ok(alias);
+        }
         let registered =
             self.resolve_registered_manager::<RegisteredManagerService<T>>(&identity)?;
         Ok(registered.map(RegisteredManagerService::shared))

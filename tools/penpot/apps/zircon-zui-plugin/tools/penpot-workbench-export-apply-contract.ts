@@ -35,13 +35,13 @@ const catalogPath = resolve(repoRoot, 'docs/_data/layout/catalog.json');
 const mainFrameSourcePath =
   'zircon_editor/assets/ui/editor/host/editor_main_frame.zui';
 const workbenchSourcePath =
-  'zircon_editor/assets/ui/editor/windows/workbench_window.zui';
+  'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
 const workbenchShellSourcePath =
-  'zircon_editor/assets/ui/editor/host/workbench_shell.zui';
+  'zircon_editor/assets/ui/editor/unreal/editor_shell.zui';
 const workbenchTabSourcePath =
   'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui';
-const workbenchNodeId = 'window_content';
-const workbenchGapPath = 'nodes.window_content.layout.container.gap';
+const workbenchNodeId = 'editor_content';
+const workbenchGapPath = 'nodes.editor_content.layout.container.gap';
 const themeSourcePath =
   'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
 const penpotBaseUrl = new URL(
@@ -227,13 +227,13 @@ async function main(): Promise<void> {
     });
     await runtime.page.setViewportSize({ width: 1280, height: 800 });
     await runtime.fileInput.setInputFiles({
-      name: 'workbench_window.zui',
+      name: 'level_editor_window.zui',
       mimeType: 'text/plain',
       buffer: Buffer.from(penpotInputSource, 'utf8'),
     });
     await waitForWorkbenchImport(
       runtime.statusPanel,
-      canonicalDocument.asset.display_name ?? 'Workbench Window',
+      canonicalDocument.asset.display_name ?? 'Unreal Level Editor',
     );
     const browserRuntime = await captureBrowserRuntime(runtime.page);
     await setReviewCase(runtime.pluginFrame, reviewCase);
@@ -538,7 +538,7 @@ async function runAuthoredOnlyDiagnostic(): Promise<void> {
     });
     await waitForWorkbenchImport(
       runtime.statusPanel,
-      canonicalDocument.asset.display_name ?? 'Workbench Window',
+      canonicalDocument.asset.display_name ?? 'Unreal Level Editor',
     );
     const browserRuntime = await captureBrowserRuntime(runtime.page);
     await setReviewCase(runtime.pluginFrame, reviewCase);
@@ -1057,7 +1057,7 @@ function setWorkbenchLayoutGap(
   value: number,
 ): void {
   const node = zuiNodes(document)[workbenchNodeId];
-  assert.ok(node, 'Canonical WorkbenchWindow lost window_content.');
+  assert.ok(node, 'Canonical Unreal level editor lost editor_content.');
   const layout = recordValue(node.layout, `${workbenchNodeId}.layout`);
   const container = recordValue(
     layout['container'],

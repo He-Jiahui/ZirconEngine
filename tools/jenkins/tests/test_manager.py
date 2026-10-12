@@ -9,6 +9,29 @@ from tools.jenkins.deployment.manager import DeploymentManager
 
 
 class ManagerTests(unittest.TestCase):
+    def test_authenticated_request_preserves_headers_and_legacy_shape(self):
+        from unittest.mock import MagicMock
+        class S:
+            controller = {"listenAddress": "127.0.0.1", "httpPort": 18080}
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            paths = type("P", (), {"state": root, "logs": root, "repo": root})()
+            manager = DeploymentManager(S(), paths, root / "java", root / "war")
+            response = MagicMock()
+            response.__enter__.return_value = response
+            response.status, response.read.return_value = 201, b"queued"
+            response.headers = {"Location": "http://127.0.0.1:18080/queue/item/11/"}
+            opener = MagicMock()
+            opener.open.return_value = response
+            with patch.object(manager, "_credentials", return_value=("fixture", "fixture-token")), \
+                 patch("tools.jenkins.deployment.manager.urllib.request.build_opener", return_value=opener):
+                self.assertEqual((201, b"queued", response.headers), manager._request_with_headers(
+                    "job/zircon-flow/buildWithParameters", method="POST", data=b"REQUEST_ID=fixture"))
+                self.assertEqual((201, b"queued"), manager._request("api/json"))
+            request = opener.open.call_args_list[0].args[0]
+            self.assertEqual("POST", request.get_method())
+            self.assertTrue(request.has_header("Authorization"))
+
     def test_reconcile_marks_identity_unknown_without_killing(self):
         class S:
             controller = {"listenAddress": "127.0.0.1", "httpPort": 1}
@@ -102,17 +125,25 @@ class ManagerTests(unittest.TestCase):
             plugins.parent.mkdir()
             plugins.write_text(json.dumps({"plugins": {"git": {"version": "1"}}}))
             runtime_name = runtime_agent_name(S.agent["name"], "runtime-1")
-            nodes = [{"displayName": S.agent["name"], "offline": False},
-                     {"displayName": runtime_name, "offline": True}]
+            nodes = [{"displayName": runtime_name, "offline": True},
+                     {"displayName": S.agent["name"] + "-0123456789abcdef", "offline": False}]
+            quiet = {"quietingDown": False}
             def request(path):
                 body = {"computer": nodes} if path.startswith("computer/") else (
                     {"plugins": [{"shortName": "git", "version": "1", "active": True}]}
-                    if path.startswith("pluginManager/") else {"mode": "NORMAL"})
+                    if path.startswith("pluginManager/") else {"mode": "NORMAL", **quiet})
                 return 200, json.dumps(body).encode()
             with patch.object(manager, "_request", side_effect=request):
                 self.assertFalse(manager.health()["agent"])
-                nodes[1]["offline"] = False
+                nodes[0]["offline"] = False
                 self.assertTrue(manager.health()["ready"])
+                for value in ({"quietingDown": True}, {}, {"quietingDown": "false"}):
+                    quiet.clear(); quiet.update(value)
+                    health = manager.health()
+                    self.assertTrue(health["controller"] and health["agent"] and health["plugins"])
+                    self.assertFalse(health["ready"])
+                    self.assertFalse(health["acceptingRequests"])
+                quiet.clear(); quiet.update(quietingDown=False)
                 selector.write_text(json.dumps({"runtimeOperationId": "runtime-2"}))
                 self.assertFalse(manager.health()["agent"])
                 selector.write_text(json.dumps({}))

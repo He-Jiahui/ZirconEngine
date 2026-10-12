@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::{
         UiFocusChangeEvent, UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason,
         UiFocusedInput, UiFocusedInputKind,
     },
-    tree::UiTreeError,
+    tree::{UiTree, UiTreeError},
 };
 
 mod modal_scope;
@@ -19,6 +19,12 @@ use super::surface::UiSurface;
 const UI_FOCUS_DIAGNOSTIC_HISTORY_CAPACITY: usize = 64;
 
 impl UiSurface {
+    /// Selection activity belongs to the nearest declared Tree owner, not its row.
+    /// None denotes a node outside a declared owner; Some(false) is known loss of focus.
+    pub fn tree_owner_focused(&self, node_id: UiNodeId) -> Option<bool> {
+        tree_owner_focused(&self.tree, node_id, self.focus.focused)
+    }
+
     pub fn focus_node(&mut self, node_id: UiNodeId) -> Result<(), UiTreeError> {
         self.focus_node_with_reason(
             node_id,
@@ -443,8 +449,49 @@ fn clear_focus_visible_reason(reason: UiFocusChangeReason) -> UiFocusVisibleReas
     }
 }
 
+pub(in crate::ui::surface) fn tree_selection_owner(
+    tree: &UiTree,
+    node_id: UiNodeId,
+) -> Option<UiNodeId> {
+    let mut current = Some(node_id);
+    for _ in 0..tree.nodes.len() {
+        let node = tree.node(current?)?;
+        if node
+            .template_metadata
+            .as_ref()
+            .is_some_and(|metadata| bool_attribute(metadata, "tree_selection_owner"))
+        {
+            return Some(node.node_id);
+        }
+        current = node.parent;
+    }
+    None
+}
+
+pub(in crate::ui::surface) fn tree_owner_focused(
+    tree: &UiTree,
+    node_id: UiNodeId,
+    focused: Option<UiNodeId>,
+) -> Option<bool> {
+    let owner = tree_selection_owner(tree, node_id)?;
+    let focus_owner = focused.and_then(|focused| tree_selection_owner(tree, focused));
+    Some(focus_owner == Some(owner))
+}
+
 fn mark_component_focus_render_dirty(surface: &mut UiSurface, node_id: UiNodeId) {
     let _ = surface.mark_component_state_render_dirty(node_id);
+    let Some(owner) = tree_selection_owner(&surface.tree, node_id) else {
+        return;
+    };
+    // A focus transition changes every selected row owned by this Tree, including
+    // rows outside the focused node's ancestry and incremental render patch.
+    let mut pending = vec![owner];
+    while let Some(current) = pending.pop() {
+        if let Some(node) = surface.tree.node(current) {
+            pending.extend(node.children.iter().copied());
+        }
+        let _ = surface.mark_component_state_render_dirty(current);
+    }
 }
 
 fn bool_attribute(

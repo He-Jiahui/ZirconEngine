@@ -182,7 +182,9 @@ impl EditorTransactionEngine {
         } else {
             store.redo(context.as_mut())
         };
-        let faulted = matches!(&result, Err(EditCommandError::RollbackFailed { .. }));
+        let faulted = result.as_ref().is_err_and(|error| {
+            error.is_interrupted() || matches!(error, EditCommandError::RollbackFailed { .. })
+        });
         let event = result.as_ref().ok().and_then(|event_metadata| {
             event_metadata
                 .as_ref()

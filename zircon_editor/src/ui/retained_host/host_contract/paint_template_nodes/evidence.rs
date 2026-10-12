@@ -38,9 +38,11 @@ struct StyleValues {
 struct Capture {
     repo: Option<PathBuf>,
     dpi: f32,
+    allow_absolute_media: bool,
     styles: BTreeMap<(String, String, String), StyleValues>,
     media: BTreeMap<(String, String, String, String), Value>,
     issues: Vec<String>,
+    native_hierarchy_draws: Vec<Value>,
 }
 
 thread_local! {
@@ -53,6 +55,19 @@ static MEDIA_FILES: OnceLock<Mutex<HashMap<String, Option<MediaFileReceipt>>>> =
 pub(crate) struct PaintEvidenceScope(PhantomData<Rc<()>>);
 
 impl PaintEvidenceScope {
+    /// The normal product loads its admitted bundle/project files outside the
+    /// repository. Preserve those actual resolver receipts without changing the
+    /// stricter source-relative catalog capture contract.
+    pub(crate) fn begin_for_normal_present(repo: &Path) -> Result<Self, String> {
+        let scope = Self::begin(repo, 1.0)?;
+        CAPTURE.with_borrow_mut(|capture| {
+            if let Some(capture) = capture {
+                capture.allow_absolute_media = true;
+            }
+        });
+        Ok(scope)
+    }
+
     pub(crate) fn begin(repo: &Path, dpi: f32) -> Result<Self, String> {
         let repo = repo.canonicalize().map_err(|error| error.to_string())?;
         if !dpi.is_finite() || dpi <= 0.0 {
@@ -166,7 +181,12 @@ impl PaintEvidenceScope {
             .collect::<Vec<_>>();
         let mut resources = capture.media.into_values().collect::<Vec<_>>();
         if let Some(repo) = capture.repo.as_deref() {
-            verify_current_media_files(repo, &mut resources, &mut capture.issues);
+            verify_current_media_files(
+                repo,
+                &mut resources,
+                &mut capture.issues,
+                capture.allow_absolute_media,
+            );
         }
         let asset_complete = capture.issues.is_empty()
             && resources.iter().all(|resource| {
@@ -181,6 +201,7 @@ impl PaintEvidenceScope {
             "version": 1,
             "coordinateSpace": "physical-pixels",
             "styles": styles,
+            "nativeHierarchyDraws": capture.native_hierarchy_draws,
             "assetAudit": {"complete": asset_complete, "resources": resources},
             "runtimeAssetFingerprints": runtime_asset_fingerprints,
             "issues": capture.issues,
@@ -289,6 +310,35 @@ pub(super) fn record_box_shadow_command(command: &HostPaintCommand) {
     });
 }
 
+pub(in crate::ui::retained_host::host_contract) fn record_native_hierarchy_row(
+    node: &super::super::data::SceneNodeData,
+    index: usize,
+    row: &super::super::data::FrameRect,
+    clip: &super::super::data::FrameRect,
+    commands: &[super::super::paint_frame::HostRecordedPaintCommand],
+) {
+    use super::super::paint_frame::HostRecordedPaintKind;
+    CAPTURE.with_borrow_mut(|capture| {
+        let Some(capture)=capture else { return; };
+        if !capture.allow_absolute_media || commands.is_empty() { return; }
+        let commands=commands.iter().map(|command| {
+            let paint=match &command.kind {
+                HostRecordedPaintKind::Quad{color,corner_radius}=>json!({"kind":"quad","color":color,"cornerRadius":corner_radius}),
+                HostRecordedPaintKind::Border{color,width,corner_radius}=>json!({"kind":"border","color":color,"width":width,"cornerRadius":corner_radius}),
+                HostRecordedPaintKind::Text{text,color,font_size,line_height,font_request,..}=>json!({"kind":"text","text":text,"color":color,"fontSize":font_size,"lineHeight":line_height,"fontFamily":font_request.as_ref().map(|request|request.family.as_str()),"fontWeight":font_request.as_ref().map(|request|request.weight)}),
+                HostRecordedPaintKind::Image{resource_key,resource_generation,width,height,rgba,..}=>json!({"kind":"image","resourceKey":resource_key,"generation":resource_generation,"width":width,"height":height,"hasUploadBytes":rgba.is_some()}),
+            };
+            json!({"bounds":{"x":command.frame.x,"y":command.frame.y,"width":command.frame.width,"height":command.frame.height},
+                "clip":command.clip_frame.as_ref().map(|rect|json!({"x":rect.x,"y":rect.y,"width":rect.width,"height":rect.height})),"paint":paint})
+        }).collect::<Vec<_>>();
+        capture.native_hierarchy_draws.push(json!({"dataIdentity":{"nodeId":node.id.as_str(),"index":index},
+            "controlId":"HierarchyListPanel","modelName":node.name.as_str(),"depth":node.depth,"selected":node.selected,
+            "bounds":{"x":row.x,"y":row.y,"width":row.width,"height":row.height},
+            "clip":{"x":clip.x,"y":clip.y,"width":clip.width,"height":clip.height},
+            "authority":"actual-native-hierarchy-row-draw","commands":commands}));
+    });
+}
+
 pub(super) fn record_drawn_command(command: &HostPaintCommand) {
     let Some(owner) = command.owner.as_ref() else {
         return;
@@ -382,13 +432,18 @@ pub(super) fn record_media_use(resource_key: &str) {
         let Some(repo) = capture.repo.as_ref() else {
             return;
         };
-        let Ok(relative) = file.path.strip_prefix(repo) else {
-            capture.issues.push(format!(
-                "media resource {resource_key} is outside the captured repository"
-            ));
-            return;
+        let path = match file.path.strip_prefix(repo) {
+            Ok(relative) => relative.to_string_lossy().replace('\\', "/"),
+            Err(_) if capture.allow_absolute_media => {
+                file.path.to_string_lossy().replace('\\', "/")
+            }
+            Err(_) => {
+                capture.issues.push(format!(
+                    "media resource {resource_key} is outside the captured repository"
+                ));
+                return;
+            }
         };
-        let path = relative.to_string_lossy().replace('\\', "/");
         let (source_path, node_id, instance_path) = identity_key(owner);
         let key = (
             source_path.clone(),
@@ -400,6 +455,7 @@ pub(super) fn record_media_use(resource_key: &str) {
             key,
             json!({
                 "kind": "image",
+                "resourceKey": resource_key,
                 "path": path,
                 "sha256": file.sha256,
                 "loaded": true,
@@ -424,7 +480,12 @@ pub(super) fn record_media_not_ready(resource_key: Option<&str>) {
     });
 }
 
-fn verify_current_media_files(repo: &Path, resources: &mut [Value], issues: &mut Vec<String>) {
+fn verify_current_media_files(
+    repo: &Path,
+    resources: &mut [Value],
+    issues: &mut Vec<String>,
+    allow_absolute: bool,
+) {
     for resource in resources {
         let path = resource.get("path").and_then(Value::as_str);
         let sha256 = resource.get("sha256").and_then(Value::as_str);
@@ -432,7 +493,7 @@ fn verify_current_media_files(repo: &Path, resources: &mut [Value], issues: &mut
             .zip(sha256)
             .filter(|(path, sha256)| {
                 !path.is_empty()
-                    && !Path::new(path).is_absolute()
+                    && (allow_absolute || !Path::new(path).is_absolute())
                     && !Path::new(path)
                         .components()
                         .any(|component| matches!(component, std::path::Component::ParentDir))
@@ -440,7 +501,7 @@ fn verify_current_media_files(repo: &Path, resources: &mut [Value], issues: &mut
             })
             .and_then(|(path, expected)| {
                 let current = repo.join(path).canonicalize().ok()?;
-                if !current.starts_with(repo) {
+                if !allow_absolute && !current.starts_with(repo) {
                     return None;
                 }
                 let bytes = std::fs::read(current).ok()?;

@@ -69,7 +69,7 @@ fn invalid_border_width_does_not_consume_the_replayed_fill() {
 }
 
 #[test]
-fn command_stream_executor_repaints_close_prompt_without_legacy_painter() {
+fn command_stream_executor_repaints_close_prompt() {
     let mut presentation = presentation_with_viewport_image();
     presentation.close_prompt = HostClosePromptData {
         visible: true,
@@ -123,14 +123,14 @@ fn command_stream_executor_repaints_close_prompt_without_legacy_painter() {
 }
 
 #[test]
-fn full_command_stream_matches_legacy_painter_pixels() {
+fn full_command_stream_matches_direct_painter_pixels() {
     let presentation = presentation_with_viewport_image();
-    let legacy = paint_host_frame(200, 200, &presentation);
+    let direct = paint_host_frame(200, 200, &presentation);
     let stream = build_chrome_command_stream(&presentation, (200, 200), None, true);
     let replayed = paint_chrome_command_stream_to_frame(200, 200, &stream);
 
     assert_eq!(
-        first_pixel_difference(replayed.as_bytes(), legacy.as_bytes(), 200),
+        first_pixel_difference(replayed.as_bytes(), direct.as_bytes(), 200),
         None
     );
 }
@@ -175,7 +175,7 @@ fn gpu_viewport_product_generation_reaches_the_chrome_image_command() {
 #[test]
 fn full_command_stream_replays_root_overlay_image_pixels() {
     let presentation = presentation_with_root_overlay_image();
-    let legacy = paint_host_frame(
+    let direct = paint_host_frame(
         ROOT_OVERLAY_FRAME_SIZE.0,
         ROOT_OVERLAY_FRAME_SIZE.1,
         &presentation,
@@ -195,13 +195,13 @@ fn full_command_stream_replays_root_overlay_image_pixels() {
     assert_eq!(image.height, ROOT_OVERLAY_IMAGE_HEIGHT);
     assert_eq!(image.upload_bytes, ROOT_OVERLAY_UPLOAD_BYTES);
     assert_eq!(
-        pixel(legacy.as_bytes(), ROOT_OVERLAY_FRAME_SIZE.0, 24, 16),
+        pixel(direct.as_bytes(), ROOT_OVERLAY_FRAME_SIZE.0, 24, 16),
         ROOT_OVERLAY_COLOR
     );
     assert_eq!(
         first_pixel_difference(
             replayed.as_bytes(),
-            legacy.as_bytes(),
+            direct.as_bytes(),
             ROOT_OVERLAY_FRAME_SIZE.0
         ),
         None
@@ -209,7 +209,7 @@ fn full_command_stream_replays_root_overlay_image_pixels() {
 }
 
 #[test]
-fn patch_command_stream_matches_legacy_region_repaint_pixels() {
+fn patch_command_stream_matches_direct_region_repaint_pixels() {
     let mut presentation = presentation_with_viewport_image();
     let damage = FrameRect {
         x: 40.0,
@@ -217,7 +217,7 @@ fn patch_command_stream_matches_legacy_region_repaint_pixels() {
         width: 80.0,
         height: 60.0,
     };
-    let mut legacy = paint_host_frame(200, 200, &presentation);
+    let mut direct = paint_host_frame(200, 200, &presentation);
     let mut replayed = paint_host_frame(200, 200, &presentation);
 
     presentation
@@ -238,14 +238,14 @@ fn patch_command_stream_matches_legacy_region_repaint_pixels() {
         });
     let stream = build_chrome_command_stream(&presentation, (200, 200), Some(&damage), true);
 
-    let legacy_damage = repaint_host_frame_region(&mut legacy, &presentation, &damage)
-        .expect("legacy painter should repaint visible viewport damage");
+    let direct_damage = repaint_host_frame_region(&mut direct, &presentation, &damage)
+        .expect("direct painter should repaint visible viewport damage");
     let replayed_damage = repaint_chrome_command_stream_region(&mut replayed, &stream)
         .expect("command stream should repaint visible viewport damage");
 
-    assert_eq!(replayed_damage, legacy_damage);
+    assert_eq!(replayed_damage, direct_damage);
     assert_eq!(
-        first_pixel_difference(replayed.as_bytes(), legacy.as_bytes(), 200),
+        first_pixel_difference(replayed.as_bytes(), direct.as_bytes(), 200),
         None
     );
 }
@@ -259,7 +259,7 @@ fn patch_command_stream_repaints_root_overlay_image_damage_pixels() {
         width: 32.0,
         height: 24.0,
     };
-    let mut legacy = paint_host_frame(
+    let mut direct = paint_host_frame(
         ROOT_OVERLAY_FRAME_SIZE.0,
         ROOT_OVERLAY_FRAME_SIZE.1,
         &presentation,
@@ -273,19 +273,35 @@ fn patch_command_stream_repaints_root_overlay_image_damage_pixels() {
         build_chrome_command_stream(&presentation, ROOT_OVERLAY_FRAME_SIZE, Some(&damage), true);
     let overlay_rgba = solid_rgba(ROOT_OVERLAY_COLOR);
 
-    let legacy_damage = repaint_host_frame_region(&mut legacy, &presentation, &damage)
-        .expect("legacy painter should repaint visible root overlay damage");
+    let direct_damage = repaint_host_frame_region(&mut direct, &presentation, &damage)
+        .expect("direct painter should repaint visible root overlay damage");
     let replayed_damage = repaint_chrome_command_stream_region(&mut replayed, &stream)
         .expect("command stream should repaint visible root overlay damage");
 
-    assert_eq!(replayed_damage, legacy_damage);
+    assert_eq!(replayed_damage, direct_damage);
     assert!(root_overlay_image_command(&stream, &overlay_rgba).is_some());
     assert_eq!(
         first_pixel_difference(
             replayed.as_bytes(),
-            legacy.as_bytes(),
+            direct.as_bytes(),
             ROOT_OVERLAY_FRAME_SIZE.0
         ),
+        None
+    );
+}
+
+#[test]
+fn empty_authored_root_does_not_revive_the_retired_skeleton() {
+    let presentation =
+        crate::ui::retained_host::host_contract::data::HostWindowPresentationData::default();
+    let direct = paint_host_frame(200, 200, &presentation);
+    let shell_background =
+        crate::ui::retained_host::host_contract::paint_theme::PALETTE.shell_background;
+    assert_eq!(pixel(direct.as_bytes(), 200, 100, 100), shell_background);
+    let stream = build_chrome_command_stream(&presentation, (200, 200), None, true);
+    let replayed = paint_chrome_command_stream_to_frame(200, 200, &stream);
+    assert_eq!(
+        first_pixel_difference(replayed.as_bytes(), direct.as_bytes(), 200),
         None
     );
 }

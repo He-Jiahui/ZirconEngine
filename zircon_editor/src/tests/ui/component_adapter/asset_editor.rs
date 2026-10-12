@@ -145,10 +145,11 @@ fn asset_editor_component_adapter_updates_selected_widget_text() {
 fn asset_editor_component_adapter_updates_selected_widget_props_and_state_literals() {
     let _guard = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("zircon_ui_asset_component_props_state_adapter");
-    let manager = harness
+    let manager_handle = harness
         .core
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .expect("editor manager should be registered");
+    let manager = manager_handle.enter().unwrap();
     let temp_dir = unique_asset_adapter_temp_dir("selected_widget_props_state");
     fs::create_dir_all(&temp_dir).expect("asset adapter temp dir should be created");
     let asset_path = temp_dir.join("asset-editor-props-state-adapter.zui");
@@ -198,9 +199,10 @@ fn asset_editor_component_adapter_updates_selected_widget_props_and_state_litera
             .changed
     );
 
-    let source = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let source = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&source).expect("parse saved ui asset document");
     let selected_node = &document.root.as_ref().unwrap().children[0].node;
@@ -226,10 +228,11 @@ fn asset_editor_component_adapter_updates_selected_widget_props_and_state_litera
 fn asset_editor_component_adapter_updates_selected_component_root_class_policy() {
     let _guard = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("zircon_ui_asset_component_root_class_adapter");
-    let manager = harness
+    let manager_handle = harness
         .core
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .expect("editor manager should be registered");
+    let manager = manager_handle.enter().unwrap();
     let temp_dir = unique_asset_adapter_temp_dir("component_root_class_policy");
     fs::create_dir_all(&temp_dir).expect("asset adapter temp dir should be created");
     let asset_path = temp_dir.join("asset-editor-component-adapter.zui");
@@ -266,9 +269,10 @@ fn asset_editor_component_adapter_updates_selected_component_root_class_policy()
         .expect("asset editor adapter event should mutate component contract");
     assert!(result.changed);
 
-    let source = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let source = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&source).expect("parse saved ui asset document");
     assert_eq!(

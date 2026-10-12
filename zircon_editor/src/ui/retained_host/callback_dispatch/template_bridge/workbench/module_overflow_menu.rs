@@ -15,6 +15,7 @@ use super::{
 pub(super) const WORKBENCH_MODULE_OVERFLOW_TRIGGER_CONTROL_ID: &str = "WorkbenchModuleMore";
 pub(super) const WORKBENCH_MODULE_OVERFLOW_MENU_CONTROL_ID: &str = "WorkbenchModuleOverflowMenu";
 const LAYOUT_MIN_WIDTH: &str = "layout_min_width";
+pub(super) const UNREAL_WINDOW_MODULE_MENU_CONTROL_ID: &str = "UnrealWindowMenuPopup";
 
 const OVERFLOW_COMMANDS: &[OverflowCommand] = &[
     OverflowCommand {
@@ -98,6 +99,37 @@ const OVERFLOW_COMMANDS: &[OverflowCommand] = &[
 ];
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    pub(super) fn refresh_unreal_window_module_menu_items(
+        &mut self,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        if !self.has_control(UNREAL_WINDOW_MODULE_MENU_CONTROL_ID) {
+            return Ok(());
+        }
+        let navigation = &OVERFLOW_COMMANDS[..super::module_navigation::MODULE_TAB_CONTROLS.len()];
+        let mut items =
+            self.control_string_array(UNREAL_WINDOW_MODULE_MENU_CONTROL_ID, "menu_items");
+        items.retain(|item| {
+            !navigation.iter().any(|command| {
+                item.split_once('|').is_some_and(|(_, flags)| {
+                    flags
+                        .split(',')
+                        .any(|flag| flag == format!("action={}", command.menu_action_id))
+                })
+            })
+        });
+        items.extend(
+            navigation
+                .iter()
+                .map(|command| command.menu_item_value(self)),
+        );
+        self.mutate_control_property(
+            UNREAL_WINDOW_MODULE_MENU_CONTROL_ID,
+            "menu_items",
+            UiValue::Array(items.into_iter().map(UiValue::String).collect()),
+        )?;
+        Ok(())
+    }
+
     pub(super) fn refresh_workbench_module_overflow_menu_items(
         &mut self,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
@@ -123,7 +155,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         control_id: &str,
         menu_action_id: &str,
     ) -> Result<Option<EditorUiBinding>, BuiltinHostWindowTemplateBridgeError> {
-        if control_id != WORKBENCH_MODULE_OVERFLOW_MENU_CONTROL_ID {
+        if control_id != WORKBENCH_MODULE_OVERFLOW_MENU_CONTROL_ID
+            && control_id != UNREAL_WINDOW_MODULE_MENU_CONTROL_ID
+        {
             return Ok(None);
         }
         let Some(command) = OVERFLOW_COMMANDS
@@ -133,6 +167,27 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             return Ok(None);
         };
 
+        if control_id == UNREAL_WINDOW_MODULE_MENU_CONTROL_ID {
+            if !self.has_control(control_id)
+                || !super::module_navigation::MODULE_TAB_CONTROLS
+                    .contains(&command.source_control_id)
+            {
+                return Ok(None);
+            }
+            let suffix = command
+                .source_control_id
+                .strip_prefix("WorkbenchModule")
+                .expect("canonical module navigation control");
+            let binding = self
+                .runtime
+                .workbench_module_navigation_binding(&format!("WorkbenchModule/{suffix}"))?;
+            self.apply_binding_state(control_id, &binding)?;
+            self.close_workbench_window_menu_control(control_id)?;
+            self.template_surface
+                .refresh_after_state_change(self.runtime.as_ref())?;
+            self.refresh_mounted_module_source_publication()?;
+            return Ok(Some(binding));
+        }
         self.dispatch_control_state(command.source_control_id, UiEventKind::Click)
     }
 
@@ -214,7 +269,8 @@ impl OverflowCommand {
             format!("action={}", self.menu_action_id),
             self.icon_flag.to_string(),
         ];
-        if bridge.control_bool(self.source_control_id, "selected")
+        if bridge.workbench_module_is_selected(self.source_control_id)
+            || bridge.control_bool(self.source_control_id, "selected")
             || bridge.control_bool(self.source_control_id, "checked")
         {
             flags.insert(0, "checked".to_string());

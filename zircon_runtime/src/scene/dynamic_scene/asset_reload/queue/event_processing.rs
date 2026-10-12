@@ -3,7 +3,6 @@ use std::time::Instant;
 use crate::{
     asset::{facade::AssetEventPoll, AssetEvent, AssetEventKind, AssetId, SceneAsset},
     core::{JobScheduler, TaskState},
-    scene::dynamic_scene::DynamicSceneSpawnTask,
 };
 
 use super::{
@@ -11,17 +10,37 @@ use super::{
         reports::DynamicSceneAssetReloadDrainReport,
         result::DynamicSceneAssetReloadSupersededTask,
         skip::{DynamicSceneAssetReloadSkipReason, DynamicSceneAssetReloadSkippedEvent},
-        task::DynamicSceneAssetReloadTask,
     },
-    locator_metadata_bytes, DeferredReload, DynamicSceneAssetReloadQueue, LatestRevisionState,
+    DeferredReload, DynamicSceneAssetReloadQueue, LatestRevisionState,
     LATEST_REVISION_METADATA_BYTES, ORDER_ENTRY_METADATA_BYTES,
 };
 
+mod task_admission;
+
+use task_admission::{estimate_task_metadata_bytes, scene_asset_reload_label};
+
 impl DynamicSceneAssetReloadQueue {
     pub fn drain_events(&mut self, scheduler: &JobScheduler) -> DynamicSceneAssetReloadDrainReport {
+        if self.lifecycle_interruption.is_some() {
+            return self.interrupted_drain_report();
+        }
         let started = Instant::now();
         let mut report = DynamicSceneAssetReloadDrainReport::default();
-        self.refresh_project_catalog_generation(&mut report);
+        if self.source_error.is_none() {
+            if let Err(error) = self.refresh_project_catalog_generation(&mut report) {
+                self.fail_project_source(error);
+            }
+        }
+        if let Some(mut failure) = self.source_failure_report.take() {
+            report
+                .superseded_pending
+                .append(&mut failure.superseded_pending);
+        }
+        if let Some(error) = &self.source_error {
+            report.source_error = Some(error.clone());
+            self.retire_superseded_tasks();
+            return self.finish_drain_report(report, started);
+        }
         self.prune_expired_latest_revisions();
         self.retire_superseded_tasks();
         self.schedule_deferred(scheduler, &mut report);
@@ -60,6 +79,14 @@ impl DynamicSceneAssetReloadQueue {
             }
         }
 
+        self.finish_drain_report(report, started)
+    }
+
+    fn finish_drain_report(
+        &mut self,
+        mut report: DynamicSceneAssetReloadDrainReport,
+        started: Instant,
+    ) -> DynamicSceneAssetReloadDrainReport {
         report.elapsed = started.elapsed();
         report.pending_count = self.pending_count();
         report.pending_metadata_bytes = self.pending_metadata_bytes;
@@ -198,129 +225,6 @@ impl DynamicSceneAssetReloadQueue {
         }
     }
 
-    fn schedule_reload(
-        &mut self,
-        scheduler: &JobScheduler,
-        asset_id: AssetId,
-        deferred: DeferredReload,
-        report: &mut DynamicSceneAssetReloadDrainReport,
-    ) {
-        let task = match self.task_graph_scope.as_ref() {
-            Some(scope) => DynamicSceneSpawnTask::schedule_scene_asset_uri_with_limit_in_scope(
-                scheduler,
-                scope,
-                self.project.clone(),
-                deferred.uri,
-                deferred.label.clone(),
-                self.limits.max_prepared_scene_bytes,
-            ),
-            None => DynamicSceneSpawnTask::schedule_scene_asset_uri_with_limit(
-                scheduler,
-                self.project.clone(),
-                deferred.uri,
-                deferred.label.clone(),
-                self.limits.max_prepared_scene_bytes,
-            ),
-        };
-        let task = match task {
-            Ok(task) => task,
-            Err(reason) => {
-                report.failed.push(
-                    super::super::result::DynamicSceneAssetReloadApplyFailure::new(
-                        deferred.event,
-                        crate::scene::DynamicSceneError::SpawnTaskAdmission {
-                            label: deferred.label,
-                            reason,
-                        },
-                    ),
-                );
-                return;
-            }
-        };
-        self.pending_metadata_bytes = self
-            .pending_metadata_bytes
-            .saturating_add(deferred.metadata_bytes);
-        if self.pending_order.push_back(asset_id) {
-            self.pending_metadata_bytes = self
-                .pending_metadata_bytes
-                .saturating_add(ORDER_ENTRY_METADATA_BYTES);
-        }
-        self.pending.insert(
-            asset_id,
-            DynamicSceneAssetReloadTask::new(deferred.event, task, deferred.metadata_bytes),
-        );
-        report.scheduled = report.scheduled.saturating_add(1);
-    }
-
-    fn defer_reload(
-        &mut self,
-        asset_id: AssetId,
-        deferred: DeferredReload,
-        report: &mut DynamicSceneAssetReloadDrainReport,
-    ) {
-        let prior_bytes = self
-            .deferred
-            .get(&asset_id)
-            .map_or(0, |prior| prior.metadata_bytes);
-        let order_bytes = usize::from(!self.deferred_order.contains(asset_id))
-            .saturating_mul(ORDER_ENTRY_METADATA_BYTES);
-        let projected = self
-            .pending_metadata_bytes
-            .saturating_sub(prior_bytes)
-            .saturating_add(deferred.metadata_bytes)
-            .saturating_add(order_bytes);
-        if projected > self.limits.max_pending_metadata_bytes {
-            self.remove_deferred(asset_id);
-            self.drop_for_capacity(deferred.event, report);
-            return;
-        }
-        self.deferred_order.push_back(asset_id);
-        self.pending_metadata_bytes = projected;
-        self.deferred.insert(asset_id, deferred);
-        if report.scheduled >= self.limits.max_schedules_per_tick {
-            report.schedule_budget_exhausted = true;
-        }
-    }
-
-    fn schedule_deferred(
-        &mut self,
-        scheduler: &JobScheduler,
-        report: &mut DynamicSceneAssetReloadDrainReport,
-    ) {
-        let attempts = self.deferred_order.len();
-        for _ in 0..attempts {
-            if self.active_worker_count() >= self.limits.max_active_tasks
-                || report.scheduled >= self.limits.max_schedules_per_tick
-            {
-                report.schedule_budget_exhausted = !self.deferred.is_empty();
-                break;
-            }
-            let Some(asset_id) = self.deferred_order.pop_front() else {
-                break;
-            };
-            self.pending_metadata_bytes = self
-                .pending_metadata_bytes
-                .saturating_sub(ORDER_ENTRY_METADATA_BYTES);
-            if self.pending.contains_key(&asset_id) || self.target_staging.contains_key(&asset_id) {
-                if self.deferred_order.push_back(asset_id) {
-                    self.pending_metadata_bytes = self
-                        .pending_metadata_bytes
-                        .saturating_add(ORDER_ENTRY_METADATA_BYTES);
-                }
-                continue;
-            }
-            let Some(deferred) = self.deferred.remove(&asset_id) else {
-                continue;
-            };
-            self.pending_metadata_bytes = self
-                .pending_metadata_bytes
-                .saturating_sub(deferred.metadata_bytes);
-            if self.is_latest_event(&deferred.event) {
-                self.schedule_reload(scheduler, asset_id, deferred, report);
-            }
-        }
-    }
-
     fn supersede_asset(
         &mut self,
         asset_id: AssetId,
@@ -434,6 +338,28 @@ impl DynamicSceneAssetReloadQueue {
                     self.diagnostics.wasted_completed_tasks.saturating_add(1);
             }
         }
+
+        // Completed workers may retire outside the normal ready/commit FIFO drains.
+        // Keep slots for every unsettled worker, and reclaim only orphaned order metadata.
+        let pending = &self.pending;
+        let removed_pending = if self.pending_order.len() > pending.len() {
+            self.pending_order
+                .retain(|asset_id| pending.contains_key(asset_id))
+        } else {
+            0
+        };
+        let target_staging = &self.target_staging;
+        let removed_stages = if self.target_staging_order.len() > target_staging.len() {
+            self.target_staging_order
+                .retain(|asset_id| target_staging.contains_key(asset_id))
+        } else {
+            0
+        };
+        self.pending_metadata_bytes = self.pending_metadata_bytes.saturating_sub(
+            removed_pending
+                .saturating_add(removed_stages)
+                .saturating_mul(ORDER_ENTRY_METADATA_BYTES),
+        );
     }
 
     fn cancel_all_for_generation_gap(&mut self, report: &mut DynamicSceneAssetReloadDrainReport) {
@@ -650,25 +576,43 @@ impl DynamicSceneAssetReloadQueue {
     fn refresh_project_catalog_generation(
         &mut self,
         report: &mut DynamicSceneAssetReloadDrainReport,
-    ) {
-        let project = match &self.project_source {
-            super::DynamicSceneReloadProjectSource::AssetManager(asset_manager) => {
+    ) -> crate::core::CoreResult<()> {
+        let project = match self.project_source.resolve()? {
+            Some(asset_manager) => {
                 let Some(project) = asset_manager.current_project_manager() else {
-                    return;
+                    return Ok(());
                 };
                 project
             }
-            #[cfg(test)]
-            super::DynamicSceneReloadProjectSource::Static => return,
+            None => return Ok(()),
         };
         let sequence = project.catalog_input_generation().sequence();
         if sequence == self.catalog_generation_sequence {
-            return;
+            return Ok(());
         }
         self.project = project;
         self.catalog_generation_sequence = sequence;
         self.cancel_all_for_generation_gap(report);
         self.begin_reconciliation();
+        Ok(())
+    }
+
+    pub(super) fn fail_project_source(
+        &mut self,
+        error: crate::core::CoreError,
+    ) -> crate::core::CoreError {
+        if let Some(existing) = &self.source_error {
+            return existing.clone();
+        }
+        let mut report = DynamicSceneAssetReloadDrainReport::default();
+        self.cancel_all_for_generation_gap(&mut report);
+        self.carried_event = None;
+        self.reconciliation = None;
+        self.runtime_frame_wake_token = None;
+        report.source_error = Some(error.clone());
+        self.source_failure_report = Some(report);
+        self.source_error = Some(error.clone());
+        error
     }
 
     fn remove_deferred(&mut self, asset_id: AssetId) -> Option<DeferredReload> {
@@ -711,33 +655,4 @@ fn event_is_loadable(kind: AssetEventKind) -> bool {
         kind,
         AssetEventKind::Added | AssetEventKind::Modified | AssetEventKind::Renamed
     )
-}
-
-fn estimate_task_metadata_bytes(event: &AssetEvent<SceneAsset>, label: &str) -> usize {
-    std::mem::size_of::<DynamicSceneAssetReloadTask>()
-        .saturating_add(label.len())
-        .saturating_add(event.locator().map_or(0, locator_metadata_bytes))
-        .saturating_add(event.previous_locator().map_or(0, locator_metadata_bytes))
-}
-
-fn scene_asset_reload_label(
-    event: &AssetEvent<SceneAsset>,
-    uri: &crate::asset::AssetUri,
-) -> String {
-    format!(
-        "dynamic-scene-asset-reload:{}:{}@{}",
-        scene_asset_event_kind_label(event.event_kind()),
-        uri,
-        event.revision()
-    )
-}
-
-fn scene_asset_event_kind_label(kind: AssetEventKind) -> &'static str {
-    match kind {
-        AssetEventKind::Added => "added",
-        AssetEventKind::Modified => "modified",
-        AssetEventKind::Renamed => "renamed",
-        AssetEventKind::Removed => "removed",
-        AssetEventKind::ReloadFailed => "reload-failed",
-    }
 }

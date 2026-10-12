@@ -219,7 +219,7 @@ pub(super) fn to_host_contract_drag_overlay(
 
 pub(in crate::ui::retained_host::ui) fn to_host_contract_side_dock(
     dock: &host_window::HostSideDockSurfaceData,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
@@ -248,7 +248,7 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_side_dock(
         pane: to_host_contract_pane(
             dock.pane.clone(),
             pane_size,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -262,7 +262,7 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_side_dock(
 
 pub(super) fn to_host_contract_document_dock(
     dock: &host_window::HostDocumentDockSurfaceData,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
@@ -285,7 +285,7 @@ pub(super) fn to_host_contract_document_dock(
         pane: to_host_contract_pane(
             dock.pane.clone(),
             pane_size,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -297,7 +297,7 @@ pub(super) fn to_host_contract_document_dock(
 
 pub(in crate::ui::retained_host::ui) fn to_host_contract_bottom_dock(
     dock: &host_window::HostBottomDockSurfaceData,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
@@ -319,7 +319,7 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_bottom_dock(
         pane: to_host_contract_pane(
             dock.pane.clone(),
             pane_size,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -332,7 +332,7 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_bottom_dock(
 
 pub(super) fn to_host_contract_floating_layer(
     layer: &host_window::HostFloatingWindowLayerData,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
@@ -342,7 +342,7 @@ pub(super) fn to_host_contract_floating_layer(
         floating_windows: to_host_contract_floating_windows(
             &layer.floating_windows,
             layer.header_height_px,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -361,7 +361,7 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_host_scene_data(
         pane_data_conversion::ModulePluginsPaneProjectionCache::default();
     to_host_contract_host_scene_data_with_runtime(
         scene,
-        None,
+        crate::ui::retained_host::ui::PaneRuntimeContext::default(),
         None,
         "",
         &mut console_projection_cache,
@@ -371,7 +371,7 @@ pub(in crate::ui::retained_host::ui) fn to_host_contract_host_scene_data(
 
 pub(super) fn to_host_contract_host_scene_data_with_runtime(
     scene: &host_window::HostWindowSceneData,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
@@ -413,7 +413,7 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_left_dock");
         to_host_contract_side_dock(
             &scene.left_dock,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -424,7 +424,7 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_document_dock");
         to_host_contract_document_dock(
             &scene.document_dock,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -435,7 +435,7 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_right_dock");
         to_host_contract_side_dock(
             &scene.right_dock,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -446,7 +446,7 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_bottom_dock");
         to_host_contract_bottom_dock(
             &scene.bottom_dock,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -457,7 +457,7 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_floating_layer");
         to_host_contract_floating_layer(
             &scene.floating_layer,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -472,7 +472,7 @@ pub(super) fn to_host_contract_host_scene_data_with_runtime(
             .map(|leaf| {
                 to_host_contract_document_dock(
                     leaf,
-                    component_showcase_runtime,
+                    pane_runtimes,
                     welcome,
                     hierarchy_filter_query,
                     console_projection_cache,
@@ -686,7 +686,7 @@ fn to_host_contract_bottom_dock_geometry(
 
 pub(super) fn to_host_contract_native_floating_surface_data_with_runtime(
     surface: &host_window::HostNativeFloatingWindowSurfaceData,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
@@ -696,7 +696,7 @@ pub(super) fn to_host_contract_native_floating_surface_data_with_runtime(
         floating_windows: to_host_contract_floating_windows(
             &surface.floating_windows,
             surface.header_height_px,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,

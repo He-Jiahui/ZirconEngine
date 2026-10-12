@@ -20,10 +20,12 @@ impl RenderExtractProducer for LevelSystem {
                 .animation_poses()
                 .iter()
                 .filter_map(|(&entity, pose)| {
+                    if !world.has_mesh_node_for_extract(entity) {
+                        return None;
+                    }
+
                     world
-                        .find_node(entity)
-                        .filter(|node| node.mesh.is_some())
-                        .and_then(|_| world.animation_skeleton(entity))
+                        .animation_skeleton(entity)
                         .map(|skeleton| RenderSkeletalPoseExtract {
                             entity,
                             skeleton: skeleton.skeleton.id(),

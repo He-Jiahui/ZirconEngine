@@ -15,6 +15,7 @@ pub(super) struct SegmentedRenderState {
     visual_state: UiPainterResolvedState,
     active: bool,
     surface_hot: bool,
+    focus_visible: bool,
 }
 
 impl SegmentedRenderState {
@@ -40,6 +41,7 @@ impl SegmentedRenderState {
             family,
             visual_state: painter_state.resolved_state_for_family(family),
             active: selected,
+            focus_visible: painter_state.focus_visible,
             surface_hot: painter_state.hovered
                 || painter_state.open
                 || painter_state.dragging
@@ -72,6 +74,10 @@ impl SegmentedRenderState {
 
     pub(super) fn focused(self) -> bool {
         matches!(self.visual_state, UiPainterResolvedState::Focused)
+    }
+
+    pub(super) fn focus_visible(self) -> bool {
+        self.focus_visible && !self.unavailable()
     }
 
     pub(super) fn surface_hot(self) -> bool {

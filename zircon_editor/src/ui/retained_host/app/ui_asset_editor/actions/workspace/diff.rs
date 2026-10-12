@@ -1,4 +1,5 @@
 use super::{RetainedEditorHost, UiAssetActionDispatch};
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -11,9 +12,10 @@ impl RetainedEditorHost {
             return UiAssetActionDispatch::Unhandled;
         }
 
-        match self
-            .editor_manager
-            .open_ui_asset_editor_diff_snapshot(instance_id)
+        match self.editor_manager
+            .enter()
+            .map_err(EditorError::from)
+            .and_then(|manager| manager.open_ui_asset_editor_diff_snapshot(instance_id))
         {
             Ok(Some(snapshot)) => {
                 self.set_status_line(snapshot.summary);

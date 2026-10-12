@@ -20,6 +20,7 @@ mod atlas_pages;
 mod distance_field;
 mod dynamic_batch;
 mod font_asset_cache;
+mod font_metrics;
 mod glyph_cache;
 mod glyph_metrics;
 mod model;
@@ -30,6 +31,7 @@ mod source_context;
 use atlas_pages::SdfPersistentAtlasCache;
 use dynamic_batch::SdfDynamicGenerationTotals;
 use font_asset_cache::{SdfFontAssetFaceCache, SdfFontAssetLoadError};
+use font_metrics::SdfFontMetrics;
 use glyph_metrics::{fallback_metrics, glyph_metrics};
 use offline_source::{SdfOfflineSourceCache, SdfOfflineSourceCacheReport};
 use prepared_atlas::SdfPreparedAtlasCache;
@@ -53,7 +55,7 @@ struct SdfShapedFontResolution {
 pub(crate) struct SdfFontBakeCache {
     font_collection: Arc<FontCollectionService>,
     observed_font_generation: u64,
-    fonts: HashMap<FontFaceId, fontsdf::Font>,
+    fonts: HashMap<FontFaceId, SdfFontMetrics>,
     glyphs: HashMap<SdfAtlasGlyphKey, RawBakedGlyph>,
     // One LRU key domain bounds bitmap glyphs and all CPU-side glyph sidecars together.
     baked_glyph_recency: HashMap<SdfAtlasGlyphKey, u64>,
@@ -306,9 +308,9 @@ impl SdfFontBakeCache {
                 .copied()
                 .flatten()
                 .map(|resolution| resolution.face);
-            let index = glyph_index(font, key, face, resolved_shaped_face);
-            let metrics = font.metrics_indexed_sdf(index, px);
-            return glyph_metrics(font, px, metrics);
+            let parsed = font.borrow_dependent();
+            let index = glyph_index(parsed, key, face, resolved_shaped_face);
+            return glyph_metrics(parsed, px, ttf_parser::GlyphId(index));
         }
         fallback_metrics(px)
     }
@@ -510,7 +512,9 @@ impl SdfFontBakeCache {
         let Some(font) = font_database
             .standalone_face_bytes(face)
             .ok()
-            .and_then(|bytes| fontsdf::Font::from_bytes(bytes.as_ref()).ok())
+            .and_then(|bytes| {
+                SdfFontMetrics::try_new(bytes, |bytes| ttf_parser::Face::parse(bytes, 0)).ok()
+            })
         else {
             return false;
         };
@@ -648,7 +652,7 @@ fn shaped_glyph_id_for_face(
 }
 
 fn glyph_index(
-    font: &fontsdf::Font,
+    font: &ttf_parser::Face<'_>,
     key: &SdfAtlasGlyphKey,
     face: FontFaceId,
     resolved_shaped_face: Option<FontFaceId>,
@@ -656,11 +660,7 @@ fn glyph_index(
     if let Some(glyph_id) = shaped_glyph_id_for_face(key, face, resolved_shaped_face) {
         return glyph_id;
     }
-    if font.chars().contains_key(&key.glyph) {
-        font.lookup_glyph_index(key.glyph)
-    } else {
-        0
-    }
+    font.glyph_index(key.glyph).map_or(0, |index| index.0)
 }
 
 #[cfg(test)]

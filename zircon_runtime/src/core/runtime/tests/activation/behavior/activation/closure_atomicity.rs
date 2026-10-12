@@ -11,7 +11,7 @@ struct ProviderCleanupSignal {
 }
 
 impl ModuleLifecycle for ProviderCleanupSignal {
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         if let Some(sender) = self.cleanup_started.lock().unwrap().take() {
             sender.send(()).unwrap();
         }
@@ -203,7 +203,7 @@ impl ModuleLifecycle for BlockingProviderLifecycle {
         Ok(())
     }
 
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         if let Some(sender) = self.cleanup_started.lock().unwrap().take() {
             sender.send(()).unwrap();
         }
@@ -1232,7 +1232,7 @@ struct RetryCleanup {
 }
 
 impl ModuleLifecycle for RetryCleanup {
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         if self.failed.swap(false, Ordering::AcqRel) {
             Err(CoreError::MissingConfig("retry.batch.cleanup".to_owned()))
         } else {
@@ -1321,7 +1321,7 @@ struct SequencedCleanup {
 }
 
 impl ModuleLifecycle for SequencedCleanup {
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         self.events.lock().unwrap().push(self.name);
         if self.failed.swap(false, Ordering::AcqRel) {
@@ -1790,7 +1790,7 @@ impl ModuleLifecycle for GatedFinish {
         }
     }
 
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         self.cleanup_calls.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }

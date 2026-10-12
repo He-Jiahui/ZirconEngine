@@ -21,6 +21,7 @@ mod task_pool_kind;
 mod task_state;
 mod task_status;
 mod thread_assignment;
+mod thread_budget;
 mod thread_completion;
 mod timer;
 
@@ -88,6 +89,7 @@ pub use task_pool_kind::TaskPoolKind;
 pub use task_state::TaskState;
 pub use task_status::TaskStatus;
 pub use thread_assignment::{TaskPoolOptions, TaskPoolThreadAssignmentPolicy};
+pub use thread_budget::EngineThreadBudget;
 pub use thread_completion::thread_is_join_ready;
 pub(crate) use timer::{TaskTimer, TaskTimerSubscription};
 

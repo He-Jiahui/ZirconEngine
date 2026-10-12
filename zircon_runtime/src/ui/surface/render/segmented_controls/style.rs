@@ -19,6 +19,7 @@ pub(super) struct SegmentedVisual {
     pub(super) border: UiRgbaColor,
     pub(super) selected_surface: UiRgbaColor,
     pub(super) focus_border: UiRgbaColor,
+    pub(super) focus_border_width: f32,
     pub(super) selected_border: UiRgbaColor,
     pub(super) selected_underline: UiRgbaColor,
     pub(super) hover: UiRgbaColor,
@@ -83,6 +84,9 @@ impl SegmentedVisual {
             .unwrap_or(visual.text_disabled);
         visual.group_label =
             first_rgba_attribute(metadata, &["label_color"]).unwrap_or(visual.group_label);
+        visual.focus_border_width = metric_attribute(metadata, "focus_border_width")
+            .filter(|value| *value >= 0.0)
+            .unwrap_or(visual.focus_border_width);
         visual.border_width = metric_attribute(metadata, "border_width")
             .filter(|value| *value >= 0.0)
             .unwrap_or(visual.border_width);
@@ -151,7 +155,8 @@ fn default_segmented_visual() -> &'static SegmentedVisual {
             background: colors.surface[2],
             border: colors.border,
             selected_surface: colors.surface_selected,
-            focus_border: colors.accent,
+            focus_border: colors.focus_ring,
+            focus_border_width: controls.border_width,
             selected_border: colors.accent,
             selected_underline: colors.accent,
             hover: colors.surface_hover,

@@ -34,8 +34,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         resource_change_events,
     } = startup_managers;
     let interaction = StartupInteractionState::new(viewport_size);
-    let editor_jobs = editor_manager.context().jobs().clone();
-    let editor_tools = editor_manager.context().tools().clone();
+    let editor_jobs = runtime.context().jobs().clone();
+    let editor_tools = runtime.context().tools().clone();
     viewport.bind_jobs(editor_jobs.clone());
     let hub_focus_request_attention: Arc<dyn Fn() + Send + Sync> = {
         let attention = ui.window().window_attention();

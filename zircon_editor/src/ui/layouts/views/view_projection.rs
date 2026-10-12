@@ -20,7 +20,7 @@ mod visual_assets;
 
 pub(crate) use build::{
     build_view_template_node_projection, build_view_template_node_projection_with_patches,
-    compose_view_template_node_model,
+    compose_view_template_node_model, UnrealDockHeaderSource,
 };
 #[cfg(test)]
 pub(crate) use build::{

@@ -10,9 +10,21 @@ impl RetainedEditorHost {
         value: &str,
     ) {
         self.focus_callback_source_window();
+        if self.dispatch_generated_bottom_action_token(control_id, binding_id, Some(value)) {
+            return;
+        }
+        let scene_search_binding_id = if control_id == "WorkbenchSceneSearchField" {
+            self.workbench_window_bridge
+                .binding_id_for_action_id(binding_id)
+        } else {
+            None
+        };
         if matches!(
-            binding_id,
-            "Workbench/SceneSearchEdit" | "Workbench/SceneSearchCommit"
+            scene_search_binding_id.as_deref().unwrap_or(binding_id),
+            "Workbench/SceneSearchEdit"
+                | "Workbench/SceneSearchCommit"
+                | "Workbench/SceneSearchEditFromShell"
+                | "Workbench/SceneSearchCommitFromShell"
         ) {
             self.set_hierarchy_filter_query(value);
             return;

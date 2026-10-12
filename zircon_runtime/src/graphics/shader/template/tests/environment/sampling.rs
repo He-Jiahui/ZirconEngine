@@ -1,3 +1,4 @@
+//! 检查环境采样的函数归属与提前退出条件；builtin 裁剪用 standard surface 构造，custom surface 即使带 ENVIRONMENT_ONLY_PBR 也保留 generic 闭包。
 use super::*;
 
 #[test]

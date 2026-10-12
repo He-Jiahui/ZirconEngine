@@ -317,7 +317,7 @@ fn malformed_completion_sets_are_rejected_before_dirty_state_changes() {
             &dirty,
             transactions.as_ref(),
         ),
-        Err(SaveDirtyViewsApplyError::UnknownCompletion { document: unknown })
+        Err(SaveDirtyViewsApplyError::UnknownCompletion { document: unknown, .. })
             if unknown == document(9)
     ));
     assert!(dirty.snapshot(document(1)).unwrap().is_dirty());
@@ -331,7 +331,7 @@ fn malformed_completion_sets_are_rejected_before_dirty_state_changes() {
             &dirty,
             transactions.as_ref(),
         ),
-        Err(SaveDirtyViewsApplyError::DuplicateCompletion { document: duplicate })
+        Err(SaveDirtyViewsApplyError::DuplicateCompletion { document: duplicate, .. })
             if duplicate == document(1)
     ));
     assert!(dirty.snapshot(document(1)).unwrap().is_dirty());

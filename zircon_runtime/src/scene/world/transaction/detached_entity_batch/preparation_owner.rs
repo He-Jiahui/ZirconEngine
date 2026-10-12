@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 /// A runtime-only identity retained by outstanding preparations across World moves.
 #[derive(Clone, Debug, Default)]
-pub(in crate::scene::world) struct DetachPreparationOwner(Arc<()>);
+pub(crate) struct DetachPreparationOwner(Arc<()>);
 
 impl DetachPreparationOwner {
-    pub(super) fn is_same_world(&self, other: &Self) -> bool {
+    pub(crate) fn is_same_world(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.0, &other.0)
     }
 }

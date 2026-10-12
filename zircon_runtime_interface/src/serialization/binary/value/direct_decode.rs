@@ -13,7 +13,7 @@ use super::{BinaryNode, BinaryValue, BinaryValueError};
 
 #[derive(Debug)]
 pub(in crate::serialization) enum DirectBinaryDecodeError {
-    Malformed(bincode::Error),
+    Malformed(crate::serialization::PositionalDecodeError),
     Invalid(BinaryValueError),
     Payload(String),
 }

@@ -1,10 +1,13 @@
 use std::collections::BTreeSet;
 
 mod compact_styles;
+mod font_snapshot;
 mod image_resources;
 mod text_layout;
+pub use font_snapshot::{UiSurfaceFontSnapshot, UiSurfaceFontSource};
 pub use text_layout::{
     UiSurfaceTextFace, UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot, UiSurfaceTextLine,
+    UiSurfaceTextRequest,
 };
 
 use compact_styles::{compact_commands, resolved_kind};
@@ -232,9 +235,19 @@ pub struct UiSurfaceDrawList {
     generation: Option<u64>,
     styles: Vec<UiSurfaceStyle>,
     image_resources: UiSurfaceImageResourceTable,
+    font_snapshot: Option<UiSurfaceFontSnapshot>,
 }
 
 impl UiSurfaceDrawList {
+    pub fn with_font_snapshot(mut self, snapshot: UiSurfaceFontSnapshot) -> Self {
+        self.font_snapshot = Some(snapshot);
+        self
+    }
+
+    pub fn font_snapshot(&self) -> Option<&UiSurfaceFontSnapshot> {
+        self.font_snapshot.as_ref()
+    }
+
     pub fn new(
         surface_size: (u32, u32),
         damage: Option<UiSurfaceRect>,
@@ -250,6 +263,7 @@ impl UiSurfaceDrawList {
             generation: None,
             styles: Vec::new(),
             image_resources: UiSurfaceImageResourceTable::default(),
+            font_snapshot: None,
         }
     }
 
@@ -274,6 +288,7 @@ impl UiSurfaceDrawList {
             generation: Some(generation),
             styles: Vec::new(),
             image_resources: UiSurfaceImageResourceTable::default(),
+            font_snapshot: None,
         }
     }
 
@@ -354,6 +369,7 @@ impl UiSurfaceDrawList {
             generation,
             styles,
             image_resources,
+            font_snapshot: None,
         }
     }
 
@@ -728,7 +744,56 @@ pub struct UiSurfacePresentStats {
     pub presented_frame_count: u64,
 }
 
+/// Opt-in capture of a normal submitted surface frame; unsupported backends reject it.
+#[derive(Clone, Debug)]
+pub struct UiSurfaceFrameReadbackRequest {
+    pub nonce: String,
+    pub physical_size: (u32, u32),
+    pub expected_draw_generation: Option<u64>,
+    pub deadline_ms: u64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UiSurfaceFramePixelFormat {
+    Rgba8Srgb,
+    Bgra8Srgb,
+    Rgba8Linear,
+    Bgra8Linear,
+}
+
+/// Bytes and receipt come from the same actual normal surface submission.
+/// This observation alone does not verify compositor or desktop screenshot pixels.
+#[derive(Debug)]
+pub struct UiSurfaceFrameReadback {
+    pub request: UiSurfaceFrameReadbackRequest,
+    pub surface_epoch: u64,
+    pub present_index: u64,
+    pub submission: Option<crate::SubmissionTicket>,
+    pub receipt: Option<crate::DiagnosticReadbackReceipt>,
+    pub pixel_format: Option<UiSurfaceFramePixelFormat>,
+    /// Original tightly packed GPU bytes in pixel_format order; no conversion or gamma change.
+    pub color8: Option<Vec<u8>>,
+    pub opaque_pixels: Option<bool>,
+    pub surface_alpha_mode: String,
+    pub native_target: Option<crate::RenderNativeSurfaceTarget>,
+    pub failure: Option<String>,
+}
+
 pub trait UiSurfacePresenter: Send {
+    fn request_frame_readback(
+        &mut self,
+        _request: UiSurfaceFrameReadbackRequest,
+    ) -> Result<(), RhiError> {
+        Err(RhiError::SurfaceUnavailable(
+            "normal frame readback unsupported".into(),
+        ))
+    }
+    /// One bounded completion-owner operation; callers schedule their existing event-loop wake.
+    fn drain_frame_readback(&mut self) -> Result<Option<UiSurfaceFrameReadback>, RhiError> {
+        Ok(None)
+    }
+    fn cancel_frame_readback(&mut self, _reason: &str) {}
+
     fn resize(&mut self, width: u32, height: u32) -> Result<(), RhiError>;
     /// Returns whether the runtime-owned UI registry can render this exact resource revision
     /// without another producer-side pixel payload.
@@ -753,6 +818,19 @@ pub trait UiSurfacePresenter: Send {
 }
 
 impl<T: UiSurfacePresenter + ?Sized> UiSurfacePresenter for Box<T> {
+    fn request_frame_readback(
+        &mut self,
+        request: UiSurfaceFrameReadbackRequest,
+    ) -> Result<(), RhiError> {
+        self.as_mut().request_frame_readback(request)
+    }
+    fn drain_frame_readback(&mut self) -> Result<Option<UiSurfaceFrameReadback>, RhiError> {
+        self.as_mut().drain_frame_readback()
+    }
+    fn cancel_frame_readback(&mut self, reason: &str) {
+        self.as_mut().cancel_frame_readback(reason);
+    }
+
     fn resize(&mut self, width: u32, height: u32) -> Result<(), RhiError> {
         self.as_mut().resize(width, height)
     }

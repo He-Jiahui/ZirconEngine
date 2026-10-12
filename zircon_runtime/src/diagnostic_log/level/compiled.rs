@@ -48,14 +48,13 @@ impl CompiledDiagnosticLogFilter {
         self.nodes[node_index].filter = Some(filter);
     }
 
-    // 沿 scope 的字节路径保留最后命中的过滤值；路径缺失或输入耗尽时结束，未命中则沿用全局 minimum。
+    // 先应用根节点的空前缀规则或全局 minimum，再沿 scope 的字节路径保留最长命中的过滤值。
     fn filter_for_scope(&self, scope: &str) -> DiagnosticLogFilter {
-        // BUG: [CR-LOG-EMPTY-PREFIX-0001] 手工配置空前缀 Off 且全局级别开启时，规则写入根节点却被查询跳过，日志仍可入队；公开 filter_for_scope 对该前缀返回 Off。
+        let mut filter = self.nodes[0].filter.unwrap_or(self.minimum);
         if self.nodes.len() == 1 {
-            return self.minimum;
+            return filter;
         }
 
-        let mut filter = self.minimum;
         let mut node_index = 0;
         for byte in scope.as_bytes() {
             let Some(next) = self.nodes[node_index].children.get(byte).copied() else {

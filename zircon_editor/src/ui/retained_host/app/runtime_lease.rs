@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use zircon_runtime::core::runtime::ServiceHandle;
 
 use zircon_runtime::core::{CoreError, CoreHandle, CoreWeak};
 
@@ -50,9 +50,9 @@ impl RetainedHostStartupRuntimeAccess {
         RetainedHostAssetRuntimeAccess::new(&self.core()?)
     }
 
-    pub(super) fn editor_manager(&self) -> Result<Arc<EditorManager>, CoreError> {
+    pub(super) fn editor_manager(&self) -> Result<ServiceHandle<EditorManager>, CoreError> {
         self.core()?
-            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
     }
 
     fn core(&self) -> Result<CoreHandle, CoreError> {

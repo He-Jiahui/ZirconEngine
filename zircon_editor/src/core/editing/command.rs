@@ -8,7 +8,8 @@ use zircon_runtime::scene::components::{CameraComponent, NodeKind, NodeRecord};
 use zircon_runtime::scene::{DetachedEntityBatch, NodeId, Scene, SceneError};
 use zircon_runtime_interface::math::Transform;
 use zircon_runtime_interface::reflect::{
-    ReflectFieldId, ReflectObjectAddress, ReflectReadRequest, ReflectWriteRequest, ReflectedValue,
+    ReflectError, ReflectFieldId, ReflectObjectAddress, ReflectReadRequest, ReflectWriteRequest,
+    ReflectedValue,
 };
 use zircon_runtime_interface::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 
@@ -253,12 +254,15 @@ fn execute_scene_write<T>(
     context: &CoreEditContext,
     write: impl FnOnce(&mut Scene) -> Result<T, EditCommandError>,
 ) -> Result<SceneWriteCompletion<T>, CommandExecutionError> {
-    let (result, post_callback_error) = context
+    let (result, post_callback_errors) = context
         .with_scene_mut(write)
         .map_err(unchanged)?
         .into_parts();
-    let value = result.map_err(unchanged)?;
-    Ok(match post_callback_error {
+    let value = match result {
+        Ok(value) => value,
+        Err(error) => return Err(scene_write_failure(error, post_callback_errors)),
+    };
+    Ok(match post_callback_errors.into_iter().next() {
         Some(error) => SceneWriteCompletion::AppliedThenGatewayFailed { value, error },
         None => SceneWriteCompletion::Completed(value),
     })
@@ -297,7 +301,7 @@ impl CreateNodeCommand {
             match execute_scene_write(context, move |scene| {
                 scene
                     .insert_node_record(record)
-                    .map_err(|error| external_error(error.to_string()))
+                    .map_err(|error| external_scene_error("restore created scene node", error))
             })? {
                 SceneWriteCompletion::Completed(()) => {}
                 SceneWriteCompletion::AppliedThenGatewayFailed { error, .. } => {
@@ -323,7 +327,11 @@ impl CreateNodeCommand {
             match scene.node_record(node_id) {
                 Some(record) => Ok(record),
                 None => {
-                    let _ = scene.remove_entity(node_id);
+                    if let Err(error) = scene.remove_entity(node_id) {
+                        if error.lifecycle_target_change().is_some() {
+                            return Err(scene_error("clean up missing created scene node", error));
+                        }
+                    }
                     Err(EditCommandError::TargetMissing {
                         target: format!("created node {node_id}"),
                     })
@@ -354,7 +362,7 @@ impl CreateNodeCommand {
         match execute_scene_write(context, |scene| {
             scene
                 .remove_entity(node_id)
-                .map_err(|error| external_error(error.to_string()))
+                .map_err(|error| external_scene_error("remove created scene node", error))
         })? {
             SceneWriteCompletion::Completed(()) => Ok(()),
             SceneWriteCompletion::AppliedThenGatewayFailed { error, .. } => Err(applied(error)),
@@ -437,6 +445,7 @@ impl DeleteNodeCommand {
         let before = context.scene_selection().map_err(unchanged)?;
         let root_id = self.root_id;
         let fallback = self.fallback_selection;
+        let mut retained = None;
         let completion = execute_scene_write(context, |scene| {
             let prepared = scene
                 .prepare_entity_subtrees([root_id])
@@ -446,9 +455,14 @@ impl DeleteNodeCommand {
                     invariant: "cannot delete the last remaining camera",
                 });
             }
-            let batch = scene
-                .remove_prepared_entity_subtrees(prepared)
-                .map_err(|error| scene_error("detach scene subtree", error))?;
+            let batch = match scene.remove_prepared_entity_subtrees(prepared) {
+                Ok(batch) => batch,
+                Err(error) => {
+                    let (source, batch) = error.into_parts();
+                    retained = batch;
+                    return Err(scene_error("detach scene subtree", source));
+                }
+            };
             let active_camera = scene.active_camera();
             let mut items = before
                 .items()
@@ -466,8 +480,9 @@ impl DeleteNodeCommand {
                 .filter(|node| items.contains(node))
                 .or_else(|| items.first().copied());
             Ok((batch, SceneSelection::new(items, primary)))
-        })?;
-        let ((batch, surviving), post_callback_error) = match completion {
+        });
+        self.batch = retained;
+        let ((batch, surviving), post_callback_error) = match completion? {
             SceneWriteCompletion::Completed(value) => (value, None),
             SceneWriteCompletion::AppliedThenGatewayFailed { value, error } => (value, Some(error)),
         };
@@ -495,24 +510,24 @@ impl DeleteNodeCommand {
                 })?;
             scene.restore_detached_entity_batch(batch).map_err(|error| {
                 let (source, batch) = error.into_parts();
-                retained = Some(batch);
+                retained = batch;
                 scene_error("restore detached entity batch", source)
             })
         });
         match restore {
             Ok(outcome) => {
-                let (result, post_callback_error) = outcome.into_parts();
+                let (result, post_callback_errors) = outcome.into_parts();
                 match result {
                     Ok(()) => {
                         self.batch = retained;
-                        match post_callback_error {
+                        match post_callback_errors.into_iter().next() {
                             Some(error) => Err(applied(error)),
                             None => Ok(()),
                         }
                     }
                     Err(error) => {
                         self.batch = retained;
-                        Err(unchanged(error))
+                        Err(scene_write_failure(error, post_callback_errors))
                     }
                 }
             }
@@ -675,17 +690,17 @@ fn apply_node_state(
     if before.parent != after.parent {
         scene
             .set_parent_checked(node_id, after.parent)
-            .map_err(|error| external_error(error.to_string()))?;
+            .map_err(|error| external_scene_error("update scene node parent", error))?;
     }
     if before.name != after.name {
         scene
             .rename_node(node_id, after.name.clone())
-            .map_err(|error| external_error(error.to_string()))?;
+            .map_err(|error| external_scene_error("rename scene node", error))?;
     }
     if before.transform != after.transform {
         scene
             .update_transform(node_id, after.transform)
-            .map_err(|error| external_error(error.to_string()))?;
+            .map_err(|error| external_scene_error("update scene node transform", error))?;
     }
     Ok(())
 }
@@ -854,7 +869,7 @@ fn resolve_editable_reflected_field_id(
 ) -> Result<ReflectFieldId, EditCommandError> {
     let schema = scene
         .reflect_schema(component_type_path)
-        .map_err(|error| reflect_error(error.to_string()))?;
+        .map_err(reflect_source_error)?;
     let field = schema
         .type_info
         .fields
@@ -880,11 +895,11 @@ fn read_reflected_component_field(
     field_id: ReflectFieldId,
 ) -> Result<ReflectedValue, EditCommandError> {
     let address = ReflectObjectAddress::component(node_id, component_type_path)
-        .map_err(|error| reflect_error(error.to_string()))?;
+        .map_err(reflect_source_error)?;
     scene
         .reflect_read(ReflectReadRequest::new(address, field_id))
         .map(|response| response.field.value)
-        .map_err(|error| reflect_error(error.to_string()))
+        .map_err(reflect_source_error)
 }
 
 fn write_reflected_component_field(
@@ -895,11 +910,11 @@ fn write_reflected_component_field(
     value: ReflectedValue,
 ) -> Result<bool, EditCommandError> {
     let address = ReflectObjectAddress::component(node_id, component_type_path)
-        .map_err(|error| reflect_error(error.to_string()))?;
+        .map_err(reflect_source_error)?;
     scene
         .reflect_write(ReflectWriteRequest::new(address, field_id, value))
         .map(|response| response.changed)
-        .map_err(|error| reflect_error(error.to_string()))
+        .map_err(reflect_source_error)
 }
 
 fn core_context(
@@ -922,8 +937,53 @@ fn unchanged(source: EditCommandError) -> CommandExecutionError {
     }
 }
 
+fn lifecycle_interrupted(source: &EditCommandError) -> bool {
+    if source.is_interrupted() {
+        return true;
+    }
+    match source {
+        EditCommandError::SceneMutation { source, .. } => {
+            source.lifecycle_target_change().is_some()
+        }
+        EditCommandError::ReflectError { source } => source
+            .downcast_ref::<ReflectError>()
+            .is_some_and(|error| error.lifecycle_target_change().is_some()),
+        EditCommandError::RollbackFailed {
+            command_error,
+            rollback_error,
+        } => lifecycle_interrupted(command_error) || lifecycle_interrupted(rollback_error),
+        _ => false,
+    }
+}
+
+fn scene_write_failure(
+    source: EditCommandError,
+    post_callback_errors: Vec<EditCommandError>,
+) -> CommandExecutionError {
+    if lifecycle_interrupted(&source) {
+        let mut interrupted = CommandExecutionError::interrupted(source);
+        for post_callback_error in post_callback_errors {
+            interrupted = CommandExecutionError::interrupted_with_post_callback_error(
+                interrupted.into_source(),
+                Some(post_callback_error),
+            );
+        }
+        interrupted
+    } else {
+        unchanged(source)
+    }
+}
+
 fn applied(source: EditCommandError) -> CommandExecutionError {
     CommandExecutionError::applied(source)
+}
+
+fn external_scene_error(operation: &'static str, source: SceneError) -> EditCommandError {
+    if source.lifecycle_target_change().is_some() {
+        scene_error(operation, source)
+    } else {
+        external_error(source.to_string())
+    }
 }
 
 fn scene_error(operation: &'static str, source: SceneError) -> EditCommandError {
@@ -933,6 +993,12 @@ fn scene_error(operation: &'static str, source: SceneError) -> EditCommandError 
 fn external_error(message: String) -> EditCommandError {
     EditCommandError::ExternalEffect {
         source: Box::new(io::Error::other(message)),
+    }
+}
+
+fn reflect_source_error(source: ReflectError) -> EditCommandError {
+    EditCommandError::ReflectError {
+        source: Box::new(source),
     }
 }
 

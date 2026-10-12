@@ -1,16 +1,16 @@
-$script:ProfileCaptureScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-capture.ps1"
-$script:ProfileCapturePaths = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-paths.ps1"
-$script:ProfileProductDirectory = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-product-directory.ps1"
-$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-manifest.ps1"
-$script:ProfileCaptureScenarios = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-scenarios.ps1"
-$script:ProfileNativeInteraction = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-native-resize.ps1"
-$script:ProfileHierarchyFilterInput = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-hierarchy-filter-input.ps1"
-$script:ProfileHierarchyFilterMetrics = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-hierarchy-filter-metrics.ps1"
-$script:ProfileLatencyEvidence = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-latency-evidence.ps1"
-$script:ProfileProcessEvidence = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-process-evidence.ps1"
-$script:ProfileCounterEvidence = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-counter-evidence.ps1"
-$script:ProfileWorkbenchPointerEvidence = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-workbench-pointer-evidence.ps1"
-$script:ProfileScaleFixture = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-scale-fixture.ps1"
+$script:ProfileCaptureScript = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-capture.ps1"
+$script:ProfileCapturePaths = Join-Path $PSScriptRoot "..\analysis\profiling\shared\profile-capture-paths.ps1"
+$script:ProfileProductDirectory = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-product-directory.ps1"
+$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\analysis\profiling\shared\profile-capture-manifest.ps1"
+$script:ProfileCaptureScenarios = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-scenarios.ps1"
+$script:ProfileNativeInteraction = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-native-resize.ps1"
+$script:ProfileHierarchyFilterInput = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-hierarchy-filter-input.ps1"
+$script:ProfileHierarchyFilterMetrics = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-hierarchy-filter-metrics.ps1"
+$script:ProfileLatencyEvidence = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-latency-evidence.ps1"
+$script:ProfileProcessEvidence = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-process-evidence.ps1"
+$script:ProfileCounterEvidence = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-counter-evidence.ps1"
+$script:ProfileWorkbenchPointerEvidence = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-workbench-pointer-evidence.ps1"
+$script:ProfileScaleFixture = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-scale-fixture.ps1"
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $script:ProfileCounterEvidenceSource = @(
     if (Test-Path -LiteralPath $script:ProfileCounterEvidence) {
@@ -169,21 +169,16 @@ Describe "ui-profile-capture output contract" {
         $scenarioSource | Should Not Match 'New-Item'
     }
 
-    It "accepts only E drive profile output roots" {
-        Get-Command Resolve-ZirconProfileOutputRoot -ErrorAction SilentlyContinue | Should Not BeNullOrEmpty
-
-        Resolve-ZirconProfileOutputRoot -RepoRoot 'E:\Git\ZirconEngine' -Path 'E:\zircon-profiles' |
-            Should Be 'E:\zircon-profiles'
-        Resolve-ZirconProfileOutputRoot -RepoRoot 'E:\Git\ZirconEngine' -Path 'E:\zircon-profiles\run-001' |
-            Should Be 'E:\zircon-profiles\run-001'
-
-        foreach ($unsafePath in @(
-            'target\zircon-profiles',
-            'E:\zircon-profiles-sibling',
-            'E:\zircon-profiles\..\target'
-        )) {
-            { Resolve-ZirconProfileOutputRoot -RepoRoot 'E:\Git\ZirconEngine' -Path $unsafePath } |
-                Should Throw 'Profile output root must resolve beneath E:\zircon-profiles.'
+    It "accepts only literal physical local cargo output roots" {
+        $root = 'D:\cargo-targets\zircon-local'
+        Resolve-ZirconProfileOutputRoot -RepoRoot $script:RepoRoot -Path $root | Should Be $root
+        Resolve-ZirconProfileOutputRoot -RepoRoot $script:RepoRoot -Path ($root + '\profiles\run-001') |
+            Should Be ($root + '\profiles\run-001')
+        foreach ($unsafePath in @('target\zircon-profiles', 'E:\zircon-profiles',
+                'D:\targets\profile', 'D:\ZirconBuilds\profile',
+                'D:\cargo-targets\zircon-local-sibling\profile',
+                'D:\cargo-targets\zircon-local\..\escape')) {
+            { Resolve-ZirconProfileOutputRoot -RepoRoot $script:RepoRoot -Path $unsafePath } | Should Throw
         }
     }
 
@@ -2259,9 +2254,25 @@ Describe "ui-profile-capture output contract" {
         ($enableCaptureIndex -lt $exportManifestIndex) | Should Be $true
     }
 
-    It "exports verification screenshots beneath docs tests editor" {
-        $script:ProfileCaptureSource | Should Match "profile-captures"
-        $script:ProfileCaptureSource | Should Match "Export-VerificationScreenshots"
+    It "keeps the verification screenshot destination inside the validated output" {
+        $tokens = $null
+        $parseErrors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseInput(
+            $script:ProfileCaptureSource, [ref]$tokens, [ref]$parseErrors)
+        @($parseErrors).Count | Should Be 0
+        $assignment = $ast.Find({
+                param($node)
+                $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+                    $node.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
+                    $node.Left.VariablePath.UserPath -eq 'VerificationScreenshotRoot'
+            }, $true)
+        $assignment | Should Not BeNullOrEmpty
+        $OutputPath = Resolve-ZirconProfileOutputRoot -RepoRoot $script:RepoRoot `
+            -Path 'D:\cargo-targets\zircon-local\profiles\output-contract'
+        Invoke-Expression $assignment.Extent.Text
+        $VerificationScreenshotRoot | Should Be (Join-Path $OutputPath 'verification-screenshots')
+        $VerificationScreenshotRoot.StartsWith($OutputPath + '\', [StringComparison]::OrdinalIgnoreCase) |
+            Should Be $true
     }
 
     It "binds only current repository source paths" {

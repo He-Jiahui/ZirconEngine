@@ -117,6 +117,87 @@ export function solveWeightedFlexWidths(
   );
 }
 
+export interface NativeLinearFlexAxis {
+  min: number;
+  max?: number | null;
+  basis: number;
+  grow: number;
+  shrink: number;
+}
+
+/** Arrange explicit linear slots using the current native Taffy flex contract.
+ * A node minimum is a clamp, while a Stretch slot's own minimum is its basis.
+ * Freeze clamped items and redistribute remaining room exactly as flex layout.
+ */
+export function solveNativeLinearFlexWidths(
+  available: number,
+  constraints: readonly NativeLinearFlexAxis[],
+): number[] {
+  const room = Math.max(0, available);
+  const axes = constraints.map((axis) => {
+    const min = Math.max(0, axis.min);
+    const max = axis.max == null || axis.max < 0
+      ? Infinity : Math.max(min, axis.max);
+    const basis = Math.max(0, axis.basis);
+    return {
+      min, max, basis,
+      grow: Math.max(0, axis.grow),
+      shrink: Math.max(0, axis.shrink),
+      hypothetical: Math.max(min, Math.min(max, basis)),
+      target: basis,
+      frozen: false,
+    };
+  });
+  const growing = axes.reduce((sum, axis) => sum + axis.hypothetical, 0) < room;
+  for (const axis of axes) {
+    const factor = growing ? axis.grow : axis.shrink;
+    if (factor === 0 ||
+        (growing ? axis.basis > axis.hypothetical : axis.basis < axis.hypothetical)) {
+      axis.frozen = true;
+      axis.target = axis.hypothetical;
+    }
+  }
+  const freeSpace = () => room - axes.reduce(
+    (sum, axis) => sum + (axis.frozen ? axis.target : axis.basis), 0,
+  );
+  const initialFree = freeSpace();
+  for (let iteration = 0; iteration <= axes.length; iteration++) {
+    const active = axes.filter((axis) => !axis.frozen);
+    if (!active.length) break;
+    let remaining = freeSpace();
+    const factorSum = active.reduce(
+      (sum, axis) => sum + (growing ? axis.grow : axis.shrink), 0,
+    );
+    if (factorSum < 1) {
+      const partial = initialFree * factorSum;
+      if (Math.abs(partial) < Math.abs(remaining)) remaining = partial;
+    }
+    const scaledSum = active.reduce(
+      (sum, axis) => sum + (growing ? axis.grow : axis.shrink * axis.basis), 0,
+    );
+    const violations: Array<{axis: (typeof axes)[number]; value: number}> = [];
+    let totalViolation = 0;
+    for (const axis of active) {
+      const scaled = growing ? axis.grow : axis.shrink * axis.basis;
+      const proposed = axis.basis +
+        (scaledSum > 0 ? remaining * scaled / scaledSum : 0);
+      axis.target = Math.max(axis.min, Math.min(axis.max, proposed));
+      const value = axis.target - proposed;
+      totalViolation += value;
+      violations.push({axis, value});
+    }
+    if (Math.abs(totalViolation) <= 0.000001) {
+      active.forEach((axis) => { axis.frozen = true; });
+      break;
+    }
+    const freezeMin = totalViolation > 0;
+    for (const {axis, value} of violations) {
+      if (freezeMin ? value > 0 : value < 0) axis.frozen = true;
+    }
+  }
+  return axes.map(({target}) => Math.round(target * 1_000_000) / 1_000_000);
+}
+
 type ResolvedAxis = {
   min: number;
   max?: number;
@@ -318,6 +399,18 @@ export function applyWeightedFlexLayout(
       crossConstraint: axisConstraint(document, crossTable),
       desiredCross: desiredSizes?.get(nodeId)?.[cross] ?? child[cross],
       constraint,
+      explicitLinear: sizing !== undefined,
+      linearFlex: {
+        min: constraint.min,
+        max: constraint.max,
+        basis: sizing?.rule === 'Stretch'
+          ? Math.max(0, sizing.min ?? 0) + Math.max(0, mainPadding)
+          : Math.max(0, extent, inflated.preferred ?? 0),
+        grow: sizing
+          ? sizing.rule === 'Auto' ? 0 : Math.max(0, sizing.value ?? 1)
+          : inflated.stretchMode === 'Fixed' ? 0 : Math.max(0, inflated.weight ?? 1),
+        shrink: Math.max(0, sizing?.shrink_value ?? 1),
+      },
     };
   });
   if (entries.some((entry) => entry === null)) return;
@@ -334,17 +427,19 @@ export function applyWeightedFlexLayout(
           container.rowGap * (valid.length - 1)),
   );
   if (!Number.isFinite(available)) return;
-  const resolved = solveWeightedFlexWidths(
-    available,
-    valid.map(({ constraint }) => ({
-      min: constraint.min,
-      max: constraint.max,
-      preferred: constraint.preferred ?? 0,
-      priority: constraint.priority ?? 0,
-      weight: constraint.weight ?? 1,
-      stretch: constraint.stretchMode,
-    })),
-  );
+  const resolved = valid.some(({explicitLinear}) => explicitLinear)
+    ? solveNativeLinearFlexWidths(available, valid.map(({linearFlex}) => linearFlex))
+    : solveWeightedFlexWidths(
+        available,
+        valid.map(({ constraint }) => ({
+          min: constraint.min,
+          max: constraint.max,
+          preferred: constraint.preferred ?? 0,
+          priority: constraint.priority ?? 0,
+          weight: constraint.weight ?? 1,
+          stretch: constraint.stretchMode,
+        })),
+      );
   valid.forEach(
     (
       { child, mainPadding, crossPadding, crossConstraint, desiredCross },

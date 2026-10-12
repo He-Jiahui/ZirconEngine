@@ -1,6 +1,5 @@
 use super::*;
 use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
-use crate::text::font::shared_font_database_test_read_guard;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -53,9 +52,7 @@ fn sdf_generation_source_cache_has_explicit_context_and_byte_budgets() {
 
 #[test]
 fn sdf_font_bake_report_distinguishes_newly_loaded_and_resident_fonts() {
-    let _shared_font_database = shared_font_database_test_read_guard();
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let plan = atlas_plan_for_glyphs(&['A']);
 
@@ -86,9 +83,7 @@ fn sdf_font_bake_report_distinguishes_newly_loaded_and_resident_fonts() {
 
 #[test]
 fn sdf_font_asset_failure_report_is_resident_and_generation_scoped() {
-    let _shared_font_database = shared_font_database_test_read_guard();
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let missing = atlas_plan_for_asset('A', "res://fonts/missing-resident-report.font.toml");
 
@@ -139,9 +134,7 @@ fn sdf_font_asset_failure_report_is_resident_and_generation_scoped() {
 
 #[test]
 fn sdf_prepared_atlas_reuse_refreshes_resident_font_asset_failure_report() {
-    let _shared_font_database = shared_font_database_test_read_guard();
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let empty = SdfAtlasPlan::default();
 
@@ -171,9 +164,7 @@ fn sdf_prepared_atlas_reuse_refreshes_resident_font_asset_failure_report() {
 
 #[test]
 fn sdf_font_bake_packs_mixed_formats_and_reuses_mode_keyed_cache() {
-    let _shared_font_database = shared_font_database_test_read_guard();
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let plan = atlas_plan_for_mixed_distance_fields();
 
@@ -300,9 +291,7 @@ fn sdf_font_bake_packs_mixed_formats_and_reuses_mode_keyed_cache() {
 
 #[test]
 fn sdf_font_bake_batches_unique_dynamic_glyphs_and_reuses_arc_bitmaps() {
-    let _shared_font_database = shared_font_database_test_read_guard();
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let plan = atlas_plan_for_glyphs(&['A', 'M', 'A']);
 
@@ -458,9 +447,7 @@ fn sdf_clear_cached_glyph_entries_removes_cpu_only_glyph_sidecars() {
 
 #[test]
 fn sdf_prepared_atlas_refreshes_visible_glyph_recency_before_a_layout_change() {
-    let _shared_font_database = shared_font_database_test_read_guard();
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let hot_plan = atlas_plan_for_glyphs(&['A']);
     let next_plan = atlas_plan_for_glyphs(&['M']);
@@ -506,9 +493,7 @@ fn sdf_prepared_atlas_refreshes_visible_glyph_recency_before_a_layout_change() {
 
 #[test]
 fn sdf_font_bake_scheduled_generation_falls_back_then_commits_next_frame() {
-    let _shared_font_database = shared_font_database_test_read_guard();
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let plan = atlas_plan_for_glyphs(&['A', 'M']);
     let scheduler = SdfGenerationScheduler::new(
@@ -570,9 +555,7 @@ fn sdf_font_bake_scheduled_generation_falls_back_then_commits_next_frame() {
 
 #[test]
 fn sdf_font_bake_scheduler_budget_defer_does_not_poison_glyph_cache() {
-    let _shared_font_database = shared_font_database_test_read_guard();
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let plan = atlas_plan_for_glyphs(&['A']);
     let scheduler = SdfGenerationScheduler::new(
@@ -610,21 +593,12 @@ fn sdf_font_bake_scheduler_budget_defer_does_not_poison_glyph_cache() {
 #[cfg(target_os = "windows")]
 #[test]
 fn sdf_font_bake_rasterizes_materialized_system_cjk_face() {
-    let (generation, shared_font_database) = shared_font_database_test_read_guard();
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = shared_font_database.clone();
+    let (mut bake, mut font_database, face, font_handle) = sdf_system_cjk_test_context();
     let asset_manager = ProjectAssetManager::default();
-    let face = font_database
-        .match_face(&FontQuery::single_family("Microsoft YaHei UI"))
-        .expect("Windows CJK system font")
-        .face;
     assert!(bake.ensure_sdf_font(face, &font_database));
 
     let mut plan = atlas_plan_for_glyphs(&['本']);
-    plan.slots[0].key.font_id = Some(
-        crate::text::font::register_font_face_handle(face, generation)
-            .expect("system face Text handle"),
-    );
+    plan.slots[0].key.font_id = Some(font_handle);
     plan.slots[0].key.font_family = Some("Microsoft YaHei UI".into());
     plan.slots[0].key.language = Some("zh-Hans".into());
     let atlas = bake.build_atlas_from_slots(
@@ -645,26 +619,24 @@ fn sdf_font_bake_rasterizes_materialized_system_cjk_face() {
 #[cfg(target_os = "windows")]
 #[test]
 fn sdf_font_bake_prefers_shaped_glyph_id_on_authoritative_face() {
-    let (generation, shared_font_database) = shared_font_database_test_read_guard();
-    let mut bake = SdfFontBakeCache::new();
-    let font_database = shared_font_database.clone();
-    let face = font_database
-        .match_face(&FontQuery::single_family("Microsoft YaHei UI"))
-        .expect("Windows CJK system font")
-        .face;
+    let (mut bake, font_database, face, font_handle) = sdf_system_cjk_test_context();
     assert!(bake.ensure_sdf_font(face, &font_database));
     let font = bake.fonts.get(&face).expect("materialized SDF font");
-    let shaped_id = font.lookup_glyph_index('布');
-    let scalar_id = font.lookup_glyph_index('。');
+    let font = font.borrow_dependent();
+    let shaped_id = font
+        .glyph_index('布')
+        .expect("fixture contains shaped glyph")
+        .0;
+    let scalar_id = font
+        .glyph_index('。')
+        .expect("fixture contains scalar glyph")
+        .0;
     assert_ne!(shaped_id, 0);
     assert_ne!(shaped_id, scalar_id);
     let key = SdfAtlasGlyphKey {
         glyph: '。',
         glyph_id: Some(shaped_id as u32),
-        font_id: Some(
-            crate::text::font::register_font_face_handle(face, generation)
-                .expect("system face Text handle"),
-        ),
+        font_id: Some(font_handle),
         font_instance_id: None,
         font: Some(DEFAULT_FONT_ASSET.into()),
         font_family: Some("Microsoft YaHei UI".into()),
@@ -678,8 +650,7 @@ fn sdf_font_bake_prefers_shaped_glyph_id_on_authoritative_face() {
 
 #[test]
 fn sdf_font_bake_does_not_match_the_old_rounded_rect_placeholder() {
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let plan = atlas_plan_for_glyphs(&['A']);
 

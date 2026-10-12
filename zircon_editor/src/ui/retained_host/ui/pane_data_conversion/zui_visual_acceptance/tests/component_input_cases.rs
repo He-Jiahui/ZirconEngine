@@ -12,7 +12,7 @@ fn input_data_rejects_style_and_visibility_changes() {
 fn workbench_state_accepts_only_a_source_scoped_identity_selector() {
     assert!(validate(&serde_json::json!({
         "workbenchState": {
-            "sourcePath": "zircon_editor/assets/ui/editor/windows/workbench_window.zui",
+            "sourcePath": "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui",
             "controlId": "WorkbenchViewport",
             "sourceNodeId": "viewport",
             "instancePath": "[]"
@@ -55,12 +55,12 @@ fn workbench_presentation_snapshot_can_stand_without_transient_state() {
 fn workbench_scroll_target_is_an_exact_optional_source_scoped_selector() {
     let valid = serde_json::json!({
         "workbenchState": {
-            "sourcePath": "zircon_editor/assets/ui/editor/windows/workbench_window.zui",
+            "sourcePath": "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui",
             "controlId": "ToolbarOverflow",
             "sourceNodeId": "toolbar.overflow",
             "instancePath": "[]",
             "scrollTarget": {
-                "sourcePath": "zircon_editor/assets/ui/editor/windows/workbench_window.zui",
+                "sourcePath": "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui",
                 "controlId": "HierarchyTree",
                 "sourceNodeId": "hierarchy.tree",
                 "instancePath": "[]"
@@ -95,7 +95,7 @@ fn workbench_scroll_target_is_an_exact_optional_source_scoped_selector() {
 #[test]
 fn workbench_state_accepts_bounded_authored_text_overrides() {
     let override_value = serde_json::json!({
-        "sourcePath": "zircon_editor/assets/ui/editor/windows/workbench_window.zui",
+        "sourcePath": "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui",
         "sourceNodeId": "inspector.title",
         "instancePath": "[]",
         "controlId": "InspectorTitle",
@@ -104,7 +104,7 @@ fn workbench_state_accepts_bounded_authored_text_overrides() {
     });
     assert!(validate(&serde_json::json!({
         "workbenchState": {
-            "sourcePath": "zircon_editor/assets/ui/editor/windows/workbench_window.zui",
+            "sourcePath": "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui",
             "controlId": "InspectorTitle",
             "textOverrides": [override_value.clone()]
         }

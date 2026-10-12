@@ -4,6 +4,7 @@ use super::*;
 #[test]
 fn runtime_15_input_manager_tests_are_folder_backed() {
     let parent = read_runtime_src("input/tests/input_manager.rs");
+    let event_buffer = read_runtime_src("input/tests/input_manager/event_buffer.rs");
     let frame_state = read_runtime_src("input/tests/input_manager/frame_state.rs");
     let touch_gamepad = read_runtime_src("input/tests/input_manager/touch_gamepad.rs");
     let host_requests = read_runtime_src("input/tests/input_manager/host_requests.rs");
@@ -12,6 +13,7 @@ fn runtime_15_input_manager_tests_are_folder_backed() {
         "input manager parent keeps shared imports and mounts children",
         &parent,
         &[
+            "mod event_buffer;",
             "mod frame_state;",
             "mod host_requests;",
             "mod touch_gamepad;",
@@ -27,9 +29,8 @@ fn runtime_15_input_manager_tests_are_folder_backed() {
         "fn input_manager_records_sequences_and_timestamps_for_ui_bridge_consumers",
         "fn button_input_state_tracks_bevy_style_frame_transitions",
         "fn input_snapshot_just_pressed_is_true_for_exactly_one_frame",
-        "fn frame_input_clears_after_level_tick_not_before",
         "fn input_manager_frame_snapshot_tracks_transitions_and_motion",
-        "fn keyboard_focus_lost_releases_keyboard_buttons_only",
+        "fn focus_loss_releases_active_input_without_disconnect",
         "fn input_manager_tracks_ime_preedit_and_frame_commits",
         "fn input_manager_tracks_touch_and_gamepad_state",
         "fn input_manager_event_log_harness_covers_window_keyboard_mouse_touch_and_gamepad",
@@ -45,6 +46,17 @@ fn runtime_15_input_manager_tests_are_folder_backed() {
     }
 
     assert_contains_all(
+        "event-buffer child owns transient queues, pointer coalescing, and raw recording",
+        &event_buffer,
+        &[
+            "fn pointer_event_streams_are_frame_bounded_at_common_polling_rates",
+            "fn pointer_coalescing_preserves_button_and_touch_edges_in_order",
+            "fn focus_loss_is_a_barrier_to_pointer_event_coalescing",
+            "fn begin_frame_discards_undrained_transient_events",
+            "fn recording_is_opt_in_bounded_and_reports_discarded_raw_records",
+        ],
+    );
+    assert_contains_all(
         "frame-state child owns basic input, frame, focus, and IME coverage",
         &frame_state,
         &[
@@ -52,9 +64,8 @@ fn runtime_15_input_manager_tests_are_folder_backed() {
             "fn input_manager_records_sequences_and_timestamps_for_ui_bridge_consumers",
             "fn button_input_state_tracks_bevy_style_frame_transitions",
             "fn input_snapshot_just_pressed_is_true_for_exactly_one_frame",
-            "fn frame_input_clears_after_level_tick_not_before",
             "fn input_manager_frame_snapshot_tracks_transitions_and_motion",
-            "fn keyboard_focus_lost_releases_keyboard_buttons_only",
+            "fn focus_loss_releases_active_input_without_disconnect",
             "fn input_manager_tracks_ime_preedit_and_frame_commits",
         ],
     );
@@ -79,6 +90,7 @@ fn runtime_15_input_manager_tests_are_folder_backed() {
         ],
     );
     let child_test_total = [
+        event_buffer.as_str(),
         frame_state.as_str(),
         touch_gamepad.as_str(),
         host_requests.as_str(),
@@ -87,12 +99,16 @@ fn runtime_15_input_manager_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        child_test_total, 14,
-        "input manager children should preserve all 14 parent tests"
+        child_test_total, 23,
+        "input manager children should retain the current 23-test inventory"
     );
 
     for (path, source) in [
         ("input/tests/input_manager.rs", parent.as_str()),
+        (
+            "input/tests/input_manager/event_buffer.rs",
+            event_buffer.as_str(),
+        ),
         (
             "input/tests/input_manager/frame_state.rs",
             frame_state.as_str(),
@@ -118,6 +134,6 @@ fn runtime_15_input_manager_tests_are_folder_backed() {
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let input_doc = read_repo("docs/zircon_runtime/input/input_state.md");
+    let module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let input_doc = read_repo("docs/crates/zircon_runtime/input/input_state.md");
 }

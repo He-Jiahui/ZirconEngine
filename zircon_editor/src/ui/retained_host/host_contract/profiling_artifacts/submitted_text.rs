@@ -26,8 +26,8 @@ pub(in crate::ui::retained_host::host_contract) fn bind_submitted(
     sources: &[Option<Value>],
     command_stream_full_rebuild: bool,
 ) -> Value {
-    let runs=snapshot.runs.iter().map(|run|json!({"commandIndex":run.command_index,"source":sources.get(run.command_index).and_then(|source|source.as_ref()),"text":run.text,"clip":run.clip,"lines":run.lines,"faces":run.faces})).collect::<Vec<_>>();
-    json!({"coverage":if snapshot.damage.is_some(){"damage-region"}else{"submitted-command-stream"},"commandStreamFullRebuild":command_stream_full_rebuild,"damage":snapshot.damage,"preparedThisPresent":snapshot.prepared_this_present,"retainedCacheCopyBytes":snapshot.retained_cache_copy_bytes,"coordinateSpace":"physical-pixels","presentedFrameCount":snapshot.presented_frame_count,"projectionSize":snapshot.projection_size,"drawListGeneration":snapshot.draw_list_generation,"runs":runs,"paintControls":sources.iter().flatten().collect::<Vec<_>>()})
+    let runs=snapshot.runs.iter().map(|run|json!({"commandIndex":run.command_index,"source":sources.get(run.command_index).and_then(|source|source.as_ref()),"text":run.text,"clip":run.clip,"requested":run.requested,"lines":run.lines,"faces":run.faces})).collect::<Vec<_>>();
+    json!({"coverage":if snapshot.damage.is_some(){"damage-region"}else{"submitted-command-stream"},"commandStreamFullRebuild":command_stream_full_rebuild,"damage":snapshot.damage,"preparedThisPresent":snapshot.prepared_this_present,"retainedCacheCopyBytes":snapshot.retained_cache_copy_bytes,"coordinateSpace":"physical-pixels","presentedFrameCount":snapshot.presented_frame_count,"projectionSize":snapshot.projection_size,"drawListGeneration":snapshot.draw_list_generation,"fontCollectionId":snapshot.font_collection_id,"fontCollectionGeneration":snapshot.font_collection_generation,"runs":runs,"paintControls":sources.iter().flatten().collect::<Vec<_>>()})
 }
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
 import {
   solveWeightedFlexWidths,
+  solveNativeLinearFlexWidths,
   stretchedRowChildHeight,
 } from './penpot-weighted-flex';
 
@@ -73,5 +74,69 @@ describe('weighted ZUI widths in Penpot flex rows', () => {
     expect(stretchedRowChildHeight(488, 0, 0, 32, { stretch: 'Fixed' })).toBe(
       32,
     );
+  });
+});
+
+// Values follow the native taffy_layout_pass linear_slots fixtures and the
+// ordinary 1280x800 Unreal editor semantic frames (not a synthetic renderer).
+describe('current native linear flex slots', () => {
+  it('matches the ordinary Unreal viewport and right dock, then freezes the dock minimum', () => {
+    const panes = [
+      {min: 0, basis: 0, grow: 1, shrink: 1},
+      {min: 240, basis: 0, grow: 0.25, shrink: 1},
+    ];
+    expect(solveNativeLinearFlexWidths(1276, panes)).toEqual([1020.8, 255.2]);
+    expect(solveNativeLinearFlexWidths(896, panes)).toEqual([656, 240]);
+    expect(solveNativeLinearFlexWidths(636, panes)).toEqual([396, 240]);
+  });
+
+  it('matches the native outliner/details split without treating both minima as content bases', () => {
+    const panes = [
+      {min: 96, basis: 0, grow: 0.4, shrink: 1},
+      {min: 96, basis: 0, grow: 1, shrink: 1},
+    ];
+    const sizes = solveNativeLinearFlexWidths(690, panes);
+    expect(sizes[0]).toBeCloseTo(197.1428680419922, 4);
+    expect(sizes[1]).toBeCloseTo(492.8571472167969, 4);
+  });
+
+  it('matches native Auto and StretchContent measured slots', () => {
+    expect(solveNativeLinearFlexWidths(100, [
+      {min: 0, basis: 25, grow: 0, shrink: 1},
+      {min: 0, basis: 10, grow: 0, shrink: 1},
+    ])).toEqual([25, 10]);
+    expect(solveNativeLinearFlexWidths(95, [
+      {min: 0, basis: 25, grow: 1, shrink: 1},
+      {min: 0, basis: 10, grow: 1, shrink: 1},
+    ])).toEqual([55, 40]);
+  });
+
+  it('redistributes room after the native slot maximum is reached', () => {
+    expect(solveNativeLinearFlexWidths(200, [
+      {min: 80, max: 90, basis: 80, grow: 1, shrink: 1},
+      {min: 0, basis: 0, grow: 1, shrink: 1},
+    ])).toEqual([90, 110]);
+  });
+
+  it('retains explicit zero grow/shrink and scales shrinking by the content basis', () => {
+    expect(solveNativeLinearFlexWidths(300, [
+      {min: 0, basis: 80, grow: 0, shrink: 0},
+      {min: 0, basis: 0, grow: 1, shrink: 1},
+    ])).toEqual([80, 220]);
+    expect(solveNativeLinearFlexWidths(100, [
+      {min: 0, basis: 100, grow: 0, shrink: 1},
+      {min: 0, basis: 100, grow: 0, shrink: 0},
+    ])).toEqual([0, 100]);
+    expect(solveNativeLinearFlexWidths(100, [
+      {min: 0, basis: 50, grow: 0, shrink: 1},
+      {min: 0, basis: 150, grow: 0, shrink: 1},
+    ])).toEqual([25, 75]);
+  });
+
+  it('keeps bounded minima when the available extent is smaller than the retained controls', () => {
+    expect(solveNativeLinearFlexWidths(100, [
+      {min: 96, basis: 0, grow: 0.4, shrink: 1},
+      {min: 96, basis: 0, grow: 1, shrink: 1},
+    ])).toEqual([96, 96]);
   });
 });

@@ -1,4 +1,6 @@
+mod generated_bottom_pane;
 mod support;
+mod ui_asset_builtin_palette;
 
 pub(super) use support::*;
 
@@ -12,6 +14,7 @@ mod drag_sources;
 mod floating_window_projection;
 mod hierarchy_native_capture;
 mod hierarchy_rename;
+mod hierarchy_search_actions;
 mod menu_pointer;
 mod native_game_keyboard;
 mod native_viewport_cancel;
@@ -23,3 +26,7 @@ mod runtime_diagnostics_drawer;
 mod scoped_presentation;
 mod serialized_startup_presentation;
 mod viewport_template_bridge;
+
+mod save_batch_failure;
+
+mod module_tools_menus;

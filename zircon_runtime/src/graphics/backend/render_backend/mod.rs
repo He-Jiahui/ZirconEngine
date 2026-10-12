@@ -32,6 +32,7 @@ mod renderdoc_capture_file_path;
 mod request_device;
 mod select_adapter;
 mod system_texture_generation_owner;
+mod ui_surface_diagnostic_completion;
 mod viewport_surface;
 
 #[cfg(test)]

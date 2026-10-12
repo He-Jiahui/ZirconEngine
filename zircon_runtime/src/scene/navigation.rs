@@ -1,6 +1,7 @@
+use crate::core::runtime::{ServiceAliasSource, ServiceCallGuard};
+use crate::core::{CoreError, CoreHandle, ServiceKind};
 use std::any::Any;
 use std::fmt;
-use std::sync::Arc;
 
 use crate::core::framework::navigation::{
     NavAgentTickReport, NavMeshBakeReport, NavMeshBakeRequest, NavigationError,
@@ -104,96 +105,22 @@ pub trait SceneNavigationRuntime: Send + Sync {
     }
 }
 
+/// An idle, generation-bound navigation dependency. Each operation must enter
+/// the original physical driver and the declared scene view together.
 #[derive(Clone)]
 pub struct SceneNavigationRuntimeHandle {
-    runtime: Arc<dyn SceneNavigationRuntime>,
+    runtime: ServiceAliasSource<dyn SceneNavigationRuntime>,
 }
 
 impl SceneNavigationRuntimeHandle {
-    pub fn new<T>(runtime: Arc<T>) -> Self
-    where
-        T: SceneNavigationRuntime + 'static,
-    {
-        Self { runtime }
-    }
-}
-
-impl SceneNavigationRuntime for SceneNavigationRuntimeHandle {
-    fn bake_surface(
-        &self,
-        level: &LevelSystem,
-        request: NavMeshBakeRequest,
-    ) -> Result<NavMeshBakeReport, NavigationError> {
-        self.runtime.bake_surface(level, request)
+    pub fn new(core: &CoreHandle) -> Result<Self, CoreError> {
+        core.resolve_alias_source(SCENE_NAVIGATION_RUNTIME_DRIVER_NAME, ServiceKind::Driver)
+            .map(|runtime| Self { runtime })
     }
 
-    fn generated_bake_snapshot(
-        &self,
-        surface_entity: Option<u64>,
-    ) -> NavigationGeneratedBakeSnapshot {
-        self.runtime.generated_bake_snapshot(surface_entity)
-    }
-
-    fn replace_generated_bake_snapshot(
-        &self,
-        snapshot: NavigationGeneratedBakeSnapshot,
-    ) -> Result<(), NavigationError> {
-        self.runtime.replace_generated_bake_snapshot(snapshot)
-    }
-
-    fn generated_bake_mutation_epoch(&self, surface_entity: Option<u64>) -> u64 {
-        self.runtime.generated_bake_mutation_epoch(surface_entity)
-    }
-
-    fn capture_bake_operation(
-        &self,
-        source: &crate::scene::WorldPublicationSource,
-        request: NavMeshBakeRequest,
-    ) -> Result<(Box<dyn Any + Send>, usize, NavigationGeneratedBakeSnapshot), NavigationError>
-    {
-        self.runtime.capture_bake_operation(source, request)
-    }
-
-    fn prepare_bake_operation(
-        &self,
-        snapshot: Box<dyn Any + Send>,
-    ) -> Result<
-        (
-            Box<dyn Any + Send>,
-            NavMeshBakeReport,
-            NavigationGeneratedBakeSnapshot,
-            usize,
-        ),
-        NavigationError,
-    > {
-        self.runtime.prepare_bake_operation(snapshot)
-    }
-
-    fn apply_bake_operation(
-        &self,
-        source: &crate::scene::WorldPublicationSource,
-        expected_before: &NavigationGeneratedBakeSnapshot,
-        prepared: Box<dyn Any + Send>,
-    ) -> Result<(), NavigationError> {
-        self.runtime
-            .apply_bake_operation(source, expected_before, prepared)
-    }
-
-    fn tick_world_agents(
-        &self,
-        world: &mut World,
-        dt_seconds: Real,
-    ) -> Result<NavAgentTickReport, NavigationError> {
-        self.runtime.tick_world_agents(world, dt_seconds)
-    }
-
-    fn tick_world_agent(
-        &self,
-        world: &mut World,
-        entity: u64,
-        dt_seconds: Real,
-    ) -> Result<NavAgentTickReport, NavigationError> {
-        self.runtime.tick_world_agent(world, entity, dt_seconds)
+    /// Rejects closed or replaced registrations without a default backend result.
+    pub fn enter(&self) -> Result<ServiceCallGuard<dyn SceneNavigationRuntime>, CoreError> {
+        self.runtime.enter()
     }
 }
 

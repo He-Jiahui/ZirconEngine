@@ -38,7 +38,7 @@ impl RetainedEditorHost {
             return false;
         }
 
-        let authoritative_scene_entries = self.runtime.editor_snapshot().scene_entries;
+        let authoritative_scene_entries = (match self.runtime.editor_snapshot() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return true; } }).scene_entries;
         let Some((node_id, name)) =
             single_selected_hierarchy_rename_target(&authoritative_scene_entries)
         else {
@@ -66,7 +66,7 @@ impl RetainedEditorHost {
             now,
         ) {
             self.last_hierarchy_rename_click = None;
-            let authoritative_scene_entries = self.runtime.editor_snapshot().scene_entries;
+            let authoritative_scene_entries = (match self.runtime.editor_snapshot() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }).scene_entries;
             if let Some(name) =
                 hierarchy_name_for_entity(&authoritative_scene_entries, entry.entity)
             {

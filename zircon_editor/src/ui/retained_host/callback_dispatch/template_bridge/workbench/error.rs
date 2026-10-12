@@ -8,6 +8,8 @@ use super::super::virtual_rows::TemplateBridgeVirtualRowsError;
 
 #[derive(Debug, Error)]
 pub(crate) enum BuiltinHostWindowTemplateBridgeError {
+    #[error("invalid Unreal viewport toolbar overflow source contract: {0}")]
+    UnrealViewportToolbarOverflow(String),
     #[error(transparent)]
     HostRuntime(#[from] EditorUiHostRuntimeError),
     #[error(transparent)]

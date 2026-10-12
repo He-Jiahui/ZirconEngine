@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -12,17 +13,23 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "binding.payload.upsert" => self
-                .editor_manager
-                .upsert_ui_asset_editor_selected_binding_payload(
-                    &instance_id,
-                    payload_key,
-                    payload_value,
-                )
+            "binding.payload.upsert" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.upsert_ui_asset_editor_selected_binding_payload(
+                        &instance_id,
+                        payload_key,
+                        payload_value,
+                    )
+                })
                 .map(|_| ()),
-            "binding.payload.delete" => self
-                .editor_manager
-                .delete_ui_asset_editor_selected_binding_payload(&instance_id)
+            "binding.payload.delete" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.delete_ui_asset_editor_selected_binding_payload(&instance_id)
+                })
                 .map(|_| ()),
             other => {
                 self.set_status_line(format!("Unknown UI asset binding payload action {other}"));

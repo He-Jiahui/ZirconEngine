@@ -316,7 +316,11 @@ fn generic_component_rows_roundtrip_through_project_document_and_artifact_consum
         "tests.scene.generic.v1",
         1,
         "tests.scene.provider",
-        &serde_json::json!({ "asset": reference.clone(), "nested": { "enabled": true } }),
+        &serde_json::json!({
+            "asset": reference.clone(),
+            "nested": { "enabled": true, "optional": null },
+            "labels": ["null", "quoted \"value\"", null],
+        }),
     )
     .unwrap();
     let scene = SceneAsset {

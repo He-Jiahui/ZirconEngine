@@ -5,6 +5,14 @@ use super::super::super::super::paint_text::HostTextLayoutPolicy;
 use super::{kind::HostPaintCommandKind, model::HostPaintCommand};
 
 impl HostPaintCommand {
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn with_text_font_request(
+        mut self,
+        request: Option<crate::ui::retained_host::host_contract::paint_text::HostTextFontRequest>,
+    ) -> Self {
+        self.text_font_request = request;
+        self
+    }
+
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text(
         frame: FrameRect,
         clip_frame: Option<FrameRect>,
@@ -87,6 +95,7 @@ impl HostPaintCommand {
             line_height,
             text_style,
             text_layout_policy,
+            text_font_request: None,
             image_key: None,
             image_pixels: None,
             opacity,

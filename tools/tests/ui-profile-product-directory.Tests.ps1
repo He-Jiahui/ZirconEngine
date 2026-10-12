@@ -1,7 +1,7 @@
-$script:ProductDirectoryScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-product-directory.ps1"
-$script:CaptureScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-capture.ps1"
-$script:CaptureManifest = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-manifest.ps1"
-$script:ProfilePaths = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-paths.ps1"
+$script:ProductDirectoryScript = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-product-directory.ps1"
+$script:CaptureScript = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-capture.ps1"
+$script:CaptureManifest = Join-Path $PSScriptRoot "..\analysis\profiling\shared\profile-capture-manifest.ps1"
+$script:ProfilePaths = Join-Path $PSScriptRoot "..\analysis\profiling\shared\profile-capture-paths.ps1"
 
 if (Test-Path -LiteralPath $script:ProfilePaths) {
     . $script:ProfilePaths

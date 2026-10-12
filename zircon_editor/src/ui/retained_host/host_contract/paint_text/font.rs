@@ -15,6 +15,11 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 };
 
 mod metrics;
+mod authored;
+
+pub(in crate::ui::retained_host::host_contract) use authored::{
+    active_authored_font_request, authored_font_request_for_node, HostTextFontRequestScope,
+};
 
 use self::metrics::{
     default_runtime_line_height, empty_runtime_text_width, measured_text_width,
@@ -56,6 +61,10 @@ pub(in crate::ui::retained_host::host_contract) fn runtime_font_family_for_face(
 pub(in crate::ui::retained_host::host_contract) fn font_request_for_face(
     face: HostTextFontFace,
 ) -> HostTextFontRequest {
+    if let Some(mut request) = active_authored_font_request() {
+        request.face = face;
+        return request;
+    }
     font_request_for_face_with_preferences(face, &current_host_text_preferences())
 }
 

@@ -1,10 +1,10 @@
 //! 状态 chip 将冒号前标签与右侧值分开布局；裁剪先于拆分，避免离屏帧反复分配文字。
 
-use super::super::super::super::data::FrameRect;
+use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_status_control_geometry::{
-    frame_is_within, status_chip_text_rect, status_font_size, status_line_height,
+    frame_is_within, status_chip_text_rect, status_text_metrics_for_node,
     workbench_status_metrics,
 };
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
@@ -14,8 +14,9 @@ use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 #[path = "text/tests/capacity_tests.rs"]
 mod capacity_tests;
 
-pub(super) fn push_status_chip_text(
+pub(super) fn push_status_chip_text_for_node(
     commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
     rect: &FrameRect,
     clip: &FrameRect,
     order: i32,
@@ -25,15 +26,21 @@ pub(super) fn push_status_chip_text(
     opacity: f32,
 ) {
     let base = status_chip_text_rect(rect);
+    let (_, line_height) = status_text_metrics_for_node(node);
+    let base = FrameRect {
+        y: rect.y + (rect.height - line_height).max(0.0) * 0.5,
+        height: line_height, ..base
+    };
     if !frame_is_within(rect, &base) || intersect(&base, clip).is_none() {
         return;
     }
     match split_status_chip_text(label) {
         StatusChipText::LabelAndValue { label, value } => {
-            let value_rect = right_aligned_text_rect(base.clone(), &value);
+            let value_rect = right_aligned_text_rect(node, base.clone(), &value);
             let label_rect = leading_label_rect(base.clone(), &value_rect);
             push_text(
                 commands,
+                node,
                 label_rect,
                 &base,
                 clip,
@@ -44,6 +51,7 @@ pub(super) fn push_status_chip_text(
             );
             push_text(
                 commands,
+                node,
                 value_rect,
                 &base,
                 clip,
@@ -54,9 +62,10 @@ pub(super) fn push_status_chip_text(
             );
         }
         StatusChipText::Value(value) => {
-            let value_rect = right_aligned_text_rect(base.clone(), &value);
+            let value_rect = right_aligned_text_rect(node, base.clone(), &value);
             push_text(
                 commands,
+                node,
                 value_rect,
                 &base,
                 clip,
@@ -97,8 +106,9 @@ fn leading_label_rect(base: FrameRect, value_rect: &FrameRect) -> FrameRect {
     }
 }
 
-fn right_aligned_text_rect(base: FrameRect, text: &str) -> FrameRect {
-    let measured_width = measure_runtime_text_width(text, status_font_size());
+fn right_aligned_text_rect(node: &TemplatePaneNodeData, base: FrameRect, text: &str) -> FrameRect {
+    let (font_size, _) = status_text_metrics_for_node(node);
+    let measured_width = measure_runtime_text_width(text, font_size);
     let width = measured_width.min(base.width).max(0.0);
     FrameRect {
         x: base.x + (base.width - width).max(0.0),
@@ -109,6 +119,7 @@ fn right_aligned_text_rect(base: FrameRect, text: &str) -> FrameRect {
 
 fn push_text(
     commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
     rect: FrameRect,
     base: &FrameRect,
     clip: &FrameRect,
@@ -120,15 +131,33 @@ fn push_text(
     if !frame_is_within(base, &rect) || intersect(&rect, clip).is_none() {
         return;
     }
+    let (font_size, line_height) = status_text_metrics_for_node(node);
+    let text_style = UiTextRunPaintStyle { strong: node.font_weight >= 600, ..UiTextRunPaintStyle::default() };
+    let font_request = crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(node, text_style);
     commands.push(HostPaintCommand::text(
         rect,
         Some(clip.clone()),
         order,
         text,
         color,
-        status_font_size(),
-        status_line_height(),
-        UiTextRunPaintStyle::default(),
+        font_size,
+        line_height,
+        text_style,
         opacity,
-    ));
+    ).with_text_font_request(font_request));
+}
+
+#[cfg(test)]
+fn push_status_chip_text(
+    commands: &mut Vec<HostPaintCommand>,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    label: &str,
+    label_color: [u8; 4],
+    value_color: [u8; 4],
+    opacity: f32,
+) {
+    push_status_chip_text_for_node(commands, &TemplatePaneNodeData::default(),
+        rect, clip, order, label, label_color, value_color, opacity);
 }

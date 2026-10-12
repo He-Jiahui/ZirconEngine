@@ -108,7 +108,7 @@ fn browser_double_click_rejects_a_search_changed_before_projection_refresh() {
         .i18n()
         .translate("asset.activation.target_changed");
     assert_eq!(
-        host.runtime.editor_snapshot().status_line,
+        host.runtime.editor_snapshot().unwrap().status_line,
         stale_status.as_ref(),
         "the stale-projection guard should report the localized changed-target status"
     );
@@ -140,7 +140,7 @@ fn browser_right_click_opens_the_context_target_asset_not_the_selected_asset() {
         ));
         host.mark_layout_dirty();
         host.refresh_ui();
-        let snapshot = host.runtime.editor_snapshot();
+        let snapshot = host.runtime.editor_snapshot().unwrap();
         let target_row = snapshot
             .asset_browser
             .visible_assets
@@ -177,7 +177,7 @@ fn browser_right_click_opens_the_context_target_asset_not_the_selected_asset() {
         host.refresh_ui();
         assert_eq!(
             host.runtime
-                .editor_snapshot()
+                .editor_snapshot().unwrap()
                 .asset_browser
                 .selected_asset_uuid
                 .as_deref(),
@@ -200,7 +200,7 @@ fn browser_right_click_opens_the_context_target_asset_not_the_selected_asset() {
     let host = harness.host.borrow();
     assert_eq!(
         host.runtime
-            .editor_snapshot()
+            .editor_snapshot().unwrap()
             .asset_browser
             .selected_asset_uuid
             .as_deref(),

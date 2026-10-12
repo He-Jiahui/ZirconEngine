@@ -32,7 +32,28 @@ impl ConfigStore {
     }
 
     pub fn store_value(&self, key: impl Into<String>, value: Value) {
-        self.lock_values().insert(key.into(), Arc::new(value));
+        let key = key.into();
+        let value = Arc::new(value);
+        let retired = {
+            let mut values = self.lock_values();
+            values.insert(key, value)
+        };
+        drop(retired);
+    }
+
+    // Equality and publication share one lock; keep the existing Arc for unchanged values.
+    pub(crate) fn store_value_if_changed(&self, key: &str, value: Value) -> bool {
+        let mut values = self.lock_values();
+        if values.get(key).map(|stored| stored.as_ref()) == Some(&value) {
+            drop(values);
+            return false;
+        }
+
+        let replaced = values.insert(key.to_owned(), Arc::new(value));
+        drop(values);
+        // A large retired value, or an unused equal input, must not be dropped under the lock.
+        drop(replaced);
+        true
     }
 
     pub fn load_value(&self, key: &str) -> Option<Value> {

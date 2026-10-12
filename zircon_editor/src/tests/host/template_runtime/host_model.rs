@@ -7,7 +7,7 @@ use zircon_runtime::ui::dispatch::UiNavigationDispatcher;
 use zircon_runtime_interface::ui::surface::UiNavigationEventKind;
 
 const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "res://ui/editor/component_showcase.zui";
-const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/windows/workbench_window.zui";
+const UNREAL_EDITOR_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/unreal/level_editor_window.zui";
 const OPEN_PROJECT_ICON: &str = "editor_pages/workbench/menu/open-project.svg";
 
 #[test]
@@ -15,7 +15,7 @@ fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks()
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let projection = runtime
-        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
 
     let snapshot = EditorUiCompatibilityHarness::capture_projection_snapshot(&projection);
@@ -65,7 +65,7 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
-        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
@@ -74,7 +74,7 @@ fn editor_ui_host_runtime_builds_host_node_model_with_routes_and_attributes() {
 
     let host_model = runtime.build_host_model(&projection).unwrap();
 
-    assert_eq!(host_model.document_id, UI_HOST_WINDOW_DOCUMENT_ID);
+    assert_eq!(host_model.document_id, UNREAL_EDITOR_SHELL_DOCUMENT_ID);
     assert_eq!(
         host_model
             .nodes
@@ -162,7 +162,7 @@ fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
-        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
@@ -394,14 +394,14 @@ fn surface_backed_retained_projection_exposes_style_overrides_as_effective_prope
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
-        .project_document(WORKBENCH_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
         .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
         .unwrap();
     let mut surface = runtime
-        .build_shared_surface(WORKBENCH_WINDOW_DOCUMENT_ID)
+        .build_shared_surface(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
         .unwrap();
     surface.compute_layout(UiSize::new(1672.0, 941.0)).unwrap();
 
@@ -442,7 +442,7 @@ fn retained_ui_host_adapter_builds_generic_projection_from_host_model() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
-        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
@@ -452,7 +452,7 @@ fn retained_ui_host_adapter_builds_generic_projection_from_host_model() {
 
     let retained_projection = RetainedUiHostAdapter::build_projection(&host_model);
 
-    assert_eq!(retained_projection.document_id, UI_HOST_WINDOW_DOCUMENT_ID);
+    assert_eq!(retained_projection.document_id, UNREAL_EDITOR_SHELL_DOCUMENT_ID);
     assert_eq!(
         retained_projection
             .nodes
@@ -604,7 +604,7 @@ fn editor_ui_host_runtime_builds_retained_host_projection_and_snapshot() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
-        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
     let mut service = EditorUiControlService::default();
     runtime

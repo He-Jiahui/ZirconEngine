@@ -1,8 +1,9 @@
 //! Controlled ABI responses for real App/RuntimeSession teardown tests.
-//! No native window or runtime worker is created; the actual session constructor validates the
+//! This provider creates no native window or runtime worker; physical tests can borrow the App's
+//! real Window through read-only Weak observations. The actual session constructor validates the
 //! table, receives a valid handle, and decodes/releases an owned composition receipt.
 
-use std::{cell::RefCell, collections::HashMap, ptr::NonNull, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull, rc::Rc};
 
 use zircon_runtime_interface::runtime_build_set::{
     ZrRuntimeDigestV1, ZrRuntimeModuleCompositionReceiptV1, ZrRuntimeModuleCompositionTargetV1,
@@ -15,8 +16,16 @@ use zircon_runtime_interface::{
     ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
 };
 
-use super::{validate_v8_api, LoadedRuntime};
+use super::{
+    allocate_runtime_instance_id, validate_v8_api, LoadedRuntime, NEXT_RUNTIME_INSTANCE_ID,
+};
 use crate::entry::runtime_library::RuntimeSession;
+
+#[path = "surface_teardown_fixture/native_window_probe.rs"]
+mod native_window_probe;
+pub(in crate::entry) use native_window_probe::{
+    current_native_thread_id, native_hwnd_is_live, NativeWindowObservation,
+};
 
 const SESSION: ZrRuntimeSessionHandle = ZrRuntimeSessionHandle::new(73);
 
@@ -63,6 +72,9 @@ struct ProviderState {
     bound: bool,
     next_allocation: u64,
     allocations: HashMap<u64, Box<[u8]>>,
+    last_bound_target: Option<zircon_runtime_interface::ZrRuntimeNativeSurfaceTargetV1>,
+    native_window_probe: Option<native_window_probe::NativeWindowProbe>,
+    native_window_observations: Vec<NativeWindowObservation>,
 }
 
 #[derive(Clone)]
@@ -79,6 +91,34 @@ impl ProviderControl {
         }
     }
 
+    pub fn last_bound_target(
+        &self,
+    ) -> Option<zircon_runtime_interface::ZrRuntimeNativeSurfaceTargetV1> {
+        self.0.borrow().last_bound_target
+    }
+
+    pub fn watch_native_window(
+        &self,
+        owner: std::sync::Weak<dyn winit::window::Window>,
+    ) -> NativeWindowObservation {
+        let mut state = self.0.borrow_mut();
+        assert!(
+            state.native_window_probe.is_none(),
+            "only one App Window observation registration"
+        );
+        let target = state
+            .last_bound_target
+            .expect("the actual provider bind target");
+        let probe = native_window_probe::NativeWindowProbe::new(owner, target);
+        let initial = probe.observe(Call::Bind);
+        state.native_window_probe = Some(probe);
+        initial
+    }
+
+    pub fn native_window_observations(&self) -> Vec<NativeWindowObservation> {
+        self.0.borrow().native_window_observations.clone()
+    }
+
     pub fn allow_cleanup(&self) {
         let mut state = self.0.borrow_mut();
         state.policy.unbind_failures = 0;
@@ -87,15 +127,23 @@ impl ProviderControl {
 }
 
 thread_local! {
-    static PROVIDER: RefCell<Option<ProviderControl>> = const { RefCell::new(None) };
+    static PROVIDERS: RefCell<Vec<ProviderControl>> = const { RefCell::new(Vec::new()) };
 }
 
-struct ProviderRegistration;
+struct ProviderRegistration {
+    slot: usize,
+}
 
 impl Drop for ProviderRegistration {
     fn drop(&mut self) {
-        PROVIDER.with(|slot| {
-            slot.borrow_mut().take();
+        PROVIDERS.with(|providers| {
+            let mut providers = providers.borrow_mut();
+            assert_eq!(
+                providers.len(),
+                self.slot + 1,
+                "provider scopes must unwind in order"
+            );
+            providers.pop();
         });
     }
 }
@@ -116,11 +164,46 @@ impl Drop for ApiTableOwner {
     }
 }
 
-/// The closure must finish dropping its session/App before returning. The owned table remains
-/// alive until then, and the current-process library pin covers every fixture callback.
+/// The closure must drop its session/App before returning; the original helper remains unchanged.
 pub(in crate::entry) fn with_session(
     policy: Policy,
     run: impl FnOnce(RuntimeSession, &ProviderControl),
+) {
+    with_session_for_project(policy, None, run);
+}
+
+pub(in crate::entry) fn with_session_for_project(
+    policy: Policy,
+    project_root: Option<&Path>,
+    run: impl FnOnce(RuntimeSession, &ProviderControl),
+) {
+    with_runtime(policy, |runtime, control| {
+        let session = match RuntimeSession::create_with_profile_and_project(
+            runtime,
+            b"minimal",
+            project_root,
+            None,
+            None,
+            None,
+        ) {
+            Ok(session) => session,
+            Err(mut error) => {
+                if let Some(mut session) = error.take_session() {
+                    session.destroy_for_host_resource_release();
+                }
+                // ApiTableOwner aborts if an unextractable live session would outlive its table.
+                panic!("real fixture session creation failed: {error}");
+            }
+        };
+        run(session, control);
+    });
+}
+
+/// Retains the owned table and current-process library until every borrowed session is destroyed.
+/// Two nested scopes use distinct monomorphized callbacks even when their raw handles are equal.
+pub(in crate::entry) fn with_runtime(
+    policy: Policy,
+    run: impl FnOnce(LoadedRuntime, &ProviderControl),
 ) {
     let control = ProviderControl(Rc::new(RefCell::new(ProviderState {
         policy,
@@ -129,15 +212,23 @@ pub(in crate::entry) fn with_session(
         bound: false,
         next_allocation: 1,
         allocations: HashMap::new(),
+        last_bound_target: None,
+        native_window_probe: None,
+        native_window_observations: Vec::new(),
     })));
-    PROVIDER.with(|slot| {
+    let provider_slot = PROVIDERS.with(|providers| {
+        let mut providers = providers.borrow_mut();
         assert!(
-            slot.borrow().is_none(),
-            "a fixture provider is already registered"
+            providers.len() < 2,
+            "only two live fixture providers are supported"
         );
-        *slot.borrow_mut() = Some(control.clone());
+        let slot = providers.len();
+        providers.push(control.clone());
+        slot
     });
-    let _registration = ProviderRegistration;
+    let _registration = ProviderRegistration {
+        slot: provider_slot,
+    };
 
     let host = ZrHostApiV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
     let template = unsafe { zircon_runtime::dynamic_api::zircon_runtime_get_api_v8(&host) };
@@ -151,13 +242,11 @@ pub(in crate::entry) fn with_session(
         table: Box::new(unsafe { *template }),
         control: control.clone(),
     };
-    table.table.create_session = Some(create_session);
-    table.table.destroy_session = Some(destroy_session);
-    table.table.handle_event = Some(handle_event);
-    table.table.release_allocation = Some(release_allocation);
-    table.table.profile_control = Some(profile_control);
-    table.table.bind_viewport_surface = Some(bind_surface);
-    table.table.unbind_viewport_surface = policy.unbind_export.then_some(unbind_surface);
+    match provider_slot {
+        0 => install_provider_api::<0>(&mut table.table, policy),
+        1 => install_provider_api::<1>(&mut table.table, policy),
+        _ => unreachable!("provider registration is bounded to two owners"),
+    }
     let api = NonNull::from(table.table.as_mut());
     let validated =
         unsafe { validate_v8_api(api) }.expect("fixture must pass the actual ABI validator");
@@ -170,22 +259,10 @@ pub(in crate::entry) fn with_session(
         size_bytes: validated.size_bytes,
         required: validated.required,
         app_session_configuration: None,
+        runtime_instance: allocate_runtime_instance_id(&NEXT_RUNTIME_INSTANCE_ID)
+            .expect("allocate a unique fixture loaded-owner identity"),
     };
-    let session = match RuntimeSession::create_with_profile_and_project(
-        runtime, b"minimal", None, None, None, None,
-    ) {
-        Ok(session) => session,
-        Err(mut error) => {
-            // The real constructor can retain its failed session in the shared startup owner.
-            // Extract only this original packet and release it while its ABI table still lives.
-            if let Some(mut session) = error.take_session() {
-                session.destroy_for_host_resource_release();
-            }
-            // ApiTableOwner aborts if an unextractable live session would outlive its table.
-            panic!("real fixture session creation failed: {error}");
-        }
-    };
-    run(session, &control);
+    run(runtime, &control);
     let final_state = control.snapshot();
     assert!(
         !final_state.active,
@@ -198,8 +275,18 @@ pub(in crate::entry) fn with_session(
     drop(table);
 }
 
-fn with_provider(call: impl FnOnce(&mut ProviderState) -> ZrStatus) -> ZrStatus {
-    PROVIDER.with(|slot| match slot.borrow().as_ref() {
+fn install_provider_api<const SLOT: usize>(table: &mut ZrRuntimeApiV8, policy: Policy) {
+    table.create_session = Some(create_session::<SLOT>);
+    table.destroy_session = Some(destroy_session::<SLOT>);
+    table.handle_event = Some(handle_event::<SLOT>);
+    table.release_allocation = Some(release_allocation::<SLOT>);
+    table.profile_control = Some(profile_control::<SLOT>);
+    table.bind_viewport_surface = Some(bind_surface::<SLOT>);
+    table.unbind_viewport_surface = policy.unbind_export.then_some(unbind_surface::<SLOT>);
+}
+
+fn with_provider<const SLOT: usize>(call: impl FnOnce(&mut ProviderState) -> ZrStatus) -> ZrStatus {
+    PROVIDERS.with(|providers| match providers.borrow().get(SLOT) {
         Some(control) => call(&mut control.0.borrow_mut()),
         None => failure(b"fixture callback has no owning provider"),
     })
@@ -213,11 +300,11 @@ fn live_session(state: &ProviderState, handle: ZrRuntimeSessionHandle) -> bool {
     handle == SESSION && state.active
 }
 
-unsafe extern "C" fn create_session(
+unsafe extern "C" fn create_session<const SLOT: usize>(
     _config: ZrRuntimeSessionConfigV3,
     out: *mut ZrRuntimeSessionHandle,
 ) -> ZrStatus {
-    with_provider(|state| {
+    with_provider::<SLOT>(|state| {
         state.calls.push(Call::Create);
         if out.is_null() || state.active {
             return failure(b"fixture create requires a new output handle");
@@ -228,9 +315,16 @@ unsafe extern "C" fn create_session(
     })
 }
 
-unsafe extern "C" fn destroy_session(handle: ZrRuntimeSessionHandle) -> ZrStatus {
-    with_provider(|state| {
+unsafe extern "C" fn destroy_session<const SLOT: usize>(
+    handle: ZrRuntimeSessionHandle,
+) -> ZrStatus {
+    with_provider::<SLOT>(|state| {
         state.calls.push(Call::Destroy);
+        if let Some(probe) = &state.native_window_probe {
+            state
+                .native_window_observations
+                .push(probe.observe(Call::Destroy));
+        }
         if !live_session(state, handle) {
             return failure(b"fixture destroy used an inactive session");
         }
@@ -244,11 +338,11 @@ unsafe extern "C" fn destroy_session(handle: ZrRuntimeSessionHandle) -> ZrStatus
     })
 }
 
-unsafe extern "C" fn handle_event(
+unsafe extern "C" fn handle_event<const SLOT: usize>(
     handle: ZrRuntimeSessionHandle,
     _event: ZrRuntimeEventV1,
 ) -> ZrStatus {
-    with_provider(|state| {
+    with_provider::<SLOT>(|state| {
         state.calls.push(Call::Event);
         if !live_session(state, handle) {
             return failure(b"fixture event used an inactive session");
@@ -257,26 +351,32 @@ unsafe extern "C" fn handle_event(
     })
 }
 
-unsafe extern "C" fn bind_surface(
+unsafe extern "C" fn bind_surface<const SLOT: usize>(
     handle: ZrRuntimeSessionHandle,
-    _request: ZrRuntimeBindViewportSurfaceRequestV1,
+    request: ZrRuntimeBindViewportSurfaceRequestV1,
 ) -> ZrStatus {
-    with_provider(|state| {
+    with_provider::<SLOT>(|state| {
         state.calls.push(Call::Bind);
         if !live_session(state, handle) {
             return failure(b"fixture bind used an inactive session");
         }
         state.bound = true;
+        state.last_bound_target = Some(request.target);
         ZrStatus::ok()
     })
 }
 
-unsafe extern "C" fn unbind_surface(
+unsafe extern "C" fn unbind_surface<const SLOT: usize>(
     handle: ZrRuntimeSessionHandle,
     _viewport: ZrRuntimeViewportHandle,
 ) -> ZrStatus {
-    with_provider(|state| {
+    with_provider::<SLOT>(|state| {
         state.calls.push(Call::Unbind);
+        if let Some(probe) = &state.native_window_probe {
+            state
+                .native_window_observations
+                .push(probe.observe(Call::Unbind));
+        }
         if !live_session(state, handle) || !state.bound {
             return failure(b"fixture unbind requires a live binding");
         }
@@ -289,12 +389,12 @@ unsafe extern "C" fn unbind_surface(
     })
 }
 
-unsafe extern "C" fn profile_control(
+unsafe extern "C" fn profile_control<const SLOT: usize>(
     handle: ZrRuntimeSessionHandle,
     request: ZrByteSlice,
     out: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
-    with_provider(|state| {
+    with_provider::<SLOT>(|state| {
         state.calls.push(Call::Receipt);
         if !live_session(state, handle) || out.is_null() {
             return failure(b"fixture receipt requires a live session and output");
@@ -344,11 +444,11 @@ unsafe extern "C" fn profile_control(
     })
 }
 
-unsafe extern "C" fn release_allocation(
+unsafe extern "C" fn release_allocation<const SLOT: usize>(
     handle: ZrRuntimeSessionHandle,
     allocation: ZrRuntimeAllocationId,
 ) -> ZrStatus {
-    with_provider(|state| {
+    with_provider::<SLOT>(|state| {
         state.calls.push(Call::ReleaseAllocation);
         if !live_session(state, handle) || state.allocations.remove(&allocation.raw()).is_none() {
             return failure(

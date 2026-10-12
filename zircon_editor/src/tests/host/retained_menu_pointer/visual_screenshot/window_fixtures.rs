@@ -418,7 +418,7 @@ pub(super) fn presented_window_from_chrome(
         Some(workbench_window_bridge.host_projection()),
         componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
-        None,
+        Default::default(),
     );
     ui
 }

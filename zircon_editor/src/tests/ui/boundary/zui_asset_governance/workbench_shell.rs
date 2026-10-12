@@ -1,6 +1,8 @@
 use super::support::{collect_zui_files, editor_asset_root, resource_locator_for_path};
 use toml::Value;
+use zircon_runtime::ui::v2::UiV2PrototypeStoreFileCache;
 use zircon_runtime_interface::ui::v2::UiV2AssetDocument;
+use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 const L4_SHELL_STRUCTURAL_COMPONENTS: &[&str] = &[
     "Container",
@@ -64,7 +66,8 @@ const RAW_L1_L3_COMPONENTS: &[&str] = &[
 
 struct L4ShellTopologySnapshot {
     file_name: &'static str,
-    component_name: &'static str,
+    component_name: Option<&'static str>,
+    document_root: Option<&'static str>,
     root_node: &'static str,
     root_component: &'static str,
     root_control_id: &'static str,
@@ -75,94 +78,108 @@ struct L4ShellTopologySnapshot {
 const L4_SHELL_TOPOLOGY_SNAPSHOTS: &[L4ShellTopologySnapshot] = &[
     L4ShellTopologySnapshot {
         file_name: "workbench_activity_rail.zui",
-        component_name: "WorkbenchActivityRail",
-        root_node: "activity_rail",
-        root_component: "VerticalGroup",
-        root_control_id: "WorkbenchWindowActivityRail",
-        node_count: 7,
+        component_name: None,
+        document_root: Some("activity_rail_root"),
+        root_node: "activity_rail_root",
+        root_component: "Overlay",
+        root_control_id: "ActivityRailRoot",
+        node_count: 6,
         root_children: &[
-            "rail_scene",
-            "rail_cube",
-            "rail_graph",
-            "rail_image",
-            "rail_audio",
-            "rail_code",
+            "activity_rail_panel",
+            "activity_rail_button_0",
+            "activity_rail_button_icon_0",
+            "activity_rail_button_1",
+            "activity_rail_button_icon_1",
         ],
     },
     L4ShellTopologySnapshot {
-        file_name: "workbench_component_drawer.zui",
-        component_name: "WorkbenchComponentDrawer",
-        root_node: "component_drawer",
-        root_component: "VerticalGroup",
-        root_control_id: "WorkbenchComponentDrawer",
-        node_count: 101,
-        root_children: &["drawer_tabs", "component_drawer_content"],
+        file_name: "component_showcase.zui",
+        component_name: None,
+        document_root: Some("component_showcase_root"),
+        root_node: "component_showcase_root",
+        root_component: "VerticalBox",
+        root_control_id: "UiComponentShowcaseRoot",
+        node_count: 12,
+        root_children: &[
+            "component_showcase_header",
+            "component_showcase_toolbar",
+            "component_showcase_body",
+            "component_showcase_bottom_log",
+        ],
     },
     L4ShellTopologySnapshot {
-        file_name: "workbench_inspector_panel.zui",
-        component_name: "WorkbenchInspectorPanel",
-        root_node: "inspector_panel",
+        file_name: "unreal/components/details.zui",
+        component_name: Some("UnrealDetailsPanel"),
+        document_root: None,
+        root_node: "panel",
         root_component: "VerticalGroup",
         root_control_id: "WorkbenchInspectorPanel",
-        node_count: 43,
-        root_children: &["inspector_tabs", "inspector_content"],
+        node_count: 33,
+        root_children: &["tab", "summary", "add", "search", "content"],
     },
     L4ShellTopologySnapshot {
-        file_name: "workbench_main_band.zui",
-        component_name: "WorkbenchMainBand",
+        file_name: "unreal/level_editor_window.zui",
+        component_name: None,
+        document_root: Some("root"),
         root_node: "main_band",
-        root_component: "Overlay",
-        root_control_id: "WorkbenchMainBand",
-        node_count: 9,
-        root_children: &["scene_workspace", "module_workspace"],
+        root_component: "HorizontalGroup",
+        root_control_id: "WorkbenchWindowMainBandRegion",
+        node_count: 12,
+        root_children: &["viewport", "right_dock"],
     },
     L4ShellTopologySnapshot {
-        file_name: "workbench_scene_tree_panel.zui",
-        component_name: "WorkbenchSceneTreePanel",
-        root_node: "scene_tree_panel",
+        file_name: "unreal/components/outliner.zui",
+        component_name: Some("UnrealOutlinerPanel"),
+        document_root: None,
+        root_node: "panel",
         root_component: "VerticalGroup",
         root_control_id: "WorkbenchSceneTreePanel",
-        node_count: 20,
-        root_children: &["scene_tabs", "scene_content"],
+        node_count: 22,
+        root_children: &["tab", "content"],
     },
     L4ShellTopologySnapshot {
-        file_name: "workbench_status_bar.zui",
-        component_name: "WorkbenchStatusBar",
-        root_node: "status_bar",
+        file_name: "unreal/components/status_bar.zui",
+        component_name: Some("UnrealEditorStatusBar"),
+        document_root: None,
+        root_node: "root",
         root_component: "HorizontalGroup",
-        root_control_id: "WorkbenchWindowStatusBar",
-        node_count: 14,
+        root_control_id: "UnrealEditorStatusBar",
+        node_count: 16,
         root_children: &[
-            "status_ready",
-            "status_errors",
-            "status_warnings",
-            "status_messages",
-            "status_task",
-            "status_grid",
-            "status_snap",
-            "status_snap_icon",
-            "status_world_icon",
-            "status_target_icon",
-            "status_zoom",
+            "drawer_toggle",
+            "ready",
+            "errors",
+            "warnings",
+            "messages",
+            "fill",
+            "grid",
+            "snap",
+            "snap_toggle",
+            "world",
+            "target",
+            "zoom",
+            "task",
         ],
     },
     L4ShellTopologySnapshot {
-        file_name: "workbench_top_toolbar.zui",
-        component_name: "WorkbenchTopToolbar",
-        root_node: "top_toolbar",
-        root_component: "VerticalGroup",
+        file_name: "unreal/components/toolbar.zui",
+        component_name: Some("UnrealLevelEditorToolbar"),
+        document_root: None,
+        root_node: "toolbar",
+        root_component: "HorizontalBox",
         root_control_id: "WorkbenchWindowTopToolbar",
-        node_count: 45,
-        root_children: &["toolbar_command_row", "toolbar_module_tabs"],
+        node_count: 13,
+        root_children: &["command_scroll", "settings"],
     },
     L4ShellTopologySnapshot {
-        file_name: "workbench_viewport_panel.zui",
-        component_name: "WorkbenchViewportPanel",
-        root_node: "viewport_panel",
+        file_name: "unreal/components/viewport.zui",
+        component_name: Some("UnrealLevelViewport"),
+        document_root: None,
+        root_node: "root",
         root_component: "VerticalGroup",
-        root_control_id: "WorkbenchViewportPanel",
-        node_count: 90,
-        root_children: &["document_tabs", "viewport_toolbar", "viewport_surface"],
+        root_control_id: "UnrealLevelViewport",
+        node_count: 16,
+        root_children: &["viewport"],
     },
 ];
 
@@ -202,6 +219,34 @@ fn l4_surfaces_contain_no_inline_primitive_structures() {
         }
     }
 
+    // Surviving module leaves retain the original Workbench composition gate.
+    // Current Unreal/native surfaces compile via the existing cache owner.
+    let mut cache = UiV2PrototypeStoreFileCache::new();
+    for snapshot in L4_SHELL_TOPOLOGY_SNAPSHOTS {
+        let path = editor_root.join("ui/editor").join(snapshot.file_name);
+        let outcome = cache
+            .load_store(std::iter::once(path))
+            .unwrap_or_else(|error| {
+                panic!(
+                    "current L4 surface {} must compile: {error}",
+                    snapshot.file_name
+                )
+            });
+        assert!(
+            outcome.unresolved_imports.is_empty(),
+            "{} must have a complete native import closure",
+            snapshot.file_name
+        );
+        assert_eq!(
+            outcome.root_document.asset.kind,
+            if snapshot.component_name.is_some() {
+                UiV2AssetKind::Component
+            } else {
+                UiV2AssetKind::View
+            }
+        );
+    }
+
     assert!(
         checked_assets >= 8,
         "L4 Workbench shell should cover the committed shell component assets"
@@ -223,7 +268,7 @@ fn l4_surfaces_contain_no_inline_primitive_structures() {
 #[test]
 fn l4_surfaces_keep_runtime_region_topology_snapshot() {
     let editor_root = editor_asset_root();
-    let shell_root = editor_root.join("ui/editor/components/workbench/shell");
+    let shell_root = editor_root.join("ui/editor");
     let mut checked_assets = 0usize;
     let mut offenders = Vec::new();
 
@@ -233,24 +278,36 @@ fn l4_surfaces_keep_runtime_region_topology_snapshot() {
         let locator = resource_locator_for_path(&editor_root, &path);
         let document = super::support::load_zui_document(&path);
 
-        let Some(component) = document.components.get(snapshot.component_name) else {
-            offenders.push(format!(
-                "{locator} should declare shell component `{}`",
-                snapshot.component_name
-            ));
-            continue;
-        };
-        if component.root != snapshot.root_node {
-            offenders.push(format!(
-                "{locator} component `{}` root changed from `{}` to `{}`",
-                snapshot.component_name, snapshot.root_node, component.root
-            ));
-            continue;
+        if let Some(component_name) = snapshot.component_name {
+            assert_eq!(document.asset.kind, UiV2AssetKind::Component);
+            let component = document.components.get(component_name).unwrap_or_else(|| {
+                panic!("{locator} should declare shell component {component_name}")
+            });
+            assert_eq!(
+                document.components.len(),
+                1,
+                "{locator} must remain one component prototype"
+            );
+            assert_eq!(
+                component.root, snapshot.root_node,
+                "{locator} component root changed"
+            );
+        } else {
+            assert_eq!(document.asset.kind, UiV2AssetKind::View);
+            assert!(
+                document.components.is_empty(),
+                "{locator} must remain a real View"
+            );
+            assert_eq!(
+                document.root_node_id(),
+                snapshot.document_root,
+                "{locator} document root changed"
+            );
         }
 
         let Some(root_node) = document.nodes.get(snapshot.root_node) else {
             offenders.push(format!(
-                "{locator} component `{}` references missing root `{}`",
+                "{locator} component `{:?}` references missing root `{}`",
                 snapshot.component_name, snapshot.root_node
             ));
             continue;
@@ -301,231 +358,306 @@ fn l4_surfaces_keep_runtime_region_topology_snapshot() {
 
 #[test]
 fn workbench_shell_uses_tokenized_viewport_first_region_constraints() {
-    let editor_root = editor_asset_root();
-    let window = super::support::load_zui_document(
-        &editor_root.join("ui/editor/windows/workbench_window.zui"),
+    let editor_root = editor_asset_root().join("ui/editor");
+    let window =
+        super::support::load_zui_document(&editor_root.join("unreal/level_editor_window.zui"));
+    let toolbar =
+        super::support::load_zui_document(&editor_root.join("unreal/components/toolbar.zui"));
+    let drawer = super::support::load_zui_document(
+        &editor_root.join("unreal/components/content_drawer.zui"),
     );
-    let main_band = super::support::load_zui_document(
-        &editor_root.join("ui/editor/components/workbench/shell/workbench_main_band.zui"),
-    );
-    let component_drawer = super::support::load_zui_document(
-        &editor_root.join("ui/editor/components/workbench/shell/workbench_component_drawer.zui"),
-    );
-    let status_bar = super::support::load_zui_document(
-        &editor_root.join("ui/editor/components/workbench/shell/workbench_status_bar.zui"),
-    );
-    let scene_tree = super::support::load_zui_document(
-        &editor_root.join("ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui"),
-    );
-    let viewport = super::support::load_zui_document(
-        &editor_root.join("ui/editor/components/workbench/shell/workbench_viewport_panel.zui"),
-    );
+    let status =
+        super::support::load_zui_document(&editor_root.join("unreal/components/status_bar.zui"));
+    let outliner =
+        super::support::load_zui_document(&editor_root.join("unreal/components/outliner.zui"));
+    let details =
+        super::support::load_zui_document(&editor_root.join("unreal/components/details.zui"));
+    let viewport =
+        super::support::load_zui_document(&editor_root.join("unreal/components/viewport.zui"));
 
-    assert_fixed_token_axis(
-        node_axis(window, "status_bar", "height"),
-        "$editor.chrome.status_bar.height",
+    assert_eq!(window.asset.kind, UiV2AssetKind::View);
+    assert_eq!(window.root_node_id(), Some("root"));
+    assert!(window.components.is_empty(), "main_band is a window node");
+    assert_eq!(window.nodes["main_band"].component, "HorizontalGroup");
+    assert_eq!(
+        window.nodes["main_band"].control_id.as_deref(),
+        Some("WorkbenchWindowMainBandRegion")
     );
-    assert_stretch_axis(node_axis(window, "main_band", "height"), 100, 4.0);
-    assert_auto_slot(child_linear_slot(window, "window_content", "top_toolbar"));
+    assert_eq!(
+        window.nodes["editor_content"]
+            .children
+            .iter()
+            .map(|child| child.node.as_str())
+            .collect::<Vec<_>>(),
+        ["menu_bar", "toolbar", "main_band", "status_bar"]
+    );
+    assert_eq!(
+        window.nodes["root"]
+            .children
+            .iter()
+            .map(|child| child.node.as_str())
+            .collect::<Vec<_>>(),
+        ["editor_content", "content_drawer", "menu_popups"]
+    );
+    for node in ["menu_bar", "toolbar", "status_bar"] {
+        assert_auto_slot(child_linear_slot(window, "editor_content", node));
+    }
     assert_linear_slot(
-        child_linear_slot(window, "window_content", "main_band"),
+        child_linear_slot(window, "editor_content", "main_band"),
         "Stretch",
-        4.0,
-    );
-    assert_auto_slot(child_linear_slot(window, "window_content", "status_bar"));
-    let bottom_drawer = node_axis(window, "component_drawer_shell", "height");
-    assert_eq!(
-        token_axis_value(bottom_drawer, "min"),
-        "$editor.chrome.panel_header.height"
-    );
-    assert_eq!(
-        token_axis_value(bottom_drawer, "preferred"),
-        "$editor.density.bottom_output_height"
-    );
-    assert_eq!(
-        token_axis_value(bottom_drawer, "max"),
-        "$editor.density.bottom_output_height"
-    );
-    assert_eq!(axis_string(bottom_drawer, "stretch"), "Fixed");
-    assert_eq!(axis_i64(bottom_drawer, "priority"), 20);
-    assert_linear_slot(
-        child_linear_slot(window, "window_content", "component_drawer_shell"),
-        "StretchContent",
         1.0,
     );
-
     assert_eq!(
-        axis_string(
-            node_axis(component_drawer, "component_drawer", "height"),
-            "stretch"
-        ),
+        axis_string(node_axis(window, "main_band", "height"), "stretch"),
         "Stretch"
     );
+    assert_eq!(
+        axis_string(node_axis(window, "viewport", "width"), "stretch"),
+        "Stretch"
+    );
+    assert_eq!(axis_f64(node_axis(window, "viewport", "width"), "min"), 0.0);
+    assert_eq!(
+        axis_string(node_axis(window, "right_dock", "width"), "stretch"),
+        "Stretch"
+    );
+    assert_eq!(
+        axis_f64(node_axis(window, "right_dock", "width"), "min"),
+        240.0
+    );
+    assert_eq!(
+        window.nodes["main_band"]
+            .children
+            .iter()
+            .map(|child| child.node.as_str())
+            .collect::<Vec<_>>(),
+        ["viewport", "right_dock"]
+    );
+    assert_linear_slot(
+        child_linear_slot(window, "main_band", "viewport"),
+        "Stretch",
+        1.0,
+    );
+    assert_linear_slot(
+        child_linear_slot(window, "main_band", "right_dock"),
+        "Stretch",
+        0.25,
+    );
+    assert!(
+        axis_f64(child_linear_slot(window, "main_band", "viewport"), "value")
+            > axis_f64(
+                child_linear_slot(window, "main_band", "right_dock"),
+                "value"
+            ),
+        "viewport must retain more layout budget than the auxiliary dock"
+    );
+    assert_linear_slot(
+        child_linear_slot(window, "right_dock", "outliner"),
+        "Stretch",
+        0.4,
+    );
+    assert_linear_slot(
+        child_linear_slot(window, "right_dock", "details"),
+        "Stretch",
+        1.0,
+    );
+    for node in ["outliner", "details"] {
+        assert_eq!(axis_f64(node_axis(window, node, "height"), "min"), 96.0);
+        assert_eq!(
+            axis_string(node_axis(window, node, "height"), "stretch"),
+            "Stretch"
+        );
+    }
+    assert_fixed_numeric_axis(node_axis(window, "menu_bar", "height"), 26.0);
+    assert_fixed_numeric_axis(node_axis(toolbar, "toolbar", "height"), 48.0);
+    assert_fixed_numeric_axis(node_axis(window, "status_bar", "height"), 32.0);
+    assert_fixed_numeric_axis(node_axis(status, "root", "height"), 32.0);
+    for node in [
+        "ready",
+        "errors",
+        "warnings",
+        "messages",
+        "grid",
+        "snap",
+        "snap_toggle",
+        "world",
+        "target",
+        "zoom",
+    ] {
+        assert_eq!(
+            axis_string(node_axis(status, node, "height"), "stretch"),
+            "Stretch",
+            "status controls must share their current region height"
+        );
+    }
+    for (document, root) in [(outliner, "panel"), (details, "panel"), (viewport, "root")] {
+        assert_eq!(
+            axis_string(node_axis(document, root, "width"), "stretch"),
+            "Stretch"
+        );
+        assert_eq!(
+            axis_string(node_axis(document, root, "height"), "stretch"),
+            "Stretch"
+        );
+    }
     assert_fixed_token_axis(
-        node_axis(component_drawer, "drawer_tabs", "height"),
+        node_axis(outliner, "tab", "height"),
         "$editor.chrome.panel_header.height",
     );
-    for tab in ["drawer_tab_components", "drawer_tab_console"] {
-        assert_fixed_token_axis(
-            node_axis(component_drawer, tab, "height"),
-            "$editor.chrome.panel_header.height",
-        );
-    }
     assert_fixed_token_axis(
-        node_axis(status_bar, "status_bar", "height"),
-        "$editor.chrome.status_bar.height",
+        node_axis(details, "tab", "height"),
+        "$editor.chrome.panel_header.height",
     );
-    for control in [
-        "status_task_label",
-        "status_grid",
-        "status_snap",
-        "status_snap_icon",
-        "status_world_icon",
-        "status_target_icon",
-        "status_zoom",
+    assert_fixed_token_axis(
+        node_axis(viewport, "toolbar", "height"),
+        "$editor.chrome.viewport_toolbar.height",
+    );
+    assert_fixed_token_axis(
+        node_axis(drawer, "drawer", "height"),
+        "$editor.density.bottom_output_height",
+    );
+    assert_eq!(
+        drawer.nodes["drawer"]
+            .props
+            .get("visible")
+            .and_then(Value::as_bool),
+        Some(false)
+    );
+    assert_eq!(
+        drawer.nodes["drawer"]
+            .props
+            .get("visibility")
+            .and_then(Value::as_str),
+        Some("collapsed")
+    );
+    assert_eq!(
+        window.nodes["content_drawer"].component,
+        "UnrealContentDrawer"
+    );
+    assert_eq!(
+        window.nodes["menu_popups"].component,
+        "UnrealLevelEditorMenuPopups"
+    );
+    assert_eq!(
+        window.nodes["content_drawer"]
+            .layout
+            .as_ref()
+            .unwrap()
+            .get("z_index")
+            .and_then(Value::as_integer),
+        Some(160)
+    );
+    assert_eq!(
+        window.nodes["menu_popups"]
+            .layout
+            .as_ref()
+            .unwrap()
+            .get("z_index")
+            .and_then(Value::as_integer),
+        Some(180)
+    );
+    for node in [
+        "root",
+        "main_band",
+        "viewport",
+        "right_dock",
+        "outliner",
+        "details",
     ] {
-        assert_fixed_token_axis(
-            node_axis(status_bar, control, "height"),
-            "$editor.chrome.status_bar.height",
+        assert_eq!(
+            window.nodes[node]
+                .layout
+                .as_ref()
+                .unwrap()
+                .get("clip")
+                .and_then(Value::as_bool),
+            Some(true),
+            "current region {node} must retain its authored clip owner"
         );
     }
-    assert_eq!(
-        axis_string(
-            node_axis(scene_tree, "scene_tree_panel", "width"),
-            "stretch"
-        ),
-        "Stretch"
-    );
-    for control in ["scene_tabs", "scene_tab_scene", "scene_tab_layers"] {
-        assert_fixed_token_axis(
-            node_axis(scene_tree, control, "height"),
-            "$editor.chrome.panel_header.height",
-        );
-    }
-    assert_fixed_token_axis(
-        node_axis(viewport, "document_tabs", "height"),
-        "$editor.chrome.document_header.height",
-    );
-    for control in [
-        "viewport_toolbar",
-        "viewport_mode",
-        "viewport_lit",
-        "viewport_angle",
-        "viewport_speed",
-    ] {
-        assert_fixed_token_axis(
-            node_axis(viewport, control, "height"),
-            "$editor.chrome.viewport_toolbar.height",
-        );
-    }
-
-    let left_drawer = node_axis(main_band, "left_drawer_shell", "width");
-    assert_fixed_token_axis(
-        node_axis(main_band, "activity_rail", "width"),
-        "$editor.chrome.activity_rail.width",
-    );
-    assert_eq!(
-        axis_i64(node_axis(main_band, "activity_rail", "width"), "priority"),
-        80
-    );
-    assert_auto_slot(child_linear_slot(
-        main_band,
-        "scene_workspace",
-        "activity_rail",
-    ));
-    assert_eq!(
-        token_axis_value(left_drawer, "min"),
-        "$editor.density.compact_side_min_width"
-    );
-    assert_eq!(
-        token_axis_value(left_drawer, "preferred"),
-        "$editor.density.left_drawer_width"
-    );
-    assert_eq!(
-        token_axis_value(left_drawer, "max"),
-        "$editor.density.compact_left_drawer_max_width"
-    );
-    assert_eq!(axis_string(left_drawer, "stretch"), "Fixed");
-    assert_eq!(axis_i64(left_drawer, "priority"), 50);
-    assert_linear_slot(
-        child_linear_slot(main_band, "scene_workspace", "left_drawer_shell"),
-        "StretchContent",
-        1.0,
-    );
-
-    let viewport = node_axis(main_band, "viewport_panel", "width");
-    assert_stretch_axis(viewport, 100, 4.0);
-    assert_linear_slot(
-        child_linear_slot(main_band, "scene_workspace", "viewport_panel"),
-        "Stretch",
-        4.0,
-    );
-
-    let right_drawer = node_axis(main_band, "right_drawer_shell", "width");
-    assert_eq!(
-        token_axis_value(right_drawer, "min"),
-        "$editor.density.compact_side_min_width"
-    );
-    assert_eq!(
-        token_axis_value(right_drawer, "preferred"),
-        "$editor.density.right_drawer_width"
-    );
-    assert_eq!(
-        token_axis_value(right_drawer, "max"),
-        "$editor.density.right_drawer_width"
-    );
-    assert_eq!(axis_string(right_drawer, "stretch"), "Fixed");
-    assert_eq!(axis_i64(right_drawer, "priority"), 40);
-    assert_linear_slot(
-        child_linear_slot(main_band, "scene_workspace", "right_drawer_shell"),
-        "StretchContent",
-        1.0,
-    );
-
-    assert!(
-        axis_i64(viewport, "priority") > axis_i64(left_drawer, "priority")
-            && axis_i64(left_drawer, "priority") > axis_i64(right_drawer, "priority"),
-        "viewport must retain layout budget before primary and auxiliary drawers"
-    );
 }
 
 #[test]
 fn workbench_toolbar_groups_preserve_content_inside_horizontal_scroll() {
-    let editor_root = editor_asset_root();
     let toolbar = super::support::load_zui_document(
-        &editor_root.join("ui/editor/components/workbench/shell/workbench_top_toolbar.zui"),
+        &editor_asset_root().join("ui/editor/unreal/components/toolbar.zui"),
     );
-
-    for (node_id, priority) in [
-        ("toolbar_file_group", 90),
-        ("toolbar_module_commands", 60),
-        ("toolbar_tool_group", 40),
-        ("toolbar_run_group", 100),
-        ("toolbar_layout_group", 20),
-    ] {
-        let width = node_axis(toolbar, node_id, "width");
+    let row = &toolbar.nodes["command_scroll"];
+    assert_eq!(row.component, "ScrollableBox");
+    assert_eq!(
+        row.control_id.as_deref(),
+        Some("WorkbenchToolbarCommandRow")
+    );
+    let layout = row.layout.as_ref().expect("command scroll layout");
+    assert_eq!(layout.get("clip").and_then(Value::as_bool), Some(true));
+    let container = layout
+        .get("container")
+        .and_then(Value::as_table)
+        .expect("command scroll container");
+    assert_eq!(axis_string(container, "kind"), "ScrollableBox");
+    assert_eq!(axis_string(container, "axis"), "Horizontal");
+    assert_eq!(axis_string(container, "scrollbar_visibility"), "Never");
+    assert_eq!(
+        axis_string(node_axis(toolbar, "command_scroll", "width"), "stretch"),
+        "Stretch"
+    );
+    assert_eq!(
+        axis_f64(node_axis(toolbar, "command_scroll", "width"), "min"),
+        0.0
+    );
+    assert_eq!(
+        row.children
+            .iter()
+            .map(|child| child.node.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "save",
+            "find_content",
+            "modes",
+            "add",
+            "blueprints",
+            "cinematics",
+            "play",
+            "pause",
+            "stop",
+            "play_options"
+        ]
+    );
+    for child in &row.children {
+        let width = node_axis(toolbar, &child.node, "width");
         let min = axis_f64(width, "min");
         let preferred = axis_f64(width, "preferred");
         let max = axis_f64(width, "max");
-        assert_eq!(axis_string(width, "stretch"), "Stretch");
-        assert_eq!(axis_i64(width, "priority"), priority);
+        assert_eq!(axis_string(width, "stretch"), "Fixed");
         assert!(
-            min <= preferred && preferred <= max,
-            "toolbar group `{node_id}` should declare ordered min/preferred/max constraints"
+            min > 0.0 && min <= preferred && preferred <= max,
+            "scrollable command {} must retain its authored content width",
+            child.node
         );
-        assert!(
-            min < preferred || preferred < max,
-            "toolbar group `{node_id}` must not pin its complete content width"
-        );
-
-        let slot = child_linear_slot(toolbar, "toolbar_command_row", node_id);
-        assert_eq!(axis_string(slot, "rule"), "StretchContent");
-        assert_eq!(axis_f64(slot, "value"), 1.0);
+        assert_fixed_numeric_axis(node_axis(toolbar, &child.node, "height"), 32.0);
+    }
+    assert_eq!(
+        toolbar.nodes["toolbar"]
+            .children
+            .iter()
+            .map(|child| child.node.as_str())
+            .collect::<Vec<_>>(),
+        ["command_scroll", "settings"],
+        "Settings remains outside the scrollable command row"
+    );
+    assert_fixed_numeric_axis(node_axis(toolbar, "settings", "height"), 32.0);
+    use crate::ui::retained_host::callback_dispatch::template_bridge::BuiltinWorkbenchWindowTemplateSurfaceBridge;
+    use zircon_runtime_interface::ui::layout::UiSize;
+    for width in [480.0, 900.0, 1672.0] {
+        let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(width, 941.0))
+            .expect("current Unreal window must load through the production bridge");
+        let save = bridge
+            .control_frame("WorkbenchToolbarSave")
+            .expect("current Save control must be visible");
         assert_eq!(
-            axis_f64(slot, "shrink_value"),
-            0.0,
-            "scrollable toolbar groups must keep their fixed child controls intact"
+            save.width, 32.0,
+            "horizontal scrolling must keep the fixed Save width at {width}"
         );
+        assert_eq!(save.height, 32.0);
     }
 }
 
@@ -577,10 +709,11 @@ fn assert_fixed_token_axis(axis: &toml::Table, token: &str) {
     assert_eq!(axis_string(axis, "stretch"), "Fixed");
 }
 
-fn assert_stretch_axis(axis: &toml::Table, priority: i64, weight: f64) {
-    assert_eq!(axis_string(axis, "stretch"), "Stretch");
-    assert_eq!(axis_i64(axis, "priority"), priority);
-    assert_eq!(axis_f64(axis, "weight"), weight);
+fn assert_fixed_numeric_axis(axis: &toml::Table, value: f64) {
+    for key in ["min", "preferred", "max"] {
+        assert_eq!(axis_f64(axis, key), value);
+    }
+    assert_eq!(axis_string(axis, "stretch"), "Fixed");
 }
 
 fn token_axis_value<'a>(axis: &'a toml::Table, key: &str) -> &'a str {

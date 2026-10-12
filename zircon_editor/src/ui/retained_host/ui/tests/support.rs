@@ -216,7 +216,10 @@ pub(super) fn apply_presentation_with_workbench_layout_frames(
         None,
         componentized_workbench_layout_frames,
         floating_window_projection_bundle,
-        None,
+        crate::ui::retained_host::ui::PaneRuntimeContext {
+            template: None,
+            generated: None,
+        },
     );
 }
 

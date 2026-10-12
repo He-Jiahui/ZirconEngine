@@ -3,8 +3,8 @@ mod builtins;
 mod svg;
 
 pub use atlas::{
-    UiIconAtlasBuilder, UiIconAtlasPlan, UiIconAtlasRect, UiIconAtlasSlot, UiIconAtlasUvRect,
-    UiIconRasterRequest,
+    UiIconAtlasBuildError, UiIconAtlasBuilder, UiIconAtlasPlan, UiIconAtlasRect, UiIconAtlasSlot,
+    UiIconAtlasUvRect, UiIconRasterRequest,
 };
 pub(crate) use builtins::UiBuiltinIconReference;
 pub use builtins::{builtin_icon_supported, UiBuiltinIcon, UiIconSize};

@@ -1,8 +1,8 @@
 //! Shared binary envelope for animation resource schemas.
 
-use bincode::Options;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use zircon_runtime_interface::serialization::PositionalEncoding;
 
 use super::error::{AnimationAssetError, AnimationAssetResult};
 
@@ -59,16 +59,17 @@ pub(super) fn encode_binary_asset<T>(
 where
     T: Serialize + Clone,
 {
-    bincode::serialize(&AnimationBinaryDocument {
-        magic: ANIMATION_BINARY_MAGIC,
-        version: ANIMATION_BINARY_VERSION,
-        kind,
-        payload: payload.clone(),
-    })
-    .map_err(|source| AnimationAssetError::Serialize {
-        kind: kind.as_str(),
-        source,
-    })
+    zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+        .encode(&AnimationBinaryDocument {
+            magic: ANIMATION_BINARY_MAGIC,
+            version: ANIMATION_BINARY_VERSION,
+            kind,
+            payload: payload.clone(),
+        })
+        .map_err(|source| AnimationAssetError::Serialize {
+            kind: kind.as_str(),
+            source,
+        })
 }
 
 // 各资源的 from_bytes 共用此信任边界：先约束输入大小，再兼容文档与流式封套；
@@ -167,11 +168,8 @@ fn decode_binary_document_asset<T>(
 where
     T: DeserializeOwned,
 {
-    let document: AnimationBinaryDocument<T> = bincode::DefaultOptions::new()
-        .with_fixint_encoding()
-        .allow_trailing_bytes()
-        .with_limit(ANIMATION_BINARY_MAX_DECODE_BYTES as u64)
-        .deserialize(bytes)
+    let (document, _): (AnimationBinaryDocument<T>, _) = PositionalEncoding::FixedLittleEndian
+        .decode_prefix_bounded(bytes, ANIMATION_BINARY_MAX_DECODE_BYTES as u64)
         .map_err(|source| AnimationAssetError::DocumentDeserialize {
             kind: kind.as_str(),
             source,
@@ -187,23 +185,17 @@ fn decode_binary_stream_asset<T>(
 where
     T: DeserializeOwned,
 {
-    let mut cursor = std::io::Cursor::new(bytes);
-    let header: AnimationBinaryHeader = bincode::DefaultOptions::new()
-        .with_fixint_encoding()
-        .allow_trailing_bytes()
-        .with_limit(ANIMATION_BINARY_MAX_DECODE_BYTES as u64)
-        .deserialize_from(&mut cursor)
+    let (header, offset): (AnimationBinaryHeader, _) = PositionalEncoding::FixedLittleEndian
+        .decode_prefix_bounded(bytes, ANIMATION_BINARY_MAX_DECODE_BYTES as u64)
         .map_err(|source| AnimationAssetError::StreamHeaderDeserialize {
             kind: kind.as_str(),
             source,
         })?;
     validate_binary_header(kind, header.magic, header.version, header.kind)?;
 
-    bincode::DefaultOptions::new()
-        .with_fixint_encoding()
-        .allow_trailing_bytes()
-        .with_limit(ANIMATION_BINARY_MAX_DECODE_BYTES as u64)
-        .deserialize_from(&mut cursor)
+    PositionalEncoding::FixedLittleEndian
+        .decode_prefix_bounded(&bytes[offset..], ANIMATION_BINARY_MAX_DECODE_BYTES as u64)
+        .map(|(payload, _)| payload)
         .map_err(|source| AnimationAssetError::StreamPayloadDeserialize {
             kind: kind.as_str(),
             source,

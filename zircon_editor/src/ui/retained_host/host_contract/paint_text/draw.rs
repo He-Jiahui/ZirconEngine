@@ -57,6 +57,7 @@ fn draw_text_with_size_and_style_impl(
     if frame.is_recording() {
         record_text_run(
             frame,
+            &rect,
             &clip,
             effective_clip,
             layout.display_text.as_str(),

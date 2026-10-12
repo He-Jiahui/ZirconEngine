@@ -209,17 +209,16 @@ def active_driver_binding(repository_root: str | Path) -> dict:
 
 
 def runtime_agent_name(base_name: str, runtime_operation_id: str) -> str:
-    """Derive an isolated Jenkins node name for one runtime operation."""
+    """Use the configured persistent node name after validating runtime intent."""
     if not isinstance(base_name, str) or not base_name.strip() or any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for ch in base_name):
         raise JenkinsError("agent_name_invalid", "agent base name is required")
     if not isinstance(runtime_operation_id, str) or not runtime_operation_id.strip():
         raise JenkinsError("runtime_operation_invalid", "runtime operation id is required")
     if any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for ch in runtime_operation_id):
         raise JenkinsError("runtime_operation_invalid", "runtime operation id contains unsupported characters")
-    suffix = hashlib.sha256(runtime_operation_id.encode("utf-8")).hexdigest()[:16]
-    return f"{base_name.strip()}-{suffix}"
+    return base_name.strip()
 
 
 def runtime_agent_label(base_name: str, runtime_operation_id: str) -> str:
-    """Pure label fence matching the operation-specific agent name."""
+    """Use a persistent node selector; runtime identity is verified separately."""
     return runtime_agent_name(base_name, runtime_operation_id)

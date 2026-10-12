@@ -9,7 +9,7 @@ mod performance;
 use std::path::PathBuf;
 
 use super::{
-    diagnostic_log_line, open_first_available_log_file, sanitize_channel_name,
+    append_diagnostic_log_line, open_first_available_log_file, sanitize_channel_name,
     LogDirectoryCandidate,
 };
 use crate::diagnostic_log::DiagnosticLogLevel;
@@ -26,12 +26,14 @@ fn channel_names_are_safe_file_stems() {
 
 #[test]
 fn diagnostic_log_lines_include_level_scope_and_escape_newlines() {
-    let line = diagnostic_log_line(
-        "2026-05-04-16-30-00",
+    let mut buffer = b"[2026-05-04-16-30-00] ".to_vec();
+    append_diagnostic_log_line(
+        &mut buffer,
         DiagnosticLogLevel::Warn,
         "runtime_asset_path",
         "first\nsecond",
     );
+    let line = String::from_utf8(buffer).expect("diagnostic log line is UTF-8");
 
     assert_eq!(
         line,
@@ -56,4 +58,20 @@ fn disabled_file_sink_skips_directory_candidates() {
     assert!(file.is_none());
     assert_eq!(notes.len(), 1);
     assert!(notes[0].message.contains("file-backed log sink disabled"));
+}
+
+#[test]
+fn diagnostic_log_lines_preserve_literal_backslashes_and_unicode() {
+    let mut buffer = b"[2026-05-04-16-30-00] ".to_vec();
+    append_diagnostic_log_line(
+        &mut buffer,
+        DiagnosticLogLevel::Debug,
+        "作用域",
+        "literal \\n and C:\\assets\\界面\n第二行 🧭",
+    );
+
+    assert_eq!(
+        String::from_utf8(buffer).expect("diagnostic log line is UTF-8"),
+        "[2026-05-04-16-30-00] [debug] [作用域] literal \\n and C:\\assets\\界面\\n第二行 🧭\n"
+    );
 }

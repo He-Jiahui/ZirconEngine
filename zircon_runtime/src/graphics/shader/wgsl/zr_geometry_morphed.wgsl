@@ -1,3 +1,5 @@
+//! 按 GPUScene morph 布局读取对象空间形变；payload 为 delta 起点、weight 起点、顶点数、target 数。
+//! delta 按 target/vertex 排列，每组四行 position/normal/tangent/color；current 与 previous 权重段共用 delta。
 const ZR_MORPH_DELTA_ROWS_PER_VERTEX_TARGET: u32 = 4u;
 const ZR_MORPH_POSITION_ROW: u32 = 0u;
 const ZR_MORPH_NORMAL_ROW: u32 = 1u;
@@ -54,6 +56,8 @@ fn zr_morph_previous_weight(payload: vec4<u32>, target_index: u32) -> f32 {
     return zr_gpu_scene_morph_weight(payload.y + payload.w + target_index);
 }
 
+// vec3 行的 w 表示属性是否存在，返回的 w 用于 normal/tangent 缺失时回退。
+// color 行的 w 是实际 alpha delta，使用四通道累加路径。
 fn zr_morph_vec3_delta_with_previous_mode(
     v: ZrVertexInput,
     instance_index: u32,

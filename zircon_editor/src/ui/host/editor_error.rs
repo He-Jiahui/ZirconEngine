@@ -10,7 +10,7 @@ use zircon_runtime::scene::world::SceneProjectError;
 use crate::core::asset::DirtyRegistryError;
 use crate::core::editor_message::DocumentId;
 use crate::core::extension::{
-    SaveError, ToolkitInstanceIdError, ToolkitLayoutError, ToolkitRegistryError,
+    DocumentSaveReport, SaveError, ToolkitInstanceIdError, ToolkitLayoutError, ToolkitRegistryError,
 };
 use crate::core::project::ProjectAuthorityError;
 use crate::core::recovery::DocumentJournalCoordinatorError;
@@ -191,6 +191,12 @@ impl std::fmt::Display for AnimationEditorDocumentLoadDiagnostic {
 
 #[derive(Debug, Error)]
 pub enum EditorError {
+    #[error(transparent)]
+    ExtensionRegistry {
+        #[from]
+        source: crate::core::editor_extension::EditorExtensionRegistryError,
+    },
+
     #[error("{0}")]
     Layout(String),
     #[error("workbench layout persistence failed: {source}")]
@@ -230,6 +236,27 @@ pub enum EditorError {
         #[from]
         #[source]
         source: SaveError,
+    },
+    #[error("document save submission failed: {source}")]
+    DocumentSaveSubmission {
+        #[from]
+        #[source]
+        source: crate::core::jobs::JobSubmitError,
+    },
+    #[error("document save job failed: {source}")]
+    DocumentSaveJob {
+        #[from]
+        #[source]
+        source: crate::core::jobs::JobError,
+    },
+    #[error(
+        "document {document:?} source write committed, but save completion failed: {source}",
+        document = report.document_id()
+    )]
+    DocumentSaveCommitted {
+        report: DocumentSaveReport,
+        #[source]
+        source: Box<EditorError>,
     },
     #[error("document toolkit instance id failed: {source}")]
     DocumentToolkitInstanceId {

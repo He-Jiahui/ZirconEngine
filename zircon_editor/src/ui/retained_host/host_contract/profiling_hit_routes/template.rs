@@ -13,18 +13,25 @@ pub(in crate::ui::retained_host::host_contract) fn template_route_hit(
     x: f32,
     y: f32,
 ) -> bool {
-    pane_route_hits_template(
-        id,
-        x,
-        y,
-        "document",
-        &scene.document_dock.pane,
-        &translated(
-            &scene.document_dock.content_frame,
-            scene.document_dock.region_frame.x,
-            scene.document_dock.region_frame.y,
-        ),
-    ) || pane_route_hits_template(
+    scene.document_surfaces().iter().any(|document| {
+        let surface = if scene.document_leaves.is_empty() {
+            "document"
+        } else {
+            document.surface_key.as_str()
+        };
+        pane_route_hits_template(
+            id,
+            x,
+            y,
+            surface,
+            &document.pane,
+            &translated(
+                &document.content_frame,
+                document.region_frame.x,
+                document.region_frame.y,
+            ),
+        )
+    }) || pane_route_hits_template(
         id,
         x,
         y,

@@ -122,6 +122,7 @@ mod autosave;
 mod mutation;
 mod persistence;
 mod registry;
+mod unreal_snap_authority;
 mod value_batch;
 
 fn temporary_root(label: &str) -> PathBuf {

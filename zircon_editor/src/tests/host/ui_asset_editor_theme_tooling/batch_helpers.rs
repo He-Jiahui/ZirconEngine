@@ -18,9 +18,10 @@ fn editor_manager_applies_theme_batch_adopt_helper_items_for_imported_sources() 
         THEME_SUMMARY_LAYOUT_ASSET,
         IMPORTED_THEME_COLLISION_ASSET,
     );
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     manager.open_project(&project_root).unwrap();
 
@@ -42,9 +43,10 @@ fn editor_manager_applies_theme_batch_adopt_helper_items_for_imported_sources() 
         .apply_ui_asset_editor_theme_rule_helper_item(&instance_id, helper_index)
         .expect("apply batch imported theme helper"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save batch helper-applied ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved helper ui asset");
     assert_eq!(
@@ -78,9 +80,10 @@ fn editor_manager_prunes_selected_theme_compare_duplicates() {
         DUPLICATE_THEME_UI_LAYOUT_ASSET,
         DUPLICATE_IMPORTED_THEME_ASSET,
     );
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     manager.open_project(&project_root).unwrap();
 
@@ -102,9 +105,10 @@ fn editor_manager_prunes_selected_theme_compare_duplicates() {
         .apply_ui_asset_editor_theme_rule_helper_item(&instance_id, helper_index)
         .expect("apply compare prune theme helper"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save compare prune helper-applied ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document = crate::tests::support::load_test_ui_asset(&saved)
         .expect("saved compare prune helper ui asset");
     assert!(document.tokens.is_empty());
@@ -126,9 +130,10 @@ fn editor_manager_applies_theme_batch_refactor_helper() {
         DUPLICATE_THEME_UI_LAYOUT_ASSET,
         DUPLICATE_IMPORTED_THEME_ASSET,
     );
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     manager.open_project(&project_root).unwrap();
 
@@ -147,9 +152,10 @@ fn editor_manager_applies_theme_batch_refactor_helper() {
         .apply_ui_asset_editor_theme_rule_helper_item(&instance_id, helper_index)
         .expect("apply batch theme refactor helper"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save batch refactored ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved batch refactored ui asset");
     assert!(document.tokens.is_empty());

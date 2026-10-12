@@ -16,9 +16,10 @@ fn editor_manager_opens_and_saves_ui_asset_editor_sessions() {
     write_ui_asset(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET);
 
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     let instance_id = manager
         .open_ui_asset_editor(&ui_asset_path, None)
@@ -53,9 +54,10 @@ fn editor_manager_opens_and_saves_ui_asset_editor_sessions() {
             .source_dirty
     );
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     assert!(saved.contains("Edited"));
     assert!(fs::read_to_string(&ui_asset_path)
         .expect("saved ui asset file")
@@ -392,9 +394,10 @@ fn editor_manager_runs_ui_asset_style_authoring_actions() {
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     let instance_id = manager
         .open_ui_asset_editor(&ui_asset_path, None)
@@ -430,9 +433,10 @@ fn editor_manager_runs_ui_asset_style_authoring_actions() {
         .iter()
         .any(|rule| rule.selector == "#SaveButton"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     assert!(saved.contains("selector = \"#SaveButton\""));
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");

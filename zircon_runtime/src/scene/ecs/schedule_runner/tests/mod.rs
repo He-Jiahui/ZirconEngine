@@ -19,6 +19,8 @@ use super::*;
 mod support;
 use support::{register_timed_external_system, run_test_stage, test_level};
 
+mod admission;
+mod owner_replacement;
 mod panic_recovery;
 mod typed_worker_structural;
 mod worker_callback_order;

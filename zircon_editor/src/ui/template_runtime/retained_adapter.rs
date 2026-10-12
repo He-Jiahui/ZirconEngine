@@ -125,6 +125,8 @@ pub struct RetainedUiHostNodeModel {
     pub focus_visible: bool,
     /// Distinguishes a runtime focus cause from legacy synthetic host projections.
     pub focus_visible_known: bool,
+    /// Known activity of the nearest runtime Tree selection owner.
+    pub tree_owner_focused: Option<bool>,
     pub hovered: bool,
     pub pressed: bool,
     pub dragging: bool,
@@ -268,6 +270,9 @@ impl RetainedUiHostAdapter {
                 .unwrap_or(false),
             expanded: bool_attribute(&node.attributes, "expanded").unwrap_or(false),
             focused: bool_attribute(&node.attributes, "focused").unwrap_or(false),
+            tree_owner_focused: node
+                .surface_node_id
+                .and_then(|_| bool_attribute(&node.attributes, "tree_owner_focused")),
             focus_visible: bool_attribute(&node.attributes, "focus_visible")
                 .or_else(|| bool_attribute(&node.attributes, "focus-visible"))
                 .or_else(|| bool_attribute(&node.attributes, "focusVisible"))

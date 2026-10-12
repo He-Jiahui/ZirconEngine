@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::ui::template_runtime::RetainedUiHostNodeModel;
 
 use super::super::pane_data_conversion::projected_notification_center_value_text;
-use super::properties::first_string_property;
+use super::properties::{first_string_property, numeric_property};
 
 pub(super) fn projected_workbench_text(
     node: &RetainedUiHostNodeModel,
@@ -15,7 +15,10 @@ pub(super) fn projected_workbench_text(
             .then(|| first_string_property(&node.properties, &["placeholder"]))
             .flatten()
     });
-    if prefers_authored_text_over_rendered_text(node.component.as_str(), component_role) {
+    let has_field_label = matches!(node.component.as_str(), "InputField" | "TextField" | "NumberField")
+        && numeric_property(&node.properties, "layout_label_width")
+            .is_some_and(|value| value.is_finite() && value > 0.0);
+    if has_field_label || prefers_authored_text_over_rendered_text(node.component.as_str(), component_role) {
         authored_text
             .or_else(|| node.text.clone())
             .unwrap_or_default()

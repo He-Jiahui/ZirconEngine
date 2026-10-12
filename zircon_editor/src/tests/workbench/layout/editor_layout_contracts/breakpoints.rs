@@ -7,7 +7,7 @@ fn region_size_tokens_feed_shell_autolayout_preferred_extents() {
     tokens.density.right_drawer_width = 560.0;
     tokens.density.bottom_output_height = 320.0;
 
-    let skeleton = WorkbenchSkeleton::jetbrains_default();
+    let skeleton = WorkbenchSkeleton::unreal_default();
     let extents = skeleton.preferred_region_extents_from_tokens(&tokens);
 
     assert_eq!(extents.get(&ShellRegionId::Left), Some(&520.0));

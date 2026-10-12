@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -12,25 +13,40 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "style.rule.select" => self
-                .editor_manager
-                .select_ui_asset_editor_stylesheet_rule(&instance_id, item_index.max(0) as usize)
+            "style.rule.select" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.select_ui_asset_editor_stylesheet_rule(&instance_id, item_index.max(0) as usize)
+                })
                 .map(|_| ()),
-            "style.rule.rename" => self
-                .editor_manager
-                .rename_ui_asset_editor_selected_stylesheet_rule(&instance_id, selector)
+            "style.rule.rename" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.rename_ui_asset_editor_selected_stylesheet_rule(&instance_id, selector)
+                })
                 .map(|_| ()),
-            "style.rule.delete" => self
-                .editor_manager
-                .delete_ui_asset_editor_selected_stylesheet_rule(&instance_id)
+            "style.rule.delete" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.delete_ui_asset_editor_selected_stylesheet_rule(&instance_id)
+                })
                 .map(|_| ()),
-            "style.rule.move_up" => self
-                .editor_manager
-                .move_ui_asset_editor_selected_stylesheet_rule_up(&instance_id)
+            "style.rule.move_up" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.move_ui_asset_editor_selected_stylesheet_rule_up(&instance_id)
+                })
                 .map(|_| ()),
-            "style.rule.move_down" => self
-                .editor_manager
-                .move_ui_asset_editor_selected_stylesheet_rule_down(&instance_id)
+            "style.rule.move_down" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.move_ui_asset_editor_selected_stylesheet_rule_down(&instance_id)
+                })
                 .map(|_| ()),
             other => {
                 self.set_status_line(format!("Unknown UI asset style rule action {other}"));

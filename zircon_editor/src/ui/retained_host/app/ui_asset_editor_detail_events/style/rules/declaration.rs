@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -13,24 +14,33 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "style.rule.declaration.select" => self
-                .editor_manager
-                .select_ui_asset_editor_style_rule_declaration(
-                    &instance_id,
-                    item_index.max(0) as usize,
-                )
+            "style.rule.declaration.select" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.select_ui_asset_editor_style_rule_declaration(
+                        &instance_id,
+                        item_index.max(0) as usize,
+                    )
+                })
                 .map(|_| ()),
-            "style.rule.declaration.upsert" => self
-                .editor_manager
-                .upsert_ui_asset_editor_selected_style_rule_declaration(
-                    &instance_id,
-                    declaration_path,
-                    declaration_value,
-                )
+            "style.rule.declaration.upsert" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.upsert_ui_asset_editor_selected_style_rule_declaration(
+                        &instance_id,
+                        declaration_path,
+                        declaration_value,
+                    )
+                })
                 .map(|_| ()),
-            "style.rule.declaration.delete" => self
-                .editor_manager
-                .delete_ui_asset_editor_selected_style_rule_declaration(&instance_id)
+            "style.rule.declaration.delete" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.delete_ui_asset_editor_selected_style_rule_declaration(&instance_id)
+                })
                 .map(|_| ()),
             other => {
                 self.set_status_line(format!(

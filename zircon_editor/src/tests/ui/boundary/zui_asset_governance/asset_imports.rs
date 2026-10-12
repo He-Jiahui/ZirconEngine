@@ -300,9 +300,13 @@ fn production_view_style_roots_are_zui_documents() {
 
 #[test]
 fn production_zui_component_assets_are_reachable_from_ui_root_widget_imports() {
+    let _environment = crate::tests::support::env_lock()
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
     let asset_roots = [editor_asset_root(), runtime_asset_root()];
     let mut referenced_zui_locators = production_widget_import_zui_locators(&asset_roots);
     referenced_zui_locators.extend(workbench_design_contract_zui_locators());
+    referenced_zui_locators.extend(verified_live_component_zui_locators(&asset_roots));
     let mut checked_assets = 0usize;
     let mut offenders = Vec::new();
 
@@ -312,7 +316,7 @@ fn production_zui_component_assets_are_reachable_from_ui_root_widget_imports() {
             let expected_locator = resource_locator_for_path(asset_root, &path);
             if !referenced_zui_locators.contains(&expected_locator) {
                 offenders.push(format!(
-                    "{} is not reachable from any production UI root widget import or Workbench design contract",
+                    "{} is not reachable from any production UI root widget import, Workbench design contract, or verified live consumer",
                     path.display()
                 ));
             }
@@ -333,9 +337,113 @@ fn production_zui_component_assets_are_reachable_from_ui_root_widget_imports() {
     );
 }
 
+fn verified_live_component_zui_locators(asset_roots: &[std::path::PathBuf]) -> BTreeSet<String> {
+    use std::collections::BTreeMap;
+
+    use zircon_runtime::ui::v2::{UiV2PrototypeStoreFileCache, UiV2SourceFileReceipt};
+
+    use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge;
+    use crate::ui::retained_host::UiHostWindow;
+
+    // The caller holds the environment lock. Each existing driver returns only
+    // receipts from the owner whose live paint, input, and retirement it checked.
+    let consumer_sources = [
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::exercise_core_module_sources_for_test(),
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::exercise_particle_library_sources_for_test(),
+        UiHostWindow::exercise_module_tools_sources_for_test(),
+        UiHostWindow::exercise_builtin_ui_asset_preview_consumers_for_test(),
+        UiHostWindow::exercise_generated_bottom_sources_for_test(),
+    ];
+
+    let mut physical_documents = BTreeMap::new();
+    for asset_root in asset_roots {
+        for path in collect_zui_document_files(&asset_root.join("ui")) {
+            let canonical = path
+                .canonicalize()
+                .expect("production source document must have a physical path");
+            let locator = resource_locator_for_path(asset_root, &path);
+            assert!(
+                physical_documents
+                    .insert(canonical, (path, locator))
+                    .is_none(),
+                "production documents must not alias the same physical file"
+            );
+        }
+    }
+
+    let mut fresh_sources = UiV2PrototypeStoreFileCache::new();
+    assert!(fresh_sources.persistent_store().is_none());
+    let mut verified_sources = BTreeMap::<std::path::PathBuf, UiV2SourceFileReceipt>::new();
+    let mut locators = BTreeSet::new();
+    for receipts in consumer_sources {
+        assert!(
+            !receipts.is_empty(),
+            "a live component consumer must return its actual source closure"
+        );
+        for receipt in receipts {
+            let canonical = receipt
+                .physical_path
+                .canonicalize()
+                .expect("a live source receipt must identify an existing physical file");
+            assert_eq!(
+                receipt.physical_path, canonical,
+                "a live receipt must retain its canonical physical source path"
+            );
+            let (production_path, locator) = physical_documents
+                .get(&canonical)
+                .expect("live coverage requires a production source document");
+            let document = load_zui_document(production_path);
+            assert_eq!(
+                receipt.asset_id, document.asset.id,
+                "the live receipt must identify the actual production document"
+            );
+            if let Some(previous) = verified_sources.get(&canonical) {
+                assert_eq!(
+                    previous, &receipt,
+                    "consumers of the same physical source must agree on its identity and bytes"
+                );
+                continue;
+            }
+
+            // Revalidation checks only returned live receipts. Dependencies loaded
+            // here receive no credit unless a real consumer also returned them.
+            let reloaded = fresh_sources
+                .load_store([canonical.clone()])
+                .expect("a returned live physical source must still load");
+            assert!(
+                reloaded.unresolved_imports.is_empty(),
+                "a returned source must retain a complete named import closure"
+            );
+            assert_eq!(reloaded.root_asset_id, receipt.asset_id);
+            let actual = reloaded
+                .source_receipts
+                .iter()
+                .find(|source| source.physical_path == canonical)
+                .expect("fresh physical loading must reproduce the returned source receipt");
+            assert_eq!(
+                actual, &receipt,
+                "live source provenance must match the current raw source bytes"
+            );
+            assert_eq!(reloaded.root_document.asset.kind, document.asset.kind);
+            if document.asset.kind == UiV2AssetKind::Component {
+                if let Some(resource_uri) = receipt.resource_uri.as_deref() {
+                    assert_eq!(resource_uri, locator.as_str());
+                }
+                locators.insert(locator.clone());
+            }
+            verified_sources.insert(canonical, receipt);
+        }
+    }
+    assert!(
+        !locators.is_empty(),
+        "live production consumers must exercise actual component sources"
+    );
+    locators
+}
+
 fn workbench_design_contract_zui_locators() -> BTreeSet<String> {
     [
-        "res://ui/editor/components/workbench/shell/workbench_skeleton.zui".to_string(),
+        "res://ui/editor/unreal/level_editor_window.zui".to_string(),
         FloatingWindow::command_palette().content_asset,
         FloatingWindow::preferences().content_asset,
     ]

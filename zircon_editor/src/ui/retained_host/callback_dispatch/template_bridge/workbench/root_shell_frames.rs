@@ -14,31 +14,14 @@ pub(crate) struct BuiltinHostRootShellFrames {
 }
 
 impl BuiltinHostRootShellFrames {
-    // Menu/page chrome stays host-owned; the componentized Workbench owns the
-    // remaining height, including its own toolbar and bottom status region.
-    pub(crate) fn componentized_workbench_mount_frame(self, shell_size: UiSize) -> UiFrame {
-        let mount_y = self
-            .host_body_frame
+    // The level editor owns its menu, toolbar, tabs and status. The outer shell
+    // contributes only the actual pane surface for the complete document.
+    pub(crate) fn componentized_workbench_mount_frame(self, _shell_size: UiSize) -> UiFrame {
+        self.pane_surface_frame
             .filter(visible_frame)
-            .map(|frame| frame.y)
-            .or_else(|| {
-                self.host_page_strip_frame
-                    .filter(visible_frame)
-                    .map(UiFrame::bottom)
-            })
-            .or_else(|| {
-                self.menu_bar_frame
-                    .filter(visible_frame)
-                    .map(UiFrame::bottom)
-            })
-            .unwrap_or(0.0)
-            .clamp(0.0, shell_size.height.max(0.0));
-        UiFrame::new(
-            0.0,
-            mount_y,
-            shell_size.width.max(0.0),
-            (shell_size.height - mount_y).max(0.0),
-        )
+            .or_else(|| self.document_host_frame.filter(visible_frame))
+            .or_else(|| self.shell_frame.filter(visible_frame))
+            .expect("editor shell must expose a visible pane, document host or shell frame")
     }
 }
 

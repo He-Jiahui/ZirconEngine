@@ -84,6 +84,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             return Ok(());
         }
         match action_id {
+            "workbench.content_drawer.toggle" => self.toggle_content_drawer()?,
+            "workbench.content_drawer.dismiss" => self.dismiss_content_drawer()?,
+            "workbench.content_drawer.focus_search" => self.focus_content_drawer_search()?,
             "workbench.module.details_drawer.toggle" => {
                 self.toggle_compact_module_details_drawer()?;
             }

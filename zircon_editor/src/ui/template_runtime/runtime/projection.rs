@@ -233,7 +233,9 @@ fn merge_projection_metadata(
     // A materialized surface owns its current values, visibility, and input state.
     // Retain metadata present only in the source projection without replaying its defaults.
     for (key, value) in attributes {
-        surface_node.attributes.entry(key).or_insert(value);
+        if !RetainedUiProjectionSurfaceMetadataIndex::is_surface_state_attribute(&key) {
+            surface_node.attributes.entry(key).or_insert(value);
+        }
     }
     surface_node.style_tokens.append(&mut style_tokens);
     surface_node.style_overrides.append(&mut style_overrides);
@@ -549,6 +551,11 @@ fn apply_surface_focus_state_attributes(
     node_id: UiNodeId,
     attributes: &mut BTreeMap<String, Value>,
 ) {
+    // This is a derived publication of UiSurface.focus, never an authored row flag.
+    attributes.remove("tree_owner_focused");
+    if let Some(focused) = surface.tree_owner_focused(node_id) {
+        attributes.insert("tree_owner_focused".to_owned(), Value::Boolean(focused));
+    }
     let Some(component_state) = surface.component_state(node_id) else {
         return;
     };

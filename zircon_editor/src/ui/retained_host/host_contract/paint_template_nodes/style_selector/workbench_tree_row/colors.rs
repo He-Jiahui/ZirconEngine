@@ -40,7 +40,7 @@ fn tree_row_text_color_from_palette(
     if is_unavailable_tree_row_state(state) {
         palette.text_disabled
     } else if marked {
-        palette.text
+        palette.selected_text
     } else {
         palette.text_muted
     }

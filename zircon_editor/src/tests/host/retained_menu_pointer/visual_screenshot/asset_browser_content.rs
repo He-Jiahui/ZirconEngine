@@ -227,7 +227,7 @@ fn capture_asset_browser_thumbnail_scrolled_hover_visual_artifact() {
 fn browser_list_workspace() -> AssetWorkspaceSnapshot {
     let mut workspace = m3_asset_workspace();
     workspace.view_mode = AssetViewMode::List;
-    workspace.visible_folders.clear();
+    workspace.visible_folders = Default::default();
     let base_assets = workspace.visible_assets.iter().cloned().collect::<Vec<_>>();
     let mut all_assets = base_assets.clone();
     for copy in 1..3 {

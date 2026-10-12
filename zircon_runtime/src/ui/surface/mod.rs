@@ -21,9 +21,12 @@ mod popup_stack;
 mod property_mutation;
 mod reflection_snapshot;
 mod render;
+mod render_fonts;
+pub use render_fonts::{current_ui_surface_font_snapshot, ui_surface_font_snapshot_for_context};
 mod secure_text_values;
 mod session_identity;
 mod slots;
+mod subtree_mount;
 mod surface;
 mod text_artifact;
 mod text_geometry;
@@ -91,6 +94,7 @@ pub(crate) use render::{
 pub(in crate::ui) use secure_text_values::UiPendingSecureTextModelUpdateStoreHandle;
 pub(crate) use secure_text_values::UiTextComponentEventKind;
 pub(crate) use session_identity::UiSurfaceSessionIdentityHandle;
+pub use subtree_mount::UiSurfaceChildMountProof;
 pub use surface::{
     UiAuthoredGeometryFallbackReason, UiAuthoredGeometryPublication, UiSurface,
     UiSurfaceRebuildReport,

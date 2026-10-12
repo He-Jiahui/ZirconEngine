@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 use std::sync::Arc;
 
-use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::core::{CoreError, CoreRuntime};
 use zircon_runtime::scene::{DefaultLevelManager, NodeKind, World};
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::{
@@ -34,7 +34,7 @@ use zircon_runtime::plugin::PluginEventConsumerManifest;
 
 use super::{
     emit_play_backend_diagnostics, play_backend_log_source, EditorHostEventController,
-    EditorManager,
+    EditorError, EditorManager,
 };
 
 unsafe extern "C" fn release_test_allocation(
@@ -283,7 +283,11 @@ fn explicit_runtime_shutdown_retires_the_current_play_link_without_drop() {
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     let play_instance = controller
         .start_test_play_gateway(PlayKind::Play, Arc::new(DetachedEditorRuntimeGateway))
         .expect("a detached test gateway should attach to the play domain");
@@ -323,7 +327,11 @@ fn explicit_runtime_shutdown_discards_play_history_before_detach() {
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     let play_level = DefaultLevelManager::default().create_default_level();
     let play_instance = controller
         .start_test_play_gateway(
@@ -383,7 +391,11 @@ fn explicit_runtime_shutdown_stops_play_before_detaching_the_gateway() {
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     let play_instance = controller
         .start_test_play_gateway(PlayKind::Play, Arc::new(DetachedEditorRuntimeGateway))
         .expect("a detached test gateway should attach to the play domain");
@@ -418,7 +430,11 @@ fn explicit_runtime_shutdown_detaches_a_stopped_play_link_with_retryable_plugin_
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     controller.set_plugin_bridge_activation(Arc::new(RefusingPluginDeactivation));
     let play_instance = controller
         .start_test_play_gateway(PlayKind::Play, Arc::new(DetachedEditorRuntimeGateway))
@@ -456,7 +472,11 @@ fn project_close_play_shutdown_restores_edit_state_and_preserves_edit_gateway() 
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     let play_instance = controller
         .start_test_play_gateway(PlayKind::Play, Arc::new(DetachedEditorRuntimeGateway))
         .expect("a detached test gateway should attach to the play domain");
@@ -503,7 +523,11 @@ fn project_close_play_shutdown_blocks_closeout_until_plugin_cleanup_is_repaired(
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     controller.set_plugin_bridge_activation(Arc::new(RefusingPluginDeactivation));
     let play_instance = controller
         .start_test_play_gateway(PlayKind::Play, Arc::new(DetachedEditorRuntimeGateway))
@@ -545,7 +569,11 @@ fn explicit_runtime_shutdown_keeps_the_play_link_when_backend_stop_is_deferred()
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     controller.set_play_backend(Arc::new(RefusingStopBackend));
     controller
         .play_sessions()
@@ -589,7 +617,11 @@ fn consumer_remote_cleanup_failure_is_locally_terminal_for_play_exit() {
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     controller
         .start_test_play_gateway(PlayKind::Play, Arc::new(RefusingUnsubscribeGateway))
         .expect("the test play gateway should attach");
@@ -644,7 +676,11 @@ fn host_play_attachment_preserves_edit_selection_and_undo_history() {
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     let selection_before = controller
         .shell()
         .lock()
@@ -729,4 +765,78 @@ fn host_play_attachment_preserves_edit_selection_and_undo_history() {
         );
     }
     assert!(!authoring_level.with_world(|world| world.contains_entity(created)));
+}
+
+#[test]
+fn controller_original_generation_rejects_after_real_module_reactivation_without_side_effects() {
+    let core = CoreRuntime::new();
+    let manager = Arc::new(
+        EditorManager::new(&core.handle())
+            .expect("the host test should construct an editor manager"),
+    );
+    let context = Arc::clone(manager.context());
+    let state = EditorState::with_default_selection_with_context(
+        DefaultLevelManager::default().create_default_level(),
+        UVec2::new(1280, 720),
+        Arc::clone(&context),
+    );
+    let original =
+        crate::tests::support::register_test_editor_manager(&core, Arc::clone(&manager));
+    let controller = EditorHostEventController::new(state, original)
+        .expect("the controller should capture the registered manager generation");
+    let captured = controller.editor_manager_handle();
+    let before = context.settings().snapshot().command_palette_mru().clone();
+
+    core.deactivate_module(crate::ui::host::module::EDITOR_MODULE_NAME)
+        .expect("the actual EditorModule generation should retire");
+    core.activate_module(crate::ui::host::module::EDITOR_MODULE_NAME)
+        .expect("the actual EditorModule should publish a successor generation");
+
+    let (expected_generation, actual_generation) = match captured.enter() {
+        Err(CoreError::StaleServiceHandle {
+            expected_generation,
+            actual_generation,
+            ..
+        }) => (expected_generation, actual_generation),
+        Err(error) => panic!("the retired original handle returned the wrong error: {error}"),
+        Ok(_) => panic!("the retired original handle unexpectedly admitted a call"),
+    };
+    assert_ne!(
+        expected_generation, actual_generation,
+        "reactivation must change the Core service generation"
+    );
+
+    let controller_error = match controller.enter_editor_manager() {
+        Err(error) => error,
+        Ok(_) => panic!("the Controller must not resolve the replacement manager"),
+    };
+    assert!(matches!(
+        controller_error,
+        EditorError::Core {
+            source: CoreError::StaleServiceHandle {
+                expected_generation: expected,
+                actual_generation: actual,
+                ..
+            }
+        } if expected == expected_generation && actual == actual_generation
+    ));
+
+    let usage_error = match controller.record_command_palette_usage(
+        crate::core::editor_operation::EditorOperationPath::parse("file.project.open")
+            .expect("the diagnostic command id should be valid"),
+    ) {
+        Err(error) => error,
+        Ok(()) => panic!("a stale Controller admission must not mutate the MRU"),
+    };
+    assert!(matches!(
+        usage_error,
+        EditorError::Core {
+            source: CoreError::StaleServiceHandle { .. }
+        }
+    ));
+    assert_eq!(
+        context.settings().snapshot().command_palette_mru(),
+        &before,
+        "the rejected call must have zero settings side effects"
+    );
 }

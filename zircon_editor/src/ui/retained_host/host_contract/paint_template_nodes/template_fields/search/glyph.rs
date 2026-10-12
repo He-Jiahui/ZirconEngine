@@ -4,7 +4,7 @@ use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
 use super::super::geometry::{frame_is_within, has_paintable_field_extent};
-use super::super::metrics::workbench_field_metrics;
+use super::super::metrics::workbench_field_metrics_for_node;
 
 const SEARCH_FIELD_ICON: &str = "search";
 const SEARCH_FIELD_CLEAR_ICON: &str = "close-outline";
@@ -22,7 +22,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
         return;
     }
 
-    let Some(icon) = search_icon_rect(rect) else {
+    let Some(icon) = search_icon_rect(node, rect) else {
         return;
     };
     push_icon_asset_pixels(
@@ -60,11 +60,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     );
 }
 
-fn search_icon_rect(rect: &FrameRect) -> Option<FrameRect> {
+fn search_icon_rect(node: &TemplatePaneNodeData, rect: &FrameRect) -> Option<FrameRect> {
     if !has_paintable_field_extent(rect) {
         return None;
     }
-    let metrics = workbench_field_metrics();
+    let metrics = workbench_field_metrics_for_node(node);
     let icon_left = rect.x + metrics.input_pad_left;
     let icon_top = rect.y + (rect.height - metrics.search_icon_size).max(0.0) * 0.5;
     let icon = FrameRect {

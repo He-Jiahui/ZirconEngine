@@ -199,15 +199,15 @@ impl CoreHandle {
         };
 
         // 发布 Initializing 后释放模块表锁，再调用生命周期和服务工厂，避免回访内核时自锁。
-        let mut built = false;
+        let mut build_attempted = false;
         let mut reactivation_services_prepared = false;
         let result = panic::catch_unwind(AssertUnwindSafe(|| {
             if previous_lifecycle == LifecycleState::Unloaded {
                 self.prepare_module_services_for_reactivation(service_names.as_ref())?;
                 reactivation_services_prepared = true;
             }
+            build_attempted = true;
             self.build_module(module_name)?;
-            built = true;
 
             if !startup_services.is_empty() {
                 self.resolve_startup_services(startup_services.as_ref())?;
@@ -232,13 +232,13 @@ impl CoreHandle {
         });
 
         if let Err(activation_error) = result {
-            if built {
+            if build_attempted {
                 // Rollback is a stopping transaction too: fence new calls and
                 // retain the module in shutdown order until cleanup succeeds.
                 self.close_service_admission(module_services.shutdown_service_names().as_ref());
                 self.mark_activation_rollback_stopping(module_name);
             }
-            let rollback_error = built
+            let rollback_error = build_attempted
                 .then(|| {
                     panic::catch_unwind(AssertUnwindSafe(|| {
                         self.wait_for_service_calls_to_drain(

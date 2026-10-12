@@ -4,13 +4,13 @@ use crate::ui::template_runtime::EditorUiHostRuntime;
 use std::path::PathBuf;
 
 #[test]
-fn editor_repository_host_window_template_file_loads_and_instantiates() {
+fn editor_repository_unreal_shell_template_file_loads_and_instantiates() {
     let template_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("assets")
         .join("ui")
         .join("editor")
-        .join("host")
-        .join("workbench_shell.zui");
+        .join("unreal")
+        .join("editor_shell.zui");
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     runtime
@@ -21,9 +21,8 @@ fn editor_repository_host_window_template_file_loads_and_instantiates() {
         .project_document("test://ui/host-window-file")
         .unwrap();
     assert_eq!(projection.root.component, "UiHostWindow");
-    assert_eq!(projection.root.children.len(), 4);
-    assert_eq!(projection.root.children[0].component, "VerticalGroup");
-    assert_eq!(projection.root.children[1].component, "Overlay");
-    assert_eq!(projection.root.children[2].component, "Overlay");
-    assert_eq!(projection.root.children[3].component, "Overlay");
+    assert_eq!(projection.root.children.len(), 1);
+    assert_eq!(projection.root.children[0].component, "DocumentHost");
+    assert_eq!(projection.root.children[0].children.len(), 1);
+    assert_eq!(projection.root.children[0].children[0].component, "PaneSurface");
 }

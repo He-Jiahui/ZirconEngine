@@ -4,15 +4,17 @@ from __future__ import annotations
 import os
 import threading
 import time
-import json
 import hashlib
 from pathlib import Path
 
 from . import native_windows as nw
-from .formal import FormalTrayConfig, load_formal_config, start, status, stop
+from .formal import FormalTrayConfig, load_formal_config, start, status, stop, restart
 from .menu import COMMANDS, MenuState, menu_items, status_text
+from ..state.atomic import atomic_json
 
 TRAY_MESSAGE = nw.WM_APP + 41
+ICON_RETRY_LIMIT = 6
+ICON_RETRY_INTERVAL_SECONDS = 10.0
 
 
 class FormalTray:
@@ -28,13 +30,31 @@ class FormalTray:
         self._telemetry()
 
     def _telemetry(self):
-        path = self.config.paths.state / "tray" / "ui.json"; path.parent.mkdir(parents=True, exist_ok=True)
+        path = self.config.paths.state / "tray" / "ui.json"
         op = self.status.get("operation") or {}
         own = None
         try: own = __import__('tools.jenkins.tray.formal_native', fromlist=['identity']).identity(os.getpid())
         except Exception: own = None
         value = {"schemaVersion": 1, "uiPid": os.getpid(), "uiBirth": (own or {}).get("birth") or (own or {}).get("creationTime"), "uiExecutable": (own or {}).get("executable", os.path.abspath(os.sys.executable)), "hwnd": self.hwnd, "state": self.status.get("state"), "url": self.config.url, "iconAdded": bool(getattr(self, "icon_added", False)), "ready": self.status.get("state") == "ready", "serviceReady": self.status.get("serviceReady") is True, "message": self.status.get("message"), "operation": op, "lastCommand": self.last_command}
-        tmp = path.with_suffix('.tmp'); tmp.write_text(json.dumps(value, sort_keys=True), encoding='utf8'); tmp.replace(path)
+        atomic_json(path, value)
+
+    def _reset_icon_retry(self, *, immediate: bool = True):
+        """Reset bounded icon registration attempts on the GUI thread."""
+        self.icon_added = False
+        self._icon_attempts = 0
+        self._icon_retry_at = time.monotonic() if immediate else None
+
+    def _attempt_icon_add(self):
+        """Try one registration; schedule at most five delayed retries."""
+        if self.icon_added or self._icon_attempts >= ICON_RETRY_LIMIT:
+            return
+        self._icon_attempts += 1
+        self.icon_added = bool(nw.add_icon(self.hwnd, 1, TRAY_MESSAGE, "Jenkins", self.icon))
+        if self.icon_added or self._icon_attempts >= ICON_RETRY_LIMIT:
+            self._icon_retry_at = None
+        else:
+            self._icon_retry_at = time.monotonic() + ICON_RETRY_INTERVAL_SECONDS
+        self._telemetry()
 
     def open_logs(self):
         path = self.config.paths.logs
@@ -71,7 +91,7 @@ class FormalTray:
 
     def _restart(self):
         if not self._operation_lock.acquire(blocking=False): return
-        try: stop(self.config); self.status = start(self.config)
+        try: self.status = restart(self.config)
         except Exception as exc: self.status = self._operation_error(exc)
         finally: self._operation_lock.release()
 
@@ -95,18 +115,32 @@ class FormalTray:
                     if selected: self.command(selected)
                 elif event == nw.WM_LBUTTONDBLCLK: nw.open_url(self.config.url)
                 return 0
+            if self._taskbar_created_message and message == self._taskbar_created_message:
+                # Explorer removes shell icons when the taskbar is recreated.
+                # Delete any stale record first, then re-add from this same
+                # window-procedure thread; the retry schedule remains bounded.
+                nw.remove_icon(self.hwnd, 1)
+                self._reset_icon_retry()
+                self._attempt_icon_add()
+                return 0
             if message == nw.WM_COMMAND:
                 self.command(int(wparam)); return 0
             if message == nw.WM_DESTROY:
                 nw.user32.PostQuitMessage(0); return 0
             return nw.user32.DefWindowProcW(hwnd, message, wparam, lparam)
+        self._taskbar_created_message = nw.register_window_message("TaskbarCreated")
         self.hwnd, _ = nw.create_hidden_window("ZirconFormalJenkinsTray", "Jenkins", callback)
-        self.icon = nw.status_icon(self.status.get("state", "stopped")); self.icon_added = bool(nw.add_icon(self.hwnd, 1, TRAY_MESSAGE, "Jenkins", self.icon)); self._telemetry()
+        self.icon = nw.status_icon(self.status.get("state", "stopped"))
+        self._reset_icon_retry()
+        self._attempt_icon_add()
         threading.Thread(target=self._poll, daemon=True).start()
         try:
           while not self.closed:
             with self._lock: current = dict(self.status)
-            nw.update_icon(self.hwnd, 1, "Jenkins: " + current.get("state", "unknown"), self.icon)
+            if not self.icon_added and self._icon_retry_at is not None and time.monotonic() >= self._icon_retry_at:
+                self._attempt_icon_add()
+            if self.icon_added:
+                nw.update_icon(self.hwnd, 1, "Jenkins: " + current.get("state", "unknown"), self.icon)
             msg = nw.wintypes.MSG()
             if nw.user32.PeekMessageW(nw.ctypes.byref(msg), self.hwnd, 0, 0, 1):
                 nw.user32.TranslateMessage(nw.ctypes.byref(msg)); nw.user32.DispatchMessageW(nw.ctypes.byref(msg))

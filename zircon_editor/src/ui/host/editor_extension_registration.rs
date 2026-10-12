@@ -24,7 +24,7 @@ impl EditorHostEventController {
     pub fn register_editor_extension(
         &self,
         extension: ContributionBatch,
-    ) -> Result<(), EditorExtensionRegistryError> {
+    ) -> Result<(), crate::ui::host::EditorError> {
         let _registration_guard = self
             .plugin_registration_gate
             .lock()
@@ -43,7 +43,7 @@ impl EditorHostEventController {
     pub fn register_editor_plugin_registration(
         &self,
         registration: EditorPluginRegistrationReport,
-    ) -> Result<EditorContributionHandle, EditorExtensionRegistryError> {
+    ) -> Result<EditorContributionHandle, crate::ui::host::EditorError> {
         let _registration_guard = self
             .plugin_registration_gate
             .lock()
@@ -156,7 +156,8 @@ impl EditorHostEventController {
     pub fn revoke_editor_plugin_contribution(
         &self,
         handle: &EditorContributionHandle,
-    ) -> Result<bool, EditorExtensionRegistryError> {
+    ) -> Result<bool, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
         let _registration_guard = self
             .plugin_registration_gate
             .lock()
@@ -182,7 +183,8 @@ impl EditorHostEventController {
                 return Err(EditorExtensionRegistryError::DuplicateContribution {
                     kind: "editor extension owner",
                     id: handle.owner_id().to_string(),
-                });
+                }
+                .into());
             }
         };
 
@@ -192,7 +194,6 @@ impl EditorHostEventController {
             .views_for_ticket(ticket)
             .map(|view| crate::ui::workbench::view::ViewDescriptorId::new(view.id()))
             .collect::<Vec<_>>();
-        let manager = Arc::clone(&shell.manager);
 
         let mut contribution_store = shell.contributions.clone();
         contribution_store.revoke(ticket);
@@ -206,9 +207,7 @@ impl EditorHostEventController {
             .viewport_controller
             .prepare_scene_mode_contribution_retirement(ticket);
         drop(shell);
-        manager
-            .retire_extension_views(&view_descriptor_ids)
-            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
+        manager.retire_extension_views(&view_descriptor_ids)?;
         let runtime_consumer_retirement = self
             .runtime_event_consumers
             .retire_contribution(ticket)
@@ -250,12 +249,14 @@ impl EditorHostEventController {
         if let Some(error) = runtime_consumer_retirement.cleanup_error {
             return Err(EditorExtensionRegistryError::View(format!(
                 "runtime event consumer retirement failed: {error}"
-            )));
+            ))
+            .into());
         }
         if let Some(error) = scene_mode_cleanup_error {
             return Err(EditorExtensionRegistryError::SceneMode(format!(
                 "scene mode retirement failed: {error}"
-            )));
+            ))
+            .into());
         }
         viewport_overlay_provider_cleanup.map_err(|error| {
             EditorExtensionRegistryError::ViewportOverlayProvider(format!(
@@ -269,7 +270,7 @@ impl EditorHostEventController {
         &self,
         extension: ContributionBatch,
         required_capabilities: Vec<String>,
-    ) -> Result<(), EditorExtensionRegistryError> {
+    ) -> Result<(), crate::ui::host::EditorError> {
         let _registration_guard = self
             .plugin_registration_gate
             .lock()
@@ -293,17 +294,16 @@ impl EditorHostEventController {
         required_capabilities: Vec<String>,
         runtime_event_consumers: Option<EditorRuntimeEventConsumerRegistry>,
         native_command_bindings: BTreeMap<EditorOperationPath, NativePluginEditorCommandBinding>,
-    ) -> Result<EditorContributionHandle, EditorExtensionRegistryError> {
+    ) -> Result<EditorContributionHandle, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
         let owner_id = owner_id.into();
         if let Some((command_id, binding)) = native_command_bindings
             .iter()
             .find(|(_, binding)| binding.plugin_id() != owner_id.as_str())
         {
-            return Err(validate_native_binding_owner(
-                command_id,
-                &owner_id,
-                binding.plugin_id(),
-            ));
+            return Err(
+                validate_native_binding_owner(command_id, &owner_id, binding.plugin_id()).into(),
+            );
         }
         extension = extension
             .with_required_capabilities(required_capabilities.clone())
@@ -319,13 +319,11 @@ impl EditorHostEventController {
             return Err(EditorExtensionRegistryError::DuplicateContribution {
                 kind: "editor extension owner",
                 id: owner_id,
-            });
+            }
+            .into());
         }
         let views = extension.views().into_iter().cloned().collect::<Vec<_>>();
-        shell
-            .manager
-            .validate_extension_views(&views)
-            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
+        manager.validate_extension_views(&views)?;
         validate_asset_type_contributions(&shell.contributions.snapshot(), &extension, &owner_id)?;
         shell
             .contributions
@@ -393,19 +391,29 @@ impl EditorHostEventController {
                 })?
                 .outcome(),
         };
-        if let Err(error) = shell
-            .manager
-            .register_extension_views_with_required_capabilities(&views, &required_capabilities)
-        {
-            drop(shell);
-            if owner_generation != ToolOwnerGeneration::BUILTIN {
-                let _ = self
-                    .context()
-                    .tools()
-                    .revoke_owner_generation(owner_generation);
-            }
-            return Err(EditorExtensionRegistryError::View(error.to_string()));
-        }
+        let enabled_capabilities =
+            match (|| -> Result<Vec<String>, crate::ui::host::EditorError> {
+                manager.register_extension_views_with_required_capabilities(
+                    &views,
+                    &required_capabilities,
+                )?;
+                Ok(manager
+                    .capability_snapshot()
+                    .enabled_capabilities()
+                    .to_vec())
+            })() {
+                Ok(capabilities) => capabilities,
+                Err(error) => {
+                    drop(shell);
+                    if owner_generation != ToolOwnerGeneration::BUILTIN {
+                        let _ = self
+                            .context()
+                            .tools()
+                            .revoke_owner_generation(owner_generation);
+                    }
+                    return Err(error);
+                }
+            };
         shell
             .state
             .viewport_controller
@@ -414,11 +422,6 @@ impl EditorHostEventController {
             .state
             .viewport_controller
             .install_prepared_scene_modes(prepared_scene_modes);
-        let enabled_capabilities = shell
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .to_vec();
         shell
             .state
             .viewport_controller
@@ -521,9 +524,9 @@ pub(crate) fn materialize_enabled_asset_types(
 
 pub(crate) fn enabled_asset_types_for_shell(
     shell: &mut WorkbenchShellStateData,
+    manager: &crate::ui::host::EditorManager,
 ) -> Result<Arc<AssetTypeRegistry>, EditorExtensionRegistryError> {
-    let enabled_capabilities = shell
-        .manager
+    let enabled_capabilities = manager
         .capability_snapshot()
         .enabled_capabilities()
         .to_vec();

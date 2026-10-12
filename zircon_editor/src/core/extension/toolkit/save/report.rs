@@ -4,7 +4,7 @@ use super::SaveReason;
 use crate::core::extension::toolkit::ToolkitInstanceId;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-/// Toolkit hook 成功后的文档保存回执；字节数与写入保证来自 SaveCtx。
+/// 文档持久化回执；字节数与写入保证来自 SaveCtx，后续完成失败仍保留该事实。
 pub struct DocumentSaveReport {
     document: DocumentId,
     instance: ToolkitInstanceId,
@@ -21,6 +21,10 @@ pub(in crate::core::extension::toolkit) struct DocumentSaveGuarantee {
 }
 
 impl DocumentSaveGuarantee {
+    pub(in crate::core::extension::toolkit) const fn has_serialized_source_write(self) -> bool {
+        self.cooperating_source_writes_are_serialized
+    }
+
     pub(super) const fn serialized_project_source() -> Self {
         Self {
             cooperating_source_writes_are_serialized: true,
@@ -58,6 +62,9 @@ impl DocumentSaveReport {
         self.reason
     }
 
+    /// Bytes successfully accumulated by SaveCtx. If save completion failed with
+    /// WrittenByteCountOverflow, this is the prior recorded count, not the complete
+    /// total and not a saturated replacement for that total.
     pub const fn written_bytes(&self) -> u64 {
         self.written_bytes
     }

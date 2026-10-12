@@ -467,6 +467,14 @@ impl UiAssetEditorSession {
 
     pub(super) fn rebuild_preview_snapshot(&mut self) -> Result<(), UiAssetEditorSessionError> {
         self.invalidate_preview_hit_index();
+        if self
+            .preview_host
+            .as_ref()
+            .and_then(UiAssetPreviewHost::builtin_reference)
+            .is_some()
+        {
+            return Ok(());
+        }
         if self.source_schema == UiAssetSourceSchema::V2 {
             if let Some(document) = self.last_valid_v2_document.as_ref() {
                 self.preview_host = build_v2_preview_host(
@@ -498,6 +506,14 @@ impl UiAssetEditorSession {
     ) -> Result<(), UiAssetEditorSessionError> {
         self.invalidate_preview_hit_index();
         let preview_size = preview_size_for_preset(self.route.preview_preset);
+        if let Some(preview) = self
+            .preview_host
+            .as_mut()
+            .filter(|host| host.builtin_reference().is_some())
+        {
+            preview.resize(preview_size)?;
+            return Ok(());
+        }
         if self.source_schema == UiAssetSourceSchema::V2 {
             if let Some(document) = self.last_valid_v2_document.as_ref() {
                 self.preview_host =
@@ -711,7 +727,12 @@ impl UiAssetEditorSession {
         ) {
             Ok(preview_host) => {
                 self.last_valid_compiled = None;
-                self.preview_host = preview_host;
+                let selected_builtin = self
+                    .selected_palette_index
+                    .and_then(|index| self.palette_catalog.builtin_reference(index));
+                if selected_builtin.is_none() {
+                    self.preview_host = preview_host;
+                }
                 self.diagnostics.clear();
                 self.resource_dependencies.clear();
                 self.resource_diagnostics.clear();

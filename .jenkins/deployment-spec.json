@@ -33,7 +33,7 @@
     "name": "zircon-windows-agent",
     "label": "zircon-windows",
     "transport": "websocket-inbound",
-    "executors": 1,
+    "executors": 2,
     "remoteRoot": "E:\\Git\\ZirconEngine\\.jenkins\\agent",
     "controllerRunsCompiler": false,
     "workDir": "E:\\Git\\ZirconEngine\\.jenkins\\agent\\remoting",
@@ -68,10 +68,10 @@
     "runtimeAndCompilerPathDomainsSeparate": true,
     "resourcePolicy": {
       "buildRoot": "D:\\cargo-targets",
-      "cpuBudget": 3,
-      "memoryBudget": 4294967296,
-      "diskBudget": 8589934592,
-      "maxHeavyWriters": 3,
+      "cpuBudget": 6,
+      "memoryBudget": 12884901888,
+      "diskBudget": 42949672960,
+      "maxHeavyWriters": 4,
       "inventoryMaxAgeSeconds": 30,
       "diskReserveBytes": 37580963840,
       "agingSeconds": 60,
@@ -85,7 +85,21 @@
           "ed8734ffd554e3db0dc12406dcf07fb4"
         ]
       },
-      "configurationScope": "temporary-acceptance-with-protected-failure-reservations",
+      "configurationScope": "two-live-heavy-writers-with-two-protected-historical-reservations",
+      "maxNewHeavyWriters": 2,
+      "skipProvenRootDiskBlockedHeads": true,
+      "postTaskCache": {
+        "enabled": true,
+        "everyTerminalTask": true,
+        "minFreeBytes": 37580963840,
+        "maxFiles": 64,
+        "maxBytes": 268435456,
+        "maxSeconds": 10,
+        "preserveWarmPreparation": true,
+        "preserveAcceptedReferences": true,
+        "unknownObjectsProtected": true,
+        "automaticDeletionRequiresOriginalGcAuthorization": true
+      },
       "allowedBuildRoots": [
         "D:\\cargo-targets",
         "E:\\cargo-targets",
@@ -101,11 +115,28 @@
           "cpu": 1,
           "memoryBytes": 268435456,
           "diskBytes": 67108864
+        },
+        "editor-product": {
+          "cpu": 4,
+          "memoryBytes": 8589934592,
+          "diskBytes": 34359738368
         }
       },
-      "recipeEstimateSource": "Explicit budgets carried from deployment-owned policy v7; bounded tiny-fixture acceptance retains one CPU and complete test coverage"
+      "recipeEstimateSource": "Task-authorized editor product route: four compiler jobs, 8 GiB memory and 32 GiB disk; checked against 16 logical processors, 39.86 GiB physical RAM, 20.12 GiB available RAM and 84.52 GiB free on D at 2026-10-09T10:22Z; existing estimates and protected failure reservations retained"
     },
-    "buildRootLayout": "drive-root"
+    "buildRootLayout": "drive-root",
+    "postTaskCache": {
+      "enabled": true,
+      "everyTerminalTask": true,
+      "minFreeBytes": 37580963840,
+      "maxFiles": 64,
+      "maxBytes": 268435456,
+      "maxSeconds": 10,
+      "preserveWarmPreparation": true,
+      "preserveAcceptedReferences": true,
+      "unknownObjectsProtected": true,
+      "automaticDeletionRequiresOriginalGcAuthorization": true
+    }
   },
   "requiredBuildPolicy": {
     "soleSubmissionEntry": "Jenkins",
@@ -201,9 +232,10 @@
     "serviceReady": true
   },
   "productionResourceDefaults": {
-    "cpuBudget": 2,
-    "maxHeavyWriters": 1,
-    "activateAfter": "trusted recovery of all protected failures and explicit M6 acceptance-policy closeout"
+    "cpuBudget": 6,
+    "maxHeavyWriters": 2,
+    "activateAfter": "current-runtime-two-task-parallel-acceptance-with-shared-budgets",
+    "historicalProtectedReservationsCountAgainstBudget": true
   },
   "directoryPolicyAuthorization": {
     "source": "user-current-AGENTS-and-standing-Jenkins-plan",

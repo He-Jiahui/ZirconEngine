@@ -266,8 +266,9 @@ fn panicking_worker_callback_discards_sibling_worker_commands_before_retry() {
         },
     ];
 
+    let execution = level.with_world_mut(|world| world.begin_schedule_execution());
     let first = std::panic::catch_unwind(AssertUnwindSafe(|| {
-        flush_worker_batch(&scheduler, &level, &mut dispatches, true)
+        flush_worker_batch(&scheduler, &level, &mut dispatches, true, &execution)
     }));
     assert!(first.is_err());
     assert_eq!(published.load(Ordering::SeqCst), 0);
@@ -290,7 +291,7 @@ fn panicking_worker_callback_discards_sibling_worker_commands_before_retry() {
             ),
         },
     ];
-    flush_worker_batch(&scheduler, &level, &mut dispatches, true)
+    flush_worker_batch(&scheduler, &level, &mut dispatches, true, &execution)
         .expect("clean retry must reuse the restored worker systems");
 
     assert_eq!(published.load(Ordering::SeqCst), 1);

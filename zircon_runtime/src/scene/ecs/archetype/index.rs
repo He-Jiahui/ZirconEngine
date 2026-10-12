@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use crate::scene::ecs::{
     component::TableColumnLayout, storage::StoredComponent, ChangeTick, ComponentId, ComponentTicks,
@@ -69,6 +70,8 @@ pub struct ArchetypeIndex {
     by_signature: HashMap<ArchetypeSignature, ArchetypeId>,
     by_component: HashMap<ComponentId, Vec<ArchetypeId>>,
     performance_counters: ArchetypeIndexPerformanceCounters,
+    // Numeric generation counts records only; replacing storage needs identity.
+    storage_owner: Arc<()>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -106,12 +109,17 @@ impl ArchetypeIndex {
             by_signature,
             by_component: HashMap::new(),
             performance_counters: ArchetypeIndexPerformanceCounters::default(),
+            storage_owner: Arc::new(()),
         }
     }
 
     /// 注册原型数的快照；同一原型内行增删由 membership_generation 单独跟踪。
     pub fn generation(&self) -> u64 {
         self.records.len() as u64
+    }
+
+    pub(crate) fn storage_owner(&self) -> &Arc<()> {
+        &self.storage_owner
     }
 
     pub fn len(&self) -> usize {

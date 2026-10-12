@@ -2,6 +2,7 @@
 //! 可见焦点只改变焦点边框；Focused 分支仍读取节点热态，保留同时悬停或展开的表面反馈。
 
 use super::super::super::template_style_color::resolved_style_color;
+use super::super::focus_visible_for_node;
 use super::metrics::workbench_segmented_selector_metrics;
 use super::model::WorkbenchSegmentedControlKind;
 use super::palette::workbench_segmented_control_palette;
@@ -15,6 +16,22 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn control
     state: UiPainterResolvedState,
 ) -> Option<[u8; 4]> {
     let palette = workbench_segmented_control_palette();
+    if kind == WorkbenchSegmentedControlKind::Tab {
+        let host = crate::ui::retained_host::host_contract::paint_theme::current_host_palette();
+        if matches!(
+            state,
+            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+        ) {
+            return Some(palette.disabled_background);
+        }
+        if node.checked || node.selected || state == UiPainterResolvedState::Pressed {
+            return Some(host.surface_panel);
+        }
+        if node.hovered {
+            return Some(host.surface_tab_hover);
+        }
+        return normal_control_background(node, kind);
+    }
     match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
             Some(palette.disabled_background)
@@ -38,12 +55,22 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn control
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn control_border(
+    node: &TemplatePaneNodeData,
     kind: WorkbenchSegmentedControlKind,
     state: UiPainterResolvedState,
 ) -> Option<[u8; 4]> {
     let palette = workbench_segmented_control_palette();
     match kind {
-        WorkbenchSegmentedControlKind::Tab => None,
+        WorkbenchSegmentedControlKind::Tab => {
+            let unavailable = matches!(
+                state,
+                UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+            );
+            (!unavailable && focus_visible_for_node(node)).then(|| {
+                resolved_style_color(node.authored_field_colors.get("focus_border_color"))
+                    .unwrap_or(palette.focus_border)
+            })
+        }
         WorkbenchSegmentedControlKind::SegmentedControl => Some(match state {
             UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
                 palette.disabled_border

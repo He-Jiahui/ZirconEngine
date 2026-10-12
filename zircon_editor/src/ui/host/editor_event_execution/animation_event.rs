@@ -6,9 +6,10 @@ use crate::ui::workbench::snapshot::EditorConsoleMessageLevel;
 use super::execution_outcome::ExecutionOutcome;
 pub(super) fn execute_animation_event(
     shell: &mut WorkbenchShellStateData,
+    manager: &crate::ui::host::EditorManager,
     event: &EditorAnimationEvent,
 ) -> Result<ExecutionOutcome, EditorError> {
-    let changed = match shell.manager.apply_animation_event(event) {
+    let changed = match manager.apply_animation_event(event) {
         Ok(changed) => changed,
         Err(error) if should_tolerate_missing_animation_target(&error) => {
             shell.state.set_status_line_with_level(

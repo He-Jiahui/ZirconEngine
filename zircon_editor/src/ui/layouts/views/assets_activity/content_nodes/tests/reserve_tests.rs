@@ -21,8 +21,8 @@ fn optimization_batch_20260826gm_editor179_content_nodes_reserve_exact_append_co
 
     assert!(source.contains("const CONTENT_NODES_PER_ROW: usize = 5;"));
     assert!(source.contains("nodes.reserve(assets_activity_content_node_count("));
-    assert!(source.contains("snapshot.visible_folders.len()"));
-    assert!(source.contains("snapshot.visible_assets.len()"));
+    assert!(source.contains("virtual_rows.slot_count"));
+    assert!(source.contains("for index in 0..slot_count"));
 }
 
 #[test]

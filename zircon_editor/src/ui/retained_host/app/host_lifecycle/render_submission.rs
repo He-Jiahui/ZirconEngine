@@ -43,7 +43,13 @@ impl RetainedEditorHost {
             );
         }
 
-        let project_open = self.runtime.editor_snapshot().project_open;
+        let project_open = match self.runtime.editor_snapshot() {
+            Ok(snapshot) => snapshot.project_open,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
         let generation = self.ui.get_host_presentation_generation();
         let surfaces = scene_viewport_surfaces(generation.structure(), project_open);
         if !project_open {
@@ -55,9 +61,17 @@ impl RetainedEditorHost {
             .iter()
             .map(|surface| surface.surface_key.clone())
             .collect::<BTreeSet<_>>();
-        let retained_views = self
+        let scene_views = match self
             .runtime
             .view_instance_ids_for_descriptor_key("editor.scene")
+        {
+            Ok(views) => views,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
+        let retained_views = scene_views
             .into_iter()
             .map(|instance_id| ViewInstanceId::new(instance_id.0))
             .collect::<BTreeSet<_>>();
@@ -194,12 +208,17 @@ fn scene_viewport_surfaces(
     let scene = &presentation.host_scene_data;
     let mut surfaces = BTreeMap::new();
     for surface in scene.document_surfaces() {
+        let viewport = crate::ui::retained_host::host_contract::componentized_workbench_regions::authored_level_viewport(
+            presentation,
+            surface,
+        );
+        let frame = viewport.as_ref().map_or(&surface.content_frame, |viewport| &viewport.frame);
         insert_scene_surface(
             &mut surfaces,
             surface.surface_key.as_str(),
             &surface.pane,
-            surface.content_frame.width,
-            surface.content_frame.height,
+            frame.width,
+            frame.height,
         );
     }
     for (surface_key, pane, width, height) in [

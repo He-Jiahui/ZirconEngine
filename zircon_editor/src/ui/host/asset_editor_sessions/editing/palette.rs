@@ -1,6 +1,69 @@
 use super::*;
 
 impl EditorUiHost {
+    pub fn set_ui_asset_editor_palette_visible_start(
+        &self,
+        instance_id: &ViewInstanceId,
+        index: usize,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
+        let mut sessions = self.lock_ui_asset_sessions();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry.session.set_palette_visible_start(index);
+        drop(sessions);
+        if changed {
+            self.sync_ui_asset_editor_instance(instance_id)?;
+        }
+        Ok(changed)
+    }
+
+    pub fn dispatch_ui_asset_editor_preview_input(
+        &self,
+        instance_id: &ViewInstanceId,
+        source_frame: &std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+        event: zircon_runtime_interface::ui::window::UiWindowInputPumpEvent,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let _edit = self.begin_document_edit(instance_id)?;
+        let mut sessions = self.lock_ui_asset_sessions();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .dispatch_preview_input(source_frame, event)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        if changed {
+            self.sync_ui_asset_editor_instance(instance_id)?;
+        }
+        Ok(changed)
+    }
+
+    pub(crate) fn deactivate_ui_asset_editor_preview_input(
+        &self,
+        instance_id: &ViewInstanceId,
+        metadata: zircon_runtime_interface::ui::window::UiWindowEventMetadata,
+    ) -> Result<bool, EditorError> {
+        let _edit = self.begin_document_edit_if_registered(instance_id)?;
+        let mut sessions = self.lock_ui_asset_sessions();
+        let Some(entry) = sessions.get_mut(instance_id) else {
+            return Ok(false);
+        };
+        let changed = entry
+            .session
+            .deactivate_preview_input(metadata)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        if changed {
+            self.sync_ui_asset_editor_instance(instance_id)?;
+        }
+        Ok(changed)
+    }
+
     pub fn select_ui_asset_editor_palette_index(
         &self,
         instance_id: &ViewInstanceId,

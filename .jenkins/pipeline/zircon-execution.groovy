@@ -3,11 +3,18 @@ def invokeControl(String action, Map payload) {
     def result
     if (!params.RUNTIME_OPERATION_ID || !params.STAGE_IMPLEMENTATION_DIGEST) error('runtime identity parameters are required')
     if (!env.ZIRCON_AGENT_LABEL || params.RUNTIME_OPERATION_ID != env.ZIRCON_RUNTIME_OPERATION_ID || params.STAGE_IMPLEMENTATION_DIGEST != env.ZIRCON_DRIVER_DIGEST) error('runtime identity fence failed')
-    node(env.ZIRCON_AGENT_LABEL) {
-        if (!env.ZIRCON_SEALED_DRIVER || !env.ZIRCON_DRIVER_LAUNCHER || !env.ZIRCON_DRIVER_DIGEST) error('sealed driver environment is required')
-        result = load(env.ZIRCON_SEALED_DRIVER).control('execution', action, payload)
+    // Reuse the exact operation and payload. A busy lock performed no work;
+    // all other failures keep their original error/reconciliation behavior.
+    for (int attempt = 0; attempt < 12; attempt++) {
+        node(env.ZIRCON_AGENT_LABEL) {
+            if (!env.ZIRCON_SEALED_DRIVER || !env.ZIRCON_DRIVER_LAUNCHER || !env.ZIRCON_DRIVER_DIGEST) error('sealed driver environment is required')
+            result = load(env.ZIRCON_SEALED_DRIVER).control('execution', action, payload)
+        }
+        if (!(result.status in ['failed', 'blocked'] && result.reasonCode == 'execution_busy' && result.retryable == true)) return result
+        if (attempt == 11) error("execution/${action} exceeded execution contention retry budget")
+        // Release the executor before each wait; at most eleven five-second waits.
+        sleep(time: 5, unit: 'SECONDS')
     }
-    return result
 }
 def identity = [sessionId: params.SESSION_ID, requestId: params.REQUEST_ID,
                 repositoryId: params.REPOSITORY_ID ?: env.ZIRCON_REPOSITORY_ID,

@@ -5,6 +5,7 @@ import type {
   ProjectionTextRun,
 } from './bridge/penpot-projection-model';
 import { resolveZuiTextStyle } from './bridge/zui-text-style';
+import { fontResourcesForDocument, selectRegisteredFont, type PenpotFontResourceManifest } from './bridge/penpot-font-selection';
 
 export interface PenpotTextStyle {
   family: string;
@@ -12,6 +13,7 @@ export interface PenpotTextStyle {
   size: number;
   weight: string;
   lineHeight: number;
+  fontResources?: PenpotFontResourceManifest;
 }
 
 export function resolvePenpotTextStyle(
@@ -37,12 +39,14 @@ export function resolvePenpotTextStyle(
     'Source Sans Pro': 'sourcesanspro',
     'Work Sans': 'worksans',
   };
-  return { ...resolved, id: ids[resolved.family] ?? resolved.family };
+  const fontResources = fontResourcesForDocument(document);
+  return { ...resolved, id: ids[resolved.family] ?? resolved.family, ...(fontResources ? {fontResources} : {}) };
 }
 
 export function applyPenpotTextStyle(text: Text, style: PenpotTextStyle): void {
-  const font = exactFont(style.family);
-  const variant = normalVariant(font, style.weight);
+  const selected = selectRegisteredFont(style.family,style.weight,'normal',style.fontResources);
+  const font = selected?.font ?? exactFont(style.family);
+  const variant = selected?.variant ?? normalVariant(font, style.weight);
   font.applyToText(text, variant);
   text.fontSize = String(style.size);
   text.lineHeight = String(style.lineHeight);
@@ -56,7 +60,6 @@ export function applyPenpotTextRuns(
   runs: readonly ProjectionTextRun[] | undefined,
 ): void {
   if (!runs?.length) return;
-  const font = exactFont(style.family);
   for (const run of runs) {
     if (
       !Number.isInteger(run.start) ||
@@ -69,7 +72,9 @@ export function applyPenpotTextRuns(
         `Invalid inline text range ${run.start}-${run.end} for ${text.name || 'Penpot text'}`,
       );
     }
-    const variant = closestNormalVariant(font, run.fontWeight);
+    const selected = selectRegisteredFont(style.family,run.fontWeight,'normal',style.fontResources);
+    const font = selected?.font ?? exactFont(style.family);
+    const variant = selected?.variant ?? closestNormalVariant(font, run.fontWeight);
     font.applyToRange(text.getRange(run.start, run.end), variant);
   }
 }

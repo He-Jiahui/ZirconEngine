@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use zircon_runtime::core::framework::animation::AnimationManager;
 use zircon_runtime::core::framework::foundation::FOUNDATION_MODULE_NAME;
-use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind,
-    StartupMode,
+    CoreError, DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
+    ServiceKind, StartupMode,
 };
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
@@ -66,12 +65,13 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "DefaultAnimationManager",
         )],
         factory(|core| {
-            let manager =
-                core.resolve_manager::<DefaultAnimationManager>(DEFAULT_ANIMATION_MANAGER_NAME)?;
-            Ok(
-                Arc::new(RegisteredManagerService::<dyn AnimationManager>::new(
-                    manager,
-                )) as ServiceObject,
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            core.register_service_alias::<DefaultAnimationManager, dyn AnimationManager>(
+                DEFAULT_ANIMATION_MANAGER_NAME,
+                ServiceKind::Manager,
+                zircon_runtime::core::manager::ANIMATION_MANAGER_NAME,
+                ServiceKind::Manager,
+                |manager| manager,
             )
         }),
     ))

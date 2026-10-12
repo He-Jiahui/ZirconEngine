@@ -185,7 +185,7 @@ pub(super) fn assets_drawer_window(width: u32, height: u32) -> UiHostWindow {
 
     let mut workspace = m3_asset_workspace();
     workspace.view_mode = AssetViewMode::List;
-    workspace.visible_folders.clear();
+    workspace.visible_folders = Default::default();
     let mut chrome = fixture.build_chrome();
     chrome.asset_activity = workspace.clone();
     chrome.asset_browser = workspace.clone();

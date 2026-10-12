@@ -76,6 +76,8 @@ pub enum MergeOutcome {
 pub enum CommandEffect {
     Unchanged,
     Applied,
+    /// The lifecycle target changed; automatic compensation is no longer safe.
+    Interrupted,
 }
 
 #[derive(Debug, Error)]
@@ -98,6 +100,50 @@ impl CommandExecutionError {
         Self {
             effect: CommandEffect::Applied,
             source,
+        }
+    }
+
+    pub fn interrupted(source: EditCommandError) -> Self {
+        Self::interrupted_with_post_callback_error(source, None)
+    }
+
+    pub fn interrupted_with_post_callback_error(
+        source: EditCommandError,
+        post_callback_error: Option<EditCommandError>,
+    ) -> Self {
+        let source = match source {
+            EditCommandError::LifecycleInterrupted {
+                source,
+                mut post_callback_errors,
+            } => {
+                post_callback_errors.extend(post_callback_error);
+                EditCommandError::LifecycleInterrupted {
+                    source,
+                    post_callback_errors,
+                }
+            }
+            source if post_callback_error.is_none() && source.is_interrupted() => source,
+            source => EditCommandError::LifecycleInterrupted {
+                source: Box::new(source),
+                post_callback_errors: post_callback_error.into_iter().collect(),
+            },
+        };
+        Self {
+            effect: CommandEffect::Interrupted,
+            source,
+        }
+    }
+
+    /// Keeps interruption persistent even for a legal public struct literal.
+    pub fn into_source(self) -> EditCommandError {
+        let source = self.source;
+        if self.effect == CommandEffect::Interrupted && !source.is_interrupted() {
+            EditCommandError::LifecycleInterrupted {
+                source: Box::new(source),
+                post_callback_errors: Vec::new(),
+            }
+        } else {
+            source
         }
     }
 }
@@ -242,10 +288,29 @@ pub enum EditCommandError {
         expected_transaction: Option<TransactionId>,
         current_transaction: Option<TransactionId>,
     },
+    #[error("edit lifecycle was interrupted")]
+    LifecycleInterrupted {
+        #[source]
+        source: Box<EditCommandError>,
+        post_callback_errors: Vec<EditCommandError>,
+    },
     #[error("command rollback failed after an earlier command error")]
     RollbackFailed {
         command_error: Box<EditCommandError>,
         #[source]
         rollback_error: Box<EditCommandError>,
     },
+}
+
+impl EditCommandError {
+    pub fn is_interrupted(&self) -> bool {
+        match self {
+            Self::LifecycleInterrupted { .. } => true,
+            Self::RollbackFailed {
+                command_error,
+                rollback_error,
+            } => command_error.is_interrupted() || rollback_error.is_interrupted(),
+            _ => false,
+        }
+    }
 }

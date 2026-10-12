@@ -1,7 +1,8 @@
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformHandleKind, TransformSpace,
+    ViewOrientation,
 };
 use zircon_runtime_interface::ui::{binding::UiBindingCall, binding::UiBindingValue};
 
@@ -92,6 +93,13 @@ impl ViewportCommand {
                     .with_argument(UiBindingValue::string(provider_id))
             }
             Self::FrameSelection => UiBindingCall::new("ViewportCommand.FrameSelection"),
+            Self::SetGridVisibility(visible) => UiBindingCall::new("ViewportCommand.SetGridVisibility")
+                .with_argument(UiBindingValue::Bool(*visible)),
+            Self::ToggleSnap(kind) => UiBindingCall::new("ViewportCommand.ToggleSnap")
+                .with_argument(UiBindingValue::string(match kind {
+                    TransformHandleKind::Move => "Move", TransformHandleKind::Rotate => "Rotate",
+                    TransformHandleKind::Scale => "Scale",
+                })),
         }
     }
 
@@ -151,6 +159,15 @@ impl ViewportCommand {
             "ViewportCommand.SetDisplayMode" => Self::SetDisplayMode(parse_display_mode(
                 &required_string_argument(&call, 0, "ViewportCommand.SetDisplayMode")?,
             )?),
+            "ViewportCommand.SetGridVisibility" => Self::SetGridVisibility(required_bool_argument(
+                &call, 0, "ViewportCommand.SetGridVisibility")?),
+            "ViewportCommand.ToggleSnap" => Self::ToggleSnap(match required_string_argument(
+                &call, 0, "ViewportCommand.ToggleSnap")?.as_str() {
+                "Move" => TransformHandleKind::Move,
+                "Rotate" => TransformHandleKind::Rotate,
+                "Scale" => TransformHandleKind::Scale,
+                value => return Err(invalid_enum_argument("ViewportCommand.ToggleSnap", value)),
+            }),
             "ViewportCommand.SetGridMode" => Self::SetGridMode(parse_grid_mode(
                 &required_string_argument(&call, 0, "ViewportCommand.SetGridMode")?,
             )?),

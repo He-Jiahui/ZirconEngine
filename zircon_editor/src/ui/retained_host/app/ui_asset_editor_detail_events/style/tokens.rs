@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -13,17 +14,26 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "style.token.select" => self
-                .editor_manager
-                .select_ui_asset_editor_style_token(&instance_id, item_index.max(0) as usize)
+            "style.token.select" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.select_ui_asset_editor_style_token(&instance_id, item_index.max(0) as usize)
+                })
                 .map(|_| ()),
-            "style.token.upsert" => self
-                .editor_manager
-                .upsert_ui_asset_editor_style_token(&instance_id, token_name, token_value)
+            "style.token.upsert" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.upsert_ui_asset_editor_style_token(&instance_id, token_name, token_value)
+                })
                 .map(|_| ()),
-            "style.token.delete" => self
-                .editor_manager
-                .delete_ui_asset_editor_selected_style_token(&instance_id)
+            "style.token.delete" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.delete_ui_asset_editor_selected_style_token(&instance_id)
+                })
                 .map(|_| ()),
             other => {
                 self.set_status_line(format!("Unknown UI asset style token action {other}"));

@@ -57,6 +57,7 @@ pub use diagnostics::{UiAssetEditorDiagnostic, UiAssetEditorDiagnosticSeverity};
 pub(crate) use node_projection::ui_asset_editor_surface_for_test;
 pub(crate) use node_projection::{
     apply_ui_asset_editor_designer_tool_mode, ui_asset_editor_node_projection,
+    ui_asset_editor_node_projection_with_palette,
 };
 pub use presentation::{
     UiAssetEditorPanePresentation, UiAssetEditorPreviewCanvasNode,

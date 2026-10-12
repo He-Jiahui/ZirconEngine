@@ -2,7 +2,7 @@ use super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_geometry::intersect;
 use super::super::paint_theme::PALETTE;
-use super::super::paint_workbench_renderer as workbench;
+use super::commands::draw_workbench_presentation_commands;
 
 const SHELL_BACKGROUND: [u8; 4] = PALETTE.shell_background;
 
@@ -19,23 +19,9 @@ pub(in crate::ui::retained_host::host_contract) fn paint_host_frame(
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_full_frame_clear");
         HostRgbaFrame::filled(width, height, SHELL_BACKGROUND)
     };
-    if workbench::draws_componentized_workbench_window(presentation) {
-        zircon_runtime::profile_scope!(
-            "editor",
-            "host_painter",
-            "painter_draw_componentized_workbench"
-        );
-        workbench::draw_componentized_workbench_window(&mut frame, presentation);
-    } else {
-        workbench::draw_host_workbench_window_profiled(
-            &mut frame,
-            width,
-            height,
-            presentation,
-            "painter_resolve_root_frames",
-            "painter_draw_root_skeleton",
-            "painter_draw_host_scene",
-        );
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_draw_workbench_commands");
+        draw_workbench_presentation_commands(&mut frame, presentation);
     }
     frame
 }
@@ -66,23 +52,13 @@ pub(in crate::ui::retained_host::host_contract) fn repaint_host_frame_region(
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_region_clear");
         frame.fill_rect(&damage, SHELL_BACKGROUND);
     }
-    if workbench::draws_componentized_workbench_window(presentation) {
+    {
         zircon_runtime::profile_scope!(
             "editor",
             "host_painter",
-            "painter_region_draw_componentized_workbench"
+            "painter_region_draw_workbench_commands"
         );
-        workbench::draw_componentized_workbench_window(frame, presentation);
-    } else {
-        workbench::draw_host_workbench_window_profiled(
-            frame,
-            frame.width(),
-            frame.height(),
-            presentation,
-            "painter_region_resolve_root_frames",
-            "painter_region_draw_root_skeleton",
-            "painter_region_draw_host_scene",
-        );
+        draw_workbench_presentation_commands(frame, presentation);
     }
     frame.replace_paint_clip(previous_clip);
     Some(damage)

@@ -19,6 +19,7 @@ fn push_text(stream: &mut ChromeCommandStream, frame: FrameRect, clip: Option<Fr
             size: 12.0,
             line_height: 16.0,
             style: UiTextRunPaintStyle::default(),
+            font_request: None,
         },
     });
 }

@@ -113,14 +113,19 @@ fn button_label_font_size_from_metrics(
     }
 }
 
-pub(super) fn button_label_line_height(font_size: f32) -> f32 {
+pub(super) fn button_label_line_height(node: &TemplatePaneNodeData, font_size: f32) -> f32 {
     if !font_size.is_finite() || font_size <= 0.0 {
         return 0.0;
     }
-    button_content_metrics()
-        .line_height(font_size)
-        .round()
-        .max(font_size.ceil())
+    let metrics = button_content_metrics();
+    let height = if node.line_height.is_finite() && node.line_height > 0.0 {
+        logical_font_size_to_physical(node.line_height, metrics.scale_factor)
+    } else if node.line_height_ratio.is_finite() && node.line_height_ratio > 0.0 {
+        font_size * node.line_height_ratio
+    } else {
+        metrics.line_height(font_size)
+    };
+    height.round().max(font_size.ceil())
 }
 
 pub(super) fn button_label_paint_style(
@@ -162,8 +167,10 @@ pub(super) fn label_text_slot_width(ink_width: f32, max_width: f32) -> f32 {
 }
 
 /// 按 utility 页签、工具栏 chip 或 compact 语境保留横向内边距；此预算尚未扣除图标槽。
-pub(super) fn max_label_slot_width(node: &TemplatePaneNodeData, rect: &FrameRect) -> f32 {
-    let metrics = button_content_metrics();
+fn button_content_padding_from_metrics(
+    node: &TemplatePaneNodeData,
+    metrics: WorkbenchButtonContentMetrics,
+) -> [f32; 4] {
     let pad_x = if is_asset_browser_utility_tab_button(node) {
         metrics.utility_tab_pad_x
     } else if is_asset_browser_toolbar_chip_button(node) {
@@ -173,7 +180,34 @@ pub(super) fn max_label_slot_width(node: &TemplatePaneNodeData, rect: &FrameRect
     } else {
         metrics.button_pad_x
     };
-    (rect.width - pad_x * 2.0).max(0.0)
+    let defaults = [pad_x, pad_x, 0.0, 0.0];
+    std::array::from_fn(|index| {
+        node.authored_field_padding[index]
+            .filter(|value| value.is_finite() && *value >= 0.0)
+            .map(|value| logical_font_size_to_physical(value, metrics.scale_factor))
+            .unwrap_or(defaults[index])
+    })
+}
+
+pub(super) fn button_content_padding(node: &TemplatePaneNodeData) -> [f32; 4] {
+    button_content_padding_from_metrics(node, button_content_metrics())
+}
+
+pub(super) fn max_label_slot_width(node: &TemplatePaneNodeData, rect: &FrameRect) -> f32 {
+    let [left, right, _, _] = button_content_padding(node);
+    (rect.width - left - right).max(0.0)
+}
+
+pub(super) fn button_vertical_content_frame(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+) -> FrameRect {
+    let [_, _, top, bottom] = button_content_padding(node);
+    FrameRect {
+        y: rect.y + top.min(rect.height.max(0.0)),
+        height: (rect.height - top - bottom).max(0.0),
+        ..rect.clone()
+    }
 }
 
 /// 实例正的内容间距可覆盖密度默认值；这是图标与标签间距，不移动整个按钮外框。

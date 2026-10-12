@@ -10,6 +10,8 @@ pub(in crate::ui::retained_host::host_contract) struct HostMaterialPalette {
     pub surface_hover: [u8; 4],
     pub surface_pressed: [u8; 4],
     pub surface_selected: [u8; 4],
+    pub surface_selected_inactive: [u8; 4],
+    pub text_selected: [u8; 4],
     pub surface_disabled: [u8; 4],
     pub accent: [u8; 4],
     pub accent_soft: [u8; 4],

@@ -20,8 +20,12 @@ mod removal;
 mod resource;
 mod resource_store;
 mod scene_system_descriptor;
+mod scene_system_plan_descriptor;
 mod scene_system_registry;
 mod schedule;
+mod schedule_execution;
+
+pub(crate) use schedule_execution::{schedule_owner_changed_error, ScheduleExecution};
 mod schedule_build_receipt;
 mod schedule_conflict_graph;
 mod schedule_error;

@@ -12,6 +12,7 @@ fn runtime_12_input_stack_contracts_stay_documented_and_exported() {
     let input_tests = [
         include_str!("../../../input/tests/input_manager.rs"),
         include_str!("../../../input/tests/input_manager/frame_state.rs"),
+        include_str!("../../../dynamic_api/tests/session_profiles.rs"),
     ]
     .join("\n");
 
@@ -20,7 +21,7 @@ fn runtime_12_input_stack_contracts_stay_documented_and_exported() {
         "DefaultInputManager::begin_frame()",
         "RuntimeDynamicSession::tick_frame() runs the loaded level before it calls `input_manager.begin_frame()`",
         "input_snapshot_just_pressed_is_true_for_exactly_one_frame",
-        "frame_input_clears_after_level_tick_not_before",
+        "tick_frame_drives_loaded_level_before_clearing_frame_input",
         "input_frame_contract_static_passed_cargo_pending",
     ] {
         assert!(

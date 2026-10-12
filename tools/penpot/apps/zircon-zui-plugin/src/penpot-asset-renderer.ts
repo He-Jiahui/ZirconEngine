@@ -1,3 +1,4 @@
+import { prepareViewportToolbarLayout, applyPublishedViewportToolbarBoard } from './penpot-viewport-toolbar';
 import {
   isTreeRowPainter,
   refreshTreeRowContent,
@@ -10,6 +11,7 @@ import { applyNativeScrollContentLayout } from './penpot-scroll-content-layout';
 import { applyNativeWrapContentLayout } from './penpot-wrap-content-layout';
 import { applySlotPadding } from './penpot-slot-padding';
 import { createImportCheckpoint } from './penpot-import-scheduling';
+import { fontResourcesForDocument, writeFontResources } from './bridge/penpot-font-selection';
 import { renderedSourceIdentity } from './penpot-rendered-source-identity';
 import {
   createSliderDecoration,
@@ -147,6 +149,7 @@ export async function createAssetBoard(
   );
   const assetBoard = penpot.createBoard();
   try {
+    writeFontResources(assetBoard,fontResourcesForDocument(document));
     assetBoard.name = `ZUI · ${projection.displayName}`;
     assetBoard.resize(geometry.width, geometry.height);
     assetBoard.x = penpot.viewport.center.x - assetBoard.width / 2;
@@ -961,7 +964,10 @@ export function refreshAssetTextLayout(
   );
   synchronizeLinearContentMeasurements(asset, document, projection);
   const desiredSizes = measuredLinearDesiredSizes(asset, document, projection);
+  const toolbar = prepareViewportToolbarLayout(asset, document, projection, desiredSizes);
+  if (toolbar) document = toolbar.document;
   const visit = (board: Board) => {
+    applyPublishedViewportToolbarBoard(asset, board, toolbar);
     refreshImageContent(board);
     const currentProjection = projected.get(
       metadata(board, ZUI_METADATA_NODE_ID),

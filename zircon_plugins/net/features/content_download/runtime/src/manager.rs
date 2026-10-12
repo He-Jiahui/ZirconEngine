@@ -9,11 +9,9 @@ mod progress;
 mod resume;
 mod state;
 
-use std::sync::Arc;
-
 use zircon_runtime::core::framework::net::NetManager;
 use zircon_runtime::core::manager::resolve_manager_service;
-use zircon_runtime::core::CoreError;
+use zircon_runtime::core::{CoreError, ServiceCallGuard};
 
 pub use state::NetContentDownloadRuntimeManager;
 
@@ -46,12 +44,7 @@ impl NetContentDownloadRuntimeManager {
             .expect("net content download state mutex poisoned")
     }
 
-    pub(in crate::manager) fn net(&self) -> Result<Option<Arc<dyn NetManager>>, CoreError> {
-        #[cfg(test)]
-        if let Some(net) = &self.test_net {
-            return Ok(Some(Arc::clone(net)));
-        }
-
+    pub(in crate::manager) fn net(&self) -> Result<Option<ServiceCallGuard<dyn NetManager>>, CoreError> {
         let (Some(core), Some(handle)) = (&self.core, &self.net) else {
             return Ok(None);
         };

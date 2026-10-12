@@ -139,7 +139,7 @@ fn tab_drop_dispatch_preserves_auto_hide_drawer_mode() {
     assert_eq!(
         harness
             .runtime
-            .current_layout()
+            .current_layout().unwrap()
             .active_activity_window_drawers()
             .get(&ActivityDrawerSlot::RightTop)
             .map(|drawer| drawer.mode),
@@ -216,7 +216,7 @@ fn tab_drop_dispatch_detaches_drawer_tab_to_independent_drawer_window() {
     );
     assert!(harness
         .runtime
-        .current_layout()
+        .current_layout().unwrap()
         .floating_windows
         .iter()
         .any(|window| window.window_id == new_window));

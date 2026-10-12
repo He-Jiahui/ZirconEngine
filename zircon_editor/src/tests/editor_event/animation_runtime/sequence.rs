@@ -39,7 +39,7 @@ fn animation_sequence_binding_marks_active_sequence_editor_dirty_and_updates_ses
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
@@ -57,7 +57,7 @@ fn animation_sequence_binding_marks_active_sequence_editor_dirty_and_updates_ses
         .track_items
         .contains(&"Root/Hero:Transform.translation".to_string()));
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         "Created animation track Root/Hero:Transform.translation"
     );
 }
@@ -105,7 +105,7 @@ fn animation_sequence_ignores_timeline_selection_for_missing_track() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
@@ -124,7 +124,7 @@ fn animation_sequence_ignores_timeline_selection_for_missing_track() {
         "missing-track selection should remain a no-op for the document"
     );
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         "Ignored animation command because it did not change the current document"
     );
 }
@@ -187,7 +187,7 @@ fn animation_sequence_removing_selected_track_clears_selection_summary() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
@@ -212,7 +212,7 @@ fn animation_sequence_removing_selected_track_clears_selection_summary() {
         "removing the selected track should mark the document dirty"
     );
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         "Removed animation track Root/Hero:Transform.translation"
     );
 }

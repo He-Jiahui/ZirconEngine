@@ -29,5 +29,18 @@ pub(in crate::ui::retained_host::host_contract) trait HostChromePresenter {
     fn submitted_text_profile(&self) -> Option<serde_json::Value> {
         None
     }
+    fn drain_normal_capture(
+        &mut self,
+        _cursor: HostPresentationGenerationCursor,
+    ) -> Option<super::super::profiling_artifacts::normal_frame_readback::NormalReadbackExport>
+    {
+        None
+    }
+    fn normal_capture_redraw_requested(&self) -> bool {
+        false
+    }
+    fn normal_capture_wake_deadline(&self) -> Option<std::time::Instant> {
+        None
+    }
     fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics;
 }

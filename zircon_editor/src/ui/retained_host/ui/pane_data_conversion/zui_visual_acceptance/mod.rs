@@ -7,6 +7,7 @@ mod contract;
 mod geometry;
 mod painter_receipts;
 mod product_presentation;
+pub(crate) use product_presentation::{normal_workbench_business_snapshot, NormalWorkbenchBusinessSnapshot};
 mod readiness;
 mod source;
 mod source_identity;

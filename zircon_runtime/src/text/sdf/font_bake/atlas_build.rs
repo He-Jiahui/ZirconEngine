@@ -116,15 +116,17 @@ impl SdfFontBakeCache {
                 return bake;
             }
         }
+        let previous_slots = self.prepared_atlas.cached_slots().to_vec();
+        // A prepared-atlas hit bypasses glyph-cache lookups. Refresh the last visible
+        // key set only when rebuilding so steady frames keep their zero-maintenance path.
+        self.touch_cached_glyph_slots(&previous_slots);
+        // Priming a new layout can evict CPU-only sidecars. Protect the prior
+        // visible glyphs first, before that admission applies the shared LRU.
         let slot_keys = slots
             .iter()
             .map(|slot| slot.key.clone())
             .collect::<Vec<_>>();
         self.prime_shaped_face_resolutions(&slot_keys, font_database);
-        let previous_slots = self.prepared_atlas.cached_slots().to_vec();
-        // A prepared-atlas hit bypasses glyph-cache lookups. Refresh the last visible
-        // key set only when rebuilding so steady frames keep their zero-maintenance path.
-        self.touch_cached_glyph_slots(&previous_slots);
         let resident_font_count_before = self.fonts.len();
         if let Some(scheduler) = scheduler {
             self.prepare_missing_glyphs_async(

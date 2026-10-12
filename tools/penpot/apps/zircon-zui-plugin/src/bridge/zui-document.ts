@@ -107,6 +107,10 @@ export function parseZuiDocument(source: string): ParsedZuiDocument {
   }
 
   const document = parsed as unknown as ZuiDocument;
+  // Review hosts carry observed JSON business data, including meaningful nulls.
+  // Their typed metadata string survives the TOML import boundary losslessly.
+  if (typeof document['penpot_review_host'] === 'string')
+    document['penpot_review_host'] = decodeZuiMetadata(document['penpot_review_host']);
   const diagnostics = validateZuiDocument(document);
   const errors = diagnostics.filter(({ severity }) => severity === 'error');
   if (errors.length > 0) {
@@ -129,7 +133,13 @@ export function serializeZuiDocument(document: ZuiDocument): string {
       diagnostics,
     );
   }
-  return `${stringify(document as unknown as TomlTable).trimEnd()}\n`;
+  // TOML has no null value. Keep the supplemental review host in the existing
+  // typed JSON codec; authored runtime nodes and the v2 asset schema stay intact.
+  const host = document['penpot_review_host'];
+  const wireDocument = isRecord(host)
+    ? { ...document, penpot_review_host: encodeZuiMetadata(host as unknown as ZuiDocument) }
+    : document;
+  return `${stringify(wireDocument as unknown as TomlTable).trimEnd()}\n`;
 }
 
 export function validateZuiDocument(document: ZuiDocument): ZuiDiagnostic[] {

@@ -41,6 +41,8 @@ fn interface_spec_slot_partitions_match_the_abi_table_fields() {
     );
 }
 
+// 扫描器依赖具体 ABI 表逐行声明 pub 字段，并以独占一行的结束括号确定字段区间。
+// 先确认两个表头的位置再排除它们，其余字段名才参与函数槽集合核对。
 fn concrete_table_slot_names(table_name: &str) -> BTreeSet<String> {
     let source = include_str!("../api_table.rs");
     let struct_needle = format!("pub struct {table_name} ");

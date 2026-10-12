@@ -38,7 +38,7 @@ fn chrome_builder_carries_default_workbench_window_template() {
         "Workbench",
     )
     .with_activity_window_template(ActivityWindowTemplateSpec::new(
-        "res://ui/editor/windows/workbench_window.zui",
+        "res://ui/editor/unreal/level_editor_window.zui",
     ))];
 
     let chrome =
@@ -55,7 +55,7 @@ fn chrome_builder_carries_default_workbench_window_template() {
         activity_window_template
             .as_ref()
             .map(|template| template.document_id.as_str()),
-        Some("res://ui/editor/windows/workbench_window.zui")
+        Some("res://ui/editor/unreal/level_editor_window.zui")
     );
 }
 

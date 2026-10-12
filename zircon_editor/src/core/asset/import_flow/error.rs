@@ -12,6 +12,8 @@ pub enum EditorAssetImportExecutionError {
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum EditorAssetImportSubmitError {
+    #[error("asset import belongs to an inactive project activation: {uri}")]
+    ProjectActivationSuperseded { uri: AssetUri },
     #[error("asset import URI is not present in the runtime registry projection: {uri}")]
     AssetNotIndexed { uri: AssetUri },
     #[error("asset import admission is pending for {uri}")]

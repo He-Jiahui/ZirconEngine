@@ -35,6 +35,7 @@ use crate::backend::{
     resolve_body_mass, BodyCommand, BodyDesc, BodyHandle, ConstraintDesc, ConstraintHandle,
     PhysicsBackend, PhysicsBackendError, PhysicsBackendObjectKind, PhysicsEventBuffer, ShapeHandle,
 };
+use zircon_runtime::core::runtime::tasks::EngineThreadBudget;
 
 use super::command_apply::{apply_body_command, apply_projected_body_state};
 use super::conversion::{
@@ -75,8 +76,15 @@ unsafe impl Send for JoltPhysicsBackend {}
 
 impl JoltPhysicsBackend {
     pub fn new(settings: PhysicsSettings) -> Result<Self, PhysicsBackendError> {
+        Self::new_with_thread_budget(settings, EngineThreadBudget::process_default())
+    }
+
+    pub fn new_with_thread_budget(
+        settings: PhysicsSettings,
+        budget: EngineThreadBudget,
+    ) -> Result<Self, PhysicsBackendError> {
         Ok(Self {
-            native: NativeWorld::new()?,
+            native: NativeWorld::new(budget.physics_worker_threads())?,
             settings,
             shapes: HandlePool::default(),
             bodies: HandlePool::default(),

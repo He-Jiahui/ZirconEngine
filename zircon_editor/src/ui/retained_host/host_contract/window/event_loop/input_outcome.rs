@@ -324,6 +324,7 @@ fn record_input_outcome(outcome: UiInputOutcome, scenario: Option<UiPerfScenario
 const fn input_to_damage_counter_name(scenario: UiPerfScenario) -> &'static str {
     match scenario {
         UiPerfScenario::Startup => "ui.startup.input_to_damage_us",
+        UiPerfScenario::SessionHeartbeat => "ui.session_heartbeat.input_to_damage_us",
         UiPerfScenario::IdleHover => "ui.idle_hover.input_to_damage_us",
         UiPerfScenario::Click => "ui.click.input_to_damage_us",
         UiPerfScenario::Drag => "ui.drag.input_to_damage_us",
@@ -339,6 +340,7 @@ const fn input_to_damage_counter_name(scenario: UiPerfScenario) -> &'static str 
 const fn damage_to_submit_counter_name(scenario: UiPerfScenario) -> &'static str {
     match scenario {
         UiPerfScenario::Startup => "ui.startup.damage_to_submit_us",
+        UiPerfScenario::SessionHeartbeat => "ui.session_heartbeat.damage_to_submit_us",
         UiPerfScenario::IdleHover => "ui.idle_hover.damage_to_submit_us",
         UiPerfScenario::Click => "ui.click.damage_to_submit_us",
         UiPerfScenario::Drag => "ui.drag.damage_to_submit_us",

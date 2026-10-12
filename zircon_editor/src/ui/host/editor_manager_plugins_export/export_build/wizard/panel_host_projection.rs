@@ -166,6 +166,7 @@ fn slot_entry_node(
         focused: false,
         focus_visible: false,
         focus_visible_known: false,
+        tree_owner_focused: None,
         hovered: false,
         pressed: false,
         dragging: false,

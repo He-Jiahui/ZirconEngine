@@ -102,21 +102,21 @@ fn platform_preference_storage_module_cleanup_is_bounded_and_preserves_services_
 
     let (started_tx, started_rx) = mpsc::sync_channel(0);
     let (release_tx, release_rx) = mpsc::sync_channel(0);
-    let driver = runtime
-        .resolve_driver::<PlatformDriver>(PLATFORM_DRIVER_NAME)
+    let core = runtime.handle();
+    let driver = core
+        .resolve_driver_handle::<PlatformDriver>(PLATFORM_DRIVER_NAME)
         .unwrap();
     driver
+        .enter()
+        .unwrap()
         .install_preference_storage_backend(Arc::new(BlockingPreferenceStorageBackend {
             started: Mutex::new(Some(started_tx)),
             release: Mutex::new(Some(release_rx)),
         }))
         .unwrap();
-    let storage = resolve_manager_service(
-        &runtime.handle(),
-        platform_preference_storage_handle(&runtime.handle()).unwrap(),
-    )
-    .unwrap();
-    let submission = storage
+    let storage = platform_preference_storage_handle(&core).unwrap();
+    let submission = resolve_manager_service(&core, storage.clone())
+        .unwrap()
         .submit_write(
             PreferenceKey::new("woc.input", "blocked-cleanup").unwrap(),
             Arc::from(&b"value"[..]),
@@ -140,15 +140,14 @@ fn platform_preference_storage_module_cleanup_is_bounded_and_preserves_services_
             && operation == "preference_persistence"
     ));
     assert!(cleanup_started.elapsed() < Duration::from_secs(2));
-    assert_eq!(
-        resolve_manager_service(
-            &runtime.handle(),
-            platform_preference_storage_handle(&runtime.handle()).unwrap(),
-        )
-        .unwrap()
-        .backend_kind(),
-        PreferenceStorageBackendKind::HostProvided
-    );
+    assert!(matches!(
+        resolve_manager_service(&core, storage.clone()),
+        Err(CoreError::ServiceUnavailable(_))
+    ));
+    assert!(matches!(
+        driver.enter(),
+        Err(CoreError::ServiceUnavailable(_))
+    ));
 
     release_tx.send(()).unwrap();
     assert!(matches!(
@@ -314,7 +313,7 @@ fn platform_preference_storage_manager_handle_resolves_the_injected_contract() {
     assert_eq!(handle.service.as_str(), PLATFORM_MANAGER_NAME);
     let storage = resolve_manager_service(&runtime.handle(), handle).unwrap();
     let key = PreferenceKey::new("woc.input", "gamepad").unwrap();
-    submit_write(storage.as_ref(), key.clone(), b"button-map");
+    submit_write(&*storage, key.clone(), b"button-map");
     assert_eq!(
         storage.snapshot(&key).unwrap().value(),
         Some(&b"button-map"[..])

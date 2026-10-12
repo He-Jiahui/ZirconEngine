@@ -37,6 +37,7 @@ const TAA_REACTIVE_MASK_TEMPLATE: &str = include_str!("../wgsl/zr_template_taa_r
 const HIT_PROXY_TEMPLATE: &str = include_str!("../wgsl/zr_template_hit_proxy.wgsl");
 const HIT_PROXY_ALPHA_TEMPLATE: &str = include_str!("../wgsl/zr_template_hit_proxy_alpha.wgsl");
 
+/// 声明当前 pass 的来源及材质、着色要求；Velocity 模板的上一位置接口还须由顶点布局提供。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ShaderPassTemplate {
     pub(crate) include: ShaderTemplateInclude,
@@ -53,6 +54,8 @@ pub(crate) fn pass_template_for(
     pass_template_for_shading_model(pass_type, features, true)
 }
 
+/// 使用内置标准 PBR 标志决定 Forward 支持模块是否按功能裁剪，自定义模型保留完整支持 API。
+/// 其他 pass 根据片元用途选择材质表面，使不透明深度和阴影变体避开无用采样。
 pub(crate) fn pass_template_for_shading_model(
     pass_type: ShaderPassType,
     features: ShaderFeatureBits,

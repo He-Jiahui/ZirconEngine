@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -12,21 +13,30 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "preview.mock.nested.value.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_preview_mock_nested_value(&instance_id, nested_key)
+            "preview.mock.nested.value.set" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.set_ui_asset_editor_selected_preview_mock_nested_value(&instance_id, nested_key)
+                })
                 .map(|_| ()),
-            "preview.mock.nested.upsert" => self
-                .editor_manager
-                .upsert_ui_asset_editor_selected_preview_mock_nested_entry(
-                    &instance_id,
-                    nested_key,
-                    nested_value,
-                )
+            "preview.mock.nested.upsert" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.upsert_ui_asset_editor_selected_preview_mock_nested_entry(
+                        &instance_id,
+                        nested_key,
+                        nested_value,
+                    )
+                })
                 .map(|_| ()),
-            "preview.mock.nested.delete" => self
-                .editor_manager
-                .delete_ui_asset_editor_selected_preview_mock_nested_entry(&instance_id)
+            "preview.mock.nested.delete" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.delete_ui_asset_editor_selected_preview_mock_nested_entry(&instance_id)
+                })
                 .map(|_| ()),
             other => {
                 self.set_status_line(format!(

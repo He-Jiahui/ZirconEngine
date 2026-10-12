@@ -21,7 +21,11 @@ fn play_consumer_start_uses_capabilities_from_an_already_locked_shell() {
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     controller
         .start_test_play_gateway(PlayKind::Play, Arc::new(DetachedEditorRuntimeGateway))
         .expect("the test play gateway should attach");
@@ -29,6 +33,8 @@ fn play_consumer_start_uses_capabilities_from_an_already_locked_shell() {
     let shell = controller.shell().lock();
     let enabled_capabilities = shell
         .manager
+        .enter()
+        .expect("editor manager capability admission")
         .capability_snapshot()
         .enabled_capabilities()
         .to_vec();

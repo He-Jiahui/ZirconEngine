@@ -383,7 +383,7 @@ fn welcome_mvp_field_labels_use_shared_runtime_text_label_nodes() {
             "location_label",
             "WelcomeLocationLabel",
             "WelcomeLocationField",
-            "Location",
+            "Parent folder",
         ),
     ] {
         let label = layout

@@ -15,8 +15,9 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter_batch, UiPerfCounter};
 use crate::ui::workbench::asset_content_layout::{
-    asset_thumbnail_card_geometry, compact_thumbnail_file_name_to_width,
-    ActivityAssetReferenceListKind, ActivityContentNodeIdentity, AssetBrowserPaintItem,
+    activity_compact_name, activity_row_geometry, asset_thumbnail_card_geometry,
+    compact_thumbnail_file_name_to_width, ActivityAssetReferenceListKind,
+    ActivityContentNodeIdentity, ActivityContentNodeRole, AssetBrowserPaintItem,
     AssetBrowserSlotBinding, AssetContentPaintMetadata, AssetContentRect,
     AssetContentRowDescriptor, AssetContentSurface, BrowserAssetReferenceListKind,
     BrowserContentNodeIdentity, BrowserThumbnailNodeRole,
@@ -155,6 +156,61 @@ impl TemplateNodePaintTransform for ActivityAssetContentProjector {
             AssetContentRowDescriptor::ActivityContent(identity) => {
                 if identity == ActivityContentNodeIdentity::ContentPanel {
                     return Some((node, clip));
+                }
+                if let ActivityContentNodeIdentity::Item { index: slot, role } = identity {
+                    if let Some(virtualization) = self.metadata.activity_virtualization() {
+                        let binding = self.metadata.activity_slot_binding(self.scroll_px, slot)?;
+                        let meta = binding.meta();
+                        let geometry = activity_row_geometry(
+                            virtualization.panel,
+                            virtualization.metrics,
+                            virtualization.view_mode,
+                            binding.top,
+                            binding.height,
+                            &meta,
+                        );
+                        apply_thumbnail_item_frame(&mut node, geometry.for_role(role));
+                        node.selected = role == ActivityContentNodeRole::Row && binding.selected;
+                        match role {
+                            ActivityContentNodeRole::Row => {
+                                node.border_width = if binding.selected {
+                                    zircon_runtime_interface::ui::design_tokens::EditorControlTokens::workbench_dense().border_width
+                                } else {
+                                    0.0
+                                };
+                            }
+                            ActivityContentNodeRole::Type => node.text = binding.badge().into(),
+                            ActivityContentNodeRole::Name => {
+                                node.text = activity_compact_name(
+                                    binding.name(),
+                                    binding.extension(),
+                                    node.frame.width,
+                                )
+                                .into();
+                                node.value_text = binding.extension().into();
+                            }
+                            ActivityContentNodeRole::Meta => {
+                                node.text = meta.into();
+                                node.text_tone = binding.meta_tone().into();
+                            }
+                            ActivityContentNodeRole::Badge => {}
+                        }
+                        node.frame.y -= self.scroll_px;
+                        if node.has_clip_frame {
+                            node.clip_frame.y -= self.scroll_px;
+                        }
+                        node.hovered = role == ActivityContentNodeRole::Row
+                            && i32::try_from(binding.logical_index).ok()
+                                == Some(self.hovered_row_index);
+                        let content_clip = intersect(&clip, self.content_clip.as_ref()?)?;
+                        let node_frame = translated(
+                            &frame_from_template(&node.frame),
+                            self.origin_x,
+                            self.origin_y,
+                        );
+                        intersect(&node_frame, &content_clip)?;
+                        return Some((node, content_clip));
+                    }
                 }
                 if identity.scrolls() {
                     node.frame.y -= self.scroll_px;

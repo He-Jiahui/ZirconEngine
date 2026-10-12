@@ -14,7 +14,7 @@ impl RetainedEditorHost {
         project_root: &Path,
     ) -> Result<String, String> {
         let project = self
-            .active_module_plugin_live_project()
+            .active_module_plugin_live_project()?
             .ok_or_else(|| "live plugin action requires an active project session".to_string())?;
         if project.root() != project_root {
             return Err("live plugin action targets a stale project".to_string());
@@ -36,19 +36,23 @@ impl RetainedEditorHost {
     ) -> Result<String, String> {
         let outcome = self
             .editor_manager
-            .execute_native_live_plugin_for_session(&project.session_target(), || {
-                self.runtime
-                    .execute_native_live_action_without_active_contribution(plugin_id, || {
-                        dispatch_live_plugin_backend_action(
-                            self.module_plugin_live_host_backend.as_ref(),
-                            plugin_id,
-                            command,
-                            project,
-                        )
-                    })
+            .enter()
+            .map_err(|error| error.to_string())
+            .and_then(|manager| {
+                manager.execute_native_live_plugin_for_session(&project.session_target(), || {
+                    self.runtime
+                        .execute_native_live_action_without_active_contribution(plugin_id, || {
+                            dispatch_live_plugin_backend_action(
+                                self.module_plugin_live_host_backend.as_ref(),
+                                plugin_id,
+                                command,
+                                project,
+                            )
+                        })
+                })
             })
             .map(|outcome| live_plugin_backend_success_message(&outcome));
-        if self.active_module_plugin_live_project().as_ref() != Some(project) {
+        if self.active_module_plugin_live_project()?.as_ref() != Some(project) {
             return Err("project session changed during the live plugin action".to_string());
         }
         let live_loaded = self
@@ -56,13 +60,20 @@ impl RetainedEditorHost {
             .loaded_editor_plugin_ids()
             .map(|ids| ids.iter().any(|id| id == plugin_id));
         let outcome = reconcile_live_plugin_result(command, plugin_id, outcome, &live_loaded);
-        if !self.editor_manager.publish_native_live_plugin_status(
-            &project.session_target(),
-            plugin_id,
-            operation,
-            &outcome,
-            &live_loaded,
-        )? {
+        if !self
+            .editor_manager
+            .enter()
+            .map_err(|error| error.to_string())
+            .and_then(|manager| {
+                manager.publish_native_live_plugin_status(
+                    &project.session_target(),
+                    plugin_id,
+                    operation,
+                    &outcome,
+                    &live_loaded,
+                )
+            })?
+        {
             return Err("active project plugin status is unavailable".to_string());
         }
         self.mark_layout_dirty();
@@ -71,8 +82,8 @@ impl RetainedEditorHost {
 
     pub(in crate::ui::retained_host::app) fn poll_module_plugin_development_watches(
         &mut self,
-    ) -> Option<std::time::Instant> {
-        let project = self.active_module_plugin_live_project();
+    ) -> Result<Option<std::time::Instant>, String> {
+        let project = self.active_module_plugin_live_project()?;
         let (diagnostics, completions, deadline) = self
             .module_plugin_live_host_backend
             .poll_development_watches(project.as_ref())
@@ -96,7 +107,7 @@ impl RetainedEditorHost {
                 continue;
             };
             if completion.result.is_ok() {
-                if self.active_module_plugin_live_project().as_ref() == Some(&completion.project) {
+                if self.active_module_plugin_live_project()?.as_ref() == Some(&completion.project) {
                     match execution {
                         Ok(message) => self.set_status_line(message),
                         Err(error) => self.set_status_line(error),
@@ -114,13 +125,19 @@ impl RetainedEditorHost {
                 execution,
                 &live_loaded,
             );
-            let publication = self.editor_manager.publish_native_live_plugin_status(
-                &completion.project.session_target(),
-                &completion.plugin_id,
-                "watch_hot_reload",
-                &outcome,
-                &live_loaded,
-            );
+            let publication = self
+                .editor_manager
+                .enter()
+                .map_err(|error| error.to_string())
+                .and_then(|manager| {
+                    manager.publish_native_live_plugin_status(
+                        &completion.project.session_target(),
+                        &completion.plugin_id,
+                        "watch_hot_reload",
+                        &outcome,
+                        &live_loaded,
+                    )
+                });
             match publication {
                 Ok(true) => {}
                 Ok(false) => continue,
@@ -135,15 +152,20 @@ impl RetainedEditorHost {
             }
             self.mark_layout_dirty();
         }
-        deadline
+        Ok(deadline)
     }
 
-    fn active_module_plugin_live_project(&self) -> Option<ModulePluginLiveHostProject> {
-        self.editor_manager
+    fn active_module_plugin_live_project(
+        &self,
+    ) -> Result<Option<ModulePluginLiveHostProject>, String> {
+        Ok(self
+            .editor_manager
+            .enter()
+            .map_err(|error| error.to_string())?
             .active_project_session_focus_target()
             .map(|(root, instance_id, generation)| {
                 ModulePluginLiveHostProject::new(root, instance_id, generation)
-            })
+            }))
     }
 }
 

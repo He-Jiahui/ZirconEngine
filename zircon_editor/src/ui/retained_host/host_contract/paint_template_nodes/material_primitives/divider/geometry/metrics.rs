@@ -1,5 +1,7 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::super::super::paint_theme::{
+    current_host_metrics, logical_font_size_to_physical, HostControlMetrics,
+};
 
 const DIVIDER_MIDDLE_HORIZONTAL_GAP_FACTOR: f32 = 2.0;
 const DIVIDER_INSET_HORIZONTAL_GAP_FACTOR: f32 = 9.0;
@@ -9,6 +11,7 @@ const DIVIDER_VERTICAL_TEXT_HORIZONTAL_PADDING_RATIO: f32 = 0.25;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct DividerGeometryMetrics {
+    scale_factor: f32,
     thickness: f32,
     middle_horizontal_inset: f32,
     inset_horizontal_inset: f32,
@@ -64,7 +67,7 @@ fn divider_font_size_from_metrics(
     metrics: DividerGeometryMetrics,
 ) -> f32 {
     let requested = if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
+        logical_font_size_to_physical(node.font_size, metrics.scale_factor)
     } else {
         metrics.default_font_size
     };
@@ -127,6 +130,7 @@ fn divider_geometry_metrics() -> DividerGeometryMetrics {
 fn divider_geometry_metrics_from_host(metrics: HostControlMetrics) -> DividerGeometryMetrics {
     let wrapper_padding = metrics.gap_m + metrics.border_width;
     DividerGeometryMetrics {
+        scale_factor: metrics.scale_factor,
         thickness: metrics.border_width,
         middle_horizontal_inset: metrics.gap_m * DIVIDER_MIDDLE_HORIZONTAL_GAP_FACTOR,
         inset_horizontal_inset: metrics.gap_m * DIVIDER_INSET_HORIZONTAL_GAP_FACTOR,

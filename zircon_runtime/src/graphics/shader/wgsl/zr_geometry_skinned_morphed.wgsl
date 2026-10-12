@@ -1,3 +1,5 @@
+//! 读取与纯 morph 变体相同的四行 delta 及连续 current/previous 权重布局。
+//! 先在对象空间应用 morph，再使用对应帧的 skin matrix；世界与相机变换由外层 pass 处理。
 const ZR_MORPH_DELTA_ROWS_PER_VERTEX_TARGET: u32 = 4u;
 const ZR_MORPH_POSITION_ROW: u32 = 0u;
 const ZR_MORPH_NORMAL_ROW: u32 = 1u;
@@ -103,6 +105,8 @@ fn zr_morph_previous_weight(payload: vec4<u32>, target_index: u32) -> f32 {
     return zr_gpu_scene_morph_weight(payload.y + payload.w + target_index);
 }
 
+// vec3 行的 w 表示属性是否存在，返回的 w 用于 normal/tangent 缺失时回退。
+// color 行的 w 是实际 alpha delta，使用四通道累加路径。
 fn zr_morph_vec3_delta_with_previous_mode(
     v: ZrVertexInput,
     instance_index: u32,

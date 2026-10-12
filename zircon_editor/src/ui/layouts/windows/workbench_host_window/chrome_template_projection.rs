@@ -36,7 +36,7 @@ pub(super) const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chr
 #[cfg(test)]
 const MENU_POPUP_ASSET: &str = "/assets/ui/editor/workbench_menu_popup.zui";
 const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/workbench_page_chrome.zui";
-const DOCK_HEADER_ASSET: &str = "/assets/ui/editor/workbench_dock_header.zui";
+const DOCK_HEADER_ASSET: &str = "/assets/ui/editor/unreal/components/dock_header.zui";
 const STATUS_BAR_ASSET: &str = "/assets/ui/editor/workbench_status_bar.zui";
 const ACTIVITY_RAIL_ASSET: &str = "/assets/ui/editor/workbench_activity_rail.zui";
 
@@ -85,11 +85,19 @@ fn fallback_chrome_control_radius() -> f32 {
 #[derive(Clone)]
 struct ChromeTabCompositionGeneration {
     tabs: ModelRc<TabData>,
+    header_source: Option<std::sync::Arc<crate::ui::layouts::views::UnrealDockHeaderSource>>,
 }
 
 impl PartialEq for ChromeTabCompositionGeneration {
     fn eq(&self, other: &Self) -> bool {
         self.tabs.shares_values_with(&other.tabs)
+            && match (&self.header_source, &other.header_source) {
+                (None, None) => true,
+                (Some(left), Some(right)) =>
+                    std::sync::Arc::ptr_eq(&left.frame, &right.frame)
+                        && left.source_receipts == right.source_receipts,
+                _ => false,
+            }
     }
 }
 
@@ -402,7 +410,11 @@ fn tab_template_nodes(
     ) else {
         return ModelRc::default();
     };
-    let generation = ChromeTabCompositionGeneration { tabs: tabs.clone() };
+    let header_source = projection.unreal_dock_header_source();
+    let generation = ChromeTabCompositionGeneration {
+        tabs: tabs.clone(),
+        header_source: header_source.clone(),
+    };
     compose_view_template_node_model(
         &format!("{document_tree_id}.tabs"),
         projection,
@@ -414,6 +426,7 @@ fn tab_template_nodes(
             for node in nodes {
                 *node = tab_node_with_state(std::mem::take(node), slot_prefix, tabs);
             }
+            header_source
         },
     )
 }
@@ -728,10 +741,14 @@ fn tab_node_with_state(
             node.surface_variant = if tab.active { "inset" } else { "transparent" }.into();
             if tab.active {
                 node.text_tone = "default".into();
-                node.font_weight = 600;
+                if prefix != DOCK_TAB_PREFIX {
+                    node.font_weight = 600;
+                }
             } else {
                 node.text_tone = "subtle".into();
-                node.font_weight = 400;
+                if prefix != DOCK_TAB_PREFIX {
+                    node.font_weight = 400;
+                }
             }
         } else {
             node.text_tone = "subtle".into();

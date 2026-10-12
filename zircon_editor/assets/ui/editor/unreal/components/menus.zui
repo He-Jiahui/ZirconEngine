@@ -1,0 +1,89 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/unreal/components/menus.zui"
+version = 2
+display_name = "Unreal Level Editor Menus"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[components.UnrealLevelEditorMenus]
+root = "menus"
+default_classes = ["unreal-level-editor-menus"]
+
+[nodes.menus]
+component = "HorizontalBox"
+classes = ["unreal-menu-bar"]
+control_id = "WorkbenchMenuBarRoot"
+props = { background_color = "$unreal_background", layout_padding_left = 8.0, border_width = 0.0 }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+children = [
+  { node = "brand", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 1.0 } } } },
+  { node = "file", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "edit", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "window", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "tools", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "build", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "help", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "fill", slot = { layout = { linear_size = { rule = "Stretch", value = 1.0 } } } },
+]
+
+[nodes.brand]
+component = "Label"
+control_id = "ZirconWorkbenchBrand"
+props = { text = "Zircon Editor", font = "res://fonts/editor-ui.font.toml", font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight", line_height_ratio = 1.2, foreground_color = "$unreal_foreground", text_align = "left", text_overflow = "ellipsis", layout_padding_right = 12.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.file]
+component = "Button"
+classes = ["unreal-control", "unreal-menu-control"]
+control_id = "MenuSlot0"
+props = { input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", text = "File", tooltip = "File", button_variant = "text" }
+layout = { width = { stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+events = [{ id = "UnrealMenu/File", event = "Click", route = "workbench.unreal.menu.file.open" }]
+
+[nodes.edit]
+component = "Button"
+classes = ["unreal-control", "unreal-menu-control"]
+control_id = "MenuSlot1"
+props = { input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", text = "Edit", tooltip = "Edit", button_variant = "text" }
+layout = { width = { stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+events = [{ id = "UnrealMenu/Edit", event = "Click", route = "workbench.unreal.menu.edit.open" }]
+
+[nodes.window]
+component = "Button"
+classes = ["unreal-control", "unreal-menu-control"]
+control_id = "MenuSlot2"
+props = { input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", text = "Window", tooltip = "Window", button_variant = "text" }
+layout = { width = { stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+events = [{ id = "UnrealMenu/Window", event = "Click", route = "workbench.unreal.menu.window.open" }]
+
+[nodes.tools]
+component = "Button"
+classes = ["unreal-control", "unreal-menu-control"]
+control_id = "MenuSlot3"
+props = { input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", text = "Tools", tooltip = "Tools", button_variant = "text" }
+layout = { width = { stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+events = [{ id = "UnrealMenu/Tools", event = "Click", route = "workbench.unreal.menu.tools.open" }]
+
+[nodes.build]
+component = "Button"
+classes = ["unreal-control", "unreal-menu-control"]
+control_id = "MenuSlot4"
+props = { input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", text = "Build", tooltip = "Build", button_variant = "text" }
+layout = { width = { stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+events = [{ id = "UnrealMenu/Build", event = "Click", route = "workbench.unreal.menu.build.open" }]
+
+[nodes.help]
+component = "Button"
+classes = ["unreal-control", "unreal-menu-control"]
+control_id = "MenuSlot5"
+props = { input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", text = "Help", tooltip = "Help", button_variant = "text" }
+layout = { width = { stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+events = [{ id = "UnrealMenu/Help", event = "Click", route = "workbench.unreal.menu.help.open" }]
+
+[nodes.fill]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+

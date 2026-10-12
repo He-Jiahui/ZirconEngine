@@ -1,4 +1,4 @@
-use crate::core::{CoreError, CoreResult, ModuleContext, ModuleLifecycle};
+use crate::core::{CoreResult, ModuleCleanupContext, ModuleLifecycle};
 
 use super::{UiRuntimeDriver, UI_RUNTIME_DRIVER_NAME};
 
@@ -6,13 +6,11 @@ use super::{UiRuntimeDriver, UI_RUNTIME_DRIVER_NAME};
 pub(super) struct UiModuleLifecycle;
 
 impl ModuleLifecycle for UiModuleLifecycle {
-    fn cleanup(&self, context: &ModuleContext) -> CoreResult<()> {
-        let core = context
-            .core
-            .upgrade()
-            .ok_or(CoreError::RuntimeUnavailable)?;
-        core.resolve_driver::<UiRuntimeDriver>(UI_RUNTIME_DRIVER_NAME)?
-            .close_admission();
+    fn cleanup(&self, context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
+        context.with_existing_driver::<UiRuntimeDriver>(UI_RUNTIME_DRIVER_NAME, |driver| {
+            driver.close_admission();
+            Ok(())
+        })?;
         Ok(())
     }
 }

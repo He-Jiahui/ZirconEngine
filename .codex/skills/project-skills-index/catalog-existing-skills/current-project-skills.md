@@ -12,7 +12,7 @@
 | `project-skills-index` | [SKILL.md](<../../project-skills-index/SKILL.md>) | Maintain the Codex repository skill library, its discovery entries, and generated catalog. |
 | `systematic-debugging` | [SKILL.md](<../../superpowers/review-and-stabilization/systematic-debugging/SKILL.md>) | Investigate bugs or test failures when their cause is unclear; trace the failing contract and verify the repair. |
 | `zircon-artifact-management` | [SKILL.md](<../../zircon-artifact-management/SKILL.md>) | Audit ZirconEngine Codex write directories and route Git, worktree, generation, artifact reuse and cleanup lifecycle operations through Jenkins. |
-| `zircon-dev` | [SKILL.md](<../../zircon-dev/SKILL.md>) | Edit ZirconEngine Rust code or Cargo configuration, and select scoped native validation when it is due. |
+| `zircon-dev` | [SKILL.md](<../../zircon-dev/SKILL.md>) | Edit ZirconEngine Rust code or Cargo configuration, keep engine paths short, and select scoped validation when due. |
 | `zircon-engineering` | [SKILL.md](<../../zircon-engineering/SKILL.md>) | Plan and deliver ZirconEngine milestones using MVP priorities and the repository validation cadence. |
 | `capture-hub-window-screenshot` | [SKILL.md](<../../zircon-project-skills/capture-hub-window-screenshot/SKILL.md>) | Capture and verify the running Zircon Hub window on Windows for visual acceptance. |
 | `zr-architecture-first-engineering` | [SKILL.md](<../../zircon-project-skills/zr-architecture-first-engineering/SKILL.md>) | Design or change ZirconEngine subsystem ownership, cross module contracts, or an authorized structural migration. |

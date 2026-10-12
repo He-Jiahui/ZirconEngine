@@ -1,8 +1,15 @@
 mod environment;
 mod export;
 mod geometry;
+pub(in crate::ui::retained_host::host_contract) mod native_hierarchy_draws;
+pub(in crate::ui::retained_host::host_contract) mod normal_capture_hold;
+pub(in crate::ui::retained_host::host_contract) mod normal_frame_readback;
+pub(in crate::ui::retained_host::host_contract) mod normal_present;
 mod schema;
 mod submitted_text;
+pub(in crate::ui::retained_host::host_contract) use normal_present::{
+    certify_image_residency, stream_observations,
+};
 pub(in crate::ui::retained_host::host_contract) use submitted_text::{bind_submitted, source_rows};
 
 pub(in crate::ui::retained_host::host_contract) use environment::{

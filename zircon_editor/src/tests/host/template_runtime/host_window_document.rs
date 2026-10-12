@@ -15,10 +15,10 @@ fn editor_ui_host_runtime_projects_builtin_host_template_into_retained_projectio
     );
 
     let projection = runtime
-        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
 
-    assert_eq!(projection.document_id, UI_HOST_WINDOW_DOCUMENT_ID);
+    assert_eq!(projection.document_id, UNREAL_EDITOR_SHELL_DOCUMENT_ID);
     assert_eq!(projection.root.component, "UiHostWindow");
     assert_eq!(
         projection
@@ -46,17 +46,17 @@ fn editor_ui_host_runtime_registers_only_generic_host_window_document_id() {
     runtime.load_builtin_host_templates().unwrap();
 
     let projection = runtime
-        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
-    assert_eq!(projection.document_id, UI_HOST_WINDOW_DOCUMENT_ID);
+    assert_eq!(projection.document_id, UNREAL_EDITOR_SHELL_DOCUMENT_ID);
     assert_eq!(projection.root.component, "UiHostWindow");
 
     let surface = runtime
-        .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
+        .build_shared_surface(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
     assert_eq!(
         surface.tree.tree_id.0,
-        format!("template.v2.{UI_HOST_WINDOW_DOCUMENT_ID}")
+        format!("template.v2.{UNREAL_EDITOR_SHELL_DOCUMENT_ID}")
     );
 }
 

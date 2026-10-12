@@ -726,3 +726,6 @@ mod lifecycle_scale;
 
 #[path = "ecs_events_messages/writer_channels.rs"]
 mod writer_channels;
+
+#[path = "ecs_events_messages/world_binding.rs"]
+mod world_binding;

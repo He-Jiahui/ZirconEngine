@@ -211,10 +211,8 @@ def parse_unified_patch(text: str) -> UnifiedPatch:
     return UnifiedPatch(tuple(files))
 
 
-def _apply_file(root: Path, item: PatchFile, expected: str | None) -> str | None:
-    path = canonical_path(root, item.path)
-    target = root.joinpath(*path.split("/"))
-    existing = target.read_bytes() if target.is_file() else None
+def _render_file_bytes(item: PatchFile, existing: bytes | None, expected: str | None) -> bytes | None:
+    path = item.path
     actual = None if existing is None else hashlib.sha256(existing).hexdigest()
     if actual != expected:
         raise _error("before_hash_mismatch", "source differs from supplied before hash", path=path, expected=expected, observed=actual)
@@ -228,6 +226,12 @@ def _apply_file(root: Path, item: PatchFile, expected: str | None) -> str | None
     cursor = 0; result: list[tuple[str, bool]] = []
     previous_old_start = -1
     for hunk in item.hunks:
+        if (sum(kind in " -" for kind, _, _ in hunk.lines) != hunk.old_count or
+                sum(kind in " +" for kind, _, _ in hunk.lines) != hunk.new_count or
+                any(kind not in {" ", "-", "+"} for kind, _, _ in hunk.lines)):
+            raise _error("patch_truncated", "hunk line counts do not match", path=path)
+        if (not item.old_exists and hunk.old_count) or (not item.new_exists and hunk.new_count):
+            raise _error("patch_context_mismatch", "creation or deletion hunk has incompatible line counts", path=path)
         if hunk.old_count == 0:
             start = hunk.old_start
         else:
@@ -244,11 +248,11 @@ def _apply_file(root: Path, item: PatchFile, expected: str | None) -> str | None
         for kind, body, marker_newline in hunk.lines:
             if kind == " ":
                 if cursor >= len(old_lines) or old_lines[cursor][0] != body: raise _error("patch_context_mismatch", "context line differs", path=path)
-                if not marker_newline and old_lines[cursor][1]: raise _error("patch_context_mismatch", "newline marker differs from source", path=path)
+                if marker_newline != old_lines[cursor][1]: raise _error("patch_context_mismatch", "newline marker differs from source", path=path)
                 result.append(old_lines[cursor]); cursor += 1
             elif kind == "-":
                 if cursor >= len(old_lines) or old_lines[cursor][0] != body: raise _error("patch_context_mismatch", "deletion line differs", path=path)
-                if not marker_newline and old_lines[cursor][1]: raise _error("patch_context_mismatch", "newline marker differs from source", path=path)
+                if marker_newline != old_lines[cursor][1]: raise _error("patch_context_mismatch", "newline marker differs from source", path=path)
                 cursor += 1
             else:
                 ended = marker_newline
@@ -261,7 +265,57 @@ def _apply_file(root: Path, item: PatchFile, expected: str | None) -> str | None
     if any(not ended for _, ended in result[:-1]):
         raise _error("patch_malformed", "a no-newline marker may only terminate the resulting file", path=path)
     style = "\r\n" if existing is not None and b"\r\n" in existing else "\n"
-    return "".join(body + (style if ended else "") for body, ended in result)
+    return "".join(body + (style if ended else "") for body, ended in result).encode("utf-8")
+
+
+def render_patch_bytes(patch: UnifiedPatch | str, before_bytes: Mapping[str, bytes | None],
+                       before_hashes: Mapping[str, str | None]) -> dict[str, bytes | None]:
+    """Render exact supplied preimages in memory; this function grants no trust.
+
+    The coordinator must resolve authoritative preimages before calling this
+    function. All paths and hashes are checked before any postimage is returned.
+    No checkout, Git command, source snapshot or filesystem read is involved.
+    """
+    parsed = parse_unified_patch(patch) if isinstance(patch, str) else patch
+    if not isinstance(parsed, UnifiedPatch):
+        raise _error("patch_invalid", "parsed patch type is invalid")
+    if not isinstance(before_bytes, Mapping) or not isinstance(before_hashes, Mapping):
+        raise _error("patch_scope_mismatch", "preimages and hashes must be explicit mappings")
+    inputs: dict[str, bytes | None] = {}
+    expected: dict[str, str | None] = {}
+    for values, target in ((before_bytes, inputs), (before_hashes, expected)):
+        for key, value in values.items():
+            if not isinstance(key, str):
+                raise _error("invalid_source_path", "patch scope paths must be strings")
+            name = _normalized_path(key)
+            if name in target:
+                raise _error("patch_path_collision", "patch scope contains case-insensitive duplicate paths", path=key)
+            target[name] = value
+    paths = [_normalized_path(item.path) for item in parsed.files]
+    if not paths or len(paths) != len(set(paths)):
+        raise _error("patch_path_collision", "patch contains duplicate or empty paths")
+    if set(inputs) != set(paths) or set(expected) != set(paths):
+        raise _error("patch_scope_mismatch", "preimages and before hashes must exactly match patch paths")
+    for path in paths:
+        data, checksum = inputs[path], expected[path]
+        if data is not None and not isinstance(data, bytes):
+            raise _error("patch_input_invalid", "preimages must be immutable bytes or null", path=path)
+        if checksum is not None and (not isinstance(checksum, str) or not re.fullmatch(r"[0-9a-f]{64}", checksum)):
+            raise _error("before_hash_invalid", "before hashes must be SHA-256 or null", path=path)
+        actual = None if data is None else hashlib.sha256(data).hexdigest()
+        if actual != checksum:
+            raise _error("before_hash_mismatch", "preimage differs from supplied before hash", path=path,
+                         expected=checksum, observed=actual)
+    return {path: _render_file_bytes(item, inputs[path], expected[path])
+            for path, item in zip(paths, parsed.files)}
+
+
+def _apply_file(root: Path, item: PatchFile, expected: str | None) -> str | None:
+    path = canonical_path(root, item.path)
+    target = root.joinpath(*path.split("/"))
+    existing = target.read_bytes() if target.is_file() else None
+    rendered = _render_file_bytes(item, existing, expected)
+    return None if rendered is None else rendered.decode("utf-8")
 
 
 def materialize_patch(repository_root: str | Path, patch: UnifiedPatch | str,
@@ -280,4 +334,4 @@ def materialize_patch(repository_root: str | Path, patch: UnifiedPatch | str,
     return {canonical_path(root, item.path): _apply_file(root, item, expected[canonical_path(root, item.path)]) for item in parsed.files}
 
 
-__all__ = ["Hunk", "PatchFile", "UnifiedPatch", "parse_unified_patch", "materialize_patch"]
+__all__ = ["Hunk", "PatchFile", "UnifiedPatch", "parse_unified_patch", "render_patch_bytes", "materialize_patch"]

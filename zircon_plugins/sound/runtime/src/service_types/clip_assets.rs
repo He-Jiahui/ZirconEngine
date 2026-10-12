@@ -1,18 +1,18 @@
 //! clip 装载经项目资产管理器解析定位符并缓存 Kira 数据；脱离 Core 的测试实例只可使用测试插入入口。
-use std::sync::Arc;
 
 #[cfg(test)]
 use zircon_runtime::asset::SoundAsset;
 use zircon_runtime::asset::{project_asset_manager_handle, AssetUri, ProjectAssetManager};
 use zircon_runtime::core::framework::sound::{SoundClipId, SoundClipInfo, SoundError};
 use zircon_runtime::core::manager::resolve_manager_service;
+use zircon_runtime::core::ServiceCallGuard;
 
 use crate::engine::LoadedClip;
 
 use super::DefaultSoundManager;
 
 impl DefaultSoundManager {
-    fn project_asset_manager(&self) -> Result<Arc<ProjectAssetManager>, SoundError> {
+    fn project_asset_manager(&self) -> Result<ServiceCallGuard<ProjectAssetManager>, SoundError> {
         let core = self
             .core
             .as_ref()

@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { readUnrealDockHeaderObservations } from './zui-layout-unreal-dock-headers';
+import { readViewportSnapState, type ViewportSnapState } from '../src/bridge/zui-viewport-snap-state';
 
 const CONTENT_KINDS = new Set([
   'welcome',
@@ -50,6 +52,7 @@ export interface WorkbenchPresentationSnapshot extends Record<string, unknown> {
   activeLocale: 'en' | 'zh-CN';
   sourceFingerprint: { sourcePath: string; sha256: string };
   stateFingerprint: string;
+  viewportSnap: ViewportSnapState;
 }
 
 function isRecord(value: unknown): value is JsonObject {
@@ -567,6 +570,8 @@ export function validateWorkbenchPresentation(value: unknown): void {
       'hierarchy',
       'inspector',
       'status',
+      'viewportSnap',
+      ...(Object.hasOwn(value, 'dockHeaders') ? ['dockHeaders'] : []),
     ],
     'workbenchPresentation',
   );
@@ -601,6 +606,8 @@ export function validateWorkbenchPresentation(value: unknown): void {
     throw new Error(
       'workbenchPresentation.stateFingerprint must be lowercase SHA-256',
     );
+  readViewportSnapState(value['viewportSnap']);
+  readUnrealDockHeaderObservations(value['dockHeaders']);
   const { stateFingerprint, ...state } = value;
   if (canonicalSha256(state) !== stateFingerprint)
     throw new Error('workbenchPresentation.stateFingerprint is stale');

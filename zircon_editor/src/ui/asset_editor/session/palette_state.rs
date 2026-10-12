@@ -21,6 +21,10 @@ use super::{
 };
 
 impl UiAssetEditorSession {
+    pub fn set_palette_visible_start(&mut self, index: usize) -> bool {
+        self.palette_catalog.set_visible_start(index)
+    }
+
     pub fn select_palette_index(
         &mut self,
         index: usize,
@@ -30,13 +34,83 @@ impl UiAssetEditorSession {
             .entry(index)
             .cloned()
             .ok_or(UiAssetEditorSessionError::InvalidPaletteIndex { index })?;
-        let changed = self.selected_palette_index != Some(index);
+        let selected_builtin = self.palette_catalog.builtin_reference(index);
+        let current_builtin = self
+            .preview_host
+            .as_ref()
+            .and_then(|host| host.builtin_reference());
+        let changed =
+            self.selected_palette_index != Some(index) || selected_builtin != current_builtin;
+        if !changed && selected_builtin.is_none() {
+            return Ok(false);
+        }
+        // Build and validate the selected source before committing any navigation state.
+        let preview_size = self
+            .preview_host
+            .as_ref()
+            .map(|host| host.preview_size())
+            .unwrap_or_else(|| {
+                super::preview_compile::preview_size_for_preset(self.route.preview_preset)
+            });
+        let next_preview = if let Some(reference) = selected_builtin {
+            Some(super::preview_host::UiAssetPreviewHost::load_builtin(
+                preview_size,
+                reference,
+                self.palette_catalog
+                    .builtin_descriptor(index)
+                    .expect("builtin reference and descriptor share the same catalog entry"),
+            )?)
+        } else if self
+            .preview_host
+            .as_ref()
+            .and_then(|host| host.builtin_reference())
+            .is_some()
+        {
+            if let Some(document) = self.last_valid_v2_document.as_ref() {
+                super::v2_authoring::build_v2_preview_host(
+                    document,
+                    preview_size,
+                    &self.v2_compiler_imports,
+                )?
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        if !changed
+            && next_preview
+                .as_ref()
+                .zip(self.preview_host.as_ref())
+                .is_some_and(|(next, current)| next.source_receipts() == current.source_receipts())
+        {
+            return Ok(false);
+        }
+        let selected_is_builtin = selected_builtin.is_some();
+        if selected_is_builtin
+            || self
+                .preview_host
+                .as_ref()
+                .and_then(|host| host.builtin_reference())
+                .is_some()
+        {
+            self.preview_host = next_preview;
+            self.invalidate_preview_hit_index();
+            self.last_preview_interact_dispatch = None;
+            self.designer_tool_mode = if selected_is_builtin {
+                crate::ui::asset_editor::UiDesignerToolMode::PreviewInteract
+            } else {
+                crate::ui::asset_editor::UiDesignerToolMode::Select
+            };
+        }
+        self.palette_catalog.set_visible_start(index);
         self.selected_palette_index = Some(index);
         self.selected_palette_entry = Some(entry);
         if changed {
             self.clear_palette_drag_state();
         }
-        Ok(changed)
+        // A fresh source closure can replace the preview even when the palette index is unchanged.
+        Ok(true)
     }
 
     #[cfg(test)]
@@ -242,6 +316,13 @@ impl UiAssetEditorSession {
         mode: PaletteInsertMode,
         target_node_id: &str,
     ) -> Result<bool, UiAssetEditorSessionError> {
+        if self
+            .selected_palette_index
+            .and_then(|index| self.palette_catalog.builtin_reference(index))
+            .is_some()
+        {
+            return Ok(false);
+        }
         self.ensure_editable_source()?;
         let Some(entry) = self.selected_palette_entry.clone() else {
             return Ok(false);
@@ -263,6 +344,13 @@ impl UiAssetEditorSession {
         &mut self,
         plan: &UiAssetPaletteInsertPlan,
     ) -> Result<bool, UiAssetEditorSessionError> {
+        if self
+            .selected_palette_index
+            .and_then(|index| self.palette_catalog.builtin_reference(index))
+            .is_some()
+        {
+            return Ok(false);
+        }
         self.ensure_editable_source()?;
         let Some(entry) = self.selected_palette_entry.clone() else {
             return Ok(false);

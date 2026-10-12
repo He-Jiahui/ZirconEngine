@@ -6,9 +6,5 @@ pub(in crate::ui::retained_host::host_contract) fn draw_workbench_presentation_c
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
 ) {
-    if workbench::draws_componentized_workbench_window(presentation) {
-        workbench::draw_componentized_workbench_window(frame, presentation);
-    } else {
-        workbench::draw_host_workbench_window(frame, presentation);
-    }
+    workbench::draw_componentized_workbench_window(frame, presentation);
 }

@@ -19,16 +19,22 @@ fn focused_game_keeps_regular_keys_in_play_but_dispatches_the_registered_stop_sh
             .play_sessions()
             .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
             .expect("test play backend should start");
-        host.runtime
-            .shell()
-            .lock()
-            .focus_play_preview_view()
-            .expect("Game view should receive play focus");
+        {
+            let manager = host
+                .runtime
+                .enter_editor_manager()
+                .expect("the original EditorManager should admit Game focus");
+            host.runtime
+                .shell()
+                .lock()
+                .focus_play_preview_view(&manager)
+                .expect("Game view should receive play focus");
+        }
         host.runtime.refresh_reflection();
         host.refresh_ui();
         host.recompute_if_dirty();
         assert!(host.runtime.play_preview_input_active());
-        assert!(host.runtime.play_preview_view_focused());
+        assert!(host.runtime.play_preview_view_focused().unwrap());
     }
 
     let before_game_key = harness.journal_len();
@@ -66,8 +72,8 @@ fn focused_game_keeps_regular_keys_in_play_but_dispatches_the_registered_stop_sh
     let host = harness.host.borrow();
     assert_eq!(host.runtime.play_sessions().mode(), PlayModeKind::Edit);
     assert_eq!(
-        host.runtime.editor_snapshot().session_mode,
+        host.runtime.editor_snapshot().unwrap().session_mode,
         EditorSessionMode::Project
     );
-    assert!(!host.runtime.play_preview_view_focused());
+    assert!(!host.runtime.play_preview_view_focused().unwrap());
 }

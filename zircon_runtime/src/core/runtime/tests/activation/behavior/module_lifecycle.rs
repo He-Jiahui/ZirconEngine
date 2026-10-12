@@ -7,8 +7,8 @@ use super::super::super::fixtures::TestDriver;
 use crate::core::runtime::ServiceObject;
 use crate::core::CoreResult;
 use crate::core::{
-    CoreError, LifecycleState, RuntimeModuleLifecycleBlock, RuntimeModuleLifecycleObserver,
-    ServiceKind, StartupMode,
+    CoreError, LifecycleState, ModuleCleanupContext, RuntimeModuleLifecycleBlock,
+    RuntimeModuleLifecycleObserver, ServiceKind, StartupMode,
 };
 
 // 此 fixture 把生命周期回调记成带模块名的有序轨迹；ready_after 控制前几次 ready 返回 false，fail_* 开关注入错误。
@@ -66,29 +66,29 @@ impl RecordingLifecycle {
         self
     }
 
-    fn record(&self, call: &'static str, context: &ModuleContext) {
+    fn record(&self, call: &'static str, module_name: &str) {
         self.calls
             .lock()
             .unwrap()
-            .push(format!("{}:{}", context.module_name, call));
+            .push(format!("{}:{}", module_name, call));
     }
 }
 
 // 这些 trait 钩子与激活执行器实际调用的 build、ready、finish、cleanup 对齐；先记日志再返回，轨迹也暴露失败点。
 impl ModuleLifecycle for RecordingLifecycle {
     fn build(&self, context: &ModuleContext) -> CoreResult<()> {
-        self.record("build", context);
+        self.record("build", context.module_name.as_str());
         Ok(())
     }
 
     fn ready(&self, context: &ModuleContext) -> CoreResult<bool> {
-        self.record("ready", context);
+        self.record("ready", context.module_name.as_str());
         let call_index = self.ready_calls.fetch_add(1, Ordering::SeqCst);
         Ok(call_index >= self.ready_after)
     }
 
     fn finish(&self, context: &ModuleContext) -> CoreResult<()> {
-        self.record("finish", context);
+        self.record("finish", context.module_name.as_str());
         if self.fail_finish
             || (self.fail_finish_once && self.finish_calls.fetch_add(1, Ordering::SeqCst) == 0)
         {
@@ -97,8 +97,8 @@ impl ModuleLifecycle for RecordingLifecycle {
         Ok(())
     }
 
-    fn cleanup(&self, context: &ModuleContext) -> CoreResult<()> {
-        self.record("cleanup", context);
+    fn cleanup(&self, context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
+        self.record("cleanup", context.module_name());
         if self.fail_cleanup
             || (self.fail_cleanup_once && self.cleanup_calls.fetch_add(1, Ordering::SeqCst) == 0)
         {
@@ -132,11 +132,15 @@ struct DeadlineCleanupLifecycle {
 }
 
 impl ModuleLifecycle for DeadlineCleanupLifecycle {
-    fn cleanup_until(&self, context: &ModuleContext, deadline: Instant) -> CoreResult<()> {
+    fn cleanup_until(
+        &self,
+        context: &ModuleCleanupContext<'_>,
+        deadline: Instant,
+    ) -> CoreResult<()> {
         while !self.released.load(Ordering::Acquire) {
             if Instant::now() >= deadline {
                 return Err(CoreError::ModuleCleanupTimeout {
-                    module: context.module_name.clone(),
+                    module: context.module_name().to_owned(),
                     operation: "test_deadline_cleanup".to_owned(),
                     budget: Duration::ZERO,
                     incomplete_entries: 1,
@@ -765,7 +769,7 @@ fn failed_single_activation_cleanup_stays_stopping_until_shutdown_retries_it() {
     {
         let services = handle.inner.services.lock().unwrap();
         let service = services.get(service_name.as_str()).unwrap();
-        assert_eq!(service.lifecycle, LifecycleState::Running);
+        assert_eq!(service.lifecycle, LifecycleState::Stopping);
         assert!(service.instance.is_some());
         assert!(!service.admission_open);
     }

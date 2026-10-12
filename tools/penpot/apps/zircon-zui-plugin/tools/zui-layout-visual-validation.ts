@@ -1,4 +1,5 @@
 import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { runRealPenpotPersistence } from './zui-layout-real-session';
 import assert from 'node:assert/strict';
 import {
   capturePenpotCases,
@@ -108,6 +109,7 @@ interface VisualValidationSummary {
   pluginBundleSha256: string;
   penpotFrontend: string;
   backend: 'repository-mock';
+  persistenceClaim: false;
   total: number;
   passed: number;
   pending: number;
@@ -135,6 +137,11 @@ const browserExecutable = [
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+  if (args.includes('--real')) {
+    assert.ok(!args.includes('--check'), 'Real persistence verification requires actual evidence output.');
+    await runRealPenpotPersistence();
+    return;
+  }
   const writeEvidence = !args.includes('--check');
   const lock = writeEvidence
     ? await acquireLayoutCatalogLock(catalogRoot, {
@@ -683,11 +690,6 @@ async function browserRuntimeRecord(page: Page): Promise<BrowserRuntimeRecord> {
 function reviewMaterializationMode(
   entry: CatalogManifest['entries'][number],
 ): 'full' | 'leaf' | 'semantic' {
-  // Workbench Window is a retained shell containing several deep composite
-  // prefab trees. Its design-only review board stays semantic so the official
-  // Penpot frontend does not materialize every inactive workspace branch;
-  // product/plugin imports always use the full native policy.
-  if (entry.sourcePath.endsWith('/workbench_window.zui')) return 'semantic';
   // Material Component Lab is an authored catalog page containing all MUI
   // prototype families (1,429 projected nodes). Keep the complete semantic
   // projection but defer native-library promotion for the design-only review
@@ -829,6 +831,7 @@ async function writeCheckpoint(
     pluginBundleSha256,
     penpotFrontend: penpotBaseUrl,
     backend: 'repository-mock',
+    persistenceClaim: false,
     total: manifest.entries.length,
     passed: results.filter(({ status }) => status === 'passed').length,
     pending: results.filter(({ status }) => status === 'pending').length,

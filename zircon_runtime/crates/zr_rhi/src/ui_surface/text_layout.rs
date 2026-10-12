@@ -9,6 +9,9 @@ pub struct UiSurfaceTextLayoutSnapshot {
     pub prepared_this_present: bool,
     pub retained_cache_copy_bytes: u64,
     pub draw_list_generation: Option<u64>,
+    /// Identity of the runtime collection actually installed in the renderer.
+    pub font_collection_id: Option<u64>,
+    pub font_collection_generation: Option<u64>,
     pub runs: Vec<UiSurfaceTextLayoutRun>,
 }
 impl UiSurfaceTextLayoutSnapshot {
@@ -22,8 +25,18 @@ pub struct UiSurfaceTextLayoutRun {
     pub command_index: usize,
     pub text: String,
     pub clip: UiSurfaceRect,
+    pub requested: Option<UiSurfaceTextRequest>,
     pub lines: Vec<UiSurfaceTextLine>,
     pub faces: Vec<UiSurfaceTextFace>,
+}
+/// Requested command attributes, distinct from the actual selected glyph faces.
+#[derive(Clone, Debug, Serialize)]
+pub struct UiSurfaceTextRequest {
+    pub font_family: Option<String>,
+    pub font_weight: u16,
+    pub font_style: String,
+    pub font_size: f32,
+    pub line_height: f32,
 }
 #[derive(Clone, Debug, Serialize)]
 pub struct UiSurfaceTextLine {
@@ -38,12 +51,20 @@ pub struct UiSurfaceTextLine {
 #[derive(Clone, Debug, Serialize)]
 pub struct UiSurfaceTextFace {
     pub font_id: String,
+    #[serde(default)]
+    pub glyph_count: usize,
     pub sha256: String,
     pub face_index: u32,
     pub families: Vec<String>,
     pub post_script_name: String,
     pub weight: u16,
     pub style: String,
+    /// Actual file source retained by the font database, when available.
+    /// Binary-only faces keep this absent; names never imply a file identity.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_sha256: Option<String>,
 }
 
 #[cfg(test)]

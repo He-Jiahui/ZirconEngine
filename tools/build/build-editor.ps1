@@ -21,7 +21,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 if (-not $PythonInterpreter) { $PythonInterpreter = Join-Path $repoRoot '.jenkins\runtime\python\python.exe' }
 if (-not (Test-Path -LiteralPath $PythonInterpreter -PathType Leaf)) { throw "Python interpreter missing: $PythonInterpreter" }
 $buildArguments = @('-B', '-X', 'utf8', '-m', 'tools.build.build_editor', '--repo-root', $repoRoot,

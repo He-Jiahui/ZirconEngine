@@ -1,4 +1,5 @@
 use super::{RetainedEditorHost, UiAssetActionDispatch};
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -10,11 +11,19 @@ impl RetainedEditorHost {
         match action_id {
             "style.rule.create" => UiAssetActionDispatch::handled(
                 self.editor_manager
-                    .create_ui_asset_editor_rule_from_selection(instance_id),
+                    .enter()
+                    .map_err(EditorError::from)
+                    .and_then(|manager| {
+                        manager.create_ui_asset_editor_rule_from_selection(instance_id)
+                    }),
             ),
             "style.rule.extract_inline" => UiAssetActionDispatch::handled(
                 self.editor_manager
-                    .extract_ui_asset_editor_inline_overrides_to_rule(instance_id),
+                    .enter()
+                    .map_err(EditorError::from)
+                    .and_then(|manager| {
+                        manager.extract_ui_asset_editor_inline_overrides_to_rule(instance_id)
+                    }),
             ),
             _ => UiAssetActionDispatch::Unhandled,
         }

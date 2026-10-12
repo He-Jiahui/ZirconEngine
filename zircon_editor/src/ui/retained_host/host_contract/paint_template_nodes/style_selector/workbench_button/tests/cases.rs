@@ -678,3 +678,26 @@ fn compact_icon_text_button_is_selected_by_authored_component_variant_token() {
     assert!(is_compact_icon_text_workbench_button(&compact));
     assert!(!is_compact_icon_text_workbench_button(&regular));
 }
+
+#[test]
+fn authored_text_menu_button_uses_declared_normal_colors_without_id_conventions() {
+    let mut node = TemplatePaneNodeData {
+        control_id: "MenuSlot0".into(),
+        role: "Button".into(),
+        component_role: "button".into(),
+        button_variant: "text".into(),
+        ..Default::default()
+    };
+    node.button_style.element.background_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(21, 21, 21, 255)));
+    node.button_style.element.foreground_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(192, 192, 192, 255)));
+    node.button_style.element.border_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(21, 21, 21, 255)));
+    node.button_style.element.border_width = 0.0;
+    let style = select_workbench_button_style(&node, WorkbenchButtonKind::Tertiary, false);
+    assert_eq!(style.surface, [21, 21, 21, 255]);
+    assert_eq!(style.text, [192, 192, 192, 255]);
+    assert_eq!(style.glyph, style.text);
+    assert_eq!(style.border_width, 0.0);
+}

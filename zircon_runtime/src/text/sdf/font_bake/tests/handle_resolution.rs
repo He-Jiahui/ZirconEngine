@@ -43,8 +43,6 @@ fn sdf_bake_resolves_shaped_handles_only_through_its_owned_font_collection() {
 
 #[test]
 fn sdf_atlas_build_resolves_all_shaped_handles_in_one_batch() {
-    let _shared_font_database = shared_font_database_test_serial_guard();
-    let mut bake = SdfFontBakeCache::new();
     let mut font_database = FontDatabase::default();
     let source =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
@@ -60,8 +58,14 @@ fn sdf_atlas_build_resolves_all_shaped_handles_in_one_batch() {
     let instance = font_database
         .default_instance_id(face)
         .expect("default instance");
-    let generation = shared_font_database_generation();
-    let (font_id, font_instance_id) = register_font_handles(Some(face), Some(instance), generation);
+    let collection = FontCollectionService::from_database(font_database.clone());
+    let generation = collection.generation();
+    let (font_id, font_instance_id) = register_font_handle_batch_for_collection(
+        &collection,
+        &[(Some(face), Some(instance))],
+        generation,
+    )[0];
+    let mut bake = SdfFontBakeCache::new_with_font_collection(Arc::clone(&collection));
     let slots = "ABCD"
         .chars()
         .enumerate()
@@ -86,7 +90,7 @@ fn sdf_atlas_build_resolves_all_shaped_handles_in_one_batch() {
             },
         })
         .collect::<Vec<_>>();
-    let before = font_handle_registry_report();
+    let before = collection.handle_registry().report();
 
     let _ = bake.build_atlas_from_slots(
         UVec2::new(256, 64),
@@ -94,7 +98,7 @@ fn sdf_atlas_build_resolves_all_shaped_handles_in_one_batch() {
         &mut font_database,
         &ProjectAssetManager::default(),
     );
-    let after = font_handle_registry_report();
+    let after = collection.handle_registry().report();
 
     assert_eq!(
         after.resolution_batch_count - before.resolution_batch_count,

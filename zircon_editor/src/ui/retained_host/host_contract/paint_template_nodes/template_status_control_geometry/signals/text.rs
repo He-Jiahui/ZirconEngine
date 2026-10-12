@@ -1,7 +1,7 @@
 //! 信号文字相对已经定位的标记安排，而不是重新按整个状态栏起点定位；显式内容间距优先。
 
 use super::super::super::style_selector::WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT;
-use super::super::metrics::status_line_height;
+use super::super::metrics::status_text_metrics_for_node;
 use super::constants::status_signal_metrics;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 
@@ -10,7 +10,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
     rect: &FrameRect,
     icon: &FrameRect,
 ) -> FrameRect {
-    let line_height = status_line_height();
+    let (_, line_height) = status_text_metrics_for_node(node);
     let text_gap = status_signal_text_gap(node);
     FrameRect {
         x: icon.x + icon.width + text_gap,

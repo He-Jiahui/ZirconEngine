@@ -8,15 +8,17 @@ pub(in crate::ui::retained_host::host_contract) fn document_tab_route_hit(
     x: f32,
     y: f32,
 ) -> bool {
-    tab_route_hit(
-        &scene.document_dock.tab_frames,
-        id,
-        x,
-        y,
-        Some(&translated(
-            &scene.document_dock.header_frame,
-            scene.document_dock.region_frame.x,
-            scene.document_dock.region_frame.y,
-        )),
-    )
+    scene.document_surfaces().iter().any(|document| {
+        tab_route_hit(
+            &document.tab_frames,
+            id,
+            x,
+            y,
+            Some(&translated(
+                &document.header_frame,
+                document.region_frame.x,
+                document.region_frame.y,
+            )),
+        )
+    })
 }

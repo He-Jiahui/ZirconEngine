@@ -42,7 +42,7 @@ fn websocket_feature_manager_rejects_malformed_custom_certificate_root_before_ne
 
     let error = net.connect_websocket(descriptor).unwrap_err();
     assert!(
-        matches!(error, NetError::SecurityPolicyViolation { reason } if reason.contains("TLS root certificate rejected")),
+        matches!(error, NetError::SecurityPolicyViolation { ref reason } if reason.contains("TLS root certificate rejected")),
         "malformed custom roots must fail closed during TLS configuration: {error:?}"
     );
     assert_eq!(net.diagnostics().open_websocket_connections, 0);

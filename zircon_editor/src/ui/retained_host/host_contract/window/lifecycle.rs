@@ -1,3 +1,4 @@
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -20,7 +21,9 @@ impl UiHostWindow {
         let font_assets = Self::load_font_assets().map_err(platform_error)?;
         let event_wake = super::event_wake::HostEventLoopWake::default();
         let visual_asset_wake = super::event_wake::HostEventLoopWake::default();
-        let attention = super::attention::HostWindowAttention::new(event_wake.callback());
+        let attention = super::attention::HostWindowAttention::new(
+            capture_trace::wake_callback("window_attention", event_wake.callback()),
+        );
         Ok(Self {
             _font_assets: Rc::new(font_assets),
             state: Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(

@@ -25,8 +25,11 @@ impl RetainedEditorHost {
         if let Some(result) =
             callback_dispatch::dispatch_builtin_floating_window_focus(&self.runtime, &window_id)
         {
+            let focused = result.is_ok();
             self.apply_dispatch_result(result);
-            self.note_focused_floating_window(Some(window_id));
+            if focused {
+                self.note_focused_floating_window(Some(window_id));
+            }
         }
     }
 }

@@ -14,7 +14,7 @@ mod prepared;
 mod restore_parent_validation;
 mod root_normalization;
 
-pub(in crate::scene::world) use preparation_owner::DetachPreparationOwner;
+pub(crate) use preparation_owner::DetachPreparationOwner;
 pub use prepared::PreparedEntitySubtrees;
 
 #[cfg(test)]
@@ -93,26 +93,86 @@ struct DetachedEntityBatchEntry {
     observers: DetachedEntityObservers,
 }
 
-/// Owns a rejected batch so callers can retry or retain it without rebuilding
-/// the affected scene state.
-pub struct DetachedEntityBatchRestoreError {
-    error: SceneError,
-    batch: DetachedEntityBatch,
+/// A rejected removal leaves rows in the World. Cancellation owns the rows
+/// that were already detached before lifecycle replay was interrupted.
+pub enum DetachedEntityBatchRemoveError {
+    Rejected(SceneError),
+    Cancelled {
+        error: SceneError,
+        batch: DetachedEntityBatch,
+    },
+}
+
+impl std::fmt::Debug for DetachedEntityBatchRemoveError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Rejected(error) => formatter
+                .debug_tuple("DetachedEntityBatchRemoveError::Rejected")
+                .field(error)
+                .finish(),
+            Self::Cancelled { error, batch } => formatter
+                .debug_struct("DetachedEntityBatchRemoveError::Cancelled")
+                .field("error", error)
+                .field("batch_entries", &batch.len())
+                .finish(),
+        }
+    }
+}
+
+impl std::fmt::Display for DetachedEntityBatchRemoveError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.error(), formatter)
+    }
+}
+
+impl std::error::Error for DetachedEntityBatchRemoveError {}
+
+impl DetachedEntityBatchRemoveError {
+    pub fn error(&self) -> &SceneError {
+        match self {
+            Self::Rejected(error) | Self::Cancelled { error, .. } => error,
+        }
+    }
+
+    pub fn into_parts(self) -> (SceneError, Option<DetachedEntityBatch>) {
+        match self {
+            Self::Rejected(error) => (error, None),
+            Self::Cancelled { error, batch } => (error, Some(batch)),
+        }
+    }
+}
+
+/// Preflight rejection returns the intact batch for retry. Cancellation after
+/// publication cannot return rows that have already been consumed by restore.
+pub enum DetachedEntityBatchRestoreError {
+    Rejected {
+        error: SceneError,
+        batch: DetachedEntityBatch,
+    },
+    Cancelled {
+        error: SceneError,
+    },
 }
 
 impl std::fmt::Debug for DetachedEntityBatchRestoreError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("DetachedEntityBatchRestoreError")
-            .field("error", &self.error)
-            .field("batch_entries", &self.batch.entries.len())
-            .finish()
+        match self {
+            Self::Rejected { error, batch } => formatter
+                .debug_struct("DetachedEntityBatchRestoreError::Rejected")
+                .field("error", error)
+                .field("batch_entries", &batch.len())
+                .finish(),
+            Self::Cancelled { error } => formatter
+                .debug_struct("DetachedEntityBatchRestoreError::Cancelled")
+                .field("error", error)
+                .finish(),
+        }
     }
 }
 
 impl std::fmt::Display for DetachedEntityBatchRestoreError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.error, formatter)
+        std::fmt::Display::fmt(self.error(), formatter)
     }
 }
 
@@ -120,11 +180,16 @@ impl std::error::Error for DetachedEntityBatchRestoreError {}
 
 impl DetachedEntityBatchRestoreError {
     pub fn error(&self) -> &SceneError {
-        &self.error
+        match self {
+            Self::Rejected { error, .. } | Self::Cancelled { error } => error,
+        }
     }
 
-    pub fn into_parts(self) -> (SceneError, DetachedEntityBatch) {
-        (self.error, self.batch)
+    pub fn into_parts(self) -> (SceneError, Option<DetachedEntityBatch>) {
+        match self {
+            Self::Rejected { error, batch } => (error, Some(batch)),
+            Self::Cancelled { error } => (error, None),
+        }
     }
 }
 
@@ -132,7 +197,10 @@ impl World {
     /// Detaches a root and its descendants without cloning the World. All
     /// lookup and signature checks complete before the first archetype row is
     /// removed; the following row transfer is therefore infallible.
-    pub fn remove_entity_recursive(&mut self, root: EntityId) -> SceneResult<DetachedEntityBatch> {
+    pub fn remove_entity_recursive(
+        &mut self,
+        root: EntityId,
+    ) -> Result<DetachedEntityBatch, DetachedEntityBatchRemoveError> {
         self.remove_entity_subtrees([root])
     }
 
@@ -142,8 +210,10 @@ impl World {
     pub fn remove_entity_subtrees(
         &mut self,
         roots: impl IntoIterator<Item = EntityId>,
-    ) -> SceneResult<DetachedEntityBatch> {
-        let prepared = self.prepare_entity_subtrees(roots)?;
+    ) -> Result<DetachedEntityBatch, DetachedEntityBatchRemoveError> {
+        let prepared = self
+            .prepare_entity_subtrees(roots)
+            .map_err(DetachedEntityBatchRemoveError::Rejected)?;
         self.remove_prepared_entity_subtrees(prepared)
     }
 
@@ -248,19 +318,24 @@ impl World {
     pub fn remove_prepared_entity_subtrees(
         &mut self,
         prepared: PreparedEntitySubtrees,
-    ) -> SceneResult<DetachedEntityBatch> {
+    ) -> Result<DetachedEntityBatch, DetachedEntityBatchRemoveError> {
         if !self.detach_preparation_owner.is_same_world(&prepared.owner) {
             self.record_detached_entity_batch_rejected_preflight();
-            return Err(SceneError::DetachedEntityPreparationWorldMismatch);
+            return Err(DetachedEntityBatchRemoveError::Rejected(
+                SceneError::DetachedEntityPreparationWorldMismatch,
+            ));
         }
         let current_generation = self.world_generation();
         if prepared.world_generation != current_generation {
             self.record_detached_entity_batch_rejected_preflight();
-            return Err(SceneError::DetachedEntityPreparationStale {
-                prepared_generation: prepared.world_generation,
-                current_generation,
-            });
+            return Err(DetachedEntityBatchRemoveError::Rejected(
+                SceneError::DetachedEntityPreparationStale {
+                    prepared_generation: prepared.world_generation,
+                    current_generation,
+                },
+            ));
         }
+        let execution = self.begin_schedule_execution();
         let PreparedEntitySubtrees {
             entities,
             detach_preorder,
@@ -292,11 +367,6 @@ impl World {
         self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
         self.advance_world_generation();
         self.record_staged_lifecycle_events = prior_lifecycle_staging;
-        if !prior_lifecycle_staging {
-            for event in self.staged_lifecycle_events.split_off(lifecycle_start) {
-                self.dispatch_component_lifecycle(event);
-            }
-        }
 
         let batch = DetachedEntityBatch {
             entries,
@@ -308,12 +378,35 @@ impl World {
         stats.ordered_removals = stats.moved_rows;
         stats.hierarchy_index_lookups = (entities.len() + hierarchy_index_rebuild_rows) as u64;
         stats.camera_index_lookups = camera_index_lookups;
+        if !prior_lifecycle_staging {
+            for event in self.staged_lifecycle_events.split_off(lifecycle_start) {
+                if let Some(target) = execution.target_change(self) {
+                    return Err(DetachedEntityBatchRemoveError::Cancelled {
+                        error: SceneError::LifecycleTargetReplaced {
+                            operation: "remove entity subtrees",
+                            target,
+                        },
+                        batch,
+                    });
+                }
+                self.dispatch_component_lifecycle(event);
+            }
+            if let Some(target) = execution.target_change(self) {
+                return Err(DetachedEntityBatchRemoveError::Cancelled {
+                    error: SceneError::LifecycleTargetReplaced {
+                        operation: "remove entity subtrees",
+                        target,
+                    },
+                    batch,
+                });
+            }
+        }
         self.record_detached_entity_batch_commit(stats);
         Ok(batch)
     }
 
-    /// Restores a detached batch. On preflight failure the batch is returned
-    /// untouched and this World remains unmodified.
+    /// Restores a detached batch. Preflight rejection returns the intact batch;
+    /// cancellation during lifecycle replay occurs after its rows were consumed.
     /// 预检失败仍会增加拒绝计数，原批次可用于撤销重试；通过后按预存父先子顺序恢复，再派发暂存的生命周期事件。
     pub fn restore_detached_entity_batch(
         &mut self,
@@ -321,9 +414,10 @@ impl World {
     ) -> Result<(), DetachedEntityBatchRestoreError> {
         if let Err(error) = self.preflight_detached_batch(&batch) {
             self.record_detached_entity_batch_rejected_preflight();
-            return Err(DetachedEntityBatchRestoreError { error, batch });
+            return Err(DetachedEntityBatchRestoreError::Rejected { error, batch });
         }
 
+        let execution = self.begin_schedule_execution();
         let mut stats = batch.operation_stats();
         stats.hierarchy_index_lookups = stats.moved_rows;
         stats.camera_index_lookups = u64::from(batch.detached_active_camera.is_some());
@@ -354,7 +448,23 @@ impl World {
         self.record_staged_lifecycle_events = prior_lifecycle_staging;
         if !prior_lifecycle_staging {
             for event in self.staged_lifecycle_events.split_off(lifecycle_start) {
+                if let Some(target) = execution.target_change(self) {
+                    return Err(DetachedEntityBatchRestoreError::Cancelled {
+                        error: SceneError::LifecycleTargetReplaced {
+                            operation: "restore detached entity batch",
+                            target,
+                        },
+                    });
+                }
                 self.dispatch_component_lifecycle(event);
+            }
+            if let Some(target) = execution.target_change(self) {
+                return Err(DetachedEntityBatchRestoreError::Cancelled {
+                    error: SceneError::LifecycleTargetReplaced {
+                        operation: "restore detached entity batch",
+                        target,
+                    },
+                });
             }
         }
         self.record_detached_entity_batch_commit(stats);

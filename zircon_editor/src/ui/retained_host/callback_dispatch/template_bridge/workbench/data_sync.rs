@@ -53,6 +53,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         chrome: &EditorChromeSnapshot,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         self.sync_status_bar(chrome)?;
+        self.prepare_project_document_context(chrome)?;
+        self.sync_unreal_viewport_toolbar_state(&chrome.scene_viewport_settings)?;
+        self.prepare_content_drawer_assets(&chrome.asset_browser)?;
         self.prepare_scene_and_inspector_state(&chrome.scene_entries, chrome.inspector.as_ref())
     }
 
@@ -65,6 +68,68 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.template_surface
             .refresh_after_state_change(self.runtime.as_ref())?;
         Ok(())
+    }
+
+    fn prepare_project_document_context(
+        &mut self,
+        chrome: &EditorChromeSnapshot,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        use crate::ui::workbench::snapshot::{DocumentWorkspaceSnapshot, MainPageSnapshot};
+
+        self.set_visible("UnrealProjectDocumentContext", chrome.project_open)?;
+        if !chrome.project_open {
+            return self.mutate_control_property(
+                "UnrealProjectDocumentContextText",
+                "text",
+                UiValue::String(String::new()),
+            );
+        }
+
+        let title = chrome
+            .workbench
+            .main_pages
+            .iter()
+            .find_map(|page| match page {
+                MainPageSnapshot::Exclusive { id, view, .. }
+                    if id == &chrome.workbench.active_main_page =>
+                {
+                    Some(view.title.as_str())
+                }
+                MainPageSnapshot::Workbench {
+                    id,
+                    title,
+                    workspace,
+                    ..
+                } if id == &chrome.workbench.active_main_page => {
+                    let document = match workspace {
+                        DocumentWorkspaceSnapshot::Tabs {
+                            tabs, active_tab, ..
+                        } => active_tab
+                            .as_ref()
+                            .and_then(|active| tabs.iter().find(|tab| &tab.instance_id == active))
+                            .map(|tab| tab.title.as_str()),
+                        // Split leaves have separate active tabs, without a global focused ID.
+                        DocumentWorkspaceSnapshot::Split { .. } => None,
+                    };
+                    Some(document.unwrap_or(title.as_str()))
+                }
+                _ => None,
+            })
+            .unwrap_or_default();
+        let text = [
+            title,
+            chrome.project_overview.project_name.as_str(),
+        ]
+        .into_iter()
+        .filter(|part| !part.trim().is_empty())
+        .collect::<Vec<_>>()
+        .join(" · ");
+
+        self.mutate_control_property(
+            "UnrealProjectDocumentContextText",
+            "text",
+            UiValue::String(text),
+        )
     }
 
     fn prepare_scene_and_inspector_state(

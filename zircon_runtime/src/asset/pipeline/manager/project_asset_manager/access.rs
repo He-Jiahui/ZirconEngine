@@ -87,7 +87,7 @@ impl ProjectAssetManagerAccess {
             .clone()
     }
 
-    pub fn resolve(&self) -> Result<Arc<ProjectAssetManager>, CoreError> {
+    pub fn resolve(&self) -> Result<crate::core::runtime::ServiceCallGuard<ProjectAssetManager>, CoreError> {
         self.resolve_with_core().map(|(_, manager)| manager)
     }
 
@@ -98,7 +98,7 @@ impl ProjectAssetManagerAccess {
     /// task graph belonging to a different runtime.
     pub(crate) fn resolve_with_core(
         &self,
-    ) -> Result<(CoreHandle, Arc<ProjectAssetManager>), CoreError> {
+    ) -> Result<(CoreHandle, crate::core::runtime::ServiceCallGuard<ProjectAssetManager>), CoreError> {
         let core = self
             .core
             .upgrade()

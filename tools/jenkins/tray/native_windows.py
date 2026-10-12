@@ -22,6 +22,7 @@ if IS_WINDOWS:
     user32.RegisterWindowMessageW.argtypes = [wintypes.LPCWSTR]; user32.RegisterWindowMessageW.restype = wintypes.UINT
     user32.PostMessageW.argtypes = [wintypes.HWND,wintypes.UINT,wintypes.WPARAM,wintypes.LPARAM]; user32.PostMessageW.restype = wintypes.BOOL
     user32.GetMessageW.argtypes = [ctypes.POINTER(wintypes.MSG),wintypes.HWND,wintypes.UINT,wintypes.UINT]; user32.GetMessageW.restype = wintypes.BOOL
+    user32.PeekMessageW.argtypes = [ctypes.POINTER(wintypes.MSG),wintypes.HWND,wintypes.UINT,wintypes.UINT,wintypes.UINT]; user32.PeekMessageW.restype = wintypes.BOOL
     user32.RegisterClassW.argtypes = [ctypes.c_void_p]; user32.RegisterClassW.restype = wintypes.ATOM
     user32.DefWindowProcW.restype = wintypes.LRESULT if hasattr(wintypes, "LRESULT") else ctypes.c_ssize_t
     user32.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
@@ -111,10 +112,13 @@ def popup_menu(hwnd, items: list[tuple[int, str, bool]], x: int, y: int) -> int:
     if not IS_WINDOWS:
         return 0
     menu = user32.CreatePopupMenu()
+    if not menu:
+        raise ctypes.WinError(ctypes.get_last_error())
     try:
         for command, label, enabled in items:
             state = 0 if enabled else 1  # MF_GRAYED
-            user32.AppendMenuW(menu, 0x0000 | state, command, label)
+            if not user32.AppendMenuW(menu, 0x0000 | state, command, label):
+                raise ctypes.WinError(ctypes.get_last_error())
         user32.SetForegroundWindow(hwnd)
         selected = user32.TrackPopupMenu(menu, 0x0100 | 0x0002, x, y, 0, hwnd, None)
         user32.PostMessageW(hwnd, WM_NULL if 'WM_NULL' in globals() else 0, 0, 0)
@@ -162,7 +166,21 @@ def add_icon(hwnd, icon_id: int, callback_message: int, tooltip: str, icon=None)
     resource = ctypes.cast(ctypes.c_void_p(IDI_APPLICATION), wintypes.LPCWSTR)
     data.hIcon = icon or user32.LoadIconW(None, resource); data.szTip = tooltip[:127]
     data.uVersionOrTimeout = NOTIFYICON_VERSION_4
-    return bool(shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(data)) and shell32.Shell_NotifyIconW(NIM_SETVERSION, ctypes.byref(data)))
+    if not shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(data)):
+        return False
+    if shell32.Shell_NotifyIconW(NIM_SETVERSION, ctypes.byref(data)):
+        return True
+    # NIM_ADD succeeded, so remove the now-stale shell record when version
+    # negotiation fails.  Reporting success here would leave telemetry saying
+    # the icon is usable even though Explorer has an incompatible record.
+    shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(data))
+    return False
+
+
+def register_window_message(name: str) -> int:
+    if not IS_WINDOWS:
+        return 0
+    return int(user32.RegisterWindowMessageW(name))
 
 
 def update_icon(hwnd, icon_id: int, tooltip: str, icon=None) -> bool:

@@ -9,17 +9,17 @@ use zircon_runtime_interface::{ProfileControlCommand, ProfileControlRequest, Pro
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn runtime_diagnostics_with_profile(
         &self,
-    ) -> RuntimeDiagnosticsSnapshot {
+    ) -> Result<RuntimeDiagnosticsSnapshot, crate::ui::host::EditorError> {
         #[cfg(feature = "profiling")]
         {
-            let mut diagnostics = self.editor_manager.runtime_diagnostics();
+            let mut diagnostics = self.editor_manager.enter()?.runtime_diagnostics();
             self.merge_dynamic_runtime_profile(&mut diagnostics.profile);
-            diagnostics
+            Ok(diagnostics)
         }
 
         #[cfg(not(feature = "profiling"))]
         {
-            self.editor_manager.runtime_diagnostics()
+            Ok(self.editor_manager.enter()?.runtime_diagnostics())
         }
     }
 

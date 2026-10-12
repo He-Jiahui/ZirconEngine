@@ -48,6 +48,16 @@ pub(in crate::ui::retained_host::host_contract) enum PanePointerTarget<'a> {
     },
     SceneViewport(&'a str),
     GameViewport(&'a str),
+    UiAssetPreview {
+        pane_id: &'a str,
+        source_frame: &'a std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+        transform: crate::ui::retained_host::host_contract::data::UiAssetPreviewCanvasTransform,
+    },
+    GeneratedBottom {
+        pane_id: &'a str,
+        source_frame: &'a std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+        transform: crate::ui::retained_host::host_contract::data::UiAssetPreviewCanvasTransform,
+    },
     UiAsset,
     Other,
 }

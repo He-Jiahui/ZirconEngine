@@ -13,8 +13,11 @@ use zr_rhi_wgpu::{
 pub(super) type ProductDiagnosticReadbackCallback =
     Box<dyn FnOnce(Result<Vec<u8>, String>) + Send + 'static>;
 
+pub(super) type ProductDiagnosticReceiptCallback =
+    zr_rhi_wgpu::WgpuUiSurfaceDiagnosticReceiptCallback;
+
 pub(super) struct ProductDiagnosticDeliveryRouter {
-    pending: HashMap<DiagnosticReadbackRequestId, ProductDiagnosticReadbackCallback>,
+    pending: HashMap<DiagnosticReadbackRequestId, ProductDiagnosticReceiptCallback>,
     pending_order: VecDeque<DiagnosticReadbackRequestId>,
     pending_limit: usize,
     scratch: Vec<WgpuDiagnosticReadbackDelivery>,
@@ -56,6 +59,22 @@ impl ProductDiagnosticDeliveryRouter {
         &mut self,
         admission: DiagnosticReadbackAdmission,
         callback: ProductDiagnosticReadbackCallback,
+    ) -> Result<bool, String> {
+        self.register_with_receipt(
+            admission,
+            Box::new(move |receipt, bytes| callback(product_diagnostic_result(receipt, bytes))),
+        )
+    }
+
+    pub(super) fn cancel_receipt_callback(&mut self, request: DiagnosticReadbackRequestId) {
+        self.pending.remove(&request);
+        self.compact_pending_order_if_needed();
+    }
+
+    pub(super) fn register_with_receipt(
+        &mut self,
+        admission: DiagnosticReadbackAdmission,
+        callback: ProductDiagnosticReceiptCallback,
     ) -> Result<bool, String> {
         let (request, admitted) = match admission {
             DiagnosticReadbackAdmission::Admitted(request) => (request, true),
@@ -103,7 +122,7 @@ impl ProductDiagnosticDeliveryRouter {
                 continue;
             };
             self.routed_delivery_count = self.routed_delivery_count.saturating_add(1);
-            dispatches.push(ProductDiagnosticDispatch::new(
+            dispatches.push(ProductDiagnosticDispatch::new_with_receipt(
                 callback,
                 receipt,
                 delivery.into_bytes(),
@@ -239,7 +258,7 @@ pub(crate) struct ProductDiagnosticQueryResult {
 }
 
 pub(super) struct ProductDiagnosticDispatch {
-    callback: ProductDiagnosticReadbackCallback,
+    callback: ProductDiagnosticReceiptCallback,
     receipt: DiagnosticReadbackReceipt,
     bytes: Option<Vec<u8>>,
 }
@@ -247,6 +266,18 @@ pub(super) struct ProductDiagnosticDispatch {
 impl ProductDiagnosticDispatch {
     fn new(
         callback: ProductDiagnosticReadbackCallback,
+        receipt: DiagnosticReadbackReceipt,
+        bytes: Option<Vec<u8>>,
+    ) -> Self {
+        Self::new_with_receipt(
+            Box::new(move |receipt, bytes| callback(product_diagnostic_result(receipt, bytes))),
+            receipt,
+            bytes,
+        )
+    }
+
+    fn new_with_receipt(
+        callback: ProductDiagnosticReceiptCallback,
         receipt: DiagnosticReadbackReceipt,
         bytes: Option<Vec<u8>>,
     ) -> Self {
@@ -258,8 +289,10 @@ impl ProductDiagnosticDispatch {
     }
 
     pub(super) fn run(self) -> bool {
-        let result = product_diagnostic_result(self.receipt, self.bytes);
-        catch_unwind(AssertUnwindSafe(|| (self.callback)(result))).is_err()
+        catch_unwind(AssertUnwindSafe(|| {
+            (self.callback)(self.receipt, self.bytes)
+        }))
+        .is_err()
     }
 }
 

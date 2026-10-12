@@ -10,13 +10,78 @@ mod shell;
 mod viewport_surfaces;
 
 impl RetainedEditorHost {
+    pub(super) fn normal_workbench_business_snapshot_current(&self) -> bool {
+        let generation = self.ui.get_host_presentation_generation();
+        generation
+            .structure()
+            .normal_workbench_business
+            .as_ref()
+            .is_some_and(|(stamp, _)| stamp.same_business_generation(generation.cursor()))
+    }
+
+    pub(super) fn refresh_normal_workbench_business_snapshot(&self, eligible: bool) {
+        let snapshot = (|| {
+            if !eligible {
+                return None;
+            }
+            if std::env::var_os("ZIRCON_EDITOR_WORKBENCH_REVIEW_PROJECT_ROOT").is_none() {
+                return None;
+            }
+            let committed = self.committed_shell_state.as_ref()?;
+            let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent()?;
+            let locale = self
+                .runtime
+                .context()
+                .i18n()
+                .active_locale()
+                .as_str()
+                .to_owned();
+            let expanded_ids = self
+                .workbench_window_bridge
+                .effective_expanded_ids(&committed.chrome.scene_entries);
+            crate::ui::retained_host::ui::normal_workbench_business_snapshot(
+                repo_root,
+                &committed.chrome,
+                &committed.model,
+                &committed.layout,
+                &committed.descriptors,
+                &locale,
+                &self.hierarchy_filter_query,
+                expanded_ids,
+            )
+            .ok()
+        })();
+        self.ui.set_normal_workbench_business_snapshot(snapshot);
+    }
+
     pub(in crate::ui::retained_host::app) fn recompute_if_dirty(&mut self) {
+        // Keep addressed presenters alive across a publication that can retire native children.
+        let retained_input_windows = self.retained_pane_input_windows();
+        if let Err(error) = self.try_recompute_if_dirty() {
+            // A failed projection must retry the consumed invalidation transaction.
+            self.mark_layout_dirty();
+            self.mark_presentation_dirty();
+            self.set_status_line(error.to_string());
+        } else {
+            self.retire_hidden_retained_pane_inputs(&retained_input_windows);
+            if self.reconcile_generated_bottom_panes() {
+                // Republish after the old window releases the shared pane's input owner.
+                if let Err(error) = self.try_recompute_if_dirty() {
+                    self.mark_layout_dirty();
+                    self.mark_presentation_dirty();
+                    self.set_status_line(error.to_string());
+                }
+            }
+        }
+    }
+
+    fn try_recompute_if_dirty(&mut self) -> Result<(), crate::ui::host::EditorError> {
         if !self.presentation_dirty
             && !self.layout_dirty
             && !self.window_metrics_dirty
             && !self.invalidation.has_pending_presentation_recompute()
         {
-            return;
+            return Ok(());
         }
         zircon_runtime::profile_scope!("editor", "retained_host", "recompute_if_dirty");
 
@@ -25,7 +90,7 @@ impl RetainedEditorHost {
         self.cancel_removed_drawer_resize_owner();
 
         let Some(recompute_decision) = self.begin_recompute_invalidation_phase() else {
-            return;
+            return Ok(());
         };
         let paint_only_reasons = recompute_decision.paint_only_reasons;
         let requested_shell_layout_reuse = recompute_decision.reuse_shell_layout;
@@ -49,16 +114,16 @@ impl RetainedEditorHost {
             &recompute_decision.target,
             invalidation::RecomputeInvalidationTarget::WorkbenchProjection
         ) {
-            if self.apply_workbench_projection_presentation() {
-                return;
+            if self.apply_workbench_projection_presentation()? {
+                return Ok(());
             }
             self.record_slow_path_recompute(&HostInvalidationMask::WORKBENCH_PROJECTION, 1);
         }
         if let invalidation::RecomputeInvalidationTarget::ViewPresentation(view_ids) =
             &recompute_decision.target
         {
-            if self.apply_scoped_ui_asset_presentation(view_ids) {
-                return;
+            if self.apply_scoped_ui_asset_presentation(view_ids)? {
+                return Ok(());
             }
             self.record_slow_path_recompute(
                 &HostInvalidationMask::PRESENTATION_DATA,
@@ -67,15 +132,16 @@ impl RetainedEditorHost {
         }
         if let Some(scope) = shell_content_scope.as_ref() {
             if requested_shell_layout_reuse
-                && self.apply_committed_shell_content_presentation(scope)
+                && self.apply_committed_shell_content_presentation(scope)?
             {
                 self.presentation_dirty = false;
                 self.layout_dirty = false;
                 self.window_metrics_dirty = false;
                 self.workbench_window_bridge
                     .mark_host_projection_committed();
+                self.sync_content_drawer_native_focus();
                 self.publish_refresh_invalidation_diagnostics();
-                return;
+                return Ok(());
             }
             self.record_slow_path_recompute(&HostInvalidationMask::SHELL_CONTENT, 1);
         }
@@ -89,8 +155,14 @@ impl RetainedEditorHost {
             &recompute_decision.target,
             invalidation::RecomputeInvalidationTarget::WindowMetrics
         );
+        let previous_business_current = self.normal_workbench_business_snapshot_current();
+        let mut normal_business_snapshot_eligible = true;
         let mut shell = if window_metrics_target {
             self.build_window_metrics_shell_snapshot()
+                .map(|shell| {
+                    normal_business_snapshot_eligible = previous_business_current;
+                    Ok(shell)
+                })
                 .unwrap_or_else(|| {
                     zircon_runtime::profile_counter!(
                         "editor",
@@ -101,12 +173,12 @@ impl RetainedEditorHost {
                 })
         } else {
             self.build_recompute_shell_snapshot(requested_shell_layout_reuse)
-        };
+        }?;
         self.runtime_diagnostics_refresh_target =
             runtime_diagnostics_visibility::runtime_diagnostics_refresh_target(&shell.model);
         let componentized_workbench_layout_frames = shell.componentized_workbench_layout_frames;
         let floating_window_projection_bundle =
-            self.build_recompute_floating_window_projection_bundle(&shell.model);
+            self.build_recompute_floating_window_projection_bundle(&shell.model)?;
         let reuse_shell_layout = shell.reuse_shell_layout && shell_content_scope.is_none();
         self.sync_recompute_viewport_and_pointer_layouts(
             &mut shell.model,
@@ -114,7 +186,7 @@ impl RetainedEditorHost {
             componentized_workbench_layout_frames,
             &floating_window_projection_bundle,
             window_metrics_target,
-        );
+        )?;
 
         if window_metrics_target {
             if let (Some(retained_shell_presentation), Some(retained_pane_payloads)) = (
@@ -137,7 +209,7 @@ impl RetainedEditorHost {
                         &floating_window_projection_bundle,
                     );
                 if geometry_published {
-                    self.sync_recompute_viewport_surfaces(componentized_workbench_layout_frames);
+                    self.sync_recompute_viewport_surfaces(componentized_workbench_layout_frames)?;
                     {
                         zircon_runtime::profile_scope!(
                             "editor",
@@ -173,13 +245,17 @@ impl RetainedEditorHost {
                         pane_payloads: shell.retained_pane_payloads,
                         retained_shell_presentation: shell.retained_shell_presentation,
                     });
+                    self.refresh_normal_workbench_business_snapshot(
+                        normal_business_snapshot_eligible,
+                    );
                     self.presentation_dirty = false;
                     self.layout_dirty = false;
                     self.window_metrics_dirty = false;
                     self.workbench_window_bridge
                         .mark_host_projection_committed();
+                    self.sync_content_drawer_native_focus();
                     self.publish_refresh_invalidation_diagnostics();
-                    return;
+                    return Ok(());
                 }
             }
         }
@@ -199,7 +275,7 @@ impl RetainedEditorHost {
                     1
                 );
             }
-            Arc::new(self.collect_host_lifecycle_pane_payloads(&shell.model, &shell.chrome))
+            Arc::new(self.collect_host_lifecycle_pane_payloads(&shell.model, &shell.chrome)?)
         };
         let retained_shell_presentation = self.apply_recompute_presentation(
             &shell.model,
@@ -210,7 +286,7 @@ impl RetainedEditorHost {
             &floating_window_projection_bundle,
             reuse_shell_layout,
         );
-        self.sync_recompute_viewport_surfaces(componentized_workbench_layout_frames);
+        self.sync_recompute_viewport_surfaces(componentized_workbench_layout_frames)?;
         {
             zircon_runtime::profile_scope!(
                 "editor",
@@ -246,11 +322,14 @@ impl RetainedEditorHost {
             pane_payloads: Some(pane_payloads),
             retained_shell_presentation,
         });
+        self.refresh_normal_workbench_business_snapshot(normal_business_snapshot_eligible);
         self.presentation_dirty = false;
         self.layout_dirty = false;
         self.window_metrics_dirty = false;
         self.workbench_window_bridge
             .mark_host_projection_committed();
+        self.sync_content_drawer_native_focus();
+        Ok(())
     }
 }
 

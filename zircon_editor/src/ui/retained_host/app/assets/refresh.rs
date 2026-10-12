@@ -119,6 +119,8 @@ impl RetainedEditorHost {
 
         let active_scene_uri = self
             .editor_manager
+            .enter()
+            .map_err(|error| error.to_string())?
             .active_scene_identity_for_session()
             .map(|identity| identity.scene_uri().to_owned());
         let mut plan = plan_asset_backend_refresh(

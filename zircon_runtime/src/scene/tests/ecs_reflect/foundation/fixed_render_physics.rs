@@ -321,3 +321,190 @@ fn missing_fixed_component_returns_structured_error() {
         ReflectError::MissingEntity { entity: 999_999 }
     );
 }
+
+#[test]
+fn registered_reflection_remove_preserves_lifecycle_cancellation_kind_and_target() {
+    use crate::scene::ecs::LifecycleEventKind;
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+    };
+    use zircon_runtime_interface::world_sync::LifecycleTargetChange;
+
+    for schedule_only in [false, true] {
+        for retain_schedule in [false, true] {
+            let mut world = World::empty();
+            let entity = world.spawn_node(NodeKind::Mesh).unwrap();
+            world
+                .insert(
+                    entity,
+                    RigidBodyComponent {
+                        mass: 3.0,
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+            let adapter = world
+                .type_registry()
+                .runtime_registration("RigidBodyComponent")
+                .unwrap()
+                .component
+                .clone()
+                .unwrap();
+            let mut replacement = World::empty();
+            assert_eq!(replacement.spawn_node(NodeKind::Mesh).unwrap(), entity);
+            replacement
+                .insert(
+                    entity,
+                    RigidBodyComponent {
+                        mass: 29.0,
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+            assert_eq!(
+                world.registered_component_id::<RigidBodyComponent>(),
+                replacement.registered_component_id::<RigidBodyComponent>()
+            );
+            let generation = replacement.world_generation();
+            let original = world.schedule().stage_plan();
+            let replacement = Arc::new(Mutex::new(Some(replacement)));
+            let fresh_calls = Arc::new(AtomicUsize::new(0));
+            let observed = Arc::clone(&fresh_calls);
+            world.observe_component_lifecycle::<RigidBodyComponent>(
+                LifecycleEventKind::Remove,
+                move |world, _| {
+                    if schedule_only {
+                        *world.schedule_mut() = Default::default();
+                    } else {
+                        let mut fresh = replacement.lock().unwrap().take().unwrap();
+                        if retain_schedule {
+                            *fresh.schedule_mut() = std::mem::take(world.schedule_mut());
+                            assert!(Arc::ptr_eq(&original, &fresh.schedule().stage_plan()));
+                        }
+                        *world = fresh;
+                    }
+                    let observed = Arc::clone(&observed);
+                    world.commands().queue_fn(move |_| {
+                        observed.fetch_add(1, Ordering::SeqCst);
+                    });
+                },
+            );
+            assert_eq!(
+                adapter.remove(&mut world, entity),
+                Err(ReflectError::LifecycleTargetReplaced {
+                    operation: "remove component".into(),
+                    target: if schedule_only {
+                        LifecycleTargetChange::Schedule
+                    } else {
+                        LifecycleTargetChange::World
+                    },
+                })
+            );
+            assert_eq!(
+                world.get::<RigidBodyComponent>(entity).unwrap().mass,
+                if schedule_only { 3.0 } else { 29.0 }
+            );
+            if !schedule_only {
+                assert_eq!(world.world_generation(), generation);
+            }
+            assert_eq!(fresh_calls.load(Ordering::SeqCst), 0);
+            assert!(world.apply_deferred().is_success());
+            assert_eq!(fresh_calls.load(Ordering::SeqCst), 1);
+        }
+    }
+}
+
+#[test]
+fn registered_reflection_writes_forward_typed_lifecycle_cancellation_and_stop_current_work() {
+    use crate::scene::components::{Hierarchy, Name};
+    use crate::scene::ecs::LifecycleEventKind;
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+    };
+    use zircon_runtime_interface::world_sync::LifecycleTargetChange;
+
+    for hierarchy_write in [false, true] {
+        for schedule_only in [false, true] {
+            for retain_schedule in [false, true] {
+                let mut world = World::empty();
+                let entity = world.spawn_node(NodeKind::Empty).unwrap();
+                let parent = world.spawn_node(NodeKind::Empty).unwrap();
+                let mut replacement = World::empty();
+                assert_eq!(replacement.spawn_node(NodeKind::Empty).unwrap(), entity);
+                assert_eq!(replacement.spawn_node(NodeKind::Empty).unwrap(), parent);
+                replacement
+                    .insert(entity, Name("replacement row".into()))
+                    .unwrap();
+                let generation = replacement.world_generation();
+                let original = world.schedule().stage_plan();
+                let replacement = Arc::new(Mutex::new(Some(replacement)));
+                let fresh_calls = Arc::new(AtomicUsize::new(0));
+                let observed = Arc::clone(&fresh_calls);
+                let callback =
+                    move |world: &mut World, _: &crate::scene::ecs::ComponentLifecycleEvent| {
+                        if schedule_only {
+                            *world.schedule_mut() = Default::default();
+                        } else {
+                            let mut fresh = replacement.lock().unwrap().take().unwrap();
+                            if retain_schedule {
+                                *fresh.schedule_mut() = std::mem::take(world.schedule_mut());
+                                assert!(Arc::ptr_eq(&original, &fresh.schedule().stage_plan()));
+                            }
+                            *world = fresh;
+                        }
+                        let observed = Arc::clone(&observed);
+                        world.commands().queue_fn(move |_| {
+                            observed.fetch_add(1, Ordering::SeqCst);
+                        });
+                    };
+                let (component, type_path, field, value) = if hierarchy_write {
+                    world.observe_component_lifecycle::<Hierarchy>(
+                        LifecycleEventKind::Replace,
+                        callback,
+                    );
+                    (
+                        "Hierarchy",
+                        "zircon_runtime::scene::components::Hierarchy",
+                        "parent",
+                        ReflectedValue::Entity(Some(parent)),
+                    )
+                } else {
+                    world
+                        .observe_component_lifecycle::<Name>(LifecycleEventKind::Replace, callback);
+                    (
+                        "Name",
+                        "zircon_runtime::scene::components::Name",
+                        "value",
+                        ReflectedValue::String("edited row".into()),
+                    )
+                };
+                let error = world
+                    .reflect_write(ReflectWriteRequest::new(
+                        fixed_component_address(entity, component),
+                        reflected_field_id(type_path, field),
+                        value,
+                    ))
+                    .expect_err("the real component callback retired its target");
+                let expected = if schedule_only {
+                    LifecycleTargetChange::Schedule
+                } else {
+                    LifecycleTargetChange::World
+                };
+                assert_eq!(error.lifecycle_target_change(), Some(expected));
+                assert!(
+                    matches!(error, ReflectError::LifecycleTargetReplaced { target, .. } if target == expected)
+                );
+                if !schedule_only {
+                    assert_eq!(world.world_generation(), generation);
+                    assert_eq!(world.get::<Name>(entity).unwrap().0, "replacement row");
+                    assert_eq!(world.parent_of(entity), None);
+                }
+                assert_eq!(fresh_calls.load(Ordering::SeqCst), 0);
+                assert!(world.apply_deferred().is_success());
+                assert_eq!(fresh_calls.load(Ordering::SeqCst), 1);
+            }
+        }
+    }
+}

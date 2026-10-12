@@ -27,6 +27,9 @@ fn chrome_builder_carries_scene_viewport_settings_into_snapshot() {
         translate_step: 2.5,
         rotate_step_deg: 30.0,
         scale_step: 0.25,
+        translate_snap_enabled: false,
+        rotate_snap_enabled: true,
+        scale_snap_enabled: false,
         preview_lighting: false,
         preview_skybox: false,
     };

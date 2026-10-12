@@ -20,27 +20,49 @@ impl RetainedEditorHost {
             return Ok(Vec::new());
         };
         self.editor_manager
-            .dirty_document_toolkits()
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.dirty_document_toolkits())
             .map_err(|error| error.to_string())?
             .into_iter()
             .map(|document| {
                 let identity = self
                     .editor_manager
-                    .autosave_document_identity(document.document_id, &project_root)
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .and_then(|manager| {
+                        manager.autosave_document_identity(document.document_id, &project_root)
+                    })
                     .map_err(|error| error.to_string())?;
                 self.editor_manager
-                    .autosave_document_request(
-                        document.document_id,
-                        document.dirty_generation,
-                        identity,
-                    )
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .and_then(|manager| {
+                        manager.autosave_document_request(
+                            self.editor_manager.clone(),
+                            document.document_id,
+                            document.dirty_generation,
+                            identity,
+                        )
+                    })
                     .map_err(|error| error.to_string())
             })
             .collect()
     }
 
     pub(in crate::ui::retained_host::app) fn poll_editor_autosave(&mut self) {
-        if self.editor_manager.project_recovery_is_active() {
+        let recovery_active = match self
+            .editor_manager
+            .enter()
+            .map(|manager| manager.project_recovery_is_active())
+        {
+            Ok(active) => active,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
+        if recovery_active {
             return;
         }
         let project_root = self
@@ -49,7 +71,7 @@ impl RetainedEditorHost {
             .as_ref()
             .map(|project| project.root_path.clone());
         let poll = self
-            .editor_manager
+            .runtime
             .context()
             .autosave()
             .poll_project(project_root.as_deref());
@@ -72,7 +94,7 @@ impl RetainedEditorHost {
             return;
         };
         match self
-            .editor_manager
+            .runtime
             .context()
             .autosave()
             .preflight_schedule(poll.now())
@@ -84,7 +106,12 @@ impl RetainedEditorHost {
                 return;
             }
         }
-        let dirty_documents = match self.editor_manager.dirty_document_toolkits() {
+        let dirty_documents = match self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.dirty_document_toolkits())
+        {
             Ok(documents) => documents,
             Err(error) => {
                 self.set_status_line(error.to_string());
@@ -95,7 +122,11 @@ impl RetainedEditorHost {
             .into_iter()
             .map(|document| {
                 self.editor_manager
-                    .autosave_document_identity(document.document_id, &project_root)
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .and_then(|manager| {
+                        manager.autosave_document_identity(document.document_id, &project_root)
+                    })
                     .map(|identity| (document, identity))
             })
             .collect::<Result<Vec<_>, _>>()
@@ -116,9 +147,9 @@ impl RetainedEditorHost {
             return;
         }
 
-        let editor_manager = Arc::clone(&self.editor_manager);
+        let editor_manager = self.editor_manager.clone();
         let mut request_error = None;
-        let result = self.editor_manager.context().autosave().schedule(
+        let result = self.runtime.context().autosave().schedule(
             poll.now(),
             &documents,
             |_| std::mem::size_of::<AutosaveDocumentRequest>().max(1),
@@ -126,11 +157,17 @@ impl RetainedEditorHost {
                 let (dirty, identity) = intents
                     .iter()
                     .find(|(_, identity)| identity.document() == autosave_document)?;
-                match editor_manager.autosave_document_request(
-                    dirty.document_id,
-                    dirty.dirty_generation,
-                    identity.clone(),
-                ) {
+                match editor_manager
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .and_then(|manager| {
+                        manager.autosave_document_request(
+                            editor_manager.clone(),
+                            dirty.document_id,
+                            dirty.dirty_generation,
+                            identity.clone(),
+                        )
+                    }) {
                     Ok(request) => Some(request),
                     Err(error) => {
                         request_error = Some(error.to_string());
@@ -199,7 +236,7 @@ impl RetainedEditorHost {
             )
         });
         if let Ok(entry) = entry {
-            let _ = self.editor_manager.context().logs().emit(entry);
+            let _ = self.runtime.context().logs().emit(entry);
         }
         self.set_status_line(message);
     }

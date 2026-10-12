@@ -9,8 +9,12 @@ use crate::core::framework::render::{
 fn artifact_store_bincode_roundtrips_asset_reference() {
     let reference = asset_reference("res://models/kenney_graveyard/fence-gate.glb#Mesh0");
 
-    let bytes = bincode::serialize(&reference).unwrap();
-    let loaded = bincode::deserialize::<AssetReference>(&bytes).unwrap();
+    let bytes = zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+        .encode(&reference)
+        .unwrap();
+    let loaded = zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+        .decode::<AssetReference>(&bytes)
+        .unwrap();
 
     assert_eq!(loaded, reference);
 }
@@ -39,8 +43,12 @@ fn artifact_store_bincode_roundtrips_scene_mesh_instance_asset() {
         }],
     };
 
-    let bytes = bincode::serialize(&mesh).unwrap();
-    let loaded = bincode::deserialize::<crate::asset::SceneMeshInstanceAsset>(&bytes).unwrap();
+    let bytes = zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+        .encode(&mesh)
+        .unwrap();
+    let loaded = zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+        .decode::<crate::asset::SceneMeshInstanceAsset>(&bytes)
+        .unwrap();
 
     assert_eq!(loaded, mesh);
 }

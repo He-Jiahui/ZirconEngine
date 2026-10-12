@@ -20,25 +20,25 @@ pub enum AnimationAssetError {
     Serialize {
         kind: &'static str,
         #[source]
-        source: bincode::Error,
+        source: zircon_runtime_interface::serialization::PositionalEncodeError,
     },
     #[error("animation {kind} document decode failed: {source}")]
     DocumentDeserialize {
         kind: &'static str,
         #[source]
-        source: bincode::Error,
+        source: zircon_runtime_interface::serialization::PositionalDecodeError,
     },
     #[error("animation {kind} stream header decode failed: {source}")]
     StreamHeaderDeserialize {
         kind: &'static str,
         #[source]
-        source: bincode::Error,
+        source: zircon_runtime_interface::serialization::PositionalDecodeError,
     },
     #[error("animation {kind} stream payload decode failed: {source}")]
     StreamPayloadDeserialize {
         kind: &'static str,
         #[source]
-        source: bincode::Error,
+        source: zircon_runtime_interface::serialization::PositionalDecodeError,
     },
     #[error(
         "animation {kind} document and stream decode failed: document: {document}; stream: {stream}"

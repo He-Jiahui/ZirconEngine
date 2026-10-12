@@ -1,7 +1,7 @@
 use std::any::Any;
-use std::sync::{Arc, Weak};
+use std::sync::Weak;
 
-use super::handle::CoreHandle;
+use super::handle::{CoreHandle, ServiceCallGuard, ServiceHandle};
 use super::state::CoreRuntimeInner;
 use crate::core::CoreError;
 
@@ -21,21 +21,59 @@ impl CoreWeak {
         Some(CoreHandle { inner })
     }
 
-    pub fn resolve_driver<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
+    pub fn resolve_driver<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
         self.upgrade()
             .ok_or(CoreError::RuntimeUnavailable)?
             .resolve_driver(name)
     }
 
-    pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
+    pub fn resolve_manager<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
         self.upgrade()
             .ok_or(CoreError::RuntimeUnavailable)?
             .resolve_manager(name)
     }
 
-    pub fn resolve_plugin<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
+    pub fn resolve_plugin<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
         self.upgrade()
             .ok_or(CoreError::RuntimeUnavailable)?
             .resolve_plugin(name)
+    }
+    /// Capture a durable reference; call `enter()` before each service invocation.
+    pub fn resolve_driver_handle<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceHandle<T>, CoreError> {
+        self.upgrade()
+            .ok_or(CoreError::RuntimeUnavailable)?
+            .resolve_driver_handle(name)
+    }
+
+    /// Capture a durable reference; call `enter()` before each service invocation.
+    pub fn resolve_manager_handle<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceHandle<T>, CoreError> {
+        self.upgrade()
+            .ok_or(CoreError::RuntimeUnavailable)?
+            .resolve_manager_handle(name)
+    }
+
+    /// Capture a durable reference; call `enter()` before each service invocation.
+    pub fn resolve_plugin_handle<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceHandle<T>, CoreError> {
+        self.upgrade()
+            .ok_or(CoreError::RuntimeUnavailable)?
+            .resolve_plugin_handle(name)
     }
 }

@@ -1,3 +1,4 @@
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use super::*;
 use std::time::Duration;
 
@@ -7,7 +8,7 @@ use crate::core::notifications::{
 use crate::ui::activity::{
     activity_decision_options, activity_progress_views, activity_toast_views,
 };
-use crate::ui::template_runtime::WORKBENCH_WINDOW_DOCUMENT_ID;
+use crate::ui::template_runtime::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
     /// Retained only for the componentized host regression harness.
@@ -42,7 +43,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn refresh_activity_notification_presentation(&mut self) {
-        if self.active_activity_window_template_document_is(WORKBENCH_WINDOW_DOCUMENT_ID) {
+        if (match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }) {
             self.sync_activity_notifications();
         } else {
             self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
@@ -50,7 +51,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn sync_activity_notifications(&mut self) {
-        if !self.active_activity_window_template_document_is(WORKBENCH_WINDOW_DOCUMENT_ID) {
+        if !(match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }) {
             return;
         }
         let (pending_decisions, toasts, progress) = {
@@ -101,6 +102,10 @@ impl RetainedEditorHost {
         if !(notification_changed || health_changed) && !self.pending_activity_projection_refresh {
             return;
         }
+        capture_trace::record("activity_projection_changed", || {
+            format!("notifications={notification_changed} health={health_changed} pending_activity={} progress_count={} cursor={:?}",
+                self.pending_activity_projection_refresh, progress.len(), self.ui.get_host_presentation_generation().cursor())
+        });
         match self.workbench_window_bridge.refresh_prepared_state_change() {
             Ok(()) => {
                 self.pending_activity_projection_refresh = false;

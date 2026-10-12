@@ -89,10 +89,7 @@ where
         } else {
             target.insert(entity, value).map(|_| ())
         };
-    result.map_err(|error| ReflectError::UnsupportedConversion {
-        source: error.to_string(),
-        target: format!("{type_path} staged component clone"),
-    })
+    result.map_err(|error| error.into_reflect_error(format!("{type_path} staged component clone")))
 }
 
 fn read_field<T>(
@@ -186,27 +183,18 @@ where
     if let Some(local) = (&next as &dyn Any).downcast_ref::<LocalTransform>() {
         return match world.update_transform(entity, local.transform) {
             Ok(changed) => Ok(changed),
-            Err(error) => Err(ReflectError::UnsupportedConversion {
-                source: error.to_string(),
-                target,
-            }),
+            Err(error) => Err(error.into_reflect_error(target)),
         };
     }
     if let Some(mobility) = (&next as &dyn Any).downcast_ref::<Mobility>() {
         return match world.set_mobility(entity, *mobility) {
             Ok(changed) => Ok(changed),
-            Err(error) => Err(ReflectError::UnsupportedConversion {
-                source: error.to_string(),
-                target,
-            }),
+            Err(error) => Err(error.into_reflect_error(target)),
         };
     }
     match world.insert(entity, next) {
         Ok(_) => Ok(true),
-        Err(error) => Err(ReflectError::UnsupportedConversion {
-            source: error.to_string(),
-            target,
-        }),
+        Err(error) => Err(error.into_reflect_error(target)),
     }
 }
 
@@ -226,7 +214,11 @@ where
                 type_path: type_path.to_string(),
             })
         }
-        Ok(None) | Err(_) => Err(missing_component(entity, type_path)),
+        Ok(None) => Err(missing_component(entity, type_path)),
+        Err(error) if error.lifecycle_target_change().is_some() => {
+            Err(error.into_reflect_error(type_path.to_owned()))
+        }
+        Err(_) => Err(missing_component(entity, type_path)),
     }
 }
 

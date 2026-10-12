@@ -1,4 +1,5 @@
 use super::{RetainedEditorHost, UiAssetActionDispatch};
+use crate::ui::host::EditorError;
 use crate::ui::asset_editor::UiDesignerToolMode;
 use crate::ui::workbench::view::ViewInstanceId;
 
@@ -30,7 +31,11 @@ impl RetainedEditorHost {
     ) -> UiAssetActionDispatch {
         UiAssetActionDispatch::handled(
             self.editor_manager
-                .set_ui_asset_editor_designer_tool_mode(instance_id, mode),
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.set_ui_asset_editor_designer_tool_mode(instance_id, mode)
+                }),
         )
     }
 }

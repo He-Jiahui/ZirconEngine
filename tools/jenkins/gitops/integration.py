@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import stat
 import subprocess
 import tempfile
 import uuid
@@ -51,6 +52,7 @@ class CandidateManifest:
     coverage_digest: str
     acceptance_receipts: tuple[str, ...] = ()
     coauthor_map: Mapping[str, str] = field(default_factory=dict)
+    input_manifest: Mapping[str, Any] | None = None
 
     @property
     def digest(self) -> str:
@@ -59,7 +61,8 @@ class CandidateManifest:
                        "sourceDigest": self.source_digest,
                        "coverageDigest": self.coverage_digest,
                        "acceptanceReceipts": list(self.acceptance_receipts),
-                       "coauthorMap": dict(self.coauthor_map)})
+                       "coauthorMap": dict(self.coauthor_map),
+                       "inputManifest": self.input_manifest})
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,7 @@ class IntegrationPlan:
     candidates: tuple[str, ...]
     authorization_digest: str
     owned_paths: tuple[str, ...] = ()
+    input_closures: tuple[Mapping[str, Any], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -91,10 +95,28 @@ class IntegrationReceipt:
 
 
 def _norm(path: str) -> str:
-    path = path.replace("\\", "/").lstrip("./")
-    if not path or path.startswith("/") or "\x00" in path or any(x == ".." for x in path.split("/")):
+    if not isinstance(path, str):
+        raise JenkinsError("invalid_owned_path", "Git input path must be a string")
+    path = path.replace("\\", "/")
+    if (not path or path.startswith("/") or "\x00" in path or ":" in path
+            or any(x in {"", ".", ".."} for x in path.split("/"))):
         raise JenkinsError("invalid_owned_path", f"Invalid owned path: {path!r}")
     return path
+
+
+def git_mode(value: int | str | None) -> str | None:
+    """Source records contain permission bits; Git stores file type and execute."""
+    if value is None:
+        return None
+    try:
+        mode = int(value, 8) if isinstance(value, str) else value
+        if type(mode) is not int or mode < 0 or stat.S_IFMT(mode) not in {0, stat.S_IFREG, stat.S_IFLNK}:
+            raise ValueError
+    except (TypeError, ValueError):
+        raise JenkinsError("git_input_closure_invalid", "Input mode cannot describe a Git file") from None
+    if stat.S_IFMT(mode) == stat.S_IFLNK:
+        return "120000"
+    return "100755" if mode & 0o111 else "100644"
 
 
 class GitRepository:
@@ -144,6 +166,129 @@ class GitRepository:
         result = subprocess.run(["git", "merge-base", "--is-ancestor", ancestor, descendant],
                                 cwd=self.root, capture_output=True)
         return result.returncode == 0
+
+    def _input_entries(self, manifest: Mapping[str, Any]) -> tuple[dict, ...]:
+        entries = manifest.get("entries")
+        if not isinstance(entries, (list, tuple)) or not entries:
+            raise JenkinsError("git_input_closure_invalid", "Accepted input closure must contain every sealed entry")
+        keys = set()
+        result = []
+        for entry in entries:
+            if not isinstance(entry, Mapping):
+                raise JenkinsError("git_input_closure_invalid", "Sealed input entry is invalid")
+            path = _norm(entry.get("path"))
+            if path.casefold() in keys or entry.get("kind", "file") != "file":
+                raise JenkinsError("git_input_closure_invalid", "Sealed input paths must identify unique files")
+            keys.add(path.casefold())
+            status = entry.get("status")
+            checksum = entry.get("sha256") or entry.get("objectDigest")
+            if status == "deleted":
+                if entry.get("sha256") is not None or entry.get("objectDigest") is not None:
+                    raise JenkinsError("git_input_closure_invalid", "Deleted input contains a content identity")
+                checksum = None
+            elif (status != "present" or not isinstance(checksum, str) or len(checksum) != 64
+                  or any(c not in "0123456789abcdef" for c in checksum)
+                  or entry.get("sha256", checksum) != checksum or entry.get("objectDigest", checksum) != checksum):
+                raise JenkinsError("git_input_closure_invalid", "Sealed input content identity is invalid")
+            result.append({"path": path, "sha256": checksum, "deleted": status == "deleted",
+                           "mode": git_mode(entry.get("mode"))})
+        dependencies = manifest.get("declaredDependencies", ())
+        if (not isinstance(dependencies, (list, tuple))
+                or any(_norm(path).casefold() not in keys for path in dependencies)):
+            raise JenkinsError("git_input_closure_invalid", "Declared dependency is absent from the sealed input closure")
+        return tuple(result)
+
+    def _verify_manifest_tree(self, tree: str, manifest: Mapping[str, Any], source_digest: str) -> None:
+        entries = self._input_entries(manifest)
+        raw = subprocess.run(["git", "ls-tree", "-r", "-t", "-z", tree],
+                             cwd=self.root, check=True, capture_output=True).stdout
+        objects = {}
+        for row in raw.split(b"\0"):
+            if row:
+                header, path = row.split(b"\t", 1)
+                mode, kind, oid = header.decode("ascii").split()
+                objects[path.decode("utf-8")] = (mode, kind, oid)
+        wanted = list(dict.fromkeys(objects[e["path"]][2] for e in entries
+                      if not e["deleted"] and e["path"] in objects and objects[e["path"]][1] == "blob"))
+        checksums = {}
+        if wanted:
+            output = subprocess.run(["git", "cat-file", "--batch"], cwd=self.root,
+                input=("\n".join(wanted) + "\n").encode("ascii"), check=True, capture_output=True).stdout
+            offset = 0
+            for oid in wanted:
+                boundary = output.index(b"\n", offset)
+                returned, kind, size = output[offset:boundary].decode("ascii").split()
+                end = boundary + 1 + int(size)
+                if returned != oid or kind != "blob" or output[end:end + 1] != b"\n":
+                    raise JenkinsError("git_input_closure_invalid", "Git blob batch lost its exact object identity")
+                checksums[oid] = hashlib.sha256(output[boundary + 1:end]).hexdigest()
+                offset = end + 1
+        for entry in entries:
+            observed = objects.get(entry["path"])
+            actual = None
+            if observed and observed[1] == "blob":
+                actual = {"sha256": checksums.get(observed[2]), "mode": observed[0]}
+            matches = observed is None if entry["deleted"] else (
+                actual is not None and actual["sha256"] == entry["sha256"]
+                and (entry["mode"] is None or actual["mode"] == entry["mode"]))
+            if not matches:
+                raise JenkinsError("git_input_closure_mismatch", "Planned Git tree differs from sealed validation inputs; revalidation is required",
+                                   retryable=True, details={"path": entry["path"], "tree": tree,
+                                       "sourceDigest": source_digest, "expected": entry, "actual": actual,
+                                       "revalidationRequired": True})
+
+    def _verify_input_closures(self, tree: str, closures: tuple[Mapping[str, Any], ...]) -> None:
+        for closure in closures:
+            manifest = closure.get("manifest")
+            if not isinstance(manifest, Mapping) or digest(manifest) != closure.get("sourceDigest"):
+                raise JenkinsError("git_input_closure_invalid", "Integration input closure lost its accepted source identity")
+            if not closure.get("acceptanceReceipts"):
+                raise JenkinsError("acceptance_missing", "Complete input closure requires its accepted receipt")
+            if self.state:
+                record = self.state.get("sealed_input", closure["sourceDigest"])
+                sealed = record.get("payload", record) if record else {}
+                original = sealed.get("sourceManifest") or sealed.get("manifest")
+                if (original != manifest or sealed.get("coverageDigest") != closure.get("coverageDigest")
+                        or Path(sealed.get("repositoryRoot", "")).absolute() != self.root):
+                    raise JenkinsError("git_input_closure_binding_mismatch", "Integration closure differs from authoritative sealed State")
+                for reference in closure.get("acceptanceReceipts", ()):
+                    accepted = self.state.get("validation_acceptance", reference) or self.state.get("acceptance", reference)
+                    value = accepted.get("payload", accepted) if accepted else {}
+                    if (value.get("status") not in {"accepted", "passed"}
+                            or value.get("sourceDigest") != closure["sourceDigest"]
+                            or value.get("coverageDigest") != closure["coverageDigest"]):
+                        raise JenkinsError("acceptance_binding_mismatch", "Accepted receipt does not bind this complete input closure")
+            self._verify_manifest_tree(tree, manifest, closure["sourceDigest"])
+            if manifest.get("external"):
+                from ..source.external_inputs import sources
+                from . import _physical_repository_root
+                values = sources(manifest)
+                if len(values) != len(manifest["external"]):
+                    raise JenkinsError("git_input_closure_invalid", "External input closure is unsupported")
+                for value in values:
+                    root = _physical_repository_root(value["repositoryRoot"])
+                    if root != self.root.parent / "zr_vm":
+                        raise JenkinsError("git_input_closure_invalid", "External dependency root differs from the sealed sibling")
+                    external = GitRepository(root)
+                    external._verify_manifest_tree(external.head(), value["manifest"], value["sourceDigest"])
+
+    def verify_plan(self, plan: IntegrationPlan) -> None:
+        """Recheck the actual commit tree and its retained State input authority."""
+        if self.state:
+            if (len(plan.input_closures) != len(plan.candidates)
+                    or tuple(c.get("candidateId") for c in plan.input_closures) != tuple(plan.candidates)):
+                raise JenkinsError("git_input_closure_missing", "Journal lacks the complete accepted input closure; revalidation is required",
+                                   retryable=True, details={"revalidationRequired": True})
+            operation = self.state.get_operation(plan.operation_id)
+            registered = operation.get("payload", {}).get("plan") if operation else None
+            if (not operation or operation.get("kind") != "git_integration"
+                    or canonical_json(registered) != canonical_json(plan.__dict__)):
+                raise JenkinsError("git_plan_mismatch", "Caller cannot replace the registered integration plan")
+        tree = self._git("rev-parse", plan.planned_commit + "^{tree}")
+        parents = self._git("rev-list", "--parents", "-n", "1", plan.planned_commit).split()
+        if tree != plan.planned_tree or parents != [plan.planned_commit, plan.expected_old_head]:
+            raise JenkinsError("git_plan_mismatch", "Planned commit does not contain the recorded tree and parent")
+        self._verify_input_closures(tree, plan.input_closures)
 
     def _state_authorization(self, authorization: Mapping[str, Any] | str | None,
                              paths: list[str]) -> dict[str, Any]:
@@ -203,20 +348,24 @@ class GitRepository:
         items: list[CandidatePath] = []
         for raw_path, content in sorted(paths.items(), key=lambda item: item[0].casefold()):
             path = _norm(raw_path)
-            before_oid = self._git("rev-parse", f"HEAD:{path}", check=False) or None
+            before_oid = self._git("rev-parse", "--verify", "--quiet", f"HEAD:{path}", check=False) or None
             before = None
             if before_oid:
                 before_bytes = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=self.root,
                                               capture_output=True, check=True).stdout
                 before = hashlib.sha256(before_bytes).hexdigest()
             if content is None:
-                items.append(CandidatePath(path, None, before_digest=None, after_digest=None, deleted=True))
+                items.append(CandidatePath(path, None, before_digest=before, after_digest=None, deleted=True))
                 continue
             oid = subprocess.run(["git", "hash-object", "-w", "--stdin"], cwd=self.root,
                                   input=content, capture_output=True, check=True).stdout.decode().strip()
             items.append(CandidatePath(path, oid, "100644", before, hashlib.sha256(content).hexdigest()))
+        record = self.state.get("sealed_input", source_digest) if self.state else None
+        sealed = record.get("payload", record) if record else {}
+        manifest = sealed.get("sourceManifest") or sealed.get("manifest")
         return CandidateManifest(candidate_id or uuid.uuid4().hex, str(self.root), base,
-                                 tuple(items), source_digest, coverage_digest, acceptance_receipts)
+                                 tuple(items), source_digest, coverage_digest, acceptance_receipts,
+                                 input_manifest=manifest)
 
     def _tree(self, head: str, paths: tuple[CandidatePath, ...]) -> tuple[str, str]:
         git_dir = Path(self._git("rev-parse", "--git-dir"))
@@ -234,7 +383,7 @@ class GitRepository:
             self._git("read-tree", head, env=env)
             for p in paths:
                 if p.deleted:
-                    self._git("update-index", "--remove", "--", p.path, env=env)
+                    self._git("update-index", "--force-remove", "--", p.path, env=env)
                 else:
                     valid = bool(p.blob_oid) and subprocess.run(["git", "cat-file", "-e", str(p.blob_oid)], cwd=self.root, capture_output=True).returncode == 0
                     if not valid:
@@ -253,18 +402,42 @@ class GitRepository:
         self._check_paths(candidates)
         old = self.head()
         for c in candidates:
+            if self.state and c.input_manifest is None:
+                raise JenkinsError("git_input_closure_missing", "State-backed integration requires its complete accepted input closure; revalidation is required",
+                                   retryable=True, details={"revalidationRequired": True})
             if c.base_head != old and not self._is_ancestor(c.base_head, old):
                 raise JenkinsError("head_drift", "Candidate base is not an ancestor of current HEAD", retryable=True)
+            if c.base_head != old:
+                for path in c.paths:
+                    before = self._git("ls-tree", c.base_head, "--", path.path)
+                    current = self._git("ls-tree", old, "--", path.path)
+                    if before != current:
+                        raise JenkinsError("foreign_head_change", "An owned path changed in Git since the accepted baseline",
+                                           retryable=True, details={"path": path.path, "base": c.base_head, "head": old})
             if not c.acceptance_receipts:
                 raise JenkinsError("acceptance_missing", "Candidate has no authoritative acceptance receipt")
         paths = tuple(p for c in candidates for p in c.paths)
+        closures = tuple({"candidateId": c.candidate_id, "sourceDigest": c.source_digest,
+                          "coverageDigest": c.coverage_digest, "acceptanceReceipts": list(c.acceptance_receipts),
+                          "manifest": json.loads(canonical_json(c.input_manifest))}
+                         for c in candidates if c.input_manifest is not None)
+        for c in candidates:
+            if c.input_manifest is not None:
+                entries = {e["path"].casefold() for e in self._input_entries(c.input_manifest)}
+                dependencies = {_norm(p).casefold() for p in c.input_manifest.get("declaredDependencies", ())}
+                if (c.input_manifest.get("baseHead") != c.base_head
+                        or Path(c.repository_root).absolute() != self.root):
+                    raise JenkinsError("git_input_closure_binding_mismatch", "Candidate base and repository differ from its accepted input closure")
+                if any(_norm(p.path).casefold() not in entries or _norm(p.path).casefold() in dependencies for p in c.paths):
+                    raise JenkinsError("git_source_scope_mismatch", "Owned Git path is absent from the accepted input closure")
         authorization = self._state_authorization(authorization, [p.path for p in paths])
         tree, index_after = self._tree(old, paths)
+        self._verify_input_closures(tree, closures)
         commit = self._git("commit-tree", tree, "-p", old, "-m", message)
         op = operation_id or uuid.uuid4().hex
         plan = IntegrationPlan(op, old, tree, commit, self.index_digest(), "",
                                tuple(c.candidate_id for c in candidates), digest(dict(authorization)),
-                               tuple(p.path for p in paths))
+                               tuple(p.path for p in paths), closures)
         if self.state:
             self.state.put_operation("git_integration", op, {"plan": plan.__dict__, "authorization": dict(authorization)})
         return plan
@@ -277,6 +450,7 @@ class GitRepository:
         if current != plan.expected_old_head:
             raise JenkinsError("head_cas_failed", "HEAD changed before integration", retryable=True,
                                details={"expected": plan.expected_old_head, "actual": current})
+        self.verify_plan(plan)
         try:
             self._git("update-ref", "HEAD", plan.planned_commit, plan.expected_old_head)
         except JenkinsError:
@@ -296,16 +470,18 @@ class GitRepository:
 
     def _align_index(self, plan: IntegrationPlan) -> None:
         """Update only owned index entries, preserving foreign staging."""
+        self.verify_plan(plan)
         for path in plan.owned_paths:
             mode_oid = self._git("ls-tree", plan.planned_commit, "--", path)
             if not mode_oid:
-                self._git("update-index", "--remove", "--", path)
+                self._git("update-index", "--force-remove", "--", path)
                 continue
             header = mode_oid.split("\t", 1)[0].split()
             mode, oid = header[0], header[2]
             self._git("update-index", "--add", "--cacheinfo", mode, oid, path)
 
     def reconcile(self, plan: IntegrationPlan) -> IntegrationReceipt:
+        self.verify_plan(plan)
         head = self.head()
         index = self.index_digest()
         if head == plan.expected_old_head:
@@ -394,7 +570,10 @@ class GitRepository:
                 paths.append(CandidatePath(path, None, deleted=True))
             else:
                 paths.append(CandidatePath(path, new_oid))
+        record = self.state.get("sealed_input", source_digest) if self.state else None
+        sealed = record.get("payload", record) if record else {}
+        manifest = sealed.get("sourceManifest") or sealed.get("manifest")
         candidate = CandidateManifest(uuid.uuid4().hex, str(self.root), self.head(), tuple(paths),
-                                      source_digest, coverage_digest, acceptance_receipts)
+                                      source_digest, coverage_digest, acceptance_receipts, input_manifest=manifest)
         plan = self.plan((candidate,), authorization=authorization, message=message)
         return self.publish(plan, authorization=authorization).commit_sha

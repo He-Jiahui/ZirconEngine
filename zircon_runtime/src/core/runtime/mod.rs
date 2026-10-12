@@ -25,7 +25,7 @@ mod time;
 mod weak;
 
 pub use clock_source::{ClockSource, ManualClockSource, ManualClockSourceError};
-pub use contexts::{ModuleContext, PluginContext};
+pub use contexts::{ModuleCleanupContext, ModuleContext, PluginContext};
 pub(crate) use descriptors::FrozenModuleGraph;
 pub use descriptors::{
     sort_module_activation_order, DependencySpec, DriverDescriptor, ManagerDescriptor,
@@ -37,8 +37,8 @@ pub use frame_clock::{
     ClockDiscontinuity, ClockLifecycleTransition, FrameClock, FrameClockFirstTickPolicy,
     FrameClockRebaseCause, FrameClockRebaseReceipt,
 };
-pub(crate) use handle::RegisteredServiceIdentity;
 pub use handle::{CoreHandle, ServiceCallGuard, ServiceHandle};
+pub(crate) use handle::{RegisteredServiceIdentity, ServiceAliasSource};
 pub use lifecycle::{
     InitLevel, LifecycleState, ModuleLifecycle, NoopModuleLifecycle, ServiceKind, StartupMode,
 };
@@ -79,6 +79,9 @@ pub use time::{
     TIME_FRAME_TIME_DIAGNOSTIC,
 };
 pub use weak::CoreWeak;
+
+#[cfg(test)]
+pub(crate) use state::ServiceEntryFactory;
 
 #[cfg(test)]
 #[path = "tests/cases.rs"]

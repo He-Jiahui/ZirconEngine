@@ -31,7 +31,7 @@ fn plugin_document_inputs_reject_invalid_owner_generation_uri_and_sources() {
 }
 
 fn fixture_document_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/ui/host/workbench_shell.zui")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/ui/editor/unreal/editor_shell.zui")
 }
 
 fn source(document_id: &str) -> EditorPluginV2DocumentSource {

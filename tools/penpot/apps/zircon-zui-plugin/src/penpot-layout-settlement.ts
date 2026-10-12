@@ -1,5 +1,23 @@
 import type { RenderedLayoutAudit } from './penpot-render-layout';
 
+export type LayoutSettlementPhase =
+  | 'initial-refresh'
+  | 'first-settle'
+  | 'single-line-text-fit'
+  | 'final-refresh'
+  | 'second-settle';
+
+export interface LayoutSettlementDiagnostic {
+  phase: LayoutSettlementPhase;
+  event: 'started' | 'sample' | 'completed' | 'failed';
+  elapsedMs: number;
+  sampleCount?: number;
+  sampleMs?: number;
+  snapshotMs?: number;
+  longestSampleMs?: number;
+  lastReady?: boolean;
+}
+
 export interface LayoutStabilityOptions<T> {
   intervalMs?: number;
   quietMs?: number;
@@ -8,6 +26,8 @@ export interface LayoutStabilityOptions<T> {
   numericPrecision?: number;
   /** Additional condition required before a quiet layout is considered usable. */
   isReady?: (snapshot: T) => boolean;
+  /** Best-effort progress telemetry; it never changes settlement decisions. */
+  onDiagnostic?: (diagnostic: LayoutSettlementDiagnostic) => void;
 }
 
 /** Allow large boards time for at least two complete Penpot-owned geometry reads. */
@@ -24,17 +44,65 @@ export function layoutSettlementOptionsForNodes(nodeCount: number): {
  * stable native layout. Repeating the refresh inside every poll can starve
  * the official frontend on large component trees.
  */
+function reportLayoutDiagnostic(
+  onDiagnostic: ((diagnostic: LayoutSettlementDiagnostic) => void) | undefined,
+  diagnostic: LayoutSettlementDiagnostic,
+): void {
+  try {
+    onDiagnostic?.(diagnostic);
+  } catch {
+    // Optional telemetry cannot change the import result.
+  }
+}
+
+async function runLayoutDiagnosticPhase(
+  phase: LayoutSettlementPhase,
+  operation: () => void | Promise<void>,
+  onDiagnostic?: (diagnostic: LayoutSettlementDiagnostic) => void,
+): Promise<void> {
+  const started = Date.now();
+  reportLayoutDiagnostic(onDiagnostic, { phase, event: 'started', elapsedMs: 0 });
+  try {
+    await operation();
+  } catch (error) {
+    reportLayoutDiagnostic(onDiagnostic, {
+      phase,
+      event: 'failed',
+      elapsedMs: Date.now() - started,
+    });
+    throw error;
+  }
+  reportLayoutDiagnostic(onDiagnostic, {
+    phase,
+    event: 'completed',
+    elapsedMs: Date.now() - started,
+  });
+}
+
 export async function settleAfterLayoutRefresh<T>(
   refresh: () => void,
   snapshot: () => T,
   options: LayoutStabilityOptions<T> = {},
   afterInitialLayout?: () => void | Promise<void>,
 ): Promise<void> {
-  refresh();
-  await waitForStableLayout(() => {}, snapshot, options);
-  await afterInitialLayout?.();
-  refresh();
-  await waitForStableLayout(() => {}, snapshot, options);
+  await runLayoutDiagnosticPhase(
+    'initial-refresh',
+    refresh,
+    options.onDiagnostic,
+  );
+  await waitForStableLayout(() => {}, snapshot, options, 'first-settle');
+  if (afterInitialLayout)
+    await runLayoutDiagnosticPhase(
+      'single-line-text-fit',
+      afterInitialLayout,
+      options.onDiagnostic,
+    );
+  await runLayoutDiagnosticPhase(
+    'final-refresh',
+    refresh,
+    options.onDiagnostic,
+  );
+  await waitForStableLayout(() => {}, snapshot, options, 'second-settle');
 }
 
 /**
@@ -103,6 +171,7 @@ export async function waitForStableLayout<T>(
   update: () => void,
   snapshot: () => T,
   options: LayoutStabilityOptions<T> = {},
+  phase: LayoutSettlementPhase = 'first-settle',
 ): Promise<void> {
   const {
     intervalMs = 100,
@@ -124,15 +193,41 @@ export async function waitForStableLayout<T>(
   let latestChanges: string[] = [];
   let samples = 0;
   let longestSampleMs = 0;
+  let latestSampleMs = 0;
+  let latestSnapshotMs = 0;
+  let lastReady: boolean | undefined;
+  const diagnostic = (
+    event: LayoutSettlementDiagnostic['event'],
+  ): void => {
+    reportLayoutDiagnostic(
+      options.onDiagnostic,
+      event === 'started'
+        ? { phase, event, elapsedMs: Date.now() - started }
+        : {
+            phase,
+            event,
+            elapsedMs: Date.now() - started,
+            sampleCount: samples,
+            sampleMs: latestSampleMs,
+            snapshotMs: latestSnapshotMs,
+            longestSampleMs,
+            lastReady,
+          },
+    );
+  };
+  diagnostic('started');
   while (Date.now() - started < timeoutMs) {
     const sampleStarted = Date.now();
     update();
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
     samples += 1;
+    const snapshotStarted = Date.now();
     const value = snapshot();
-    longestSampleMs = Math.max(longestSampleMs, Date.now() - sampleStarted);
+    latestSnapshotMs = Date.now() - snapshotStarted;
     const current = stableSnapshot(value, numericPrecision);
     const ready = isReady?.(value) ?? true;
+    lastReady = ready;
+    let stable = false;
     if (current !== previous || ready !== previousReady) {
       if (previous)
         latestChanges = changedMeasurements(
@@ -143,14 +238,37 @@ export async function waitForStableLayout<T>(
       previousReady = ready;
       unchangedSince = Date.now();
     } else if (ready && Date.now() - unchangedSince >= quietMs) {
+      stable = true;
+    }
+    latestSampleMs = Date.now() - sampleStarted;
+    longestSampleMs = Math.max(longestSampleMs, latestSampleMs);
+    if (
+      stable ||
+      samples === 1 ||
+      samples % 50 === 0 ||
+      latestSampleMs >= 1_000
+    )
+      diagnostic('sample');
+    if (stable) {
+      diagnostic('completed');
       return;
     }
   }
+  diagnostic('failed');
   throw new Error(
-    `Penpot layout and text measurements did not settle after ${samples} samples (longest ${longestSampleMs}ms, elapsed ${Date.now() - started}ms): ${latestChanges.join('; ') || 'snapshot changed without a comparable diff'}${previousReady === false ? '; readiness predicate remained false' : ''}`,
+    'Penpot layout and text measurements did not settle after ' +
+      samples +
+      ' samples (longest ' +
+      longestSampleMs +
+      'ms, elapsed ' +
+      (Date.now() - started) +
+      'ms): ' +
+      (latestChanges.join('; ') || 'snapshot changed without a comparable diff') +
+      (previousReady === false
+        ? '; readiness predicate remained false'
+        : ''),
   );
 }
-
 function stableSnapshot(value: unknown, numericPrecision: number): string {
   const factor = 10 ** numericPrecision;
   const normalize = (item: unknown): unknown => {

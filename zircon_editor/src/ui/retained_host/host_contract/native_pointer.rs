@@ -19,6 +19,8 @@ mod viewport_toolbar_damage;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) use button_dispatch::asset_deletion_blocker_action_at;
 pub(in crate::ui::retained_host::host_contract) use button_dispatch::dispatch_native_pointer_button;
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract) use button_dispatch::dispatch_pane_button;
 pub(in crate::ui::retained_host::host_contract) use constants::{
     HOST_POINTER_CANCEL, HOST_POINTER_DOWN, HOST_POINTER_MOVE, HOST_POINTER_UP,
     VIEWPORT_POINTER_BUTTON_MIDDLE, VIEWPORT_POINTER_BUTTON_NONE, VIEWPORT_POINTER_BUTTON_PRIMARY,

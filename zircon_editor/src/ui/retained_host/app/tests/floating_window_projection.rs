@@ -131,7 +131,7 @@ fn child_window_host_recompute_caches_floating_window_projection_bundle_for_deta
         .as_ref()
         .expect("child window host should have shell geometry")
         .floating_window_frame(&window_id);
-    let chrome = host.runtime.chrome_snapshot();
+    let chrome = host.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,

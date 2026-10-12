@@ -15,6 +15,8 @@ pub(super) fn recompute(
     bridge
         .template_surface
         .refresh_after_state_change(bridge.runtime.as_ref())?;
+    bridge.refresh_unreal_viewport_toolbar_overflow()?;
+    bridge.refresh_mounted_module_source_publication()?;
     Ok(())
 }
 

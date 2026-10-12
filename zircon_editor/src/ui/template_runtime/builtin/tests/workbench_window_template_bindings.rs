@@ -146,6 +146,10 @@ fn top_toolbar_registered_commands_dispatch_through_the_command_registry() {
         ("MenuAction/OpenProject", "file.project.open"),
         ("MenuAction/SaveProject", "file.project.save"),
         ("MenuAction/ResetLayout", "window.layout.reset"),
+        (
+            "Workbench/OpenAssetBrowserFromToolbar",
+            "view.asset_browser.open",
+        ),
         ("Run/Play", "runtime.play_mode.enter"),
         ("Run/Stop", "runtime.play_mode.exit"),
     ] {
@@ -194,7 +198,7 @@ fn top_toolbar_asset_browser_uses_the_canonical_asset_command() {
     assert_eq!(binding.path().event_kind, EditorUiEventKind::Click);
     assert_eq!(
         binding.payload(),
-        &EditorUiBindingPayload::asset_command(AssetCommand::OpenAssetBrowser)
+        &EditorUiBindingPayload::editor_command("view.asset_browser.open")
     );
 }
 
@@ -213,4 +217,29 @@ fn assert_menu_binding(
         binding.payload(),
         &EditorUiBindingPayload::menu_action(action_id)
     );
+}
+
+#[test]
+fn asset_browser_command_preserves_context_admission_and_asset_event_effect_owner() {
+    use crate::core::commands::{CommandEvalCtx, EditorCommandRegistry, WhenClause};
+    use crate::core::editor_event::{EditorAssetEvent, EditorEvent};
+
+    let registry = EditorCommandRegistry::default_workbench();
+    let descriptor = registry
+        .command("view.asset_browser.open")
+        .expect("canonical asset browser descriptor already exists");
+    assert_eq!(descriptor.when(), &WhenClause::Always);
+    assert_eq!(descriptor.effective_when(), WhenClause::Always);
+    let event = EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser);
+    assert_eq!(descriptor.event(), Some(&event));
+    for project_open in [false, true] {
+        let context = CommandEvalCtx::interactive().with_project_open(project_open);
+        assert!(descriptor.is_enabled(&context));
+        assert_eq!(
+            registry
+                .event_for_command("view.asset_browser.open", &context)
+                .unwrap(),
+            event
+        );
+    }
 }

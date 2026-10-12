@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     WorkbenchTextFieldStyle {
         surface: text_field_surface(node, state),
         border: text_field_border(node, state),
-        text: text_field_text(state, label_is_placeholder),
+        text: text_field_text(node, state, label_is_placeholder),
         stepper: text_field_stepper(state),
         stepper_divider: text_field_stepper_divider(state),
         state,

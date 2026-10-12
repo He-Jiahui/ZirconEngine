@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::editor_message::DocumentId;
 
-use super::save::{DocumentSourceWriteAuthority, DocumentSourceWriteLease};
+use super::save::{DocumentSourceWriteAuthority, DocumentSourceWriteLease, SaveHookPanic};
 use super::{
     DocumentAutosavePayload, DocumentClearLease, DocumentCloseLease, DocumentEditLease,
     DocumentSaveReport, DocumentToolkit, DocumentToolkitDescriptor, DocumentToolkitSnapshot,
@@ -353,16 +353,33 @@ impl<Host> DocumentToolkitRegistry<Host> {
             .validate_references(host)
             .map_err(|source| SaveError::ReferenceValidationFailed { document, source })?;
         let mut context = SaveCtx::new(reason);
-        toolkit
-            .save(host, &mut context)
-            .map_err(|source| SaveError::HookFailed { document, source })?;
-        Ok(DocumentSaveReport::new(
+        // This owner retains the actual context while unwinding the hook.
+        // A panic before any real source receipt keeps its original unwind path.
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            toolkit.save(host, &mut context)
+        }));
+        let source_write_guarantee = context.source_write_guarantee();
+        let report = DocumentSaveReport::new(
             document,
             instance,
             reason,
             context.written_bytes(),
-            context.source_write_guarantee(),
-        ))
+            source_write_guarantee,
+        );
+        match outcome {
+            Ok(Ok(())) => Ok(report),
+            Ok(Err(source)) if source_write_guarantee.has_serialized_source_write() => {
+                Err(SaveError::HookFailedAfterWrite { report, source })
+            }
+            Ok(Err(source)) => Err(SaveError::HookFailed { document, source }),
+            Err(payload) if source_write_guarantee.has_serialized_source_write() => {
+                Err(SaveError::HookFailedAfterWrite {
+                    report,
+                    source: Box::new(SaveHookPanic::new(payload)),
+                })
+            }
+            Err(payload) => std::panic::resume_unwind(payload),
+        }
     }
 
     pub fn validate_references(&self, document: DocumentId, host: &Host) -> Result<(), SaveError> {

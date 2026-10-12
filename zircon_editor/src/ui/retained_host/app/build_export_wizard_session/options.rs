@@ -20,7 +20,7 @@ impl RetainedEditorHost {
         &self,
         preset_name: &str,
     ) -> Result<ExportWizardPipelineOptions, EditorExportBuildError> {
-        let project_path = self.runtime.editor_snapshot().project_path;
+        let project_path = self.runtime.editor_snapshot()?.project_path;
         let project_root = project_root_path(&project_path)?;
         let manifest_path = project_root.join("zircon-project.toml");
         let store = ExportPresetStore::new(&project_root);

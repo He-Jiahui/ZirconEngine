@@ -1,0 +1,176 @@
+# Unreal Engine Scene Outliner dock. Core supplies row text, selection and visibility.
+[asset]
+kind = "component"
+id = "res://ui/editor/unreal/components/outliner.zui"
+version = 2
+display_name = "Unreal Outliner Panel"
+
+[imports]
+widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput", "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton"]
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[components.UnrealOutlinerPanel]
+root = "panel"
+default_classes = ["unreal-outliner", "unreal-dock-panel"]
+
+[nodes.panel]
+component = "VerticalGroup"
+control_id = "WorkbenchSceneTreePanel"
+classes = ["unreal-outliner", "unreal-dock-panel"]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "tab" }, { node = "content" }]
+
+[nodes.tab]
+component = "HorizontalGroup"
+control_id = "LeftDrawerHeaderRoot"
+classes = ["unreal-dock-tab"]
+layout = { container = { kind = "HorizontalBox" }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
+children = [{ node = "title" }]
+
+[nodes.title]
+component = "Label"
+control_id = "WorkbenchSceneTitle"
+props = { text = { text_key = "editor.workbench.outliner.title", table = "editor" }, font_size = 13.333333, text_overflow = "ellipsis", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.content]
+component = "VerticalGroup"
+control_id = "LeftDrawerContentRoot"
+classes = ["unreal-outliner-content"]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "search_row" }, { node = "columns" }, { node = "tree" }]
+
+[nodes.search_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchSceneSearchRow"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "filter" }, { node = "search" }]
+
+[nodes.filter]
+component = "WorkbenchIconButton"
+control_id = "WorkbenchSceneFilter"
+props = { icon = "zircon_editor_shell/scene/filter.svg", label = "Filters", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "Hierarchy/OpenFilter", event = "Click", route = "workbench.hierarchy.open_filter" }]
+
+[nodes.search]
+component = "WorkbenchSearchInput"
+control_id = "WorkbenchSceneSearchField"
+props = { query = "", placeholder = "Search", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+widget = { value_property = "query" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "Workbench/SceneSearchEditFromShell", event = "Change", component_event = "ValueChanged", route = "workbench.hierarchy.shell_search.edit" }, { id = "Workbench/SceneSearchCommitFromShell", event = "Submit", component_event = "Commit", route = "workbench.hierarchy.shell_search.commit" }]
+
+[nodes.columns]
+component = "HorizontalGroup"
+control_id = "UnrealOutlinerColumns"
+classes = ["unreal-column-header"]
+props = { corner_radius = 0.0, border_width = 1.0, border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground_header", background_color = "$unreal_header" }
+layout = { container = { kind = "HorizontalBox" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "visibility_column" }, { node = "name_column" }, { node = "type_column" }]
+
+[nodes.visibility_column]
+component = "Label"
+control_id = "UnrealOutlinerVisibilityColumn"
+props = { foreground_color = "$unreal_foreground_header", text = "", font_size = 10.666667, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.name_column]
+component = "Label"
+control_id = "UnrealOutlinerActorLabelColumn"
+props = { foreground_color = "$unreal_foreground_header", text = "Item Label", font_size = 10.666667, text_overflow = "ellipsis", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.type_column]
+component = "Label"
+control_id = "UnrealOutlinerTypeColumn"
+props = { foreground_color = "$unreal_foreground_header", text = "Type", font_size = 10.666667, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 56.0, preferred = 72.0, max = 120.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.tree]
+component = "ScrollableBox"
+control_id = "WorkbenchSceneTree"
+props = { input_hoverable = true, input_focusable = true, tree_selection_owner = true }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+repeat = { kind = "virtual_rows", prototype = "WorkbenchSceneSlot10Item", virtual_control_prefix = "WorkbenchSceneVirtualItem", authored_count = 10, node_path_namespace = "v2" }
+children = [{ node = "row_01" }, { node = "row_02" }, { node = "row_03" }, { node = "row_04" }, { node = "row_05" }, { node = "row_06" }, { node = "row_07" }, { node = "row_08" }, { node = "row_09" }, { node = "row_10" }]
+
+[nodes.row_01]
+component = "TreeRow"
+control_id = "WorkbenchSceneRootItem"
+classes = ["unreal-outliner-row", "workbench-tree-item"]
+props = { focus_border_color = "$unreal_primary", pressed_background_color = "$editor.surface.3", hover_background_color = "#575757", component_variant = "content", text = "", visibility = "collapsed", tree_depth = 0, expanded = false, text_overflow = "ellipsis", font_size = 13.333333, background_color = "$unreal_panel", selected_background_color = "$editor.surface.selected", foreground_color = "$editor.text.primary", selected_foreground_color = "$editor.text.selected", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+events = [{ id = "Hierarchy/SelectRoot", event = "Click", route = "workbench.hierarchy.select_root" }]
+
+[nodes.row_02]
+component = "TreeRow"
+control_id = "WorkbenchSceneEnvironmentItem"
+classes = ["unreal-outliner-row", "workbench-tree-item"]
+props = { focus_border_color = "$unreal_primary", pressed_background_color = "$editor.surface.3", hover_background_color = "#575757", font_size = 13.333333, text_overflow = "ellipsis", background_color = "$unreal_panel", selected_background_color = "$editor.surface.selected", foreground_color = "$editor.text.primary", selected_foreground_color = "$editor.text.selected", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, component_variant = "content", text = "", visibility = "collapsed", tree_depth = 1, expanded = false, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+events = [{ id = "Hierarchy/SelectEnvironment", event = "Click", route = "workbench.hierarchy.select_environment" }]
+
+[nodes.row_03]
+component = "TreeRow"
+control_id = "WorkbenchSceneLevelItem"
+classes = ["unreal-outliner-row", "workbench-tree-item"]
+props = { focus_border_color = "$unreal_primary", pressed_background_color = "$editor.surface.3", hover_background_color = "#575757", font_size = 13.333333, text_overflow = "ellipsis", background_color = "$unreal_panel", selected_background_color = "$editor.surface.selected", foreground_color = "$editor.text.primary", selected_foreground_color = "$editor.text.selected", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, component_variant = "content", text = "", visibility = "collapsed", tree_depth = 1, expanded = false, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+events = [{ id = "Hierarchy/SelectLevel", event = "Click", route = "workbench.hierarchy.select_level" }]
+
+[nodes.row_04]
+component = "TreeRow"
+control_id = "WorkbenchScenePropsItem"
+classes = ["unreal-outliner-row", "workbench-tree-item"]
+props = { focus_border_color = "$unreal_primary", pressed_background_color = "$editor.surface.3", hover_background_color = "#575757", font_size = 13.333333, text_overflow = "ellipsis", background_color = "$unreal_panel", selected_background_color = "$editor.surface.selected", foreground_color = "$editor.text.primary", selected_foreground_color = "$editor.text.selected", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, component_variant = "content", text = "", visibility = "collapsed", tree_depth = 2, expanded = false, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+events = [{ id = "Hierarchy/SelectProps", event = "Click", route = "workbench.hierarchy.select_props" }]
+
+[nodes.row_05]
+component = "TreeRow"
+control_id = "WorkbenchScenePlayerItem"
+classes = ["unreal-outliner-row", "workbench-tree-item"]
+props = { focus_border_color = "$unreal_primary", pressed_background_color = "$editor.surface.3", hover_background_color = "#575757", font_size = 13.333333, text_overflow = "ellipsis", background_color = "$unreal_panel", selected_background_color = "$editor.surface.selected", foreground_color = "$editor.text.primary", selected_foreground_color = "$editor.text.selected", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, component_variant = "content", text = "", visibility = "collapsed", tree_depth = 0, expanded = false, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+events = [{ id = "Hierarchy/SelectPlayer", event = "Click", route = "workbench.hierarchy.select_player" }]
+
+[nodes.row_06]
+component = "TreeRow"
+control_id = "WorkbenchSceneAudioItem"
+classes = ["unreal-outliner-row", "workbench-tree-item"]
+props = { focus_border_color = "$unreal_primary", pressed_background_color = "$editor.surface.3", hover_background_color = "#575757", font_size = 13.333333, text_overflow = "ellipsis", background_color = "$unreal_panel", selected_background_color = "$editor.surface.selected", foreground_color = "$editor.text.primary", selected_foreground_color = "$editor.text.selected", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, component_variant = "content", text = "", visibility = "collapsed", tree_depth = 0, expanded = false, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+events = [{ id = "Hierarchy/SelectAudio", event = "Click", route = "workbench.hierarchy.select_audio" }]
+
+[nodes.row_07]
+component = "TreeRow"
+control_id = "WorkbenchSceneSlot07Item"
+classes = ["unreal-outliner-row", "workbench-tree-item"]
+props = { focus_border_color = "$unreal_primary", pressed_background_color = "$editor.surface.3", hover_background_color = "#575757", font_size = 13.333333, text_overflow = "ellipsis", background_color = "$unreal_panel", selected_background_color = "$editor.surface.selected", foreground_color = "$editor.text.primary", selected_foreground_color = "$editor.text.selected", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, component_variant = "content", text = "", visibility = "collapsed", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+events = [{ id = "Hierarchy/SelectSlot07", event = "Click", route = "workbench.hierarchy.select_slot07" }]
+
+[nodes.row_08]
+component = "TreeRow"
+control_id = "WorkbenchSceneSlot08Item"
+classes = ["unreal-outliner-row", "workbench-tree-item"]
+props = { focus_border_color = "$unreal_primary", pressed_background_color = "$editor.surface.3", hover_background_color = "#575757", font_size = 13.333333, text_overflow = "ellipsis", background_color = "$unreal_panel", selected_background_color = "$editor.surface.selected", foreground_color = "$editor.text.primary", selected_foreground_color = "$editor.text.selected", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, component_variant = "content", text = "", visibility = "collapsed", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+events = [{ id = "Hierarchy/SelectSlot08", event = "Click", route = "workbench.hierarchy.select_slot08" }]
+
+[nodes.row_09]
+component = "TreeRow"
+control_id = "WorkbenchSceneSlot09Item"
+classes = ["unreal-outliner-row", "workbench-tree-item"]
+props = { focus_border_color = "$unreal_primary", pressed_background_color = "$editor.surface.3", hover_background_color = "#575757", font_size = 13.333333, text_overflow = "ellipsis", background_color = "$unreal_panel", selected_background_color = "$editor.surface.selected", foreground_color = "$editor.text.primary", selected_foreground_color = "$editor.text.selected", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, component_variant = "content", text = "", visibility = "collapsed", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+events = [{ id = "Hierarchy/SelectSlot09", event = "Click", route = "workbench.hierarchy.select_slot09" }]
+
+[nodes.row_10]
+component = "TreeRow"
+control_id = "WorkbenchSceneSlot10Item"
+classes = ["unreal-outliner-row", "workbench-tree-item"]
+props = { focus_border_color = "$unreal_primary", pressed_background_color = "$editor.surface.3", hover_background_color = "#575757", font_size = 13.333333, text_overflow = "ellipsis", background_color = "$unreal_panel", selected_background_color = "$editor.surface.selected", foreground_color = "$editor.text.primary", selected_foreground_color = "$editor.text.selected", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, component_variant = "content", text = "", visibility = "collapsed", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
+events = [{ id = "Hierarchy/SelectSlot10", event = "Click", route = "workbench.hierarchy.select_slot10" }]

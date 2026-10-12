@@ -119,7 +119,11 @@ fn post_effect_reconcile_failure_does_not_replay_the_committed_receipt() {
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     controller
         .play_sessions()
         .request_play(PlayStartRequest::immediate(PlayKind::Play, None))

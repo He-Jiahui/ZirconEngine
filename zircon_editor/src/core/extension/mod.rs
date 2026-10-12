@@ -25,7 +25,7 @@ pub use store::{
 pub use toolkit::{
     DocumentAutosavePayload, DocumentCloseLease, DocumentEditLease, DocumentSaveReport,
     DocumentToolkit, DocumentToolkitDescriptor, DocumentToolkitRegistry, DocumentToolkitSnapshot,
-    SaveContextError, SaveCtx, SaveError, SaveReason, ToolkitArea, ToolkitAreaSlot,
+    SaveContextError, SaveCtx, SaveError, SaveHookPanic, SaveReason, ToolkitArea, ToolkitAreaSlot,
     ToolkitInstanceId, ToolkitInstanceIdError, ToolkitLayout, ToolkitLayoutError,
     ToolkitRegistryError, ToolkitSaveFailure,
 };

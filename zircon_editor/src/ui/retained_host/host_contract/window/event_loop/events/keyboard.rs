@@ -14,9 +14,17 @@ impl UiHostWindowEventLoop {
         self.host
             .global::<UiHostContext>()
             .invoke_workbench_input_activity();
-        let result = self
-            .host
-            .dispatch_keyboard_event(&event, platform_keyboard_input(platform_event.event));
+        let keyboard = platform_keyboard_input(platform_event.event);
+        if let Some(keyboard) = keyboard.as_ref() {
+            if let Some(result) = self.host.dispatch_retained_pane_platform_input(
+                zircon_runtime_interface::ui::dispatch::UiInputEvent::Keyboard(keyboard.clone()),
+            ) {
+                self.dispatch_pointer_result(result);
+                self.sync_ime_allowed();
+                return;
+            }
+        }
+        let result = self.host.dispatch_keyboard_event(&event, keyboard);
         self.dispatch_pointer_result(result);
         self.sync_ime_allowed();
     }
@@ -26,6 +34,18 @@ impl UiHostWindowEventLoop {
         self.host
             .global::<UiHostContext>()
             .invoke_workbench_input_activity();
+        if let Some(zircon_runtime_interface::ui::window::UiWindowInputPumpEvent::Input(event)) =
+            platform_event.event.as_ref()
+        {
+            if let Some(result) = self
+                .host
+                .dispatch_retained_pane_platform_input(event.clone())
+            {
+                self.dispatch_pointer_result(result);
+                self.sync_ime_allowed();
+                return;
+            }
+        }
         if let Some(text) = platform_text_input(platform_event.event) {
             let result = self.host.dispatch_focused_text_insert(&text);
             self.dispatch_pointer_result(result);

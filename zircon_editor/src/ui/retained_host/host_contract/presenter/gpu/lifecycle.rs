@@ -1,6 +1,7 @@
-use zircon_runtime::rhi::UiSurfacePresenter;
+use zircon_runtime::rhi::{RenderNativeSurfaceTarget, UiSurfacePresenter};
 
 use super::super::super::diagnostics::HostRefreshDiagnostics;
+use super::super::super::profiling_artifacts::normal_capture_hold::NormalCaptureController;
 use super::geometry::clamp_size;
 use super::GpuChromePresenter;
 use crate::ui::retained_host::host_contract::presenter::error::HostPresenterResult;
@@ -18,11 +19,22 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
             native_resize_draw_list: None,
             native_resize_generation: 0,
             submitted_text_profile: None,
+            normal_capture_controller: Default::default(),
             #[cfg(test)]
             native_resize_snapshot_build_count: 0,
             #[cfg(test)]
             native_resize_snapshot_reuse_count: 0,
         }
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn new_with_native_target(
+        surface: P,
+        size: (u32, u32),
+        target: Option<RenderNativeSurfaceTarget>,
+    ) -> Self {
+        let mut presenter = Self::new(surface, size);
+        presenter.normal_capture_controller = NormalCaptureController::for_native_target(target);
+        presenter
     }
 
     pub(in crate::ui::retained_host::host_contract) fn resize(
@@ -45,6 +57,8 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
                     .max(size.1),
             );
         }
+        self.normal_capture_controller
+            .invalidate("native-surface-resize");
         self.surface.resize(size.0, size.1)?;
         self.size = size;
         self.surface_cache_initialized = false;

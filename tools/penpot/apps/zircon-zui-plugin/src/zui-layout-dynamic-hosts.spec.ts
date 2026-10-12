@@ -1,11 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { cloneZuiDocument, parseZuiDocument, type ZuiDocument } from './bridge/zui-document';
 import {
   DYNAMIC_REVIEW_STATE_KEY,
   prepareDynamicReviewState,
 } from '../tools/zui-layout-dynamic-hosts';
 import { reviewDocumentForCase } from './bridge/zui-review-case';
+
+const authoredSourcePath = (relativePath: string): string =>
+  process.env['ZUI_LAYOUT_REPO_ROOT']
+    ? resolve(process.env['ZUI_LAYOUT_REPO_ROOT'], relativePath)
+    : fileURLToPath(new URL(`../../../../../${relativePath}`, import.meta.url));
 
 function componentDocument(
   root: string,
@@ -223,12 +229,7 @@ describe('dynamic layout review host projection', () => {
   });
 
   it('keeps the main-band drawer breakpoint contract aligned with the native host', () => {
-    const sourcePath = fileURLToPath(
-      new URL(
-        '../../../../../zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui',
-        import.meta.url,
-      ),
-    );
+    const sourcePath = authoredSourcePath('zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui');
     const source = parseZuiDocument(readFileSync(sourcePath, 'utf8')).document;
     const rightDrawer = source.nodes?.right_drawer_shell;
     expect(rightDrawer?.layout?.['width']).toMatchObject({
@@ -285,12 +286,7 @@ describe('dynamic layout review host projection', () => {
   });
 
   it('gives the authored activity rail an explicit vertical scroll contract', () => {
-    const sourcePath = fileURLToPath(
-      new URL(
-        '../../../../../zircon_editor/assets/ui/editor/components/workbench/shell/workbench_activity_rail.zui',
-        import.meta.url,
-      ),
-    );
+    const sourcePath = authoredSourcePath('zircon_editor/assets/ui/editor/components/workbench/shell/workbench_activity_rail.zui');
     const source = parseZuiDocument(readFileSync(sourcePath, 'utf8')).document;
     const rail = source.nodes?.activity_rail;
     expect(rail?.component).toBe('VerticalGroup');
@@ -305,12 +301,7 @@ describe('dynamic layout review host projection', () => {
   });
 
   it('keeps fixed toolbar groups intact inside the authored horizontal scroller', () => {
-    const sourcePath = fileURLToPath(
-      new URL(
-        '../../../../../zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui',
-        import.meta.url,
-      ),
-    );
+    const sourcePath = authoredSourcePath('zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui');
     const source = parseZuiDocument(readFileSync(sourcePath, 'utf8')).document;
     const commandRow = source.nodes?.toolbar_command_row;
     expect(commandRow?.component).toBe('ScrollableBox');

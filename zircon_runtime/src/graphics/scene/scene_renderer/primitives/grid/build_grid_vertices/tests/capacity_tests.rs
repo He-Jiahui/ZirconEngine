@@ -28,6 +28,7 @@ fn optimization_batch_20260826gh_runtime228_grid_uses_extent_derived_exact_capac
 
 #[test]
 #[ignore = "managed Windows release performance evidence"]
+// 这里只比较与 LineVertex 等宽的 Vec 填充模型；不包含真实网格坐标计算或 GPU 上传。
 fn optimization_batch_20260826gh_runtime228_grid_vertex_capacity_bench() {
     let vertex_count = GRID_INDEX_COUNT * GRID_VERTICES_PER_INDEX;
     let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
@@ -59,6 +60,7 @@ legacy_raw_ns={} optimized_raw_ns={}",
     assert!(optimized_p95_ns.saturating_mul(100) <= legacy_p95_ns.saturating_mul(70));
 }
 
+// 返回一个样本整批重复构造的耗时；分位数和阈值比较均沿用该批次单位。
 fn measure(vertex_count: usize, reserve: bool) -> u128 {
     let started = Instant::now();
     let mut checksum = 0usize;

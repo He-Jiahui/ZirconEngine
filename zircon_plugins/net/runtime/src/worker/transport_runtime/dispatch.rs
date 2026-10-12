@@ -14,10 +14,9 @@ pub(in crate::worker) fn run_worker(
     egress: mpsc::Receiver<NetEgress>,
     ingress: mpsc::SyncSender<NetIngress>,
     next_connection_id: Arc<AtomicU64>,
+    runtime: tokio::runtime::Handle,
 ) {
-    let Ok(mut core) = WorkerCore::new(ingress, next_connection_id) else {
-        return;
-    };
+    let mut core = WorkerCore::new(ingress, next_connection_id, runtime);
 
     while let Ok(command) = egress.recv() {
         if handle_command(&mut core, command, &egress) {

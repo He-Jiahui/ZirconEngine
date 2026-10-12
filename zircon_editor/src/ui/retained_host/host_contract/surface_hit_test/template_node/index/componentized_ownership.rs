@@ -1,5 +1,8 @@
 use super::{intersect_frames, reaches_ancestor, HostExtensionWorkspacePaintIndex};
-use crate::ui::retained_host::host_contract::componentized_workbench_regions::componentized_workbench_chrome_regions;
+use crate::ui::retained_host::host_contract::componentized_workbench_regions::{
+    authored_level_viewport, authored_panes, componentized_workbench_chrome_regions,
+    module_tools_popups, ModuleToolsPopup,
+};
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -8,9 +11,25 @@ pub(super) struct ComponentizedHitOwnership {
     status_bar: FrameRect,
     extension_workspace: Option<(usize, FrameRect)>,
     ordinary_panes: Vec<(usize, FrameRect)>,
+    module_tools_popups: Vec<ModuleToolsPopup>,
 }
 
 impl ComponentizedHitOwnership {
+    pub(super) fn module_tools_popup_contains_point(&self, row: usize, x: f32, y: f32) -> bool {
+        self.module_tools_popups.iter().any(|popup| {
+            popup.row == row
+                && frame_contains_point(&popup.frame, x, y)
+                && frame_contains_point(&popup.clip, x, y)
+        })
+    }
+
+    pub(super) fn module_tools_popup_clip(&self, row: usize) -> Option<&FrameRect> {
+        self.module_tools_popups
+            .iter()
+            .find(|popup| popup.row == row)
+            .map(|popup| &popup.clip)
+    }
+
     pub(super) fn row_contains_painted_point(
         &self,
         row: usize,
@@ -47,8 +66,24 @@ pub(super) fn componentized_hit_ownership(
     Some(ComponentizedHitOwnership {
         top_chrome: chrome.top_chrome,
         status_bar: chrome.status_bar,
+        module_tools_popups: module_tools_popups(presentation, frame_bounds),
         extension_workspace,
-        ordinary_panes: crate::ui::retained_host::host_contract::componentized_workbench_regions::authored_panes(presentation).into_iter().map(|pane| (pane.root_row, pane.frame)).collect(),
+        ordinary_panes: authored_panes(presentation)
+            .into_iter()
+            .filter(|pane| {
+                pane.root.control_id.as_str() != "WorkbenchMainBandViewportPanel"
+                    || pane.module_workspace.is_some()
+                    || presentation
+                        .host_scene_data
+                        .document_surfaces()
+                        .iter()
+                        .any(|document| {
+                            authored_level_viewport(presentation, document)
+                                .is_some_and(|viewport| viewport.root.node_id == pane.root.node_id)
+                        })
+            })
+            .map(|pane| (pane.root_row, pane.frame))
+            .collect(),
     })
 }
 

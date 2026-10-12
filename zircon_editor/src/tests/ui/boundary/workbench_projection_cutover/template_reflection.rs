@@ -8,7 +8,7 @@ fn workbench_main_interface_entries_are_template_backed_and_reflected() {
         "/assets/ui/editor/workbench_menu_chrome.zui",
         "/assets/ui/editor/workbench_menu_popup.zui",
         "/assets/ui/editor/workbench_page_chrome.zui",
-        "/assets/ui/editor/workbench_dock_header.zui",
+        "/assets/ui/editor/unreal/components/dock_header.zui",
         "/assets/ui/editor/workbench_status_bar.zui",
         "/assets/ui/editor/workbench_activity_rail.zui",
     ];
@@ -18,7 +18,7 @@ fn workbench_main_interface_entries_are_template_backed_and_reflected() {
 
     for asset in [
         "assets/ui/editor/host/editor_main_frame.zui",
-        "assets/ui/editor/host/workbench_shell.zui",
+        "assets/ui/editor/unreal/editor_shell.zui",
         "assets/ui/editor/host/floating_window_source.zui",
         "assets/ui/editor/host/scene_viewport_toolbar.zui",
         "assets/ui/editor/host/pane_surface_controls.zui",

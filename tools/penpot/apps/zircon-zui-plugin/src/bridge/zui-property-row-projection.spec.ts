@@ -38,14 +38,14 @@ describe('Editor retained property rows', () => {
     expect(shape.textFragments!['property-value']).toMatchObject({
       characters: 'Value',
       property: 'value',
-      fontSize: 14,
+      fontSize: 13.333333,
     });
     expect(shape.propertyRow).toMatchObject({
       labelWidth: 98,
       fieldInsetY: 3,
       fieldRadius: 4,
       fieldBorderWidth: 1,
-      fieldFill: '#0f0f0f',
+      fieldFill: '#1a1a1a',
     });
     expect(propertyRowGeometry(shape.propertyRow!, 360, 28)).toMatchObject({
       parts: {
@@ -71,14 +71,14 @@ describe('Editor retained property rows', () => {
     document.nodes!['root'].control_id = 'WorkbenchMeshRow';
     document.nodes!['root'].props!['layout_label_width'] = 92;
     document.nodes!['root'].props!['border_width'] = 0;
-    expect(projectZuiDocument(document).shapes[0].propertyRow).toMatchObject({
-      labelWidth: 108,
-      fieldBorderWidth: 1,
-    });
+    const input = projectZuiDocument(document).shapes[0];
+    expect(input.propertyRow).toBeUndefined();
+    expect(input.field).toBeDefined();
+    expect(input.text).toMatchObject({ characters: 'Value', property: 'value' });
     document.nodes!['root'].control_id = 'WorkbenchComponentPropertyRowRoot';
-    expect(projectZuiDocument(document).shapes[0].propertyRow).toMatchObject({
-      labelWidth: 108,
-    });
+    expect(projectZuiDocument(document).shapes[0].propertyRow).toBeUndefined();
+    document.nodes!['root'].component = 'PropertyRow';
+    expect(projectZuiDocument(document).shapes[0].propertyRow).toMatchObject({ labelWidth: 108 });
     delete document['penpot_host_theme_source'];
     expect(projectZuiDocument(document).shapes[0].propertyRow).toBeUndefined();
   });
@@ -166,11 +166,11 @@ describe('Editor retained property rows', () => {
       document.nodes!['root'].state = { [state]: true };
       expect(
         projectZuiDocument(document).shapes[0].propertyRow!.fieldBorder,
-      ).toBe(state === 'selected' ? '#484848' : '#66b2ff');
+      ).toBe(state === 'selected' ? '#383838' : '#0070E0');
     }
     document.nodes!['root'].props!['value'] = 'X 0 Y 1';
     expect(
       projectZuiDocument(document).shapes[0].propertyRow!.fieldBorder,
-    ).toBe('#484848');
+    ).toBe('#383838');
   });
 });

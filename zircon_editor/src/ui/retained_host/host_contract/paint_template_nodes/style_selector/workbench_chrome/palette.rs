@@ -10,7 +10,7 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_CHROME_ROOT_BG: [u8; 4] = PALETTE.shell_background;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_CHROME_TOPBAR_BG:
-    [u8; 4] = PALETTE.shell_background;
+    [u8; 4] = PALETTE.surface_panel;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_CHROME_MAIN_BG: [u8; 4] = PALETTE.shell_background;
 #[cfg(test)]
@@ -75,7 +75,7 @@ pub(super) fn workbench_chrome_palette_from_host(
 ) -> WorkbenchChromePalette {
     WorkbenchChromePalette {
         root_bg: palette.shell_background,
-        topbar_bg: palette.shell_background,
+        topbar_bg: palette.surface_panel,
         main_bg: palette.shell_background,
         rail_bg: palette.surface_inset,
         panel_bg: palette.surface,

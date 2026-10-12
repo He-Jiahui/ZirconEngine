@@ -18,13 +18,15 @@ import {
 } from './zui-layout-workbench-presentation';
 
 export const WORKBENCH_WINDOW_SOURCE =
-  'zircon_editor/assets/ui/editor/windows/workbench_window.zui';
+  'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
+const MENU_POPUPS_SOURCE =
+  'zircon_editor/assets/ui/editor/unreal/components/menu_popups.zui';
 const SCENE_TREE_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui';
+  'zircon_editor/assets/ui/editor/unreal/components/outliner.zui';
 const INSPECTOR_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui';
+  'zircon_editor/assets/ui/editor/unreal/components/details.zui';
 const TOOLBAR_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui';
+  'zircon_editor/assets/ui/editor/unreal/components/toolbar.zui';
 const SNAPSHOTS_PATH = 'docs/_data/layout/workbench-product-state.json';
 export const LONG_ENGLISH_NAME =
   'Cube — an intentionally long English scene object label used to check hierarchy row and inspector title overflow without losing entity identity';
@@ -53,12 +55,12 @@ const ROOT: WorkbenchStateSelector = {
 };
 const SEARCH: WorkbenchStateSelector = {
   sourcePath: SCENE_TREE_SOURCE,
-  sourceNodeId: 'scene_search_field',
+  sourceNodeId: 'search',
   controlId: 'WorkbenchSceneSearchField',
 };
 const SCENE_SCROLL: WorkbenchStateSelector = {
   sourcePath: SCENE_TREE_SOURCE,
-  sourceNodeId: 'scene_tree',
+  sourceNodeId: 'tree',
   controlId: 'WorkbenchSceneTree',
 };
 
@@ -124,7 +126,7 @@ export async function readWorkbenchCaseSnapshots(
   );
   if (parsed['sourceFingerprint']['sourcePath'] !== WORKBENCH_WINDOW_SOURCE)
     throw new Error(
-      'Workbench snapshot source path is not the product WorkbenchWindow',
+      'Workbench snapshot source path is not the product Unreal level editor window',
     );
   const currentSourceSha = createHash('sha256')
     .update(await readFile(resolve(repoRoot, WORKBENCH_WINDOW_SOURCE)))
@@ -216,24 +218,29 @@ function validateLongTextProductState(
     );
 }
 
+const MENU_POPUPS = [
+  ['file_popup', 'UnrealFileMenuPopup', ['open', 'closed', 'focus-return']],
+  ['edit_popup', 'UnrealEditMenuPopup', ['open', 'closed', 'focus-return']],
+  ['window_popup', 'UnrealWindowMenuPopup', ['open', 'closed', 'focus-return']],
+  ['tools_popup', 'UnrealToolsMenuPopup', ['open', 'closed', 'focus-return']],
+  ['build_popup', 'UnrealBuildMenuPopup', ['open', 'closed', 'focus-return']],
+  ['help_popup', 'UnrealHelpMenuPopup', ['open', 'closed', 'focus-return']],
+  ['modes_popup', 'UnrealModesMenuPopup', ['open', 'closed', 'focus-return']],
+  ['add_popup', 'UnrealAddMenuPopup', ['open', 'closed', 'focus-return']],
+  ['blueprints_popup', 'UnrealBlueprintsMenuPopup', ['open', 'closed', 'focus-return']],
+  ['cinematics_popup', 'UnrealCinematicsMenuPopup', ['open', 'closed', 'focus-return']],
+  ['settings_popup', 'UnrealSettingsMenuPopup', ['open', 'closed', 'focus-return']],
+  ['run_mode_popup', 'WorkbenchRunModeMenu', ['open', 'closed', 'focus-return']],
+] as const;
+
 function popupSelector(
-  document: ZuiDocument,
-  nodeId: string,
+  sourceNodeId: string,
+  controlId: string,
 ): WorkbenchStateSelector {
-  const node = document.nodes?.[nodeId];
-  if (!node || typeof node.control_id !== 'string' || !node.control_id)
-    throw new Error(
-      `Workbench popup ${nodeId} is missing from the authored root`,
-    );
-  if (
-    !Object.hasOwn(node.props ?? {}, 'popup_open') &&
-    !Object.hasOwn(node.props ?? {}, 'open')
-  )
-    throw new Error(`Workbench popup ${nodeId} has no authored open state`);
   return {
-    sourcePath: WORKBENCH_WINDOW_SOURCE,
-    sourceNodeId: nodeId,
-    controlId: node.control_id,
+    sourcePath: MENU_POPUPS_SOURCE,
+    sourceNodeId,
+    controlId,
   };
 }
 
@@ -312,7 +319,7 @@ function withHierarchyViewState(
  */
 export function buildWorkbenchReviewCases(
   cases: LayoutReviewCase[],
-  originalDocument: ZuiDocument,
+  _originalDocument: ZuiDocument,
   snapshots: WorkbenchCaseSnapshots,
 ): LayoutReviewCase[] {
   if (
@@ -320,9 +327,9 @@ export function buildWorkbenchReviewCases(
     cases.some((item) => item.sourcePath !== WORKBENCH_WINDOW_SOURCE)
   )
     throw new Error(
-      'Workbench cases must contain only the authored WorkbenchWindow',
+      'Workbench cases must contain only the authored Unreal level editor window',
     );
-  const mainMenu = popupSelector(originalDocument, 'toolbar_main_menu');
+  const mainMenu = popupSelector('file_popup', 'UnrealFileMenuPopup');
   const selectedSnapshot = snapshots.states.selected;
   const emptySnapshot = snapshots.states.empty;
   const defaultSnapshot = snapshots.states.default;
@@ -479,30 +486,11 @@ export function buildWorkbenchReviewCases(
     });
   }
 
-  // Each popup is authored in the window root and stays distinct from the
-  // selected main-menu case already present at all four requested sizes.
-  for (const nodeId of [
-    'toolbar_run_mode_menu',
-    'toolbar_layout_menu',
-    'toolbar_module_overflow_menu',
-    'assets_world_tools_menu',
-    'assets_gameplay_tools_menu',
-    'assets_production_tools_menu',
-    'ability_animation_tools_menu',
-    'render_tools_menu',
-    'hud_tools_menu',
-    'command_palette',
-    'settings_window',
-    'notification_center',
-  ]) {
-    const selector = popupSelector(originalDocument, nodeId);
-    const states = [
-      'command_palette',
-      'settings_window',
-      'notification_center',
-    ].includes(nodeId)
-      ? (['open', 'closed'] as const)
-      : (['open', 'closed', 'focus-return'] as const);
+  // Popup controls are authored by the Unreal menu component. Keep each
+  // selector tied to its real source node instead of the removed Workbench
+  // toolbar popup aliases.
+  for (const [nodeId, controlId, states] of MENU_POPUPS) {
+    const selector = popupSelector(nodeId, controlId);
     for (const state of states)
       result.push({
         ...baseline,
@@ -521,7 +509,7 @@ export function buildWorkbenchReviewCases(
       'inspector',
       {
         sourcePath: INSPECTOR_SOURCE,
-        sourceNodeId: 'inspector_content',
+        sourceNodeId: 'content',
         controlId: 'RightDrawerContentRoot',
       },
       selectedSnapshot,
@@ -530,8 +518,8 @@ export function buildWorkbenchReviewCases(
       'toolbar',
       {
         sourcePath: TOOLBAR_SOURCE,
-        sourceNodeId: 'module_tab_scroll',
-        controlId: 'WorkbenchModuleTabScroll',
+        sourceNodeId: 'command_scroll',
+        controlId: 'WorkbenchToolbarCommandRow',
       },
       defaultSnapshot,
     ],

@@ -346,7 +346,7 @@ impl ResourceStreamer {
     pub(crate) fn resolve_ui_texture_id(&self, requested: ResourceId) -> Option<ResourceId> {
         self.asset_manager()
             .ok()
-            .map(|asset_manager| resolve_ui_texture_id(asset_manager.as_ref(), requested))
+            .map(|asset_manager| resolve_ui_texture_id(&*asset_manager, requested))
     }
 
     pub(crate) fn ui_texture_ref(

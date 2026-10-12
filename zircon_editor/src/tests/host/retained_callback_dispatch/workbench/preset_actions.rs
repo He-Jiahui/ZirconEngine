@@ -22,7 +22,7 @@ fn save_preset_menu_action_dispatch_updates_active_preset_name_and_status_line()
     assert!(!effects.render_dirty);
     assert!(!effects.reset_active_layout_preset);
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         "Saved layout preset asset rider"
     );
 }
@@ -51,7 +51,7 @@ fn load_preset_menu_action_without_suffix_falls_back_to_current_name() {
     assert!(!effects.render_dirty);
     assert!(!effects.reset_active_layout_preset);
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         "Loaded layout preset current"
     );
 }

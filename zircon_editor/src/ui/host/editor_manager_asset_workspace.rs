@@ -13,10 +13,10 @@ impl EditorManager {
     }
 
     pub fn keep_ui_asset_editor_local_and_save(
-        &self,
+        original: zircon_runtime::core::runtime::ServiceHandle<Self>,
         instance_id: &ViewInstanceId,
     ) -> Result<String, EditorError> {
-        self.host.keep_ui_asset_editor_local_and_save(instance_id)
+        Self::save_ui_asset_editor(original, instance_id)
     }
 
     pub fn revert_ui_asset_editor_to_last_valid(

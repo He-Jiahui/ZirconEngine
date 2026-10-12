@@ -12,6 +12,9 @@ impl UiHostWindowEventLoop {
     }
 
     pub(super) fn handle_native_window_focus_lost(&mut self) {
+        let preview_canceled = self.host.finish_retained_pane_input(
+            zircon_runtime_interface::ui::window::UiWindowEventKind::Focused { focused: false },
+        );
         let capture_canceled = self.cancel_native_pointer_capture();
         let host = self.host.global::<UiHostContext>();
         host.set_menu_state(HostMenuStateData::default());
@@ -19,7 +22,9 @@ impl UiHostWindowEventLoop {
         host.set_host_dock_overflow_menu_state(HostDockOverflowMenuStateData::default());
         host.invoke_native_window_focus_lost();
         self.dispatch_pointer_result(self.host.clear_template_button_press());
-        if capture_canceled {
+        self.dispatch_pointer_result(self.host.clear_template_focus_owner());
+        self.sync_ime_allowed();
+        if capture_canceled || preview_canceled {
             self.host.request_frame_update();
         }
     }
@@ -34,5 +39,13 @@ impl UiHostWindowEventLoop {
             host.invoke_host_resize_pointer_event(HOST_POINTER_CANCEL, 0.0, 0.0);
         }
         drag_canceled || resize_canceled
+    }
+}
+
+#[cfg(test)]
+impl crate::ui::retained_host::host_contract::UiHostWindow {
+    pub(crate) fn dispatch_ui_asset_native_focus_lost_for_test(&self) {
+        let mut event_loop = UiHostWindowEventLoop::new(self.clone_strong());
+        event_loop.handle_native_window_focus_lost();
     }
 }

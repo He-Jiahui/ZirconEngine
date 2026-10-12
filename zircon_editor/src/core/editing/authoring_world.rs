@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use thiserror::Error;
 
-use zircon_runtime::scene::{LevelSystem, PreparedLevel, Scene};
+use zircon_runtime::scene::{LevelSystem, PreparedLevel, PreparedLevelPublishError, Scene};
 
 use crate::core::gateway::{
     DetachedEditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError, GatewaySessionIdentity,
@@ -298,12 +298,18 @@ impl EditorAuthoringWorld {
                 self.gateway.replace(gateway)?;
             }
             AuthoringWorldSeed::Prepared(level) => {
-                let publication = level.publish();
-                let gateway: SharedEditorRuntimeGateway = Arc::new(
-                    InProcessGateway::for_authoring_level(publication.level().clone()),
-                );
-                self.gateway.replace(gateway)?;
-                publication.commit();
+                level
+                    .try_publish_with(|published| {
+                        let gateway: SharedEditorRuntimeGateway =
+                            Arc::new(InProcessGateway::for_authoring_level(published.clone()));
+                        self.gateway.replace(gateway)
+                    })
+                    .map_err(|error| match error {
+                        PreparedLevelPublishError::Admission(error) => GatewayError::Runtime {
+                            message: error.to_string(),
+                        },
+                        PreparedLevelPublishError::Install(error) => error,
+                    })?;
             }
         }
         self.gateway_identity = self.gateway.identity();

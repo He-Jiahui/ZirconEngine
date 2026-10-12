@@ -10,6 +10,8 @@ impl RetainedEditorHost {
     ) -> Result<(), String> {
         let target = self
             .editor_manager
+            .enter()
+            .map_err(|error| error.to_string())?
             .active_project_session_focus_target()
             .map(|(project_root, instance_id, session_generation)| {
                 HubFocusBindingTarget::new(project_root, instance_id, session_generation)

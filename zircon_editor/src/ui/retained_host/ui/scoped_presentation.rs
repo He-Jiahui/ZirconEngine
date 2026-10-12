@@ -211,6 +211,7 @@ fn next_ui_asset_pane(
     }
     let mut next = pane.clone();
     next.ui_asset = ui_asset.clone();
+    project_ui_asset_shell(&mut next.ui_asset, content_frame);
     rebuild_pane_template_hit_artifacts(
         &mut next,
         zircon_runtime_interface::ui::layout::UiSize::new(
@@ -219,6 +220,68 @@ fn next_ui_asset_pane(
         ),
     );
     Some(next)
+}
+
+fn project_ui_asset_shell(data: &mut UiAssetEditorPaneData, content_frame: &FrameRect) {
+    if data.collections.palette.items.row_count() == 0 {
+        return;
+    }
+    use super::template_node_conversion::to_host_contract_template_node_owned;
+    use crate::ui::asset_editor::{
+        apply_ui_asset_editor_designer_tool_mode, ui_asset_editor_node_projection_with_palette,
+    };
+    use crate::ui::layouts::common::model_rc;
+    let labels = data
+        .collections
+        .palette
+        .items
+        .iter()
+        .map(|label| label.to_string())
+        .collect::<Vec<_>>();
+    let mut projection = ui_asset_editor_node_projection_with_palette(
+        zircon_runtime_interface::ui::layout::UiSize::new(
+            content_frame.width.max(1.0),
+            content_frame.height.max(1.0),
+        ),
+        &labels,
+        data.collections.palette_visible_start,
+        data.collections.palette.selected_index,
+    );
+    apply_ui_asset_editor_designer_tool_mode(
+        &mut projection.nodes,
+        data.designer_tools.mode.as_str(),
+    );
+    for node in &mut projection.nodes {
+        if node.control_id.as_str() == "HeaderStatusCaption" {
+            node.text = data.preview.summary.clone();
+        }
+    }
+    let mut nodes = projection
+        .nodes
+        .into_iter()
+        .map(to_host_contract_template_node_owned)
+        .collect::<Vec<_>>();
+    // Keep the current converted detail controls, replacing only the authored shell rows.
+    let detail_nodes = data
+        .nodes
+        .iter()
+        .filter(|node| {
+            !nodes
+                .iter()
+                .any(|shell| shell.control_id == node.control_id)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    nodes.extend(detail_nodes);
+    data.nodes = model_rc(nodes);
+    data.center_column_node = to_host_contract_template_node_owned(projection.center_column_node);
+    data.designer_panel_node = to_host_contract_template_node_owned(projection.designer_panel_node);
+    data.designer_canvas_panel_node =
+        to_host_contract_template_node_owned(projection.designer_canvas_panel_node);
+    data.inspector_panel_node =
+        to_host_contract_template_node_owned(projection.inspector_panel_node);
+    data.stylesheet_panel_node =
+        to_host_contract_template_node_owned(projection.stylesheet_panel_node);
 }
 
 #[cfg(test)]
@@ -424,6 +487,7 @@ fn patch_ui_asset_pane(
         return false;
     }
     pane.ui_asset = ui_asset.clone();
+    project_ui_asset_shell(&mut pane.ui_asset, content_frame);
     rebuild_pane_template_hit_artifacts(
         pane,
         zircon_runtime_interface::ui::layout::UiSize::new(

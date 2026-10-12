@@ -7,9 +7,10 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
     let path = unique_temp_path("zircon_editor_asset_promote_theme");
     let project_root = unique_temp_dir("zircon_editor_asset_promote_theme_project");
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     create_project_with_default_world(&project_root);
 
     let layout_path = project_root
@@ -65,9 +66,10 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
     assert!(promoted.theme_selected_source_available);
     assert!(!promoted.theme_can_promote_local);
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor after theme promote");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     assert!(document.tokens.is_empty());
@@ -124,9 +126,10 @@ fn editor_manager_uses_custom_promote_theme_draft_values() {
     let path = unique_temp_path("zircon_editor_asset_promote_theme_custom");
     let project_root = unique_temp_dir("zircon_editor_asset_promote_theme_custom_project");
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     create_project_with_default_world(&project_root);
 
     let layout_path = project_root
@@ -170,9 +173,10 @@ fn editor_manager_uses_custom_promote_theme_draft_values() {
     assert_eq!(theme_asset.asset.id, "ui.theme.custom.editor_shell");
     assert_eq!(theme_asset.asset.display_name, "Editor Shell Theme");
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor after custom theme promote");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     assert_eq!(
@@ -191,9 +195,10 @@ fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
     let path = unique_temp_path("zircon_editor_asset_detach_theme");
     let project_root = unique_temp_dir("zircon_editor_asset_detach_theme_project");
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     create_project_with_default_world(&project_root);
 
     let layout_path = project_root
@@ -254,9 +259,10 @@ fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
         ]
     );
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save detached theme ui asset");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved detached ui asset");
     assert!(document.imports.styles.is_empty());
@@ -328,9 +334,10 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
     let path = unique_temp_path("zircon_editor_asset_clone_theme");
     let project_root = unique_temp_dir("zircon_editor_asset_clone_theme_project");
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     create_project_with_default_world(&project_root);
 
     let layout_path = project_root
@@ -382,9 +389,10 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
         ]
     );
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save cloned theme ui asset");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved cloned ui asset");
     assert_eq!(

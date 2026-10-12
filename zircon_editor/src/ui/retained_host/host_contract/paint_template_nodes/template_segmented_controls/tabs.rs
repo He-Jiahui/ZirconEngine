@@ -36,6 +36,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_wo
             opacity,
         ));
     }
+    if let Some(border) = style.border {
+        // Canvas strokes are inside these original bounds; the independent quad
+        // keeps the surface recipe and the later selected underline unchanged.
+        commands.push(HostPaintCommand::quad(
+            rect.clone(),
+            Some(clip.clone()),
+            order + 1,
+            None,
+            Some(border),
+            style.border_width,
+            0.0,
+            opacity,
+        ));
+    }
     if node.checked || node.selected {
         let underline = tab_underline_rect(&rect);
         if intersect(&underline, clip).is_some() {

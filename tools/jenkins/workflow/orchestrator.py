@@ -20,6 +20,8 @@ TEMPLATES = {
     "cross_module": ("patch", "syntax", "format", "build", "unit_test", "integration_test", "acceptance", "commit", "notify", "gc"),
     "failure_repair": ("patch", "syntax", "format", "build", "unit_test", "regression_test", "acceptance", "commit", "notify", "gc"),
     "cache_maintenance": ("gc",),
+    "editor_product_development": ("source", "package_check", "build", "unit_test", "editor_exe", "runtime_dll", "package", "acceptance"),
+    "editor_product_shipping": ("source", "package_check", "build", "unit_test", "editor_exe", "runtime_dll", "package", "acceptance"),
 }
 
 @dataclass(frozen=True)

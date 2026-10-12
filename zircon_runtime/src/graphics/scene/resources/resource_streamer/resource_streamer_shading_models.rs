@@ -33,7 +33,7 @@ impl ResourceStreamer {
                     message: error.to_string(),
                 })?;
         ShadingModelIncludeSourceSet::from_project_asset_manager_iter(
-            asset_manager.as_ref(),
+            &*asset_manager,
             self.shading_model_registry.descriptors(),
         )
     }

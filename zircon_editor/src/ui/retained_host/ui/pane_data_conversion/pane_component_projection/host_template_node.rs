@@ -76,6 +76,46 @@ pub(in super::super) fn host_template_node(
     let visual_state = projected_visual_state(&node.attributes);
     let clip_frame = projected_clip_frame(node.clip_frame.as_ref());
 
+    let authored_field_colors = [
+        "background_color",
+        "hover_background_color",
+        "pressed_background_color",
+        "focused_background_color",
+        "focus_background_color",
+        "border_color",
+        "hover_border_color",
+        "focus_border_color",
+        "foreground_color",
+        "text_color",
+        "placeholder_color",
+        "disabled_background_color",
+        "disabled_border_color",
+        "disabled_foreground_color",
+        "error_border_color",
+    ]
+    .into_iter()
+    .filter_map(|key| {
+        let value = node
+            .style_overrides
+            .get(key)
+            .or_else(|| node.attributes.get(key))?
+            .clone();
+        // Reuse the runtime style color parser; no separate CSS parser or token aliases.
+        let values = std::collections::BTreeMap::from([("foreground_color".to_owned(), value)]);
+        zircon_runtime::ui::style::resolve_button_style_from_values(&values)
+            .element
+            .foreground_color
+            .map(|color| (key.to_owned(), color))
+    })
+    .collect();
+
+    let authored_focus_border_width = node
+        .style_overrides
+        .get("focus_border_width")
+        .or_else(|| node.attributes.get("focus_border_width"))
+        .and_then(super::super::pane_value_conversion::value_as_f64)
+        .map(|value| value as f32)
+        .filter(|value| value.is_finite() && *value >= 0.0);
     let surface_node_id = node.surface_node_id;
     let property_field_id = node
         .attributes
@@ -115,6 +155,13 @@ pub(in super::super) fn host_template_node(
         visual_style,
         clip_frame,
     });
+    projected.tree_owner_focused = surface_node_id.and_then(|_| {
+        node.attributes
+            .get("tree_owner_focused")
+            .and_then(toml::Value::as_bool)
+    });
+    projected.authored_field_colors = authored_field_colors;
+    projected.authored_focus_border_width = authored_focus_border_width;
     projected.surface_node_id = surface_node_id;
     projected.inspector_property_field_id = property_field_id.into();
     projected.inspector_property_item_key = property_item_key.into();

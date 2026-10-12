@@ -43,7 +43,10 @@ fn assert_cycle_rejected(world: &mut World, roots: &[EntityId], cycle: &[EntityI
     for remove in [false, true] {
         let error = if remove {
             match world.remove_entity_subtrees(roots.iter().copied()) {
-                Err(error) => error,
+                Err(DetachedEntityBatchRemoveError::Rejected(error)) => error,
+                Err(error) => {
+                    panic!("preflight cycle rejection must not be cancellation: {error:?}")
+                }
                 Ok(_) => panic!("a cyclic root union must not commit even an empty batch"),
             }
         } else {

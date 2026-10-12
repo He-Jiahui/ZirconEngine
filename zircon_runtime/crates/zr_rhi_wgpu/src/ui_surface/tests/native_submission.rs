@@ -973,3 +973,56 @@ fn offscreen_test_device() -> Option<(wgpu::Device, wgpu::Queue)> {
     }))
     .ok()
 }
+
+#[test]
+fn normal_readback_preserves_the_actual_surface_encoder_ticket_and_image_pins() {
+    let owner = include_str!("../../ui_surface.rs");
+    let render = include_str!("../presentation.rs");
+    let readback = include_str!("../frame_readback.rs");
+    let prepare = render
+        .find("self.prepare_frame_readback(draw_list, &mut encoder)")
+        .expect("same normal encoder must prepare its readback tail");
+    let diagnostic_submit = render
+        .find("self.submit_present_command_buffer_with_diagnostics(")
+        .expect("normal readback must submit its actual packet");
+    let ordinary_submit = render
+        .find("self.submit_present_command_buffer(encoder.finish(), image_allocation_pins)?")
+        .expect("ordinary normal present must retain its existing packet owner");
+    let commit = render
+        .find("retained_cache.mark_ordinary_baseline_ready()")
+        .expect("retained baseline must commit only after actual submission");
+    let present = render
+        .find("surface_texture.present()")
+        .expect("actual window texture must present after successful owner submission");
+    assert!(
+        prepare < diagnostic_submit
+            && diagnostic_submit < commit
+            && ordinary_submit < commit
+            && commit < present
+    );
+    let branch = owner
+        .split("fn submit_present_command_buffer_with_diagnostics(")
+        .nth(1)
+        .expect("typed frame owner must be explicit");
+    assert!(branch.contains("packet.retain_ui_image_pins(pins)"));
+    assert!(
+        branch.contains(".submit_native_recording_packet_with_diagnostics(packet, Some(frame))")
+    );
+    assert_eq!(
+        branch
+            .matches("abort_prepared_native_diagnostic_readback_frame(frame)")
+            .count(),
+        2,
+        "both construction failures must terminate their owned unbound frame"
+    );
+    assert!(!branch.contains(".queue.submit("));
+    let register = readback.find("owner.register_receipt_callback(").unwrap();
+    let encode = readback
+        .find(".prepare_native_diagnostic_readback_frame(")
+        .unwrap();
+    assert!(
+        register < encode,
+        "the existing delivery router must own the request before encoding/submission"
+    );
+    assert!(!readback.contains("abort_diagnostic_readback_frame("));
+}

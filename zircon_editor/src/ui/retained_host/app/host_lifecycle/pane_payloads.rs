@@ -18,43 +18,45 @@ impl RetainedEditorHost {
         chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
         target_kind: ViewContentKind,
         target_instance_id: Option<&str>,
-    ) -> HostLifecyclePanePayloads {
+    ) -> Result<HostLifecyclePanePayloads, crate::ui::host::EditorError> {
         zircon_runtime::profile_scope!(
             "editor",
             "retained_host",
             "recompute_collect_shell_content_payloads"
         );
-        let preset_names = self.runtime.preset_names();
+        let preset_names = self.runtime.preset_names()?;
         let collect_ui_asset_panes = target_kind == ViewContentKind::UiAssetEditor;
         let collect_animation_panes = matches!(
             target_kind,
             ViewContentKind::AnimationSequenceEditor | ViewContentKind::AnimationGraphEditor
         );
         let ui_asset_panes = if collect_ui_asset_panes {
-            target_instance_id
-                .and_then(|instance_id| {
+            match target_instance_id {
+                Some(instance_id) => {
                     let view_id = ViewInstanceId::new(instance_id);
-                    self.editor_manager
-                        .ui_asset_editor_pane_presentation(&view_id)
-                        .ok()
-                        .map(|presentation| (instance_id.to_owned(), presentation))
-                })
-                .into_iter()
-                .collect()
+                    let presentation = self
+                        .editor_manager
+                        .enter()?
+                        .ui_asset_editor_pane_presentation(&view_id)?;
+                    std::iter::once((instance_id.to_owned(), presentation)).collect()
+                }
+                None => BTreeMap::new(),
+            }
         } else {
             BTreeMap::new()
         };
         let animation_panes = if collect_animation_panes {
-            target_instance_id
-                .and_then(|instance_id| {
+            match target_instance_id {
+                Some(instance_id) => {
                     let view_id = ViewInstanceId::new(instance_id);
-                    self.editor_manager
-                        .animation_editor_pane_presentation(&view_id)
-                        .ok()
-                        .map(|presentation| (instance_id.to_owned(), presentation))
-                })
-                .into_iter()
-                .collect()
+                    let presentation = self
+                        .editor_manager
+                        .enter()?
+                        .animation_editor_pane_presentation(&view_id)?;
+                    std::iter::once((instance_id.to_owned(), presentation)).collect()
+                }
+                None => BTreeMap::new(),
+            }
         } else {
             BTreeMap::new()
         };
@@ -62,32 +64,34 @@ impl RetainedEditorHost {
             target_kind,
             ViewContentKind::RuntimeDiagnostics | ViewContentKind::PerformanceTimeline
         ) {
-            self.runtime_diagnostics_with_profile()
+            self.runtime_diagnostics_with_profile()?
         } else {
             RuntimeDiagnosticsSnapshot::default()
         };
         let module_plugins = if target_kind == ViewContentKind::ModulePlugins {
-            self.module_plugins_pane_data(chrome)
+            self.module_plugins_pane_data(chrome)?
         } else {
             ModulePluginsPaneViewData::default()
         };
         let build_export = if target_kind == ViewContentKind::BuildExport {
-            self.build_export_pane_data(chrome)
+            self.build_export_pane_data(chrome)?
         } else {
             BuildExportPaneViewData::default()
         };
-        let template_v2_data = target_instance_id
+        let template_v2_data = match target_instance_id
             .and_then(|instance_id| find_tab_snapshot(chrome, instance_id))
             .and_then(|tab| tab.pane_template.as_ref())
-            .and_then(|template| {
-                self.runtime
-                    .ui_template_pane_data_snapshot(&template.body.document_id)
-                    .map(|snapshot| (template.body.document_id.clone(), snapshot))
-            })
-            .into_iter()
-            .collect();
+        {
+            Some(template) => self
+                .runtime
+                .ui_template_pane_data_snapshot(&template.body.document_id)?
+                .map(|snapshot| (template.body.document_id.clone(), snapshot))
+                .into_iter()
+                .collect(),
+            None => BTreeMap::new(),
+        };
 
-        HostLifecyclePanePayloads {
+        Ok(HostLifecyclePanePayloads {
             preset_names,
             ui_asset_panes,
             animation_panes,
@@ -95,14 +99,14 @@ impl RetainedEditorHost {
             module_plugins,
             build_export,
             template_v2_data,
-        }
+        })
     }
 
     pub(super) fn collect_host_lifecycle_pane_payloads(
         &self,
         model: &WorkbenchViewModel,
         chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
-    ) -> HostLifecyclePanePayloads {
+    ) -> Result<HostLifecyclePanePayloads, crate::ui::host::EditorError> {
         zircon_runtime::profile_scope!(
             "editor",
             "retained_host",
@@ -110,7 +114,7 @@ impl RetainedEditorHost {
         );
         let preset_names = {
             zircon_runtime::profile_scope!("editor", "retained_host", "collect_preset_names");
-            self.runtime.preset_names()
+            self.runtime.preset_names()?
         };
         let collect_ui_asset_panes = pane_payload_visibility::should_collect_payload_for_kind(
             model,
@@ -131,14 +135,14 @@ impl RetainedEditorHost {
                     "collect_editor_pane_instance_ids"
                 );
                 self.runtime
-                    .editor_pane_instance_ids(collect_ui_asset_panes, collect_animation_panes)
+                    .editor_pane_instance_ids(collect_ui_asset_panes, collect_animation_panes)?
             } else {
                 (Vec::new(), Vec::new())
             };
         let (ui_asset_panes, animation_panes) = if collect_ui_asset_panes || collect_animation_panes
         {
             zircon_runtime::profile_scope!("editor", "retained_host", "collect_editor_panes");
-            self.collect_editor_panes(ui_asset_instance_ids, animation_instance_ids)
+            self.collect_editor_panes(ui_asset_instance_ids, animation_instance_ids)?
         } else {
             (BTreeMap::new(), BTreeMap::new())
         };
@@ -148,7 +152,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "collect_runtime_diagnostics"
             );
-            self.collect_runtime_diagnostics_payload()
+            self.collect_runtime_diagnostics_payload()?
         };
         let module_plugins = {
             zircon_runtime::profile_scope!(
@@ -156,18 +160,18 @@ impl RetainedEditorHost {
                 "retained_host",
                 "collect_module_plugins_pane"
             );
-            self.collect_module_plugins_pane_payload(model, chrome)
+            self.collect_module_plugins_pane_payload(model, chrome)?
         };
         let build_export = {
             zircon_runtime::profile_scope!("editor", "retained_host", "collect_build_export_pane");
-            self.collect_build_export_pane_payload(model, chrome)
+            self.collect_build_export_pane_payload(model, chrome)?
         };
         let template_v2_data = {
             zircon_runtime::profile_scope!("editor", "retained_host", "collect_template_v2_data");
-            self.runtime.ui_template_pane_data_snapshots()
+            self.runtime.ui_template_pane_data_snapshots()?
         };
 
-        HostLifecyclePanePayloads {
+        Ok(HostLifecyclePanePayloads {
             preset_names,
             ui_asset_panes,
             animation_panes,
@@ -175,7 +179,7 @@ impl RetainedEditorHost {
             module_plugins,
             build_export,
             template_v2_data,
-        }
+        })
     }
 }
 

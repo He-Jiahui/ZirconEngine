@@ -2,7 +2,7 @@ param(
     [string]$Scenario = "manual",
     [string[]]$ScenarioList = @(),
     [switch]$AllUiScenarios,
-    [string]$OutputRoot = "E:\zircon-profiles",
+    [string]$OutputRoot = "D:\cargo-targets\zircon-local\profiles",
     [string]$ProductDirectory = "",
     [switch]$SkipBuild,
     [switch]$CaptureSoftbufferScreenshot,
@@ -79,7 +79,7 @@ $captureScenarios = @(Resolve-ZirconUiProfileCaptureScenarios `
         -ScenarioList $ScenarioList `
         -AllUiScenarios:$AllUiScenarios)
 $OutputPath = Resolve-ZirconProfileOutputRoot -RepoRoot $RepoRoot -Path $OutputRoot
-$VerificationScreenshotRoot = Join-Path $RepoRoot "docs\tests\editor\profile-captures"
+$VerificationScreenshotRoot = Resolve-ZirconProfileContainedPath -Root $OutputPath -PathSegments @('verification-screenshots')
 
 function Resolve-ProfilingTargetDir {
     return Resolve-ZirconUiProfileProductDirectory `
@@ -797,7 +797,9 @@ function Export-VerificationScreenshots {
         -PathSegments @($SessionId)
     New-Item -ItemType Directory -Force -Path $destination | Out-Null
     foreach ($screenshot in $screenshots) {
-        Copy-Item -LiteralPath $screenshot -Destination (Join-Path $destination (Split-Path -Leaf $screenshot)) -Force
+        $target = Resolve-ZirconProfileContainedPath -Root $destination `
+            -PathSegments @(Split-Path -Leaf $screenshot)
+        Copy-Item -LiteralPath $screenshot -Destination $target -Force
     }
     return $destination
 }

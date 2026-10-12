@@ -11,14 +11,15 @@ impl RetainedEditorHost {
     ) {
         self.use_committed_pointer_layout();
         self.focus_callback_source_window();
-        let size = self.resolve_callback_surface_size_for_kind(
+        let size = (match self.resolve_callback_surface_size_for_kind(
             width,
             height,
             self.console_scroll_surface.size(),
             ViewContentKind::Console,
-        );
-        if self.console_scroll_surface.set_size(size) {
-            let console_output = self.runtime.console_output();
+        ) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+        if self.console_scroll_surface.size() != size {
+            let console_output = (match self.runtime.console_output() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
+            self.console_scroll_surface.set_size(size);
             self.sync_console_pointer_layout(&console_output);
         }
         if self

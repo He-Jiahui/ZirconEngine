@@ -90,7 +90,7 @@ pub fn run_retained_host_automation(
     if let Some(play_backend) = play_backend {
         retained_host.runtime.set_play_backend(play_backend);
     }
-    let settings_snapshot = retained_host.editor_manager.context().settings().snapshot();
+    let settings_snapshot = retained_host.runtime.context().settings().snapshot();
     apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
     install_editor_v2_design_tokens(settings_snapshot.as_ref());
     for registration in editor_plugin_registrations {
@@ -113,7 +113,7 @@ pub fn run_retained_host_automation(
         };
     let host_window_diagnostics = ui.take_host_diagnostics();
     let settings_mutations =
-        std::sync::Arc::clone(host.borrow().editor_manager.context().settings_mutations());
+        std::sync::Arc::clone(host.borrow().runtime.context().settings_mutations());
     {
         let retained_host = host.borrow();
         super::emit_host_window_diagnostics(
@@ -192,7 +192,7 @@ fn invoke_automation_callbacks(
     }
 
     let host = host.borrow();
-    let editor_snapshot = host.runtime.editor_snapshot();
+    let editor_snapshot = host.runtime.editor_snapshot()?;
     let project_info = authoritative_project_info(&host)?;
     let project_scene = host
         .runtime
@@ -347,7 +347,7 @@ fn hierarchy_pointer_coordinates(
     let mut host = host.borrow_mut();
     host.refresh_ui();
     let cached_size = host.hierarchy_pointer_size;
-    let rows = host.prepare_hierarchy_pointer_target(cached_size.width, cached_size.height, false);
+    let rows = host.prepare_hierarchy_pointer_target(cached_size.width, cached_size.height, false).map_err(|error| error.to_string())?;
     let index = rows
         .iter()
         .position(|row| row.entity == node_id)
@@ -376,7 +376,7 @@ fn hierarchy_pointer_coordinates(
             )
             .max(y + 1.0);
         }
-        host.prepare_hierarchy_pointer_target(width, height, false);
+        host.prepare_hierarchy_pointer_target(width, height, false).map_err(|error| error.to_string())?;
     }
     if width <= 0.0 || height <= 0.0 || x >= width || y < 0.0 || y >= height {
         return Err(format!(

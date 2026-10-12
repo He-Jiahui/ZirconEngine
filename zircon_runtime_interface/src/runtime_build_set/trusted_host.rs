@@ -32,10 +32,13 @@ pub struct ZrRuntimeTrustedHostBuildSetMetadataV1 {
     pub product_build_set_id: Option<ZrRuntimeBuildSetId>,
 }
 
+/// 读取构建时嵌入的源码 BuildSet 身份；构建环境未提供时返回 None，由宿主选择准入策略。
 pub fn trusted_host_build_set_id() -> Option<&'static str> {
     ZR_TRUSTED_HOST_BUILD_SET_ID_V1
 }
 
+/// 要求身份存在且为 64 个小写十六进制字符，成功后借用原输入。
+/// 身份的可信来源由调用方保证；此处只验证文本格式。
 pub fn require_trusted_host_build_set_id(
     value: Option<&str>,
 ) -> Result<&str, ZrRuntimeTrustedHostBuildSetError> {

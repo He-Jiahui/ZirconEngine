@@ -29,3 +29,14 @@ fn runtime_layout_frame_uses_minimum_positive_extent() {
     assert_eq!(frame.width, 1.0);
     assert_eq!(frame.height, 1.0);
 }
+
+#[test]
+fn authored_short_line_box_does_not_resize_glyph_font_or_leak_to_legacy() {
+    use crate::ui::retained_host::host_contract::paint_text::{HostTextFontFace, HostTextFontRequest, HostTextFontRequestScope};
+    let request = HostTextFontRequest { face: HostTextFontFace::Ui, family: "Fira Sans".into(), weight: 400 };
+    {
+        let _request = HostTextFontRequestScope::enter(Some(&request));
+        assert_eq!(clamped_text_metrics(8.0, 17.0, 8.0), (17.0, 8.0));
+    }
+    assert_eq!(clamped_text_metrics(8.0, 17.0, 8.0), (8.0, 8.0));
+}

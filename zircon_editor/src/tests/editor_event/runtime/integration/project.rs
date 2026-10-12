@@ -33,7 +33,7 @@ fn open_project_menu_event_requests_welcome_surface_without_project_open_side_ef
         .effects
         .contains(&EditorEventEffect::ProjectOpenRequested));
     assert_eq!(
-        runtime.runtime.editor_snapshot().status_line,
+        runtime.runtime.editor_snapshot().unwrap().status_line,
         "Open an existing project or create a renderable empty project."
     );
 }

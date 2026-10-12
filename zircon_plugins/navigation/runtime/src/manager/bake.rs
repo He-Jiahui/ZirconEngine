@@ -17,7 +17,9 @@ mod geometry_provider_generation_tests;
 
 use std::any::Any;
 
-use zircon_runtime::asset::{ProjectAssetGenerationToken, ProjectGenerationMatch};
+use zircon_runtime::asset::pipeline::manager::{
+    ProjectAssetGenerationToken, ProjectGenerationCommitOutcome, ProjectGenerationMatch,
+};
 use zircon_runtime::core::framework::navigation::{
     NavMeshBakeReport, NavMeshBakeRequest, NavMeshSurfaceDescriptor, NavigationError,
     NavigationErrorKind, NavigationGeneratedBakeSnapshot,
@@ -542,8 +544,8 @@ fn publish_bake_with_source_fence(
                 .as_ref()
                 .expect("project asset manager resolved for its generation token");
             match project_assets.commit_if_project_generation(project_asset_generation, publish) {
-                zircon_runtime::asset::ProjectGenerationCommitOutcome::Committed(result) => result,
-                zircon_runtime::asset::ProjectGenerationCommitOutcome::Superseded { .. } => {
+                ProjectGenerationCommitOutcome::Committed(result) => result,
+                ProjectGenerationCommitOutcome::Superseded { .. } => {
                     Err(NavigationError::new(
                         NavigationErrorKind::InvalidConfiguration,
                         "navigation bake was not published because its project asset generation changed",
@@ -603,8 +605,8 @@ fn publish_operation_bake_with_source_fence(
                 .as_ref()
                 .expect("project asset manager resolved for its generation token");
             match project_assets.commit_if_project_generation(project_asset_generation, publish) {
-                zircon_runtime::asset::ProjectGenerationCommitOutcome::Committed(result) => result,
-                zircon_runtime::asset::ProjectGenerationCommitOutcome::Superseded { .. } => {
+                ProjectGenerationCommitOutcome::Committed(result) => result,
+                ProjectGenerationCommitOutcome::Superseded { .. } => {
                     Err(NavigationError::new(
                         NavigationErrorKind::InvalidConfiguration,
                         "navigation bake was not published because its project asset generation changed",

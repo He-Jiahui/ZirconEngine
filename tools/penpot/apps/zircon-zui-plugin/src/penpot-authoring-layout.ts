@@ -6,13 +6,15 @@ import {
 } from './penpot-review-scroll';
 import type { Board, Shape } from '@penpot/plugin-types';
 import { decodeZuiMetadata, type ZuiDocument } from './bridge/zui-document';
+import { bindFontResources, fontResourcesForShape } from './bridge/penpot-font-selection';
 import {
   reconcileZuiDocument,
   projectZuiDocument,
   type PenpotAssetSnapshot,
 } from './bridge/penpot-projection';
 import { reviewHost } from './bridge/zui-review-host';
-import { reviewDocumentForCase } from './bridge/zui-review-case';
+import { reviewDocumentForCase, reviewCaseFromSavedMetadata } from './bridge/zui-review-case';
+import { findPenpotShapeAncestor } from './penpot-shape-ancestors';
 import type { LayoutReviewCaseMessage } from './model';
 import {
   ZUI_METADATA_DOCUMENT,
@@ -72,9 +74,7 @@ export function captureAuthoringLayoutDraft(
     ZUI_METADATA_NAMESPACE,
     'review-case',
   );
-  const reviewCase = reviewValue
-    ? (JSON.parse(reviewValue) as LayoutReviewCaseMessage)
-    : null;
+  const reviewCase = reviewCaseFromSavedMetadata(source, reviewValue);
   const scroll = reviewCase ? reviewScrollPosition(reviewCase) : null;
   let scrollSnapshot = scroll
     ? (restoreReviewScrollPresentation(asset),
@@ -95,6 +95,7 @@ export function captureAuthoringLayoutDraft(
     finish();
     throw error;
   }
+  bindFontResources(document,fontResourcesForShape(asset));
   const key = JSON.stringify(document);
   return {
     key,
@@ -189,15 +190,15 @@ export function createAuthoringLayoutRefresh(
       return;
     const ids = new Set<string>();
     for (const selected of events.selection) {
-      let ancestor: Shape | null = selected;
-      while (
-        ancestor &&
-        ancestor.getSharedPluginData(
-          ZUI_METADATA_NAMESPACE,
-          ZUI_METADATA_ROLE,
-        ) !== ZUI_ROLE_ASSET
-      )
-        ancestor = ancestor.parent;
+      const ancestor = findPenpotShapeAncestor(
+        selected,
+        (shape) => shape.parent,
+        (shape) =>
+          shape.getSharedPluginData(
+            ZUI_METADATA_NAMESPACE,
+            ZUI_METADATA_ROLE,
+          ) === ZUI_ROLE_ASSET,
+      );
       if (ancestor?.id === active.id) ids.add(selected.id);
     }
     for (const shapeId of ids)

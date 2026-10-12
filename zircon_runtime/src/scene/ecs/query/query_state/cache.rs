@@ -11,8 +11,16 @@ where
     F: QueryFilter,
 {
     pub fn update_cache(&mut self, world: &World) {
+        self.assert_bound_to(world);
+        if !std::sync::Arc::ptr_eq(&self.cached_storage_owner, world.query_storage_owner()) {
+            // A retained logical World can receive new tables with the same
+            // record count. Recompile every ID/column binding for that storage.
+            self.cached_storage_owner = std::sync::Arc::clone(world.query_storage_owner());
+            self.cached_archetype_plans.clear();
+            self.cached_archetype_generation = u64::MAX;
+        }
         let archetype_generation = world.archetype_generation();
-        // TODO: [CR-R02-runtime_ecs_query_change_windows-0001] 待确认跨 World 复用的拒绝或重绑契约；此处分支只比较代际并保留原类型/槽绑定，缺少身份检查与跨 World 用例；下一步用注册顺序不同且代际相同的两个 World 验证。
+        // Exact owner is checked before generations, cached slots or counters.
         if self.cached_archetype_generation == archetype_generation {
             self.refresh_plan_memberships(world);
             self.cache_hits = self.cache_hits.saturating_add(1);

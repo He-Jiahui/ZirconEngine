@@ -1,6 +1,6 @@
 use super::super::super::*;
 use crate::ui::settings::{SETTINGS_COMMIT_CHORD_ACTION_ID, SETTINGS_COMMIT_STRING_ACTION_ID};
-use crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
+use crate::ui::template_runtime::builtin::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn dispatch_componentized_workbench_surface_control_edited(
@@ -9,8 +9,10 @@ impl RetainedEditorHost {
         binding_id: &str,
         value: &str,
     ) -> Option<Result<UiHostEventEffects, String>> {
-        if !self.active_activity_window_template_document_is(WORKBENCH_WINDOW_DOCUMENT_ID) {
-            return None;
+        match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) {
+            Ok(true) => {}
+            Ok(false) => return None,
+            Err(error) => return Some(Err(error.to_string())),
         }
         if binding_id == SETTINGS_COMMIT_STRING_ACTION_ID {
             let result = self
@@ -44,6 +46,13 @@ impl RetainedEditorHost {
             .workbench_window_bridge
             .binding_id_for_action_id(binding_id)
             .unwrap_or_else(|| binding_id.to_string());
+        match self.workbench_window_bridge.content_drawer_search_binding(control_id, binding_id.as_str(), value) {
+            Ok(Some(binding)) => return Some(callback_dispatch::dispatch_template_binding_with_arguments(
+                &self.runtime, binding, vec![UiBindingValue::string(value)],
+            )),
+            Ok(None) => {},
+            Err(error) => return Some(Err(error.to_string())),
+        }
         if let Some(result) = self.dispatch_workbench_scene_picker_window_requested(
             control_id,
             binding_id.as_str(),

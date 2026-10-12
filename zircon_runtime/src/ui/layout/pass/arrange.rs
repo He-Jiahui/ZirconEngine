@@ -494,6 +494,7 @@ fn arrange_block_children(
 
         let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
         let main_extent = block_child_outer_height(tree, child_id, slot)?;
+        let horizontal_slot_padding = slot_padding(slot).horizontal();
         let child_frame = linear_child_frame(
             tree,
             child_id,
@@ -515,7 +516,7 @@ fn arrange_block_children(
         // their content size correctly (same accounting WrapBox and MasonryBox use).
         let child_outer_width = tree
             .node(child_id)
-            .map(|n| n.layout_cache.desired_size.width + slot_padding(slot).horizontal())
+            .map(|n| n.layout_cache.desired_size.width + horizontal_slot_padding)
             .unwrap_or(0.0);
         content_width = content_width.max(child_outer_width);
         cursor += main_extent;

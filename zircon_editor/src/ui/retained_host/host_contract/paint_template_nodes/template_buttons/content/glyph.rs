@@ -8,12 +8,20 @@ use super::super::super::template_button_glyphs::{
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
 use super::super::identity::{button_identity_contains, button_identity_values};
 use super::layout::content_centered_y;
-use super::metrics::{button_chevron_reserve, button_icon_gap, trailing_glyph_inset};
+use super::metrics::{
+    button_chevron_reserve, button_content_padding, button_icon_gap, trailing_glyph_inset,
+};
 
 /// 从节点的显示身份字段推断内置图标，优先危险操作，再菜单，再添加；显式资产名称由内容入口优先处理。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_glyph(
     node: &TemplatePaneNodeData,
 ) -> ButtonGlyph {
+    // A text button declares no built-in content glyph. Technical control IDs and
+    // labels such as MenuSlot or Add must not change the authored content layout.
+    // Dropdown components and explicitly declared icon assets use their own paths.
+    if node.button_variant.eq_ignore_ascii_case("text") {
+        return ButtonGlyph::None;
+    }
     let values = button_identity_values(node);
     if ["delete", "trash", "danger"]
         .iter()
@@ -83,14 +91,40 @@ pub(super) fn leading_glyph_rect(rect: &FrameRect, x: f32) -> FrameRect {
     }
 }
 
-pub(super) fn trailing_glyph_rect(rect: &FrameRect) -> FrameRect {
+/// The caller has already applied vertical padding; keep the trailing glyph
+/// inside the same authored horizontal content budget as its label.
+pub(super) fn trailing_glyph_rect(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+) -> Option<FrameRect> {
     let icon_size = button_icon_size();
-    FrameRect {
-        x: rect.x + rect.width - trailing_glyph_inset() - icon_size,
-        y: content_centered_y(rect, icon_size),
+    let has_authored_horizontal_padding = node.authored_field_padding[..2]
+        .iter()
+        .flatten()
+        .any(|value| value.is_finite() && *value >= 0.0);
+    if !has_authored_horizontal_padding {
+        // Preserve the existing default placement and narrow-frame visibility.
+        let glyph = FrameRect {
+            x: rect.x + rect.width - trailing_glyph_inset() - icon_size,
+            y: content_centered_y(rect, icon_size),
+            width: icon_size,
+            height: icon_size,
+        };
+        return super::super::geometry::frame_is_within(&glyph, rect).then_some(glyph);
+    }
+    let [left, right, _, _] = button_content_padding(node);
+    let content = FrameRect {
+        x: rect.x + left.min(rect.width.max(0.0)),
+        width: (rect.width - left - right).max(0.0),
+        ..rect.clone()
+    };
+    let glyph = FrameRect {
+        x: content.x + content.width - icon_size,
+        y: content_centered_y(&content, icon_size),
         width: icon_size,
         height: icon_size,
-    }
+    };
+    super::super::geometry::frame_is_within(&glyph, &content).then_some(glyph)
 }
 
 pub(super) fn push_content_glyph(

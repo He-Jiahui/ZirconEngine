@@ -10,7 +10,7 @@ pub(crate) struct RenderBackend {
         super::system_texture_generation_owner::SystemTextureGenerationOwner,
     pub(crate) render_device: Arc<WgpuRenderDevice>,
     pub(super) diagnostic_delivery_router:
-        Mutex<super::product_diagnostic_delivery_router::ProductDiagnosticDeliveryRouter>,
+        Arc<Mutex<super::product_diagnostic_delivery_router::ProductDiagnosticDeliveryRouter>>,
     pub(crate) device: wgpu::Device,
     #[cfg(test)]
     pub(crate) queue: wgpu::Queue,
@@ -37,7 +37,14 @@ impl RenderBackend {
     /// The clone keeps typed WGPU ownership rather than exposing native pointers. Callers can
     /// therefore compose a renderer product and retained UI image through the same queue.
     pub(crate) fn ui_surface_context(&self) -> zr_rhi_wgpu::WgpuUiSurfaceContext {
-        self.render_device.ui_surface_context()
+        self.render_device
+            .ui_surface_context()
+            .with_diagnostic_completion_owner(Arc::new(
+                super::ui_surface_diagnostic_completion::UiSurfaceDiagnosticCompletionOwner::new(
+                    Arc::clone(&self.render_device),
+                    Arc::clone(&self.diagnostic_delivery_router),
+                ),
+            ))
     }
 
     /// Immutable cold-path identity and feature receipt for this device lifetime.

@@ -200,7 +200,7 @@ fn shared_asset_tree_pointer_bridge_scrolls_and_dispatches_folder_selection() {
     let bridge = BuiltinAssetSurfaceTemplateBridge::new()
         .expect("builtin asset surface bridge should build");
     harness.runtime.sync_asset_catalog(shared_catalog());
-    let snapshot = harness.runtime.editor_snapshot();
+    let snapshot = harness.runtime.editor_snapshot().unwrap();
     let base_folder_ids = snapshot
         .asset_browser
         .folder_tree
@@ -279,7 +279,7 @@ fn shared_asset_content_pointer_bridge_scrolls_and_dispatches_item_selection() {
     )
     .expect("asset folder control should resolve")
     .expect("asset folder selection should dispatch");
-    let snapshot = harness.runtime.editor_snapshot();
+    let snapshot = harness.runtime.editor_snapshot().unwrap();
     let base_asset_ids = snapshot
         .asset_browser
         .visible_assets

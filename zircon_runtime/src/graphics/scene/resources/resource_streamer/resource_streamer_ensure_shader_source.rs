@@ -270,7 +270,7 @@ impl ResourceStreamer {
                                     )?;
                                 }
                                 self.ensure_shader_dependency_sources(
-                                    asset_manager.as_ref(),
+                                    &*asset_manager,
                                     shader_id,
                                     readiness_generation,
                                     traversal,
@@ -374,7 +374,7 @@ impl ResourceStreamer {
                     )?;
                 }
                 self.ensure_shader_dependency_sources(
-                    asset_manager.as_ref(),
+                    &*asset_manager,
                     shader_id,
                     readiness_generation,
                     traversal,
@@ -453,7 +453,7 @@ impl ResourceStreamer {
                 )?;
             }
             self.ensure_shader_dependency_sources(
-                asset_manager.as_ref(),
+                &*asset_manager,
                 shader_id,
                 readiness_generation,
                 traversal,

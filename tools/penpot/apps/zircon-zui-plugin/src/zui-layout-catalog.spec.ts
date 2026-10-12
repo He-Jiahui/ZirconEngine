@@ -30,6 +30,8 @@ import {
   dualEvidenceErrors,
   currentDualReview,
   verifyCurrentFiles,
+  selectedBrowserExecutablePath,
+  missingPenpotCaptureProgramPaths,
 } from '../tools/zui-layout-evidence';
 import { recordReview } from '../tools/zui-layout-review';
 import { parseZuiDocument } from './bridge/zui-document';
@@ -595,18 +597,18 @@ describe('ZUI layout catalog reports', () => {
     ).toEqual(['Button', 'Label']);
   });
 
-  it('retains Workbench window findings after imported components are materialized', async () => {
+  it('retains Unreal Level Editor findings after imported components are materialized', async () => {
     const path = resolve(
       testRepoRoot,
-      'zircon_editor/assets/ui/editor/windows/workbench_window.zui',
+      'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui',
     );
     const source = parseZuiDocument(await readFile(path, 'utf8')).document;
     const expanded = {
       ...source,
       nodes: {
         ...source.nodes,
-        top_toolbar: {
-          ...source.nodes['top_toolbar'],
+        toolbar: {
+          ...source.nodes['toolbar'],
           component: 'VerticalGroup',
         },
       },
@@ -618,8 +620,8 @@ describe('ZUI layout catalog reports', () => {
         ...expanded,
         nodes: {
           ...expanded.nodes,
-          top_toolbar: {
-            ...expanded.nodes['top_toolbar'],
+          toolbar: {
+            ...expanded.nodes['toolbar'],
             control_id: 'UnrelatedToolbar',
           },
         },
@@ -860,7 +862,19 @@ describe('dual-renderer catalog review', () => {
       penpotInputPath: 'evidence/penpot-input.zui',
       penpotInputSha256: bytesSha256('projection'),
       cases,
-      penpotEvidence: structuredClone(evidence),
+      penpotEvidence: evidence.map((item) => ({
+        ...item,
+        rendererKind: 'penpot-official-frontend',
+        captureProgramFingerprints: missingPenpotCaptureProgramPaths([]).map(
+          (path) => [path, bytesSha256(path)] as [string, string],
+        ),
+        browserRuntime: {
+          product: 'Chromium/120.0',
+          userAgent: 'Mozilla/5.0 Chrome/120.0',
+          executablePath: selectedBrowserExecutablePath(),
+          executableSha256: 'a'.repeat(64),
+        },
+      })),
       engineEvidence: evidence.map((item) => ({
         ...item,
         inputSha256: sourceSha256,
@@ -950,7 +964,7 @@ describe('dual-renderer catalog review', () => {
 
   it('adds page scroll scenes when a real imported component owns the scroll region', () => {
     const sourcePath =
-      'zircon_editor/assets/ui/editor/windows/workbench_window.zui';
+      'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
     const source = {
       asset: { kind: 'view' as const, id: 'window', version: 2 as const },
       root: { node: 'root' },
@@ -1363,6 +1377,14 @@ describe('dual-renderer catalog review', () => {
       await writeFile(resolve(root, 'evidence/penpot-input.zui'), 'projection');
       await writeFile(resolve(root, 'evidence/failed.png'), 'image');
       await writeFile(resolve(root, 'renderer.js'), 'renderer');
+      // This file-verification fixture follows the same receipt protocol as a capture.
+      entry.penpotEvidence[0].browserRuntime!.executableSha256 = bytesSha256(
+        await readFile(selectedBrowserExecutablePath()),
+      );
+      for (const [path] of entry.penpotEvidence[0].captureProgramFingerprints ?? []) {
+        await mkdir(resolve(root, path, '..'), { recursive: true });
+        await writeFile(resolve(root, path), path);
+      }
       await writeFile(
         resolve(root, entry.penpotEvidence[0].geometryPath!),
         'geometry',

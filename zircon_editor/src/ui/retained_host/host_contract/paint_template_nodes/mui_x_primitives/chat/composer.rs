@@ -1,5 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::super::super::paint_theme::{
+    current_host_palette, logical_font_size_to_physical, HostMaterialPalette,
+};
 use super::super::super::render_commands::HostPaintCommand;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -62,7 +64,7 @@ fn push_chat_composer_text(
 
     let metrics = super::super::super::super::paint_theme::current_host_metrics();
     let font_size = if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
+        logical_font_size_to_physical(node.font_size, metrics.scale_factor)
     } else {
         metrics.font_body
     };

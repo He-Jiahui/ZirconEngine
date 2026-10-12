@@ -6,12 +6,15 @@ artifact and validation authorities remain in their own support modules.
 from __future__ import annotations
 
 from pathlib import Path
+import difflib
+import hashlib
 import subprocess
 from typing import Any
 
 from ..contracts import JenkinsError, digest, response
 from ..state import State
 from ..validation import TrustedReceiptAuthority
+from ..validation.receipts import HEAVY_STAGES, LIGHT_STAGES
 from ..source import handle as source_handle, get_sealed_consumer, require_sealed_consumer, repository_id
 from .classification import classify_change
 from .orchestrator import TEMPLATES
@@ -20,7 +23,7 @@ from ..submission import request_payload as jenkins_request_payload, submit as j
 
 def _stage_recipe(stage: str, identity: dict) -> str:
     return digest({"stage": stage, "implementation": identity.get("stageImplementationDigest")})
-from .classification import classify_rust_source, rust_non_doc_tokens
+from .classification import classify_rust_source, rust_lexical_evidence
 
 
 def _identity(payload: dict) -> dict:
@@ -64,41 +67,300 @@ def _trusted_driver(repo_root: Path, identity: dict) -> str:
         raise JenkinsError("driver_context_mismatch", "workflow identity driver differs from active sealed driver")
     return digest_value
 
-def _sealed_classification(record: dict) -> dict:
-    """Classify only changed sealed Rust objects by before/after token proof."""
-    manifest = record["payload"].get("sourceManifest") or {}
-    root = record["payload"].get("objectRoot")
+def _require_registered_execution(state: State, repo_root: Path, flow: dict, consumer_id: str) -> None:
+    """Keep the planner's execution binding separate from registration replay."""
+    recipe_ref = flow.get("recipeRef")
+    if not recipe_ref:
+        if flow.get("executionId") != flow.get("registrationExecutionId", flow.get("executionId")):
+            raise JenkinsError("execution_identity_mismatch", "An unsubmitted flow changed its registration identity")
+        return
+    from .execution import ExecutionKey, _execution_identity
+    from .planning import get_recipe_plan
+    from ..deployment.driver import active_driver_binding
+    from ..resources import canonical_build_root
+
+    plan = get_recipe_plan(state, recipe_ref)
+    execution_id = flow.get("executionId")
+    execution = state.get("execution", execution_id)
+    key_digest = _execution_identity(execution, execution_id)
+    payload = execution["payload"]
+    driver = plan.get("driver") or {}
+    active = active_driver_binding(repo_root)
+    expected_key = ExecutionKey(flow.get("sourceDigest"), plan["recipe"].get("preparationKey"),
+                                recipe_ref, flow.get("driverDigest"))
+    if (key_digest != expected_key.digest or plan.get("sourceRef") != flow.get("sourceDigest")
+            or plan.get("coverageRef") != flow.get("coverageDigest")
+            or payload.get("coverageDigest") != flow.get("coverageDigest")
+            or str(plan.get("generation")) != str(flow.get("generation"))
+            or str(payload.get("generation")) != str(flow.get("generation"))
+            or driver != payload.get("driver") or driver.get("digest") != flow.get("driverDigest")
+            or driver.get("digest") != active.get("digest")
+            or str(driver.get("generation")) != str(flow.get("generation"))
+            or driver.get("runtimeOperationId") != (active.get("runtimeOperationId") or active.get("generation"))):
+        raise JenkinsError("execution_identity_mismatch", "Registered flow differs from its immutable execution plan")
+    root = canonical_build_root(flow.get("buildRoot"))
+    if (canonical_build_root(payload.get("buildRoot")).path != root.path
+            or canonical_build_root(plan["recipe"].get("buildRoot")).path != root.path):
+        raise JenkinsError("execution_root_mismatch", "Registered execution differs from its approved root")
+    binding = state.get("execution_binding", digest({"consumer": consumer_id, "executionKey": key_digest}))
+    consumer = state.get("execution_consumer", f"{execution_id}:{consumer_id}")
+    if (not binding or not consumer or binding["payload"].get("executionId") != execution_id
+            or binding["payload"].get("consumerId") != consumer_id
+            or consumer["payload"].get("executionId") != execution_id
+            or consumer["payload"].get("consumerId") != consumer_id):
+        raise JenkinsError("execution_identity_mismatch", "Registered flow lacks its exact execution consumer binding")
+
+
+def _require_flow_source_preparation(state: State, reference: str, *, identity: dict,
+                                     source_digest: str, preparation_kind: str) -> dict:
+    if preparation_kind == 'already-applied-patch':
+        from ..already_applied import require_already_applied_preparation
+        return require_already_applied_preparation(state, reference, identity=identity,
+                                                  source_digest=source_digest)
+    if preparation_kind == 'current-source':
+        from ..current_source import require_source_preparation
+        operation = require_source_preparation(state, reference, identity=identity,
+                                               source_digest=source_digest)
+        if operation['payload'].get('kind') != 'current-source':
+            raise JenkinsError('source_preparation_mismatch', 'Current source requires its own preparation type')
+        return operation
+    raise JenkinsError('source_preparation_mismatch', 'Unknown coordinator source preparation type')
+
+
+def _sealed_classification(record: dict, state: State | None = None) -> dict:
+    """Classify changed sealed Rust objects only after an original-byte proof.
+
+    A sealed manifest's beforeHash is the claimed preimage identity, while
+    sha256/objectDigest identify the candidate bytes. Equal hashes describe
+    an unchanged entry and are skipped even when a Git base is present. For a
+    changed entry, the patch journal's beforeObjects is authoritative; a Git
+    base is only a legacy fallback when its blob bytes hash to that preimage.
+    """
+    payload = record.get("payload") or {}
+    manifest = payload.get("sourceManifest") or {}
+    root = payload.get("objectRoot")
     if not isinstance(root, str):
         raise JenkinsError("sealed_object_root_missing", "sealed object root is required")
-    objects = Path(root).absolute() / "inputs" / "objects"
+    object_root = Path(root).absolute()
+    objects = object_root / "inputs" / "objects"
     files: dict[str, str] = {}
     changed = False
-    for entry in manifest.get("entries", []):
-        if not str(entry.get("path", "")).endswith(".rs") or entry.get("status") not in {"present", "base"}:
+    patch_refs = payload.get("patchOperationRefs") or []
+    journal_before: dict[str, tuple[object, str | None]] = {}
+    journal_after: dict[str, str | None] = {}
+    applied_preparation = manifest.get('preparationKind') == 'already-applied-patch'
+    if applied_preparation:
+        reference = payload.get('sourcePreparationRef')
+        if state is None or not isinstance(reference, str) or patch_refs:
+            return {'kind': 'blocked', 'reason': 'source_preparation_untrusted'}
+        try:
+            operation = _require_flow_source_preparation(
+                state, reference, identity=payload.get('identity') or {},
+                source_digest=payload.get('sourceDigest'), preparation_kind='already-applied-patch')
+        except JenkinsError as error:
+            return {'kind': 'blocked', 'reason': error.code}
+        before = operation['payload'].get('beforeObjects')
+        after = operation['payload'].get('expectedAfterHashes')
+        if (not isinstance(before, dict) or not isinstance(after, dict)
+                or set(before) != set(after) or operation['payload'].get('objectRoot') != root):
+            return {'kind': 'blocked', 'reason': 'source_preparation_mismatch'}
+        journal_before = {path: (checksum, root) for path, checksum in before.items()}
+        journal_after = dict(after)
+    if state is not None and patch_refs:
+        for reference in patch_refs:
+            if not isinstance(reference, str):
+                return {"kind": "blocked", "reason": "sealed_before_unavailable"}
+            operation = state.get_operation(reference)
+            if (not operation or operation.get("kind") != "source_patch"
+                    or operation.get("status") != "complete"):
+                return {"kind": "blocked", "reason": "sealed_before_unavailable"}
+            operation_payload = operation.get("payload")
+            if not isinstance(operation_payload, dict):
+                return {"kind": "blocked", "reason": "sealed_before_unavailable"}
+            before_objects = operation_payload.get("beforeObjects")
+            if not isinstance(before_objects, dict):
+                return {"kind": "blocked", "reason": "sealed_before_unavailable"}
+            operation_root = operation_payload.get("objectRoot")
+            if not isinstance(operation_root, str):
+                return {"kind": "blocked", "reason": "sealed_before_object_root_missing"}
+            for raw_path, captured in before_objects.items():
+                path_key = str(raw_path).replace(chr(92), "/").casefold()
+                prior = journal_before.get(path_key)
+                if prior is not None and prior[0] != captured:
+                    return {"kind": "blocked", "reason": "sealed_before_hash_mismatch"}
+                journal_before[path_key] = (captured, operation_root)
+            expected_after = operation_payload.get("expectedAfterHashes")
+            if isinstance(expected_after, dict):
+                for raw_path, captured in expected_after.items():
+                    path_key = str(raw_path).replace(chr(92), "/").casefold()
+                    prior = journal_after.get(path_key)
+                    if prior is not None and prior != captured:
+                        return {"kind": "blocked", "reason": "sealed_after_hash_mismatch"}
+                    journal_after[path_key] = captured
+
+    def _valid_digest(value: object) -> bool:
+        return (isinstance(value, str) and len(value) == 64
+                and all(char in "0123456789abcdef" for char in value.lower()))
+
+    manifest_entries = {
+        str(entry.get("path", "")).replace(chr(92), "/").casefold(): entry
+        for entry in manifest.get("entries", [])
+        if isinstance(entry, dict)
+    }
+    # A comments-only flow must account for every journal/manifest path. A
+    # non-Rust postimage is semantic, while a Rust creation/deletion has no
+    # trustworthy before token stream and therefore remains blocked.
+    for path_key, (captured, _operation_root) in journal_before.items():
+        if path_key not in journal_after:
+            return {"kind": "blocked", "reason": "sealed_after_unavailable"}
+        candidate_after = journal_after[path_key]
+        if captured == candidate_after:
             continue
+        if not path_key.endswith(".rs"):
+            return {"kind": "semantic", "reason": "non_rust_source_change"}
+        entry = manifest_entries.get(path_key)
+        if applied_preparation and (captured is None or candidate_after is None):
+            if (not isinstance(entry, dict) or entry.get('sha256') != candidate_after
+                    or entry.get('beforeHash') != captured):
+                return {'kind': 'blocked', 'reason': 'sealed_after_hash_mismatch'}
+            return {'kind': 'semantic', 'reason': 'rust_source_added_or_deleted'}
+        if not isinstance(entry, dict) or entry.get("status") not in {"present", "base"}:
+            return {"kind": "blocked", "reason": "sealed_before_unavailable"}
+    for path_key in journal_after:
+        if path_key not in journal_before:
+            return {"kind": "blocked", "reason": "sealed_before_unavailable"}
+    for entry in manifest_entries.values():
+        entry_path = str(entry.get("path", ""))
+        before_value = entry.get("beforeHash")
+        after_value = entry.get("sha256")
+        if before_value == after_value:
+            continue
+        if not entry_path.endswith(".rs"):
+            return {"kind": "semantic", "reason": "non_rust_source_change"}
+        if entry.get("status") not in {"present", "base"}:
+            return {"kind": "blocked", "reason": "sealed_before_unavailable"}
+
+    def _preimage(path: str, expected: object, operation_root: str | None) -> tuple[bytes | None, str | None]:
+        if not _valid_digest(expected):
+            return None, "sealed_before_unavailable"
+        roots = [object_root]
+        if operation_root is not None:
+            operation_store = Path(operation_root).absolute()
+            if operation_store.as_posix().casefold() != object_root.as_posix().casefold():
+                roots.insert(0, operation_store)
+        for candidate_root in roots:
+            candidate = candidate_root / "inputs" / "objects" / expected
+            if not candidate.is_file():
+                continue
+            try:
+                original = candidate.read_bytes()
+            except OSError:
+                return None, "sealed_before_object_unreadable"
+            if hashlib.sha256(original).hexdigest() == expected:
+                return original, None
+            return None, "sealed_before_object_corrupt"
+        base_head = manifest.get("baseHead")
+        if not isinstance(base_head, str) or not base_head:
+            return None, "sealed_before_unavailable"
+        try:
+            base_result = subprocess.run(
+                ["git", "-C", str(payload.get("repoRoot", ".")),
+                 "show", f"{base_head}:{path}"],
+                capture_output=True, check=True)
+            base_bytes = base_result.stdout
+        except (OSError, subprocess.CalledProcessError):
+            return None, "sealed_base_unavailable"
+        if not isinstance(base_bytes, bytes) or hashlib.sha256(base_bytes).hexdigest() != expected:
+            return None, "sealed_base_mismatch"
+        return base_bytes, None
+
+    for entry in manifest.get("entries", []):
+        path = str(entry.get("path", ""))
+        if not path.endswith(".rs") or entry.get("status") not in {"present", "base"}:
+            continue
+        path_key = path.replace(chr(92), "/").casefold()
         before = entry.get("beforeHash")
         after = entry.get("sha256")
-        if before == after and not manifest.get("baseHead"):
-            continue
+        journal = journal_before.get(path_key)
+        if journal is not None:
+            preimage_hash, operation_root = journal
+            if journal_after.get(path_key, after) != after:
+                return {"kind": "blocked", "reason": "sealed_after_hash_mismatch"}
+            # A journal entry whose original and candidate bytes are equal is
+            # an unchanged/no-op patch and must not trigger Git or object reads.
+            if preimage_hash == after:
+                continue
+        else:
+            operation_root = None
+            preimage_hash = before
+            # A base tree is not evidence that an equal-hash entry changed.
+            if before == after:
+                continue
         changed = True
-        obj = objects / str(entry.get("objectDigest"))
+        object_digest = entry.get("objectDigest")
+        if not _valid_digest(object_digest):
+            raise JenkinsError("sealed_object_missing", "sealed source object digest is unavailable")
+        obj = objects / object_digest
         if not obj.is_file():
             raise JenkinsError("sealed_object_missing", "sealed source object is unavailable")
-        text = obj.read_text(encoding="utf-8")
-        base_head = manifest.get("baseHead")
-        if base_head:
-            try:
-                base_text = subprocess.run(["git", "-C", str(record["payload"].get("repoRoot", ".")), "show", f"{base_head}:{entry['path']}"], capture_output=True, check=True).stdout.decode("utf-8")
-            except (OSError, subprocess.CalledProcessError, UnicodeDecodeError):
-                return {"kind": "blocked", "reason": "sealed_base_unavailable"}
-            if rust_non_doc_tokens(base_text) != rust_non_doc_tokens(text):
+        try:
+            candidate_bytes = obj.read_bytes()
+        except OSError as error:
+            raise JenkinsError("sealed_object_unreadable", "sealed source object cannot be read") from error
+        if (not _valid_digest(after) or after != object_digest
+                or hashlib.sha256(candidate_bytes).hexdigest() != object_digest):
+            raise JenkinsError("sealed_object_corrupt", "sealed source object hash does not match its manifest")
+        try:
+            text = candidate_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            return {"kind": "blocked", "reason": "sealed_source_not_utf8"}
+        before_bytes, before_reason = _preimage(path, preimage_hash, operation_root)
+        if before_reason is not None:
+            return {"kind": "blocked", "reason": before_reason}
+        try:
+            before_text = before_bytes.decode("utf-8")
+            before_evidence = rust_lexical_evidence(before_text)
+            after_evidence = rust_lexical_evidence(text)
+            before_docs = tuple(before_text[start:end] for start, end in before_evidence["doc_comment_spans"])
+            after_docs = tuple(text[start:end] for start, end in after_evidence["doc_comment_spans"])
+            if before_docs != after_docs:
+                return {"kind": "semantic", "reason": "documentation_comment"}
+            if before_evidence["tokens"] != after_evidence["tokens"]:
                 return {"kind": "semantic", "reason": "non_comment_token_change"}
-        result = classify_rust_source(text)
-        if result.get("kind") == "blocked":
-            return result
-        files[entry["path"]] = text
+        except (UnicodeDecodeError, ValueError):
+            return {"kind": "blocked", "reason": "sealed_source_tokenization_failed"}
+        # Token equality proves ordinary inline comments too. Source-observing
+        # macros and directives need compilation even when the tokens match.
+        for evidence in (before_evidence, after_evidence):
+            if evidence["line_sensitive_macros"]:
+                return {"kind": "semantic", "reason": "line_sensitive_macro"}
+            if (evidence["source_embedding_macros"] or evidence["conditional_build_sensitive"]
+                    or evidence["rustc_directive_comments"]):
+                return {"kind": "semantic", "reason": "build_or_conditional_directive"}
+        files[path] = text
     if not changed:
         return {"kind": "blocked", "reason": "no_changed_rust_source"}
+    # A different sealed module can embed the changed file's bytes. Inspect
+    # that same input closure before granting the no-compilation template.
+    for entry in manifest.get("entries", []):
+        path = str(entry.get("path", ""))
+        if path in files or not path.endswith(".rs") or entry.get("status") not in {"present", "base"}:
+            continue
+        object_digest = entry.get("objectDigest")
+        if not _valid_digest(object_digest):
+            raise JenkinsError("sealed_object_missing", "sealed source closure object is unavailable")
+        try:
+            closure_bytes = (objects / object_digest).read_bytes()
+        except OSError as error:
+            raise JenkinsError("sealed_object_unreadable", "sealed source closure cannot be read") from error
+        if hashlib.sha256(closure_bytes).hexdigest() != object_digest or entry.get("sha256") != object_digest:
+            raise JenkinsError("sealed_object_corrupt", "sealed source closure hash does not match")
+        try:
+            evidence = rust_lexical_evidence(closure_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            return {"kind": "blocked", "reason": "sealed_source_tokenization_failed"}
+        if evidence["source_embedding_macros"]:
+            return {"kind": "semantic", "reason": "source_embedding_in_input_closure"}
     return {"kind": "comments_only", "files": files}
 
 
@@ -174,6 +436,8 @@ def _ensure_execution_job(state: State, *, identity: dict, source_ref: str,
 
 
 def _project_execution(state: State, repo_root: Path, workflow: dict, *, key: str) -> tuple[dict, list[dict]]:
+    if workflow.get("status") == "accepted":
+        return workflow, list(workflow.get("stages", []))
     execution_id = workflow.get("executionId")
     if not isinstance(execution_id, str):
         return workflow, list(workflow.get("stages", []))
@@ -190,18 +454,25 @@ def _project_execution(state: State, repo_root: Path, workflow: dict, *, key: st
         observed = {**execution["payload"], "executionId": execution_id}
     stage_receipts = observed.get("stageReceipts", {}) or {}
     stages = [dict(item) for item in workflow.get("stages", [])]
-    required = {"build", "unit_test", "integration_test", "regression_test"}
+    required = HEAVY_STAGES
     receipts = dict(workflow.get("stageReceipts", {}))
+    consumer = state.get("execution_consumer", f"{execution_id}:{key}")
+    active = (consumer is not None and consumer["payload"].get("status") == "active"
+              and consumer["payload"].get("consumerId") == key
+              and consumer["payload"].get("executionId") == execution_id
+              and workflow.get("status") not in {"failed", "cancelled", "rejected"}
+              and not workflow.get("consumerCancelled"))
     for item in stages:
         stage = item.get("name")
-        receipt_id = stage_receipts.get(stage) if stage in required else None
+        receipt_id = stage_receipts.get(stage) if stage in required and active and observed.get("status") == "passed" else None
         if receipt_id:
             receipt = state.get("validation_receipt", receipt_id)
             if receipt and receipt["payload"].get("status") == "passed":
                 item["status"] = "passed"; item["receipt"] = receipt["payload"]; receipts[stage] = receipt_id
     projected = {**workflow, "executionStatus": observed.get("status", "waiting"),
                  "stageReceipts": receipts, "stages": stages}
-    consumer = state.get("execution_consumer", f"{execution_id}:{key}")
+    if workflow.get("status") == "cancelled" or workflow.get("consumerCancelled"):
+        projected.update(status="cancelled", executionStatus="cancelled")
     if consumer and consumer["payload"].get("status") == "released" and workflow.get("status") != "accepted":
         projected.update(status="cancelled", executionStatus="cancelled")
     if observed.get("status") in {"failed", "cancelled", "rejected"} and workflow.get("status") != "accepted":
@@ -214,6 +485,11 @@ def _project_execution(state: State, repo_root: Path, workflow: dict, *, key: st
 def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain: str = "flow") -> dict:
     if action in {"source-claim", "source-apply", "source-seal", "source-materialize"}:
         return source_handle(action.removeprefix("source-"), payload, state, repo_root)
+    if action == "prepare-current-source":
+        from ..current_source import prepare_current_source
+        from ..patches import _identity as current_identity
+        return prepare_current_source(state, repo_root, payload,
+                                      trusted_driver_digest=_trusted_driver(repo_root, current_identity(payload)))
     # Raw patch requests have no source digest until the patch is applied and
     # sealed. Dispatch them before normal full identity validation.
     if action in {"prepare-patch", "reconcile-patch"}:
@@ -244,6 +520,12 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
     bound = state.get("workflow", key)
     if bound and bound["payload"].get("identity") != identity:
         raise JenkinsError("workflow_identity_mismatch", "workflow identity cannot change during recovery or execution")
+    if action == "source-release":
+        from ..source.closeout import release_accepted_claims
+        # Issuer and accepted-source driver identities are independent. This
+        # closeout can verify an older accepted flow without rewriting it.
+        issuer = _trusted_driver(repo_root, {"stageImplementationDigest": identity["stageImplementationDigest"]})
+        return release_accepted_claims(state, payload, identity=identity, issuer_driver_digest=issuer)
     if action == "register-flow":
         sealed_ref = payload.get("sealedInputRef") or identity.get("sourceInputDigest")
         sealed = state.get("sealed_input", sealed_ref)
@@ -260,6 +542,13 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
             source = intent.get("sealedInputRef") or intent.get("sourceInputDigest") or intent.get("sourceDigest") or intent.get("sourceRef")
             if request["generation"] != identity["generation"] or source != sealed_ref or intent.get("coverageDigest") != identity["coverageDigest"]:
                 raise JenkinsError("request_identity_mismatch", "flow differs from the registered request generation or input")
+            if intent.get("checkoutBindingRef") is not None or intent.get("jointGroupId") is not None:
+                from ..source.consumer_checkout import resolve_consumer_checkout
+                with state.transaction() as connection:
+                    checked_root, _ = resolve_consumer_checkout(
+                        state, connection, repo_root, intent, intent, identity, sealed_ref)
+                    if str(checked_root) != sealed_payload.get("repositoryRoot"):
+                        raise JenkinsError("consumer_checkout_mismatch", "Flow differs from its original source authority")
         # A sealed input is consumable only by the source owner that sealed it.
         # Legacy hand-written fixtures may omit owner metadata; formal records
         # always carry all three fields and therefore require this binding.
@@ -288,6 +577,25 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
             raise JenkinsError("patch_identity_mismatch", "workflow patch differs from sealed source journal")
         if not patch_refs and supplied_patch:
             patch_refs = [supplied_patch]
+        preparation_ref = payload.get("sourcePreparationRef")
+        # Jenkins emits an empty string for an unset StringParameterDefinition.
+        # It represents the same absent optional preparation as omitted/null.
+        if preparation_ref == "":
+            preparation_ref = None
+        if preparation_ref is not None and not isinstance(preparation_ref, str):
+            raise JenkinsError("source_preparation_mismatch", "Source preparation must be a receipt reference")
+        preparation = None
+        preparation_kind = (sealed_payload.get('sourceManifest') or sealed_payload.get('manifest', {})).get('preparationKind')
+        if preparation_kind in {'current-source', 'already-applied-patch'}:
+            if not isinstance(preparation_ref, str) or patch_refs:
+                raise JenkinsError("source_preparation_missing", "Flow requires its typed coordinator preparation receipt")
+            preparation = _require_flow_source_preparation(state, preparation_ref, identity=identity,
+                                                          source_digest=sealed_ref, preparation_kind=preparation_kind)
+            if (preparation["result"].get("coverageDigest") != identity["coverageDigest"]
+                    or request and request["payload"].get("sourcePreparationRef") != preparation_ref):
+                raise JenkinsError("source_preparation_mismatch", "Flow differs from its immutable source preparation request")
+        elif preparation_ref:
+            raise JenkinsError("source_preparation_mismatch", "A patch flow cannot adopt a current-source preparation receipt")
         from ..resources import canonical_build_root
         selected_root = canonical_build_root(payload.get("buildRoot", sealed_payload.get("buildRoot")))
         sealed_root = sealed_payload.get("buildRoot")
@@ -298,23 +606,33 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
         existing = state.get("workflow", key)
         if existing:
             old = existing["payload"]
+            registration_id = old.get("registrationExecutionId")
+            if registration_id is None and not old.get("recipeRef"):
+                registration_id = old.get("executionId")
             immutable = {"identity": old.get("identity"), "sourceDigest": old.get("sourceDigest"),
                          "coverageDigest": old.get("coverageDigest"), "driverDigest": old.get("driverDigest"),
-                         "executionId": old.get("executionId"), "sourceManifest": old.get("sourceManifest"),
-                         "objectRoot": old.get("objectRoot"), "repoRoot": old.get("repoRoot")}
+                         "registrationExecutionId": registration_id, "sourceManifest": old.get("sourceManifest"),
+                         "objectRoot": old.get("objectRoot"), "repoRoot": old.get("repoRoot"),
+                         "sourcePreparationRef": None if old.get("sourcePreparationRef") == "" else old.get("sourcePreparationRef"),
+                         "buildRoot": old.get("buildRoot"),
+                         "patchOperationRefs": old.get("patchOperationRefs", []), "coverage": old.get("coverage")}
             requested = {"identity": identity, "sourceDigest": sealed["payload"].get("sourceDigest", sealed_ref),
                          "coverageDigest": identity.get("coverageDigest"), "driverDigest": driver_digest,
-                         "executionId": execution_id, "sourceManifest": sealed["payload"]["manifest"],
-                         "objectRoot": sealed["payload"].get("objectRoot"), "repoRoot": sealed["payload"].get("repositoryRoot", str(repo_root))}
+                         "registrationExecutionId": execution_id, "sourceManifest": sealed["payload"]["manifest"],
+                         "objectRoot": sealed["payload"].get("objectRoot"), "repoRoot": sealed["payload"].get("repositoryRoot", str(repo_root)),
+                         "sourcePreparationRef": preparation_ref, "buildRoot": str(selected_root.path),
+                         "patchOperationRefs": patch_refs, "coverage": sealed_payload.get("coverage")}
             if any(immutable.get(k) != requested.get(k) for k in immutable):
                 raise JenkinsError("workflow_identity_mismatch", "register-flow cannot replace an immutable contract")
+            _require_registered_execution(state, repo_root, old, key)
             return response(old.get("status", "pending"), request_id=identity.get("requestId"), observed_generation=identity.get("generation"), executionId=old.get("executionId"))
         state.put("workflow", key, {"identity": identity, "repositoryId": sealed_payload.get("repositoryId") or identity.get("repositoryId"), "sourceDigest": sealed["payload"].get("sourceDigest", sealed_ref), "coverageDigest": identity.get("coverageDigest"), "driverDigest": identity.get("driverDigest") or identity.get("stageImplementationDigest"), "payloadDigest": digest(payload),
-                                     "status": "pending", "executionId": execution_id,
+                                     "status": "pending", "executionId": execution_id, "registrationExecutionId": execution_id,
                                      "sourceManifest": sealed["payload"]["manifest"], "coverage": sealed["payload"]["coverage"],
                                      "objectRoot": sealed["payload"].get("objectRoot"), "repoRoot": sealed["payload"].get("repositoryRoot", str(repo_root)),
-                                     "ownedPaths": list(sealed_payload.get("ownedPaths", ())),
+                                     "ownedPaths": list(preparation["result"]["ownedPaths"] if preparation else sealed_payload.get("ownedPaths", ())),
                                      "patchOperationRefs": patch_refs,
+                                     "sourcePreparationRef": preparation_ref,
                                      "buildRoot": str(selected_root.path), "stages": [], "driverDigest": driver_digest})
         return response("pending", request_id=identity.get("requestId"), observed_generation=identity.get("generation"), executionId=execution_id)
     if action == "compose-flow":
@@ -323,13 +641,32 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
             raise JenkinsError("workflow_not_found", "register-flow must precede compose-flow")
         if payload.get("requestedTemplate") is not None or payload.get("changeSet") is not None:
             raise JenkinsError("caller_change_forbidden", "template and change set must come from source-owned records")
-        if record["payload"].get("status") in {"ready", "accepted"}:
+        if record["payload"].get("template") and record["payload"].get("stages"):
+            flow = record["payload"]
+            names = [item.get("name") for item in flow["stages"]]
+            required = [stage for stage in names if stage in HEAVY_STAGES | (LIGHT_STAGES - {"acceptance"})]
+            if (flow["template"] not in TEMPLATES or names != list(TEMPLATES[flow["template"]])
+                    or flow.get("dagDigest") != digest(names) or flow.get("requiredStages") != required):
+                raise JenkinsError("workflow_dag_corrupt", "Composed workflow differs from its immutable DAG")
             return response(record["payload"]["status"], request_id=identity.get("requestId"), observed_generation=identity.get("generation"), executionId=record["payload"].get("executionId"), template=record["payload"].get("template"), stages=[s["name"] for s in record["payload"].get("stages", [])])
-        result = _sealed_classification(record)
+        if record["payload"].get("status") in {"failed", "cancelled", "rejected", "unknown"}:
+            raise JenkinsError("workflow_terminal", "A terminal or unknown workflow cannot be recomposed")
+        from ..editor_product import TEMPLATES as PRODUCT_TEMPLATES
+        if record["payload"].get("sourcePreparationRef"):
+            preparation_kind = record['payload'].get('sourceManifest', {}).get('preparationKind')
+            _require_flow_source_preparation(state, record["payload"]["sourcePreparationRef"], identity=identity,
+                                             source_digest=identity["sourceInputDigest"],
+                                             preparation_kind=preparation_kind)
+            result = ({'kind': 'semantic', 'sourcePreparationKind': 'current-source'}
+                      if preparation_kind == 'current-source' else _sealed_classification(record, state))
+        else:
+            result = _sealed_classification(record, state)
         if result["kind"] == "blocked":
             raise JenkinsError("classification_blocked", "change impact cannot be proven", details=result)
         coverage = record["payload"].get("coverage") or {}
         hinted = coverage.get("template") if isinstance(coverage, dict) else None
+        if hinted in PRODUCT_TEMPLATES and record['payload'].get('sourceManifest', {}).get('preparationKind') != 'current-source':
+            raise JenkinsError("source_preparation_missing", "Fixed editor product flows require typed current-source preparation")
         # A source-owned comments hint cannot suppress a proven semantic Rust
         # token change.  Keep classification authoritative over caller hints.
         if hinted == "comments_only" and result["kind"] != "comments_only":
@@ -346,7 +683,7 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
         if template not in TEMPLATES:
             raise JenkinsError("template_unknown", f"Unknown workflow template: {template}")
         stages = list(TEMPLATES[template])
-        required_stages = [stage for stage in stages if stage in {"patch", "syntax", "format", "build", "unit_test", "integration_test", "regression_test"}]
+        required_stages = [stage for stage in stages if stage in HEAVY_STAGES | (LIGHT_STAGES - {"acceptance"})]
         state.put("workflow", key, {**record["payload"], "status": "ready", "template": template,
                                      "stages": [{"name": stage, "status": "pending"} for stage in stages],
                                      "requiredStages": required_stages, "stageReceipts": {}, "stageRecipeDigests": {s: _stage_recipe(s, identity) for s in stages}, "generation": identity.get("generation"), "dagDigest": digest(stages), "requiredOutputs": []})
@@ -375,6 +712,28 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
                             executionId=record["payload"].get("executionId"))
         if any(item.get("status") not in {"passed", "reused"} for item in stages[:index]):
             raise JenkinsError("stage_precondition", "prior stage has no accepted receipt", retryable=True)
+        if stage_name == "source":
+            from ..current_source import require_source_preparation
+            journal = record["payload"].get("sourcePreparationRef")
+            if payload.get("sourcePreparationRef", journal) != journal:
+                raise JenkinsError("source_preparation_mismatch", "Source stage cannot replace its preparation receipt")
+            operation = require_source_preparation(state, journal, identity=identity,
+                                                   source_digest=identity["sourceInputDigest"])
+            entries = {str(entry["path"]).casefold(): entry.get("sha256")
+                       for entry in record["payload"]["sourceManifest"].get("entries", [])}
+            if entries != operation["result"].get("currentHashes"):
+                raise JenkinsError("source_preparation_mismatch", "Source preparation differs from its complete sealed closure")
+            execution_id = digest({"flow": key, "stage": "source", "journal": journal})[:32]
+            receipt = _light_receipt(state, repo_root, execution_id, "source", identity,
+                {"status": "passed", "exitCode": 0, "tool": "current-source-preparation",
+                 "commandDigest": digest(["source", "prepare-current-source"]), "operationId": journal},
+                {"operationId": journal, "result": operation["result"]})
+            stages[index].update(status="passed", receipt=receipt)
+            receipts = dict(record["payload"].get("stageReceipts", {})); receipts["source"] = execution_id
+            state.put("workflow", key, {**record["payload"], "status": "ready", "stages": stages,
+                                         "stageReceipts": receipts}, expected_version=record["version"])
+            return response("ready", request_id=identity.get("requestId"), receipt=receipt,
+                            observed_generation=identity.get("generation"))
         sources: list[tuple[str, str]] = []
         manifest = record["payload"].get("sourceManifest") or {}
         root = record["payload"].get("objectRoot")
@@ -384,30 +743,56 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
                     obj = Path(root).absolute() / "inputs" / "objects" / str(entry["objectDigest"])
                     if obj.is_file():
                         sources.append((str(entry.get("path")), obj.read_text(encoding="utf-8")))
-        if stage_name in {"build", "unit_test", "integration_test", "regression_test", "commit", "notify", "gc"}:
+        if stage_name in HEAVY_STAGES | {"commit", "notify", "gc"}:
             raise JenkinsError("stage_requires_authority", "heavy and side-effect stages require their authoritative adapter", retryable=True)
         if stage_name in {"syntax", "format"} and not sources:
             raise JenkinsError("sealed_source_missing", "syntax and format require sealed source text")
         if stage_name == "patch":
-            journal = payload.get("patchOperationRef") or payload.get("patchJournal") or payload.get("operationId")
-            if not isinstance(journal, str):
-                raise JenkinsError("patch_journal_missing", "source apply operation journal is required")
-            references = record["payload"].get("patchOperationRefs") or [journal]
-            if journal not in references:
-                raise JenkinsError("patch_identity_mismatch", "patch receipt differs from sealed input")
-            operations = [state.get_operation(ref) for ref in references]
-            for operation in operations:
-                if operation is None or operation.get("kind") != "source_patch" or operation.get("status") != "complete":
-                    raise JenkinsError("patch_journal_untrusted", "patch stage requires completed source-owned journals")
-                after = operation.get("result", {}).get("afterHashes", {})
-                entries = {str(e["path"]).casefold(): e.get("sha256") for e in manifest.get("entries", [])}
-                if any(entries.get(p) != h for p, h in after.items()):
-                    raise JenkinsError("patch_source_mismatch", "patch journal differs from sealed source bytes")
+            applied_preparation = manifest.get('preparationKind') == 'already-applied-patch'
+            if applied_preparation:
+                journal = record['payload'].get('sourcePreparationRef')
+                if (payload.get('sourcePreparationRef', journal) != journal
+                        or payload.get('patchOperationRef') or payload.get('patchJournal')
+                        or record['payload'].get('patchOperationRefs')):
+                    raise JenkinsError('source_preparation_mismatch', 'Applied patch receipt cannot adopt a source writer journal')
+                operation = _require_flow_source_preparation(state, journal, identity=identity,
+                    source_digest=identity['sourceInputDigest'], preparation_kind='already-applied-patch')
+                entries = {str(e['path']).casefold(): e.get('sha256') for e in manifest.get('entries', [])}
+                if entries != operation['result'].get('currentHashes'):
+                    raise JenkinsError('patch_source_mismatch', 'Applied patch preparation differs from its complete sealed closure')
+                operations = [operation]
+                tool = 'coordinator-source-preparation'
+                command = ['source', 'prepare-already-applied-patch']
+            else:
+                journal = payload.get("patchOperationRef") or payload.get("patchJournal") or payload.get("operationId")
+                if journal is None and manifest.get("preparationKind") == "joint-input":
+                    frozen_refs = record["payload"].get("patchOperationRefs") or []
+                    journal = frozen_refs[0] if frozen_refs else None
+                if not isinstance(journal, str):
+                    raise JenkinsError("patch_journal_missing", "source apply operation journal is required")
+                references = record["payload"].get("patchOperationRefs") or [journal]
+                if journal not in references:
+                    raise JenkinsError("patch_identity_mismatch", "patch receipt differs from sealed input")
+                operations = [state.get_operation(ref) for ref in references]
+                for operation in operations:
+                    if operation is None or operation.get("kind") != "source_patch" or operation.get("status") != "complete":
+                        raise JenkinsError("patch_journal_untrusted", "patch stage requires completed source-owned journals")
+                    after = operation.get("result", {}).get("afterHashes", {})
+                    entries = {str(e["path"]).casefold(): e.get("sha256") for e in manifest.get("entries", [])}
+                    if any(entries.get(p) != h for p, h in after.items()):
+                        raise JenkinsError("patch_source_mismatch", "patch journal differs from sealed source bytes")
+                tool = 'source-parser'
+                command = ['source', 'patch']
             execution_id = digest({"flow": key, "stage": stage_name, "journal": journal})[:32]
             receipt = _light_receipt(state, repo_root, execution_id, stage_name, identity,
-                                     {"status": "passed", "exitCode": 0, "tool": "source-parser",
-                                      "commandDigest": digest(["source", "patch"]), "operationId": journal},
-                                     {"operations": [{"operationId": op["operationId"], "result": op["result"]} for op in operations]})
+                                     {"status": "passed", "exitCode": 0, "tool": tool,
+                                      "commandDigest": digest(command), "operationId": journal},
+                                     {"operations": [{"operationId": op["operationId"], "result": op["result"],
+                                                       "authorization": op["payload"].get("authorization")}
+                                                      for op in operations],
+                                      **({"jointGroupId": (state.get("sealed_input", identity["sourceInputDigest"]) or {}).get("payload", {}).get("jointGroupId"),
+                                          "authorInputs": manifest.get("authorInputs")}
+                                         if manifest.get("preparationKind") == "joint-input" else {})})
             stages[index]["status"] = "passed"
             stages[index]["receipt"] = receipt
             receipts = dict(record["payload"].get("stageReceipts", {})); receipts[stage_name] = execution_id
@@ -419,9 +804,6 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
             flow = {**record["payload"], "flowId": key, "generation": identity.get("generation"),
                     "sourceInputDigest": identity.get("sourceInputDigest")}
             receipt = authority.accept_flow(flow)
-            stages[index]["status"] = "passed"; stages[index]["receipt"] = receipt
-            state.put("workflow", key, {**record["payload"], "status": "accepted", "stages": stages,
-                                         "acceptance": receipt}, expected_version=record["version"])
             return response("accepted", request_id=identity.get("requestId"), observed_generation=identity.get("generation"), receipt=receipt)
         try:
             if stage_name == "syntax":
@@ -456,32 +838,27 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
         projected, stages = _project_execution(state, repo_root, record["payload"], key=key)
         if projected != record["payload"]:
             state.put("workflow", key, projected, expected_version=record["version"])
-        heavy = [x for x in stages if x.get("name") in {"build", "unit_test", "integration_test", "regression_test"}]
+        heavy = [x for x in stages if x.get("name") in HEAVY_STAGES]
         status = projected.get("executionStatus", projected.get("status", "waiting"))
-        if projected.get("status") not in {"failed", "cancelled"} and heavy and all(x.get("status") in {"passed", "reused"} for x in heavy): status = "ready"
+        if (projected.get("status") not in {"failed", "cancelled", "rejected"}
+                and not projected.get("consumerCancelled") and projected.get("executionStatus") == "passed"
+                and heavy and all(x.get("status") in {"passed", "reused"} for x in heavy)):
+            status = "ready"
+        if projected.get("status") == "accepted":
+            status = "accepted"
+        elif projected.get("status") in {"failed", "cancelled", "rejected"}:
+            status = projected["status"]
         return response(status, request_id=identity.get("requestId"), observed_generation=identity.get("generation"),
                         executionId=projected.get("executionId"), stages=stages)
     if action == "accept-flow":
         record = state.get("workflow", key)
         if record is None:
             raise JenkinsError("workflow_not_found", "workflow is not registered")
-        stages = record["payload"].get("stages", [])
-        required = set(record["payload"].get("requiredStages", []))
-        if not stages or any(item.get("status") not in {"passed", "reused"} for item in stages if item.get("name") in required):
-            raise JenkinsError("acceptance_pending", "required authoritative stage receipts are not complete", retryable=True)
         authority = TrustedReceiptAuthority(state, repo_root=repo_root)
         flow = {**record["payload"], "flowId": key,
                 "generation": identity.get("generation"),
                 "sourceInputDigest": identity.get("sourceInputDigest")}
         receipt = authority.accept_flow(flow)
-        stage_items = list(stages)
-        for item in stage_items:
-            if item.get("name") == "acceptance":
-                item["status"] = "passed"
-                item["receipt"] = receipt
-        state.put("workflow", key, {**record["payload"], "status": "accepted",
-                                     "stages": stage_items, "acceptance": receipt},
-                  expected_version=record["version"])
         return response("accepted", request_id=identity.get("requestId"),
                         observed_generation=identity.get("generation"), receipt=receipt)
     if action == "finalize-flow":
@@ -490,6 +867,7 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
             raise JenkinsError("flow_unaccepted", "finalization requires formal acceptance")
         flow = record["payload"]
         stages = [dict(item) for item in flow.get("stages", [])]
+        notify_eligible = False
         for stage in stages:
             name = stage.get("name")
             if name not in {"commit", "notify", "gc"} or stage.get("status") == "passed":
@@ -497,42 +875,43 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
             if name == "commit" and flow.get("gitCommitSha"):
                 stage.update(status="passed", commitSha=flow["gitCommitSha"])
                 continue
+            if name == "commit" and payload.get("commitRequested") is not True:
+                stage.update(status="skipped", reasonCode="action_not_requested")
+                continue
+            if name == "notify" and (payload.get("notifyRequested") is not True or flow.get("template") == "comments_only"):
+                stage.update(status="skipped", reasonCode="action_not_requested")
+                continue
             try:
-                state.check_authorization(flow["repositoryId"], identity["sessionId"], name if name != "notify" else "notify", flow.get("ownedPaths", []))
+                state.check_authorization(flow["repositoryId"], identity["sessionId"], name, flow.get("ownedPaths", []))
             except JenkinsError as error:
                 if error.code not in {"action_not_authorized", "path_not_authorized"}:
                     raise
                 stage.update(status="skipped", reasonCode="action_not_authorized")
                 continue
-            if name == "gc" and isinstance(payload.get("cleanupScope"), dict):
+            if name == "notify":
+                from ..notifications import NotificationOutbox
+                destination = payload.get("notifyDestination")
+                if not isinstance(destination, str) or not destination:
+                    raise JenkinsError("notification_destination_missing", "Requested notification requires its explicit destination")
+                event_id = f"{identity['sessionId']}:{identity['requestId']}:{identity['attemptId']}:complete"
+                notification = NotificationOutbox(state).enqueue(event_id, destination, {
+                    "kind": "flow_complete", "sessionId": identity["sessionId"],
+                    "requestId": identity["requestId"], "attemptId": identity["attemptId"],
+                    "repositoryId": flow["repositoryId"], "gitCommitSha": flow.get("gitCommitSha"),
+                    "template": flow.get("template"), "acceptanceReceipt": flow.get("acceptance")})
+                delivered = notification.status == "delivered"
+                notify_eligible = notification.status in {"pending", "retryable"}
+                stage.update(status="passed" if delivered else "pending", eventId=event_id,
+                             destinationId=destination, notificationStatus=notification.status,
+                             reasonCode="delivery_confirmed" if delivered else "explicit_delivery_required")
+            elif name == "gc" and isinstance(payload.get("cleanupScope"), dict):
                 from ..maintenance import garbage_collect
                 result = garbage_collect({"identity": identity, "buildRoot": flow["buildRoot"],
                     "operationId": digest({"flow": key, "stage": "gc"}),
                     "cleanupScope": payload["cleanupScope"], "ownedPaths": flow.get("ownedPaths", [])}, state, repo_root)
                 stage.update(status="passed", receipt=result)
-            elif name == "commit" and not payload.get("commitRequested"):
-                stage.update(status="skipped", reasonCode="action_not_requested")
             else:
-                stage.update(status="pending", reasonCode="explicit_delivery_required" if name == "notify" else "bounded_scope_required")
-        # Enqueue a completion notification so the Notify stage has something to deliver.
-        if flow.get("gitCommitSha") or payload.get("commitRequested"):
-            event_id = f"{identity['sessionId']}:{identity['requestId']}:{identity['attemptId']}:complete"
-            destination_id = payload.get("notifyDestination") or "default"
-            try:
-                from ..notifications import NotificationOutbox
-                outbox = NotificationOutbox(state)
-                outbox.enqueue(event_id, destination_id, {
-                    "kind": "flow_complete",
-                    "sessionId": identity["sessionId"],
-                    "requestId": identity["requestId"],
-                    "attemptId": identity["attemptId"],
-                    "repositoryId": flow.get("repositoryId"),
-                    "gitCommitSha": flow.get("gitCommitSha"),
-                    "template": flow.get("template"),
-                    "acceptanceReceipt": flow.get("acceptance"),
-                })
-            except JenkinsError:
-                pass  # notification enqueue failure must never block finalization
+                stage.update(status="pending", reasonCode="bounded_scope_required")
         from ..source import PathClaim, release_paths
         if flow.get("gitCommitSha"):
             claims = [PathClaim.from_record(row) for row in state.list("path_claims")
@@ -541,7 +920,8 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
         current = state.get("workflow", key)
         state.put("workflow", key, {**current["payload"], "stages": stages,
                   "postAcceptanceStatus": "complete" if all(s.get("status") in {"passed", "reused", "skipped"} for s in stages) else "pending"}, expected_version=current["version"])
-        return response("complete", request_id=identity.get("requestId"), executionId=flow["executionId"])
+        return response("complete", request_id=identity.get("requestId"), executionId=flow["executionId"],
+                        notifyEligible=notify_eligible)
     if action == "claim-execution":
         raise JenkinsError("legacy_execution_claim_removed",
                            "execution claims must be created by submit-execution from an immutable recipeRef")
@@ -596,11 +976,19 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
             manifest = record["payload"].get("sourceManifest") or {}
             owned = set(record["payload"].get("ownedPaths", ()))
             paths = [str(e.get("path")) for e in manifest.get("entries", ())
-                      if isinstance(e, dict) and e.get("path") in owned]
+                      if isinstance(e, dict) and str(e.get("path", "")).casefold() in {path.casefold() for path in owned}]
             if not paths:
                 raise JenkinsError("owned_change_missing", "Cargo planning requires a proven owned change scope")
+            options = {}
+            if manifest.get("preparationKind") == "joint-input":
+                sealed_record = state.get("sealed_input", sealed_ref)
+                if not sealed_record:
+                    raise JenkinsError("sealed_input_missing", "Union source is unavailable")
+                union_coverage = sealed_record["payload"].get("coverage", {})
+                options = {"features": union_coverage.get("features", ()),
+                           "profile": union_coverage.get("profile")}
             plan = planner.plan(sealed_input_ref=sealed_ref, driver=driver,
-                                changed_paths=paths, template=template)
+                                changed_paths=paths, template=template, **options)
             plan_payload = {"recipe": plan.recipe, "recipeDigest": plan.recipe_ref,
                             "sourceRef": plan.source_ref, "coverageRef": plan.coverage_ref,
                             "driver": plan.driver, "generation": plan.generation, "status": "planned"}
@@ -621,9 +1009,9 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
                                      "executionStatus": claimed.get("status", "claimed"),
                                      "stageRecipeDigests": {**dict(record["payload"].get("stageRecipeDigests", {})),
                                                                **{stage: plan_payload["recipeDigest"] for stage in record["payload"].get("requiredStages", ())
-                                                                  if stage in {"build", "unit_test", "integration_test", "regression_test"}}},
-                                     "requiredOutputsByStage": {stage: ["stdout.log", "stderr.log"] for stage in record["payload"].get("requiredStages", ())
-                                                               if stage in {"build", "unit_test", "integration_test", "regression_test"}},
+                                                                  if stage in HEAVY_STAGES}},
+                                     "requiredOutputsByStage": {stage: recipe.get("requiredOutputsByStage", {}).get(stage, ["stdout.log", "stderr.log"])
+                                                               for stage in record["payload"].get("requiredStages", ()) if stage in HEAVY_STAGES},
                                       }, expected_version=record["version"])
         dispatch = _ensure_execution_job(
             state, identity={**identity, "executionId": execution_id}, source_ref=sealed_ref,
@@ -711,10 +1099,7 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
         from .execution import ExecutionEngine
         result = ExecutionEngine(state, repo_root=repo_root,
                                  build_root=workflow["payload"]["buildRoot"]).cancel(
-                                     execution, key)
-        fresh = state.get("workflow", key)
-        if fresh["payload"].get("status") != "accepted":
-            state.put("workflow", key, {**fresh["payload"], "status": "cancelled", "consumerCancelled": True}, expected_version=fresh["version"])
+                                     execution, key, cancel_request=True)
         return response(result.get("status", "cancel_requested"), executionId=execution,
                         retryable=result.get("status") not in {"cancelled", "failed", "passed"})
     if action == "reconcile-flow":

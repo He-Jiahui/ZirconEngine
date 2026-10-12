@@ -9,6 +9,11 @@ use crate::scene::ecs::{
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 
 impl World {
+    pub(crate) fn begin_schedule_execution(&mut self) -> crate::scene::ecs::ScheduleExecution {
+        let owner = self.owner_identity().clone();
+        self.schedule.begin_execution(owner)
+    }
+
     pub fn schedule(&self) -> &Schedule {
         &self.schedule
     }
@@ -75,8 +80,9 @@ impl World {
     }
 
     /// Permanently removes a native system after it has reached the schedule's
-    /// quiescent boundary. A running worker system reports `SystemInFlight`
-    /// instead of releasing World-bound parameter state concurrently.
+    /// quiescent boundary. Systems referenced by an active tick snapshot report
+    /// `SystemInFlight` until that tick completes, preserving worker ownership
+    /// and World-bound parameter state.
     pub fn unregister_native_system(&mut self, id: &str) -> Result<bool, ScheduleError> {
         let mut schedule = std::mem::take(&mut self.schedule);
         let result = schedule.unregister_native_system(self, id);
@@ -93,6 +99,9 @@ impl World {
     }
 
     pub(crate) fn run_native_scene_system(&mut self, id: &str) -> bool {
+        let plan_owner = self.schedule.stage_plan();
+        let world_owner = self.owner_identity().clone();
+        let return_owner = self.schedule.executable_return_handle();
         let mut schedule = std::mem::take(&mut self.schedule);
         let Some(mut system) = schedule.take_native_system(id) else {
             self.schedule = schedule;
@@ -106,9 +115,15 @@ impl World {
         system.bind_deferred_system_key(key);
         let result = catch_unwind(AssertUnwindSafe(|| system.run(self)));
 
-        let mut schedule = std::mem::take(&mut self.schedule);
-        schedule.restore_native_system(system);
-        self.schedule = schedule;
+        // The callback may replace the entire World. The old box and its
+        // parameter state must never be restored or retired into the new owner.
+        if world_owner.is_same_world(self.owner_identity())
+            && self.schedule.owns_stage_plan(&plan_owner)
+        {
+            self.schedule.restore_native_system(system);
+        } else {
+            return_owner.native(system);
+        }
 
         if let Err(payload) = result {
             resume_unwind(payload);
@@ -159,15 +174,15 @@ impl World {
 
     #[cfg(test)]
     pub(crate) fn run_native_scene_systems_for_stage(&mut self, stage: SystemStage) {
-        let steps = self
-            .scheduled_native_system_steps_for_stage(stage)
-            .into_iter()
-            .collect::<Vec<_>>();
-
+        let execution = self.begin_schedule_execution();
+        let steps = execution.plan().native_steps_for_stage(stage).to_vec();
         let mut worker_batch = Vec::new();
         for step in steps {
+            if !execution.is_bound_to(self) {
+                break;
+            }
             match step {
-                ScheduledSceneStep::Native {
+                crate::scene::ecs::ScheduledSceneStep::Native {
                     id,
                     stage,
                     order,
@@ -175,77 +190,96 @@ impl World {
                     ..
                 } => {
                     if worker_safe {
-                        let key = DeferredSystemKey::compiled(stage.rank(), order, id.clone());
-                        worker_batch.push((id, key));
+                        worker_batch.push((
+                            id.clone(),
+                            DeferredSystemKey::compiled(stage.rank(), order, id),
+                        ));
                     } else {
-                        self.flush_test_worldless_native_batch(&mut worker_batch);
+                        self.flush_test_worldless_native_batch(&mut worker_batch, &execution);
+                        if !execution.is_bound_to(self) {
+                            break;
+                        }
                         self.run_native_scene_system(&id);
                     }
                 }
-                ScheduledSceneStep::Runtime { .. } => {}
-                ScheduledSceneStep::ApplyDeferred { .. } => {
-                    self.flush_test_worldless_native_batch(&mut worker_batch);
+                crate::scene::ecs::ScheduledSceneStep::ApplyDeferred { .. } => {
+                    self.flush_test_worldless_native_batch(&mut worker_batch, &execution);
+                    if !execution.is_bound_to(self) {
+                        break;
+                    }
                     self.apply_deferred();
                 }
+                crate::scene::ecs::ScheduledSceneStep::Runtime { .. } => {}
             }
         }
-        self.flush_test_worldless_native_batch(&mut worker_batch);
-        self.apply_deferred();
+        self.flush_test_worldless_native_batch(&mut worker_batch, &execution);
+        if execution.is_bound_to(self) {
+            self.apply_deferred();
+        }
     }
 
     #[cfg(test)]
     fn flush_test_worldless_native_batch(
         &mut self,
         dispatches: &mut Vec<(String, DeferredSystemKey)>,
+        execution: &crate::scene::ecs::ScheduleExecution,
     ) {
-        if dispatches.is_empty() {
+        if dispatches.is_empty() || !execution.is_bound_to(self) {
+            dispatches.clear();
             return;
         }
         let ids = dispatches
             .iter()
             .map(|(id, _)| id.as_str())
             .collect::<Vec<_>>();
+        let return_owner = self.schedule.executable_return_handle();
         let mut systems = self
             .take_worldless_native_scene_systems(&ids)
-            .expect("scheduled worldless systems must remain registered");
+            .expect("compiled worker-safe systems must remain registered");
         for (system, (_, key)) in systems.iter_mut().zip(dispatches.iter()) {
             if let Some(buffer) = system.worker_command_buffer_mut() {
                 buffer.bind_compiled_key(key.clone());
             }
         }
-
-        let run_result = catch_unwind(AssertUnwindSafe(|| {
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             for system in &mut systems {
                 system.run_without_world();
             }
+            if !execution.is_bound_to(self) {
+                return;
+            }
+            let mut buffers = systems
+                .iter_mut()
+                .filter_map(|system| system.worker_command_buffer_mut())
+                .collect::<Vec<_>>();
+            self.merge_worker_command_buffers(&mut buffers)
+                .expect("compiled test worker keys must remain unique");
+            let result =
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.apply_deferred()));
+            if execution.is_bound_to(self) {
+                self.reclaim_worker_command_buffers(&mut buffers);
+            }
+            if let Err(payload) = result {
+                std::panic::resume_unwind(payload);
+            }
         }));
-        if let Err(payload) = run_result {
+        if result.is_err() || !execution.is_bound_to(self) {
             for system in &mut systems {
                 if let Some(buffer) = system.worker_command_buffer_mut() {
                     buffer.discard_pending();
                 }
             }
-            self.restore_worldless_native_scene_systems(systems);
-            dispatches.clear();
-            resume_unwind(payload);
         }
-
-        let mut buffers = systems
-            .iter_mut()
-            .filter_map(|system| system.worker_command_buffer_mut())
-            .collect::<Vec<_>>();
-        if !buffers.is_empty() {
-            self.merge_worker_command_buffers(&mut buffers)
-                .expect("compiled worldless keys must remain unique");
-            let apply_result = catch_unwind(AssertUnwindSafe(|| self.apply_deferred()));
-            self.reclaim_worker_command_buffers(&mut buffers);
-            if let Err(payload) = apply_result {
-                self.restore_worldless_native_scene_systems(systems);
-                dispatches.clear();
-                resume_unwind(payload);
+        if execution.is_bound_to(self) {
+            self.restore_worldless_native_scene_systems(systems);
+        } else {
+            for system in systems {
+                return_owner.native(system);
             }
         }
-        self.restore_worldless_native_scene_systems(systems);
         dispatches.clear();
+        if let Err(payload) = result {
+            std::panic::resume_unwind(payload);
+        }
     }
 }

@@ -279,6 +279,18 @@ impl HostWorkbenchHitIndex {
         self.origin.as_ref()
     }
 
+    pub(crate) fn module_tools_popup_clip(&self, row: usize) -> Option<&FrameRect> {
+        self.componentized_ownership
+            .as_ref()?
+            .module_tools_popup_clip(row)
+    }
+
+    pub(super) fn module_tools_popup_contains_point(&self, row: usize, x: f32, y: f32) -> bool {
+        self.componentized_ownership
+            .as_ref()
+            .is_some_and(|owner| owner.module_tools_popup_contains_point(row, x, y))
+    }
+
     pub(crate) fn popup_rows(&self) -> &[usize] {
         &self.popup_rows
     }
@@ -588,6 +600,8 @@ fn same_index_membership(previous: &TemplatePaneNodeData, next: &TemplatePaneNod
         && previous.popup_open == next.popup_open
         && previous.disabled == next.disabled
         && accepts_pointer_move(previous) == accepts_pointer_move(next)
+        && crate::ui::retained_host::host_contract::componentized_workbench_regions::module_tools_menu_spec(previous.control_id.as_str()).is_none()
+        && crate::ui::retained_host::host_contract::componentized_workbench_regions::module_tools_menu_spec(next.control_id.as_str()).is_none()
         && !previous.control_id.starts_with("WorkbenchExtension")
         && !next.control_id.starts_with("WorkbenchExtension")
 }

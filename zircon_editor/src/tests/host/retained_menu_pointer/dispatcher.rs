@@ -244,7 +244,7 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
     let mut pointer_bridge = HostMenuPointerBridge::new();
     let layout = build_host_menu_pointer_layout(
         &menu_bar,
-        &harness.runtime.chrome_snapshot(),
+        &harness.runtime.chrome_snapshot().unwrap(),
         UiSize::new(1280.0, 720.0),
         &[],
         None,

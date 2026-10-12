@@ -1,5 +1,4 @@
-//! 编辑器网关的动态库权限、会话寿命和插件消费链契约测试。
-//! 源码字符串断言须与真实实现一起审核；注释不得充当这些断言的匹配文本。
+//! Behavioral contracts for App-owned dynamic V8 sessions, gateway identity and plugin consumers.
 
 #[cfg(feature = "target-editor-host")]
 use std::sync::Arc;
@@ -22,6 +21,13 @@ use super::super::loaded_runtime::LoadedRuntime;
 #[cfg(feature = "target-editor-host")]
 use super::super::runtime_session::RuntimeSession;
 
+#[cfg(all(
+    feature = "target-editor-host",
+    target_os = "windows",
+    feature = "dynamic-api"
+))]
+use super::super::loaded_runtime::surface_teardown_fixture::{self, Call, Policy};
+
 #[cfg(feature = "target-editor-host")]
 #[test]
 fn runtime_session_satisfies_editor_gateway_thread_safety_contract() {
@@ -30,107 +36,170 @@ fn runtime_session_satisfies_editor_gateway_thread_safety_contract() {
     assert_send_sync::<RuntimeSession>();
 }
 
-// TODO: [CR-APP-ENTRY-0003] 确认编辑器网关测试与当前构造 API 的迁移关系；当前测试仍引用已缺失的 linked 方法且源码断言与会话入口不同，待外来 RuntimeSession 改动稳定后核对受管测试。
-#[cfg(feature = "target-editor-host")]
+#[cfg(all(
+    feature = "target-editor-host",
+    target_os = "windows",
+    feature = "dynamic-api"
+))]
 #[test]
 fn editor_gateway_is_owned_by_session_gateway_instead_of_runtime_session() {
-    let runtime_session_source = include_str!("../runtime_session.rs");
-
-    assert!(runtime_session_source.contains("pub(crate) fn editor_gateway("));
-    assert!(runtime_session_source.contains("SessionGateway::new_with_identity("));
-    assert!(runtime_session_source.contains("self.gateway_identity()"));
-    assert!(!runtime_session_source.contains("SessionGateway::new("));
-    assert!(runtime_session_source.contains("let owner: Arc<dyn Send + Sync> = self.clone();"));
-    assert!(runtime_session_source.contains("self.runtime().editor_gateway_api_table()"));
-    assert!(runtime_session_source.contains(".with_viewport_surface_bindings("));
-    assert!(runtime_session_source.contains("self.viewport_surface_bindings.clone()"));
-    assert!(!runtime_session_source
-        .contains("impl zircon_editor::core::gateway::EditorRuntimeGateway for RuntimeSession"));
+    surface_teardown_fixture::with_session(Policy::default(), |session, control| {
+        let session = Arc::new(session);
+        let owner = Arc::downgrade(&session);
+        let gateway = session
+            .editor_gateway(RuntimeCapabilities::editor_default())
+            .unwrap();
+        drop(session);
+        assert!(
+            owner.upgrade().is_some(),
+            "gateway must retain the actual session owner"
+        );
+        assert!(control.snapshot().active);
+        drop(gateway);
+        assert!(owner.upgrade().is_none());
+        let snapshot = control.snapshot();
+        assert!(!snapshot.active);
+        assert_eq!(snapshot.allocations, 0);
+        assert_eq!(
+            snapshot.calls,
+            [
+                Call::Create,
+                Call::Receipt,
+                Call::ReleaseAllocation,
+                Call::Destroy
+            ]
+        );
+    });
 }
 
-#[cfg(feature = "target-editor-host")]
+#[cfg(all(
+    feature = "target-editor-host",
+    target_os = "windows",
+    feature = "dynamic-api"
+))]
 #[test]
 fn editor_gateway_retains_the_app_issued_runtime_session_identity() {
     use zircon_editor::core::gateway::EditorRuntimeGateway;
 
-    let runtime = Arc::new(
-        RuntimeSession::create_linked_with_profile_and_project(
-            LoadedRuntime::linked().expect("load linked runtime API"),
-            b"editor",
-            None,
-            Vec::new(),
-        )
-        .expect("create linked runtime session"),
+    let project_root = std::path::Path::new("E:/projects/identity-项目");
+    surface_teardown_fixture::with_session_for_project(
+        Policy::default(),
+        Some(project_root),
+        |session, _| {
+            let session = Arc::new(session);
+            let expected = session.gateway_identity();
+            let first = session
+                .editor_gateway(RuntimeCapabilities::editor_default())
+                .unwrap();
+            let second = session
+                .editor_gateway(RuntimeCapabilities::editor_default())
+                .unwrap();
+            assert_ne!(expected.runtime_instance(), 0);
+            assert!(expected.runtime_session().is_valid());
+            assert_eq!(expected.transport_epoch(), 1);
+            assert_eq!(expected.project(), project_root.to_str());
+            assert_eq!(expected.gateway_generation(), 0);
+            assert_eq!(expected.play_instance(), None);
+            assert_eq!(first.session_identity(), expected);
+            assert_eq!(second.session_identity(), expected);
+        },
     );
-    let expected = runtime.gateway_identity();
-    let gateway = runtime
-        .editor_gateway(RuntimeCapabilities::editor_default())
-        .expect("create editor gateway");
-
-    assert_ne!(expected.runtime_instance(), 0);
-    assert_eq!(expected.transport_epoch(), 1);
-    assert_eq!(gateway.session_identity(), expected);
 }
 
-#[cfg(feature = "target-editor-host")]
+#[cfg(all(
+    feature = "target-editor-host",
+    target_os = "windows",
+    feature = "dynamic-api"
+))]
 #[test]
 fn editor_gateway_api_table_excludes_session_lifecycle_but_retains_surface_presentation_authority()
 {
-    let runtime = LoadedRuntime::linked().expect("load linked runtime API");
-    let editor_api = runtime.editor_gateway_api_table();
+    surface_teardown_fixture::with_runtime(Policy::default(), |runtime, _| {
+        let editor_api = runtime.editor_gateway_api_table();
+        assert!(editor_api.create_session.is_none());
+        assert!(editor_api.destroy_session.is_none());
+        assert!(editor_api.drain_host_requests.is_none());
+        assert!(editor_api.release_allocation.is_some());
+        assert!(editor_api.bind_viewport_surface.is_some());
+        assert!(editor_api.unbind_viewport_surface.is_some());
+        assert!(editor_api.present_viewport.is_some());
+    });
+}
 
-    assert!(
-        editor_api.create_session.is_none(),
-        "SessionGateway must not receive session creation authority"
-    );
-    assert!(
-        editor_api.destroy_session.is_none(),
-        "SessionGateway must not receive session destruction authority"
-    );
-    assert!(
-        editor_api.release_allocation.is_some(),
-        "SessionGateway must receive allocation-release authority"
-    );
-    assert!(
-        editor_api.bind_viewport_surface.is_some(),
-        "SessionGateway needs viewport-surface bind authority"
-    );
-    assert!(
-        editor_api.unbind_viewport_surface.is_some(),
-        "SessionGateway needs viewport-surface unbind authority"
-    );
-    assert!(
-        editor_api.present_viewport.is_some(),
-        "SessionGateway needs viewport-surface present authority"
-    );
-    assert!(editor_api.drain_host_requests.is_none());
+#[cfg(all(
+    feature = "target-editor-host",
+    target_os = "windows",
+    feature = "dynamic-api"
+))]
+#[test]
+fn live_loaded_runtime_owners_with_the_same_raw_handle_have_distinct_gateway_identities() {
+    use zircon_editor::core::gateway::EditorRuntimeGateway;
 
-    let runtime_session_source = include_str!("../runtime_session.rs");
-    let try_destroy_body = runtime_session_source
-        .split("pub(in crate::entry) fn try_destroy")
-        .nth(1)
-        .and_then(|body| body.split("fn runtime(&self)").next())
-        .expect("RuntimeSession should expose retryable explicit teardown");
-    let drop_body = runtime_session_source
-        .split("impl Drop for RuntimeSession")
-        .nth(1)
-        .expect("RuntimeSession should own session teardown");
-    assert!(try_destroy_body.contains("let destroy_session = self.runtime().destroy_session();"));
-    assert!(try_destroy_body.contains("destroy_session(self.handle)"));
-    assert!(drop_body.contains("self.teardown_failure_state.record(error);"));
-    assert!(
-        try_destroy_body.contains("ensure_status(destroy_status, \"destroy runtime session\")?")
-    );
-    assert!(drop_body.contains("self.try_destroy()"));
-    assert!(runtime_session_source.contains("runtime: Option<LoadedRuntime>"));
-    assert!(drop_body.contains("abort_after_runtime_session_teardown_failure(&detail);"));
-    assert!(!drop_body.contains("std::mem::forget("));
-    assert!(runtime_session_source.contains("fn abort_after_runtime_session_teardown_failure"));
-    assert!(runtime_session_source.contains("std::process::abort();"));
-    assert!(
-        !try_destroy_body.contains("let _ = self.unbind_viewport_surface"),
-        "RuntimeSession Drop must not discard surface-unbind failures"
-    );
+    surface_teardown_fixture::with_session(Policy::default(), |first, first_control| {
+        let first = Arc::new(first);
+        let first_gateway = first
+            .editor_gateway(RuntimeCapabilities::editor_default())
+            .unwrap();
+        surface_teardown_fixture::with_session(Policy::default(), |second, second_control| {
+            let second = Arc::new(second);
+            let second_gateway = second
+                .editor_gateway(RuntimeCapabilities::editor_default())
+                .unwrap();
+            let first_identity = first_gateway.session_identity();
+            let second_identity = second_gateway.session_identity();
+            assert!(first_control.snapshot().active && second_control.snapshot().active);
+            assert_eq!(
+                first_identity.runtime_session(),
+                second_identity.runtime_session()
+            );
+            assert_ne!(first_identity.runtime_instance(), 0);
+            assert_ne!(second_identity.runtime_instance(), 0);
+            assert_ne!(
+                first_identity.runtime_instance(),
+                second_identity.runtime_instance()
+            );
+            assert_ne!(first_identity, second_identity);
+            assert_eq!(first_identity.transport_epoch(), 1);
+            assert_eq!(second_identity.transport_epoch(), 1);
+            assert_eq!(first_control.snapshot().allocations, 0);
+            assert_eq!(second_control.snapshot().allocations, 0);
+            drop(first);
+            drop(second);
+            assert!(first_control.snapshot().active && second_control.snapshot().active);
+            drop(first_gateway);
+            assert!(!first_control.snapshot().active);
+            assert!(second_control.snapshot().active);
+            assert_eq!(
+                first_control
+                    .snapshot()
+                    .calls
+                    .iter()
+                    .filter(|call| **call == Call::Destroy)
+                    .count(),
+                1
+            );
+            assert_eq!(
+                second_control
+                    .snapshot()
+                    .calls
+                    .iter()
+                    .filter(|call| **call == Call::Destroy)
+                    .count(),
+                0
+            );
+            drop(second_gateway);
+            assert!(!second_control.snapshot().active);
+            assert_eq!(
+                second_control
+                    .snapshot()
+                    .calls
+                    .iter()
+                    .filter(|call| **call == Call::Destroy)
+                    .count(),
+                1
+            );
+        });
+    });
 }
 
 #[cfg(feature = "target-editor-host")]
@@ -148,11 +217,10 @@ fn editor_product_ticks_selected_navigation_plugin_into_typed_consumer() {
         RuntimeTargetMode::EditorHost,
         &manifest,
     );
-    let mut editor_registrations =
-        crate::entry::first_party_editor_plugin_registrations_for_manifest(
-            RuntimeTargetMode::EditorHost,
-            &manifest,
-        );
+    let editor_registrations = crate::entry::first_party_editor_plugin_registrations_for_manifest(
+        RuntimeTargetMode::EditorHost,
+        &manifest,
+    );
     assert_eq!(runtime_registrations.len(), 1);
     assert_eq!(editor_registrations.len(), 1);
     let capabilities = RuntimeCapabilities::from_runtime_plugin_registrations(
@@ -160,19 +228,32 @@ fn editor_product_ticks_selected_navigation_plugin_into_typed_consumer() {
         &runtime_registrations,
     );
 
+    // CR-APP-ENTRY-0003: this real regression remains a hard gate until dynamic bootstrap
+    // admits the project's selected navigation provider. CoreOnly currently discards that plan.
+    // The native campaign must stage a current admitted Runtime and navigation-enabled project.
+    let project_root = std::env::var_os("ZIRCON_NAVIGATION_TEST_PROJECT")
+        .map(std::path::PathBuf::from)
+        .expect(
+            "ZIRCON_NAVIGATION_TEST_PROJECT must select the navigation-enabled campaign project",
+        );
     let runtime = Arc::new(
-        RuntimeSession::create_linked_with_profile_and_project(
-            LoadedRuntime::linked().unwrap(),
+        RuntimeSession::create_with_profile_and_project(
+            LoadedRuntime::load_default().expect("load the current admitted Runtime artifact"),
             b"editor",
+            Some(project_root.as_path()),
             None,
-            runtime_registrations,
+            None,
+            None,
         )
         .unwrap(),
     );
     let gateway: Arc<zircon_editor::core::gateway::SessionGateway> =
         runtime.editor_gateway(capabilities).unwrap();
     let host = EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(gateway));
-    let editor_registration = editor_registrations.remove(0);
+    let editor_registration = editor_registrations
+        .into_iter()
+        .next()
+        .expect("the selected navigation editor registration must be present");
     let capability = editor_registration.runtime_event_consumers.manifests()[0]
         .required_capability
         .clone();

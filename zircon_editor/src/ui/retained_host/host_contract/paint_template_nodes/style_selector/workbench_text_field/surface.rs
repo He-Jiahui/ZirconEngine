@@ -1,58 +1,55 @@
-//! 文本框的表面与边线分开表达输入区域和交互反馈；验证错误边线、不可用状态与工具栏身份限制普通声明覆盖。
-//! 普通声明色只在 Normal 状态覆盖非工具栏且无错误的字段，保证动态边线保持其语义。
+//! Authored colors follow the same state cascade as the runtime TextField painter.
+//! Unavailable input admission is independent from disabled visual overrides.
 
-use super::colors::declared_style_color;
+use super::colors::{authored_field_color, declared_style_color};
 use super::palette::workbench_text_field_palette;
 use super::state::is_unavailable_text_field_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
+
+fn field_hot(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> bool {
+    node.hovered
+        || node.dragging
+        || node.drop_hovered
+        || node.active_drag_target
+        || matches!(
+            state,
+            UiPainterResolvedState::Hovered
+                | UiPainterResolvedState::Dragging
+                | UiPainterResolvedState::DropHovered
+        )
+}
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_field_surface(
     node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
     let palette = workbench_text_field_palette();
-    let has_validation_error = matches!(node.validation_level.as_str(), "error" | "danger");
-    let color = if is_toolbar_text_field(node) {
-        match state {
-            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-                palette.disabled_surface
-            }
-            UiPainterResolvedState::Pressed
-            | UiPainterResolvedState::Focused
-            | UiPainterResolvedState::Open
-            | UiPainterResolvedState::Hovered
-            | UiPainterResolvedState::Dragging
-            | UiPainterResolvedState::DropHovered
-            | UiPainterResolvedState::Checked
-            | UiPainterResolvedState::Selected
-            | UiPainterResolvedState::Normal => palette.toolbar_surface,
-        }
+    let (keys, fallback): (&[&str], [u8; 4]) = if is_unavailable_text_field_state(state) {
+        (&["disabled_background_color"], palette.disabled_surface)
+    } else if state == UiPainterResolvedState::Pressed {
+        (&["pressed_background_color"], palette.focused_surface)
+    } else if state == UiPainterResolvedState::Focused {
+        (
+            &[
+                "focused_background_color",
+                "focus_background_color",
+                "background_color",
+            ],
+            palette.focused_surface,
+        )
+    } else if field_hot(node, state) {
+        (&["hover_background_color"], palette.hover_surface)
     } else {
-        match state {
-            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-                palette.disabled_surface
-            }
-            UiPainterResolvedState::Pressed
-            | UiPainterResolvedState::Focused
-            | UiPainterResolvedState::Open => palette.focused_surface,
-            UiPainterResolvedState::Hovered
-            | UiPainterResolvedState::Dragging
-            | UiPainterResolvedState::DropHovered => palette.hover_surface,
-            UiPainterResolvedState::Checked
-            | UiPainterResolvedState::Selected
-            | UiPainterResolvedState::Normal => palette.surface,
-        }
+        (&["background_color"], palette.surface)
     };
-    if is_unavailable_text_field_state(state)
-        || is_toolbar_text_field(node)
-        || has_validation_error
-        || !accepts_normal_text_field_override(state)
-    {
-        color
-    } else {
-        declared_style_color(node.button_style.element.background_color.as_ref()).unwrap_or(color)
-    }
+    authored_field_color(node, keys)
+        .or_else(|| {
+            keys.contains(&"background_color")
+                .then(|| declared_style_color(node.button_style.element.background_color.as_ref()))
+                .flatten()
+        })
+        .unwrap_or(fallback)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_field_border(
@@ -60,45 +57,26 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_fi
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
     let palette = workbench_text_field_palette();
-    let has_validation_error = matches!(node.validation_level.as_str(), "error" | "danger");
-    let color = if is_unavailable_text_field_state(state) {
-        palette.disabled_border
-    } else if has_validation_error {
-        palette.error
+    let has_error = matches!(node.validation_level.as_str(), "error" | "danger");
+    let (keys, fallback): (&[&str], [u8; 4]) = if is_unavailable_text_field_state(state) {
+        (&["disabled_border_color"], palette.disabled_border)
+    } else if has_error {
+        (&["error_border_color"], palette.error)
+    } else if matches!(
+        state,
+        UiPainterResolvedState::Pressed | UiPainterResolvedState::Focused
+    ) {
+        (&["focus_border_color"], palette.focus_border)
+    } else if field_hot(node, state) {
+        (&["hover_border_color"], palette.hover_border)
     } else {
-        match state {
-            UiPainterResolvedState::Pressed | UiPainterResolvedState::Open => palette.hover_border,
-            UiPainterResolvedState::Focused => palette.focus_border,
-            UiPainterResolvedState::Hovered
-            | UiPainterResolvedState::Dragging
-            | UiPainterResolvedState::DropHovered => palette.hover_border,
-            UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-                palette.disabled_border
-            }
-            UiPainterResolvedState::Checked
-            | UiPainterResolvedState::Selected
-            | UiPainterResolvedState::Normal => palette.border,
-        }
+        (&["border_color"], palette.border)
     };
-    if is_unavailable_text_field_state(state)
-        || is_toolbar_text_field(node)
-        || has_validation_error
-        || !accepts_normal_text_field_override(state)
-    {
-        color
-    } else {
-        declared_style_color(node.button_style.element.border_color.as_ref()).unwrap_or(color)
-    }
-}
-
-fn is_toolbar_text_field(node: &TemplatePaneNodeData) -> bool {
-    matches!(
-        node.control_id.as_str(),
-        "SearchEdited" | "AssetBrowserImportPathField"
-    ) || matches!(node.role.as_str(), "SearchField")
-        || matches!(node.component_role.as_str(), "search-field")
-}
-
-fn accepts_normal_text_field_override(state: UiPainterResolvedState) -> bool {
-    state == UiPainterResolvedState::Normal
+    authored_field_color(node, keys)
+        .or_else(|| {
+            (keys == ["border_color"])
+                .then(|| declared_style_color(node.button_style.element.border_color.as_ref()))
+                .flatten()
+        })
+        .unwrap_or(fallback)
 }

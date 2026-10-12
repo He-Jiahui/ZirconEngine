@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,8 +11,10 @@ from tools.jenkins.source import (canonical_path, claim_paths, release_paths,
                                   seal_manifest, apply_owned_patch, seal_candidate,
                                   materialize_manifest, register_sealed_consumer,
                                   persist_cargo_evidence, require_sealed_consumer,
-                                  get_sealed_manifest)
+                                  get_sealed_manifest, compute_source_digest,
+                                  handle, repository_id)
 from tools.jenkins.source import _thaw
+from tools.jenkins.resources.paths import build_root_containing
 from tools.jenkins.state import State
 
 
@@ -26,6 +29,27 @@ class SourceTests(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def _registered_candidate(self, root, session, owner):
+        repo = repository_id(root)
+        self.state.authorize_session(repo, session, "test", ["src/main.rs"],
+                                     ["implementation", "validation"],
+                                     {"source": "user", "task": "source identity fixture"})
+        source = root / "src/main.rs"
+        operation = "patch-" + session
+        apply_owned_patch(self.state, root, owner, {"src/main.rs": source.read_text(encoding="utf-8")},
+                          {"src/main.rs": hashlib.sha256(source.read_bytes()).hexdigest()},
+                          operation_id=operation)
+        claims = claim_paths(self.state, root, owner, ["src/main.rs"])
+        store = self.root / "objects"
+        payload = {"repositoryId": repo, "sessionId": session, "owner": owner,
+                   "claims": [claim.__dict__ for claim in claims],
+                   "coverage": {"template": "module_unit"},
+                   "patchOperationRefs": [operation],
+                   "buildRoot": str(build_root_containing(root).path), "objectRoot": str(store)}
+        with patch("tools.jenkins.source._approved_object_root", return_value=store):
+            result = handle("seal", payload, self.state, root)
+        return result, claims
 
     def test_canonical_path_rejects_escape_and_normalizes_case(self):
         self.assertEqual("src/main.rs", canonical_path(self.root, "SRC\\Main.rs"))
@@ -164,17 +188,96 @@ class SourceTests(unittest.TestCase):
         claims = claim_paths(self.state, self.root, "owner-a", ["src/main.rs"])
         sealed = seal_candidate(self.root, claims, object_root=self.root / "objects")
         plain = _thaw(sealed.payload)
+        repo = repository_id(self.root)
         self.state.put("sealed_input", sealed.source_digest,
-                       {"sourceManifest": plain, "manifest": plain})
+                       {"sourceManifest": plain, "manifest": plain, "repositoryId": repo})
         with self.assertRaisesRegex(JenkinsError, "not registered"):
-            get_sealed_manifest(self.state, repository_id_value="repo", session_id="s",
+            get_sealed_manifest(self.state, repository_id_value=repo, session_id="s",
                                 owner="owner-a", source_digest=sealed.source_digest)
-        register_sealed_consumer(self.state, repository_id_value="repo", session_id="s",
+        register_sealed_consumer(self.state, repository_id_value=repo, session_id="s",
                                  owner="owner-a", source_digest=sealed.source_digest,
                                  manifest_digest=sealed.source_digest)
         self.assertEqual(sealed.source_digest,
-                         get_sealed_manifest(self.state, repository_id_value="repo", session_id="s",
+                         get_sealed_manifest(self.state, repository_id_value=repo, session_id="s",
                                              owner="owner-a", source_digest=sealed.source_digest).source_digest)
+
+    def test_same_repository_reuses_input_for_two_sessions_without_adopting_first_owner(self):
+        first, claims = self._registered_candidate(self.root, "session-a", "owner-a")
+        before = self.state.get("sealed_input", first["sourceDigest"])
+        release_paths(self.state, "owner-a", claims)
+        second, _ = self._registered_candidate(self.root, "session-b", "owner-b")
+        self.assertEqual(first["sourceDigest"], second["sourceDigest"])
+        self.assertEqual(before, self.state.get("sealed_input", first["sourceDigest"]))
+        self.assertEqual("owner-a", before["payload"]["owner"])
+        for session, owner in [("session-a", "owner-a"), ("session-b", "owner-b")]:
+            loaded = get_sealed_manifest(self.state, repository_id_value=repository_id(self.root),
+                                         session_id=session, owner=owner, source_digest=first["sourceDigest"])
+            self.assertEqual(first["manifest"], _thaw(loaded.payload))
+        self.assertEqual(2, len(self.state.list("sealed_consumer")))
+
+    def test_identical_inputs_in_different_physical_repositories_have_distinct_identity(self):
+        other = self.root / "other-repository"
+        (other / "src").mkdir(parents=True)
+        (other / "src/main.rs").write_bytes(self.source.read_bytes())
+        first, _ = self._registered_candidate(self.root, "session-a", "owner-a")
+        second, _ = self._registered_candidate(other, "session-b", "owner-b")
+        self.assertNotEqual(first["sourceDigest"], second["sourceDigest"])
+        self.assertEqual(repository_id(self.root), first["manifest"]["repositoryId"])
+        self.assertEqual(repository_id(other), second["manifest"]["repositoryId"])
+        self.assertEqual({k: v for k, v in first["manifest"].items() if k != "repositoryId"},
+                         {k: v for k, v in second["manifest"].items() if k != "repositoryId"})
+        self.assertEqual(2, len(self.state.list("sealed_input")))
+        self.assertEqual(1, len(list((self.root / "objects/inputs/objects").iterdir())))
+
+    def test_legacy_manifest_remains_verifiable_and_unchanged_when_new_input_is_registered(self):
+        claims = claim_paths(self.state, self.root, "owner-a", ["src/main.rs"])
+        candidate = seal_candidate(self.root, claims, object_root=self.root / "objects")
+        legacy = _thaw(candidate.payload)
+        legacy.pop("repositoryId")
+        legacy_digest = compute_source_digest(legacy)
+        repo = repository_id(self.root)
+        before = self.state.put("sealed_input", legacy_digest,
+                                {"repositoryId": repo, "sourceManifest": legacy, "manifest": legacy})
+        register_sealed_consumer(self.state, repository_id_value=repo, session_id="old-session",
+                                 owner="old-owner", source_digest=legacy_digest, manifest_digest=legacy_digest)
+        loaded = get_sealed_manifest(self.state, repository_id_value=repo, session_id="old-session",
+                                     owner="old-owner", source_digest=legacy_digest)
+        self.assertEqual(legacy_digest, loaded.source_digest)
+        self.assertEqual(legacy, _thaw(loaded.payload))
+        release_paths(self.state, "owner-a", claims)
+        result, _ = self._registered_candidate(self.root, "new-session", "new-owner")
+        self.assertNotEqual(legacy_digest, result["sourceDigest"])
+        self.assertEqual(before, self.state.get("sealed_input", legacy_digest))
+        self.assertEqual(legacy_digest,
+                         get_sealed_manifest(self.state, repository_id_value=repo, session_id="old-session",
+                                             owner="old-owner", source_digest=legacy_digest).source_digest)
+
+    def test_sealing_rejects_forged_repository_before_object_or_state_registration(self):
+        with patch("tools.jenkins.source.seal_candidate") as seal:
+            with self.assertRaises(JenkinsError) as error:
+                handle("seal", {"repositoryId": "0" * 32}, self.state, self.root)
+        self.assertEqual("source_repository_mismatch", error.exception.code)
+        seal.assert_not_called()
+        self.assertEqual([], self.state.list("sealed_input"))
+        self.assertEqual([], self.state.list("sealed_consumer"))
+
+    def test_new_manifest_rejects_forged_consumer_or_record_repository(self):
+        result, _ = self._registered_candidate(self.root, "session-a", "owner-a")
+        foreign = "0" * 32
+        register_sealed_consumer(self.state, repository_id_value=foreign, session_id="foreign-session",
+                                 owner="foreign-owner", source_digest=result["sourceDigest"],
+                                 manifest_digest=result["sourceDigest"])
+        with self.assertRaises(JenkinsError) as error:
+            get_sealed_manifest(self.state, repository_id_value=foreign, session_id="foreign-session",
+                                owner="foreign-owner", source_digest=result["sourceDigest"])
+        self.assertEqual("sealed_input_repository_mismatch", error.exception.code)
+        record = self.state.get("sealed_input", result["sourceDigest"])
+        self.state.put("sealed_input", result["sourceDigest"],
+                       {**record["payload"], "repositoryId": foreign}, expected_version=record["version"])
+        with self.assertRaises(JenkinsError) as error:
+            get_sealed_manifest(self.state, repository_id_value=repository_id(self.root), session_id="session-a",
+                                owner="owner-a", source_digest=result["sourceDigest"])
+        self.assertEqual("sealed_input_repository_mismatch", error.exception.code)
 
 
 if __name__ == "__main__":

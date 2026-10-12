@@ -1,3 +1,4 @@
+use super::activity_virtualization::{ActivityAssetBinding, ActivityAssetVirtualization};
 use std::collections::BTreeMap;
 
 mod scrollbar_descriptors;
@@ -222,6 +223,7 @@ pub(crate) struct AssetContentPaintMetadata {
     browser_materialized_item_count: usize,
     browser_materialized_node_count: usize,
     browser_virtualization: Option<AssetBrowserVirtualization>,
+    activity_virtualization: Option<ActivityAssetVirtualization>,
     #[cfg(any(feature = "profiling", test))]
     identity_parse_count: usize,
     row_descriptors: Vec<AssetContentRowDescriptor>,
@@ -432,6 +434,7 @@ impl AssetContentPaintMetadata {
             browser_materialized_item_count,
             browser_materialized_node_count,
             browser_virtualization: None,
+            activity_virtualization: None,
             #[cfg(any(feature = "profiling", test))]
             identity_parse_count: row_descriptors.len(),
             row_descriptors,
@@ -439,6 +442,27 @@ impl AssetContentPaintMetadata {
             fixed_node_rows,
             scroll_groups,
         }
+    }
+
+    pub(crate) fn with_activity_virtual_rows(mut self, rows: ActivityAssetVirtualization) -> Self {
+        if self.surface == AssetContentSurface::Activity {
+            self.folder_row_count = rows.folder_count();
+            self.activity_virtualization = Some(rows);
+        }
+        self
+    }
+
+    pub(crate) fn activity_virtualization(&self) -> Option<&ActivityAssetVirtualization> {
+        self.activity_virtualization.as_ref()
+    }
+    pub(crate) fn activity_slot_binding(
+        &self,
+        scroll_px: f32,
+        slot: usize,
+    ) -> Option<ActivityAssetBinding<'_>> {
+        self.activity_virtualization
+            .as_ref()?
+            .binding(scroll_px, slot)
     }
 
     pub(crate) fn with_browser_virtual_items(
@@ -683,15 +707,32 @@ impl AssetContentPaintMetadata {
         damage_clip: AssetContentRect,
     ) -> Vec<usize> {
         let mut rows = self.fixed_node_rows.clone();
-        append_visible_group_rows(
-            &mut rows,
-            &self.scroll_groups,
-            self.viewport,
-            content_scroll_px,
-            origin_x,
-            origin_y,
-            damage_clip,
-        );
+        if let Some(virtualization) = &self.activity_virtualization {
+            if let Some(visible) = self
+                .viewport
+                .map(|viewport| viewport.translated(origin_x, origin_y))
+                .and_then(|viewport| viewport.intersect(damage_clip))
+            {
+                for (slot, group) in self.scroll_groups.iter().enumerate() {
+                    if let Some(binding) = virtualization.binding(content_scroll_px, slot) {
+                        let top = binding.top + origin_y - content_scroll_px;
+                        if top < visible.bottom() && top + binding.height > visible.y {
+                            rows.extend_from_slice(&group.node_rows);
+                        }
+                    }
+                }
+            }
+        } else {
+            append_visible_group_rows(
+                &mut rows,
+                &self.scroll_groups,
+                self.viewport,
+                content_scroll_px,
+                origin_x,
+                origin_y,
+                damage_clip,
+            );
+        }
         append_visible_group_rows(
             &mut rows,
             &self.activity_references_groups,

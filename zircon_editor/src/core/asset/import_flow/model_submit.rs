@@ -16,7 +16,14 @@ impl EditorAssetImportFlow {
         &self,
         source_path: PathBuf,
     ) -> Result<EditorModelImportTicket, CoreError> {
-        let manager = self.model_manager.as_ref().cloned().ok_or_else(|| {
+        let same_activation = {
+            let index = super::lock::lock_editor_asset_index_recovering_poison(self.index.as_ref());
+            self.matches_index_activation(&index)
+        };
+        if !same_activation {
+            return Err(Self::inactive_project_error());
+        }
+        let source = self.model_source.as_ref().cloned().ok_or_else(|| {
             CoreError::ServiceUnavailable("EditorAssetImportFlow model backend".to_owned())
         })?;
         let diagnostics = std::sync::Arc::new(EditorModelImportDiagnostics::new(
@@ -28,7 +35,7 @@ impl EditorAssetImportFlow {
                 format!("Import model {}", source_path.display()),
                 JobCategory::Import,
             ),
-            AssetImportModelJob::new(manager, source_path.clone(), diagnostics.clone()),
+            AssetImportModelJob::new(source, source_path.clone(), diagnostics.clone()),
         );
         match submission {
             Ok(ticket) => {

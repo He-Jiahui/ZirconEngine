@@ -84,6 +84,8 @@ Do not wait for the file to become huge before splitting it. Structure drift is 
 
 ## Naming Guidance
 
+Follow [the engine path budget](../../path-names.md) when naming or moving files.
+
 - Name modules by behavior or role, not by vague convenience.
 - Prefer `registry.rs`, `activation.rs`, `selection.rs`, `project_io.rs`, `render_extract.rs`.
 - Avoid broad catch-all names like `util.rs`, `helpers.rs`, `misc.rs`, or `common.rs` unless that module has one tight responsibility.

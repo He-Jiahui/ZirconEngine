@@ -7,7 +7,7 @@ use crate::asset::pipeline::manager::{
 };
 use crate::asset::AssetImporterRegistry;
 use crate::core::framework::asset::ResourceManager;
-use crate::core::manager::{resolve_manager_service, RegisteredManagerService};
+use crate::core::manager::{register_manager_alias, RegisteredManagerService};
 use crate::core::runtime::modules::TASKS_MODULE_NAME;
 use crate::core::runtime::tasks::TaskPoolKind;
 use crate::core::runtime::ServiceObject;
@@ -78,10 +78,11 @@ fn module_descriptor_with_asset_importers(
             )],
             factory(|core| {
                 let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
-                let manager = resolve_manager_service(&core, project_asset_manager_handle(&core)?)?;
-                Ok(
-                    Arc::new(RegisteredManagerService::<dyn AssetManager>::new(manager))
-                        as ServiceObject,
+                register_manager_alias(
+                    &core,
+                    project_asset_manager_handle(&core)?,
+                    ASSET_MANAGER_NAME,
+                    |manager| manager as &dyn AssetManager,
                 )
             }),
         ))
@@ -95,11 +96,11 @@ fn module_descriptor_with_asset_importers(
             )],
             factory(|core| {
                 let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
-                let manager = resolve_manager_service(&core, project_asset_manager_handle(&core)?)?;
-                Ok(
-                    Arc::new(RegisteredManagerService::<dyn ResourceManager>::new(
-                        manager,
-                    )) as ServiceObject,
+                register_manager_alias(
+                    &core,
+                    project_asset_manager_handle(&core)?,
+                    RESOURCE_MANAGER_NAME,
+                    |manager| manager as &dyn ResourceManager,
                 )
             }),
         ))

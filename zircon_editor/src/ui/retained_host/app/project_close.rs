@@ -171,14 +171,25 @@ impl RetainedEditorHost {
         if self.project_close_coordinator.phase() == ProjectCloseCoordinatorPhase::Closed
             && self
                 .editor_manager
-                .active_project_session_focus_target()
+                .enter()
+                .map_err(crate::ui::host::EditorError::from)
+                .map_err(|source| self.project_close_manager_admission_failure(source))
+                .map(|manager| manager.active_project_session_focus_target())
+                .map_err(|error| error.to_string())?
                 .is_some()
         {
             self.project_close_coordinator
                 .reset_for_new_session()
                 .map_err(|error| error.to_string())?;
         }
-        if let Some(owner) = self.editor_manager.dirty_document_save_owner() {
+        if let Some(owner) = self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| self.project_close_manager_admission_failure(source))
+            .map(|manager| manager.dirty_document_save_owner())
+            .map_err(|error| error.to_string())?
+        {
             self.set_status_line(format!(
                 "Project close is waiting for {owner} to finish saving."
             ));
@@ -195,7 +206,10 @@ impl RetainedEditorHost {
         self.recompute_if_dirty();
         let dirty_documents = self
             .editor_manager
-            .dirty_document_toolkits()
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| self.project_close_manager_admission_failure(source))
+            .and_then(|manager| manager.dirty_document_toolkits())
             .map_err(|error| error.to_string())?;
         let dirty_project_scene_token = self.dirty_project_scene_token()?;
         if dirty_documents.is_empty() && dirty_project_scene_token.is_none() {
@@ -231,7 +245,14 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn commit_project_close(
         &mut self,
     ) -> Result<(), RetainedProjectCloseError> {
-        if let Some(owner) = self.editor_manager.dirty_document_save_owner() {
+        if let Some(owner) = self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| self.project_close_manager_admission_failure(source))
+            .map(|manager| manager.dirty_document_save_owner())
+            .map_err(|source| RetainedProjectCloseError::Manager { source })?
+        {
             return Err(RetainedProjectCloseError::PendingDocumentSave { owner });
         }
         if self.queued_document_save_all {
@@ -242,7 +263,10 @@ impl RetainedEditorHost {
             ProjectCloseCoordinatorPhase::Decision => {
                 let Some(operation) = self
                     .editor_manager
-                    .begin_project_close()
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .map_err(|source| self.project_close_manager_admission_failure(source))
+                    .and_then(|manager| manager.begin_project_close())
                     .map_err(|source| RetainedProjectCloseError::Manager { source })?
                 else {
                     let welcome =
@@ -257,21 +281,53 @@ impl RetainedEditorHost {
 
                 if let Err(source) = self
                     .editor_manager
-                    .prepare_project_close_effect(&operation, ProjectSessionEffect::FocusBinding)
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .map_err(|source| {
+                        let _ = self.project_close_coordinator.require_recovery(&operation);
+                        RetainedProjectCloseError::Manager { source }
+                    })
+                    .map(|manager| {
+                        manager.prepare_project_close_effect(
+                            &operation,
+                            ProjectSessionEffect::FocusBinding,
+                        )
+                    })?
                 {
                     return Err(self.project_close_failure(&operation, source));
                 }
                 if let Err(message) = self.sync_hub_focus_binding() {
-                    let source = self.editor_manager.require_project_close_recovery(
-                        &operation,
-                        ProjectSessionEffect::FocusBinding,
-                        format!("cannot retire the Hub focus binding: {message}"),
-                    );
+                    let source = self
+                        .editor_manager
+                        .enter()
+                        .map_err(crate::ui::host::EditorError::from)
+                        .map_err(|source| {
+                            let _ = self.project_close_coordinator.require_recovery(&operation);
+                            RetainedProjectCloseError::Manager { source }
+                        })
+                        .map(|manager| {
+                            manager.require_project_close_recovery(
+                                &operation,
+                                ProjectSessionEffect::FocusBinding,
+                                format!("cannot retire the Hub focus binding: {message}"),
+                            )
+                        })?;
                     return Err(self.project_close_failure(&operation, source));
                 }
                 if let Err(source) = self
                     .editor_manager
-                    .commit_project_close_effect(&operation, ProjectSessionEffect::FocusBinding)
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .map_err(|source| {
+                        let _ = self.project_close_coordinator.require_recovery(&operation);
+                        RetainedProjectCloseError::Manager { source }
+                    })
+                    .map(|manager| {
+                        manager.commit_project_close_effect(
+                            &operation,
+                            ProjectSessionEffect::FocusBinding,
+                        )
+                    })?
                 {
                     return Err(self.project_close_failure(&operation, source));
                 }
@@ -289,11 +345,21 @@ impl RetainedEditorHost {
                     .operation()
                     .cloned()
                     .expect("terminal close coordinator always owns an operation");
-                let source = self.editor_manager.require_project_close_recovery(
+                let source = self
+                    .editor_manager
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .map_err(|source| {
+                        let _ = self.project_close_coordinator.require_recovery(&operation);
+                        RetainedProjectCloseError::Manager { source }
+                    })
+                    .map(|manager| {
+                        manager.require_project_close_recovery(
                     &operation,
                     ProjectSessionEffect::Session,
                     "project close cannot resume after entering a terminal in-process phase",
-                );
+                )
+                    })?;
                 return Err(self.project_close_failure(&operation, source));
             }
             ProjectCloseCoordinatorPhase::Closed => return Ok(()),
@@ -301,7 +367,15 @@ impl RetainedEditorHost {
 
         if let Err(source) = self
             .editor_manager
-            .prepare_project_close_effect(&operation, ProjectSessionEffect::AssetJobs)
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+                RetainedProjectCloseError::Manager { source }
+            })
+            .map(|manager| {
+                manager.prepare_project_close_effect(&operation, ProjectSessionEffect::AssetJobs)
+            })?
         {
             return Err(self.project_close_failure(&operation, source));
         }
@@ -317,14 +391,31 @@ impl RetainedEditorHost {
         self.cancel_pending_active_scene_reload();
         if let Err(source) = self
             .editor_manager
-            .commit_project_close_effect(&operation, ProjectSessionEffect::AssetJobs)
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+                RetainedProjectCloseError::Manager { source }
+            })
+            .map(|manager| {
+                manager.commit_project_close_effect(&operation, ProjectSessionEffect::AssetJobs)
+            })?
         {
             return Err(self.project_close_failure(&operation, source));
         }
 
         if let Err(source) = self
             .editor_manager
-            .prepare_project_close_effect(&operation, ProjectSessionEffect::UserInterface)
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+                RetainedProjectCloseError::Manager { source }
+            })
+            .map(|manager| {
+                manager
+                    .prepare_project_close_effect(&operation, ProjectSessionEffect::UserInterface)
+            })?
         {
             return Err(self.project_close_failure(&operation, source));
         }
@@ -338,14 +429,30 @@ impl RetainedEditorHost {
         }
         if let Err(source) = self
             .editor_manager
-            .commit_project_close_effect(&operation, ProjectSessionEffect::UserInterface)
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+                RetainedProjectCloseError::Manager { source }
+            })
+            .map(|manager| {
+                manager.commit_project_close_effect(&operation, ProjectSessionEffect::UserInterface)
+            })?
         {
             return Err(self.project_close_failure(&operation, source));
         }
 
         if let Err(source) = self
             .editor_manager
-            .prepare_project_close_effect(&operation, ProjectSessionEffect::Play)
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+                RetainedProjectCloseError::Manager { source }
+            })
+            .map(|manager| {
+                manager.prepare_project_close_effect(&operation, ProjectSessionEffect::Play)
+            })?
         {
             return Err(self.project_close_failure(&operation, source));
         }
@@ -367,7 +474,15 @@ impl RetainedEditorHost {
         }
         if let Err(source) = self
             .editor_manager
-            .commit_project_close_effect(&operation, ProjectSessionEffect::Play)
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+                RetainedProjectCloseError::Manager { source }
+            })
+            .map(|manager| {
+                manager.commit_project_close_effect(&operation, ProjectSessionEffect::Play)
+            })?
         {
             return Err(self.project_close_failure(&operation, source));
         }
@@ -375,7 +490,16 @@ impl RetainedEditorHost {
         self.project_close_coordinator
             .begin_committing(&operation)
             .map_err(|source| RetainedProjectCloseError::Coordinator { source })?;
-        let committed = match self.editor_manager.commit_project_close(&operation) {
+        let committed = match self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+                RetainedProjectCloseError::Manager { source }
+            })
+            .map(|manager| manager.commit_project_close(&operation))?
+        {
             Ok(committed) => committed,
             Err(source) => return Err(self.project_close_failure(&operation, source)),
         };
@@ -387,31 +511,86 @@ impl RetainedEditorHost {
         );
         if let Err(source) = self
             .editor_manager
-            .prepare_project_close_effect(&operation, ProjectSessionEffect::WorkspaceProjection)
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+                RetainedProjectCloseError::Manager { source }
+            })
+            .map(|manager| {
+                manager.prepare_project_close_effect(
+                    &operation,
+                    ProjectSessionEffect::WorkspaceProjection,
+                )
+            })?
         {
             return Err(self.project_close_failure(&operation, source));
         }
         if let Err(message) = self.apply_startup_session(welcome_session) {
-            let source = self.editor_manager.require_project_close_recovery(
-                &operation,
-                ProjectSessionEffect::WorkspaceProjection,
-                format!("cannot restore the welcome workspace: {message}"),
-            );
+            let source = self
+                .editor_manager
+                .enter()
+                .map_err(crate::ui::host::EditorError::from)
+                .map_err(|source| {
+                    let _ = self.project_close_coordinator.require_recovery(&operation);
+                    RetainedProjectCloseError::Manager { source }
+                })
+                .map(|manager| {
+                    manager.require_project_close_recovery(
+                        &operation,
+                        ProjectSessionEffect::WorkspaceProjection,
+                        format!("cannot restore the welcome workspace: {message}"),
+                    )
+                })?;
             return Err(self.project_close_failure(&operation, source));
         }
         if let Err(source) = self
             .editor_manager
-            .commit_project_close_effect(&operation, ProjectSessionEffect::WorkspaceProjection)
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+                RetainedProjectCloseError::Manager { source }
+            })
+            .map(|manager| {
+                manager.commit_project_close_effect(
+                    &operation,
+                    ProjectSessionEffect::WorkspaceProjection,
+                )
+            })?
         {
             return Err(self.project_close_failure(&operation, source));
         }
-        if let Err(source) = self.editor_manager.finalize_project_close(&operation) {
+        if let Err(source) = self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map_err(|source| {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+                RetainedProjectCloseError::Manager { source }
+            })
+            .map(|manager| manager.finalize_project_close(&operation))?
+        {
             return Err(self.project_close_failure(&operation, source));
         }
         self.project_close_coordinator
             .finish_closed(&operation)
             .map_err(|source| RetainedProjectCloseError::Coordinator { source })?;
         Ok(())
+    }
+
+    fn project_close_manager_admission_failure(&mut self, source: EditorError) -> EditorError {
+        if matches!(
+            self.project_close_coordinator.phase(),
+            ProjectCloseCoordinatorPhase::Decision
+                | ProjectCloseCoordinatorPhase::Quiescing
+                | ProjectCloseCoordinatorPhase::Committing
+        ) {
+            if let Some(operation) = self.project_close_coordinator.operation().cloned() {
+                let _ = self.project_close_coordinator.require_recovery(&operation);
+            }
+        }
+        source
     }
 
     fn project_close_failure(

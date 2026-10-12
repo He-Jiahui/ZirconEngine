@@ -2,7 +2,12 @@ use super::super::super::*;
 
 impl RetainedEditorHost {
     pub(super) fn open_startup_workbench(&mut self) {
-        match self.editor_manager.dismiss_welcome_page() {
+        match self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.dismiss_welcome_page())
+        {
             Ok(()) => {
                 self.clear_welcome_project_probe();
                 self.runtime.set_session_mode(EditorSessionMode::Project);
@@ -21,14 +26,27 @@ impl RetainedEditorHost {
     pub(super) fn open_startup_view(&mut self, descriptor_id: &str, status: &str) {
         match self
             .editor_manager
-            .open_view(
-                crate::ui::workbench::view::ViewDescriptorId::new(descriptor_id),
-                None,
-            )
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| {
+                manager.open_view(
+                    crate::ui::workbench::view::ViewDescriptorId::new(descriptor_id),
+                    None,
+                )
+            })
             .map_err(|error| error.to_string())
             .and_then(|instance_id| {
-                if let Err(error) = self.editor_manager.dismiss_welcome_page() {
-                    let _ = self.editor_manager.close_view(&instance_id);
+                if let Err(error) = self
+                    .editor_manager
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .and_then(|manager| manager.dismiss_welcome_page())
+                {
+                    let _ = self
+                        .editor_manager
+                        .enter()
+                        .map_err(crate::ui::host::EditorError::from)
+                        .and_then(|manager| manager.close_view(&instance_id));
                     return Err(error.to_string());
                 }
                 self.clear_welcome_project_probe();
@@ -47,7 +65,12 @@ impl RetainedEditorHost {
     }
 
     fn restore_welcome_after_startup_failure(&mut self, error: String) {
-        let error = match self.editor_manager.show_welcome_page() {
+        let error = match self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.show_welcome_page())
+        {
             Ok(()) => error,
             Err(restore_error) => format!(
                 "{error}; startup failure could not restore the Welcome page: {restore_error}"

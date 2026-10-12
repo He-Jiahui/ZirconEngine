@@ -12,7 +12,7 @@ fn console_clear_builtin_binding_clears_history_without_replacing_latest_status(
             .expect("Console clear builtin binding should exist")
             .expect("Console clear builtin binding should dispatch");
 
-    let snapshot = runtime.runtime.editor_snapshot();
+    let snapshot = runtime.runtime.editor_snapshot().unwrap();
     assert_eq!(snapshot.status_line, "Scene ready");
     assert!(snapshot.console_output.is_empty());
     assert!(effects
@@ -27,13 +27,13 @@ fn console_filter_builtin_bindings_change_visible_history_and_restore_all_messag
     let runtime = EventRuntimeHarness::new("zircon_editor_event_console_filter");
     runtime.runtime.set_status_line("Compiled materials");
     runtime.runtime.set_status_line("Scene ready");
-    let total_counts = runtime.runtime.editor_snapshot().console_output.counts();
+    let total_counts = runtime.runtime.editor_snapshot().unwrap().console_output.counts();
 
     let error_effects =
         dispatch_builtin_template_binding(&runtime.runtime, "ConsolePaneBody/FilterError")
             .expect("Console error-filter binding should exist")
             .expect("Console error-filter binding should dispatch");
-    let filtered = runtime.runtime.editor_snapshot().console_output;
+    let filtered = runtime.runtime.editor_snapshot().unwrap().console_output;
     assert!(filtered.is_empty());
     assert_eq!(filtered.counts(), total_counts);
     assert_eq!(
@@ -47,7 +47,7 @@ fn console_filter_builtin_bindings_change_visible_history_and_restore_all_messag
     dispatch_builtin_template_binding(&runtime.runtime, "ConsolePaneBody/FilterAll")
         .expect("Console all-filter binding should exist")
         .expect("Console all-filter binding should dispatch");
-    let restored = runtime.runtime.editor_snapshot().console_output;
+    let restored = runtime.runtime.editor_snapshot().unwrap().console_output;
     assert!(restored.ends_with("Compiled materials\nScene ready"));
     assert_eq!(
         restored.filter(),

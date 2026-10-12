@@ -32,7 +32,14 @@ impl RetainedEditorHost {
                     return Ok(None);
                 }
                 if self.active_hierarchy_drag_identity.is_some()
-                    && !self.hierarchy_drag_identity_is_current()
+                    && !match self.hierarchy_drag_identity_is_current() {
+                        Ok(current) => current,
+                        Err(error) => {
+                            self.retire_hierarchy_drag();
+                            self.set_status_line(error.to_string());
+                            return Err(StaleReferenceDragSource);
+                        }
+                    }
                 {
                     self.retire_hierarchy_drag();
                     return Err(StaleReferenceDragSource);

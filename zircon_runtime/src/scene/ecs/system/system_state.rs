@@ -6,6 +6,7 @@ use crate::scene::ecs::{
     ChangeTick, ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError,
     WorkerCommandBuffer, WorldlessSystemParam,
 };
+use crate::scene::world::DetachPreparationOwner;
 use crate::scene::World;
 
 /// 持有参数缓存、访问集与逐系统的变更窗口；调度系统在多次调用间复用，并在所属 World 退出时退休。
@@ -15,6 +16,7 @@ where
 {
     state: P::State,
     access: SystemParamAccess,
+    world_owner: DetachPreparationOwner,
     last_run: ChangeTick,
     retired: bool,
     _marker: PhantomData<fn() -> P>,
@@ -30,14 +32,29 @@ where
         Ok(Self {
             state,
             access,
+            world_owner: world.owner_identity().clone(),
             last_run: ChangeTick::ZERO,
             retired: false,
             _marker: PhantomData,
         })
     }
 
+    /// Returns access metadata for the original World, not a transferable view.
     pub fn access(&self) -> &SystemParamAccess {
         &self.access
+    }
+
+    /// Tests exact original World identity. Moving World preserves it; cloning
+    /// or deserializing World creates a different identity.
+    pub fn is_bound_to(&self, world: &World) -> bool {
+        self.world_owner.is_same_world(world.owner_identity())
+    }
+
+    fn assert_bound_to(&self, world: &World) {
+        assert!(
+            self.is_bound_to(world),
+            "system state belongs to another World; use rebind_to with its original owner"
+        );
     }
 
     pub fn last_run(&self) -> ChangeTick {
@@ -55,6 +72,7 @@ where
         if self.retired {
             return;
         }
+        self.assert_bound_to(world);
         if let Some(buffer) = self.deferred_command_buffer_mut() {
             buffer.discard_pending();
         }
@@ -62,17 +80,32 @@ where
         self.retired = true;
     }
 
-    /// Rebuilds parameter state against a new World after first constructing
-    /// the replacement. A failed rebuild leaves the existing state active.
+    /// Rebuilds an active state on its original World, or reactivates a retired
+    /// state on the supplied World. Ordinary initialization errors preserve the
+    /// original packet; custom initialization side effects are not rolled back.
     pub fn rebind(&mut self, world: &mut World) -> Result<(), SystemParamError> {
-        let mut access = SystemParamAccess::default();
-        let state = P::init_state(world, &mut access)?;
-        // BUG: [CR-R02-runtime_ecs_schedule_systems-0005] 活跃 EventReaderParam 跨 World rebind 且启用调试断言时，旧 lease 被交给新 World，retire 的归属检查触发 panic。证据：此调用传新 World，disconnect_reader 检查 registry 身份；同 World 已退休测试未覆盖。
+        if !self.retired {
+            self.assert_bound_to(world);
+        }
+        let replacement = Self::new(world)?;
         self.retire(world);
-        self.state = state;
-        self.access = access;
-        self.last_run = ChangeTick::ZERO;
-        self.retired = false;
+        *self = replacement;
+        Ok(())
+    }
+
+    /// Transfers state to another World after constructing its replacement.
+    /// Supply the original World for precise retirement. Ordinary initialization
+    /// errors preserve this packet; custom panic atomicity and target-World
+    /// initialization side effects are outside this contract.
+    pub fn rebind_to(
+        &mut self,
+        old_world: &mut World,
+        new_world: &mut World,
+    ) -> Result<(), SystemParamError> {
+        self.assert_bound_to(old_world);
+        let replacement = Self::new(new_world)?;
+        self.retire(old_world);
+        *self = replacement;
         Ok(())
     }
 
@@ -86,6 +119,9 @@ where
             !self.retired,
             "retired system state must be rebound before it can run"
         );
+        self.assert_bound_to(world);
+        let execution = world.begin_schedule_execution();
+        let plan_owner = execution.plan();
         if let Some(buffer) = self.deferred_command_buffer_mut() {
             buffer.begin_run();
             world.reclaim_worker_command_buffer(buffer);
@@ -107,10 +143,16 @@ where
         };
         match result {
             Ok(result) => {
-                P::record_performance_diagnostics(world, &mut self.state);
                 self.last_run = this_run;
-                if let Some(buffer) = self.deferred_command_buffer_mut() {
-                    world.merge_worker_command_buffer(buffer);
+                if self.is_bound_to(world) && world.schedule().owns_stage_plan(plan_owner) {
+                    P::record_performance_diagnostics(world, &mut self.state);
+                    if let Some(buffer) = self.deferred_command_buffer_mut() {
+                        world.merge_worker_command_buffer(buffer);
+                    }
+                } else if let Some(buffer) = self.deferred_command_buffer_mut() {
+                    // No diagnostics, tick attribution or deferred payload may
+                    // cross a complete World replacement performed by a Param.
+                    buffer.discard_pending();
                 }
                 result
             }
@@ -149,14 +191,17 @@ where
 struct ActiveChangeTickGuard<'world> {
     world: &'world mut World,
     previous_active_tick: Option<ChangeTick>,
+    active_tick: crate::scene::world::change_detection::ActiveChangeTickSlot,
 }
 
 impl<'world> ActiveChangeTickGuard<'world> {
     fn enter(world: &'world mut World, active_tick: ChangeTick) -> Self {
+        let active_tick_slot = world.active_change_tick_slot();
         let previous_active_tick = world.replace_active_change_tick(Some(active_tick));
         Self {
             world,
             previous_active_tick,
+            active_tick: active_tick_slot,
         }
     }
 
@@ -167,8 +212,7 @@ impl<'world> ActiveChangeTickGuard<'world> {
 
 impl Drop for ActiveChangeTickGuard<'_> {
     fn drop(&mut self) {
-        self.world
-            .replace_active_change_tick(self.previous_active_tick);
+        self.active_tick.replace(self.previous_active_tick);
     }
 }
 

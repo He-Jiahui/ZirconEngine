@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use thiserror::Error;
 use zircon_runtime::asset::project::{
-    AssetMetaDocument, ProjectCatalogInputGeneration, ProjectManager,
+    AssetMetaDocument, ProjectActivationIdentity, ProjectCatalogInputGeneration, ProjectManager,
 };
 use zircon_runtime::asset::registry::{AssetRegistryEntry, AssetRegistryIndex};
 use zircon_runtime::asset::watch::AssetWatchEvent;
@@ -114,6 +114,7 @@ pub struct EditorAssetIndex {
     importing_uuids: HashSet<AssetUuid>,
     pending_dirty_paths: HashSet<AssetUri>,
     catalog_input_generation: Option<Arc<ProjectCatalogInputGeneration>>,
+    project_activation_identity: Option<ProjectActivationIdentity>,
 }
 
 impl EditorAssetIndex {
@@ -127,6 +128,7 @@ impl EditorAssetIndex {
             importing_uuids: HashSet::new(),
             pending_dirty_paths: HashSet::new(),
             catalog_input_generation: None,
+            project_activation_identity: None,
         }
     }
 
@@ -141,7 +143,23 @@ impl EditorAssetIndex {
                 .map(|record| Arc::new(record.meta().clone())),
         )?;
         index.catalog_input_generation = Some(catalog_input);
+        index.project_activation_identity = Some(project.activation_identity().clone());
         Ok(index)
+    }
+
+    pub fn project_activation_identity(&self) -> Option<&ProjectActivationIdentity> {
+        self.project_activation_identity.as_ref()
+    }
+
+    /// An old flow must finish its own lease without clearing a replacement project's marker.
+    pub fn clear_import_for_project(
+        &mut self,
+        uuid: AssetUuid,
+        expected: &ProjectActivationIdentity,
+    ) {
+        if self.project_activation_identity.as_ref() == Some(expected) {
+            self.clear_import(uuid);
+        }
     }
 
     pub fn catalog_input_generation(&self) -> Option<&Arc<ProjectCatalogInputGeneration>> {
@@ -278,12 +296,14 @@ impl EditorAssetIndex {
     ///
     /// A full Runtime catalog projection is deliberately rebuilt rather than incrementally
     /// mutated. Import jobs and watcher events can overlap that rebuild, so their transient
-    /// state must move to the replacement only when its UUIDs remain authoritative.
+    /// state moves only within the same activation and with authoritative UUIDs.
     pub fn replace_authoritative_projection(&mut self, mut projection: Self) {
         projection.runtime_registry_revision = self.runtime_registry_revision.wrapping_add(1);
-        projection.dirty_uuids = std::mem::take(&mut self.dirty_uuids);
-        projection.importing_uuids = std::mem::take(&mut self.importing_uuids);
-        projection.pending_dirty_paths = std::mem::take(&mut self.pending_dirty_paths);
+        if projection.project_activation_identity == self.project_activation_identity {
+            projection.dirty_uuids = std::mem::take(&mut self.dirty_uuids);
+            projection.importing_uuids = std::mem::take(&mut self.importing_uuids);
+            projection.pending_dirty_paths = std::mem::take(&mut self.pending_dirty_paths);
+        }
         projection.retain_transient_state_for_current_registry();
         *self = projection;
     }
@@ -294,10 +314,12 @@ impl EditorAssetIndex {
     /// use `replace_authoritative_projection` so the live transient collections move atomically.
     pub fn inherit_transient_state_from(&mut self, current: &Self) {
         self.runtime_registry_revision = current.runtime_registry_revision.wrapping_add(1);
-        self.dirty_uuids.clone_from(&current.dirty_uuids);
-        self.importing_uuids.clone_from(&current.importing_uuids);
-        self.pending_dirty_paths
-            .clone_from(&current.pending_dirty_paths);
+        if self.project_activation_identity == current.project_activation_identity {
+            self.dirty_uuids.clone_from(&current.dirty_uuids);
+            self.importing_uuids.clone_from(&current.importing_uuids);
+            self.pending_dirty_paths
+                .clone_from(&current.pending_dirty_paths);
+        }
         self.retain_transient_state_for_current_registry();
     }
 
@@ -335,6 +357,7 @@ impl EditorAssetIndex {
         let entry = self.runtime_registry.entry_by_path(path)?;
         Some(EditorAssetImportGeneration {
             registry_revision: self.runtime_registry_revision,
+            project_activation_identity: self.project_activation_identity.clone(),
             uuid: entry.uuid(),
             uri: Arc::new(entry.path().clone()),
             source_digest: Arc::from(entry.source_digest()),
@@ -345,7 +368,8 @@ impl EditorAssetIndex {
         &self,
         generation: &EditorAssetImportGeneration,
     ) -> bool {
-        self.runtime_registry_revision == generation.registry_revision
+        generation.project_activation_identity == self.project_activation_identity
+            && self.runtime_registry_revision == generation.registry_revision
             && self
                 .runtime_registry
                 .entry_by_path(generation.uri())
@@ -401,6 +425,7 @@ impl EditorAssetIndex {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct EditorAssetImportGeneration {
+    project_activation_identity: Option<ProjectActivationIdentity>,
     registry_revision: u64,
     uuid: AssetUuid,
     uri: Arc<AssetUri>,

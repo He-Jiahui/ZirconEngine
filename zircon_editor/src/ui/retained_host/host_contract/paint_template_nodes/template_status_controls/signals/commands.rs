@@ -6,7 +6,7 @@ use super::super::super::style_selector::{
 };
 use super::super::super::template_node_labels::template_node_label;
 use super::super::super::template_status_control_geometry::{
-    frame_is_within, status_font_size, status_line_height, status_signal_icon_paint_rect,
+    frame_is_within, status_text_metrics_for_node, status_signal_icon_paint_rect,
     status_signal_icon_rect, status_signal_text_rect,
 };
 use super::super::super::template_status_glyphs::push_status_signal_icon;
@@ -40,15 +40,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
     if !frame_is_within(rect, &text_rect) || intersect(&text_rect, clip).is_none() {
         return;
     }
+    let (font_size, line_height) = status_text_metrics_for_node(node);
+    let text_style = UiTextRunPaintStyle { strong: node.font_weight >= 600, ..UiTextRunPaintStyle::default() };
+    let font_request = crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(node, text_style);
     commands.push(HostPaintCommand::text(
         text_rect,
         Some(clip.clone()),
         order + 2,
         label,
         style.text,
-        status_font_size(),
-        status_line_height(),
-        UiTextRunPaintStyle::default(),
+        font_size,
+        line_height,
+        text_style,
         opacity,
-    ));
+    ).with_text_font_request(font_request));
 }

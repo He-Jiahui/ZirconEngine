@@ -1,3 +1,4 @@
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use crate::core::jobs::{EditorJobProgressSnapshot, JobCategory};
 use crate::ui::workbench::snapshot::{StatusTaskProgressSnapshot, StatusTaskProgressTone};
 
@@ -10,6 +11,9 @@ impl RetainedEditorHost {
         if !self.runtime.set_retained_status_task_progress(&progress) {
             return;
         }
+        capture_trace::record("visible_job_progress_changed", || {
+            format!("primary={primary:?} cursor={:?}", self.ui.get_host_presentation_generation().cursor())
+        });
         match self
             .workbench_window_bridge
             .prepare_status_task_progress(progress.as_ref())

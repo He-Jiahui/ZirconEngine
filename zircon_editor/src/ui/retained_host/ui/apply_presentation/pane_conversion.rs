@@ -3,7 +3,7 @@ use super::*;
 pub(super) fn to_host_contract_pane(
     data: host_window::PaneData,
     pane_size: host_window::PaneContentSize,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
@@ -92,7 +92,7 @@ pub(super) fn to_host_contract_pane(
         to_host_contract_hierarchy_pane(
             &data,
             pane_size,
-            component_showcase_runtime,
+            pane_runtimes.template,
             hierarchy_filter_query,
         )
     } else {
@@ -100,13 +100,13 @@ pub(super) fn to_host_contract_pane(
     };
     let inspector = if has_inspector_payload {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_inspector");
-        to_host_contract_inspector_pane(&data, pane_size, component_showcase_runtime)
+        to_host_contract_inspector_pane(&data, pane_size, pane_runtimes.template)
     } else {
         host_contract::InspectorPaneData::default()
     };
     let console = if has_console_payload {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_console");
-        component_showcase_runtime.map_or_else(
+        pane_runtimes.template.map_or_else(
             || to_host_contract_console_pane(&data, pane_size, None),
             |runtime| {
                 pane_data_conversion::to_host_contract_console_pane_from_host_pane_with_runtime_and_cache(
@@ -122,7 +122,7 @@ pub(super) fn to_host_contract_pane(
     };
     let animation = if has_animation_payload {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_animation");
-        to_host_contract_animation_editor_pane(&data, pane_size, component_showcase_runtime)
+        to_host_contract_animation_editor_pane(&data, pane_size, pane_runtimes.template)
     } else {
         host_contract::AnimationEditorPaneData::default()
     };
@@ -164,7 +164,7 @@ pub(super) fn to_host_contract_pane(
     };
     let generated_bottom = if has_generated_bottom_payload {
         zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_generated_bottom");
-        to_host_contract_generated_bottom_pane(&data, pane_size)
+        to_host_contract_generated_bottom_pane(&data, pane_size, pane_runtimes.generated)
     } else {
         host_contract::GeneratedBottomPaneData::default()
     };
@@ -173,11 +173,13 @@ pub(super) fn to_host_contract_pane(
         pane_data_conversion::to_host_contract_template_v2_pane_from_host_pane_with_runtime(
             &data,
             pane_size,
-            component_showcase_runtime,
+            pane_runtimes.template,
         )
     } else {
-        if let Some(runtime) = component_showcase_runtime {
-            runtime.remove_template_actions_for_pane(&pane_id);
+        if !has_generated_bottom_payload {
+            if let Some(runtime) = pane_runtimes.template {
+                runtime.remove_template_actions_for_pane(&pane_id);
+            }
         }
         host_contract::TemplateV2PaneData::default()
     };
@@ -187,7 +189,7 @@ pub(super) fn to_host_contract_pane(
             "retained_host",
             "convert_pane_component_showcase"
         );
-        component_showcase_runtime.map_or_else(
+        pane_runtimes.template.map_or_else(
             || {
                 pane_data_conversion::to_host_contract_component_showcase_pane_from_host_pane(
                     &data, pane_size,

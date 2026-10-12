@@ -1,13 +1,15 @@
 use std::collections::{BTreeMap, HashMap};
 use std::hint::black_box;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
-use std::time::Instant;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
-use crate::core::framework::scene::WorldHandle;
-use crate::core::CoreError;
+use crate::core::framework::scene::{WorldHandle, SCENE_MODULE_NAME};
+use crate::core::{CoreError, CoreRuntime, CoreWeak, InitLevel, ModuleDescriptor};
+use crate::scene::{Resource, World, DEFAULT_LEVEL_MANAGER_NAME};
 
-use super::{DefaultLevelManager, PreparedLevel};
+use super::{DefaultLevelManager, PreparedLevel, PreparedLevelPublishError};
 
 #[test]
 fn level_handle_allocation_accepts_the_maximum_once_then_reports_exhaustion() {
@@ -41,29 +43,260 @@ fn level_manager_registry_orders_world_snapshots_by_handle() {
     assert_eq!(handles, vec![41, 42, 43]);
 }
 
+fn registered_scene_runtime() -> CoreRuntime {
+    let runtime = CoreRuntime::new();
+    let descriptor = crate::scene::module_descriptor();
+    for dependency in &descriptor.module_dependencies {
+        runtime
+            .register_module(
+                ModuleDescriptor::new(&dependency.module_name, "Scene publication test dependency")
+                    .with_init_level(InitLevel::Kernel),
+            )
+            .unwrap();
+    }
+    runtime.register_module(descriptor).unwrap();
+    runtime.activate_registered_modules().unwrap();
+    runtime
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct ManagerSnapshot {
+    index: u32,
+    generation: u32,
+    in_flight_calls: usize,
+    admission_open: bool,
+    handles: Vec<u64>,
+}
+
+fn manager_snapshot(runtime: &CoreRuntime) -> ManagerSnapshot {
+    let core = runtime.handle();
+    let services = core
+        .inner
+        .services
+        .try_lock()
+        .expect("install must not hold the service registry lock");
+    let entry = services.get(DEFAULT_LEVEL_MANAGER_NAME).unwrap();
+    let manager = entry
+        .instance
+        .as_ref()
+        .unwrap()
+        .downcast_ref::<DefaultLevelManager>()
+        .unwrap();
+    let handles = manager
+        .levels
+        .try_lock()
+        .expect("install must not hold the levels registry lock")
+        .keys()
+        .map(|handle| handle.get())
+        .collect();
+    ManagerSnapshot {
+        index: entry.index,
+        generation: entry.generation,
+        in_flight_calls: entry.in_flight_calls,
+        admission_open: entry.admission_open,
+        handles,
+    }
+}
+
+type RollbackObservations = Arc<Mutex<Vec<Option<(usize, bool, bool)>>>>;
+
+#[derive(Debug)]
+struct RollbackWorldResource {
+    core: CoreWeak,
+    handle: Arc<AtomicU64>,
+    observations: RollbackObservations,
+}
+
+impl Resource for RollbackWorldResource {}
+
+impl Drop for RollbackWorldResource {
+    fn drop(&mut self) {
+        // Observe the actual registry without resolving a service or retaining a
+        // World clone. Lock contention is recorded as failure, never as success.
+        let observation = self.core.upgrade().and_then(|core| {
+            let services = core.inner.services.try_lock().ok()?;
+            let entry = services.get(DEFAULT_LEVEL_MANAGER_NAME)?;
+            let manager = entry
+                .instance
+                .as_ref()?
+                .downcast_ref::<DefaultLevelManager>()?;
+            let levels = manager.levels.try_lock().ok()?;
+            Some((
+                entry.in_flight_calls,
+                entry.admission_open,
+                levels.contains_key(&WorldHandle::new(self.handle.load(Ordering::Relaxed))),
+            ))
+        });
+        self.observations
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .push(observation);
+    }
+}
+
+fn prepare_observed_level(runtime: &CoreRuntime) -> (PreparedLevel, u64, RollbackObservations) {
+    let observations = Arc::new(Mutex::new(Vec::new()));
+    let handle = Arc::new(AtomicU64::new(0));
+    let mut world = World::empty();
+    world.insert_resource(RollbackWorldResource {
+        core: runtime.handle().downgrade(),
+        handle: Arc::clone(&handle),
+        observations: Arc::clone(&observations),
+    });
+    let prepared =
+        crate::scene::prepare_level(&runtime.handle(), world, Default::default()).unwrap();
+    let prepared_handle = prepared.level.as_ref().unwrap().handle().get();
+    handle.store(prepared_handle, Ordering::Relaxed);
+    (prepared, prepared_handle, observations)
+}
+
 #[test]
 fn prepared_level_publication_rolls_back_until_committed() {
-    let manager = Arc::new(DefaultLevelManager::default());
-    let first = manager
-        .try_prepare_level(crate::scene::World::empty(), Default::default())
-        .unwrap();
-    let first_handle = first.handle();
-    let first = PreparedLevel::new(Arc::clone(&manager), first);
-    assert!(manager.level(first_handle).is_none());
+    let runtime = registered_scene_runtime();
+    let (first, first_handle, observations) = prepare_observed_level(&runtime);
+    assert_eq!(manager_snapshot(&runtime).in_flight_calls, 0);
+    assert!(manager_snapshot(&runtime).handles.is_empty());
 
-    let publication = first.publish();
-    assert!(manager.level(first_handle).is_some());
-    drop(publication);
-    assert!(manager.level(first_handle).is_none());
+    let result = first.try_publish_with(|level| {
+        assert_eq!(level.handle().get(), first_handle);
+        let snapshot = manager_snapshot(&runtime);
+        assert_eq!(snapshot.in_flight_calls, 1);
+        assert_eq!(snapshot.handles, vec![first_handle]);
+        Err("original install failure")
+    });
+    assert!(matches!(
+        result,
+        Err(PreparedLevelPublishError::Install(
+            "original install failure"
+        ))
+    ));
+    assert_eq!(*observations.lock().unwrap(), vec![Some((1, true, false))]);
+    assert_eq!(manager_snapshot(&runtime).in_flight_calls, 0);
+    assert!(manager_snapshot(&runtime).handles.is_empty());
 
-    let second = manager
-        .try_prepare_level(crate::scene::World::empty(), Default::default())
+    let second =
+        crate::scene::prepare_level(&runtime.handle(), World::empty(), Default::default()).unwrap();
+    let second_handle = second.level.as_ref().unwrap().handle().get();
+    let committed = second
+        .try_publish_with(|level| {
+            assert_eq!(level.handle().get(), second_handle);
+            assert_eq!(manager_snapshot(&runtime).handles, vec![second_handle]);
+            Ok::<(), &str>(())
+        })
         .unwrap();
-    let second_handle = second.handle();
-    let publication = PreparedLevel::new(Arc::clone(&manager), second).publish();
-    let committed = publication.commit();
-    assert_eq!(committed.handle(), second_handle);
-    assert!(manager.level(second_handle).is_some());
+    assert_eq!(committed.handle().get(), second_handle);
+    assert_eq!(manager_snapshot(&runtime).in_flight_calls, 0);
+    assert_eq!(manager_snapshot(&runtime).handles, vec![second_handle]);
+}
+
+#[test]
+fn prepared_level_install_panic_releases_transient_world_before_admission() {
+    let runtime = registered_scene_runtime();
+    let (prepared, handle, observations) = prepare_observed_level(&runtime);
+    let panic = catch_unwind(AssertUnwindSafe(|| {
+        let _: Result<_, PreparedLevelPublishError<()>> = prepared.try_publish_with(|level| {
+            assert_eq!(level.handle().get(), handle);
+            assert_eq!(manager_snapshot(&runtime).handles, vec![handle]);
+            panic!("original install panic");
+        });
+    }))
+    .expect_err("the install panic must remain visible");
+    assert_eq!(
+        panic.downcast_ref::<&str>(),
+        Some(&"original install panic")
+    );
+    assert_eq!(*observations.lock().unwrap(), vec![Some((1, true, false))]);
+    assert!(manager_snapshot(&runtime).handles.is_empty());
+    assert_eq!(manager_snapshot(&runtime).in_flight_calls, 0);
+}
+
+#[test]
+fn prepared_level_idle_seed_rejects_closed_and_reactivated_generation() {
+    let runtime = registered_scene_runtime();
+    let closed =
+        crate::scene::prepare_level(&runtime.handle(), World::empty(), Default::default()).unwrap();
+    let stale =
+        crate::scene::prepare_level(&runtime.handle(), World::empty(), Default::default()).unwrap();
+    let before = manager_snapshot(&runtime);
+    assert_eq!(before.in_flight_calls, 0);
+    assert!(before.handles.is_empty());
+    runtime
+        .deactivate_module_with_drain_timeout(SCENE_MODULE_NAME, Duration::ZERO)
+        .unwrap();
+
+    let mut installs = 0;
+    let closed_result = closed.try_publish_with(|_| {
+        installs += 1;
+        Ok::<(), ()>(())
+    });
+    assert!(matches!(
+        closed_result,
+        Err(PreparedLevelPublishError::Admission(
+            CoreError::StaleServiceHandle { .. }
+        ))
+    ));
+    assert_eq!(installs, 0);
+
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let after = manager_snapshot(&runtime);
+    assert_eq!(after.index, before.index);
+    assert_ne!(after.generation, before.generation);
+    let stale_result = stale.try_publish_with(|_| {
+        installs += 1;
+        Ok::<(), ()>(())
+    });
+    assert!(matches!(
+        stale_result,
+        Err(PreparedLevelPublishError::Admission(
+            CoreError::StaleServiceHandle { .. }
+        ))
+    ));
+    assert_eq!(installs, 0);
+    assert!(manager_snapshot(&runtime).handles.is_empty());
+    assert_eq!(manager_snapshot(&runtime).in_flight_calls, 0);
+}
+
+#[test]
+fn prepared_level_rollback_finishes_before_closed_generation_cleanup_retry() {
+    let runtime = registered_scene_runtime();
+    let (prepared, handle, observations) = prepare_observed_level(&runtime);
+    let before = manager_snapshot(&runtime);
+    let result = prepared.try_publish_with(|_| {
+        assert!(matches!(
+            runtime.deactivate_module_with_drain_timeout(SCENE_MODULE_NAME, Duration::ZERO),
+            Err(CoreError::ServiceCallDrainTimeout { .. })
+        ));
+        let stopping = manager_snapshot(&runtime);
+        assert_eq!(stopping.index, before.index);
+        assert_eq!(stopping.generation, before.generation);
+        assert!(!stopping.admission_open);
+        assert_eq!(stopping.in_flight_calls, 1);
+        assert_eq!(stopping.handles, vec![handle]);
+        Err("original install failure after close")
+    });
+    assert!(matches!(
+        result,
+        Err(PreparedLevelPublishError::Install(
+            "original install failure after close"
+        ))
+    ));
+    assert_eq!(*observations.lock().unwrap(), vec![Some((1, false, false))]);
+    let rolled_back = manager_snapshot(&runtime);
+    assert_eq!(rolled_back.index, before.index);
+    assert_eq!(rolled_back.generation, before.generation);
+    assert!(!rolled_back.admission_open);
+    assert_eq!(rolled_back.in_flight_calls, 0);
+    assert!(rolled_back.handles.is_empty());
+    runtime
+        .deactivate_module_with_drain_timeout(SCENE_MODULE_NAME, Duration::ZERO)
+        .unwrap();
+    let core = runtime.handle();
+    let services = core.inner.services.lock().unwrap();
+    let settled = services.get(DEFAULT_LEVEL_MANAGER_NAME).unwrap();
+    assert!(settled.instance.is_none());
+    assert_eq!(settled.in_flight_calls, 0);
+    assert!(!settled.admission_open);
+    assert_ne!(settled.generation, before.generation);
 }
 
 #[test]

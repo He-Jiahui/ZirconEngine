@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools.jenkins.cli import runtime_path, dispatch, authorization_action, normalized_payload
+from tools.jenkins.cli import runtime_path, dispatch, authorization_action, normalized_payload, configured_build_payload
 from tools.jenkins.contracts import JenkinsError
 from tools.jenkins.state import State
 
@@ -110,6 +110,29 @@ class CliBoundaryTests(unittest.TestCase):
         self.assertEqual("commit", authorization_action("stage", "run-stage", {"stage": "git_commit"}))
         self.assertEqual("implementation", authorization_action("patch", "submit", {}))
         self.assertEqual("implementation", authorization_action("flow", "prepare-patch", {}))
+
+    def test_task_cache_keeps_original_root_without_default_injection(self):
+        # An unreadable spec proves this route never resolves a default root.
+        (self.repo / ".jenkins/deployment-spec.json").write_text("invalid configuration")
+        for phase in ("assess", "gc", "reconcile"):
+            payload = {"identity": {"requestId": "original"}, "phase": phase}
+            self.assertIs(payload, configured_build_payload("maintenance", "post-task-cache", payload, self.repo))
+            explicit = {**payload, "buildRoot": r"F:\cargo-targets"}
+            self.assertIs(explicit, configured_build_payload("maintenance", "post-task-cache", explicit, self.repo))
+        self.assertEqual("validation", authorization_action("maintenance", "post-task-cache", {"phase": "assess"}))
+        self.assertEqual("validation", authorization_action("maintenance", "post-task-cache", {"phase": "reconcile"}))
+        self.assertEqual("gc", authorization_action("maintenance", "post-task-cache", {"phase": "gc"}))
+
+    def test_validation_only_session_cannot_delete_task_cache(self):
+        from tools.jenkins.contracts import digest
+        state = State(self.repo / ".jenkins/state/test.sqlite3")
+        repo_id = digest(str(self.repo).casefold())
+        state.authorize_session(repo_id, "reader", "fixture", ["source"], ["validation"],
+                                {"source": "user", "task": "Original task cache permission fixture"})
+        with self.assertRaises(JenkinsError) as failure:
+            dispatch("maintenance", "post-task-cache", {"repositoryId": repo_id, "sessionId": "reader",
+                    "ownedPaths": ["source/a.rs"], "phase": "gc"}, state, self.repo)
+        self.assertEqual("action_not_authorized", failure.exception.code)
 
     def test_nested_identity_is_available_to_authorization_and_conflicts_are_rejected(self):
         value = normalized_payload({"identity": {"sessionId": "reader", "generation": 7}})

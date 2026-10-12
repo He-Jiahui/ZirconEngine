@@ -71,16 +71,44 @@ class DriverTests(unittest.TestCase):
         self.assertEqual("driver_syntax_invalid", rejected.exception.code)
         self.assertFalse((self.root / ".jenkins/runtime/drivers").exists())
 
-    def test_runtime_agent_fence_is_operation_specific(self):
-        first = runtime_agent_name("zircon-windows", "start-123456789012345")
-        second = runtime_agent_label("zircon-windows", "start-9999912345")
-        self.assertEqual(len(first.rsplit('-', 1)[1]), 16)
-        self.assertEqual(len(second.rsplit('-', 1)[1]), 16)
-        self.assertNotEqual(first, second)
-        with self.assertRaises(JenkinsError):
-            runtime_agent_name("bad label", "start-1")
-        with self.assertRaises(JenkinsError):
-            runtime_agent_name("zircon-windows", "runtime op with spaces")
+
+class RuntimeAgentIdentityTests(unittest.TestCase):
+    def test_configured_node_name_and_selector_are_stable_across_operations(self):
+        for base in ("zircon-windows-agent", "custom_agent.v2"):
+            for operation in ("start-123456789012345", "start-9999912345", "restart_owned.v2"):
+                with self.subTest(base=base, operation=operation):
+                    self.assertEqual(base, runtime_agent_name(base, operation))
+                    self.assertEqual(base, runtime_agent_label(base, operation))
+
+    def test_stable_name_preserves_all_original_input_rejections(self):
+        for helper in (runtime_agent_name, runtime_agent_label):
+            for base in (None, 7, "", " ", "bad label", "../agent", "agent/child", "agent:port", "agent\n"):
+                with self.subTest(helper=helper.__name__, base=base), self.assertRaises(JenkinsError) as rejected:
+                    helper(base, "start-1")
+                self.assertEqual("agent_name_invalid", rejected.exception.code)
+            for operation in (None, 7, "", " ", "runtime op with spaces", "start/child", "start:1", "start\n"):
+                with self.subTest(helper=helper.__name__, operation=operation), self.assertRaises(JenkinsError) as rejected:
+                    helper("zircon-windows-agent", operation)
+                self.assertEqual("runtime_operation_invalid", rejected.exception.code)
+
+    def test_same_node_name_cannot_authorize_another_execution_runtime(self):
+        from tools.jenkins.deployment.host import LifecycleHost
+
+        selected_operation, selected_digest = "start-current", "a" * 64
+        name = runtime_agent_name("zircon-windows-agent", selected_operation)
+        self.assertEqual(name, runtime_agent_name("zircon-windows-agent", "start-old"))
+        launch = {"agentName": name, "operationId": selected_operation, "generation": "7", "driverDigest": selected_digest}
+        execution = {**launch, "driver": {"digest": selected_digest, "runtimeOperationId": selected_operation, "generation": "7"}}
+        self.assertTrue(LifecycleHost._execution_launch_binding(launch, execution, selected_digest, selected_operation))
+        for old_execution in (
+            {**execution, "operationId": "start-old"},
+            {**execution, "generation": "6"},
+            {**execution, "driverDigest": "b" * 64},
+            {**execution, "driver": {**execution["driver"], "runtimeOperationId": "start-old"}},
+        ):
+            with self.subTest(execution=old_execution):
+                self.assertEqual(name, old_execution["agentName"])
+                self.assertFalse(LifecycleHost._execution_launch_binding(launch, old_execution, selected_digest, selected_operation))
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ use super::pointer_mapping::map_viewport_pointer_event;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn native_window_focus_lost(&mut self) {
-        if !self.runtime.play_preview_input_active() || !self.runtime.play_preview_view_focused() {
+        if !self.runtime.play_preview_input_active() || !(match self.runtime.play_preview_view_focused() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }) {
             return;
         }
         self.route_play_preview_focus_lost();
@@ -72,8 +72,13 @@ impl RetainedEditorHost {
         if !self.runtime.play_preview_input_active() {
             return false;
         }
-        if !self.runtime.play_preview_view_focused() {
-            return false;
+        match self.runtime.play_preview_view_focused() {
+            Ok(true) => {}
+            Ok(false) => return false,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return true;
+            }
         }
         let action = match keyboard.state {
             UiKeyboardInputState::Pressed | UiKeyboardInputState::Repeated => {

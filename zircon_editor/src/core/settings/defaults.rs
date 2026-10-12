@@ -17,6 +17,10 @@ pub const VIEWPORT_TRANSLATE_STEP_KEY: &str = "editor.viewport.translate_step";
 pub const VIEWPORT_ROTATE_STEP_DEGREES_KEY: &str = "editor.viewport.rotate_step_degrees";
 pub const VIEWPORT_SCALE_STEP_KEY: &str = "editor.viewport.scale_step";
 
+pub const VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY: &str = "editor.viewport.translate_snap_enabled";
+pub const VIEWPORT_ROTATE_SNAP_ENABLED_KEY: &str = "editor.viewport.rotate_snap_enabled";
+pub const VIEWPORT_SCALE_SNAP_ENABLED_KEY: &str = "editor.viewport.scale_snap_enabled";
+
 const MINIMUM_VIEWPORT_SNAP_STEP: f64 = 0.0001;
 const MAXIMUM_VIEWPORT_SNAP_STEP: f64 = 1_000_000.0;
 const MINIMUM_AUTOSAVE_INTERVAL_SECS: i64 = 15;
@@ -137,6 +141,24 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
             .expect("the built-in autosave-interval definition is valid"),
         )
         .expect("the built-in autosave-interval definition is unique");
+    register_viewport_snap_enabled(
+        &mut registry, VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY,
+        presentation("settings.editor.viewport.translate_snap_enabled.label",
+            "settings.editor.viewport.translate_snap_enabled.description",
+            &["settings.category.viewport", "settings.category.snapping"]),
+    );
+    register_viewport_snap_enabled(
+        &mut registry, VIEWPORT_ROTATE_SNAP_ENABLED_KEY,
+        presentation("settings.editor.viewport.rotate_snap_enabled.label",
+            "settings.editor.viewport.rotate_snap_enabled.description",
+            &["settings.category.viewport", "settings.category.snapping"]),
+    );
+    register_viewport_snap_enabled(
+        &mut registry, VIEWPORT_SCALE_SNAP_ENABLED_KEY,
+        presentation("settings.editor.viewport.scale_snap_enabled.label",
+            "settings.editor.viewport.scale_snap_enabled.description",
+            &["settings.category.viewport", "settings.category.snapping"]),
+    );
     register_viewport_snap_step(
         &mut registry,
         VIEWPORT_TRANSLATE_STEP_KEY,
@@ -173,6 +195,21 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
     crate::core::script_build::register_script_build_settings(&mut registry)
         .expect("the built-in script-build setting definition is unique");
     registry
+}
+
+fn register_viewport_snap_enabled(
+    registry: &mut SettingsRegistry,
+    key: &str,
+    presentation: SettingsPresentation,
+) {
+    // UE BaseEditorPerProjectUserSettings.ini enables all three snap types.
+    // Reuse the existing snap settings scopes and persistence owner.
+    registry.register(SettingDefinition::new(
+        SettingsKey::parse(key).expect("the built-in snap-enable key is valid"),
+        SettingsScope::Project, SettingSchema::Bool, SettingValue::Bool(true),
+        false, presentation,
+    ).expect("the built-in snap-enable definition is valid"))
+        .expect("the built-in snap-enable definition is unique");
 }
 
 fn register_viewport_snap_step(

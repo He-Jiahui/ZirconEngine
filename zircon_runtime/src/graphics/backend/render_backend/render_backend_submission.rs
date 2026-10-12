@@ -239,12 +239,11 @@ impl RenderBackend {
     pub(crate) fn poll_submission_completions(
         &self,
     ) -> Result<SubmissionPollReceipt, GraphicsError> {
-        let receipt = self
-            .render_device
-            .poll_submissions()
-            .map_err(GraphicsError::from)?;
-        self.dispatch_product_diagnostic_deliveries();
-        Ok(receipt)
+        super::ui_surface_diagnostic_completion::drain_completion_owner_once(
+            self.render_device.as_ref(),
+            self.diagnostic_delivery_router.as_ref(),
+        )
+        .map_err(GraphicsError::from)
     }
 
     /// Explicit bounded capture boundary. Normal rendering uses exactly one completion poll at

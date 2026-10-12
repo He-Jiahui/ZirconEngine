@@ -701,13 +701,31 @@ fn level_script_binding_query_uses_the_borrowed_key_without_call_site_allocation
 }
 
 #[test]
-fn level_render_extract_projects_sealed_pose_payload_after_the_world_lane() {
+fn level_render_extract_filters_sealed_pose_payload_inside_the_world_lane() {
     let source = include_str!("../level_system_render_extract.rs");
 
-    assert!(source.contains("let candidate_entities = frame_state"));
-    assert!(source.contains("let (mut extract, skeletons) = self.with_world_mut"));
-    assert!(source.contains("skeletons.into_iter()"));
-    assert!(source.contains("pose: pose.clone()"));
+    let frame = source
+        .find("let frame_state = self.frame_state_snapshot();")
+        .unwrap();
+    let lane = source.find("self.with_world_mut(|world|").unwrap();
+    let prepare = source
+        .find("world.build_prepared_render_frame_extract(context)")
+        .unwrap();
+    let generation = source
+        .find("frame_state.world_generation() != world.world_generation()")
+        .unwrap();
+    let candidates = source.find("let animation_poses = frame_state").unwrap();
+    let presence = source
+        .find("world.has_mesh_node_for_extract(entity)")
+        .unwrap();
+    let skeleton = source.find(".animation_skeleton(entity)").unwrap();
+    let pose = source.find("pose: pose.clone()").unwrap();
+    let output = source
+        .find("extract.animation_poses = animation_poses.into();")
+        .unwrap();
+    assert!(frame < lane && lane < prepare && prepare < generation && generation < candidates);
+    assert!(candidates < presence && presence < skeleton && skeleton < pose && pose < output);
+    assert!(!source.contains(".find_node("));
 }
 
 #[test]

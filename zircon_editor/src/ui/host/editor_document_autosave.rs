@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Weak};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
+use zircon_runtime::core::runtime::ServiceHandle;
 
 use zircon_runtime::asset::project::ProjectPaths;
 
@@ -42,7 +43,8 @@ impl EditorManager {
     }
 
     pub(crate) fn autosave_document_request(
-        self: &Arc<Self>,
+        &self,
+        manager_handle: ServiceHandle<Self>,
         document: DocumentId,
         dirty_generation: u64,
         identity: EditorAutosaveDocumentIdentity,
@@ -52,7 +54,7 @@ impl EditorManager {
             identity.document.clone(),
             AutosaveJobPolicy::for_save_mutex(save_mutex),
             Arc::new(EditorDocumentAutosaveSource {
-                manager: Arc::downgrade(self),
+                manager: manager_handle,
                 document,
                 dirty_generation,
                 sequence: next_autosave_sequence(),
@@ -107,7 +109,7 @@ fn editor_autosave_document_identity(
 }
 
 struct EditorDocumentAutosaveSource {
-    manager: Weak<EditorManager>,
+    manager: ServiceHandle<EditorManager>,
     document: DocumentId,
     dirty_generation: u64,
     sequence: u64,
@@ -121,15 +123,12 @@ impl AutosaveSnapshotSource for EditorDocumentAutosaveSource {
     }
 
     fn capture(&self, _document: &AutosaveDocumentId) -> Result<AutosaveSnapshot, JobError> {
-        let manager = self.manager.upgrade().ok_or_else(|| {
-            JobError::failed(std::io::Error::other(
-                "editor manager was released before autosave capture",
-            ))
-        })?;
+        let manager = self.manager.enter().map_err(JobError::failed)?;
         let payload = manager
             .host
             .capture_document_autosave(self.document, self.dirty_generation)
             .map_err(JobError::failed)?;
+        drop(manager);
         let captured_source_path = ProjectPaths::resolve_path(payload.source_path())
             .map(|path| path.into_operation_path())
             .unwrap_or_else(|_| payload.source_path().to_path_buf());
@@ -162,14 +161,14 @@ impl AutosaveSnapshotSource for EditorDocumentAutosaveSource {
 }
 
 pub(super) struct ForegroundDocumentSaveJob {
-    manager: Weak<EditorManager>,
+    manager: ServiceHandle<EditorManager>,
     instance_id: crate::ui::workbench::view::ViewInstanceId,
     reason: SaveReason,
 }
 
 impl ForegroundDocumentSaveJob {
     pub(super) fn new(
-        manager: Weak<EditorManager>,
+        manager: ServiceHandle<EditorManager>,
         instance_id: crate::ui::workbench::view::ViewInstanceId,
         reason: SaveReason,
     ) -> Self {
@@ -196,11 +195,7 @@ impl EditorJob for ForegroundDocumentSaveJob {
 
     fn run(self, context: JobContext) -> Result<Self::Output, JobError> {
         context.check_cancelled()?;
-        let manager = self.manager.upgrade().ok_or_else(|| {
-            JobError::failed(std::io::Error::other(
-                "editor manager was released before foreground document save",
-            ))
-        })?;
+        let manager = self.manager.enter().map_err(JobError::failed)?;
         manager
             .host
             .save_document_toolkit_canonical(&self.instance_id, self.reason)

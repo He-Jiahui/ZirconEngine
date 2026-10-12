@@ -3,6 +3,7 @@ use glyphon::{Buffer, FontSystem};
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeDigestV1;
 use zr_rhi::{
     UiSurfaceCommand, UiSurfaceRect, UiSurfaceTextFace, UiSurfaceTextLayoutRun, UiSurfaceTextLine,
+    UiSurfaceTextRequest,
 };
 pub(super) fn observe_buffer(
     fonts: &FontSystem,
@@ -12,6 +13,7 @@ pub(super) fn observe_buffer(
     command_index: usize,
     text: &str,
     clip: UiSurfaceRect,
+    requested: Option<UiSurfaceTextRequest>,
 ) -> UiSurfaceTextLayoutRun {
     let mut faces = Vec::new();
     let mut ids = std::collections::HashSet::new();
@@ -30,6 +32,15 @@ pub(super) fn observe_buffer(
                 let Some(face) = fonts.db().face(glyph.font_id) else {
                     continue;
                 };
+                // Observation must never open/map a lazy File source. Normal
+                // shaping admits Binary/SharedFile; skipped IDs remain in lines
+                // so the recorder detects incomplete face coverage.
+                if !matches!(
+                    &face.source,
+                    glyphon::fontdb::Source::Binary(_) | glyphon::fontdb::Source::SharedFile(_, _)
+                ) {
+                    continue;
+                }
                 let Some((sha256, face_index)) =
                     fonts.db().with_face_data(glyph.font_id, |bytes, index| {
                         (ZrRuntimeDigestV1::sha256(bytes).as_str().to_owned(), index)
@@ -39,12 +50,23 @@ pub(super) fn observe_buffer(
                 };
                 let observed_face = UiSurfaceTextFace {
                     font_id: font_id.clone(),
-                    sha256,
+                    glyph_count: 0,
+                    sha256: sha256.clone(),
                     face_index,
                     families: face.families.iter().map(|(name, _)| name.clone()).collect(),
                     post_script_name: face.post_script_name.clone(),
                     weight: face.weight.0,
                     style: format!("{:?}", face.style),
+                    resource_path: match &face.source {
+                        glyphon::fontdb::Source::SharedFile(path, _) => {
+                            Some(path.to_string_lossy().into_owned())
+                        }
+                        _ => None,
+                    },
+                    resource_sha256: match &face.source {
+                        glyphon::fontdb::Source::SharedFile(_, _) => Some(sha256),
+                        _ => None,
+                    },
                 };
                 cache.insert(font_id, observed_face.clone());
                 faces.push(observed_face);
@@ -81,10 +103,18 @@ pub(super) fn observe_buffer(
             }
         })
         .collect();
+    for face in &mut faces {
+        face.glyph_count = buffer
+            .layout_runs()
+            .flat_map(|run| run.glyphs.iter())
+            .filter(|glyph| format!("{:?}", glyph.font_id) == face.font_id)
+            .count();
+    }
     UiSurfaceTextLayoutRun {
         command_index,
         text: text.to_owned(),
         clip,
+        requested,
         lines,
         faces,
     }

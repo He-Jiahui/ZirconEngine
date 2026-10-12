@@ -32,6 +32,7 @@ mod face_access;
 mod face_matching;
 mod fallback_queries;
 mod instances;
+mod render_snapshot;
 mod system_fonts;
 
 pub(crate) use error::FontDatabaseError;

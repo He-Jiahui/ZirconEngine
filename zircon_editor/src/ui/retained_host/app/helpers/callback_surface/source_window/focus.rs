@@ -55,7 +55,7 @@ impl RetainedEditorHost {
         }
 
         self.last_focused_callback_window =
-            self.runtime.floating_window_id_for_surface_key(surface_key);
+            (match self.runtime.floating_window_id_for_surface_key(surface_key) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
     }
 }
 

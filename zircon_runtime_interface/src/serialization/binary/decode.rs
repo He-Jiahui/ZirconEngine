@@ -1,6 +1,3 @@
-use std::io::Cursor;
-
-use bincode::Options;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
@@ -12,21 +9,16 @@ pub(in crate::serialization) fn decode_binary_header(
     bytes: &[u8],
 ) -> Result<(PayloadHeader, &[u8]), LoadError> {
     let body = body_after_valid_prefix(bytes)?;
-    let mut cursor = Cursor::new(body);
     // 仅解头时允许后续 payload 字节；完整 payload 解码仍拒绝尾随数据。
-    let header = options()
-        .allow_trailing_bytes()
-        .with_limit(body.len() as u64)
-        .deserialize_from(&mut cursor)
+    let (header, payload_offset) = options()
+        .decode_prefix_bounded(body, body.len() as u64)
         .map_err(|source| LoadError::MalformedBinary { source })?;
-    let payload_offset = cursor.position() as usize;
     Ok((header, &body[payload_offset..]))
 }
 
 pub(in crate::serialization) fn decode_binary_payload(body: &[u8]) -> Result<Value, LoadError> {
     let payload: super::value::BinaryValue = options()
-        .with_limit(body.len() as u64)
-        .deserialize(body)
+        .decode(body)
         .map_err(|source| LoadError::MalformedBinary { source })?;
     Value::try_from(payload).map_err(|source: super::value::BinaryValueError| {
         LoadError::InvalidBinaryPayload {
@@ -42,8 +34,7 @@ where
     T: DeserializeOwned,
 {
     let payload: super::value::BinaryValue = options()
-        .with_limit(body.len() as u64)
-        .deserialize(body)
+        .decode(body)
         .map_err(super::value::DirectBinaryDecodeError::Malformed)?;
     super::value::decode_binary_value_direct(payload)
 }

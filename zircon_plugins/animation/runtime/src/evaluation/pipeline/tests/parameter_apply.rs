@@ -15,7 +15,9 @@ use super::AnimationEvaluationProjection;
 #[test]
 fn clip_player_time_is_deferred_until_event_batch_admission() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("fixture node is allocated");
     world
         .set_animation_player(
             entity,
@@ -57,7 +59,9 @@ fn clip_player_time_is_deferred_until_event_batch_admission() {
 #[test]
 fn negative_speed_looping_player_submits_a_descending_unwrapped_range() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("fixture node is allocated");
     world
         .set_animation_player(
             entity,
@@ -99,7 +103,9 @@ fn negative_speed_looping_player_submits_a_descending_unwrapped_range() {
 #[test]
 fn deferred_entity_restores_projection_revision_for_retry() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("fixture node is allocated");
     world
         .set_animation_skeleton(
             entity,
@@ -166,7 +172,9 @@ fn deferred_entity_restores_projection_revision_for_retry() {
 #[test]
 fn sequence_time_and_revision_are_staged_until_owner_admission() {
     let mut world = World::empty();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("fixture node is allocated");
     world
         .set_animation_sequence_player(
             entity,
@@ -216,4 +224,107 @@ fn sequence_time_and_revision_are_staged_until_owner_admission() {
         &BTreeMap::new(),
     );
     assert_eq!(retry.scan.sequences.len(), 1);
+}
+
+#[test]
+fn new_world_resets_all_projection_caches_and_paused_player_revisions() {
+    let mut world = World::empty();
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("fixture node is allocated");
+    world
+        .set_animation_skeleton(
+            entity,
+            Some(AnimationSkeletonComponent {
+                skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(
+                    ResourceId::from_stable_label("animation.skeleton.world-binding"),
+                ),
+            }),
+        )
+        .expect("animation skeleton is installed");
+    world
+        .set_animation_player(
+            entity,
+            Some(AnimationPlayerComponent {
+                clip: ResourceHandle::<AnimationClipMarker>::new(ResourceId::from_stable_label(
+                    "animation.clip.world-binding",
+                )),
+                playback_speed: 1.0,
+                time_seconds: 0.25,
+                weight: 1.0,
+                looping: false,
+                playing: false,
+            }),
+        )
+        .expect("paused animation player is installed");
+    let mut clone = world.clone();
+    assert_eq!(clone.read_change_tick(), world.read_change_tick());
+    let mut projection = AnimationEvaluationProjection::default();
+    let settings = AnimationPlaybackSettings::default();
+    let first = projection.scan(
+        &mut world,
+        &settings,
+        None,
+        0.5,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    );
+    assert_eq!(first.scan.clip_samples.len(), 1);
+    projection.commit_revision_stage(first.revision_stage, &BTreeSet::new());
+    let unchanged = projection.scan(
+        &mut world,
+        &settings,
+        None,
+        0.5,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    );
+    assert!(unchanged.scan.clip_samples.is_empty());
+    assert!(!projection.clip_revisions.is_empty());
+
+    let rebound = projection.scan(
+        &mut clone,
+        &settings,
+        None,
+        0.5,
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+        &BTreeMap::new(),
+    );
+    assert_eq!(rebound.scan.clip_samples.len(), 1);
+    assert!(projection.clip_revisions.is_empty());
+    assert!(projection.skeletons.as_ref().unwrap().is_bound_to(&clone));
+    assert!(projection
+        .clip_players
+        .as_ref()
+        .unwrap()
+        .is_bound_to(&clone));
+    assert!(projection
+        .sequence_players
+        .as_ref()
+        .unwrap()
+        .is_bound_to(&clone));
+    assert!(projection
+        .graph_players
+        .as_ref()
+        .unwrap()
+        .is_bound_to(&clone));
+    assert!(projection
+        .state_machine_players
+        .as_ref()
+        .unwrap()
+        .is_bound_to(&clone));
+    assert!(!projection.skeletons.as_ref().unwrap().is_bound_to(&world));
+    assert_eq!(
+        projection
+            .skeletons
+            .as_mut()
+            .unwrap()
+            .iter_cached(&clone)
+            .map(|(id, _)| id)
+            .collect::<Vec<_>>(),
+        vec![entity]
+    );
 }

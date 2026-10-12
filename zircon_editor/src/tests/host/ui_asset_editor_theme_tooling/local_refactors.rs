@@ -16,9 +16,10 @@ fn editor_manager_prunes_duplicate_local_theme_overrides() {
         DUPLICATE_THEME_UI_LAYOUT_ASSET,
         DUPLICATE_IMPORTED_THEME_ASSET,
     );
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     manager.open_project(&project_root).unwrap();
 
@@ -42,9 +43,10 @@ fn editor_manager_prunes_duplicate_local_theme_overrides() {
         .prune_ui_asset_editor_duplicate_local_theme_overrides(&instance_id)
         .expect("prune duplicate local theme overrides"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save pruned ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved pruned ui asset");
     assert!(!document.tokens.contains_key("accent"));
@@ -67,9 +69,10 @@ fn editor_manager_applies_theme_refactor_items_individually() {
         DUPLICATE_THEME_UI_LAYOUT_ASSET,
         DUPLICATE_IMPORTED_THEME_ASSET,
     );
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     manager.open_project(&project_root).unwrap();
 
@@ -81,9 +84,10 @@ fn editor_manager_applies_theme_refactor_items_individually() {
         .apply_ui_asset_editor_theme_refactor_item(&instance_id, 0)
         .expect("apply duplicate token refactor"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save refactored ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved refactored ui asset");
     assert!(!document.tokens.contains_key("accent"));

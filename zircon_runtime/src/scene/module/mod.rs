@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::asset::{AssetManager, AssetUri, ASSET_MODULE_NAME};
 use crate::core::framework::scene::{LevelManager, SCENE_MODULE_NAME};
-use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::modules::TIME_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
@@ -23,7 +22,7 @@ mod world_driver;
 use core_error::scene_core_error;
 
 pub use default_level_manager::DefaultLevelManager;
-pub use level_manager_lifecycle::{PreparedLevel, PreparedLevelPublication};
+pub use level_manager_lifecycle::{PreparedLevel, PreparedLevelPublishError};
 pub use world_driver::WorldDriver;
 
 pub const WORLD_DRIVER_NAME: &str = "SceneModule.Driver.WorldDriver";
@@ -68,11 +67,13 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "DefaultLevelManager",
         )],
         factory(|core| {
-            let manager =
-                core.resolve_manager::<DefaultLevelManager>(DEFAULT_LEVEL_MANAGER_NAME)?;
-            Ok(
-                Arc::new(RegisteredManagerService::<dyn LevelManager>::new(manager))
-                    as ServiceObject,
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            core.register_service_alias::<DefaultLevelManager, dyn LevelManager>(
+                DEFAULT_LEVEL_MANAGER_NAME,
+                ServiceKind::Manager,
+                crate::core::manager::LEVEL_MANAGER_NAME,
+                ServiceKind::Manager,
+                |manager| manager,
             )
         }),
     ))
@@ -105,8 +106,11 @@ pub fn prepare_level(
     world: crate::scene::World,
     metadata: crate::scene::LevelMetadata,
 ) -> Result<PreparedLevel, CoreError> {
-    let manager = resolve_default_level_manager(core)?;
-    let level = manager.try_prepare_level(world, metadata)?;
+    let manager = core.resolve_manager_handle::<DefaultLevelManager>(DEFAULT_LEVEL_MANAGER_NAME)?;
+    let level = {
+        let admitted = manager.enter()?;
+        admitted.try_prepare_level(world, metadata)?
+    };
     Ok(PreparedLevel::new(manager, level))
 }
 
@@ -141,6 +145,6 @@ impl EngineModule for SceneModule {
 
 pub(crate) fn resolve_default_level_manager(
     core: &CoreHandle,
-) -> Result<Arc<DefaultLevelManager>, CoreError> {
+) -> Result<crate::core::runtime::ServiceCallGuard<DefaultLevelManager>, CoreError> {
     core.resolve_manager::<DefaultLevelManager>(DEFAULT_LEVEL_MANAGER_NAME)
 }

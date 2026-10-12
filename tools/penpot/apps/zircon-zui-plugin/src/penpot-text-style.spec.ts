@@ -1,3 +1,6 @@
+import type { Shape } from '@penpot/plugin-types';
+import { bindFontResources,copyFontResources,fontResourcesForDocument,fontResourcesForShape,writeFontResources,parseFontResourceManifest,selectRegisteredFont } from './bridge/penpot-font-selection';
+import { encodeZuiMetadata,decodeZuiMetadata } from './bridge/zui-document';
 import type { Text } from '@penpot/plugin-types';
 import {
   applyPenpotTextRuns,
@@ -203,9 +206,98 @@ describe('source-owned Penpot typography', () => {
     { font_weight: '$editor.typography.strong.weight' },
     { font_size: 'huge' },
     { line_height: 0 },
-  ])('rejects unresolvable typography %j', (props) => {
+  ])('rejects unresolvable typography %j', (props: Record<string, string | number>) => {
     expect(() =>
       resolvePenpotTextStyle(document, { component: 'Label', props }),
     ).toThrow();
+  });
+});
+
+
+describe('explicit engine font resource selections', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const receipt = (weight = '400', variantId = 'official-regular') => ({schema:'zircon.penpot.font-resources.v1',selections:[{
+    source:{family:'Fira Sans',weight,style:'normal'},
+    engine:{assetPath:'res://fonts/engine.ttc',assetSha256:'a'.repeat(64),faceIndex:7,sfntSha256:'b'.repeat(64)},
+    penpot:{fontId:'official-engine-font',variantId,sfntSha256:'b'.repeat(64)},
+  }]});
+  const setup = () => {
+    const regular = {fontVariantId:'official-regular',fontWeight:'400',fontStyle:'normal'};
+    const bold = {fontVariantId:'official-bold',fontWeight:'700',fontStyle:'normal'};
+    const engine = {fontId:'official-engine-font',fontFamily:'Fira Sans',variants:[regular,bold],applyToText:vi.fn(),applyToRange:vi.fn()};
+    const google = {fontId:'google-family',fontFamily:'Fira Sans',variants:[regular],applyToText:vi.fn(),applyToRange:vi.fn()};
+    vi.stubGlobal('penpot',{fonts:{all:[google,engine]}});
+    return {engine,google,regular,bold};
+  };
+  it('keeps ambiguity refusal without a receipt and selects the verified exact IDs with it', () => {
+    const {engine,google,regular} = setup();
+    const original = {...document};
+    const untouched = {...document};
+    const style = resolvePenpotTextStyle(original,{component:'Label'});
+    expect(() => applyPenpotTextStyle({} as Text,style)).toThrow('found 2');
+    const manifest = parseFontResourceManifest(receipt());
+    bindFontResources(original,manifest);
+    const selected = resolvePenpotTextStyle(original,{component:'Label'});
+    applyPenpotTextStyle({} as Text,selected);
+    expect(engine.applyToText).toHaveBeenCalledWith(expect.anything(),regular);
+    expect(google.applyToText).not.toHaveBeenCalled();
+    expect(() => applyPenpotTextStyle({} as Text,resolvePenpotTextStyle(untouched,{component:'Label'}))).toThrow('found 2');
+    expect(JSON.stringify(original)).toBe(JSON.stringify(untouched));
+    expect(encodeZuiMetadata(original)).toBe(encodeZuiMetadata(untouched));
+    expect(fontResourcesForDocument({...original})).toBeUndefined();
+    const clone = {...original};
+    copyFontResources(original,clone);
+    expect(fontResourcesForDocument(clone)).toBe(manifest);
+  });
+  it('uses the exact mapped inline variant instead of a nearest weight', () => {
+    const {engine,bold} = setup();
+    const raw = receipt();
+    raw.selections.push(receipt('700','official-bold').selections[0]);
+    const mapped = {...document};
+    bindFontResources(mapped,parseFontResourceManifest(raw));
+    const range = {};
+    const text = {characters:'strong',getRange:vi.fn(() => range)} as unknown as Text;
+    const style = resolvePenpotTextStyle(mapped,{component:'Label'});
+    applyPenpotTextRuns(text,style,[{start:0,end:6,fontWeight:'700'}]);
+    expect(engine.applyToRange).toHaveBeenCalledWith(range,bold);
+    expect(() => applyPenpotTextRuns(text,style,[{start:0,end:6,fontWeight:'600'}])).toThrow('explicit font resource selection');
+  });
+  it('restores separate board receipts for document refresh without changing source metadata', () => {
+    setup();
+    const manifest = parseFontResourceManifest(receipt());
+    const stored = new Map<string,string>();
+    const board = {parent:null,setSharedPluginData:(_ns:string,key:string,value:string) => stored.set(key,value),getSharedPluginData:(_ns:string,key:string) => stored.get(key) ?? ''} as unknown as Shape;
+    writeFontResources(board,manifest);
+    const refreshSource: ZuiDocument = {
+      ...document,
+      root: { node: 'receipt-root' },
+      nodes: { 'receipt-root': { component: 'Label' } },
+    };
+    const refreshed = decodeZuiMetadata(encodeZuiMetadata(refreshSource));
+    bindFontResources(refreshed,fontResourcesForShape(board));
+    expect(fontResourcesForDocument(refreshed)).toEqual(manifest);
+    expect(encodeZuiMetadata(refreshed)).toBe(encodeZuiMetadata(refreshSource));
+  });
+  it.each(['missing-id','wrong-family','duplicate-id','missing-variant','wrong-weight','wrong-style','duplicate-variant'])('rejects stale or inconsistent registry mapping: %s', (failure: string) => {
+    const {engine,google,regular} = setup();
+    if (failure==='missing-id') engine.fontId='wrong-id';
+    if (failure==='wrong-family') engine.fontFamily='Other family';
+    if (failure==='duplicate-id') google.fontId=engine.fontId;
+    if (failure==='missing-variant') regular.fontVariantId='stale';
+    if (failure==='wrong-weight') regular.fontWeight='500';
+    if (failure==='wrong-style') regular.fontStyle='italic';
+    if (failure==='duplicate-variant') engine.variants.push({...regular});
+    expect(() => selectRegisteredFont('Fira Sans','400','normal',parseFontResourceManifest(receipt()))).toThrow();
+    expect(engine.applyToText).not.toHaveBeenCalled();
+  });
+  it('rejects duplicate source tuples and unequal SFNT receipts while preserving valid provenance', () => {
+    const raw = receipt();
+    const manifest = parseFontResourceManifest(raw);
+    expect(manifest.selections[0]).toEqual(raw.selections[0]);
+    raw.selections.push(raw.selections[0]);
+    expect(() => parseFontResourceManifest(raw)).toThrow('Duplicate');
+    const mismatch = receipt();
+    mismatch.selections[0].penpot.sfntSha256='c'.repeat(64);
+    expect(() => parseFontResourceManifest(mismatch)).toThrow('SFNT hash');
   });
 });

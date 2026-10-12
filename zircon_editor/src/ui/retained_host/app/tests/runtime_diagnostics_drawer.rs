@@ -71,7 +71,7 @@ fn dispatch_runtime_diagnostics_bottom_tab(harness: &ChildWindowHostHarness) {
 }
 
 fn assert_runtime_diagnostics_bottom_drawer_visible(harness: &ChildWindowHostHarness) {
-    let layout = harness.host.borrow().runtime.current_layout();
+    let layout = harness.host.borrow().runtime.current_layout().unwrap();
     let drawer = layout
         .active_activity_window_drawers()
         .get(&ActivityDrawerSlot::Bottom)

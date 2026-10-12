@@ -31,8 +31,18 @@ const WORKER_THREAD_NAME: &str = "zr-config-persist";
 /// 请求和确认分别由 [Self::request_persistence] 与 [Self::flush] 承担；发布约束见 [ConfigFileWriter]。
 pub(super) struct ConfigPersistenceWorker {
     shared: Arc<ConfigPersistenceShared>,
+    // Clones share publication and dirty registration as one setter operation.
+    publication: Mutex<()>,
+    #[cfg(test)]
+    publication_test_hooks: std::sync::OnceLock<PublicationTestHooks>,
     thread: Mutex<Option<JoinHandle<()>>>,
     shutdown_timeout: Duration,
+}
+
+#[cfg(test)]
+struct PublicationTestHooks {
+    after_publication: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    on_contention: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 
 struct ConfigPersistenceShared {
@@ -85,9 +95,73 @@ impl ConfigPersistenceWorker {
             })?;
         Ok(Arc::new(Self {
             shared,
+            publication: Mutex::new(()),
+            #[cfg(test)]
+            publication_test_hooks: std::sync::OnceLock::new(),
             thread: Mutex::new(Some(thread)),
             shutdown_timeout,
         }))
+    }
+
+    /// Serialize clone setters through dirty registration without holding the worker state lock
+    /// during JSON comparison or retirement. Flush still waits only for its captured dirty target.
+    pub(super) fn publish_and_request(&self, publish: impl FnOnce() -> bool) {
+        let _publication = self.lock_publication();
+        let changed = publish();
+        #[cfg(test)]
+        if let Some(hooks) = self.publication_test_hooks.get() {
+            let hook = hooks
+                .after_publication
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .take();
+            if let Some(hook) = hook {
+                hook();
+            }
+        }
+        self.request_persistence(changed);
+    }
+
+    fn lock_publication(&self) -> MutexGuard<'_, ()> {
+        #[cfg(test)]
+        if let Some(hooks) = self.publication_test_hooks.get() {
+            match self.publication.try_lock() {
+                Ok(guard) => return guard,
+                Err(std::sync::TryLockError::Poisoned(poisoned)) => {
+                    return poisoned.into_inner();
+                }
+                Err(std::sync::TryLockError::WouldBlock) => {
+                    let hook = hooks
+                        .on_contention
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .take();
+                    if let Some(hook) = hook {
+                        hook();
+                    }
+                }
+            }
+        }
+        self.publication
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    #[cfg(test)]
+    pub(super) fn install_publication_test_hooks(
+        &self,
+        after_publication: impl FnOnce() + Send + 'static,
+        on_contention: impl FnOnce() + Send + 'static,
+    ) {
+        assert!(
+            self.publication_test_hooks
+                .set(PublicationTestHooks {
+                    after_publication: Mutex::new(Some(Box::new(after_publication))),
+                    on_contention: Mutex::new(Some(Box::new(on_contention))),
+                })
+                .is_ok(),
+            "publication test hooks are installed once"
+        );
     }
 
     pub(super) fn request_persistence(&self, changed: bool) {
@@ -334,3 +408,7 @@ fn flush_timeout_error(path: &PathBuf, timeout: Duration) -> ConfigManagerError 
         timeout,
     }
 }
+
+#[cfg(all(test, windows))]
+#[path = "worker/tests/config_original_matrix.rs"]
+mod config_original_matrix;

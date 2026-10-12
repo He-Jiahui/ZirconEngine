@@ -1,4 +1,5 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
+use zircon_runtime_interface::ui::{surface::UiSurfaceFrame, window::UiWindowInputPumpEvent};
 
 use crate::ui::retained_host::primitives::SharedString;
 use zircon_runtime_interface::ui::dispatch::UiPointerComponentEvent;
@@ -7,6 +8,7 @@ use super::super::super::data::WorkbenchContextMenuRequestData;
 use super::PaneSurfaceHostContext;
 
 impl PaneSurfaceHostContext<'_> {
+    callback_methods!(pane_callbacks, on_retained_pane_input, invoke_retained_pane_input, retained_pane_input, (instance_id: SharedString, source_frame: Arc<UiSurfaceFrame>, event: UiWindowInputPumpEvent));
     callback_methods!(pane_callbacks, on_welcome_recent_pointer_clicked, invoke_welcome_recent_pointer_clicked, welcome_recent_pointer_clicked, (x: f32, y: f32, width: f32, height: f32));
     callback_methods!(pane_callbacks, on_welcome_recent_pointer_moved, invoke_welcome_recent_pointer_moved, welcome_recent_pointer_moved, (x: f32, y: f32, width: f32, height: f32));
     callback_methods!(pane_callbacks, on_welcome_recent_pointer_scrolled, invoke_welcome_recent_pointer_scrolled, welcome_recent_pointer_scrolled, (x: f32, y: f32, delta: f32, width: f32, height: f32));

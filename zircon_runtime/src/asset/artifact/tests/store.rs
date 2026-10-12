@@ -15,14 +15,12 @@ fn pre_scene_component_bincode_cache_manifest_is_rejected_for_rebuild() {
         )],
     };
     let mut old_wire = PRE_SCENE_COMPONENT_MANIFEST_MAGIC.to_vec();
-    let old_payload = bincode::DefaultOptions::new()
-        .with_fixint_encoding()
-        .serialize(&manifest)
+    let old_payload = PositionalEncoding::FixedLittleEndian
+        .encode(&manifest)
         .unwrap();
     old_wire.extend(old_payload);
-    let decoded = bincode::DefaultOptions::new()
-        .with_fixint_encoding()
-        .deserialize::<ArtifactManifest>(&old_wire[PRE_SCENE_COMPONENT_MANIFEST_MAGIC.len()..])
+    let decoded = PositionalEncoding::FixedLittleEndian
+        .decode::<ArtifactManifest>(&old_wire[PRE_SCENE_COMPONENT_MANIFEST_MAGIC.len()..])
         .unwrap();
     let error = validate_manifest("scenes/legacy.zasset", &decoded)
         .expect_err("schema 6 positional scene payload must require rebuild");

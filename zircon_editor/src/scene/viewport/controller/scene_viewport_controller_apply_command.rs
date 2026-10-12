@@ -1,9 +1,11 @@
-use crate::scene::viewport::ViewportFeedback;
+use crate::scene::viewport::{GridMode, TransformHandleKind, ViewportFeedback};
 use crate::ui::binding::ViewportCommand;
 use zircon_runtime::scene::Scene;
 
 use crate::core::settings::{
-    VIEWPORT_ROTATE_STEP_DEGREES_KEY, VIEWPORT_SCALE_STEP_KEY, VIEWPORT_TRANSLATE_STEP_KEY,
+    SettingValue, SettingsKey, SettingsScope, VIEWPORT_ROTATE_STEP_DEGREES_KEY,
+    VIEWPORT_SCALE_STEP_KEY, VIEWPORT_TRANSLATE_STEP_KEY, VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY,
+    VIEWPORT_ROTATE_SNAP_ENABLED_KEY, VIEWPORT_SCALE_SNAP_ENABLED_KEY,
 };
 
 use super::{SceneViewportController, SceneViewportControllerError};
@@ -43,8 +45,26 @@ impl SceneViewportController {
                     replace_if_changed(&mut self.state.settings.display_mode, *mode);
             }
             ViewportCommand::SetGridMode(mode) => {
-                feedback.settings_changed =
-                    replace_if_changed(&mut self.state.settings.grid_mode, *mode);
+                // The legacy combined command keeps its explicit all-snap
+                // meaning. The authored UE Show menu uses visibility only.
+                let enabled = *mode == GridMode::VisibleAndSnap;
+                for kind in [TransformHandleKind::Move, TransformHandleKind::Rotate, TransformHandleKind::Scale] {
+                    feedback.settings_changed |= self.set_snap_enabled(kind, enabled)?;
+                }
+                feedback.settings_changed |= replace_if_changed(&mut self.state.settings.grid_mode, *mode);
+            }
+            ViewportCommand::SetGridVisibility(visible) => {
+                let mode = if *visible { GridMode::VisibleNoSnap } else { GridMode::Hidden };
+                feedback.settings_changed = replace_if_changed(&mut self.state.settings.grid_mode, mode);
+            }
+            ViewportCommand::ToggleSnap(kind) => {
+                let resolved = self.snap_steps();
+                let current = match kind {
+                    TransformHandleKind::Move => resolved.translate_enabled,
+                    TransformHandleKind::Rotate => resolved.rotate_enabled,
+                    TransformHandleKind::Scale => resolved.scale_enabled,
+                };
+                feedback.settings_changed = self.set_snap_enabled(*kind, !current)?;
             }
             ViewportCommand::SetTranslateSnap(step) => {
                 feedback.settings_changed = self.set_project_snap_step(
@@ -88,6 +108,25 @@ impl SceneViewportController {
         Ok(feedback)
     }
 }
+
+impl SceneViewportController {
+    fn set_snap_enabled(
+        &mut self, kind: TransformHandleKind, enabled: bool,
+    ) -> Result<bool, SceneViewportControllerError> {
+        let key = match kind {
+            TransformHandleKind::Move => VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY,
+            TransformHandleKind::Rotate => VIEWPORT_ROTATE_SNAP_ENABLED_KEY,
+            TransformHandleKind::Scale => VIEWPORT_SCALE_SNAP_ENABLED_KEY,
+        };
+        let key = SettingsKey::parse(key).expect("the built-in snap-enable key is valid");
+        let receipt = self.settings_mutations.set(SettingsScope::Project, &key, SettingValue::Bool(enabled))?;
+        Ok(receipt.changed())
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/unreal_snap_command.rs"]
+mod unreal_snap_command;
 
 fn replace_if_changed<T>(slot: &mut T, value: T) -> bool
 where

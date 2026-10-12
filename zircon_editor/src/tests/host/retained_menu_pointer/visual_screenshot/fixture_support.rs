@@ -139,7 +139,7 @@ pub(super) fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
         utility_tab: AssetUtilityTab::Preview,
         search_query: "workbench".to_string(),
         folder_tree: m3_asset_folders(),
-        visible_folders: m3_asset_folders(),
+        visible_folders: m3_asset_folders().into(),
         visible_assets: vec![
             asset_item(
                 "asset-ui-layout",
@@ -271,7 +271,7 @@ pub(super) fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
                 ),
                 asset_reference(
                     "used-workbench-shell",
-                    "res://ui/editor/host/workbench_shell.zui",
+                    "res://ui/editor/unreal/editor_shell.zui",
                     "Workbench Shell",
                     ResourceKind::UiLayout,
                 ),

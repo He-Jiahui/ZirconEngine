@@ -1,40 +1,65 @@
 ---
 related_code:
-  - tools/jenkins_tray/config.py
-  - tools/jenkins_tray/operations.py
-  - tools/jenkins_tray/service.py
-  - tools/jenkins_tray/lifecycle.py
-  - tools/jenkins_tray/terminal.py
-  - tools/jenkins_tray/persistence.py
-  - tools/jenkins_tray/worker_environment.py
-  - tools/jenkins_tray/__main__.py
-  - tools/jenkins_coordinator.py
+  - tools/dev/jenkins-validate.ps1
+  - tools/dev/jenkins_validate.py
+  - tools/jenkins/tray/formal.py
+  - tools/jenkins/tray/formal_app.py
+  - tools/jenkins/tray/formal_startup.py
+  - tools/jenkins/tray/__main__.py
+  - tools/jenkins/deployment/keeper_control.py
+  - .jenkins/deployment-spec.json
 implementation_files:
+  - tools/dev/start-jenkins-sandbox.ps1
   - tools/jenkins/install-jenkins-tray-startup.ps1
-  - tools/jenkins_coordinator.py
+  - tools/jenkins/jenkins_coordinator.py
 plan_sources:
   - docs/plans/jenkins-coordinator-pilot.md
   - docs/tooling/jenkins-coordinator-pilot.md
 tests:
-  - tools/jenkins_tray/tests/test_config_operations.py
-  - tools/jenkins_tray/tests/test_service.py
-  - tools/jenkins_tray/tests/test_startup.py
-  - tools/jenkins_tray/tests/test_lifecycle.py
-  - tools/jenkins_tray/tests/test_terminal.py
-  - tools/jenkins_tray/tests/test_coordinator_activation.py
-  - tools/jenkins_tray/tests/windows_ui_acceptance.py
-  - tools/jenkins_tray/tests/windows_runtime_acceptance.py
-  - tools/jenkins_tray/tests/windows_recovery_acceptance.py
+  - tools/jenkins/tests/test_keeper_control.py
+  - tools/jenkins/tests/test_keeper_control_transactions.py
+  - tools/jenkins/tray/tests/test_config_operations.py
+  - tools/jenkins/tray/tests/test_service.py
+  - tools/jenkins/tray/tests/test_startup.py
+  - tools/jenkins/tray/tests/test_lifecycle.py
+  - tools/jenkins/tray/tests/test_terminal.py
+  - tools/jenkins/tray/tests/test_coordinator_activation.py
+  - tools/jenkins/tray/tests/windows_ui_acceptance.py
+  - tools/jenkins/tray/tests/windows_runtime_acceptance.py
+  - tools/jenkins/tray/tests/windows_recovery_acceptance.py
 doc_type: operator_workflow
 ---
 
 # Jenkins Windows 托盘
 
-Jenkins 托盘是独立的 Windows 用户界面，用于观察和控制当前配置文件绑定的 Jenkins 控制器与执行节点。它只操作独立 Jenkins pilot 根，不恢复已经退役的本地协调器、托盘、服务、计划任务、租约或队列。
+当前正式托盘使用工程部署规格 `E:\Git\ZirconEngine\.jenkins\deployment-spec.json`，打开 [本机 Jenkins](http://127.0.0.1:18080/)。Jenkins Home 位于 `.jenkins\jenkins_home`；运行组件、agent、日志、缓存、临时目录和托盘状态均在工程 `.jenkins` 内。流水线编译产物独立使用请求明确指定的真实 `D/E/F:\cargo-targets`，默认 `D:\cargo-targets`。
 
 托盘退出不会停止 Jenkins。使用“停止 Jenkins”菜单执行有边界的停止流程；登录启动项只启动托盘，不自动启动 Jenkins。
 
-## 配置
+正式菜单包含状态、打开 Jenkins、启动、停止、重启、查看日志、刷新、登录启动项和退出。界面必须位于当前用户的 `WinSta0\Default` 桌面，Explorer 图标和实际右键菜单分别核验；聊天沙箱私有桌面的隐藏窗口不能代表桌面托盘可用。
+
+启停请求由正式受限 keeper 执行，绑定原部署清单、选中版本、精确 PID 出生时间、exe 和命令摘要。界面只提交持久化命令并观察原结果；输出未知时保留原意图，不重复发起。停止须核对原生进程树终态、输出流 EOF 和历史保护。日志及控制状态位于 `.jenkins\logs` 和 `.jenkins\state\tray`；keeper 协议证据位于 `.jenkins\state\formal-lifecycle`。
+
+截至 2026-10-10，正式选中版本为 `0c1f8adb…`。可见托盘、实际右键菜单及停止、启动、单请求重启均已实测通过；服务恢复后 controller、Windows agent 和 79 个插件就绪。两轮受控 Rust 增量补丁均通过真实编译、测试与正式验收，第二轮复用兼容增量池并重新执行测试。实际阶段及回执见[启动恢复记录](../plans/jenkins-session-coordination/01/2026-10-09-selected-runtime-recovery.md)。这些结果不关闭整仓、迁移回退或 M5–M8 的其余门槛；旧本地协调器持续退役。2026-10-11 runtime、M5 与缓存维护边界见[状态记录](../plans/jenkins-session-coordination/01/2026-10-11-runtime-completion-and-cache-maintenance.md)。
+
+## 正式增量补丁入口
+
+日常入口为 [jenkins-validate.ps1](../../tools/dev/jenkins-validate.ps1)，按 `dry-check`、`submit`、`query` 顺序处理同一个请求。`-SessionId` 使用本会话已有的源码授权，`-RequestId` 和 `-AttemptId` 标识本次工作；补丁提交携带 `-Patch`、逐路径的修改前 SHA-256 清单 `-BeforeHashes`、验证范围 JSON `-Coverage`，并用 `-Dependency` 声明范围内需要封存的依赖。清单和 JSON 可使用绝对文件路径。明确指定 `-BuildRoot` 后不自动换盘。`dry-check` 只检查输入，`submitted` 只表示已提交，正式结果以原请求的验收回执为准。
+
+```powershell
+& 'E:\Git\ZirconEngine\tools\dev\jenkins-validate.ps1' query `
+  -Repository 'E:\Git\ZirconEngine' `
+  -SessionId '<原 session ID>' -RequestId '<原 request ID>' `
+  -AttemptId '<原 attempt ID>' -BuildRoot 'D:\cargo-targets'
+```
+
+共享 checkout 中已应用的修改使用 `-AlreadyApplied`，同时携带不可变 `-BaseHead`、`-BeforeHashes`、`-AfterHashes` 及 `-DependencyHashes`；无依赖也须显式传入空对象。协调器核对前后 hash、归属与封存输入，不覆盖外来编辑。交付未知时保留原身份并查询，不能换 ID 重投。
+
+已验收且不提交 Git 的任务，可用 `release-source` 交接本任务的编辑占用：携带原 session/request/attempt、原 `-PatchRequestRef` 和独立 `-ReleaseRequestId`。它按路径版本和 hash 核对后保留源码、验收、消费者及产物引用；同一释放 ID 再调用只读对账原结果。该入口已实测完成第二轮源码交接，并验证重复调用不改变状态库。提交、推送、通知和 GC 分别遵循任务已有授权。
+
+下文保留独立 pilot 的历史配置、命令和验收说明，供既有回执核对；它们不作为当前工程部署的操作入口。
+
+## 历史 pilot 配置
 
 配置文件由 `python.exe -B tools/jenkins_tray/launch.py --config <config> configure ...` 创建，当前配置必须包含：`repoRoot`、`pilotRoot`、`pythonExecutable`、`pythonwExecutable`、`vsDevCmdPath`、`stateDir`、`rootIdentity`、`pythonSha256` 和 `pythonwSha256`。`pilotRoot` 必须是经过物理身份绑定的根级 `D:\cargo-targets`、`E:\cargo-targets` 或 `F:\cargo-targets` 下的 Jenkins pilot 根。
 

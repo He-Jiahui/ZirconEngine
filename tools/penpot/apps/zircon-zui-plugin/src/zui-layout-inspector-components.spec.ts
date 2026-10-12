@@ -10,14 +10,15 @@ import {
 } from '../tools/zui-layout-workbench-presentation';
 import { normalizeZuiDocument, parseZuiDocument } from './bridge/zui-document';
 import { projectZuiDocument } from './bridge/penpot-projection';
+import { fieldGeometry } from './bridge/zui-field-geometry';
 
 const repo = resolve(
-  fileURLToPath(new URL('.', import.meta.url)),
-  '../../../../..',
+  process.env['ZUI_LAYOUT_REPO_ROOT'] ?? resolve(fileURLToPath(new URL('.', import.meta.url)), '../../../../..'),
 );
-const frame = 'zircon_editor/assets/ui/editor/host/editor_main_frame.zui';
+const frame = 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
 const panel =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui';
+  'zircon_editor/assets/ui/editor/unreal/components/details.zui';
+// The host palette is theme_tokens; the mounted Unreal sources import Starship.
 const theme = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
 type JsonObject = Record<string, unknown>;
 
@@ -34,6 +35,11 @@ function presentation(rotationDegrees: unknown = ['0', '90', '0']): JsonObject {
     version: 1,
     activeLocale: 'en',
     sourceFingerprint: { sourcePath: frame, sha256: 'c'.repeat(64) },
+    viewportSnap: {
+      translationEnabled: false,
+      rotationEnabled: true,
+      scaleEnabled: false,
+    },
     stateFingerprint: '',
     layout: {
       active_main_page: 'main',
@@ -124,7 +130,7 @@ function rehash(value: JsonObject): void {
   value['stateFingerprint'] = canonicalSha256(state);
 }
 
-describe('actual Workbench Inspector consumer', () => {
+describe('actual Unreal Details consumer', () => {
   it('validates optional nullable rotation without filling missing identities', () => {
     for (const rotation of [null, ['0', '90', '0']])
       expect(() =>
@@ -144,6 +150,7 @@ describe('actual Workbench Inspector consumer', () => {
     expect(() => validateWorkbenchPresentation(missing)).toThrow(/entityId/);
   });
 
+  // Loads the full authored repository and projects three complete host states.
   it('expands all fields from the real mounted virtual prototype and preserves source ownership', async () => {
     const dependencies = new LayoutDependencies();
     const authoredFiles = await readdir(
@@ -168,7 +175,7 @@ describe('actual Workbench Inspector consumer', () => {
     const panelSource = parseZuiDocument(
       await readFile(resolve(repo, panel), 'utf8'),
     ).document;
-    const prototype = panelSource.nodes!['component_property_slot_04_row']!;
+    const prototype = panelSource.nodes!['prototype']!;
     const legacy = presentation();
     delete (legacy['inspector'] as JsonObject)['rotationDegrees'];
     rehash(legacy);
@@ -181,6 +188,7 @@ describe('actual Workbench Inspector consumer', () => {
       legacy,
     );
     expect(result).not.toBeNull();
+    expect(result!.consumers.some((consumer) => consumer.sourcePath === panel)).toBe(true);
     const document = result!.projection;
     const container = Object.values(document.nodes ?? {}).find(
       (node) => node.control_id === 'WorkbenchInspectorMeshProperties',
@@ -229,10 +237,10 @@ describe('actual Workbench Inspector consumer', () => {
         });
     }
     expect(container.repeat).toEqual(
-      panelSource.nodes!['inspector_mesh_properties']!.repeat,
+      panelSource.nodes!['properties']!.repeat,
     );
     expect(container.layout).toEqual(
-      panelSource.nodes!['inspector_mesh_properties']!.layout,
+      panelSource.nodes!['properties']!.layout,
     );
     const originalPrototype = Object.values(document.nodes ?? {}).find(
       (node) => node.control_id === 'WorkbenchComponentPropertySlot04Row',
@@ -241,7 +249,7 @@ describe('actual Workbench Inspector consumer', () => {
       JSON.parse(originalPrototype['penpot_review_instance_path'] as string),
     ).toContainEqual({
       sourcePath: panel,
-      sourceNodeId: 'component_property_slot_04_row',
+      sourceNodeId: 'prototype',
     });
     expect(originalPrototype.events).toEqual(prototype.events);
     const rotation = Object.values(document.nodes ?? {}).find(
@@ -273,14 +281,42 @@ describe('actual Workbench Inspector consumer', () => {
     expect(paintedRows).toHaveLength(5);
     expect(
       paintedRows.map(
-        (node) => node.textFragments?.['property-value']?.characters,
+        (node) => node.text?.characters,
       ),
     ).toEqual(['1.7453293', '0.1', '200', '2', '3']);
     expect(
       paintedRows.every(
-        (node) => node.propertyRow !== undefined && node.geometry.height === 28,
+        (node) => node.field !== undefined && node.propertyRow === undefined && node.geometry.height === 28,
       ),
     ).toBe(true);
+    for (const row of paintedRows) {
+      const lane = fieldGeometry(row.field!, 255.2, 28).texts['primary'];
+      expect(lane).toBeDefined();
+      expect(lane.x).toBe(100);
+      expect(lane.y).toBeCloseTo(6, 5);
+      expect(lane.width).toBeCloseTo(147.2, 5);
+      expect(row.textFragments?.['field-label']?.characters).toBe(document.nodes![row.nodeId].props!['text']);
+      expect(lane.height).toBeCloseTo(16, 5);
+      expect(row.text).toMatchObject({ fontFamily: 'Roboto', fontSize: 13.333333, lineHeight: 1.2 });
+    }
+    const controls = projectZuiDocument(document).shapes;
+    expect(controls.find((node) => node.controlId === 'WorkbenchInspectorTitle')?.text?.characters).toBe('Camera');
+    expect(controls.find((node) => node.controlId === 'WorkbenchAddComponent')?.previewHidden).toBe(false);
+    expect(controls.find((node) => node.controlId === 'WorkbenchStatusErrors')?.previewHidden).toBe(false);
+    expect(controls.find((node) => node.controlId === 'WorkbenchSceneTitle')?.text?.characters).toBe('Outliner');
+    expect(controls.find((node) => node.controlId === 'UnrealDetailsDockTitle')?.text).toMatchObject({ characters: 'Details', property: null });
+    const localizedTitle = Object.values(document.nodes!).find((node) => node.control_id === 'UnrealDetailsDockTitle')!;
+    expect(localizedTitle.props!['text']).toEqual({ text_key: 'editor.workbench.details.title', table: 'editor' });
+    const noSelection = presentation();
+    noSelection['inspector'] = null;
+    rehash(noSelection);
+    const empty = await prepareComponentReviewHost(repo, frame, source, dependencies, theme, noSelection);
+    const emptyControls = projectZuiDocument(empty!.projection).shapes;
+    expect(emptyControls.find((node) => node.controlId === 'UnrealDetailsDockTitle')?.previewHidden).toBe(false);
+    expect(emptyControls.find((node) => node.controlId === 'WorkbenchInspectorTitle')?.text?.characters).toBe('No Selection');
+    for (const control of ['WorkbenchInspectorMetadata', 'WorkbenchInspectorTransform', 'WorkbenchAddComponent', 'WorkbenchInspectorMesh'])
+      expect(emptyControls.find((node) => node.controlId === control)?.previewHidden).toBe(true);
+    expect(Object.values(empty!.projection.nodes!).find((node) => node.control_id === 'WorkbenchInspectorFilter')?.props?.['disabled']).toBe(true);
     const none = await prepareComponentReviewHost(
       repo,
       frame,
@@ -294,5 +330,5 @@ describe('actual Workbench Inspector consumer', () => {
         (node) => node.control_id === 'WorkbenchTransformRotation',
       )!.props!['visibility'],
     ).toBe('visible');
-  });
+  }, 15_000);
 });

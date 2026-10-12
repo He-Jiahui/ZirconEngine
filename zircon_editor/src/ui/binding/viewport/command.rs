@@ -1,7 +1,8 @@
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformHandleKind, TransformSpace,
+    ViewOrientation,
 };
 use serde::{Deserialize, Serialize};
 
@@ -52,4 +53,6 @@ pub enum ViewportCommand {
         provider_id: String,
     },
     FrameSelection,
+    SetGridVisibility(bool),
+    ToggleSnap(TransformHandleKind),
 }

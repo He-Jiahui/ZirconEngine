@@ -49,7 +49,7 @@ fn play_mode_menu_operations_use_plugin_activation_and_record_operation_identity
         Some("runtime.play_mode.enter")
     );
     assert_eq!(
-        runtime.runtime.editor_snapshot().session_mode,
+        runtime.runtime.editor_snapshot().unwrap().session_mode,
         crate::ui::workbench::startup::EditorSessionMode::Playing
     );
 
@@ -65,7 +65,7 @@ fn play_mode_menu_operations_use_plugin_activation_and_record_operation_identity
         Some("runtime.play_mode.exit")
     );
     assert_eq!(
-        runtime.runtime.editor_snapshot().session_mode,
+        runtime.runtime.editor_snapshot().unwrap().session_mode,
         crate::ui::workbench::startup::EditorSessionMode::Project
     );
     assert_eq!(
@@ -142,7 +142,7 @@ fn plugin_bridge_activation_matrix_projects_to_editor_snapshot() {
         )
         .expect("enter play mode");
 
-    let bridge = runtime.runtime.editor_snapshot().bridge_diagnostics;
+    let bridge = runtime.runtime.editor_snapshot().unwrap().bridge_diagnostics;
     assert_eq!(bridge.summary.total_interfaces, 1);
     assert_eq!(bridge.summary.enabled_calls, 3);
     assert_eq!(bridge.rows[0].interface_id, "physics.query.v1");
@@ -162,7 +162,7 @@ fn plugin_bridge_activation_matrix_projects_to_editor_snapshot() {
         .expect("exit play mode");
     assert!(runtime
         .runtime
-        .editor_snapshot()
+        .editor_snapshot().unwrap()
         .bridge_diagnostics
         .rows
         .is_empty());
@@ -196,7 +196,7 @@ fn inspector_field_apply_batch_records_operation_identity_without_synthetic_hist
         Some("Apply Inspector Changes")
     );
     assert_eq!(
-        runtime.runtime.editor_snapshot().inspector.unwrap().name,
+        runtime.runtime.editor_snapshot().unwrap().inspector.unwrap().name,
         "Operation Cube"
     );
     assert_eq!(

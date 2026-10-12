@@ -69,7 +69,10 @@ pub(super) fn paint_chrome_command(
             size,
             line_height,
             style,
-        } => draw_text_with_size_and_style(
+            font_request,
+        } => {
+            let _request = crate::ui::retained_host::host_contract::paint_text::HostTextFontRequestScope::enter(font_request.as_ref());
+            draw_text_with_size_and_style(
             frame,
             command.frame.clone(),
             text,
@@ -78,7 +81,8 @@ pub(super) fn paint_chrome_command(
             *size,
             *line_height,
             *style,
-        ),
+        );
+        },
         ChromeCommandKind::Image { payload } => {
             paint_image_command(frame, stream, command, payload)
         }

@@ -26,6 +26,7 @@ mod meta_path_for_source;
 mod open;
 mod package_assets;
 mod persisted_reference;
+mod project_activation_identity;
 mod registry_access;
 mod relocation;
 mod scan_and_import;
@@ -43,8 +44,11 @@ pub(crate) use load_or_create_meta::mint_meta_for_migration;
 pub(crate) use relocation::PreparedProjectSourceRelocation;
 pub(crate) use scan_and_import::ImportSourceWatchEcho;
 
+pub use project_activation_identity::ProjectActivationIdentity;
+
 #[derive(Clone, Debug)]
 pub struct ProjectManager {
+    activation_identity: ProjectActivationIdentity,
     paths: ProjectPaths,
     manifest: ProjectManifest,
     registry: ResourceRegistry,

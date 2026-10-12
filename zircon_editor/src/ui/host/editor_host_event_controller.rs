@@ -24,7 +24,8 @@ use super::play_hierarchy_projection::PlayHierarchyProjection;
 use super::play_inspector_projection::PlayInspectorProjection;
 use super::play_pending_decision::PlayPendingEditDecisionAdapter;
 use super::scene_inspection_publication::SceneInspectionPublication;
-use super::EditorManager;
+use super::{EditorError, EditorManager};
+use zircon_runtime::core::runtime::{ServiceCallGuard, ServiceHandle};
 
 const FIRST_PLAY_SESSION_GENERATION: u64 = 1;
 const UNKNOWN_PLAY_BACKEND_LOG_FRAME: u64 = 0;
@@ -69,8 +70,11 @@ pub struct EditorHostEventController {
 }
 
 impl EditorHostEventController {
-    pub fn new(state: EditorState, manager: Arc<EditorManager>) -> Self {
-        let context = manager.context().clone();
+    pub fn new(
+        state: EditorState,
+        manager: ServiceHandle<EditorManager>,
+    ) -> Result<Self, EditorError> {
+        let context = manager.enter()?.context().clone();
         let commands = context.commands().clone();
         let play_sessions = Arc::new(PlaySessionController::with_message_bus_and_play_gateway(
             context.bus().clone(),
@@ -83,7 +87,7 @@ impl EditorHostEventController {
             .expect("retained scene-inspection subscriber must register during host construction");
         let controller = Self {
             context: context.clone(),
-            shell: Arc::new(WorkbenchShellState::new(state, Arc::clone(&manager))),
+            shell: Arc::new(WorkbenchShellState::new(state, manager)),
             commands,
             play_sessions: play_sessions.clone(),
             play_pending_decisions: PlayPendingEditDecisionAdapter::default(),
@@ -100,10 +104,10 @@ impl EditorHostEventController {
             plugin_registration_gate: Mutex::new(()),
             next_play_session_generation: AtomicU64::new(FIRST_PLAY_SESSION_GENERATION),
         };
-        controller.ensure_live_scene_viewport_sessions();
+        controller.ensure_live_scene_viewport_sessions()?;
         controller.seed_scene_inspection_publication();
         controller.refresh_reflection();
-        controller
+        Ok(controller)
     }
 
     pub fn context(&self) -> &Arc<EditorContext> {
@@ -112,7 +116,8 @@ impl EditorHostEventController {
 
     /// Pumps plugin lifecycle subscriptions outside the workbench shell lock.
     pub fn pump_plugin_lifecycle_messages(&self) -> Result<usize, String> {
-        let manager = { Arc::clone(&self.shell.lock().manager) };
+        let handle = { self.shell.lock().manager.clone() };
+        let manager = handle.enter().map_err(|error| error.to_string())?;
         manager.pump_plugin_lifecycle_messages()
     }
 
@@ -149,6 +154,18 @@ impl EditorHostEventController {
         }
     }
 
+    /// Clones the original idle token while holding only the Shell lock.
+    pub(crate) fn editor_manager_handle(&self) -> ServiceHandle<EditorManager> {
+        self.shell.lock().manager.clone()
+    }
+
+    /// Admission happens after the temporary Shell lock has been released.
+    pub(crate) fn enter_editor_manager(
+        &self,
+    ) -> Result<ServiceCallGuard<EditorManager>, EditorError> {
+        Ok(self.editor_manager_handle().enter()?)
+    }
+
     pub(crate) fn shell(&self) -> &WorkbenchShellState {
         &self.shell
     }
@@ -162,19 +179,21 @@ impl EditorHostEventController {
     }
 
     /// Reads the current authority-derived keymap without retaining a controller copy.
-    pub(crate) fn keymap(&self) -> crate::core::commands::EditorKeymap {
-        self.shell.lock().manager.keymap()
+    pub(crate) fn keymap(&self) -> Result<crate::core::commands::EditorKeymap, EditorError> {
+        Ok(self.enter_editor_manager()?.keymap())
     }
 
-    pub(crate) fn command_palette_mru(&self) -> EditorCommandPaletteMru {
-        self.shell.lock().manager.command_palette_mru()
+    pub(crate) fn command_palette_mru(&self) -> Result<EditorCommandPaletteMru, EditorError> {
+        Ok(self.enter_editor_manager()?.command_palette_mru())
     }
 
-    pub(crate) fn record_command_palette_usage(&self, command: EditorOperationPath) {
-        self.shell
-            .lock()
-            .manager
+    pub(crate) fn record_command_palette_usage(
+        &self,
+        command: EditorOperationPath,
+    ) -> Result<(), EditorError> {
+        self.enter_editor_manager()?
             .record_command_palette_usage(command);
+        Ok(())
     }
 
     pub(crate) fn play_sessions(&self) -> &PlaySessionController {

@@ -9,7 +9,7 @@ import { projectZuiDocument } from './bridge/penpot-projection';
 
 describe('layout catalog dependencies', () => {
   it('projects the actual shared section heading and group-spacing tokens', async () => {
-    const root = resolve(
+    const root = process.env['ZUI_LAYOUT_REPO_ROOT'] ?? resolve(
       dirname(fileURLToPath(import.meta.url)),
       '../../../../..',
     );
@@ -25,8 +25,8 @@ describe('layout catalog dependencies', () => {
     const heading = projectZuiDocument(document).shapes.find(
       (shape) => shape.nodeId === 'root',
     );
-    expect(heading?.text?.fontSize).toBe(16);
-    expect(heading?.text?.fontWeight).toBe('600');
+    expect(heading?.text?.fontSize).toBe(13.333333);
+    expect(heading?.text?.fontWeight).toBe('700');
     expect(document.tokens?.['editor.density.gap.group']).toBe(24);
   });
   it('rejects missing dependencies without clearing the authored imports', () => {

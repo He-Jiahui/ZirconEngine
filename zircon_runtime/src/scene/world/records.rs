@@ -125,6 +125,7 @@ impl World {
             return Ok(());
         }
 
+        let execution = self.begin_schedule_execution();
         let PreparedNodeRecordBatch { records, next_id } = batch;
         let inserted_entities = records.iter().map(|record| record.id).collect::<Vec<_>>();
         let prior_staging = std::mem::replace(&mut self.record_staged_lifecycle_events, true);
@@ -152,7 +153,19 @@ impl World {
         }
         let lifecycle_events = self.staged_lifecycle_events.split_off(lifecycle_start);
         for event in lifecycle_events {
+            if let Some(target) = execution.target_change(self) {
+                return Err(SceneError::LifecycleTargetReplaced {
+                    operation: "insert node records",
+                    target,
+                });
+            }
             self.dispatch_component_lifecycle(event);
+        }
+        if let Some(target) = execution.target_change(self) {
+            return Err(SceneError::LifecycleTargetReplaced {
+                operation: "insert node records",
+                target,
+            });
         }
         Ok(())
     }

@@ -371,7 +371,7 @@ fn workbench_main_menu_asset_creation_invokes_registered_operation() {
         .unwrap();
 
     let shell_size = UiSize::new(900.0, 620.0);
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let action_id = chrome
         .asset_browser
         .creation_menu

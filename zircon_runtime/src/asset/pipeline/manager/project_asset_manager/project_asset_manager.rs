@@ -128,3 +128,7 @@ pub struct ProjectAssetManager {
 #[cfg(test)]
 #[path = "tests/project_asset_manager.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/activation_mutations.rs"]
+mod activation_mutation_tests;

@@ -212,6 +212,7 @@ children = [
   { node = "palette_search" },
   { node = "palette_common_caption" },
   { node = "palette_component_grid" },
+  { node = "palette_page_controls" },
 ]
 
 [nodes.palette_title]
@@ -266,6 +267,24 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "PaletteContainer"
 props = { text = "Container", button_variant = "outlined", button_color = "secondary", button_size = "small", disabled = true }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.palette_page_controls]
+component = "HorizontalGroup"
+control_id = "PalettePageControls"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "palette_previous" }, { node = "palette_next" }]
+
+[nodes.palette_previous]
+component = "WorkbenchButton"
+control_id = "PalettePreviousPage"
+props = { text = "Previous", button_variant = "outlined", button_size = "small", disabled = true }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.palette_next]
+component = "WorkbenchButton"
+control_id = "PaletteNextPage"
+props = { text = "Next", button_variant = "outlined", button_size = "small", disabled = true }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.hierarchy_panel]

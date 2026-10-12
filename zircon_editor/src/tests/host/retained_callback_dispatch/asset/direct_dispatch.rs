@@ -8,7 +8,7 @@ fn asset_search_dispatches_through_runtime_and_requests_asset_sync_effects() {
     let harness = EventRuntimeHarness::new("zircon_retained_callback_asset_search");
 
     let effects = dispatch_asset_search(&harness.runtime, "cube").unwrap();
-    let snapshot = harness.runtime.editor_snapshot();
+    let snapshot = harness.runtime.editor_snapshot().unwrap();
 
     assert_eq!(snapshot.asset_activity.search_query, "cube");
     assert_eq!(snapshot.asset_browser.search_query, "cube");
@@ -46,7 +46,7 @@ fn mesh_import_path_edit_dispatch_updates_live_snapshot_without_backend_sync() {
     let effects = dispatch_mesh_import_path_edit(&harness.runtime, "E:/Models/cube.glb").unwrap();
 
     assert_eq!(
-        harness.runtime.editor_snapshot().mesh_import_path,
+        harness.runtime.editor_snapshot().unwrap().mesh_import_path,
         "E:/Models/cube.glb"
     );
     assert!(effects.presentation_dirty);

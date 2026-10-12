@@ -170,7 +170,7 @@ fn editor_visual_density_contracts_keep_icons_and_chrome_professional_scale() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let material_meta = material_meta_document();
     let activity_rail = load_document(&repo.join("assets/ui/editor/workbench_activity_rail.zui"));
-    let workbench_shell = load_document(&repo.join("assets/ui/editor/host/workbench_shell.zui"));
+    let workbench_shell = load_document(&repo.join("assets/ui/editor/unreal/editor_shell.zui"));
     let inspector_controls =
         load_document(&repo.join("assets/ui/editor/host/inspector_surface_controls.zui"));
     let tokens = material_meta

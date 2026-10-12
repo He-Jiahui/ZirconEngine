@@ -17,6 +17,7 @@ from pathlib import Path
 from tools.jenkins.contracts import JenkinsError, digest
 from tools.jenkins.gitops import CandidatePath, GitRepository
 from tools.jenkins.source import handle as source_handle
+from tools.jenkins.source import repository_id
 from tools.jenkins.state import State
 from tools.jenkins.resources import canonical_build_root
 from tools.jenkins.validation.receipts import validate_acceptance_receipt
@@ -45,7 +46,7 @@ class RealLightAcceptanceTests(unittest.TestCase):
         self._git("add", "src/lib.rs")
         self._git("-c", "user.email=jenkins-fixture@example.invalid", "-c", "user.name=jenkins-fixture", "commit", "-qm", "base")
         self.state = State(self.root / "state.sqlite3")
-        self.repo_id = "fixture-" + self.root.name
+        self.repo_id = repository_id(self.root)
         self.session_id = "m3-light-" + self.root.name
         self.owner = "attempt-" + self.root.name
         self.state.authorize_session(self.repo_id, self.session_id, "fixture-user",

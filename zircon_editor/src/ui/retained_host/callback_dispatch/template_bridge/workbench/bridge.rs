@@ -8,7 +8,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::retained_host::callback_dispatch::constants::{
-    BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID, DOCUMENT_TABS_CONTROL_ID, UI_HOST_WINDOW_CONTROL_ID,
+    UNREAL_EDITOR_SHELL_DOCUMENT_ID, DOCUMENT_TABS_CONTROL_ID, UI_HOST_WINDOW_CONTROL_ID,
 };
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostProjection, RetainedUiProjection,
@@ -28,9 +28,6 @@ use super::host_projection::{
 };
 use super::outer_shell_frames::BuiltinHostOuterShellFrames;
 use super::root_shell_frames::BuiltinHostRootShellFrames;
-
-const HOST_BODY_CONTROL_ID: &str = "WorkbenchBody";
-pub(super) const HOST_PAGE_STRIP_CONTROL_ID: &str = "HostPageStripRoot";
 
 // 宿主外壳把模板路由、布局帧与编辑器绑定封装为同一投影，供启动和输入分发共享。
 pub(crate) struct BuiltinHostWindowTemplateBridge {
@@ -54,7 +51,7 @@ impl BuiltinHostWindowTemplateBridge {
         shell_size: UiSize,
     ) -> Result<Self, BuiltinHostWindowTemplateBridgeError> {
         let projection =
-            project_builtin_document_with_runtime(&runtime, BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID)?;
+            project_builtin_document_with_runtime(&runtime, UNREAL_EDITOR_SHELL_DOCUMENT_ID)?;
         let bindings_by_id = build_bindings_by_id(&projection);
         let host_surface = build_builtin_host_window_surface(runtime.as_ref(), shell_size)?;
         let host_projection =
@@ -149,8 +146,8 @@ impl BuiltinHostWindowTemplateBridge {
     pub(crate) fn outer_shell_frames(&self) -> BuiltinHostOuterShellFrames {
         BuiltinHostOuterShellFrames {
             shell_frame: self.control_frame(UI_HOST_WINDOW_CONTROL_ID),
-            menu_bar_frame: self.control_frame("WorkbenchMenuBarRoot"),
-            host_page_strip_frame: self.control_frame(HOST_PAGE_STRIP_CONTROL_ID),
+            menu_bar_frame: None,
+            host_page_strip_frame: None,
         }
     }
 
@@ -159,13 +156,13 @@ impl BuiltinHostWindowTemplateBridge {
         BuiltinHostRootShellFrames {
             shell_frame: outer_shell_frames.shell_frame,
             menu_bar_frame: outer_shell_frames.menu_bar_frame,
-            activity_rail_frame: self.control_frame("ActivityRailRoot"),
+            activity_rail_frame: None,
             host_page_strip_frame: outer_shell_frames.host_page_strip_frame,
-            host_body_frame: self.control_frame(HOST_BODY_CONTROL_ID),
+            host_body_frame: None,
             document_host_frame: self.control_frame("DocumentHostRoot"),
-            document_tabs_frame: self.control_frame(DOCUMENT_TABS_CONTROL_ID),
+            document_tabs_frame: None,
             pane_surface_frame: self.control_frame("PaneSurfaceRoot"),
-            status_bar_frame: self.control_frame("StatusBarRoot"),
+            status_bar_frame: None,
         }
     }
 

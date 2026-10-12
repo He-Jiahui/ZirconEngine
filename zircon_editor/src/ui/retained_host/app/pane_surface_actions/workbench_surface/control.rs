@@ -1,6 +1,6 @@
 use super::super::super::*;
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
-use crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
+use crate::ui::template_runtime::builtin::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn dispatch_componentized_workbench_surface_control(
@@ -8,8 +8,10 @@ impl RetainedEditorHost {
         control_id: &str,
         action_id: &str,
     ) -> Option<Result<UiHostEventEffects, String>> {
-        if !self.active_activity_window_template_document_is(WORKBENCH_WINDOW_DOCUMENT_ID) {
-            return None;
+        match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) {
+            Ok(true) => {}
+            Ok(false) => return None,
+            Err(error) => return Some(Err(error.to_string())),
         }
         let workbench_binding_id = (!action_id.is_empty())
             .then(|| {

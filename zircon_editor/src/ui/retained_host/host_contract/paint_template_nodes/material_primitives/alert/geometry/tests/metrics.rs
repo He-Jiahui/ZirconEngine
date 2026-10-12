@@ -44,3 +44,20 @@ fn alert_message_content_height_requires_room_for_two_lines() {
     assert_eq!(alert_message_content_height(&compact, line_height), None);
     assert_eq!(alert_message_content_height(&tall, line_height), Some(48.0));
 }
+
+#[test]
+fn authored_alert_font_scales_once_and_physical_fallback_is_preserved() {
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        current_host_metrics, enter_host_paint_theme_scope,
+        host_paint_theme_snapshot_at_scale_for_test,
+    };
+    for scale in [1.0, 1.5] {
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(scale));
+
+        assert_eq!(alert_font_size(&node(12.0)), 12.0 * scale);
+        assert_eq!(alert_font_size(&node(0.0)), ALERT_FONT_SIZE);
+        assert_eq!(alert_font_size(&node(-1.0)), ALERT_FONT_SIZE);
+        assert_eq!(current_host_metrics().scale_factor, scale);
+    }
+}

@@ -28,7 +28,7 @@ fn host_and_manager_service_share_the_user_settings_keymap() {
         .core
         .resolve_manager::<EditorKeymapService>(EDITOR_KEYMAP_NAME)
         .expect("EditorKeymap manager service should resolve");
-    let runtime_keymap = harness.runtime.keymap();
+    let runtime_keymap = harness.runtime.keymap().unwrap();
     assert_eq!(runtime_keymap, manager_keymap.snapshot());
     assert_eq!(
         runtime_keymap
@@ -67,7 +67,7 @@ fn host_and_manager_service_share_the_user_settings_keymap() {
     assert_eq!(
         harness
             .runtime
-            .keymap()
+            .keymap().unwrap()
             .chord_for_command("file.project.open")
             .unwrap()
             .to_string(),

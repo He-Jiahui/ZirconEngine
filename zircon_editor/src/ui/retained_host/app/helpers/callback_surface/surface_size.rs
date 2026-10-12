@@ -18,17 +18,17 @@ impl RetainedEditorHost {
         height: f32,
         cached_size: UiSize,
         kind: ViewContentKind,
-    ) -> UiSize {
+    ) -> Result<UiSize, crate::ui::host::EditorError> {
         let callback_size = UiSize::new(width.max(0.0), height.max(0.0));
         if is_valid_size(callback_size) {
-            return callback_size;
+            return Ok(callback_size);
         }
         if is_valid_size(cached_size) {
-            return cached_size;
+            return Ok(cached_size);
         }
 
-        self.resolve_host_frame_backed_size_for_kind(kind)
-            .unwrap_or(UiSize::new(0.0, 0.0))
+        Ok(self.resolve_host_frame_backed_size_for_kind(kind)?
+            .unwrap_or(UiSize::new(0.0, 0.0)))
     }
 
     pub(in crate::ui::retained_host::app) fn resolve_callback_surface_size_for_asset_surface(
@@ -37,9 +37,9 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
         cached_size: UiSize,
-    ) -> Option<UiSize> {
+    ) -> Result<Option<UiSize>, crate::ui::host::EditorError> {
         asset_surface_kind(surface_mode).map(|kind| {
             self.resolve_callback_surface_size_for_kind(width, height, cached_size, kind)
-        })
+        }).transpose()
     }
 }

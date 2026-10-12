@@ -9,7 +9,7 @@ use super::identity::{is_stepper_field, is_workbench_field};
 use super::layers::{SEARCH_CLEAR_ACTION_OFFSET, SEARCH_GLYPH_OFFSET, STEPPER_OFFSET, TEXT_OFFSET};
 use super::style::{field_opacity, field_style};
 use super::surface::push_field_surface;
-use super::text::push_field_text;
+use super::text::{push_field_label, push_field_text};
 
 /// 返回 true 表示接管节点，不代表输出。当前要求偏移后整个字段落在 node_clip 内；部分相交时也会被静默消费。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_commands(
@@ -32,6 +32,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     }
     let opacity = field_opacity(node, opacity);
     let style = field_style(node);
+    push_field_label(commands, node, &rect, clip, order + TEXT_OFFSET, opacity, &style);
+    let rect = super::geometry::field_value_paint_rect(node, &rect);
+    if !has_paintable_field_extent(&rect) {
+        return true;
+    }
     let stepper = is_stepper_field(node) && field_can_paint_stepper(&rect);
 
     push_field_surface(commands, &rect, clip, order, opacity, &style);

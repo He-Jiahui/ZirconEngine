@@ -460,7 +460,7 @@ impl ResourceStreamer {
                 let row = match self.prepare_ui_texture_dependency(
                     backend,
                     texture_layout,
-                    asset_manager.as_ref(),
+                    &*asset_manager,
                     projection.management(),
                     &projection.readiness_identity(),
                     requested,
@@ -486,7 +486,7 @@ impl ResourceStreamer {
                 let row = match self.prepare_ui_texture_dependency(
                     backend,
                     texture_layout,
-                    asset_manager.as_ref(),
+                    &*asset_manager,
                     projection.management(),
                     &projection.readiness_identity(),
                     requested,

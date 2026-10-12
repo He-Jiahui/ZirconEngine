@@ -13,7 +13,7 @@ fn builtin_activity_window_documents_are_registered_in_host_runtime() {
 
     for document_id in [
         "res://ui/editor/host/editor_main_frame.zui",
-        "res://ui/editor/windows/workbench_window.zui",
+        "res://ui/editor/unreal/level_editor_window.zui",
         "res://ui/editor/windows/asset_window.zui",
         "res://ui/editor/windows/ui_layout_editor_window.zui",
         "res://ui/editor/component_showcase.zui",

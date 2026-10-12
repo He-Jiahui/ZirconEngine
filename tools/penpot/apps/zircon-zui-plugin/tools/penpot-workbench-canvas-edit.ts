@@ -7,7 +7,7 @@ import { requestPreviewLayoutAudit } from './penpot-preview-layout-audit';
 type Runtime = Awaited<ReturnType<typeof openPenpotSession>>;
 type MountedNode = NonNullable<RenderedLayoutAudit['semanticNodes']>[number];
 const sourcePath =
-  'zircon_editor/assets/ui/editor/windows/workbench_window.zui';
+  'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
 
 async function mountedNodes(runtime: Runtime): Promise<MountedNode[]> {
   const { layoutAudit } = await requestPreviewLayoutAudit(runtime.pluginFrame);
@@ -121,7 +121,7 @@ async function readGap(
 }
 
 /** Edit the normal Penpot inspector; the plugin API remains inside its SES sandbox. */
-export async function editWorkbenchSpacingInPenpot(runtime: Runtime) {
+export async function editWorkbenchSpacingInPenpot(runtime: Runtime, requestedGap?: number) {
   const nodes = await mountedNodes(runtime);
   const target = owner(nodes);
   assert.ok(target.visible, 'WorkbenchWindow edit target must be visible.');
@@ -192,7 +192,8 @@ export async function editWorkbenchSpacingInPenpot(runtime: Runtime) {
   );
   const activeKey = editable === 'row' ? 'rowGap' : 'columnGap';
   const inactiveKey = editable === 'row' ? 'columnGap' : 'rowGap';
-  const changedGap = before[activeKey] + 1;
+  const changedGap = requestedGap ?? before[activeKey] + 1;
+  assert.ok(Number.isFinite(changedGap) && changedGap >= 0 && changedGap !== before[activeKey]);
   await gapInput(runtime, editable).fill(String(changedGap));
   await gapInput(runtime, editable).press('Enter');
   const deadline = Date.now() + 30_000;

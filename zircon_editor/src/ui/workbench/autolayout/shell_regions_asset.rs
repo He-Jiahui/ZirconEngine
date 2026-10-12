@@ -54,7 +54,7 @@ impl WorkbenchSkeleton {
 
     /// 直接消费作者绑定，不重复验证；调用方须先保证头部、角色与区域完整性，只替换内建骨架的regions。
     pub fn from_shell_regions_asset(asset: WorkbenchShellRegionsAsset) -> Self {
-        let mut skeleton = Self::jetbrains_default();
+        let mut skeleton = Self::unreal_default();
         skeleton.regions = asset.into_regions();
         skeleton
     }

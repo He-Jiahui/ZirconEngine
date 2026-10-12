@@ -173,21 +173,27 @@ pub(crate) fn begin_scope_named(
     category: &'static str,
     name: String,
 ) -> Option<ProfileScopeToken> {
-    let (parent_id, parent_path, depth) = SPAN_STACK.with(|stack| {
+    let (parent_id, path, depth) = SPAN_STACK.with(|stack| {
         let stack = stack.borrow();
-        let parent = stack
+        let mut parent = None;
+        let mut depth = 0u16;
+        for entry in stack
             .iter()
-            .rev()
-            .find(|entry| entry.capture_epoch == capture_epoch);
-        (
-            parent.map(|entry| entry.id),
-            parent.map(|entry| entry.path.clone()),
-            stack
-                .iter()
-                .filter(|entry| entry.capture_epoch == capture_epoch)
-                .count()
-                .min(u16::MAX as usize) as u16,
-        )
+            .filter(|entry| entry.capture_epoch == capture_epoch)
+        {
+            parent = Some(entry);
+            depth = depth.saturating_add(1);
+        }
+        // Only current-epoch entries contribute depth; the last one is the parent.
+        // Format while borrowing its path to avoid a full temporary prefix clone.
+        let path = match parent {
+            Some(parent) => {
+                let parent_path = parent.path.as_str();
+                format!("{parent_path}/{category}:{name}")
+            }
+            None => format!("{stream}/{category}:{name}"),
+        };
+        (parent.map(|entry| entry.id), path, depth)
     });
     let frame_index = FRAME_STACK.with(|stack| {
         stack
@@ -197,10 +203,6 @@ pub(crate) fn begin_scope_named(
             .find(|frame| frame.capture_epoch == capture_epoch)
             .map(|frame| frame.frame_index)
     });
-    let path = match parent_path {
-        Some(parent_path) => format!("{parent_path}/{category}:{name}"),
-        None => format!("{stream}/{category}:{name}"),
-    };
     let token = with_recorder(|recorder| {
         if !recorder.is_active() || super::capture_epoch() != Some(capture_epoch) {
             return None;

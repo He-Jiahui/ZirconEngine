@@ -35,7 +35,7 @@ fn typed_viewport_command_dispatch_updates_render_packet_without_pointer_bridge(
     )
     .unwrap();
 
-    let snapshot = harness.runtime.editor_snapshot();
+    let snapshot = harness.runtime.editor_snapshot().unwrap();
     let packet = harness.runtime.render_snapshot().expect("render packet");
 
     assert_eq!(

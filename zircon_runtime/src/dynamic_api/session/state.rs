@@ -18,7 +18,7 @@ use crate::core::framework::render::{RenderFrameTiming, RenderViewportSurfaceDes
 use crate::core::framework::time::ProductTimePolicy;
 use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
 use crate::core::math::{UVec2, Vec2};
-use crate::core::{CoreRuntime, FrameClockRebaseReceipt, TaskGraphScope};
+use crate::core::{CoreRuntime, FrameClockRebaseReceipt, ServiceCallGuard, TaskGraphScope};
 use crate::diagnostic_log::{
     write_diagnostic_store_current_snapshot, write_log, write_log_lazy, DiagnosticStoreLogSchedule,
     DynamicProcessLogLease,
@@ -122,7 +122,7 @@ pub(super) struct RuntimeDynamicSession {
     pub(super) selected_material_resource_id: Option<String>,
     pub(super) camera_controller: RuntimeCameraController,
     pub(super) extract_cache: super::extract_cache::RuntimeFrameExtractCache,
-    pub(super) ui_extract_cache: RuntimeUiExtractCache,
+    pub(super) ui_extract_cache: Option<RuntimeUiExtractCache>,
     pub(super) cursor: Vec2,
     pub(super) input_manager: ManagerServiceHandle<dyn InputManager>,
     pub(super) input_diagnostics: RuntimeInputDiagnostics,
@@ -168,7 +168,11 @@ impl RuntimeDynamicSession {
 
     pub(super) fn with_runtime_frame_wake(mut self, wake: ChannelWakeCallback) -> Self {
         if let Some(queue) = self.scene_asset_reload_queue.as_mut() {
-            queue.install_runtime_frame_wake(wake);
+            if let Err(error) = queue.install_runtime_frame_wake(wake) {
+                write_log_lazy("runtime_session", || {
+                    format!("runtime_scene_asset_reload_wake_unavailable error={error}")
+                });
+            }
         }
         self
     }
@@ -190,6 +194,25 @@ impl RuntimeDynamicSession {
     pub(super) fn shutdown_before_library_unload_until(&mut self, deadline: Instant) -> bool {
         let event_mirrors_shutdown = self.shutdown_plugin_event_subscriptions_until(deadline);
         if !event_mirrors_shutdown {
+            return false;
+        }
+        if Instant::now() >= deadline {
+            return false;
+        }
+        if let Some(render_bridge) = self.render_bridge.as_mut() {
+            if let Err(error) = render_bridge.release_viewport() {
+                write_log_lazy("runtime_session", || {
+                    format!("runtime_viewport_release_incomplete error={error}")
+                });
+                return false;
+            }
+        }
+        self.render_bridge = None;
+        // These own real Text layout-session families. Retire them before the
+        // Text module closes its admission and waits for those families.
+        drop(self.ui_extract_cache.take());
+        drop(std::mem::take(&mut self.runtime_ui));
+        if Instant::now() >= deadline {
             return false;
         }
         if shutdown_runtime_core_until(
@@ -238,6 +261,13 @@ impl RuntimeDynamicSession {
     }
 
     pub(super) fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()> {
+        if self.ui_extract_cache.is_none() {
+            return Err(RuntimeDynamicSessionError::CoreStep {
+                step: "tick stopped runtime session",
+                source: crate::core::CoreError::ServiceUnavailable("runtime session".to_owned()),
+            });
+        }
+        self.ensure_scene_asset_reload_active()?;
         let advance = {
             crate::profile_scope!("runtime", "frame", "runtime_frame_time_update");
             self.runtime
@@ -247,7 +277,7 @@ impl RuntimeDynamicSession {
             advance.outer_frame_index(),
             advance.raw_real_delta().as_secs_f32(),
         );
-        self.tick_scene_asset_reload();
+        self.tick_scene_asset_reload()?;
         {
             crate::profile_scope!("runtime", "frame", "runtime_frame_update");
             self.level
@@ -282,6 +312,9 @@ impl RuntimeDynamicSession {
     }
 
     pub(super) fn frame_demand(&self) -> RuntimeFrameDemand {
+        if self.scene_asset_reload_interruption().is_some() {
+            return RuntimeFrameDemand::Idle;
+        }
         let base_demand = asset_reload_frame_demand(
             self.scene_asset_reload_queue
                 .as_ref()
@@ -292,15 +325,31 @@ impl RuntimeDynamicSession {
     }
 
     pub(super) fn reset_frame_demand_after_failed_tick(&self) {
+        if self.scene_asset_reload_interruption().is_some() {
+            return;
+        }
         self.level.record_animation_requires_continuous_frame(false);
     }
 
-    fn tick_scene_asset_reload(&mut self) {
+    pub(super) fn scene_asset_reload_interruption(
+        &self,
+    ) -> Option<&crate::scene::DynamicSceneError> {
+        self.scene_asset_reload_queue
+            .as_ref()
+            .and_then(DynamicSceneAssetReloadQueue::lifecycle_interruption)
+    }
+
+    fn tick_scene_asset_reload(&mut self) -> RuntimeDynamicSessionResult<()> {
+        self.ensure_scene_asset_reload_active()?;
         let Some(queue) = &mut self.scene_asset_reload_queue else {
             self.last_scene_asset_reload_report = None;
-            return;
+            return Ok(());
         };
         let report = queue.tick_into_level(self.runtime.handle().scheduler(), &self.level);
+        if let Some(source) = report.lifecycle_interruption().cloned() {
+            self.last_scene_asset_reload_report = Some(report);
+            return Err(RuntimeDynamicSessionError::SceneAssetReloadInterrupted { source });
+        }
         if let Some(fact) = asset_reload_world_fact(&report) {
             self.level.record_world_fact(fact);
         }
@@ -324,7 +373,15 @@ impl RuntimeDynamicSession {
                 )
             });
         }
+        let source_error = report.drain.source_error.clone();
         self.last_scene_asset_reload_report = Some(report);
+        if let Some(source) = source_error {
+            return Err(RuntimeDynamicSessionError::CoreStep {
+                step: "drain scene asset reload source",
+                source,
+            });
+        }
+        Ok(())
     }
 
     pub(super) fn prepare_host_request_output(&mut self) -> Result<Vec<u8>, BoundedJsonError> {
@@ -489,7 +546,7 @@ impl RuntimeDynamicSession {
 
     pub(super) fn resolve_input_manager(
         &self,
-    ) -> Result<Arc<dyn InputManager>, crate::core::CoreError> {
+    ) -> Result<ServiceCallGuard<dyn InputManager>, crate::core::CoreError> {
         resolve_manager_service(&self.runtime.handle(), self.input_manager.clone())
     }
 
@@ -682,6 +739,9 @@ fn deterministic_host_request_failure(error: &BoundedJsonError) -> bool {
 }
 
 fn asset_reload_world_fact(report: &DynamicSceneAssetReloadFrameApplyReport) -> Option<WorldFact> {
+    if report.lifecycle_interruption().is_some() {
+        return None;
+    }
     let has_activity = report.events_drained() > 0
         || report.applied_count() > 0
         || report.failed_count() > 0

@@ -36,14 +36,17 @@ layout = { width = { min = 240.0, preferred = 240.0, max = 240.0, stretch = "Fix
 fn ui_capture_release_commits_physical_state_before_propagation_stop() {
     let fixture = PhysicalInputFixture::create();
     let mut session = runtime_session(&fixture);
-    let input = session
-        .resolve_input_manager()
-        .expect("runtime input manager must be available");
 
     assert_ok(session.handle_event(mouse_button(ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, 24.0, 24.0)));
-    assert!(input.button_pressed(&InputButton::MouseLeft));
+    assert!(session
+        .resolve_input_manager()
+        .expect("runtime input manager must be available")
+        .button_pressed(&InputButton::MouseLeft));
     assert_eq!(
-        input.drain_events(),
+        session
+            .resolve_input_manager()
+            .expect("runtime input manager must be available")
+            .drain_events(),
         vec![InputEvent::ButtonPressed(InputButton::MouseLeft)]
     );
 
@@ -54,11 +57,16 @@ fn ui_capture_release_commits_physical_state_before_propagation_stop() {
     )));
 
     assert!(
-        !input.button_pressed(&InputButton::MouseLeft),
+        !session
+            .resolve_input_manager()
+            .expect("runtime input manager must be available")
+            .button_pressed(&InputButton::MouseLeft),
         "UI propagation must not hide the physical release from InputManager"
     );
     assert!(
-        input
+        session
+            .resolve_input_manager()
+            .expect("runtime input manager must be available")
             .drain_events()
             .iter()
             .any(|event| *event == InputEvent::ButtonReleased(InputButton::MouseLeft)),

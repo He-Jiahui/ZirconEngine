@@ -532,11 +532,19 @@ fn world_mutation_change_tick_uses_direct_active_tick_branch() {
         .and_then(|text| text.split("pub fn component_change_ticks").next())
         .expect("read World::mutation_change_tick body");
 
+    assert!(mutation_change_tick.contains("Self::query_mutation_change_tick(self)"));
+    let query_clock = change_detection_source
+        .split("pub(super) unsafe fn query_mutation_change_tick")
+        .nth(1)
+        .and_then(|text| text.split("pub fn component_change_ticks").next())
+        .expect("read the disjoint World query clock owner");
     assert!(
-        mutation_change_tick.contains("if let Some(tick) = self.active_change_tick")
-            && mutation_change_tick.contains("return tick;")
-            && mutation_change_tick.contains("self.advance_change_tick()")
-            && !mutation_change_tick.contains(".unwrap_or_else(|| self.advance_change_tick())"),
-        "World::mutation_change_tick must branch directly on active system ticks instead of using an unwrap_or_else adapter"
+        query_clock.contains("std::ptr::addr_of!((*world).active_change_tick)")
+            && query_clock.contains("if let Some(tick) = active.get()")
+            && query_clock.contains("return tick;")
+            && query_clock.contains("std::ptr::addr_of_mut!((*world).change_tick)")
+            && query_clock.contains("*clock = clock.next();")
+            && !query_clock.contains("&mut *world"),
+        "query mutations must read the original active tick leaf and advance only the disjoint clock field"
     );
 }

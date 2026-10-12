@@ -21,7 +21,7 @@ fn apply_resize_to_left_group_updates_all_left_slots() {
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    apply_resize_to_group(manager.as_ref(), "left", 344.0).unwrap();
+    apply_resize_to_group(&*manager, "left", 344.0).unwrap();
 
     let layout = manager.current_layout();
     assert_eq!(
@@ -46,7 +46,7 @@ fn apply_resize_to_bottom_group_updates_all_bottom_slots() {
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    apply_resize_to_group(manager.as_ref(), "bottom", 228.0).unwrap();
+    apply_resize_to_group(&*manager, "bottom", 228.0).unwrap();
 
     let layout = manager.current_layout();
     assert_eq!(
@@ -67,7 +67,7 @@ fn apply_resize_to_right_group_updates_all_right_slots() {
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    apply_resize_to_group(manager.as_ref(), "right", 312.0).unwrap();
+    apply_resize_to_group(&*manager, "right", 312.0).unwrap();
 
     let layout = manager.current_layout();
     assert_eq!(
@@ -92,7 +92,7 @@ fn apply_resize_to_unknown_group_returns_error() {
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    let error = apply_resize_to_group(manager.as_ref(), "mystery", 240.0).unwrap_err();
+    let error = apply_resize_to_group(&*manager, "mystery", 240.0).unwrap_err();
     assert!(
         error.contains("Unsupported drawer resize target"),
         "unexpected error: {error}"

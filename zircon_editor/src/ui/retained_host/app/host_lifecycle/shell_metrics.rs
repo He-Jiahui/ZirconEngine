@@ -20,7 +20,8 @@ fn normalized_shell_scale_factor(scale_factor: f32) -> f32 {
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn build_chrome(
         &self,
-    ) -> crate::ui::workbench::snapshot::EditorChromeSnapshot {
+    ) -> Result<crate::ui::workbench::snapshot::EditorChromeSnapshot, crate::ui::host::EditorError>
+    {
         record_current_ui_perf_counter(UiPerfCounter::ChromeSnapshotCount, 1.0);
         self.runtime.chrome_snapshot()
     }

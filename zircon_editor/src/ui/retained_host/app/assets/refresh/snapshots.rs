@@ -81,11 +81,13 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn refresh_selected_asset_details(&mut self) {
-        let selected_uuid = self
-            .runtime
-            .editor_snapshot()
-            .asset_activity
-            .selected_asset_uuid;
+        let selected_uuid = match self.runtime.editor_snapshot() {
+            Ok(snapshot) => snapshot.asset_activity.selected_asset_uuid,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
         let details = self
             .editor_asset_manager_at_use_point()
             .ok()
@@ -105,7 +107,13 @@ impl RetainedEditorHost {
             return;
         }
 
-        let chrome = self.build_chrome();
+        let chrome = match self.build_chrome() {
+            Ok(chrome) => chrome,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
         let mut demands = Vec::with_capacity(2);
 
         if asset_surface_visible(&chrome, ViewContentKind::Assets) {

@@ -189,6 +189,13 @@ impl UiSurfaceSecureTextValueStore {
         true
     }
 
+    pub(super) fn retire_nodes(&mut self, node_ids: &[UiNodeId]) {
+        for node_id in node_ids {
+            self.current.remove(node_id);
+            self.pending_model_updates.discard(*node_id);
+        }
+    }
+
     fn store_pending_model_update(&mut self, owner: UiNodeId, value: String) {
         self.pending_model_updates.store(owner, value);
     }
@@ -481,3 +488,154 @@ fn redact_component_event(event: &mut UiComponentEvent) {
 #[cfg(test)]
 #[path = "tests/secure_text_values.rs"]
 mod tests;
+
+#[cfg(test)]
+mod child_mount_commit_tests {
+    use super::*;
+    use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus};
+    use crate::ui::v2::UiV2SurfaceBuilder;
+    use zircon_runtime_interface::ui::{
+        dispatch::UiClipboardTransferIntent,
+        event_ui::{UiNodePath, UiTreeId},
+        layout::UiFrame,
+        tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
+        widget::{UiWidgetBehavior, UiWidgetContract},
+    };
+
+    #[test]
+    fn stale_public_child_mount_preserves_live_state_session_and_latest_private_stores() {
+        for change in 0..4 {
+            let root_id = UiNodeId::new(1);
+            let field_id = UiNodeId::new(2);
+            let unrelated_id = UiNodeId::new(3);
+            let mut surface = UiSurface::new(UiTreeId::new("child_mount.stale"));
+            surface.tree.insert_root(
+                UiTreeNode::new(root_id, UiNodePath::new("root"))
+                    .with_frame(UiFrame::new(0.0, 0.0, 320.0, 200.0)),
+            );
+            let mut field = UiTreeNode::new(field_id, UiNodePath::new("root/password"))
+                .with_frame(UiFrame::new(8.0, 8.0, 160.0, 28.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "SearchBox".into(),
+                    attributes: [
+                        (
+                            "content".into(),
+                            toml::Value::String("live-private-value".into()),
+                        ),
+                        ("input_kind".into(), toml::Value::String("password".into())),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::TextInput,
+                        value_property: Some("content".into()),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                });
+            field.state_flags.focusable = true;
+            surface.tree.insert_child(root_id, field).unwrap();
+            let mut unrelated = UiTreeNode::new(unrelated_id, UiNodePath::new("root/status"))
+                .with_frame(UiFrame::new(8.0, 48.0, 160.0, 28.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Container".into(),
+                    ..Default::default()
+                });
+            unrelated.state_flags.focusable = true;
+            surface.tree.insert_child(root_id, unrelated).unwrap();
+            surface.rebuild();
+            assert!(surface
+                .tree
+                .node(field_id)
+                .unwrap()
+                .layout_cache
+                .retained_text_layout_revision()
+                .is_some());
+            let original_session = surface.session_identity.handle();
+            let (mut staged, _, proof) =
+                UiV2SurfaceBuilder::stage_child_surface(&surface, root_id, None, None).unwrap();
+            match change {
+                0 => {
+                    let report = surface
+                        .mutate_property(UiPropertyMutationRequest::new(
+                            unrelated_id,
+                            "visible",
+                            UiValue::Bool(false),
+                        ))
+                        .unwrap();
+                    assert_eq!(report.status, UiPropertyMutationStatus::Accepted);
+                }
+                1 => {
+                    surface.focus_node(unrelated_id).unwrap();
+                    assert_eq!(surface.focus.focused, Some(unrelated_id));
+                }
+                2 => surface.navigation.navigation_root = Some(unrelated_id),
+                _ => {}
+            }
+            // Issue a real secure field event against its retained text revision after staging.
+            let reference = match surface.text_component_event(
+                field_id,
+                "content".into(),
+                "live-private-value".into(),
+                UiTextComponentEventKind::Change,
+            ) {
+                UiComponentEvent::SecureValueChanged {
+                    property,
+                    reference,
+                } => {
+                    assert_eq!(property, "content");
+                    reference
+                }
+                event => panic!("expected a secure field event, got {event:?}"),
+            };
+            surface.store_pending_secure_text_model_update(field_id, "latest-private-value".into());
+            let request = surface
+                .begin_clipboard_transfer(
+                    field_id,
+                    "content".into(),
+                    UiClipboardTransferIntent::Paste,
+                    None,
+                )
+                .unwrap();
+            let before = surface.clone();
+            let before_navigation = surface.navigation.clone();
+            let before_focus = surface.focus.clone();
+            assert_eq!(
+                surface.resolve_secure_text_value(&reference),
+                Some("live-private-value")
+            );
+            let result =
+                UiV2SurfaceBuilder::commit_child_surface(&mut staged, &mut surface, &proof);
+            let owner = if change == 3 {
+                // Private stores are outside value identity; a valid commit moves their latest values.
+                assert!(result.is_ok());
+                &mut staged
+            } else {
+                assert!(result.is_err());
+                assert_eq!(surface, before);
+                assert_eq!(surface.navigation, before_navigation);
+                assert_eq!(surface.focus, before_focus);
+                &mut surface
+            };
+            assert_eq!(owner.session_identity.handle(), original_session);
+            assert_eq!(
+                owner.resolve_secure_text_value(&reference),
+                Some("live-private-value")
+            );
+            assert_eq!(
+                owner
+                    .take_pending_secure_text_model_update(field_id)
+                    .as_deref(),
+                Some("latest-private-value"),
+            );
+            let pending = owner
+                .take_clipboard_transfer(request.transfer_id)
+                .expect("the latest live clipboard request must keep its identity");
+            assert_eq!(pending.owner, field_id);
+            assert_eq!(pending.property, "content");
+            assert_eq!(pending.intent, UiClipboardTransferIntent::Paste);
+        }
+    }
+}

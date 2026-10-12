@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
@@ -28,6 +29,49 @@ class ExecutionKey:
         return digest(self.__dict__)
 
 
+def _execution_identity(row, eid):
+    if not row:
+        raise JenkinsError("execution_not_found", "The execution is not registered")
+    payload = row["payload"]
+    if not isinstance(payload, Mapping):
+        raise JenkinsError("execution_identity_corrupt", "The execution lacks its immutable identity")
+    key = payload.get("executionKey")
+    fields = {"source": "sourceDigest", "preparation": "preparationKey",
+              "recipe": "recipeDigest", "driver": "driverDigest"}
+    if not isinstance(key, Mapping) or set(key) != set(fields):
+        raise JenkinsError("execution_identity_corrupt", "The execution lacks its immutable key")
+    try:
+        identity = require_digest(payload.get("executionKeyDigest"), "executionKeyDigest")
+        for field in fields:
+            require_digest(key[field], field)
+    except JenkinsError as error:
+        raise JenkinsError("execution_identity_corrupt", "The execution key is invalid") from error
+    ordinal = payload.get("ordinal")
+    if (identity != digest(dict(key)) or type(ordinal) is not int or ordinal <= 0
+            or eid != digest({"identity": identity, "ordinal": ordinal})[:32]
+            or any(payload.get(value) != key[field] for field, value in fields.items())
+            or payload.get("sealedInputRef") != key["source"]
+            or payload.get("recipeRef") != key["recipe"]):
+        raise JenkinsError("execution_identity_corrupt", "The execution differs from its immutable key")
+    return identity
+
+
+def _identity_lock(state, identity):
+    require_digest(identity, "executionKeyDigest")
+    return process_lock(state.path.parent / "execution-locks" / (identity + ".lock"),
+                        reason="execution_busy")
+
+
+@contextmanager
+def execution_lock(state, eid):
+    """Serialize consumers and publication before opening a State transaction."""
+    identity = _execution_identity(state.get("execution", eid), eid)
+    with _identity_lock(state, identity):
+        if _execution_identity(state.get("execution", eid), eid) != identity:
+            raise JenkinsError("execution_identity_corrupt", "The execution key changed before locking")
+        yield
+
+
 class ExecutionEngine:
     def __init__(self, state, *, repo_root, build_root, resource_manager=None, receipt_authority=None):
         self.state = state
@@ -49,8 +93,7 @@ class ExecutionEngine:
         self.receipts = receipt_authority or TrustedReceiptAuthority(state, repo_root=self.repo_root)
 
     def _lock(self, eid):
-        return process_lock(self.state.path.parent / "execution-locks" / (digest(str(eid)) + ".lock"),
-                            reason="execution_busy")
+        return execution_lock(self.state, eid)
 
     def _plan(self, recipe):
         ref = recipe.get("recipeRef") if isinstance(recipe, Mapping) else recipe
@@ -120,15 +163,30 @@ class ExecutionEngine:
         # A consumer is idempotent. Concurrent consumers share active work; a
         # later consumer receives a new test attempt by default.
         binding_key = digest({"consumer": consumer_id, "executionKey": key.digest})
-        with self.state.transaction() as conn:
+        # Claim has no execution ID yet. Lock its immutable key before SQLite,
+        # matching cancellation, publication and workflow acceptance ordering.
+        with _identity_lock(self.state, key.digest), self.state.transaction() as conn:
             bound = self.state.get("execution_binding", binding_key, connection=conn)
             index = self.state.get("execution_identity", key.digest, connection=conn)
-            previous = self.state.get("execution", index["payload"]["executionId"], connection=conn) if index else None
+            previous = None
+            if index:
+                indexed = index["payload"]
+                if (not isinstance(indexed, Mapping) or not isinstance(indexed.get("executionId"), str)
+                        or type(indexed.get("ordinal")) is not int or indexed["ordinal"] <= 0):
+                    raise JenkinsError("execution_identity_corrupt", "The shared execution index is invalid")
+                previous = self.state.get("execution", indexed.get("executionId"), connection=conn)
+                if (not previous or _execution_identity(previous, previous["key"]) != key.digest
+                        or indexed.get("ordinal") != previous["payload"]["ordinal"]):
+                    raise JenkinsError("execution_identity_corrupt", "The shared execution index is invalid")
             if bound:
-                eid = bound["payload"]["executionId"]
+                if (not isinstance(bound["payload"], Mapping)
+                        or not isinstance(bound["payload"].get("executionId"), str)):
+                    raise JenkinsError("execution_binding_corrupt", "The consumer execution binding is invalid")
+                eid = bound["payload"].get("executionId")
                 old = self.state.get("execution", eid, connection=conn)
-                if not old:
-                    raise JenkinsError("execution_binding_corrupt", "The consumer execution record is missing")
+                if (not old or not index or bound["payload"].get("consumerId") != consumer_id
+                        or _execution_identity(old, eid) != key.digest):
+                    raise JenkinsError("execution_binding_corrupt", "The consumer execution binding is invalid")
                 return {"executionId": eid, **old["payload"]}
             if previous and previous["payload"].get("status") not in TERMINAL:
                 old, eid = previous, previous["key"]
@@ -178,7 +236,9 @@ class ExecutionEngine:
 
     def _admit(self, eid, payload):
         amount = Capacity(**payload["resource"])
-        self.resources.queue(eid, request_id=eid, amount=amount)
+        self.resources.queue(eid, request_id=eid, amount=amount,
+                             build_root=str(self.approved_build_root.path),
+                             heavy_writer=True, writer_key=payload["preparationKey"])
         _record, generation = self.resources.scan_inventory(str(self.approved_build_root.path))
         result = self.resources.admit(eid, amount, inventory_generation=generation,
                                      writer_key=payload["preparationKey"], request_id=eid,
@@ -212,6 +272,8 @@ class ExecutionEngine:
             try:
                 from .pools import materialize_preparation
                 materialized = materialize_preparation(self.state, self.approved_build_root, eid)
+                from .post_task_cache import register_execution_scratch
+                scratch = register_execution_scratch(self.state, eid)
             except Exception as error:
                 fresh = self.state.get("execution", eid)
                 self.state.put("execution", eid, {**fresh["payload"], "status": "failed", "failedBeforeLaunch": True,
@@ -221,6 +283,9 @@ class ExecutionEngine:
                 raise
             fresh = self.state.get("execution", eid)
             payload = {**fresh["payload"], "status": "running", "startedAt": time.time(), "materialization": materialized}
+            if scratch:
+                payload["taskScratch"] = {"scratchGeneration": scratch["scratchGeneration"],
+                                          "effectiveEnvironmentDigest": digest(scratch["effectiveEnvironment"])}
             launch = {"executionId": eid, "status": "requested", "operationId": payload["operationId"],
                       "generation": payload["generation"], "driverDigest": payload["driverDigest"],
                       "recipeRef": payload["recipeRef"], "sourceDigest": payload["sourceDigest"]}
@@ -250,6 +315,58 @@ class ExecutionEngine:
             if payload.get("executionId") == eid and payload.get("status") != "terminal":
                 raise JenkinsError("native_termination_unproven", "An execution native job remains active", retryable=True)
         return records
+
+    def _validate_stage_receipt(self, eid, payload, recipe, records, stage, ref):
+        if recipe.get("kind") == "cargo-editor-product":
+            matches = [phase for phase, value in recipe.get("phaseStages", {}).items() if value == stage]
+            if len(matches) != 1:
+                raise JenkinsError("stage_phase_contract_missing", "Product stage requires one registered native phase")
+            phase = matches[0]
+        else:
+            phase = "compile" if stage == "build" else "test"
+        phase_stage = (recipe.get("phaseStages") or {}).get(phase) or {
+            "compile": "build", "test": "unit_test"}[phase]
+        attempt_id = (f"{eid}:{phase}" if stage == phase_stage and phase != "test"
+                      else f"{eid}:{phase}:{stage}")
+        if ref != attempt_id:
+            raise JenkinsError("stage_receipt_identity_mismatch",
+                               "Stage receipt differs from its execution phase attempt")
+        receipt = self.receipts.get(attempt_id)
+        attempt = self.state.get("validation_attempt", attempt_id)
+        if receipt is None or not attempt or attempt["payload"].get("status") != "passed":
+            raise JenkinsError("stage_receipt_missing", "A required native stage lacks its registered receipt", retryable=True)
+        manifest = attempt["payload"]
+        phase_record = next((record for record in records if record.get("phase") == phase), None)
+        native = self.state.get("native_job", phase_record["nativeJobId"]) if phase_record else None
+        job = native["payload"] if native else {}
+        terminal = receipt.get("terminalProof") or {}
+        if (manifest.get("executionId") != attempt_id or manifest.get("stage") != stage
+                or manifest.get("phase") != phase or not job.get("birthToken")
+                or type(job.get("pid")) is not int or job["pid"] <= 0
+                or manifest.get("nativeJobId") != native["key"]
+                or manifest.get("birthToken") != job["birthToken"]
+                or terminal.get("nativeJobId") != native["key"]
+                or terminal.get("birthToken") != job["birthToken"]
+                or terminal.get("pid") != job["pid"]):
+            raise JenkinsError("stage_receipt_runner_mismatch",
+                               "Stage attempt and receipt must bind their execution phase runner")
+        output_base = payload.get("phaseOutputRoot")
+        registered_root = manifest.get("outputRoot") or manifest.get("buildRoot")
+        closure = receipt.get("outputClosure")
+        if (not isinstance(output_base, str) or not output_base
+                or not isinstance(registered_root, str) or not registered_root
+                or not isinstance(closure, dict) or not isinstance(closure.get("root"), str)):
+            raise JenkinsError("stage_receipt_output_mismatch", "Stage receipt lacks its registered phase output root")
+        phase_root = physical_path_under(self.approved_build_root, Path(output_base) / phase, allow_missing=False)
+        if (physical_path_under(self.approved_build_root, registered_root, allow_missing=False) != phase_root
+                or physical_path_under(self.approved_build_root, closure["root"], allow_missing=False) != phase_root
+                or receipt.get("requiredOutputGlobs", []) != list(manifest.get("requiredOutputGlobs", []))):
+            raise JenkinsError("stage_receipt_output_mismatch", "Stage receipt output differs from its registered phase")
+        validate_producer_receipt(receipt, output_root=phase_root,
+            required_outputs=manifest.get("requiredOutputs", []),
+            expected={"sourceDigest": payload["sourceDigest"],
+                      "coverageDigest": payload["coverageDigest"], "recipeDigest": payload["recipeRef"],
+                      "driverDigest": payload["driverDigest"], "stage": stage, "executionId": attempt_id})
 
     def _finish(self, eid):
         row = self.state.get("execution", eid)
@@ -286,25 +403,27 @@ class ExecutionEngine:
             self.state.put("execution", eid, {**payload, "status": "reconciling" if error.code == "execution_guard_pending" else "blocked", "pendingReason": error.code},
                            expected_version=row["version"])
             return self._view(eid)
-        status = "cancelled" if host["status"] == "cancelled" else "failed"
+        cancelled = host["status"] == "cancelled" or payload.get("cancelRequested") is True
+        status = "cancelled" if cancelled else "failed"
         stage_receipts = dict(host.get("stageReceipts", {}))
-        if host["status"] == "terminal":
+        if host["status"] == "terminal" and not cancelled:
             plan = get_recipe_plan(self.state, payload["recipeRef"])
             recipe = plan["recipe"]
             if [r.get("phase") for r in records] != recipe.get("phases"):
                 raise JenkinsError("phase_contract_mismatch", "The native phase sequence differs from its plan")
-            for stage in ["build", *recipe["requiredTestStages"]]:
+            for stage in recipe.get("requiredNativeStages", ["build", *recipe["requiredTestStages"]]):
                 ref = stage_receipts.get(stage)
-                receipt = self.receipts.get(ref) if ref else None
-                if receipt is None:
+                if not ref:
                     raise JenkinsError("stage_receipt_missing", "A required native stage lacks its registered receipt", retryable=True)
-                validate_producer_receipt(receipt, output_root=receipt["outputClosure"]["root"],
-                    expected={"sourceDigest": payload["sourceDigest"],
-                    "coverageDigest": payload["coverageDigest"], "recipeDigest": payload["recipeRef"],
-                     "driverDigest": payload["driverDigest"], "stage": stage, "executionId": eid})
+                self._validate_stage_receipt(eid, payload, recipe, records, stage, ref)
             discovery = next((p.get("discovery") for p in records if p.get("phase") == "list"), None)
             if not discovery or int(discovery.get("testCount", 0)) <= 0:
                 raise JenkinsError("cargo_tests_not_discovered", "Successful Cargo validation requires real test discovery")
+            if recipe.get("kind") == "cargo-editor-product":
+                test_run = next((p.get("testRun") for p in records if p.get("phase") == "test"), None)
+                if (not test_run or int(test_run.get("passedCount", 0)) <= 0
+                        or test_run.get("requiredTests") != sorted(recipe["requiredTests"])):
+                    raise JenkinsError("editor_tests_not_run", "Product execution requires actual passing focused test evidence")
             status = "validated"
         payload.update(status=status, phaseRecords=records, stageReceipts=stage_receipts,
                        terminalProof=records[-1]["terminalProof"], finishedAt=time.time())
@@ -332,15 +451,76 @@ class ExecutionEngine:
                 return self._view(eid)
             raise
 
-    def cancel(self, eid, consumer_id):
+    def cancel(self, eid, consumer_id, *, cancel_request=False):
         with self._lock(eid):
             with self.state.transaction() as conn:
+                row = self.state.get("execution", eid, connection=conn)
+                key_digest = _execution_identity(row, eid)
+                workflow = self.state.get("workflow", consumer_id, connection=conn)
+                request = None
+                if cancel_request:
+                    if not workflow or workflow["payload"].get("executionId") != eid:
+                        raise JenkinsError("execution_identity_mismatch", "Cancellation must retain its workflow execution")
+                    flow = workflow["payload"]
+                    identity = flow.get("identity") or {}
+                    repository = flow.get("repositoryId") or identity.get("repositoryId")
+                    session, request_id = identity.get("sessionId"), identity.get("requestId")
+                    if all(isinstance(value, str) and value for value in (repository, session, request_id)):
+                        request = self.state.get_request(repository, session, request_id, connection=conn)
+                    if not request and (self.repo_root / ".jenkins/state/deployment/driver.json").exists():
+                        raise JenkinsError("request_not_registered", "Cancellation requires its immutable registered request")
+                    if request:
+                        intent = request["payload"]
+                        execution = row["payload"]
+                        execution_driver = execution.get("driver")
+                        if (not isinstance(execution_driver, Mapping)
+                                or execution_driver.get("digest") != execution.get("driverDigest")
+                                or str(execution_driver.get("generation")) != str(execution.get("generation"))
+                                or not isinstance(execution_driver.get("runtimeOperationId"), str)
+                                or not execution_driver["runtimeOperationId"]):
+                            raise JenkinsError("execution_identity_corrupt", "Cancellation lacks its immutable runtime binding")
+                        source = (intent.get("sealedInputRef") or intent.get("sourceInputDigest")
+                                  or intent.get("sourceDigest") or intent.get("sourceRef"))
+                        driver = intent.get("driverDigest") or intent.get("stageImplementationDigest")
+                        if (consumer_id != f"{session}:{request_id}:{identity.get('attemptId')}"
+                                or identity.get("repositoryId") != repository
+                                or any(intent.get(name) != identity.get(name) for name in
+                                       ("repositoryId", "sessionId", "requestId", "attemptId", "generation"))
+                                or request["generation"] != identity.get("generation")
+                                or str(flow.get("generation")) != str(identity.get("generation"))
+                                or str(execution.get("generation")) != str(identity.get("generation"))
+                                or source != identity.get("sourceInputDigest") or source != flow.get("sourceDigest")
+                                or source != execution.get("sourceDigest")
+                                or any(intent[name] != source for name in
+                                       ("sealedInputRef", "sourceInputDigest", "sourceDigest", "sourceRef") if name in intent)
+                                or intent.get("coverageDigest") != flow.get("coverageDigest")
+                                or intent.get("coverageDigest") != execution.get("coverageDigest")
+                                or intent.get("coverageDigest") != identity.get("coverageDigest")
+                                or driver != flow.get("driverDigest") or driver != execution.get("driverDigest")
+                                or driver != identity.get("stageImplementationDigest")
+                                or any(intent[name] != driver for name in
+                                       ("driverDigest", "stageImplementationDigest") if name in intent)
+                                or flow.get("recipeRef") != execution.get("recipeRef")
+                                or intent.get("recipeRef", execution.get("recipeRef")) != execution.get("recipeRef")
+                                or intent.get("runtimeOperationId") != execution_driver["runtimeOperationId"]
+                                or canonical_build_root(intent.get("buildRoot")).path != self.approved_build_root.path):
+                            raise JenkinsError("request_identity_mismatch", "Cancellation differs from its exact request attempt")
+                        if intent.get("authorizationSnapshot"):
+                            authorization = self.state.check_authorization(repository, session, "validation",
+                                flow.get("ownedPaths", []), connection=conn)
+                            if authorization["snapshotDigest"] != intent["authorizationSnapshot"]:
+                                raise JenkinsError("request_authorization_mismatch", "Cancellation authorization changed")
                 ref = self.state.get("execution_consumer", f"{eid}:{consumer_id}", connection=conn)
                 if not ref:
                     raise JenkinsError("consumer_not_found", "The consumer is not attached")
+                binding = self.state.get("execution_binding", digest({"consumer": consumer_id,
+                                         "executionKey": key_digest}), connection=conn)
+                if (ref["payload"].get("executionId") != eid or ref["payload"].get("consumerId") != consumer_id
+                        or not binding or binding["payload"].get("executionId") != eid
+                        or binding["payload"].get("consumerId") != consumer_id):
+                    raise JenkinsError("execution_identity_mismatch", "Cancellation requires its exact consumer binding")
                 self.state.put("execution_consumer", ref["key"], {**ref["payload"], "status": "released"},
                                expected_version=ref["version"], connection=conn)
-                row = self.state.get("execution", eid, connection=conn)
                 active = [r["payload"]["consumerId"] for r in self.state.list("execution_consumer", connection=conn)
                           if r["payload"].get("executionId") == eid and r["payload"].get("status") == "active"]
                 payload = {**row["payload"], "consumers": active, "refs": len(active)}
@@ -364,6 +544,19 @@ class ExecutionEngine:
                             "cancelEpoch": int(control["payload"].get("cancelEpoch", 0)) + 1 if control else 1},
                             expected_version=control["version"] if control else None, connection=conn)
                 self.state.put("execution", eid, payload, expected_version=row["version"], connection=conn)
+                if (workflow and workflow["payload"].get("executionId") == eid
+                        and workflow["payload"].get("status") != "accepted"
+                        and (not request or request["status"] != "accepted")):
+                    status = workflow["payload"].get("status")
+                    self.state.put("workflow", consumer_id, {**workflow["payload"],
+                                   "status": status if status in {"failed", "rejected", "unknown"} else "cancelled",
+                                   "consumerCancelled": True},
+                                   expected_version=workflow["version"], connection=conn)
+                if (request and request["status"] not in {"accepted", "failed", "cancelled", "unknown"}
+                        and workflow["payload"].get("status") != "accepted"):
+                    self.state.transition_request(request["repositoryId"], request["sessionId"], request["requestId"],
+                        request["generation"], request["status"], "cancelled",
+                        {"executionId": eid, "consumerId": consumer_id, "consumerCancelled": True}, connection=conn)
             if payload.get("cancelledBeforeLaunch") and payload.get("reservationKey"):
                 self.resources.release_unlaunched(payload["reservationKey"], writer_key=payload["preparationKey"], execution_id=eid)
             if payload.get("artifacts"):
@@ -378,4 +571,4 @@ class ExecutionEngine:
         return value
 
 
-__all__ = ["ExecutionKey", "ExecutionEngine"]
+__all__ = ["ExecutionKey", "ExecutionEngine", "execution_lock"]

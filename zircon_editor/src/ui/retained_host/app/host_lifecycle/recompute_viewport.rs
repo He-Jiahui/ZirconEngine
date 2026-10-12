@@ -11,7 +11,7 @@ impl RetainedEditorHost {
         componentized_workbench_layout_frames: callback_dispatch::BuiltinWorkbenchWindowLayoutFrames,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
         window_metrics_target: bool,
-    ) {
+    ) -> Result<(), crate::ui::host::EditorError> {
         let viewport_content_frame = componentized_workbench_layout_frames
             .viewport_content_frame
             .filter(super::shell_metrics::ui_frame_is_visible)
@@ -50,9 +50,9 @@ impl RetainedEditorHost {
                         "ui.viewport_resize.incremental_projection_fallback_count",
                         1
                     );
-                    *chrome = self.build_chrome();
-                    let context = self.runtime.project_command_eval_snapshot(chrome);
-                    *model = self.runtime.build_workbench_view_model(chrome, &context);
+                    *chrome = self.build_chrome()?;
+                    let context = self.runtime.project_command_eval_snapshot(chrome)?;
+                    *model = self.runtime.build_workbench_view_model(chrome, &context)?;
                 }
             }
         }
@@ -89,6 +89,7 @@ impl RetainedEditorHost {
                 3
             );
         }
+        Ok(())
     }
 }
 

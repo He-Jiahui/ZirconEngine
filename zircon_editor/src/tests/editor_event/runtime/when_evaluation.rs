@@ -103,7 +103,7 @@ fn workbench_position_commit_dispatches_a_typed_inspector_transaction() {
             .expect_with_world(|scene| scene.find_node(selected).unwrap().transform.translation.x)
     };
     assert_eq!(committed_x, 4.25);
-    assert!(runtime.runtime.editor_snapshot().can_undo);
+    assert!(runtime.runtime.editor_snapshot().unwrap().can_undo);
 }
 
 #[test]
@@ -139,7 +139,7 @@ fn workbench_scale_commit_dispatches_a_typed_inspector_transaction() {
             .expect_with_world(|scene| scene.find_node(selected).unwrap().transform.scale.x)
     };
     assert_eq!(committed_x, 2.5);
-    assert!(runtime.runtime.editor_snapshot().can_undo);
+    assert!(runtime.runtime.editor_snapshot().unwrap().can_undo);
 }
 
 #[test]

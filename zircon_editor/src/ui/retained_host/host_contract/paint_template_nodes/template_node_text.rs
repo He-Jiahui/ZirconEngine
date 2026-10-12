@@ -146,7 +146,7 @@ fn welcome_label_diagnostic_target(
 ) -> Option<(&'static str, &'static str)> {
     match node.control_id.as_str() {
         "WelcomeProjectNameLabel" => Some(("WelcomeProjectNameLabel", "Project name")),
-        "WelcomeLocationLabel" => Some(("WelcomeLocationLabel", "Location")),
+        "WelcomeLocationLabel" => Some(("WelcomeLocationLabel", "Parent folder")),
         _ => None,
     }
 }

@@ -255,6 +255,8 @@ impl PartialEq for EditorStateOperationError {
 /// 画布错误保留world访问、输入路由、控制器和事务恢复的边界。
 pub enum EditorViewportStateError {
     #[error(transparent)]
+    CoreService(#[from] zircon_runtime::core::CoreError),
+    #[error(transparent)]
     AuthoringWorld(#[from] AuthoringWorldAccessError),
     #[error(transparent)]
     PointerRoute(#[from] UiTreeError),

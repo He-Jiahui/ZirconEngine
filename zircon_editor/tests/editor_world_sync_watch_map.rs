@@ -275,15 +275,16 @@ fn public_full_refresh_replays_other_view_delta_after_snapshot() {
     core.activate_module(EDITOR_MODULE_NAME).unwrap();
 
     let manager = core
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
     let mut state = EditorState::with_default_selection_with_context(
         DefaultLevelManager::default().create_default_level(),
         UVec2::new(1280, 720),
-        manager.context().clone(),
+        manager.enter().unwrap().context().clone(),
     );
     state.mark_project_open();
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(state, manager)
+        .expect("editor controller manager admission");
     let scene_path = UiNodePath::new("editor/workbench/pages/workbench/editor.scene#1");
 
     controller.context().bus().push_editor_ui_patch(
@@ -332,15 +333,16 @@ fn public_retained_pointer_move_burst_does_not_schedule_reflection_work() {
     core.activate_module(EDITOR_MODULE_NAME).unwrap();
 
     let manager = core
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
     let mut state = EditorState::with_default_selection_with_context(
         DefaultLevelManager::default().create_default_level(),
         UVec2::new(1280, 720),
-        manager.context().clone(),
+        manager.enter().unwrap().context().clone(),
     );
     state.mark_project_open();
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(state, manager)
+        .expect("editor controller manager admission");
 
     for index in 0..1_000 {
         controller

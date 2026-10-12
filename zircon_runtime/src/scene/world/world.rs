@@ -137,7 +137,7 @@ pub struct World {
     pub(super) compiled_scene_property_access_diagnostics: CompiledScenePropertyAccessDiagnostics,
     pub(super) change_tick: ChangeTick,
     pub(super) last_change_tick: ChangeTick,
-    pub(super) active_change_tick: Option<ChangeTick>,
+    pub(super) active_change_tick: super::change_detection::ActiveChangeTickSlot,
     pub(super) node_cache: Vec<SceneNode>,
     pub(super) node_cache_rows: HashMap<EntityId, usize>,
     pub(super) node_cache_topology_generation: u64,
@@ -204,7 +204,7 @@ impl Clone for World {
             compiled_scene_property_access_diagnostics: Default::default(),
             change_tick: self.change_tick,
             last_change_tick: self.last_change_tick,
-            active_change_tick: self.active_change_tick,
+            active_change_tick: self.active_change_tick.copied(),
             node_cache: self.node_cache.clone(),
             node_cache_rows: self.node_cache_rows.clone(),
             node_cache_topology_generation: self.node_cache_topology_generation,
@@ -420,6 +420,10 @@ impl Serialize for World {
 }
 
 impl World {
+    pub(crate) fn owner_identity(&self) -> &super::DetachPreparationOwner {
+        &self.detach_preparation_owner
+    }
+
     pub(super) fn from_persistent_state(
         state: WorldPersistentState,
     ) -> Result<Self, WorldPersistentStateError> {
@@ -515,7 +519,7 @@ impl World {
             compiled_scene_property_access_diagnostics: Default::default(),
             change_tick: default_change_tick(),
             last_change_tick: ChangeTick::ZERO,
-            active_change_tick: None,
+            active_change_tick: Default::default(),
             node_cache: Vec::new(),
             node_cache_rows: HashMap::new(),
             node_cache_topology_generation: 0,

@@ -11,9 +11,10 @@ use super::super::workbench_regions::{
 pub(super) fn resolve_workbench_host_frame_backed_size_for_kind(
     host: &RetainedEditorHost,
     kind: ViewContentKind,
-) -> Option<UiSize> {
+) -> Result<Option<UiSize>, crate::ui::host::EditorError> {
     let workbench_layout_frames = host.workbench_window_bridge.layout_frames();
-    let chrome = host.runtime.chrome_snapshot();
+    let chrome = host.runtime.chrome_snapshot()?;
+    Ok((|| {
     let workbench = &chrome.workbench;
     if let Some(region) = active_drawer_region_for_kind(workbench, kind) {
         return workbench_layout_frames
@@ -52,4 +53,5 @@ pub(super) fn resolve_workbench_host_frame_backed_size_for_kind(
     }
 
     None
+    })())
 }

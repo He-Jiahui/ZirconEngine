@@ -53,7 +53,7 @@ pub use runtime_system::{
 };
 pub use skeletal::{
     RagdollBoneProfile, RagdollMode, RagdollProfile, RagdollProfileError, RagdollRuntime,
-    RagdollSpawn,
+    RagdollSpawn, RagdollSpawnError,
 };
 pub use zircon_runtime::core::framework::physics::{
     PhysicsQueryInterface, PHYSICS_QUERY_INTERFACE_ID,

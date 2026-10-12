@@ -9,7 +9,7 @@ description = "Internal FFI and DTO contracts for loading the Zircon runtime as 
 test-dependency-roots = ["../tests/fixtures/serialization/project-manifest"]
 
 [dependencies]
-bincode.workspace = true
+bincode-next.workspace = true
 blake3.workspace = true
 glam.workspace = true
 serde.workspace = true

@@ -61,9 +61,18 @@ directory age nor a missing manifest establishes safe reclamation.
 
 The user authorized daily file/health review and temporary merge takeover on
 2026-10-11. Follow the [transition protocol](../../../docs/tools/jenkins-transition-monitor.md)
-for that authorization: the Windows task records read-only observations and
-locally notifies only changed findings; reviewed operator batches integrate
-exact paths with current evidence. Record health and merge blockers separately.
+for that authorization. The user requires a **Codex scheduled task**, daily at
+09:00 Asia/Shanghai, in the actual project directory without a new worktree.
+Use the [saved task prompt](references/daily-codex-review.md) and the supported
+Codex task interface; verify the returned task identity and schedule. If that
+interface is unavailable, do not claim to have created a task. A user-created
+task may be observed through its existing local registration record: verify its
+identity, active status, recurrence, target chat and prompt read-only, and keep
+actual run acceptance separate. Do not substitute
+Windows Task Scheduler, a background polling service or direct Codex data edits.
+The task records observations and reports meaningful changes or required action.
+Reviewed operator batches integrate exact paths with current evidence. Record
+health and merge blockers separately.
 This exception does not authorize automatic commits, source copies, cleanup,
 service adoption/restart, pushes, or restoration of the retired coordinator.
 Retire the temporary scheduler after the actual Jenkins lifecycle handoff has

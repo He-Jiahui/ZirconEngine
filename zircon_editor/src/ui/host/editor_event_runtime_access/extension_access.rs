@@ -22,128 +22,176 @@ impl EditorHostEventController {
     pub fn inspector_customization(
         &self,
         component_type: &str,
-    ) -> Option<Arc<dyn InspectorCustomization>> {
-        let target_type = InspectTargetType::new(component_type).ok()?;
-        let inner = self.shell().lock();
-        let enabled_capabilities = inner
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .iter()
-            .cloned()
-            .collect::<CapabilitySet>();
-        let customization = inner
-            .contributions
-            .snapshot()
-            .inspector_customizations(&enabled_capabilities)
-            .find(|customization| customization.can_handle(&target_type));
-        customization
-    }
-
-    pub fn ui_template_descriptor(&self, id: &str) -> Option<EditorUiTemplateDescriptor> {
-        let inner = self.shell().lock();
-        let enabled_capabilities = inner
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .iter()
-            .cloned()
-            .collect::<CapabilitySet>();
-        let descriptor = inner
-            .contributions
-            .snapshot()
-            .ui_templates(&enabled_capabilities)
-            .find(|descriptor| descriptor.id() == id)
-            .cloned();
-        descriptor
-    }
-
-    pub(crate) fn extension_projection_revision(&self) -> (u64, Vec<String>) {
-        let inner = self.shell().lock();
-        let enabled_capabilities = inner
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .to_vec();
-        (inner.contributions.generation(), enabled_capabilities)
-    }
-
-    pub(crate) fn enabled_plugin_template_descriptors(
-        &self,
-    ) -> (
-        u64,
-        Vec<String>,
-        BTreeMap<String, Vec<EditorUiTemplateDescriptor>>,
-    ) {
-        let inner = self.shell().lock();
-        let enabled_capabilities = inner
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .to_vec();
-        let capabilities = enabled_capabilities
-            .iter()
-            .cloned()
-            .collect::<CapabilitySet>();
-        let templates_by_owner = inner
-            .contributions
-            .snapshot()
-            .ui_templates_with_source(&capabilities)
-            .filter_map(|(source, template)| match source {
-                ContributionSource::Plugin(plugin_id) => Some((plugin_id.as_str(), template)),
-                ContributionSource::Builtin => None,
-            })
-            .fold(
-                BTreeMap::<String, Vec<EditorUiTemplateDescriptor>>::new(),
-                |mut templates_by_owner, (owner_id, template)| {
-                    templates_by_owner
-                        .entry(owner_id.to_owned())
-                        .or_default()
-                        .push(template.clone());
-                    templates_by_owner
-                },
-            );
-        (
-            inner.contributions.generation(),
-            enabled_capabilities,
-            templates_by_owner,
-        )
-    }
-
-    pub(crate) fn ui_template_pane_data_snapshots(
-        &self,
-    ) -> BTreeMap<String, EditorUiTemplatePaneDataSnapshot> {
-        let sources = {
+    ) -> Result<Option<Arc<dyn InspectorCustomization>>, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let Ok(target_type) = InspectTargetType::new(component_type) else {
+                return Ok(None);
+            };
             let inner = self.shell().lock();
-            let enabled_capabilities = inner
-                .manager
+            let enabled_capabilities = manager
                 .capability_snapshot()
                 .enabled_capabilities()
                 .iter()
                 .cloned()
                 .collect::<CapabilitySet>();
-            inner
+            let customization = inner
                 .contributions
                 .snapshot()
-                .ui_template_pane_data_sources(&enabled_capabilities)
-                .map(|(template_id, source)| (template_id.to_owned(), source))
-                .collect::<BTreeMap<_, _>>()
-        };
+                .inspector_customizations(&enabled_capabilities)
+                .find(|customization| customization.can_handle(&target_type));
+            customization
+        })
+    }
 
-        sources
-            .into_iter()
-            .map(|(template_id, source)| (template_id, source.snapshot()))
-            .collect()
+    pub fn ui_template_descriptor(
+        &self,
+        id: &str,
+    ) -> Result<Option<EditorUiTemplateDescriptor>, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let inner = self.shell().lock();
+            let enabled_capabilities = manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .iter()
+                .cloned()
+                .collect::<CapabilitySet>();
+            let descriptor = inner
+                .contributions
+                .snapshot()
+                .ui_templates(&enabled_capabilities)
+                .find(|descriptor| descriptor.id() == id)
+                .cloned();
+            descriptor
+        })
+    }
+
+    pub(crate) fn extension_projection_revision(
+        &self,
+    ) -> Result<(u64, Vec<String>), crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let inner = self.shell().lock();
+            let enabled_capabilities = manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .to_vec();
+            (inner.contributions.generation(), enabled_capabilities)
+        })
+    }
+
+    pub(crate) fn enabled_plugin_template_descriptors(
+        &self,
+    ) -> Result<
+        (
+            u64,
+            Vec<String>,
+            BTreeMap<String, Vec<EditorUiTemplateDescriptor>>,
+        ),
+        crate::ui::host::EditorError,
+    > {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let inner = self.shell().lock();
+            let enabled_capabilities = manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .to_vec();
+            let capabilities = enabled_capabilities
+                .iter()
+                .cloned()
+                .collect::<CapabilitySet>();
+            let templates_by_owner = inner
+                .contributions
+                .snapshot()
+                .ui_templates_with_source(&capabilities)
+                .filter_map(|(source, template)| match source {
+                    ContributionSource::Plugin(plugin_id) => Some((plugin_id.as_str(), template)),
+                    ContributionSource::Builtin => None,
+                })
+                .fold(
+                    BTreeMap::<String, Vec<EditorUiTemplateDescriptor>>::new(),
+                    |mut templates_by_owner, (owner_id, template)| {
+                        templates_by_owner
+                            .entry(owner_id.to_owned())
+                            .or_default()
+                            .push(template.clone());
+                        templates_by_owner
+                    },
+                );
+            (
+                inner.contributions.generation(),
+                enabled_capabilities,
+                templates_by_owner,
+            )
+        })
+    }
+
+    pub(crate) fn ui_template_pane_data_snapshots(
+        &self,
+    ) -> Result<BTreeMap<String, EditorUiTemplatePaneDataSnapshot>, crate::ui::host::EditorError>
+    {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let sources = {
+                let inner = self.shell().lock();
+                let enabled_capabilities = manager
+                    .capability_snapshot()
+                    .enabled_capabilities()
+                    .iter()
+                    .cloned()
+                    .collect::<CapabilitySet>();
+                inner
+                    .contributions
+                    .snapshot()
+                    .ui_template_pane_data_sources(&enabled_capabilities)
+                    .map(|(template_id, source)| (template_id.to_owned(), source))
+                    .collect::<BTreeMap<_, _>>()
+            };
+
+            sources
+                .into_iter()
+                .map(|(template_id, source)| (template_id, source.snapshot()))
+                .collect()
+        })
     }
 
     pub(crate) fn ui_template_pane_data_snapshot(
         &self,
         template_id: &str,
-    ) -> Option<EditorUiTemplatePaneDataSnapshot> {
-        let source = {
+    ) -> Result<Option<EditorUiTemplatePaneDataSnapshot>, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let source = {
+                let inner = self.shell().lock();
+                let enabled_capabilities = manager
+                    .capability_snapshot()
+                    .enabled_capabilities()
+                    .iter()
+                    .cloned()
+                    .collect::<CapabilitySet>();
+                inner
+                    .contributions
+                    .snapshot()
+                    .ui_template_pane_data_source(template_id, &enabled_capabilities)
+            };
+            source.map(|source| source.snapshot())
+        })
+    }
+
+    pub fn asset_importers_for_extension(
+        &self,
+        extension: &str,
+    ) -> Result<Vec<AssetImporterDescriptor>, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let normalized = extension
+                .trim()
+                .trim_start_matches('.')
+                .to_ascii_lowercase();
             let inner = self.shell().lock();
-            let enabled_capabilities = inner
-                .manager
+            let enabled_capabilities = manager
                 .capability_snapshot()
                 .enabled_capabilities()
                 .iter()
@@ -152,35 +200,15 @@ impl EditorHostEventController {
             inner
                 .contributions
                 .snapshot()
-                .ui_template_pane_data_source(template_id, &enabled_capabilities)
-        };
-        source.map(|source| source.snapshot())
-    }
-
-    pub fn asset_importers_for_extension(&self, extension: &str) -> Vec<AssetImporterDescriptor> {
-        let normalized = extension
-            .trim()
-            .trim_start_matches('.')
-            .to_ascii_lowercase();
-        let inner = self.shell().lock();
-        let enabled_capabilities = inner
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .iter()
-            .cloned()
-            .collect::<CapabilitySet>();
-        inner
-            .contributions
-            .snapshot()
-            .asset_importers(&enabled_capabilities)
-            .filter(|descriptor| {
-                descriptor
-                    .source_extensions()
-                    .iter()
-                    .any(|candidate| candidate == &normalized)
-            })
-            .cloned()
-            .collect()
+                .asset_importers(&enabled_capabilities)
+                .filter(|descriptor| {
+                    descriptor
+                        .source_extensions()
+                        .iter()
+                        .any(|candidate| candidate == &normalized)
+                })
+                .cloned()
+                .collect()
+        })
     }
 }

@@ -1,0 +1,114 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/unreal/components/toolbar.zui"
+version = 2
+display_name = "Unreal Level Editor Toolbar"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[components.UnrealLevelEditorToolbar]
+root = "toolbar"
+default_classes = ["unreal-level-editor-toolbar"]
+
+[nodes.toolbar]
+component = "HorizontalBox"
+control_id = "WorkbenchWindowTopToolbar"
+classes = ["unreal-level-editor-toolbar"]
+props = { background_color = "$editor.surface.1", border_width = 0.0, layout_padding_left = 8.0, layout_padding_right = 8.0, separator_edge = "bottom", separator_color = "$editor.border", separator_thickness = 1.0 }
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { min = 0.0, stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+children = [{ node = "command_scroll" }, { node = "settings" }]
+
+[nodes.command_scroll]
+component = "ScrollableBox"
+control_id = "WorkbenchToolbarCommandRow"
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Horizontal", gap = 4.0, scrollbar_visibility = "Never" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "save" }, { node = "find_content" }, { node = "modes" }, { node = "add" }, { node = "blueprints" }, { node = "cinematics" }, { node = "play" }, { node = "pause" }, { node = "stop" }, { node = "play_options" }]
+
+[nodes.save]
+component = "IconButton"
+control_id = "WorkbenchToolbarSave"
+classes = ["unreal-control", "unreal-toolbar-control", "unreal-icon-control"]
+props = { icon = "zircon_editor_shell/toolbar/save.svg", label = "Save Current Level", tooltip = "Save Current Level", layout_icon_size = 20.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "MenuAction/SaveProject", event = "Click", action = { action = "file.project.save" } }]
+
+[nodes.find_content]
+component = "IconButton"
+control_id = "WorkbenchToolbarAssets"
+classes = ["unreal-control", "unreal-toolbar-control", "unreal-icon-control"]
+props = { icon = "zircon_editor_shell/toolbar/folder-open.svg", label = "Find in Content Browser", tooltip = "Find in Content Browser", layout_icon_size = 20.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "Unreal/FindInContentBrowser", event = "Click", route = "workbench.content_drawer.sync_selection" }]
+
+[nodes.modes]
+component = "Button"
+control_id = "WorkbenchToolSelect"
+classes = ["unreal-control", "unreal-toolbar-control"]
+props = { text = "Selection Mode", icon = "zircon_editor_shell/toolbar/select.svg", tooltip = "Editor Modes", button_variant = "text", layout_icon_size = 20.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+layout = { width = { min = 152.0, preferred = 152.0, max = 152.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "UnrealToolbar/Modes", event = "Click", route = "workbench.unreal.modes.open" }]
+
+[nodes.add]
+component = "Button"
+control_id = "WorkbenchToolbarAddActor"
+classes = ["unreal-control", "unreal-toolbar-control"]
+props = { text = "Add", icon = "zircon_editor_shell/controls/add.svg", tooltip = "Add", button_variant = "text", layout_icon_size = 20.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "UnrealToolbar/Add", event = "Click", route = "workbench.unreal.add.open" }]
+
+[nodes.blueprints]
+component = "Button"
+control_id = "UnrealToolbarBlueprints"
+classes = ["unreal-control", "unreal-toolbar-control"]
+props = { text = "Blueprints", tooltip = "Blueprints", button_variant = "text", font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+layout = { width = { min = 110.0, preferred = 110.0, max = 110.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "UnrealToolbar/Blueprints", event = "Click", route = "workbench.unreal.blueprints.open" }]
+
+[nodes.cinematics]
+component = "Button"
+control_id = "UnrealToolbarCinematics"
+classes = ["unreal-control", "unreal-toolbar-control"]
+props = { text = "Cinematics", tooltip = "Cinematics", button_variant = "text", font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+layout = { width = { min = 110.0, preferred = 110.0, max = 110.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "UnrealToolbar/Cinematics", event = "Click", route = "workbench.unreal.cinematics.open" }]
+
+[nodes.play]
+component = "IconButton"
+control_id = "WorkbenchRunPlay"
+classes = ["unreal-control", "unreal-toolbar-control", "unreal-icon-control"]
+props = { icon = "zircon_editor_shell/toolbar/play.svg", label = "Play", tooltip = "Play", layout_icon_size = 20.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "Run/Play", event = "Click", action = { action = "runtime.play_mode.enter" } }]
+
+[nodes.pause]
+component = "IconButton"
+control_id = "UnrealRunPause"
+classes = ["unreal-control", "unreal-toolbar-control", "unreal-icon-control"]
+props = { icon = "zircon_editor_shell/animation/playback-pause.svg", label = "Pause", tooltip = "Pause", disabled = true, layout_icon_size = 20.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = false, input_focusable = false }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.stop]
+component = "IconButton"
+control_id = "WorkbenchRunStop"
+classes = ["unreal-control", "unreal-toolbar-control", "unreal-icon-control"]
+props = { icon = "editor_pages/scene_viewport/play/stop.svg", label = "Stop", tooltip = "Stop", layout_icon_size = 20.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "Run/Stop", event = "Click", action = { action = "runtime.play_mode.exit" } }]
+
+[nodes.play_options]
+component = "IconButton"
+control_id = "WorkbenchRunMode"
+classes = ["unreal-control", "unreal-toolbar-control", "unreal-icon-control"]
+props = { icon = "zircon_editor_shell/toolbar/dropdown.svg", label = "Play Options", tooltip = "Play Options", layout_icon_size = 16.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+layout = { width = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "Run/OpenModeMenu", event = "Click", route = "workbench.run.open_mode_menu" }]
+
+[nodes.settings]
+component = "Button"
+control_id = "UnrealToolbarSettings"
+classes = ["unreal-control", "unreal-toolbar-control"]
+props = { text = "Settings", icon = "zircon_editor_shell/activity/settings.svg", tooltip = "Project and Editor settings", button_variant = "text", layout_icon_size = 20.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+layout = { width = { min = 106.0, preferred = 106.0, max = 106.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "UnrealToolbar/Settings", event = "Click", route = "workbench.unreal.settings.open" }]

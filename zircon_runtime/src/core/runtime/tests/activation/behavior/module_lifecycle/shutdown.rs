@@ -187,8 +187,8 @@ fn zero_duration_shutdown_preserves_immediate_probe_and_independent_cleanup() {
 struct NamedCleanupFailure;
 
 impl ModuleLifecycle for NamedCleanupFailure {
-    fn cleanup(&self, context: &ModuleContext) -> CoreResult<()> {
-        Err(CoreError::MissingConfig(context.module_name.clone()))
+    fn cleanup(&self, context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
+        Err(CoreError::MissingConfig(context.module_name().to_owned()))
     }
 }
 
@@ -240,7 +240,11 @@ struct RememberCleanupDeadline {
 }
 
 impl ModuleLifecycle for RememberCleanupDeadline {
-    fn cleanup_until(&self, _context: &ModuleContext, deadline: Instant) -> CoreResult<()> {
+    fn cleanup_until(
+        &self,
+        _context: &ModuleCleanupContext<'_>,
+        deadline: Instant,
+    ) -> CoreResult<()> {
         *self.deadline.lock().unwrap() = Some(deadline);
         self.cleanups.fetch_add(1, Ordering::SeqCst);
         Ok(())

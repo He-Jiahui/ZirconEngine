@@ -23,12 +23,13 @@ pub use zr_rhi::{
     TextureHandle, TextureResidency, TextureSampleType, TextureUsage, TextureViewAspect,
     TextureViewDesc, TextureViewDimension, TextureViewHandle, TransientAllocatorStats,
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDescriptor, UiSurfaceDrawList,
-    UiSurfaceImagePayload, UiSurfaceImageResource, UiSurfaceImageResourceTable,
-    UiSurfaceImageUvRect, UiSurfacePresentOutcome, UiSurfacePresentStats, UiSurfacePresenter,
-    UiSurfaceRect, UiSurfaceResolvedCommandKind, UiSurfaceStyle, UiSurfaceStyleHandle,
-    UiSurfaceStyledPayload, UiSurfaceTextFace, UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot,
-    UiSurfaceTextLine, UiSurfaceTextStyle, VertexAttributeDesc, VertexBufferLayoutDesc,
-    VertexFormat, VertexInputLayoutDesc, VertexStepMode,
+    UiSurfaceFontSnapshot, UiSurfaceFontSource, UiSurfaceImagePayload, UiSurfaceImageResource,
+    UiSurfaceImageResourceTable, UiSurfaceImageUvRect, UiSurfacePresentOutcome,
+    UiSurfacePresentStats, UiSurfacePresenter, UiSurfaceRect, UiSurfaceResolvedCommandKind,
+    UiSurfaceStyle, UiSurfaceStyleHandle, UiSurfaceStyledPayload, UiSurfaceTextFace,
+    UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot, UiSurfaceTextLine, UiSurfaceTextRequest, UiSurfaceTextStyle,
+    VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat, VertexInputLayoutDesc,
+    VertexStepMode,
 };
 
 pub use zr_rhi::{
@@ -52,3 +53,7 @@ pub fn create_default_ui_surface_presenter(
         descriptor,
     )?))
 }
+
+pub use zr_rhi::{
+    UiSurfaceFramePixelFormat, UiSurfaceFrameReadback, UiSurfaceFrameReadbackRequest,
+};

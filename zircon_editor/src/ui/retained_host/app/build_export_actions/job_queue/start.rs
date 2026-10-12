@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use super::super::DesktopExportExecutionSummary;
 use super::worker::DesktopExportEditorJob;
@@ -11,7 +10,7 @@ use crate::core::jobs::{EditorJobSpec, JobCategory};
 impl DesktopExportJobQueue {
     pub(in crate::ui::retained_host::app) fn start_next(
         &mut self,
-        editor_manager: Arc<crate::ui::host::EditorManager>,
+        editor_manager: zircon_runtime::core::runtime::ServiceHandle<crate::ui::host::EditorManager>,
     ) -> Option<DesktopExportJobSnapshot> {
         if self.active.is_some() {
             return None;

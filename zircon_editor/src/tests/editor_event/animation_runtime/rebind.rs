@@ -41,7 +41,7 @@ fn animation_rebind_to_existing_track_keeps_original_sequence_tracks_intact() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
@@ -128,7 +128,7 @@ fn animation_rebind_updates_selected_timeline_span_to_new_track_path() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_sequence")
@@ -153,7 +153,7 @@ fn animation_rebind_updates_selected_timeline_span_to_new_track_path() {
         "successful rebind should mark the document dirty"
     );
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         "Rebound animation track Root/Hero:AnimationPlayer.weight -> Root/Hero:Transform.rotation"
     );
 }

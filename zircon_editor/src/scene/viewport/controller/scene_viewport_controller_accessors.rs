@@ -181,6 +181,9 @@ impl SceneViewportController {
             translate_step: snap.translate_step() as f32,
             rotate_step_deg: snap.rotate_step_degrees() as f32,
             scale_step: snap.scale_step() as f32,
+            translate_enabled: snap.translate_enabled(),
+            rotate_enabled: snap.rotate_enabled(),
+            scale_enabled: snap.scale_enabled(),
         }
     }
 }

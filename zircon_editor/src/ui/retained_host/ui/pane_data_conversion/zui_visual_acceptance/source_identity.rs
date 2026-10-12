@@ -146,8 +146,8 @@ impl SourceIdentityIndex {
             issues.push("runtime source receipt has no requested document roots".to_owned());
         }
         for required_root in [
-            "res://ui/editor/host/workbench_shell.zui",
-            "res://ui/editor/windows/workbench_window.zui",
+            "res://ui/editor/unreal/editor_shell.zui",
+            "res://ui/editor/unreal/level_editor_window.zui",
         ] {
             if !document_ids
                 .iter()

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use zircon_runtime_interface::reflect::ReflectError;
 use zircon_runtime_interface::serialization::{LoadError, WriteError};
+use zircon_runtime_interface::world_sync::LifecycleTargetChange;
 
 use crate::scene::{EntityId, SceneError};
 
@@ -87,6 +88,10 @@ pub enum DynamicSceneError {
         expected_generation: u64,
         actual_generation: u64,
     },
+    #[error("staged scene component IDs are incompatible with the retained World schedule")]
+    IncompatibleRetainedComponentRegistry,
+    #[error("dynamic scene lifecycle target changed during staged publication: {target}")]
+    LifecycleTargetReplacedDuringCommit { target: LifecycleTargetChange },
     #[error("reflected resource `{type_path}` has no atomic staging clone adapter")]
     MissingResourceStagingClone { type_path: String },
     #[error("reflected resource `{type_path}` has no staging clone byte estimator")]
@@ -115,6 +120,19 @@ pub enum DynamicSceneError {
     SerializationLoad(Arc<LoadError>),
     #[error(transparent)]
     SerializationWrite(Arc<WriteError>),
+}
+
+impl DynamicSceneError {
+    /// Returns an opaque callback's cancellation cause, including typed wrappers.
+    /// Preflight generation or schema rejection is not lifecycle cancellation.
+    pub fn lifecycle_target_change(&self) -> Option<LifecycleTargetChange> {
+        match self {
+            Self::LifecycleTargetReplacedDuringCommit { target } => Some(*target),
+            Self::WorldMutation(error) => error.lifecycle_target_change(),
+            Self::Reflect(error) => error.lifecycle_target_change(),
+            _ => None,
+        }
+    }
 }
 
 impl From<LoadError> for DynamicSceneError {

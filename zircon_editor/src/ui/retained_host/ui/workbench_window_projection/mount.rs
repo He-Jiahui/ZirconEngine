@@ -75,13 +75,15 @@ fn scale_node_metrics(node: &mut host_contract::TemplatePaneNodeData, scale_fact
         &mut node.drop_target_y,
         &mut node.drop_target_width,
         &mut node.drop_target_height,
-        &mut node.font_size,
         &mut node.corner_radius,
         &mut node.border_width,
         &mut node.elevation,
     ] {
         *value = scale_visual_metric(*value, scale_factor);
     }
+    // Typography and presence-aware paint padding remain authored logical pixels.
+    // Shared painters apply the host scale once; frames and legacy offsets above
+    // are already physical after this mount transformation.
     scale_button_style(&mut node.button_style, scale_factor);
 }
 

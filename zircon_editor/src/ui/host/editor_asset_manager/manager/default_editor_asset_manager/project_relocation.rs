@@ -1,8 +1,6 @@
 use std::any::Any;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::Arc;
 
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::asset::{AssetUri, AssetUuid};
 use zircon_runtime::core::CoreError;
 
@@ -11,13 +9,14 @@ use crate::core::jobs::{
     EditorJob, EditorJobSpec, JobCategory, JobContext, JobError, JobPriority, MutexGroup,
 };
 use crate::ui::host::module::EDITOR_ASSET_MANAGER_NAME;
+use crate::ui::host::runtime_services::EditorProjectAssetRuntimeAccess;
 
 use super::DefaultEditorAssetManager;
 
 const PROJECT_ASSET_MUTATION_MUTEX: &str = "project_asset_mutation";
 
 struct ProjectSourceRelocationJob {
-    manager: Arc<ProjectAssetManager>,
+    access: EditorProjectAssetRuntimeAccess,
     source_uuid: AssetUuid,
     target: AssetUri,
 }
@@ -29,8 +28,8 @@ impl EditorJob for ProjectSourceRelocationJob {
         context.check_cancelled()?;
         context.report_progress(0, 1, format!("Moving asset to {}", self.target));
         let result = match catch_unwind(AssertUnwindSafe(|| {
-            self.manager
-                .relocate_project_source(self.source_uuid.clone(), self.target.clone())
+            let manager = self.access.project_asset_manager()?;
+            manager.relocate_project_source(self.source_uuid.clone(), self.target.clone())
         })) {
             Ok(result) => result.map_err(JobError::failed),
             Err(payload) => Err(JobError::Panicked(panic_message(payload))),
@@ -57,7 +56,6 @@ impl DefaultEditorAssetManager {
                 "project source relocation requires the runtime asset manager".to_string(),
             )
         })?;
-        let asset_manager = access.project_asset_manager()?;
         let jobs = self
             .preview_jobs
             .as_ref()
@@ -75,7 +73,7 @@ impl DefaultEditorAssetManager {
                 .with_priority(JobPriority::Interactive)
                 .with_mutex_group(mutex),
                 ProjectSourceRelocationJob {
-                    manager: asset_manager,
+                    access: access.clone(),
                     source_uuid,
                     target: target.clone(),
                 },

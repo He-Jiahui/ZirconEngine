@@ -1,5 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::paint_theme::{current_host_metrics, current_host_palette};
+use super::super::super::super::paint_theme::{
+    current_host_metrics, current_host_palette, logical_font_size_to_physical,
+};
 use super::super::super::render_commands::HostPaintCommand;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -17,7 +19,7 @@ pub(super) fn push_data_grid_content(
     let metrics = current_host_metrics();
     let palette = current_host_palette();
     let title_font = if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
+        logical_font_size_to_physical(node.font_size, metrics.scale_factor)
     } else {
         metrics.font_body
     };

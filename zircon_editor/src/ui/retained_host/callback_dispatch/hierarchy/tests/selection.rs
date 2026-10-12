@@ -20,7 +20,11 @@ fn hierarchy_selection_targets_the_active_play_world_without_touching_edit_selec
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let runtime = EditorHostEventController::new(state, manager);
+    let runtime = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     let edit_primary = runtime
         .shell()
         .lock()

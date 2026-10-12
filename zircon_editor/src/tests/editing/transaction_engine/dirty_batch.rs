@@ -178,3 +178,100 @@ fn failed_generation_reservation_and_clear_type_mismatch_publish_no_delta() {
         .unwrap();
     assert_eq!(after_mismatch.kind(), HistoryDirtyBatchKind::Unchanged);
 }
+
+#[test]
+fn pending_history_transitions_preserve_sorted_unique_dirty_batches() {
+    let engine = EditorTransactionEngine::new(FixtureContext::default());
+    let first = document(71);
+    let middle = document(72);
+    let last = document(73);
+    let baseline = engine.dirty_states_since(None).unwrap();
+    commit(&engine, last, "last");
+    commit(&engine, first, "first");
+
+    let mut pending_middle = engine.begin("pending middle", middle).unwrap();
+    pending_middle
+        .push(DeltaCommand::new(
+            "pending middle",
+            0,
+            4,
+            finalized_counter(),
+        ))
+        .unwrap();
+    let delta = engine.dirty_states_since(Some(baseline.cursor())).unwrap();
+    assert_eq!(delta.kind(), HistoryDirtyBatchKind::Delta);
+    assert_eq!(
+        delta
+            .states()
+            .iter()
+            .map(|state| (
+                state.history(),
+                state.history_generation(),
+                state.is_dirty()
+            ))
+            .collect::<Vec<_>>(),
+        vec![(first, 1, true), (middle, 0, true), (last, 1, true)]
+    );
+    assert_eq!(engine.take_dirty_journal_visits_for_test(), 2);
+    assert_eq!(engine.history_status(middle).unwrap().len, 0);
+    let reset = engine.dirty_states_since(None).unwrap();
+    assert_eq!(reset.kind(), HistoryDirtyBatchKind::Reset);
+    assert_eq!(reset.states(), delta.states());
+    let stable = engine.dirty_states_since(Some(delta.cursor())).unwrap();
+    assert_eq!(stable.kind(), HistoryDirtyBatchKind::Unchanged);
+    assert!(stable.states().is_empty());
+    assert_eq!(engine.take_dirty_journal_visits_for_test(), 0);
+
+    pending_middle.cancel().unwrap();
+    commit(&engine, first, "first again");
+    commit(&engine, last, "last again");
+    let mut pending_last = engine.begin("pending last", last).unwrap();
+    pending_last
+        .push(DeltaCommand::new("pending last", 0, 4, finalized_counter()))
+        .unwrap();
+    let switched = engine.dirty_states_since(Some(delta.cursor())).unwrap();
+    assert_eq!(switched.kind(), HistoryDirtyBatchKind::Delta);
+    assert_eq!(
+        switched
+            .states()
+            .iter()
+            .map(|state| (
+                state.history(),
+                state.history_generation(),
+                state.is_dirty()
+            ))
+            .collect::<Vec<_>>(),
+        vec![(first, 2, true), (middle, 0, false), (last, 2, true)]
+    );
+    assert_eq!(engine.take_dirty_journal_visits_for_test(), 2);
+    let reset = engine.dirty_states_since(None).unwrap();
+    assert_eq!(reset.kind(), HistoryDirtyBatchKind::Reset);
+    assert_eq!(
+        reset
+            .states()
+            .iter()
+            .map(|state| (
+                state.history(),
+                state.history_generation(),
+                state.is_dirty()
+            ))
+            .collect::<Vec<_>>(),
+        vec![(first, 2, true), (last, 2, true)]
+    );
+    assert_eq!(engine.history_status(last).unwrap().len, 2);
+
+    pending_last.cancel().unwrap();
+    let cancelled = engine.dirty_states_since(Some(switched.cursor())).unwrap();
+    assert_eq!(cancelled.kind(), HistoryDirtyBatchKind::Delta);
+    assert_eq!(cancelled.states().len(), 1);
+    assert_eq!(cancelled.states()[0].history(), last);
+    assert_eq!(cancelled.states()[0].history_generation(), 2);
+    assert!(cancelled.states()[0].is_dirty());
+    assert_eq!(engine.take_dirty_journal_visits_for_test(), 0);
+    assert_eq!(
+        engine
+            .with_context::<FixtureContext, _>(|context| context.value)
+            .unwrap(),
+        Some(4)
+    );
+}

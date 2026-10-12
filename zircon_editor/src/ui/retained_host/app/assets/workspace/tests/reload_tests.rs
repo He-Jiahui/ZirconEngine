@@ -88,7 +88,7 @@ impl ReloadHarness {
         ProjectAuthority::default()
             .create_scene(&mut project, SceneCreateRequest::new(secondary))
             .unwrap();
-        host.editor_manager.open_project(&created.root).unwrap();
+        host.editor_manager.enter().expect("editor manager admission").open_project(&created.root).unwrap();
         let (project, _) = host
             .asset_runtime_access
             .project_asset_manager()
@@ -96,7 +96,8 @@ impl ReloadHarness {
             .current_project_generation_snapshot()
             .unwrap()
             .into_parts();
-        let manager = Arc::clone(&host.editor_manager);
+        let manager_handle = host.editor_manager.clone();
+        let manager = manager_handle.enter().expect("editor manager admission");
         let world = manager
             .prepare_authoring_world(
                 DefaultLevelManager::default()
@@ -117,7 +118,9 @@ impl ReloadHarness {
             )
             .unwrap();
         state.bind_scene_document(document);
-        host.runtime = EditorHostEventController::new(state, manager);
+        drop(manager);
+        host.runtime = EditorHostEventController::new(state, manager_handle)
+            .expect("editor controller manager admission");
         Self {
             host,
             _core: core,
@@ -197,7 +200,7 @@ impl ReloadHarness {
     fn prompt(&mut self) -> DecisionTicket {
         let identity = self
             .host
-            .editor_manager
+            .editor_manager.enter().expect("editor manager admission")
             .active_scene_identity_for_session()
             .unwrap();
         let (_, generation) = self
@@ -427,7 +430,7 @@ fn unchanged_discard_authorization_allows_the_real_scene_job_to_commit() {
     harness.rename("authorized edit");
     let identity = harness
         .host
-        .editor_manager
+        .editor_manager.enter().expect("editor manager admission")
         .active_scene_identity_for_session()
         .unwrap();
     let ticket = harness.prompt();
@@ -441,7 +444,7 @@ fn unchanged_discard_authorization_allows_the_real_scene_job_to_commit() {
     assert_eq!(
         harness
             .host
-            .editor_manager
+            .editor_manager.enter().expect("editor manager admission")
             .active_scene_identity_for_session(),
         Some(identity)
     );
@@ -470,12 +473,12 @@ fn a_scene_activation_supersedes_the_pending_discard_without_clearing_history() 
     let default = project.manifest().default_scene.clone();
     harness
         .host
-        .editor_manager
+        .editor_manager.enter().expect("editor manager admission")
         .activate_startup_scene_document(project.paths().root(), &secondary)
         .unwrap();
     let document = harness
         .host
-        .editor_manager
+        .editor_manager.enter().expect("editor manager admission")
         .activate_startup_scene_document(project.paths().root(), &default)
         .unwrap();
     harness.host.runtime.bind_scene_document(document);
@@ -502,13 +505,13 @@ fn a_project_generation_supersedes_the_pending_discard_without_mutating_the_worl
     harness.await_deferred_reload();
     let close = harness
         .host
-        .editor_manager
+        .editor_manager.enter().expect("editor manager admission")
         .begin_project_close()
         .unwrap()
         .unwrap();
     harness
         .host
-        .editor_manager
+        .editor_manager.enter().expect("editor manager admission")
         .commit_project_close(&close)
         .unwrap();
 
@@ -529,7 +532,7 @@ fn a_project_generation_supersedes_the_pending_discard_without_mutating_the_worl
     harness.end_preview(ViewportCommand::CancelInteraction);
     harness
         .host
-        .editor_manager
+        .editor_manager.enter().expect("editor manager admission")
         .finalize_project_close(&close)
         .unwrap();
 }

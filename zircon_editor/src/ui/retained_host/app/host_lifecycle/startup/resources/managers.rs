@@ -22,9 +22,9 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn resolve_startu
     let resolved_editor_asset_manager = asset_runtime_access.editor_asset_manager()?;
     let resolved_resource_manager = asset_runtime_access.resource_manager()?;
     let events = subscribe_startup_change_events(
-        resolved_asset_manager.as_ref(),
-        resolved_editor_asset_manager.as_ref(),
-        resolved_resource_manager.as_ref(),
+        &*resolved_asset_manager,
+        &*resolved_editor_asset_manager,
+        &*resolved_resource_manager,
         background_event_wake,
     );
 

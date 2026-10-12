@@ -23,13 +23,20 @@ pub(in crate::ui::retained_host::app) struct DirtyCloseView {
     pub title: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ClosePromptSaveState {
+    Idle,
+    InFlight { previous_failure: bool },
+    Failed,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::app) struct PendingClosePrompt {
     pub target: ClosePromptTarget,
     pub close_instances: Vec<ViewInstanceId>,
     pub dirty_views: Vec<DirtyCloseView>,
     dirty_project_scene_token: Option<HistoryDecisionToken>,
-    save_in_flight: bool,
+    save_state: ClosePromptSaveState,
 }
 
 pub(in crate::ui::retained_host::app) struct FloatingClosePermit {
@@ -78,16 +85,28 @@ impl PendingClosePrompt {
             close_instances,
             dirty_views,
             dirty_project_scene_token: None,
-            save_in_flight: false,
+            save_state: ClosePromptSaveState::Idle,
         }
     }
 
     pub(in crate::ui::retained_host::app) const fn save_in_flight(&self) -> bool {
-        self.save_in_flight
+        matches!(self.save_state, ClosePromptSaveState::InFlight { .. })
+    }
+
+    pub(in crate::ui::retained_host::app) const fn has_failed_save(&self) -> bool {
+        matches!(
+            self.save_state,
+            ClosePromptSaveState::Failed
+                | ClosePromptSaveState::InFlight {
+                    previous_failure: true
+                }
+        )
     }
 
     pub(in crate::ui::retained_host::app) fn begin_save(&mut self) {
-        self.save_in_flight = true;
+        self.save_state = ClosePromptSaveState::InFlight {
+            previous_failure: self.has_failed_save(),
+        };
     }
 
     pub(in crate::ui::retained_host::app) fn finish_save(
@@ -95,14 +114,27 @@ impl PendingClosePrompt {
         dirty_views: Vec<DirtyCloseView>,
         dirty_project_scene_token: Option<HistoryDecisionToken>,
     ) {
-        self.save_in_flight = false;
+        self.save_state = if self.has_failed_save() {
+            ClosePromptSaveState::Failed
+        } else {
+            ClosePromptSaveState::Idle
+        };
         self.dirty_views = dirty_views;
         self.dirty_project_scene_token = dirty_project_scene_token;
     }
 
-    /// A failed observation preserves the last decision and permits a later retry.
+    /// Observation alone cannot dismiss a failure from the last real save.
     pub(in crate::ui::retained_host::app) fn finish_save_failed(&mut self) {
-        self.save_in_flight = false;
+        self.save_state = ClosePromptSaveState::Failed;
+    }
+
+    pub(in crate::ui::retained_host::app) fn finish_successful_save(
+        &mut self,
+        dirty_views: Vec<DirtyCloseView>,
+        dirty_project_scene_token: Option<HistoryDecisionToken>,
+    ) {
+        self.save_state = ClosePromptSaveState::Idle;
+        self.finish_save(dirty_views, dirty_project_scene_token);
     }
 
     pub(in crate::ui::retained_host::app) fn with_dirty_project_scene(

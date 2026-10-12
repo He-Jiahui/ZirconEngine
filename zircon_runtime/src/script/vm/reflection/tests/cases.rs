@@ -143,7 +143,7 @@ fn manager_service_applies_catalog_to_future_worlds() {
             crate::scene::DEFAULT_LEVEL_MANAGER_NAME,
         )
         .expect("default level manager should resolve");
-    let handle = LevelManager::create_default_level_handle(manager.as_ref())
+    let handle = LevelManager::create_default_level_handle(&*manager)
         .expect("manager contract should create a catalog-aware level");
     let level = manager
         .level(handle)

@@ -15,7 +15,7 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_drawer_header_pointer_toggle");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
@@ -79,7 +79,7 @@ fn shared_bottom_drawer_header_pointer_click_activates_runtime_diagnostics_tab()
 
     let harness =
         EventRuntimeHarness::new("zircon_retained_drawer_header_pointer_bottom_runtime_diag");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,

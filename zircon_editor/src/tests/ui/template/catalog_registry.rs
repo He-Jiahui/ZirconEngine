@@ -16,7 +16,7 @@ fn editor_component_catalog_registers_editor_only_composites() {
     catalog
         .register(EditorComponentDescriptor::new(
             "UiHostWindow",
-            "res://ui/editor/host/workbench_shell.zui",
+            "res://ui/editor/unreal/editor_shell.zui",
             "UiHostWindow",
         ))
         .unwrap();
@@ -42,7 +42,7 @@ fn editor_component_catalog_registers_editor_only_composites() {
 fn editor_component_catalog_records_tier_slot_and_token_backed_prop_contracts() {
     let descriptor = EditorComponentDescriptor::new(
         "WorkbenchToolbar",
-        "res://ui/editor/components/workbench/shell/workbench_top_toolbar.zui",
+        "res://ui/editor/unreal/components/toolbar.zui",
         "WorkbenchToolbar",
     )
     .with_tier(EditorComponentTier::Composite)
@@ -439,13 +439,13 @@ fn editor_template_registry_instantiates_registered_documents() {
     template_service
         .register_asset_document(
             &mut registry,
-            "res://ui/editor/host/workbench_shell.zui",
+            "res://ui/editor/unreal/editor_shell.zui",
             document,
         )
         .unwrap();
 
     let instance = template_service
-        .instantiate(&registry, "res://ui/editor/host/workbench_shell.zui")
+        .instantiate(&registry, "res://ui/editor/unreal/editor_shell.zui")
         .unwrap();
     assert_eq!(instance.root.component.as_deref(), Some("UiHostWindow"));
     assert_eq!(

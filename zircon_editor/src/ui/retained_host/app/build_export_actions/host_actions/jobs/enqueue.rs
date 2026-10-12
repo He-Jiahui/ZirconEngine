@@ -14,7 +14,7 @@ impl RetainedEditorHost {
             self.set_status_line(format!("Desktop export {profile_name} is already queued"));
             return;
         }
-        let project_path = self.runtime.editor_snapshot().project_path;
+        let project_path = (match self.runtime.editor_snapshot() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }).project_path;
         let result = project_root_path(&project_path)
             .map_err(DesktopExportActionError::from)
             .and_then(|project_root| {

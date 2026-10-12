@@ -180,6 +180,10 @@ pub(crate) struct UiSurfaceDirtyScanStats {
 }
 
 impl UiSurface {
+    pub(super) fn reset_frame_publication_after_child_mount(&mut self) {
+        self.frame_publication = RefCell::new(UiSurfaceFramePublication::default());
+    }
+
     /// Returns the process-owner generation used by Editor-host and standalone UI caches.
     /// Core-owned Runtime surfaces track the generation of their injected collection internally.
     pub fn shared_font_database_generation() -> u64 {

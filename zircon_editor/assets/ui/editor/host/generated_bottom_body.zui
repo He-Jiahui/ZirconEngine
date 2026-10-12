@@ -9,7 +9,7 @@ node = "root"
 
 [imports]
 widgets = [
-  "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel",
+  "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_drawer.zui#WorkbenchGeneratedBottomDrawer",
 ]
 styles = []
 
@@ -28,5 +28,5 @@ layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, he
 children = [{ node = "panel_body" }]
 
 [nodes.panel_body]
-component = "WorkbenchGeneratedBottomPanel"
+component = "WorkbenchGeneratedBottomDrawer"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

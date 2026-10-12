@@ -34,6 +34,8 @@ pub(super) struct RowRenderState {
     checked: bool,
     expanded: bool,
     surface_hot: bool,
+    pub(super) tree_owner_focused: Option<bool>,
+    pub(super) focus_visible: bool,
 }
 
 impl RowRenderState {
@@ -84,6 +86,8 @@ impl RowRenderState {
             checked,
             expanded,
             surface_hot,
+            tree_owner_focused: None,
+            focus_visible: painter_state.focus_visible,
         }
     }
 
@@ -135,6 +139,7 @@ pub(super) struct CollectionRowVisual {
     pub(super) table_tail_surface: UiRgbaColor,
     pub(super) hover_surface: UiRgbaColor,
     pub(super) selected_surface: UiRgbaColor,
+    pub(super) inactive_selected_surface: UiRgbaColor,
     pub(super) selected_hover_surface: UiRgbaColor,
     pub(super) pressed_surface: UiRgbaColor,
     pub(super) disabled_surface: UiRgbaColor,
@@ -173,6 +178,9 @@ impl CollectionRowVisual {
             .unwrap_or(visual.hover_surface);
         visual.selected_surface = first_rgba_attribute(metadata, &["selected_background_color"])
             .unwrap_or(visual.selected_surface);
+        visual.inactive_selected_surface =
+            first_rgba_attribute(metadata, &["inactive_selected_background_color"])
+                .unwrap_or(visual.inactive_selected_surface);
         visual.selected_hover_surface =
             first_rgba_attribute(metadata, &["selected_hover_background_color"])
                 .unwrap_or(visual.selected_hover_surface);
@@ -261,6 +269,7 @@ fn default_collection_row_visual() -> &'static CollectionRowVisual {
             table_tail_surface: palette.surface[0],
             hover_surface: palette.surface_hover,
             selected_surface: palette.surface_selected,
+            inactive_selected_surface: palette.surface_selected_inactive,
             selected_hover_surface: palette.accent_soft,
             pressed_surface: palette.surface[3],
             disabled_surface: palette.surface_disabled,
@@ -268,10 +277,10 @@ fn default_collection_row_visual() -> &'static CollectionRowVisual {
             focus_border: palette.accent,
             text_primary: palette.text_primary,
             text_secondary: palette.text_secondary,
-            text_selected: palette.text_primary,
+            text_selected: palette.text_selected,
             text_disabled: palette.text_disabled,
             icon_secondary: palette.text_secondary,
-            icon_selected: palette.text_primary,
+            icon_selected: palette.text_selected,
             border_width: controls.border_width,
             corner_radius: controls.small_radius,
             body_font_size: typography.body_size,

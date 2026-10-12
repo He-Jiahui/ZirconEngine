@@ -24,11 +24,19 @@ impl EditorAssetImportFlow {
         let mut remaining_generation_revalidations =
             self.limits.max_inline_generation_revalidations;
         loop {
-            let generation = lock_editor_asset_index_recovering_poison(self.index.as_ref())
-                .import_generation(request.uri())
-                .ok_or_else(|| EditorAssetImportSubmitError::AssetNotIndexed {
-                    uri: request.uri().clone(),
-                })?;
+            let generation = {
+                let index = lock_editor_asset_index_recovering_poison(self.index.as_ref());
+                if !self.matches_index_activation(&index) {
+                    return Err(EditorAssetImportSubmitError::ProjectActivationSuperseded {
+                        uri: request.uri().clone(),
+                    });
+                }
+                index.import_generation(request.uri()).ok_or_else(|| {
+                    EditorAssetImportSubmitError::AssetNotIndexed {
+                        uri: request.uri().clone(),
+                    }
+                })?
+            };
             let key = ImportGenerationKey::new(
                 generation.uuid(),
                 Arc::clone(generation.uri()),
@@ -43,8 +51,17 @@ impl EditorAssetImportFlow {
 
             match reservation {
                 ImportReservation::Existing { flight } => {
-                    let current = lock_editor_asset_index_recovering_poison(self.index.as_ref())
-                        .is_current_import_generation(&generation);
+                    let current = {
+                        let index = lock_editor_asset_index_recovering_poison(self.index.as_ref());
+                        if !self.matches_index_activation(&index) {
+                            return Err(
+                                EditorAssetImportSubmitError::ProjectActivationSuperseded {
+                                    uri: request.uri().clone(),
+                                },
+                            );
+                        }
+                        index.is_current_import_generation(&generation)
+                    };
                     if !current {
                         Self::consume_generation_revalidation(
                             &mut remaining_generation_revalidations,
@@ -79,14 +96,26 @@ impl EditorAssetImportFlow {
                     begin_uuid,
                     flight,
                 } => {
-                    let current = {
+                    let (same_activation, current) = {
                         let mut index =
                             lock_editor_asset_index_recovering_poison(self.index.as_ref());
-                        match begin_uuid {
-                            Some(_) => index.begin_import_generation(&generation),
-                            None => index.is_current_import_generation(&generation),
-                        }
+                        let same_activation = self.matches_index_activation(&index);
+                        let current = same_activation
+                            && match begin_uuid {
+                                Some(_) => index.begin_import_generation(&generation),
+                                None => index.is_current_import_generation(&generation),
+                            };
+                        (same_activation, current)
                     };
+                    if !same_activation {
+                        let action = self.state.abort_unsubmitted(&key, flight_identity);
+                        self.complete_index_transition(action);
+                        let error = EditorAssetImportSubmitError::ProjectActivationSuperseded {
+                            uri: request.uri().clone(),
+                        };
+                        flight.publish_admission(ImportAdmission::Rejected(error.clone()));
+                        return Err(error);
+                    }
                     if !current {
                         let action = self.state.abort_unsubmitted(&key, flight_identity);
                         self.complete_index_transition(action);
@@ -122,6 +151,7 @@ impl EditorAssetImportFlow {
                     let lease = ImportLease::new(
                         Arc::clone(&self.state),
                         Arc::clone(&self.index),
+                        self.project_activation_identity().cloned(),
                         key,
                         flight_identity,
                         Arc::clone(&flight),
@@ -156,8 +186,12 @@ impl EditorAssetImportFlow {
 
     fn complete_index_transition(&self, action: ImportFinishAction) {
         if let ImportFinishAction::ClearUuid(token) = action {
-            lock_editor_asset_index_recovering_poison(self.index.as_ref())
-                .clear_import(token.uuid());
+            let mut index = lock_editor_asset_index_recovering_poison(self.index.as_ref());
+            match self.project_activation_identity() {
+                Some(expected) => index.clear_import_for_project(token.uuid(), expected),
+                None => index.clear_import(token.uuid()),
+            }
+            drop(index);
             self.state.complete_uuid_clear(token);
         }
     }

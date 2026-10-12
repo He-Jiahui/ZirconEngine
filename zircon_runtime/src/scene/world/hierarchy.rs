@@ -11,6 +11,7 @@ impl World {
         if !self.entity_dense_rows.contains_key(&entity) {
             return Err(SceneError::missing_entity("remove", entity));
         }
+        let execution = self.begin_schedule_execution();
         let _hierarchy_index_rebuild_rows = self.ensure_hierarchy_mutation_index_current();
         let removed_kind = self.kinds.get(&entity).copied();
         let removed_parent = self.parent_of(entity);
@@ -20,6 +21,12 @@ impl World {
         let orphaned_children = self.direct_child_entity_ids(entity);
         for child in orphaned_children {
             self.insert_prevalidated_authored_component(child, Hierarchy { parent: None })?;
+            if let Some(target) = execution.target_change(self) {
+                return Err(SceneError::LifecycleTargetReplaced {
+                    operation: "remove entity",
+                    target,
+                });
+            }
             self.mark_inspection_subtree_fields_dirty(child);
         }
         self.record_world_fact(WorldFact::Despawned(entity));
@@ -27,11 +34,23 @@ impl World {
             let component_ids = self.entity_archetype_component_ids(entity);
             for component_id in &component_ids {
                 self.trigger_component_lifecycle(LifecycleEventKind::Remove, entity, *component_id);
+                if let Some(target) = execution.target_change(self) {
+                    return Err(SceneError::LifecycleTargetReplaced {
+                        operation: "remove entity",
+                        target,
+                    });
+                }
                 self.trigger_component_lifecycle(
                     LifecycleEventKind::Despawn,
                     entity,
                     *component_id,
                 );
+                if let Some(target) = execution.target_change(self) {
+                    return Err(SceneError::LifecycleTargetReplaced {
+                        operation: "remove entity",
+                        target,
+                    });
+                }
                 if let Some((type_id, type_name)) =
                     self.component_registry.rust_type_for_id(*component_id)
                 {

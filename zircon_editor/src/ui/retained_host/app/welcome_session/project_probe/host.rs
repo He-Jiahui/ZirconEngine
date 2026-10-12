@@ -18,7 +18,7 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn poll_welcome_project_probe(&mut self) {
         if let Err(error) = self
             .welcome_project_probe
-            .submit_due(self.editor_manager.context().jobs(), Instant::now())
+            .submit_due(self.runtime.context().jobs(), Instant::now())
         {
             self.startup_session.creation_validation =
                 format!("Project validation is unavailable: {error}");

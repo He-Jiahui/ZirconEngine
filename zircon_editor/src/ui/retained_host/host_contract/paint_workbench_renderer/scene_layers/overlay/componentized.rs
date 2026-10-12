@@ -13,8 +13,8 @@ use super::super::super::super::paint_template_nodes::{
     is_viewport_fallback_scene_node, TemplateNodePaintTransform,
 };
 use super::super::super::super::surface_hit_test::HostWorkbenchHitIndex;
-use super::super::super::root_frames::{resolve_root_frames, zero_origin};
-use super::super::{chrome, dock_layer, resize};
+use super::super::super::root_frames::zero_origin;
+use super::super::{dock_layer, resize};
 use super::dock_overflow::draw_host_dock_overflow_menu;
 use super::modal;
 use super::page_overflow::draw_host_page_overflow_menu;
@@ -62,12 +62,6 @@ impl TemplateNodePaintTransform for ComponentizedChromeFallbackTransform {
     }
 }
 
-pub(in crate::ui::retained_host::host_contract) fn draws_componentized_workbench_window(
-    presentation: &HostWindowPresentationData,
-) -> bool {
-    has_template_nodes(&presentation.workbench_window_nodes)
-}
-
 pub(in crate::ui::retained_host::host_contract) fn draw_componentized_workbench_window(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
@@ -75,8 +69,6 @@ pub(in crate::ui::retained_host::host_contract) fn draw_componentized_workbench_
     let pane_interaction_state = paint_pane_interaction_state(presentation);
     frame.set_pane_interaction_state(pane_interaction_state);
     let frame_bounds = frame_bounds(frame);
-    let root = resolve_root_frames(frame.width(), frame.height(), presentation);
-    chrome::draw_top_chrome_layers(frame, &root, presentation);
     draw_componentized_workbench_chrome(frame, presentation, &frame_bounds);
     // Authored panes own their frames and ordinary controls. Native scene rows retain
     // runtime identity, selection, scrolling and rename; the document retains its live viewport.

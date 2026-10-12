@@ -111,8 +111,16 @@ impl UiAssetEditorSession {
             can_emergency_reload: reflection.can_emergency_reload,
             can_emergency_revert: reflection.can_emergency_revert,
             can_emergency_open_asset_browser: reflection.can_emergency_open_asset_browser,
-            can_insert_child: commands.can_insert_child,
-            can_insert_after: commands.can_insert_after,
+            can_insert_child: commands.can_insert_child
+                && self
+                    .selected_palette_index
+                    .and_then(|index| self.palette_catalog.builtin_reference(index))
+                    .is_none(),
+            can_insert_after: commands.can_insert_after
+                && self
+                    .selected_palette_index
+                    .and_then(|index| self.palette_catalog.builtin_reference(index))
+                    .is_none(),
             can_move_up: commands.can_move_up,
             can_move_down: commands.can_move_down,
             can_reparent_into_previous: commands.can_reparent_into_previous,
@@ -200,6 +208,25 @@ impl UiAssetEditorSession {
             preview_surface_width: preview.surface_width,
             preview_surface_height: preview.surface_height,
             preview_canvas_items: preview.canvas_items,
+            preview_input_result: self
+                .preview_host
+                .as_ref()
+                .and_then(|host| host.published_input_result()),
+            preview_input_enabled: self.designer_tool_mode
+                == crate::ui::asset_editor::UiDesignerToolMode::PreviewInteract,
+            preview_accepts_text_input: self
+                .preview_host
+                .as_ref()
+                .is_some_and(|host| host.accepts_text_input()),
+            preview_surface_frame: self
+                .preview_host
+                .as_ref()
+                .map(|host| host.surface().surface_frame()),
+            preview_source_receipts: self
+                .preview_host
+                .as_ref()
+                .map(|host| host.source_receipts().to_vec())
+                .unwrap_or_default(),
             preview_mock_subject_items: preview_mock_fields.subject_items,
             preview_mock_subject_selected_index: preview_mock_fields.subject_selected_index,
             preview_mock_subject_node_id: preview_mock_fields.subject_node_id,
@@ -270,6 +297,7 @@ impl UiAssetEditorSession {
             locale_diagnostic_items: runtime_report.locale_diagnostic_items,
             resource_dependency_items: runtime_report.resource_dependency_items,
             resource_diagnostic_items: runtime_report.resource_diagnostic_items,
+            palette_visible_start: self.palette_catalog.visible_start(),
             palette_selected_index: self
                 .selected_palette_index
                 .map(|index| index as i32)

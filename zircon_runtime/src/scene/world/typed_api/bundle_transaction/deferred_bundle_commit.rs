@@ -1,5 +1,8 @@
 use std::collections::BTreeMap;
 
+mod lifecycle_staging_guard;
+use lifecycle_staging_guard::LifecycleStagingGuard;
+
 use crate::scene::ecs::StorageType;
 use zircon_runtime_interface::world_sync::WorldFact;
 
@@ -17,8 +20,14 @@ impl BundleInsertionTransaction<'_> {
                 let lifecycle_start = self.world.staged_lifecycle_events.len();
                 let prior_lifecycle_staging =
                     std::mem::replace(&mut self.world.record_staged_lifecycle_events, true);
+                let staging_guard = LifecycleStagingGuard::new(
+                    self.world,
+                    prior_lifecycle_staging,
+                    lifecycle_start,
+                );
                 let result = self.world.remove_entity(self.entity);
                 self.world.record_staged_lifecycle_events = prior_lifecycle_staging;
+                drop(staging_guard);
                 if result.is_err() {
                     self.world.staged_lifecycle_events.truncate(lifecycle_start);
                     return result;
@@ -30,7 +39,12 @@ impl BundleInsertionTransaction<'_> {
                     .world
                     .staged_lifecycle_events
                     .split_off(lifecycle_start);
+                // Valid observer registration stays pending through this complete replay.
+                let execution = self.world.begin_schedule_execution();
                 for event in lifecycle_events {
+                    if !execution.is_bound_to(self.world) {
+                        break;
+                    }
                     self.world.dispatch_component_lifecycle(event);
                 }
                 Ok(())
@@ -77,6 +91,11 @@ impl BundleInsertionTransaction<'_> {
         self.materialize_reserved_component_types();
         let archetype_assignments_before = self.world.archetype_assignment_count();
         let boundary = self.begin_commit(commit_input);
+        let staging_guard = LifecycleStagingGuard::new(
+            self.world,
+            boundary.prior_lifecycle_staging,
+            boundary.lifecycle_start,
+        );
         let staged_value_allocations = self.default_value_count + self.component_count;
         let tick = self.world.mutation_change_tick();
         let mut table_values: [Option<TableBundlePublication>; MAX_BUNDLE_COMPONENT_TYPES] =
@@ -217,7 +236,6 @@ impl BundleInsertionTransaction<'_> {
                 .expect("bundle target must retain its archetype row")
                 .location;
             for publication in table_values.into_iter().take(table_value_count).flatten() {
-                // BUG: [CR-R02-runtime_ecs_commands_bundle_commit-0007] 旧组件返回的 Box 在本轮结束时析构若 panic，会跳过下方生命周期暂存标志恢复；调用方捕获后继续使用同一 World，后续观察者不分发。证据：begin_commit、下方恢复点与 observers.rs。
                 let replaced = self.world.archetype_index.replace(
                     location.archetype_id,
                     location.table_row,
@@ -283,6 +301,7 @@ impl BundleInsertionTransaction<'_> {
             staged_value_allocations,
         );
         self.world.record_staged_lifecycle_events = boundary.prior_lifecycle_staging;
+        drop(staging_guard);
         if boundary.prior_lifecycle_staging {
             return Ok(());
         }
@@ -290,7 +309,12 @@ impl BundleInsertionTransaction<'_> {
             .world
             .staged_lifecycle_events
             .split_off(boundary.lifecycle_start);
+        // Valid observer registration stays pending through this complete replay.
+        let execution = self.world.begin_schedule_execution();
         for event in lifecycle_events {
+            if !execution.is_bound_to(self.world) {
+                break;
+            }
             self.world.dispatch_component_lifecycle(event);
         }
         Ok(())

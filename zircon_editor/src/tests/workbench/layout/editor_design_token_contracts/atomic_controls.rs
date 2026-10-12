@@ -11,6 +11,12 @@ macro_rules! workbench_asset {
         ))
     };
 }
+macro_rules! unreal_asset {
+    ($path:literal) => {
+        include_str!(concat!("../../../../../assets/ui/editor/unreal/", $path))
+    };
+}
+
 #[test]
 /// 列明每类原子的主题输入并拒绝裸颜色，防止样式复制脱离统一token来源。
 fn atomic_controls_share_editor_visual_and_density_tokens() {
@@ -346,147 +352,27 @@ fn workbench_rail_button_uses_shared_compact_control_geometry() {
 }
 
 #[test]
-/// 解析样本props以禁止覆盖原子外观；样本数量断言防止删样本绕过检查。
-fn component_drawer_button_samples_inherit_atomic_visuals_without_pixel_nudges() {
-    let asset = workbench_asset!("shell/workbench_component_drawer.zui");
-    let document = asset
-        .parse::<Value>()
-        .expect("component drawer must remain valid ZUI TOML");
-    let nodes = document
-        .get("nodes")
-        .and_then(Value::as_table)
-        .expect("component drawer must expose nodes");
-    let mut button_count = 0usize;
-    let mut icon_button_count = 0usize;
-    let mut overrides = Vec::new();
-
-    for (node_id, node) in nodes {
-        let component = node.get("component").and_then(Value::as_str);
-        let Some(kind @ ("WorkbenchButton" | "WorkbenchIconButton")) = component else {
-            continue;
-        };
-        if kind == "WorkbenchButton" {
-            button_count += 1;
-        } else {
-            icon_button_count += 1;
-        }
-
-        let props = node
-            .get("props")
-            .and_then(Value::as_table)
-            .expect("drawer control samples must expose a property table");
-        for property in [
-            "background_color",
-            "border_color",
-            "foreground_color",
-            "icon_color",
-            "corner_radius",
-            "border_width",
-            "layout_offset_x",
-            "layout_offset_y",
-            "visual_brightness",
-            "disabled_opacity",
-        ] {
-            if props.contains_key(property) {
-                overrides.push(format!("{kind} `{node_id}` overrides `{property}`"));
-            }
-        }
+fn unreal_toolbar_controls_keep_native_identity_and_action_bindings() {
+    let asset = unreal_asset!("components/toolbar.zui");
+    for required in [
+        "control_id = \"WorkbenchToolbarSave\"",
+        "control_id = \"WorkbenchRunPlay\"",
+        "control_id = \"WorkbenchRunStop\"",
+        "file.project.save",
+        "runtime.play_mode.enter",
+        "runtime.play_mode.exit",
+    ] {
+        assert!(
+            asset.contains(required),
+            "Unreal toolbar must retain `{required}`"
+        );
     }
-
-    assert_eq!(
-        button_count, 7,
-        "component drawer must retain its button samples"
-    );
-    assert_eq!(
-        icon_button_count, 8,
-        "component drawer must retain its icon-button samples"
-    );
-    assert!(
-        overrides.is_empty(),
-        "component drawer samples must inherit shared atomic visuals: {overrides:#?}"
-    );
 }
 
 #[test]
-/// 输入及选择样本只能展示状态，不能用样本局部度量掩盖原子控件的真实默认表现。
-fn component_drawer_input_samples_inherit_atomic_metrics_and_state_visuals() {
-    let asset = workbench_asset!("shell/workbench_component_drawer.zui");
-    let document = asset
-        .parse::<Value>()
-        .expect("component drawer must remain valid ZUI TOML");
-    let nodes = document
-        .get("nodes")
-        .and_then(Value::as_table)
-        .expect("component drawer must expose nodes");
-    let atomic_kinds = [
-        "WorkbenchCheckbox",
-        "WorkbenchDropdown",
-        "WorkbenchField",
-        "WorkbenchRadio",
-        "WorkbenchRangeSlider",
-        "WorkbenchSegmentedControl",
-        "WorkbenchSlider",
-        "WorkbenchTab",
-        "WorkbenchToggle",
-    ];
-    let forbidden_properties = [
-        "background_color",
-        "border_color",
-        "foreground_color",
-        "text_color",
-        "icon_color",
-        "corner_radius",
-        "border_width",
-        "disabled_opacity",
-        "label_color",
-        "label_brightness",
-        "dot_color",
-        "dot_size",
-        "layout_icon_size",
-        "layout_offset_x",
-        "layout_offset_y",
-        "layout_spacing",
-        "selected_segment_border_width",
-        "selected_segment_underline_color",
-        "track_height",
-        "track_offset_x",
-        "track_width",
-        "track_width_delta",
-        "thumb_size",
-        "visual_brightness",
-        "value_color",
-        "arrow_color",
-        "selected_segment_underline_height",
-    ];
-    let mut sample_count = 0usize;
-    let mut overrides = Vec::new();
-
-    for (node_id, node) in nodes {
-        let Some(kind) = node.get("component").and_then(Value::as_str) else {
-            continue;
-        };
-        if !atomic_kinds.contains(&kind) {
-            continue;
-        }
-
-        sample_count += 1;
-        let props = node
-            .get("props")
-            .and_then(Value::as_table)
-            .expect("drawer control samples must expose a property table");
-        for property in forbidden_properties {
-            if props.contains_key(property) {
-                overrides.push(format!("{kind} `{node_id}` overrides `{property}`"));
-            }
-        }
-    }
-
-    assert_eq!(
-        sample_count, 20,
-        "component drawer must retain its input and selection samples"
-    );
-    assert!(
-        overrides.is_empty(),
-        "component drawer input samples must inherit shared atomic metrics and state visuals: {overrides:#?}"
-    );
+fn unreal_toolbar_controls_are_focusable_and_do_not_use_zero_geometry() {
+    let asset = unreal_asset!("components/toolbar.zui");
+    assert!(asset.matches("input_focusable = true").count() >= 6);
+    assert!(!asset.contains("min = 0.0, preferred = 0.0, max = 0.0"));
+    assert!(!asset.contains("component_drawer"));
 }

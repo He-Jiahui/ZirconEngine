@@ -3,7 +3,7 @@ use std::path::Path;
 use super::{editor_autosave_document_identity, next_autosave_sequence};
 
 #[test]
-fn foreground_save_job_is_bound_to_the_editor_manager_not_the_runtime_core() {
+fn foreground_save_job_is_bound_to_the_original_editor_manager_generation() {
     let source = include_str!("../editor_document_autosave.rs");
     let production = source
         .split_once("#[cfg(test)]")
@@ -19,10 +19,14 @@ fn foreground_save_job_is_bound_to_the_editor_manager_not_the_runtime_core() {
         .map(|(_, run)| run)
         .expect("foreground save job must retain its execution owner");
 
-    assert!(job.contains("manager: Weak<EditorManager>"));
-    assert!(run.contains("self.manager.upgrade()"));
+    assert!(job.contains("manager: ServiceHandle<EditorManager>"));
+    assert!(!job.contains("Arc<EditorManager>"));
+    assert!(!job.contains("ServiceCallGuard"));
+    assert!(run.contains("self.manager.enter()"));
+    assert!(!run.contains("upgrade()"));
     assert!(!job.contains("core:"));
     assert!(!production.contains("resolve_manager::<EditorManager>"));
+    assert!(!production.contains("resolve_manager_handle::<EditorManager>"));
 }
 
 #[test]

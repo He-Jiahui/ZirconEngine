@@ -1,11 +1,13 @@
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::time::Instant;
 
+use super::schedule_execution::schedule_owner_changed_error;
+
 use crate::core::{CoreError, CoreHandle, JobScheduler};
 use crate::scene::ecs::{
     BoxedSceneSystem, DeferredSystemKey, InternalSceneSystem, NativeSystemCallbackTiming,
-    SceneStageTickContexts, SceneSystemDescriptor, SceneSystemTickPolicy, ScheduleConflictGraph,
-    ScheduledSceneStep, ScheduledSceneStepRef, SystemStage,
+    SceneStageTickContexts, SceneSystemTickPolicy, ScheduleExecution, ScheduledSceneStep,
+    ScheduledSceneStepRef, SystemStage,
 };
 use crate::scene::LevelSystem;
 
@@ -51,17 +53,19 @@ impl SceneScheduleRunner {
         stage: SystemStage,
         tick_contexts: SceneStageTickContexts,
         virtual_time_paused: bool,
-        internal_systems: &[SceneSystemDescriptor],
-        native_steps: &[ScheduledSceneStep],
-        native_conflicts: &ScheduleConflictGraph,
+        execution: &ScheduleExecution,
     ) -> Result<(), SceneStageRunError> {
         crate::profile_scope!("runtime", "frame", schedule_stage_profile_name(stage),);
+        let plan_owner = execution.plan();
         let deferred_apply_allowed = !virtual_time_paused;
+        let internal_systems = plan_owner.internal_systems_for_stage(stage);
+        let native_steps = plan_owner.native_steps_for_stage(stage);
+        let native_conflicts = plan_owner.native_conflict_graph_for_stage(stage);
 
-        level.with_world_mut(|world| world.set_scene_system_flush_deferred(true));
-        level.with_world_mut(|world| {
-            world.record_native_system_conflicts(native_conflicts.edges().len())
-        });
+        with_schedule_world(level, execution, |world| {
+            world.set_scene_system_flush_deferred(true);
+            world.record_native_system_conflicts(native_conflicts.edges().len());
+        })?;
 
         let result = catch_unwind(AssertUnwindSafe(|| -> Result<(), SceneStageRunError> {
             let mut worker_batch = Vec::new();
@@ -79,15 +83,16 @@ impl SceneScheduleRunner {
                             level,
                             &mut worker_batch,
                             deferred_apply_allowed,
+                            execution,
                         )?;
-                        level.with_world_mut(|world| {
+                        with_schedule_world(level, execution, |world| {
                             world.run_internal_scene_system(system.system())
-                        });
+                        })?;
                         if !matches!(
                             system.system(),
                             InternalSceneSystem::ApplyDeferred | InternalSceneSystem::UpdateEvents
                         ) {
-                            level.with_world_mut(|world| world.apply_deferred());
+                            with_schedule_world(level, execution, |world| world.apply_deferred())?;
                         }
                     }
                     ScheduledSceneStepRef::Native {
@@ -111,6 +116,7 @@ impl SceneScheduleRunner {
                                     level,
                                     &mut worker_batch,
                                     deferred_apply_allowed,
+                                    execution,
                                 )?;
                             }
                             worker_batch.push(WorkerDispatch {
@@ -123,20 +129,24 @@ impl SceneScheduleRunner {
                                 level,
                                 &mut worker_batch,
                                 deferred_apply_allowed,
+                                execution,
                             )?;
-                            level.with_world_mut(|world| {
+                            with_schedule_world(level, execution, |world| {
                                 let started_at = Instant::now();
                                 let result = catch_unwind(AssertUnwindSafe(|| {
                                     world.run_native_scene_system(id)
                                 }));
-                                world.record_native_system_main_callback(
-                                    started_at.elapsed(),
-                                    conservative_world_writer,
-                                );
+                                if execution.is_bound_to(world) {
+                                    world.record_native_system_main_callback(
+                                        started_at.elapsed(),
+                                        conservative_world_writer,
+                                    );
+                                }
                                 if let Err(payload) = result {
                                     resume_unwind(payload);
                                 }
-                            });
+                            })?;
+                            with_schedule_world(level, execution, |_| ())?;
                         }
                     }
                     ScheduledSceneStepRef::Runtime {
@@ -150,16 +160,18 @@ impl SceneScheduleRunner {
                             level,
                             &mut worker_batch,
                             deferred_apply_allowed,
+                            execution,
                         )?;
                         level
                             .run_runtime_scene_system(
                                 core,
                                 id,
                                 tick_contexts.for_domain(tick_policy.clock_domain()),
+                                execution,
                             )
                             .map_err(|source| SceneStageRunError::runtime_system(id, source))?;
                         if deferred_apply_allowed {
-                            level.with_world_mut(|world| world.apply_deferred());
+                            with_schedule_world(level, execution, |world| world.apply_deferred())?;
                         }
                     }
                     ScheduledSceneStepRef::ApplyDeferred { tick_policy, .. } => {
@@ -171,8 +183,9 @@ impl SceneScheduleRunner {
                             level,
                             &mut worker_batch,
                             deferred_apply_allowed,
+                            execution,
                         )?;
-                        level.with_world_mut(|world| world.apply_deferred());
+                        with_schedule_world(level, execution, |world| world.apply_deferred())?;
                     }
                 }
             }
@@ -181,20 +194,24 @@ impl SceneScheduleRunner {
                 level,
                 &mut worker_batch,
                 deferred_apply_allowed,
+                execution,
             )?;
 
             Ok(())
         }));
         let stage_succeeded = matches!(&result, Ok(Ok(())));
-        level.with_world_mut(|world| {
+        let cleanup = level.with_world_mut_if_schedule_execution(execution, |world| {
             world.set_scene_system_flush_deferred(false);
             if stage_succeeded && !virtual_time_paused {
                 world.flush_pending_scene_systems_for_stage(stage);
             }
         });
         match result {
-            Ok(result) => result,
+            Ok(Err(error)) => Err(error),
             Err(payload) => resume_unwind(payload),
+            Ok(Ok(())) => cleanup
+                .ok_or_else(schedule_owner_changed_error)
+                .map_err(SceneStageRunError::from),
         }
     }
 }
@@ -203,11 +220,22 @@ fn should_skip_for_pause(virtual_time_paused: bool, tick_policy: SceneSystemTick
     virtual_time_paused && !tick_policy.runs_when_virtual_paused()
 }
 
+fn with_schedule_world<R>(
+    level: &LevelSystem,
+    execution: &ScheduleExecution,
+    write: impl FnOnce(&mut crate::scene::World) -> R,
+) -> Result<R, CoreError> {
+    level
+        .with_world_mut_if_schedule_execution(execution, write)
+        .ok_or_else(schedule_owner_changed_error)
+}
+
 fn flush_worker_batch(
     scheduler: &JobScheduler,
     level: &LevelSystem,
     dispatches: &mut Vec<WorkerDispatch<'_>>,
     deferred_apply_allowed: bool,
+    execution: &ScheduleExecution,
 ) -> Result<(), CoreError> {
     if dispatches.is_empty() {
         return Ok(());
@@ -217,9 +245,16 @@ fn flush_worker_batch(
         .iter()
         .map(|dispatch| dispatch.id)
         .collect::<Vec<_>>();
-    let mut systems = level
-        .with_world_mut(|world| world.take_worldless_native_scene_systems(&system_ids))
-        .expect("compiled worker-safe scene systems must remain registered for the stage");
+    let systems = with_schedule_world(level, execution, |world| {
+        let return_owner = world.schedule().executable_return_handle();
+        (
+            world.take_worldless_native_scene_systems(&system_ids),
+            return_owner,
+        )
+    })?;
+    let (systems, return_owner) = systems;
+    let mut systems =
+        systems.expect("compiled worker-safe scene systems must remain registered for the stage");
     for (system, dispatch) in systems.iter_mut().zip(dispatches.iter()) {
         if let Some(buffer) = system.worker_command_buffer_mut() {
             buffer.bind_compiled_key(dispatch.key.clone());
@@ -254,17 +289,29 @@ fn flush_worker_batch(
         }
         if deferred_apply_allowed {
             let has_worker_commands = !command_buffers.is_empty();
-            level.with_world_mut(|world| {
-                world.merge_worker_command_buffers(&mut command_buffers)?;
+            with_schedule_world(level, execution, |world| {
+                world
+                    .merge_worker_command_buffers(&mut command_buffers)
+                    .map_err(|error| {
+                        CoreError::Initialization(
+                            "SceneScheduleRunner worker command buffer merge".to_string(),
+                            error.to_string(),
+                        )
+                    })?;
                 if has_worker_commands {
                     let apply_result = catch_unwind(AssertUnwindSafe(|| world.apply_deferred()));
-                    world.reclaim_worker_command_buffers(&mut command_buffers);
+                    if execution.is_bound_to(world) {
+                        world.reclaim_worker_command_buffers(&mut command_buffers);
+                    }
                     if let Err(payload) = apply_result {
                         resume_unwind(payload);
                     }
+                    if !execution.is_bound_to(world) {
+                        return Err(schedule_owner_changed_error());
+                    }
                 }
                 Ok(())
-            })
+            })?
         } else {
             for buffer in &mut command_buffers {
                 buffer.discard_pending();
@@ -284,8 +331,9 @@ fn flush_worker_batch(
     }
     // 先归还系统并清空调度条目，再传播批次结果，使捕获异常后的再次调度能取得同一系统；已提交的 World 变更不会在此回滚。
     let batch_elapsed = batch_started_at.elapsed();
-    level.with_world_mut(|world| {
-        world.restore_worldless_native_scene_systems(systems);
+    let mut systems = Some(systems);
+    let restored = level.with_world_mut_if_schedule_execution(execution, |world| {
+        world.restore_worldless_native_scene_systems(systems.take().unwrap());
         world.record_native_system_worker_batch(
             &timings,
             batch_elapsed,
@@ -294,18 +342,19 @@ fn flush_worker_batch(
             temporary_control_buffer_bytes,
         );
     });
+    if let Some(systems) = systems {
+        for system in systems {
+            return_owner.native(system);
+        }
+    }
     dispatches.clear();
-    let command_buffer_result: Result<(), crate::scene::ecs::WorkerCommandBufferMergeError> =
-        match result {
-            Ok(result) => result,
-            Err(payload) => resume_unwind(payload),
-        };
-    command_buffer_result.map_err(|error| {
-        CoreError::Initialization(
-            "SceneScheduleRunner worker command buffer merge".to_string(),
-            error.to_string(),
-        )
-    })
+    match result {
+        Ok(Err(error)) => Err(error),
+        Err(payload) => resume_unwind(payload),
+        Ok(Ok(())) => restored
+            .ok_or_else(schedule_owner_changed_error)
+            .map(|()| ()),
+    }
 }
 
 fn run_worldless_systems(

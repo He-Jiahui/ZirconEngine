@@ -134,7 +134,8 @@ impl ProjectAssetManager {
                 "generated source publication lost its active project before commit",
             ));
         };
-        if active_project.catalog_input_generation().sequence() != expected_generation
+        if active_project.activation_identity() != candidate.activation_identity()
+            || active_project.catalog_input_generation().sequence() != expected_generation
             || self.current_project_preparation_epoch() != expected_preparation_epoch
         {
             return Err(asset_error_message(

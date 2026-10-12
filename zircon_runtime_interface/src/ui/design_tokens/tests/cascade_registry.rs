@@ -49,6 +49,8 @@ fn workbench_dark_palette_matches_approved_editor_theme_baseline() {
         ("editor.text.tab_active", "#ffffff"),
         ("editor.surface.hover", "#575757"),
         ("editor.surface.selected", "#0070e0"),
+        ("editor.surface.selected_inactive", "#40576f"),
+        ("editor.text.selected", "#ffffff"),
         ("editor.accent", "#0070e0"),
         ("editor.border", "#383838"),
         ("editor.separator.strong", "#575757"),

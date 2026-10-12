@@ -147,6 +147,13 @@ pub struct UiAssetEditorPanePresentation {
     pub preview_surface_width: f32,
     pub preview_surface_height: f32,
     pub preview_canvas_items: Vec<UiAssetEditorPreviewCanvasNode>,
+    pub preview_input_result:
+        Option<std::sync::Arc<zircon_runtime_interface::ui::dispatch::UiInputDispatchResult>>,
+    pub preview_input_enabled: bool,
+    pub preview_accepts_text_input: bool,
+    pub preview_surface_frame:
+        Option<std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>>,
+    pub preview_source_receipts: Vec<zircon_runtime::ui::v2::UiV2SourceFileReceipt>,
     pub preview_mock_subject_items: Vec<String>,
     pub preview_mock_subject_selected_index: i32,
     pub preview_mock_subject_node_id: String,
@@ -190,6 +197,7 @@ pub struct UiAssetEditorPanePresentation {
     pub resource_dependency_items: Vec<String>,
     pub resource_diagnostic_items: Vec<String>,
     pub palette_selected_index: i32,
+    pub palette_visible_start: usize,
     pub palette_drag_target_preview_index: i32,
     pub palette_drag_target_action: String,
     pub palette_drag_target_label: String,

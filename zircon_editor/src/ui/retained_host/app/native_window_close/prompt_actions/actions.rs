@@ -1,6 +1,7 @@
 use super::super::super::{close_prompt, RetainedEditorHost};
+use super::completion::ClosePromptSaveDisposition;
 use crate::core::extension::SaveReason;
-use crate::ui::host::{DirtyDocumentSaveOwner, DirtyDocumentSaveStart};
+use crate::ui::host::{DirtyDocumentSaveOwner, DirtyDocumentSaveStart, EditorManager};
 
 impl RetainedEditorHost {
     // 关闭按钮必须先排除并行文档保存；保存分支等异步完成回调再次核对脏状态后才真正关闭。
@@ -20,7 +21,24 @@ impl RetainedEditorHost {
         {
             return;
         }
-        if let Some(owner) = self.editor_manager.dirty_document_save_owner() {
+        if action == "cancel" {
+            self.clear_close_prompt(&prompt.target);
+            self.pending_close_prompt = None;
+            return;
+        }
+        let save_owner = match self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .map(|manager| manager.dirty_document_save_owner())
+        {
+            Ok(owner) => owner,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
+        if let Some(owner) = save_owner {
             self.set_status_line(format!("Close is waiting for {owner} to finish saving."));
             return;
         }
@@ -40,15 +58,22 @@ impl RetainedEditorHost {
                         return;
                     }
                 }
-                match self.editor_manager.begin_dirty_document_save(
+                match EditorManager::begin_dirty_document_save(
+                    self.editor_manager.clone(),
                     DirtyDocumentSaveOwner::ClosePrompt,
                     prompt.dirty_views.iter().map(|view| view.document_id),
                     SaveReason::Close,
                 ) {
                     Ok(DirtyDocumentSaveStart::NoDirtyDocuments) => {
+                        let status = if prompt.has_failed_save() {
+                            "The previous save failed; close remains blocked. Discard or Cancel."
+                        } else {
+                            "All documents are already saved."
+                        };
                         self.reconcile_prompted_close_after_save(
                             prompt,
-                            "All documents are already saved.",
+                            status,
+                            ClosePromptSaveDisposition::NoDirtyDocuments,
                         );
                     }
                     Ok(DirtyDocumentSaveStart::Scheduled) => {

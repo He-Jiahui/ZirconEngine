@@ -58,7 +58,7 @@ fn native_hierarchy_content_rows_do_not_paint_unrouted_adornments() {
 }
 
 #[test]
-fn selected_tree_row_paints_muted_selected_fill_teal_outline_icon_and_actions() {
+fn selected_tree_row_paints_primary_selection_text_icon_and_actions() {
     let bytes = paint_template_nodes_for_test(
         280,
         48,
@@ -73,8 +73,8 @@ fn selected_tree_row_paints_muted_selected_fill_teal_outline_icon_and_actions() 
     );
 
     assert_eq!(pixel_at(&bytes, 280, 4, 19), PALETTE.accent);
-    assert_eq!(pixel_at(&bytes, 280, 14, 19), PALETTE.surface_pressed);
-    assert_ne!(pixel_at(&bytes, 280, 14, 19), PALETTE.surface_selected);
+    assert_eq!(pixel_at(&bytes, 280, 14, 19), PALETTE.surface_selected);
+    assert_ne!(pixel_at(&bytes, 280, 14, 19), PALETTE.surface_pressed);
     assert!(changed_pixel_count(&bytes, 280, 50, 10, 40, 24) > 0);
     assert!(changed_pixel_count(&bytes, 280, 230, 13, 40, 18) > 0);
 }
@@ -368,4 +368,28 @@ fn rect_contains(outer: &FrameRect, inner: &FrameRect) -> bool {
         && outer.y <= inner.y
         && outer.x + outer.width >= inner.x + inner.width
         && outer.y + outer.height >= inner.y + inner.height
+}
+
+#[test]
+fn selected_tree_row_owner_focus_change_reaches_native_pixels_without_changing_selection() {
+    let mut node = tree_node(
+        "WorkbenchScenePropsItem",
+        "TreeRow",
+        "tree-row",
+        "Props",
+        0,
+        true,
+    );
+    node.tree_owner_focused = Some(true);
+    let active = paint_template_nodes_for_test(280, 48, model_rc(vec![node.clone()]));
+    node.tree_owner_focused = Some(false);
+    node.focused = true;
+    node.hovered = true;
+    let inactive = paint_template_nodes_for_test(280, 48, model_rc(vec![node.clone()]));
+    assert!(node.selected);
+    assert_eq!(pixel_at(&active, 280, 14, 19), PALETTE.surface_selected);
+    assert_eq!(
+        pixel_at(&inactive, 280, 14, 19),
+        PALETTE.surface_selected_inactive
+    );
 }

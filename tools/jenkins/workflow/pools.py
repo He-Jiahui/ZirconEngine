@@ -306,6 +306,16 @@ def materialize_preparation(state, approved_build_root: ApprovedBuildRoot | str 
     require_digest(source_digest, "sourceDigest")
     if compute_source_digest(normalized) != source_digest:
         raise _error("sealed_manifest_digest_mismatch", "sealed manifest does not match source identity")
+    from ..source.external_inputs import sources as external_sources, flattened, verify_objects
+    external = external_sources(normalized)
+    source_destination = destination
+    if external:
+        if destination.name != "source":
+            raise _error("external_layout_invalid", "A sibling dependency requires the fixed inputs/source layout")
+        verify_objects(normalized, object_root)
+        destination = physical_path_under(root, destination.parent)
+        normalized, desired = _manifest(flattened(normalized), object_root, root)
+        _check_tree(destination)
     _recover(state, key, destination, object_root)
     previous_row = state.get("preparation_source", key)
     previous = previous_row["payload"] if previous_row else None
@@ -315,7 +325,7 @@ def materialize_preparation(state, approved_build_root: ApprovedBuildRoot | str 
     if old_source == source_digest:
         if actual != desired:
             raise _error("preparation_hash_mismatch", "same sealed source does not match materialized files")
-        return {"physicalPath": str(destination), "reused": True, "incremental": False, "sourceDigest": source_digest}
+        return {"physicalPath": str(source_destination), "reused": True, "incremental": False, "sourceDigest": source_digest}
     files: list[dict[str, Any]] = []
     old = previous_owned or {}
     for path in sorted(set(old) | set(desired)):
@@ -339,7 +349,7 @@ def materialize_preparation(state, approved_build_root: ApprovedBuildRoot | str 
     state.put("preparation_source", key, {"executionId": execution_id, "preparationKey": key,
                "sourceDigest": source_digest, "manifest": normalized, "objectRoot": str(object_root),
                "ownedFiles": desired, "physicalPath": str(destination), "updatedAt": time.time()})
-    return {"physicalPath": str(destination), "reused": False, "incremental": bool(previous), "sourceDigest": source_digest}
+    return {"physicalPath": str(source_destination), "reused": False, "incremental": bool(previous), "sourceDigest": source_digest}
 
 
 __all__ = ["materialize_preparation"]

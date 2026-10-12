@@ -19,6 +19,14 @@ pub(super) fn dispatch_menu_primary_press(
     y: f32,
     cleared_text_input_frame: Option<FrameRect>,
 ) -> Option<NativePointerDispatchResult> {
+    #[cfg(test)]
+    eprintln!(
+        "legacy-menu-route: point=({x},{y}) bar_hit={} popup_hit={} top_bar_height={} legacy_open={}",
+        menu_handles_point_with_state(presentation, menu_state, x, y),
+        menu_popup_handles_point_with_state(presentation, menu_state, x, y),
+        presentation.host_scene_data.menu_chrome.top_bar_height_px,
+        menu_state.open_menu_index,
+    );
     if !menu_handles_point_with_state(presentation, menu_state, x, y)
         && !menu_popup_handles_point_with_state(presentation, menu_state, x, y)
     {
@@ -28,6 +36,11 @@ pub(super) fn dispatch_menu_primary_press(
     ui.global::<UiHostContext>()
         .invoke_menu_pointer_clicked(x, y);
     let after_state = ui.get_menu_state();
+    #[cfg(test)]
+    eprintln!(
+        "legacy-menu-route: consumed point=({x},{y}) before_open={} after_open={}",
+        menu_state.open_menu_index, after_state.open_menu_index,
+    );
     let after_damage = menu_damage_frame_with_state(presentation, &after_state);
     let mut damage = union_frame(&before_damage, &after_damage);
     if let Some(frame) = cleared_text_input_frame {

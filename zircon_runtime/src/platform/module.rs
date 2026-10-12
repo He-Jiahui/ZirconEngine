@@ -1,12 +1,11 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use super::{PlatformDriver, PlatformManager};
+use super::PlatformDriver;
 use crate::core::framework::platform::{PreferenceStorage, PLATFORM_MODULE_NAME};
-use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::modules::TASKS_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
-use crate::core::{CoreError, CoreResult, ModuleContext, ModuleLifecycle};
+use crate::core::{CoreError, CoreResult, ModuleCleanupContext, ModuleLifecycle};
 use crate::engine_module::{
     dependency_on, factory, qualified_name, DriverDescriptor, EngineModule, InitLevel,
     ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind, StartupMode,
@@ -19,37 +18,40 @@ const PREFERENCE_PERSISTENCE_SHUTDOWN_TIMEOUT: Duration = Duration::from_millis(
 struct PlatformModuleLifecycle;
 
 impl ModuleLifecycle for PlatformModuleLifecycle {
-    fn cleanup(&self, context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         let deadline = Instant::now()
             .checked_add(PREFERENCE_PERSISTENCE_SHUTDOWN_TIMEOUT)
             .ok_or_else(|| cleanup_timeout(context, PREFERENCE_PERSISTENCE_SHUTDOWN_TIMEOUT))?;
         self.cleanup_until(context, deadline)
     }
 
-    fn cleanup_until(&self, context: &ModuleContext, deadline: Instant) -> CoreResult<()> {
+    fn cleanup_until(
+        &self,
+        context: &ModuleCleanupContext<'_>,
+        deadline: Instant,
+    ) -> CoreResult<()> {
         let budget = deadline.saturating_duration_since(Instant::now());
-        let core = context
-            .core
-            .upgrade()
-            .ok_or(CoreError::RuntimeUnavailable)?;
-        let driver = core.resolve_driver::<PlatformDriver>(PLATFORM_DRIVER_NAME)?;
-        match driver.shutdown_preference_persistence_until(deadline) {
-            Ok(_) => Ok(()),
-            Err(report) => Err(CoreError::ModuleCleanupTimeout {
-                module: context.module_name.clone(),
-                operation: "preference_persistence".to_owned(),
-                budget,
-                incomplete_entries: report.incomplete_entries,
-                failed: report.failed,
-                cancelled: report.cancelled,
-            }),
-        }
+        context.with_existing_driver::<PlatformDriver>(
+            PLATFORM_DRIVER_NAME,
+            |driver| match driver.shutdown_preference_persistence_until(deadline) {
+                Ok(_) => Ok(()),
+                Err(report) => Err(CoreError::ModuleCleanupTimeout {
+                    module: context.module_name().to_owned(),
+                    operation: "preference_persistence".to_owned(),
+                    budget,
+                    incomplete_entries: report.incomplete_entries,
+                    failed: report.failed,
+                    cancelled: report.cancelled,
+                }),
+            },
+        )?;
+        Ok(())
     }
 }
 
-fn cleanup_timeout(context: &ModuleContext, budget: Duration) -> CoreError {
+fn cleanup_timeout(context: &ModuleCleanupContext<'_>, budget: Duration) -> CoreError {
     CoreError::ModuleCleanupTimeout {
-        module: context.module_name.clone(),
+        module: context.module_name().to_owned(),
         operation: "preference_persistence".to_owned(),
         budget,
         incomplete_entries: usize::MAX,
@@ -93,12 +95,13 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "PlatformDriver",
         )],
         factory(|core| {
-            let driver = core.resolve_driver::<PlatformDriver>(PLATFORM_DRIVER_NAME)?;
-            let manager = Arc::new(PlatformManager::new(driver));
-            Ok(
-                Arc::new(RegisteredManagerService::<dyn PreferenceStorage>::new(
-                    manager,
-                )) as ServiceObject,
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            core.register_service_alias::<PlatformDriver, dyn PreferenceStorage>(
+                PLATFORM_DRIVER_NAME,
+                ServiceKind::Driver,
+                crate::core::manager::PLATFORM_MANAGER_NAME,
+                ServiceKind::Manager,
+                |driver| driver.borrowed_preference_persistence_adapter(),
             )
         }),
     ))

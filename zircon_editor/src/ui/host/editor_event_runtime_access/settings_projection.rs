@@ -4,24 +4,29 @@ use crate::ui::host::EditorHostEventController;
 use crate::ui::settings::{SettingsPersistenceHealthProjection, SettingsWindowProjection};
 
 impl EditorHostEventController {
-    pub(crate) fn capture_settings_window_projection(&self) -> SettingsWindowProjection {
-        let settings = self.context().settings().snapshot();
-        let (contributions, capabilities) = {
-            let inner = self.shell().lock();
-            let capability_snapshot = inner.manager.capability_snapshot();
-            let capabilities = capability_snapshot
-                .enabled_capabilities()
-                .iter()
-                .cloned()
-                .collect::<CapabilitySet>();
-            (inner.contributions.snapshot(), capabilities)
-        };
-        SettingsWindowProjection::capture(
-            settings.as_ref(),
-            &contributions,
-            &capabilities,
-            self.context().i18n(),
-        )
+    pub(crate) fn capture_settings_window_projection(
+        &self,
+    ) -> Result<SettingsWindowProjection, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let settings = self.context().settings().snapshot();
+            let (contributions, capabilities) = {
+                let inner = self.shell().lock();
+                let capability_snapshot = manager.capability_snapshot();
+                let capabilities = capability_snapshot
+                    .enabled_capabilities()
+                    .iter()
+                    .cloned()
+                    .collect::<CapabilitySet>();
+                (inner.contributions.snapshot(), capabilities)
+            };
+            SettingsWindowProjection::capture(
+                settings.as_ref(),
+                &contributions,
+                &capabilities,
+                self.context().i18n(),
+            )
+        })
     }
 
     pub(crate) fn capture_settings_values_for_category(

@@ -330,10 +330,9 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     let driver_source = include_str!("../module/world_driver.rs");
     assert!(!driver_source.contains("SceneRuntimeHook"));
     assert!(!driver_source.contains("scene_runtime_hook"));
-    assert!(driver_source
-        .contains("let schedule = level.with_world(|world| world.schedule().stage_plan());"));
-    assert!(driver_source.contains("schedule.internal_systems_for_stage(stage)"));
-    assert!(driver_source.contains("schedule.native_steps_for_stage(stage)"));
+    assert!(driver_source.contains("world.begin_schedule_execution()"));
+    assert!(driver_source.contains("let schedule = execution.plan();"));
+    assert!(driver_source.contains("with_world_mut_if_schedule_execution(&execution"));
     assert!(!driver_source.contains("world.schedule().systems().to_vec()"));
     assert!(!driver_source.contains("systems_for_stage(&systems"));
     assert!(!driver_source.contains("scene_runtime_hooks_for_stage(stage)"));
@@ -347,8 +346,9 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
         .exists());
 
     let runner_source = include_str!("../ecs/schedule_runner.rs");
-    assert!(runner_source.contains("internal_systems: &[SceneSystemDescriptor]"));
-    assert!(runner_source.contains("native_steps: &[ScheduledSceneStep]"));
+    assert!(runner_source.contains("execution: &ScheduleExecution"));
+    assert!(runner_source.contains("plan_owner.internal_systems_for_stage(stage)"));
+    assert!(runner_source.contains("plan_owner.native_steps_for_stage(stage)"));
     assert!(!runner_source.contains("SceneRuntimeHook"));
     assert!(runner_source.contains("ScheduledSceneStep::iter_sorted_for_stage("));
     assert!(runner_source.contains("ScheduledSceneStepRef::Internal(system)"));
@@ -409,8 +409,8 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(!schedule_source.contains("same_stage_by_id"));
     assert!(schedule_source.contains("let all_nodes = PlanNodes::new(registry);"));
     assert!(schedule_source.contains("registry: &'a SceneSystemRegistry"));
-    assert!(schedule_source
-        .contains("runtime_systems: impl Iterator<Item = &'registry BoxedRuntimeSceneSystem>"));
+    assert!(schedule_source.contains("systems: &[SceneSystemPlanDescriptor]"));
+    assert!(schedule_source.contains("let plan_systems = registry.plan_systems();"));
     assert!(schedule_source.contains("let mut stage_order = Vec::with_capacity(stages.len());"));
     assert!(schedule_source.contains("for stage in stages.iter().copied()"));
     assert!(schedule_source.contains("stage_order.push(stage);"));
@@ -433,9 +433,11 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(schedule_owner_source.contains("Arc::clone(&self.executor_plan)"));
     assert!(schedule_owner_source
         .contains("fn refresh_or_defer_executor_plan(&mut self) -> Result<(), ScheduleError>"));
-    assert!(schedule_owner_source.contains("fn refresh_executor_plan(&mut self)"));
-    assert!(schedule_owner_source.contains("self.refresh_executor_plan()?;"));
-    assert!(schedule_owner_source.contains("self.executor_plan_dirty = true;"));
+    assert!(schedule_owner_source.contains("SceneScheduleStagePlan::from_registry("));
+    assert!(schedule_owner_source
+        .contains("pending_executor_plan: Option<Arc<SceneScheduleStagePlan>>"));
+    assert!(schedule_owner_source.contains("self.pending_executor_plan = Some(plan);"));
+    assert!(!schedule_owner_source.contains("deferred scene schedule refresh must stay valid"));
     assert!(schedule_owner_source.contains("taken_native_system_ids: Vec<String>"));
     assert!(schedule_owner_source.contains("taken_runtime_system_count: usize"));
     assert!(schedule_owner_source
@@ -450,8 +452,7 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(schedule_owner_source.contains("taken_system_id_exists("));
     assert!(schedule_owner_source
         .contains("fn taken_system_id_exists(taken_system_ids: &[String], id: &str)"));
-    // BUG: [CR-R02-runtime_ecs_schedule_systems-0003] 当前 schedule.rs 定义了 remove_taken_system_id，到达此处时负文本断言必失败；后续命令计数串还缺 worker 筛选条件。证据：include_str 的定义与注册表分支。
-    assert!(!schedule_owner_source.contains("fn remove_taken_system_id("));
+    assert!(schedule_owner_source.contains("fn remove_taken_system_id("));
     assert!(schedule_owner_source.contains("for taken_id in taken_system_ids"));
     assert!(schedule_owner_source.contains("if taken_id.as_str() == id"));
     assert!(schedule_owner_source.contains("let mut index = 0_usize;"));
@@ -499,27 +500,24 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     let registry_source = include_str!("../ecs/scene_system_registry.rs");
     assert!(registry_source.contains("native_system_steps_by_stage("));
     assert!(registry_source.contains("let native_step_counts ="));
-    assert!(registry_source
-        .contains("native_step_counts_by_stage(&self.native_systems, self.runtime_systems())"));
+    assert!(registry_source.contains("native_step_counts_by_stage(&self.plan_systems)"));
     assert!(registry_source
         .contains("let mut by_stage = native_step_groups_with_capacity(&native_step_counts);"));
     assert!(registry_source.contains("fn native_step_counts_by_stage("));
-    assert_eq!(
-        registry_source
-            .matches("runtime_systems: RuntimeSystems<'_>")
-            .count(),
-        2,
-        "step counting and conflict-graph sizing must consume slots without a temporary Vec"
-    );
+    assert!(registry_source.contains("plan_systems: Vec<SceneSystemPlanDescriptor>"));
+    assert!(registry_source.contains("systems: &[SceneSystemPlanDescriptor]"));
     assert!(!registry_source.contains("let runtime_systems: Vec<_>"));
-    assert!(registry_source.contains("let step_count = if system.has_deferred_commands() {"));
-    assert!(registry_source.contains("counts[system.stage().rank()] += step_count;"));
+    let plan_descriptor_source = include_str!("../ecs/scene_system_plan_descriptor.rs");
+    assert!(registry_source.contains("counts[system.stage().rank()] += system.step_count();"));
+    assert!(plan_descriptor_source.contains("worker_safe: false,"));
+    assert!(plan_descriptor_source.contains("has_deferred_commands: true,"));
+    assert!(plan_descriptor_source.contains("if self.needs_deferred_barrier()"));
     assert_eq!(
         registry_source
-            .matches("for system in self.runtime_systems()")
+            .matches("for native in [true, false]")
             .count(),
         2,
-        "stage-plan and conflict-graph construction must iterate stable slots directly"
+        "stage-plan and conflict diagnostics must keep native-before-runtime ordering"
     );
     assert!(registry_source.contains("fn native_step_groups_with_capacity("));
     assert!(registry_source.contains("Vec::with_capacity(native_step_counts[stage_index])"));
@@ -545,15 +543,18 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
         .nth(1)
         .and_then(|text| text.split("pub(super) fn insert(").next())
         .expect("read RuntimeSystemSlots::restore body");
-    assert!(runtime_restore_body.contains("self.indices"));
+    assert!(
+        runtime_restore_body.contains("let index = *self")
+            && runtime_restore_body.contains(".indices")
+    );
     assert!(runtime_restore_body.contains("slot.system = Some(system)"));
     assert!(!runtime_slots_source.contains("insert_runtime_system_sorted("));
     assert_eq!(
         registry_source
             .matches("insert_native_system_sorted(&mut self.native_systems, system);")
             .count(),
-        4,
-        "native registration variants and restore must share ordered insertion"
+        5,
+        "native registration, take restore and rejected-removal rollback share ordered insertion"
     );
     assert!(registry_source.contains("fn insert_system_sorted("));
     assert!(registry_source.contains("fn compare_system_descriptors("));
@@ -569,7 +570,12 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     );
     assert!(registry_source.contains("Err(source) => {"));
     assert!(registry_source.contains("return Err(ScheduleError::SystemParam"));
-    assert!(!registry_source.contains(".map_err(|source| ScheduleError::SystemParam"));
+    assert_eq!(
+        registry_source
+            .matches(".map_err(|source| ScheduleError::SystemParam")
+            .count(),
+        1
+    );
     assert!(registry_source.contains("SystemsForStage::new(&self.systems, stage)"));
     assert!(registry_source.contains("struct SystemsForStage<'registry>"));
     assert!(registry_source.contains("impl<'registry> Iterator for SystemsForStage<'registry>"));
@@ -584,11 +590,9 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(registry_source.contains("return Some(system.as_ref());"));
     assert!(!registry_source.contains(".map(|system| system.as_ref())"));
     assert!(registry_source.contains("registered_system_id_exists(&self.systems, id)"));
-    assert!(
-        registry_source.contains("registered_native_system_id_exists(&self.native_systems, id)")
-    );
+    assert!(registry_source.contains("registered_plan_system_id_exists(&self.plan_systems, id)"));
     assert!(registry_source.contains("fn registered_system_id_exists("));
-    assert!(registry_source.contains("fn registered_native_system_id_exists("));
+    assert!(registry_source.contains("fn registered_plan_system_id_exists("));
     assert!(registry_source.contains("for system in systems"));
     assert!(registry_source.contains("return true;"));
     assert!(!registry_source.contains(".iter().any(|system| system.id == id)"));
@@ -616,14 +620,12 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     );
     assert!(!registry_source.contains(".runtime_systems().iter().collect()"));
     assert!(registry_source.contains("let mut nodes = Vec::with_capacity(node_count);"));
-    assert!(registry_source.contains("nodes.push(ScheduleConflictNode::new("));
-    assert!(registry_source.contains("nodes.push(ScheduleConflictNode::barrier("));
+    assert!(plan_descriptor_source.contains("nodes.push(ScheduleConflictNode::new("));
+    assert!(plan_descriptor_source.contains("nodes.push(ScheduleConflictNode::barrier("));
     assert!(registry_source.contains("ScheduleConflictGraph::from_node_vec(nodes)"));
     assert!(registry_source.contains("fn native_conflict_graph_node_count_for_stage("));
-    assert!(
-        registry_source.contains("count += if system.has_deferred_commands() { 2 } else { 1 };")
-    );
-    assert!(registry_source.contains("if system.stage() == stage {\n            count += 1;"));
+    assert!(registry_source.contains("count += system.step_count();"));
+    assert!(registry_source.contains("system.append_conflict_nodes(&mut nodes)"));
     let native_conflict_graph_body = registry_source
         .split("pub fn native_system_conflict_graph_for_stage(")
         .nth(1)

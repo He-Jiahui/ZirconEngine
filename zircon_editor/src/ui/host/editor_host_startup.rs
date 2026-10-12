@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::sync::Arc;
+use zircon_runtime::core::runtime::ServiceHandle;
 
 use zircon_runtime_interface::math::UVec2;
 
@@ -19,14 +19,16 @@ pub struct EditorHostStartupSession {
 
 impl EditorHostStartupSession {
     pub fn open(
-        editor_manager: Arc<EditorManager>,
+        editor_manager: ServiceHandle<EditorManager>,
         startup_request: Option<EditorGuiStartupRequest>,
         viewport_size: UVec2,
     ) -> Result<Self, Box<dyn Error + Send + Sync>> {
-        let mut startup_session =
-            resolve_editor_startup_session(editor_manager.as_ref(), startup_request)?;
-        let state =
-            build_startup_state(editor_manager.as_ref(), &mut startup_session, viewport_size)?;
+        let (startup_session, state) = {
+            let manager = editor_manager.enter()?;
+            let mut startup_session = resolve_editor_startup_session(&manager, startup_request)?;
+            let state = build_startup_state(&manager, &mut startup_session, viewport_size)?;
+            (startup_session, state)
+        };
         Self::from_parts(startup_session, state, editor_manager)
     }
 
@@ -45,9 +47,9 @@ impl EditorHostStartupSession {
     pub(crate) fn from_parts(
         startup_session: EditorStartupSessionDocument,
         state: EditorState,
-        editor_manager: Arc<EditorManager>,
+        editor_manager: ServiceHandle<EditorManager>,
     ) -> Result<Self, Box<dyn Error + Send + Sync>> {
-        let controller = EditorHostEventController::new(state, editor_manager);
+        let controller = EditorHostEventController::new(state, editor_manager)?;
 
         Ok(Self {
             startup_session,

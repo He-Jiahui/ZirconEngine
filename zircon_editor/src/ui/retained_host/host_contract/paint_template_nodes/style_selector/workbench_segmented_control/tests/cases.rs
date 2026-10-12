@@ -135,7 +135,7 @@ fn focused_hovered_segmented_control_keeps_hover_background_and_focus_border() {
 }
 
 #[test]
-fn focused_tab_keeps_declared_background_without_active_border() {
+fn focused_tab_keeps_declared_background_with_visible_focus_border() {
     let mut node = TemplatePaneNodeData::default();
     node.focused = true;
 
@@ -143,5 +143,36 @@ fn focused_tab_keeps_declared_background_without_active_border() {
 
     assert_eq!(tab.state, UiPainterResolvedState::Focused);
     assert_eq!(tab.background, None);
-    assert_eq!(tab.border, None);
+    assert_eq!(tab.border, Some(PALETTE.focus_ring));
+    assert_eq!(tab.border_width, 1.0);
+}
+
+#[test]
+fn tab_focus_modality_preserves_selection_and_unavailable_priority() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+    node.focus_visible_known = true;
+    node.selected = true;
+    node.hovered = true;
+    let select = |node: &TemplatePaneNodeData| {
+        select_workbench_segmented_control_style(node, WorkbenchSegmentedControlKind::Tab)
+    };
+    let pointer = select(&node);
+    assert_eq!(pointer.border, None);
+    assert_eq!(pointer.border_width, 0.0);
+    assert_eq!(pointer.background, Some(PALETTE.surface_panel));
+    node.focus_visible = true;
+    let keyboard = select(&node);
+    assert_eq!(keyboard.border, Some(PALETTE.focus_ring));
+    assert_eq!(keyboard.border_width, 1.0);
+    assert_eq!(keyboard.background, pointer.background);
+    assert_eq!(keyboard.selected_underline, pointer.selected_underline);
+    node.disabled = true;
+    let disabled = select(&node);
+    assert_eq!(disabled.border, None);
+    assert_eq!(disabled.border_width, 0.0);
+    assert_eq!(disabled.background, Some(PALETTE.surface_disabled));
+    node.disabled = false;
+    node.button_style.loading = true;
+    assert_eq!(select(&node).border, None);
 }

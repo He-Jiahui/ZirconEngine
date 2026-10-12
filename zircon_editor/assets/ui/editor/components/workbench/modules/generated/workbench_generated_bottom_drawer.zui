@@ -8,16 +8,16 @@ display_name = "Workbench Generated Bottom Drawer"
 widgets = [
   "res://ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui#WorkbenchGeneratedBottomPanel",
 ]
-styles = []
+styles = ["res://ui/editor/unreal/starship.zui"]
 
 [components.WorkbenchGeneratedBottomDrawer]
 root = "generated_bottom_drawer"
-default_classes = ["workbench-generated-bottom-drawer", "workbench-panel"]
+default_classes = ["unreal-content-drawer"]
 
 [nodes.generated_bottom_drawer]
 component = "Overlay"
 control_id = "WorkbenchGeneratedBottomDrawer"
-classes = ["workbench-generated-bottom-drawer", "workbench-panel"]
+classes = ["unreal-content-drawer"]
 props = { visibility = "collapsed" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "generated_bottom_panel" }]

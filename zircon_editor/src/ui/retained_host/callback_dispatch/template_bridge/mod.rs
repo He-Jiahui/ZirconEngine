@@ -13,12 +13,12 @@ use crate::ui::template_runtime::builtin::{
     PANE_CONSOLE_BODY_DOCUMENT_ID, PANE_HIERARCHY_BODY_DOCUMENT_ID, PANE_INSPECTOR_BODY_DOCUMENT_ID,
 };
 use crate::ui::template_runtime::{
-    EditorUiHostRuntime, EditorUiHostRuntimeError, WORKBENCH_WINDOW_DOCUMENT_ID,
+    EditorUiHostRuntime, EditorUiHostRuntimeError, UNREAL_EDITOR_WINDOW_DOCUMENT_ID,
 };
 
 use super::constants::{
     BUILTIN_FLOATING_WINDOW_SOURCE_DOCUMENT_ID, BUILTIN_INSPECTOR_SURFACE_DOCUMENT_ID,
-    BUILTIN_PANE_SURFACE_DOCUMENT_ID, BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID,
+    BUILTIN_PANE_SURFACE_DOCUMENT_ID, UNREAL_EDITOR_SHELL_DOCUMENT_ID,
     BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID,
 };
 
@@ -46,7 +46,7 @@ pub(crate) use workbench::{
 pub(crate) fn load_startup_builtin_template_runtime(
 ) -> Result<EditorUiHostRuntime, EditorUiHostRuntimeError> {
     projection_support::load_builtin_runtime_for_documents(&[
-        BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID,
+        UNREAL_EDITOR_SHELL_DOCUMENT_ID,
         BUILTIN_FLOATING_WINDOW_SOURCE_DOCUMENT_ID,
         BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID,
         BUILTIN_INSPECTOR_SURFACE_DOCUMENT_ID,
@@ -54,6 +54,6 @@ pub(crate) fn load_startup_builtin_template_runtime(
         PANE_HIERARCHY_BODY_DOCUMENT_ID,
         PANE_INSPECTOR_BODY_DOCUMENT_ID,
         PANE_CONSOLE_BODY_DOCUMENT_ID,
-        WORKBENCH_WINDOW_DOCUMENT_ID,
+        UNREAL_EDITOR_WINDOW_DOCUMENT_ID,
     ])
 }

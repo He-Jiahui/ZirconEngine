@@ -41,7 +41,7 @@ fn workbench_shell_contract_is_rust_owned_and_asset_projected() {
 fn workbench_shell_assets_replace_deleted_shell_sources() {
     for (relative, markers) in [
         (
-            "assets/ui/editor/host/workbench_shell.zui",
+            "assets/ui/editor/unreal/editor_shell.zui",
             &[
                 "UiHostWindowRoot",
                 "WorkbenchBody",
@@ -76,7 +76,7 @@ fn workbench_shell_assets_replace_deleted_shell_sources() {
         }
     }
 
-    let shell = source("assets/ui/editor/host/workbench_shell.zui");
+    let shell = source("assets/ui/editor/unreal/editor_shell.zui");
     for forbidden in [
         "WorkbenchShellReferenceImage",
         "ui/editor/reference/workbench.png",

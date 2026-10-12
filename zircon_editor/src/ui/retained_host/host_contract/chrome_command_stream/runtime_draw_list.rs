@@ -45,6 +45,7 @@ pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_str
             .collect(),
         ui_surface_image_resources_from_borrowed_stream(stream.image_resources(), &mut is_resident),
     )
+    .with_font_snapshot(zircon_runtime::ui::surface::current_ui_surface_font_snapshot())
 }
 
 pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_owned_stream(
@@ -116,6 +117,7 @@ fn ui_surface_draw_list_from_owned_stream_with_optional_generation(
             image_resources,
         ),
     }
+    .with_font_snapshot(zircon_runtime::ui::surface::current_ui_surface_font_snapshot())
 }
 
 fn ui_surface_image_resources_from_stream(

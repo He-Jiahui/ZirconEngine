@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { prepareComponentReviewHost } from '../../tools/zui-layout-component-hosts';
 import { trackedZuiPaths } from '../../tools/zui-layout-catalog';
@@ -36,10 +37,10 @@ const activityWindow =
   'zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui';
 const editorMainFrame =
   'zircon_editor/assets/ui/editor/host/editor_main_frame.zui';
-const workbenchShell =
-  'zircon_editor/assets/ui/editor/host/workbench_shell.zui';
-const workbenchWindow =
-  'zircon_editor/assets/ui/editor/windows/workbench_window.zui';
+const editorShell =
+  'zircon_editor/assets/ui/editor/unreal/editor_shell.zui';
+const levelEditorWindow =
+  'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
 const notificationCenter =
   'zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui';
 const tableRow =
@@ -109,7 +110,7 @@ describe('component slot review host', () => {
     const table = parseZuiDocument(
       await readFile(`${repo}/${tableRow}`, 'utf8'),
     ).document;
-    expect(table.nodes?.root?.props?.['layout_min_width']).toBe(360);
+    expect(table.nodes?.['root']?.props?.['layout_min_width']).toBe(360);
     const result = (await prepareComponentReviewHost(
       repo,
       tableRow,
@@ -118,20 +119,20 @@ describe('component slot review host', () => {
       theme,
     ))!;
     const host = parseZuiDocument(result.source).document;
-    expect(host.nodes?.review_scroll?.component).toBe('ScrollableBox');
-    expect(host.nodes?.review_scroll?.layout?.['container']).toEqual({
+    expect(host.nodes?.['review_scroll']?.component).toBe('ScrollableBox');
+    expect(host.nodes?.['review_scroll']?.layout?.['container']).toEqual({
       kind: 'ScrollableBox',
       axis: 'Horizontal',
       gap: 0,
       scrollbar_visibility: 'Auto',
     });
-    expect(host.nodes?.review_scroll?.children).toEqual([
+    expect(host.nodes?.['review_scroll']?.children).toEqual([
       { node: 'review_component' },
     ]);
-    expect(host.nodes?.review_component?.component).toBe(
+    expect(host.nodes?.['review_component']?.component).toBe(
       `${table.asset.id}#WorkbenchTableRow`,
     );
-    expect(host.nodes?.review_component?.layout?.['width']).toEqual({
+    expect(host.nodes?.['review_component']?.layout?.['width']).toEqual({
       min: 360,
       preferred: 360,
       max: 360,
@@ -188,8 +189,8 @@ describe('component slot review host', () => {
       ),
     ).toBe(true);
     expect(tabs[0].segmented?.active).toBe(true);
-    expect(tabs[0].text?.fontSize).toBe(14);
-    expect(tabs[0].segmented?.colors.background).toBe('#243f5a');
+    expect(tabs[0].text?.fontSize).toBe(13.333333);
+    expect(tabs[0].segmented?.colors.background).toBe('#242424');
     const focused = projectZuiDocument(
       reviewDocumentForCase(result.projection, {
         id: 'focused-360x520-dpi1',
@@ -203,11 +204,32 @@ describe('component slot review host', () => {
       }),
     );
     const focusTab = focused.rootNodes[0].children[1];
-    expect(focusTab.segmented?.colors.background).toBe('#253f59');
-    expect(focusTab.text?.color).toBe('#e8e8e8');
+    expect(focusTab.segmented?.colors.background).toBeNull();
+    expect(segmentedGeometry(focusTab.segmented!, 120, 32).parts['focus_ring']).toMatchObject({
+      fill: 'transparent',
+      stroke: '#0070E0',
+      strokeWidth: 1,
+    });
+    expect(segmentedGeometry(tabs[0].segmented!, 120, 32).parts['focus_ring']).toBeUndefined();
+    expect(focusTab.text?.color).toBe('#C0C0C0');
     expect(
       segmentedGeometry(focusTab.segmented!, 120, 32).texts['primary'].x,
     ).toBe(8);
+  });
+
+  it.each([
+    [{ focused: true, focus_visible: false }],
+    [{ focused: true, focus_visible: true, disabled: true }],
+  ])('keeps the authored Tab focus ring quiet for %j', (state) => {
+    const document = parseZuiDocument(readFileSync(`${repo}/${tab}`, 'utf8')).document;
+    dependencies.embed(document, tab, theme);
+    document.nodes!['root'].state = state;
+    const before = cloneZuiDocument(document);
+    const projection = projectZuiDocument(document);
+    const shape = projection.rootNodes[0];
+    expect(segmentedGeometry(shape.segmented!, 120, 32).parts['focus_ring']).toBeUndefined();
+    expect(reconcileReviewSource(document, cloneProjectionSnapshot(projection)).changes).toEqual([]);
+    expect(document).toEqual(before);
   });
 
   it('mounts explicit status-item instances for the diagnostic row slot contract', async () => {
@@ -269,7 +291,7 @@ describe('component slot review host', () => {
     expect(host.nodes!['review_action'].component).toContain(
       '#WorkbenchButton',
     );
-    expect(host.nodes!['review_action'].layout?.height).toMatchObject({
+    expect(host.nodes!['review_action'].layout?.['height']).toMatchObject({
       preferred: '$editor.control.height.dense',
       stretch: 'Fixed',
     });
@@ -351,7 +373,7 @@ describe('component slot review host', () => {
     expect(result).not.toBeNull();
     const host = parseZuiDocument(result!.source).document;
     expect(host.asset.kind).toBe('view');
-    expect(host.nodes?.root?.component).toBe('ActivityDrawerWindow');
+    expect(host.nodes?.['root']?.component).toBe('ActivityDrawerWindow');
     const mountedText = Object.values(host.nodes ?? {}).flatMap((node) => {
       const text = node.props?.['text'];
       return typeof text === 'string' ? [text] : [];
@@ -385,112 +407,61 @@ describe('component slot review host', () => {
     );
   });
 
-  it('mounts the authored WorkbenchShell and Window without inventing frame state', async () => {
+
+  it('mounts the authored Unreal shell, Level Editor and owned dock components', async () => {
     const allSources = await trackedZuiPaths();
     const mainFrameDependencies = new LayoutDependencies();
     await mainFrameDependencies.load(repo, allSources);
     const mainFrameSource = parseZuiDocument(
-      await readFile(`${repo}/${editorMainFrame}`, 'utf8'),
+      await readFile(repo + '/' + editorMainFrame, 'utf8'),
     ).document;
     const before = normalizeZuiDocument(mainFrameSource);
-
     const result = await prepareComponentReviewHost(
-      repo,
-      editorMainFrame,
-      mainFrameSource,
-      mainFrameDependencies,
-      theme,
+      repo, editorMainFrame, mainFrameSource, mainFrameDependencies, theme,
     );
-
     expect(result).not.toBeNull();
     const host = parseZuiDocument(result!.source).document;
     const windowSource = parseZuiDocument(
-      await readFile(`${repo}/${workbenchWindow}`, 'utf8'),
+      await readFile(repo + '/' + levelEditorWindow, 'utf8'),
     ).document;
-    expect(host.asset.id).toBe(`${mainFrameSource.asset.id}#review-host`);
-    expect(host.nodes?.['task_bar_slot']?.component).toBe('Container');
-    expect(host.nodes?.['task_bar_slot']?.children).toHaveLength(0);
-    expect(host.nodes?.['window_tab_strip_slot']?.component).toBe(
-      'HorizontalGroup',
-    );
-    expect(host.nodes?.['window_tab_strip_slot']?.children).toHaveLength(0);
-    expect(host.nodes?.['active_window_host_slot']?.component).toBe(
-      'Container',
-    );
+    expect(host.asset.id).toBe(mainFrameSource.asset.id + '#review-host');
+    expect(host.nodes?.['task_bar_slot']).toBeUndefined();
+    expect(host.nodes?.['window_tab_strip_slot']).toBeUndefined();
     expect(host.nodes?.['active_window_host_slot']?.children).toHaveLength(1);
-    expect(host.nodes?.['review_workbench_shell__host']?.component).toBe(
-      'UiHostWindow',
-    );
-    expect(host.nodes?.['review_workbench_window__root']?.component).toBe(
-      'Overlay',
-    );
-    expect(host.nodes?.['review_workbench_window__root']?.children).toHaveLength(
+    expect(host.nodes?.['review_editor_shell__host']?.component).toBe('UiHostWindow');
+    expect(host.nodes?.['review_level_editor_window__root']?.component).toBe('Overlay');
+    expect(host.nodes?.['review_level_editor_window__root']?.children).toHaveLength(
       windowSource.nodes?.['root']?.children?.length ?? 0,
     );
-    expect(
-      host.nodes?.['review_workbench_window__notification_center'],
-    ).toBeDefined();
-    expect(host.nodes?.['review_workbench_window__settings_window']).toBeDefined();
-    expect(host.nodes?.['review_workbench_window__command_palette']).toBeDefined();
-    expect(result!.source).not.toContain('penpot_review_source_path');
     expect(result!.consumers.map(({ sourcePath }) => sourcePath)).toEqual(
       expect.arrayContaining([
-        editorMainFrame,
-        workbenchShell,
-        workbenchWindow,
-        tab,
+        editorMainFrame, editorShell, levelEditorWindow,
+        'zircon_editor/assets/ui/editor/unreal/components/menus.zui',
+        'zircon_editor/assets/ui/editor/unreal/components/toolbar.zui',
+        'zircon_editor/assets/ui/editor/unreal/components/viewport.zui',
+        'zircon_editor/assets/ui/editor/unreal/components/outliner.zui',
+        'zircon_editor/assets/ui/editor/unreal/components/details.zui',
+        'zircon_editor/assets/ui/editor/unreal/components/status_bar.zui',
+        'zircon_editor/assets/ui/editor/unreal/components/content_drawer.zui',
+        'zircon_editor/assets/ui/editor/unreal/components/menu_popups.zui',
       ]),
     );
-    expect(
-      Object.values(result!.projection.nodes ?? {}).some(
-        (node) => node.props?.['text'] === 'Scene',
-      ),
-    ).toBe(true);
-    expect(
-      result!.projection.nodes?.[
-        'review_workbench_window__notification_center'
-      ],
-    ).toMatchObject({
-      penpot_review_source_path: notificationCenter,
-      penpot_review_source_node_id: 'root',
-      control_id: 'WorkbenchNotificationCenter',
+    const projected = Object.values(result!.projection.nodes ?? {});
+    const detailsTitle = projected.find(
+      (node) => node.control_id === 'UnrealDetailsDockTitle',
+    )!;
+    expect(detailsTitle).toMatchObject({
+      penpot_review_source_path: 'zircon_editor/assets/ui/editor/unreal/components/details.zui',
+      penpot_review_source_node_id: 'title',
     });
-    const settingsWindowProjection =
-      result!.projection.nodes?.['review_workbench_window__settings_window'];
-    expect(settingsWindowProjection).toMatchObject({
-      penpot_review_source_path:
-        'zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui',
-      penpot_review_source_node_id: 'preferences',
-    });
-    expect(
-      JSON.parse(
-        settingsWindowProjection?.['penpot_review_instance_path'] as string,
-      ),
-    ).toEqual([
-      { sourcePath: editorMainFrame, sourceNodeId: 'active_window_host_slot' },
-      { sourcePath: workbenchShell, sourceNodeId: 'body' },
-      { sourcePath: workbenchWindow, sourceNodeId: 'settings_window' },
-    ]);
-    expect(
-      Object.values(result!.projection.nodes ?? {}).some(
-        (node) => node.component === 'Slot',
-      ),
-    ).toBe(false);
+    expect(projected.some((node) => node.control_id === 'UnrealRightDock')).toBe(true);
+    expect(projected.some((node) => node.component === 'Slot')).toBe(false);
+    expect(projected.some((node) => node.control_id === 'WorkbenchNotificationCenter')).toBe(false);
     expect(normalizeZuiDocument(mainFrameSource)).toEqual(before);
-    const original = {
-      ...mainFrameSource,
-      penpot_review_host: result!.projection,
-    };
-    expect(
-      normalizeZuiDocument(
-        reconcileReviewSource(
-          original,
-          cloneProjectionSnapshot(projectZuiDocument(reviewHost(original)!)),
-        ).document,
-      ),
-    ).toEqual(normalizeZuiDocument(original));
-    // Loading and parsing every source dependency is deliberately real-host
-    // work.  Keep the test bounded while allowing Windows I/O contention.
+    const original = { ...mainFrameSource, penpot_review_host: result!.projection };
+    expect(normalizeZuiDocument(reconcileReviewSource(
+      original, cloneProjectionSnapshot(projectZuiDocument(reviewHost(original)!)),
+    ).document)).toEqual(normalizeZuiDocument(original));
   }, 120_000);
 
   it('allows a view consumer to carry an explicit design review host', () => {
@@ -510,5 +481,60 @@ describe('component slot review host', () => {
     };
 
     expect(reviewHost(source)?.asset.kind).toBe('view');
+  });
+});
+
+describe('actual consumed Unreal Header source projection', () => {
+  it('uses authored used slots and live captions/state, restores slots, and rejects source drift', async () => {
+    const { createHash } = await import('node:crypto');
+    const { prepareUnrealDockHeaderViews, UNREAL_DOCK_HEADER_SOURCE } =
+      await import('../../tools/zui-layout-unreal-dock-headers');
+    const header = parseZuiDocument(await readFile(repo + '/' + UNREAL_DOCK_HEADER_SOURCE, 'utf8')).document;
+    const paths = [UNREAL_DOCK_HEADER_SOURCE, 'zircon_editor/assets/ui/editor/unreal/starship.zui',
+      'zircon_editor/assets/ui/editor/theme/editor_tokens.zui'];
+    const sourceFingerprints = await Promise.all(paths.map(async (sourcePath) => ({
+      sourcePath, sha256: createHash('sha256').update(await readFile(repo + '/' + sourcePath)).digest('hex'),
+    })));
+    // Unit observations are fixture inputs, never normal-frame acceptance evidence.
+    const observation = (count: number) => {
+      const document = cloneZuiDocument(header);
+      document.nodes!['dock_tab_strip'].children = document.nodes!['dock_tab_strip'].children!.slice(0, count);
+      const erase = (id: string): void => {
+        for (const child of document.nodes![id].children ?? []) erase(child.node);
+        delete document.nodes![id];
+      };
+      for (let index = count; index < 3; index++) erase('dock_tab_group_' + index);
+      for (let index = 0; index < count; index++) {
+        for (const id of ['dock_tab_group_' + index, 'dock_tab_' + index])
+          document.nodes![id].props = { ...document.nodes![id].props, selected: index === 0,
+            surface_variant: index === 0 ? 'inset' : 'transparent', text_tone: index === 0 ? 'default' : 'subtle' };
+        document.nodes!['dock_tab_' + index].props!['text'] = 'Actual long caption ' + index;
+      }
+      const frame = { x: 0, y: 0, width: 900, height: 31 };
+      return { kind: 'document', surfaceKey: 'fixture-document', assetId: header.asset.id,
+        sourcePath: UNREAL_DOCK_HEADER_SOURCE, sourceDocument: document, viewport: { width: 900, height: 31 },
+        mount: { region: frame, header: frame }, sourceFingerprints,
+        rows: Object.entries(document.nodes!).map(([id, node]) => ({
+          controlId: node.control_id, sourcePath: UNREAL_DOCK_HEADER_SOURCE, sourceNodeId: id, instancePath: [],
+          role: node.component, text: node.props?.['text'] ?? '', selected: node.props?.['selected'] === true,
+          hovered: false, pressed: false, disabled: false, frame, renderRef: null,
+        })),
+      };
+    };
+    const one = observation(1);
+    const first = (await prepareUnrealDockHeaderViews(repo, { dockHeaders: [one] }))[0].document;
+    expect(first.nodes!['dock_tab_strip'].children).toHaveLength(1);
+    expect(first.nodes!['dock_tab_group_1']).toBeUndefined();
+    expect(first.nodes!['dock_tab_0'].props?.['text']).toBe('Actual long caption 0');
+    expect(first.nodes!['dock_tab_0'].props?.['selected']).toBe(true);
+    expect(first.nodes!['dock_tab_0']['penpot_review_source_path']).toBe(UNREAL_DOCK_HEADER_SOURCE);
+    expect(first.nodes!['dock_tab_0']['penpot_review_source_node_id']).toBe('dock_tab_0');
+    expect(first.nodes!['dock_tab_0']['penpot_review_instance_path']).toBe('[]');
+    const restored = (await prepareUnrealDockHeaderViews(repo, { dockHeaders: [observation(3)] }))[0].document;
+    expect(restored.nodes!['dock_tab_strip'].children).toHaveLength(3);
+    expect(restored.nodes!['dock_tab_2'].props?.['text']).toBe('Actual long caption 2');
+    one.sourceDocument.nodes!['dock_tab_group_0'].layout!['width'] = { min: 1, max: 2 };
+    await expect(prepareUnrealDockHeaderViews(repo, { dockHeaders: [one] }))
+      .rejects.toThrow('differs from the current authored');
   });
 });

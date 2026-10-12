@@ -53,9 +53,18 @@ fn submitted_binding_retains_disabled_property_identity_and_physical_lines() {
         prepared_this_present: true,
         retained_cache_copy_bytes: 0,
         draw_list_generation: None,
+        font_collection_id: Some(42),
+        font_collection_generation: Some(7),
         runs: vec![zircon_runtime::rhi::UiSurfaceTextLayoutRun {
             command_index: 1,
             text: "Readonly".into(),
+            requested: Some(zircon_runtime::rhi::UiSurfaceTextRequest {
+                font_family: Some("Roboto".into()),
+                font_weight: 650,
+                font_style: "normal".into(),
+                font_size: 18.0,
+                line_height: 24.0,
+            }),
             clip: zircon_runtime::rhi::UiSurfaceRect::new(12.0, 30.0, 90.0, 30.0),
             lines: vec![zircon_runtime::rhi::UiSurfaceTextLine {
                 original_line_text: "Readonly".into(),
@@ -75,6 +84,10 @@ fn submitted_binding_retains_disabled_property_identity_and_physical_lines() {
     assert_eq!(result["runs"][0]["lines"][0]["frame"]["x"], 12.75);
     assert_eq!(result["paintControls"][0]["disabled"], true);
     assert_eq!(result["presentedFrameCount"], 7);
+    assert_eq!(result["fontCollectionId"], 42);
+    assert_eq!(result["fontCollectionGeneration"], 7);
+    assert_eq!(result["runs"][0]["requested"]["font_weight"], 650);
+    assert_eq!(result["runs"][0]["requested"]["font_style"], "normal");
     // This observation path does not construct or modify any hit grid.
 }
 #[test]
@@ -272,25 +285,48 @@ fn actual_workbench_publication_reaches_shared_painter_source_table() {
         .iter()
         .filter(|node| node.source_surface_frame.is_some())
     {
+        let published = projection
+            .nodes
+            .iter()
+            .find(|published| {
+                published.node_id == node.node_id.as_str()
+                    && published.control_id.as_deref() == Some(node.control_id.as_str())
+            })
+            .expect("converted control has one actual published node owner");
+        let frame = published
+            .source_surface_frame
+            .as_ref()
+            .expect("published node retains its immutable source frame");
         assert!(Arc::ptr_eq(
             node.source_surface_frame.as_ref().unwrap(),
-            source
+            frame
         ));
+        // Sparse publications keep unchanged nodes in their original immutable
+        // frame; command ownership is checked against each node's exact owner.
+        assert_eq!(frame.tree_id, source.tree_id);
+        assert!(frame.generation <= source.generation);
         let owner_ref = node.surface_render_command_ref.unwrap();
-        let range = source
+        let arranged = frame.arranged_tree.get(owner_ref.node_id).unwrap();
+        assert_eq!(arranged.node_path.0, node.node_id.as_str());
+        assert_eq!(
+            arranged.control_id.as_deref(),
+            Some(node.control_id.as_str())
+        );
+        let range = frame
             .render_extract
             .command_range(owner_ref.node_id)
             .unwrap();
         assert!(range.contains(&(range.start + owner_ref.node_command_index as usize)));
-        assert!(source.render_extract.command_by_ref(owner_ref).is_some());
+        assert!(frame.render_extract.command_by_ref(owner_ref).is_some());
     }
     assert!(
-        nodes.iter().any(|node| node
-            .surface_render_command_ref
-            .is_some_and(|reference| source
-                .render_extract
-                .command_range(reference.node_id)
-                .is_some_and(|range| range.start > 0))),
+        nodes.iter().any(
+            |node| node.surface_render_command_ref.is_some_and(|reference| node
+                .source_surface_frame
+                .as_ref()
+                .and_then(|frame| frame.render_extract.command_range(reference.node_id))
+                .is_some_and(|range| range.start > 0))
+        ),
         "real publication has nonzero global command range"
     );
     let presentation = HostWindowPresentationData {

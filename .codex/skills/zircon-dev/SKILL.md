@@ -1,6 +1,6 @@
 ---
 name: zircon-dev
-description: Edit ZirconEngine Rust code or Cargo configuration, and select scoped native validation when it is due.
+description: Edit ZirconEngine Rust code or Cargo configuration, keep engine paths short, and select scoped validation when due.
 ---
 
 # Zircon Dev
@@ -13,6 +13,7 @@ Inspect the current Cargo manifest and touched code to identify ownership. `zirc
 
 | Operation | Guidance |
 | --- | --- |
+| Name, rename or audit engine files and folders | [Path naming](path-names.md) |
 | Edit Rust modules or organize tests | [Editing guide](workflow/guide.md); select its relevant references |
 | Change subsystem ownership or a shared public boundary | [Architecture](../zircon-project-skills/zr-architecture-first-engineering/SKILL.md) |
 | Run Cargo or report a build/test result | [Validation](validation/guide.md) |

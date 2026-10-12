@@ -2,6 +2,7 @@ mod activity_window_layout;
 mod atomic_text_overflow;
 mod button_text_overflow;
 mod command_palette_density;
+mod details_inheritance;
 mod dialog_density;
 mod document_attachment;
 mod drawer_attachment;

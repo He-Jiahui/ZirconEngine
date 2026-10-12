@@ -1,3 +1,4 @@
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use crate::ui::retained_host::app::{HostInvalidationMask, RetainedEditorHost};
 use crate::ui::retained_host::ui_perf::{
     current_ui_perf_scenario, record_current_ui_perf_counter, UiPerfCounter, UiPerfScenario,
@@ -25,6 +26,7 @@ fn record_ui_dirty_mask(mask: HostInvalidationMask) {
 }
 
 impl RetainedEditorHost {
+    #[track_caller]
     pub(in crate::ui::retained_host::app) fn invalidate_host(
         &mut self,
         mask: HostInvalidationMask,
@@ -32,6 +34,7 @@ impl RetainedEditorHost {
         self.invalidate_host_for_scope(None, mask);
     }
 
+    #[track_caller]
     pub(in crate::ui::retained_host::app) fn invalidate_host_for_view(
         &mut self,
         view: &ViewInstanceId,
@@ -41,11 +44,15 @@ impl RetainedEditorHost {
     }
 
     // 保留目标 pane 与失效原因，供重算阶段尝试复用已提交布局；兼容旧 dirty 标志以维持帧提交时机。
+    #[track_caller]
     pub(in crate::ui::retained_host::app) fn invalidate_host_for_shell_content(
         &mut self,
         scope: HostShellContentScope,
         mask: HostInvalidationMask,
     ) {
+        capture_trace::record("shell_content_invalidation", || {
+            format!("mask={} scope={scope:?} cursor={:?}", mask.summary(), self.ui.get_host_presentation_generation().cursor())
+        });
         self.capture_pending_ui_perf_scenario();
         record_ui_dirty_mask(mask);
         self.invalidation.invalidate_shell_content(scope, mask);
@@ -64,11 +71,15 @@ impl RetainedEditorHost {
         }
     }
 
+    #[track_caller]
     fn invalidate_host_for_scope(
         &mut self,
         view: Option<&ViewInstanceId>,
         mask: HostInvalidationMask,
     ) {
+        capture_trace::record("host_invalidation", || {
+            format!("mask={} view_scoped={} cursor={:?}", mask.summary(), view.is_some(), self.ui.get_host_presentation_generation().cursor())
+        });
         self.capture_pending_ui_perf_scenario();
         record_ui_dirty_mask(mask);
         if let Some(view) = view {

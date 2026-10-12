@@ -1,7 +1,7 @@
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{mpsc, Arc, Barrier, Condvar, Mutex};
 use std::thread::ThreadId;
 use std::time::{Duration, Instant};
 
@@ -112,7 +112,7 @@ impl ConfigFileWriterForTest for RecordingWriter {
             if self
                 .failures_remaining
                 .fetch_update(Ordering::AcqRel, Ordering::Acquire, |remaining| {
-                    (remaining > 0).then_some(remaining - 1)
+                    (remaining > 0).then(|| remaining - 1)
                 })
                 .is_ok()
             {
@@ -333,6 +333,171 @@ fn identical_config_values_do_not_advance_the_dirty_generation() {
     assert_eq!(report.persisted_generation, 1);
     assert_eq!(report.flush_attempts, 1);
     assert_eq!(writer.writes().len(), 1);
+}
+
+#[test]
+fn equal_set_flush_waits_for_an_in_progress_publication() {
+    #[derive(Debug)]
+    enum PublicationEvent {
+        Published,
+        Contended,
+        Completed(Result<Value, String>),
+    }
+
+    const KEY: &str = "runtime.publication";
+    let root = unique_temp_root("public_set_flush_barrier");
+    std::fs::create_dir_all(&root).unwrap();
+    let path = root.join("config.json");
+    std::fs::write(&path, br#"{"runtime.publication":0}"#).unwrap();
+    let runtime = CoreRuntime::new();
+    let manager =
+        DefaultConfigManager::new_with_file_path(&runtime.handle(), path.clone()).unwrap();
+    let (events_tx, events_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let published_tx = events_tx.clone();
+    let contended_tx = events_tx.clone();
+    manager.install_publication_test_hooks(
+        move || {
+            published_tx.send(PublicationEvent::Published).unwrap();
+            // Dropping the controller also releases A if the test unwinds.
+            let _ = release_rx.recv();
+        },
+        move || {
+            contended_tx.send(PublicationEvent::Contended).unwrap();
+        },
+    );
+
+    let first_manager = manager.clone();
+    let first = std::thread::spawn(move || first_manager.set_value(KEY, json!(1)));
+    let publication_event = events_rx.recv_timeout(TEST_FLUSH_TIMEOUT);
+    let published_memory = manager.get_value(KEY);
+    let published_report = manager.persistence_report();
+    let pending_disk = std::fs::read(&path)
+        .map_err(|error| error.to_string())
+        .and_then(|bytes| {
+            serde_json::from_slice::<Value>(&bytes).map_err(|error| error.to_string())
+        });
+
+    let equal_manager = manager.clone();
+    let equal = std::thread::spawn(move || {
+        let result = (|| {
+            equal_manager
+                .set_value(KEY, json!(1))
+                .map_err(|error| error.to_string())?;
+            equal_manager
+                .flush(TEST_FLUSH_TIMEOUT)
+                .map_err(|error| error.to_string())?;
+            let bytes = std::fs::read(&path).map_err(|error| error.to_string())?;
+            serde_json::from_slice::<Value>(&bytes).map_err(|error| error.to_string())
+        })();
+        events_tx.send(PublicationEvent::Completed(result)).unwrap();
+    });
+
+    // This event is emitted only after B reaches the real, occupied publication mutex.
+    // Without that mutex B instead completes its public set/flush while A is still paused.
+    let gate_event = events_rx.recv_timeout(TEST_FLUSH_TIMEOUT);
+    let saw_contention = matches!(&gate_event, Ok(PublicationEvent::Contended));
+    let _ = release_tx.send(());
+    let first_result = first.join();
+    let equal_result = equal.join();
+    let completion = if saw_contention {
+        events_rx.recv_timeout(TEST_FLUSH_TIMEOUT)
+    } else {
+        gate_event
+    };
+    let final_report = manager.persistence_report();
+    drop(manager);
+    std::fs::remove_dir_all(root).unwrap();
+
+    // Release, join, and remove the fixture before asserting the interleaving.
+    first_result.unwrap().unwrap();
+    equal_result.unwrap();
+    assert!(matches!(publication_event, Ok(PublicationEvent::Published)));
+    assert_eq!(published_memory, Some(json!(1)));
+    assert_eq!(pending_disk.unwrap()[KEY], json!(0));
+    assert_eq!(published_report.dirty_generation, 0);
+    assert_eq!(published_report.persisted_generation, 0);
+    assert!(
+        saw_contention,
+        "the equal setter completed before A registered its dirty request: {completion:?}"
+    );
+    let document = match completion {
+        Ok(PublicationEvent::Completed(result)) => result.unwrap(),
+        event => panic!("expected the public equal-set flush result, got {event:?}"),
+    };
+    assert_eq!(document[KEY], json!(1));
+    assert_eq!(final_report.dirty_generation, 1);
+    assert_eq!(final_report.persisted_generation, 1);
+    assert_eq!(final_report.flush_attempts, 1);
+    assert_eq!(final_report.successful_writes, 1);
+    assert_eq!(final_report.failed_writes, 0);
+}
+
+#[test]
+fn concurrent_identical_config_values_advance_one_generation_per_change() {
+    const THREAD_COUNT: usize = 8;
+
+    let runtime = CoreRuntime::new();
+    let writer = Arc::new(RecordingWriter::default());
+    let manager = test_manager(&runtime, Arc::clone(&writer), LONG_TEST_DEBOUNCE);
+    let caller_thread = std::thread::current().id();
+
+    for revision in 1..=2_u64 {
+        let barrier = Arc::new(Barrier::new(THREAD_COUNT + 1));
+        let threads = (0..THREAD_COUNT)
+            .map(|_| {
+                let manager = manager.clone();
+                let barrier = Arc::clone(&barrier);
+                let value = json!({"revision": revision, "payload": "x".repeat(64 * 1024)});
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    manager.set_value("runtime.concurrent_same", value).unwrap();
+                })
+            })
+            .collect::<Vec<_>>();
+        barrier.wait();
+        for thread in threads {
+            thread.join().unwrap();
+        }
+
+        let pending = manager.persistence_report();
+        assert_eq!(pending.dirty_generation, revision);
+        assert_eq!(pending.persisted_generation, revision - 1);
+        assert_eq!(writer.writes().len(), (revision - 1) as usize);
+        manager.flush(TEST_FLUSH_TIMEOUT).unwrap();
+
+        let report = manager.persistence_report();
+        assert_eq!(report.dirty_generation, revision);
+        assert_eq!(report.persisted_generation, revision);
+        assert_eq!(report.flush_attempts, revision);
+        assert_eq!(report.successful_writes, revision);
+        assert_eq!(report.failed_writes, 0);
+        assert_eq!(
+            manager.get_value("runtime.concurrent_same"),
+            Some(json!({"revision": revision, "payload": "x".repeat(64 * 1024)}))
+        );
+    }
+
+    manager
+        .set_value(
+            "runtime.concurrent_same",
+            json!({"revision": 2, "payload": "x".repeat(64 * 1024)}),
+        )
+        .unwrap();
+    let report = manager.persistence_report();
+    assert_eq!(report.dirty_generation, 2);
+    assert_eq!(report.persisted_generation, 2);
+    assert_eq!(report.flush_attempts, 2);
+    let writes = writer.writes();
+    assert_eq!(writes.len(), 2);
+    for (index, write) in writes.iter().enumerate() {
+        assert_ne!(write.thread_id, caller_thread);
+        let document = serde_json::from_slice::<Value>(&write.bytes).unwrap();
+        assert_eq!(
+            document["runtime.concurrent_same"],
+            json!({"revision": index + 1, "payload": "x".repeat(64 * 1024)})
+        );
+    }
 }
 
 #[test]

@@ -15,13 +15,17 @@ impl RetainedEditorHost {
     ) -> Result<String, String> {
         let report = self
             .editor_manager
-            .set_native_aware_project_plugin_feature_enabled(
-                project_root,
-                manifest,
-                plugin_id,
-                feature_id,
-                enabled,
-            )?;
+            .enter()
+            .map_err(|error| error.to_string())
+            .and_then(|manager| {
+                manager.set_native_aware_project_plugin_feature_enabled(
+                    project_root,
+                    manifest,
+                    plugin_id,
+                    feature_id,
+                    enabled,
+                )
+            })?;
         let state = if report.enabled {
             "enabled"
         } else {
@@ -42,12 +46,16 @@ impl RetainedEditorHost {
     ) -> Result<String, String> {
         let report = self
             .editor_manager
-            .enable_native_aware_project_plugin_feature_dependencies(
-                project_root,
-                manifest,
-                plugin_id,
-                feature_id,
-            )?;
+            .enter()
+            .map_err(|error| error.to_string())
+            .and_then(|manager| {
+                manager.enable_native_aware_project_plugin_feature_dependencies(
+                    project_root,
+                    manifest,
+                    plugin_id,
+                    feature_id,
+                )
+            })?;
         Ok(feature_dependency_enable_message(&report))
     }
 }

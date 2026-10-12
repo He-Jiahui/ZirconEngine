@@ -8,7 +8,7 @@ use super::super::super::super::*;
 use super::super::super::fixtures::{TestDriver, TestManager};
 use crate::core::runtime::state::ModuleLifecycleCommand;
 use crate::core::runtime::ServiceObject;
-use crate::core::CoreError;
+use crate::core::{CoreError, ModuleCleanupContext};
 use crate::core::{
     CoreResult, LifecycleState, ModuleContext, ModuleLifecycle, ServiceKind, StartupMode,
 };
@@ -52,7 +52,7 @@ impl ModuleLifecycle for ActivationTransitionGate {
         Ok(())
     }
 
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         self.cleanup_calls.fetch_add(1, Ordering::SeqCst);
         if let Some(sender) = self.cleanup_started.lock().unwrap().take() {
             sender.send(()).unwrap();

@@ -122,3 +122,35 @@ fn unique_project_root() -> PathBuf {
         std::process::id()
     ))
 }
+
+// This one-shot, thread-local notice observes admission to the real FIFO gate. It never
+// blocks the authority mutex or changes physical lock scheduling.
+thread_local! {
+    static ADMISSION_OBSERVER: std::cell::RefCell<Option<std::sync::mpsc::Sender<()>>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+pub(crate) struct ProjectGenerationAdmissionObserver;
+
+impl ProjectGenerationAdmissionObserver {
+    pub(crate) fn new(sender: std::sync::mpsc::Sender<()>) -> Self {
+        ADMISSION_OBSERVER.with(|observer| {
+            assert!(observer.borrow_mut().replace(sender).is_none());
+        });
+        Self
+    }
+}
+
+impl Drop for ProjectGenerationAdmissionObserver {
+    fn drop(&mut self) {
+        ADMISSION_OBSERVER.with(|observer| *observer.borrow_mut() = None);
+    }
+}
+
+pub(super) fn observe_waiter_admission() {
+    ADMISSION_OBSERVER.with(|observer| {
+        if let Some(sender) = observer.borrow_mut().take() {
+            let _ = sender.send(());
+        }
+    });
+}

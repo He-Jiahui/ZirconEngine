@@ -4,14 +4,13 @@ use zircon_runtime::asset::{
     project_asset_manager_handle, ProjectAssetManagerAccess, ASSET_MODULE_NAME,
 };
 use zircon_runtime::core::framework::navigation::NavigationManager;
-use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::{ServiceObject, TASKS_MODULE_NAME};
 use zircon_runtime::core::{
     CoreError, DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
     ServiceKind, StartupMode,
 };
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name};
-use zircon_runtime::scene::SceneNavigationRuntimeHandle;
+use zircon_runtime::scene::{SceneNavigationRuntime, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME};
 
 mod agent;
 mod capability;
@@ -97,10 +96,14 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "DefaultNavigationRuntime",
         )],
         factory(|core| {
-            let manager = core.resolve_driver::<DefaultNavigationManager>(
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            core.register_service_alias::<DefaultNavigationManager, dyn SceneNavigationRuntime>(
                 DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME,
-            )?;
-            Ok(Arc::new(SceneNavigationRuntimeHandle::new(manager)) as ServiceObject)
+                ServiceKind::Driver,
+                SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+                ServiceKind::Driver,
+                |manager| manager,
+            )
         }),
     ))
     .with_manager(ManagerDescriptor::new(
@@ -116,13 +119,13 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "DefaultNavigationRuntime",
         )],
         factory(|core| {
-            let manager = core.resolve_driver::<DefaultNavigationManager>(
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            core.register_service_alias::<DefaultNavigationManager, dyn NavigationManager>(
                 DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME,
-            )?;
-            Ok(
-                Arc::new(RegisteredManagerService::<dyn NavigationManager>::new(
-                    manager,
-                )) as ServiceObject,
+                ServiceKind::Driver,
+                NAVIGATION_MANAGER_NAME,
+                ServiceKind::Manager,
+                |manager| manager,
             )
         }),
     ))

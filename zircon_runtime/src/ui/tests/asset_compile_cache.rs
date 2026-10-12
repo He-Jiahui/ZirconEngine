@@ -564,6 +564,30 @@ fn persistent_cache_round_trips_compiled_artifact_with_fingerprint_key() {
 }
 
 #[test]
+fn persistent_cache_preserves_historical_bincode_payload_record_bytes() {
+    // Frozen output from bincode 1.3.3 for the version-1 disk record.
+    const HISTORICAL: &[u8] = &[
+        1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 108, 101, 103, 97, 99, 121, 42, 0, 0, 0, 0, 0, 0, 0, 5,
+        0, 0, 0, 7, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 65, 0, 255,
+    ];
+    let temp_dir = persistent_cache_temp_dir("historical_payload_record");
+    let key = UiCompiledArtifactKey::new("legacy", 42, 5, 7);
+    let payload = [0x41, 0x00, 0xff];
+    let store = UiCompiledArtifactStore::new(temp_dir.clone());
+    let path = store.store_payload_bytes(&key, &payload).unwrap();
+    assert_eq!(std::fs::read(&path).unwrap(), HISTORICAL);
+
+    // Read a historical record through a new cache instance, independently
+    // of the current encoder, then verify that its old identity can be evicted.
+    std::fs::write(&path, HISTORICAL).unwrap();
+    let reopened = UiCompiledArtifactStore::new(temp_dir.clone());
+    assert_eq!(reopened.load_payload_bytes(&key).unwrap().unwrap(), payload);
+    assert_eq!(reopened.evict_asset("legacy").unwrap().files_removed, 1);
+    assert!(reopened.load_payload_bytes(&key).unwrap().is_none());
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
 fn persistent_cache_misses_stale_schema_compiler_and_fingerprint_keys() {
     let temp_dir = persistent_cache_temp_dir("stale_keys");
     let document = UiAssetLoader::load_toml_str(SIMPLE_LAYOUT_A).unwrap();

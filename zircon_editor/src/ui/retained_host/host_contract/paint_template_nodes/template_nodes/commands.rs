@@ -62,7 +62,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
             // Keep their surface and text slot, and reuse shared edit feedback.
             if let Some(text_index) = (command_start..commands.len())
                 .rev()
-                .find(|index| commands[*index].text.is_some())
+                .find(|index| commands[*index].text.is_some()
+                    && super::super::template_fields::is_field_value_text_command(
+                        node, &rect, &commands[*index].frame,
+                    ))
             {
                 let focus = focused_input.unwrap();
                 commands[text_index].text = Some(focus.value_text.to_string());
@@ -78,7 +81,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
                     }
                     commands.push(caret);
                 }
-            } else {
+            } else if !super::super::template_fields::field_has_label_lane(node) {
                 let text_order = commands[command_start..]
                     .iter()
                     .map(|command| command.z_index)

@@ -84,7 +84,7 @@ pub enum WriteError {
         schema_id: String,
         schema_version: u32,
         #[source]
-        source: bincode::Error,
+        source: super::PositionalEncodeError,
     },
     #[error(
         "schema {schema_id} version {schema_version} binary body exceeds the {max}-byte wire limit"

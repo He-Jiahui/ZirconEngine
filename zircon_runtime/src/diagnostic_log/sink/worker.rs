@@ -9,10 +9,12 @@ use crossbeam_channel::{
     bounded, Receiver, RecvTimeoutError, SendTimeoutError, Sender, TrySendError,
 };
 
-use super::super::settings::DiagnosticLogSinkSettings;
-use super::super::timestamp::current_log_timestamp;
-use super::diagnostic_log_line;
+use super::super::settings::{DiagnosticLogSinkSettings, DEFAULT_DIAGNOSTIC_LOG_BATCH_BYTES};
+use super::super::timestamp::{
+    append_current_log_timestamp_prefix, write_current_log_timestamp_prefix,
+};
 use super::metrics::{DiagnosticLogSinkSnapshot, SinkMetrics};
+use super::{append_diagnostic_log_line, write_diagnostic_log_line};
 use crate::core::runtime::tasks::thread_is_join_ready;
 use crate::diagnostic_log::DiagnosticLogLevel;
 
@@ -48,9 +50,31 @@ impl Drop for ActiveSenderGuard<'_> {
 
 struct LogRecord {
     level: DiagnosticLogLevel,
-    scope: String,
-    message: String,
+    text: String,
+    scope_len: usize,
     enqueued_at: Instant,
+}
+
+impl LogRecord {
+    fn new(level: DiagnosticLogLevel, scope: &str, message: &str) -> Self {
+        let mut text = String::with_capacity(scope.len().saturating_add(message.len()));
+        text.push_str(scope);
+        text.push_str(message);
+        Self {
+            level,
+            text,
+            scope_len: scope.len(),
+            enqueued_at: Instant::now(),
+        }
+    }
+
+    fn scope(&self) -> &str {
+        &self.text[..self.scope_len]
+    }
+
+    fn message(&self) -> &str {
+        &self.text[self.scope_len..]
+    }
 }
 
 enum SinkCommand {
@@ -144,12 +168,7 @@ impl SinkRuntime {
         }
 
         let message = message();
-        let command = SinkCommand::Record(LogRecord {
-            level,
-            scope: scope.to_owned(),
-            message: message.as_ref().to_owned(),
-            enqueued_at: Instant::now(),
-        });
+        let command = SinkCommand::Record(LogRecord::new(level, scope, message.as_ref()));
         let accepted = match self.sender.try_send(command) {
             Ok(()) => {
                 self.metrics.observe_queue_depth(self.sender.len());
@@ -306,10 +325,20 @@ fn run_sink_worker(
     );
     let mut pending_bytes = 0usize;
     let mut flush_deadline = None;
+    let mut encoding_buffer = Vec::new();
+    let encoding_retention_limit = settings
+        .max_batch_bytes
+        .min(DEFAULT_DIAGNOSTIC_LOG_BATCH_BYTES);
 
     loop {
         if flush_deadline.is_some_and(|deadline| Instant::now() >= deadline) {
-            flush_pending(&mut outputs, &mut pending, &metrics);
+            flush_pending(
+                &mut outputs,
+                &mut pending,
+                &metrics,
+                &mut encoding_buffer,
+                encoding_retention_limit,
+            );
             pending_bytes = 0;
             flush_deadline = None;
             continue;
@@ -331,7 +360,13 @@ fn run_sink_worker(
                 if !pending.is_empty()
                     && pending_bytes.saturating_add(record_bytes) > settings.max_batch_bytes
                 {
-                    flush_pending(&mut outputs, &mut pending, &metrics);
+                    flush_pending(
+                        &mut outputs,
+                        &mut pending,
+                        &metrics,
+                        &mut encoding_buffer,
+                        encoding_retention_limit,
+                    );
                     pending_bytes = 0;
                     flush_deadline = None;
                 }
@@ -345,32 +380,62 @@ fn run_sink_worker(
                     || settings.flush_interval.is_zero()
                     || flush_deadline.is_some_and(|deadline| Instant::now() >= deadline)
                 {
-                    flush_pending(&mut outputs, &mut pending, &metrics);
+                    flush_pending(
+                        &mut outputs,
+                        &mut pending,
+                        &metrics,
+                        &mut encoding_buffer,
+                        encoding_retention_limit,
+                    );
                     pending_bytes = 0;
                     flush_deadline = None;
                 }
             }
             Ok(SinkCommand::Flush(acknowledged)) => {
-                flush_pending(&mut outputs, &mut pending, &metrics);
+                flush_pending(
+                    &mut outputs,
+                    &mut pending,
+                    &metrics,
+                    &mut encoding_buffer,
+                    encoding_retention_limit,
+                );
                 let result = sync_outputs(&mut outputs, &metrics);
                 pending_bytes = 0;
                 flush_deadline = None;
                 let _ = acknowledged.send(result);
             }
             Ok(SinkCommand::Shutdown(acknowledged)) => {
-                flush_pending(&mut outputs, &mut pending, &metrics);
+                flush_pending(
+                    &mut outputs,
+                    &mut pending,
+                    &metrics,
+                    &mut encoding_buffer,
+                    encoding_retention_limit,
+                );
                 let result = sync_outputs(&mut outputs, &metrics);
                 metrics.mark_closed();
                 let _ = acknowledged.send(result);
                 return;
             }
             Err(RecvTimeoutError::Timeout) => {
-                flush_pending(&mut outputs, &mut pending, &metrics);
+                flush_pending(
+                    &mut outputs,
+                    &mut pending,
+                    &metrics,
+                    &mut encoding_buffer,
+                    encoding_retention_limit,
+                );
                 pending_bytes = 0;
                 flush_deadline = None;
             }
             Err(RecvTimeoutError::Disconnected) => {
-                flush_pending(&mut outputs, &mut pending, &metrics);
+                flush_pending(
+                    &mut outputs,
+                    &mut pending,
+                    &metrics,
+                    &mut encoding_buffer,
+                    encoding_retention_limit,
+                );
                 let _ = sync_outputs(&mut outputs, &metrics);
                 metrics.mark_closed();
                 return;
@@ -379,17 +444,97 @@ fn run_sink_worker(
     }
 }
 
-fn flush_pending(outputs: &mut SinkOutputs, pending: &mut Vec<LogRecord>, metrics: &SinkMetrics) {
+fn flush_pending(
+    outputs: &mut SinkOutputs,
+    pending: &mut Vec<LogRecord>,
+    metrics: &SinkMetrics,
+    buffer: &mut Vec<u8>,
+    retained_byte_limit: usize,
+) {
+    flush_pending_with_timestamp(
+        outputs,
+        pending,
+        metrics,
+        buffer,
+        retained_byte_limit,
+        || {
+            let mut prefix = TimestampPrefix::default();
+            write_current_log_timestamp_prefix(&mut prefix)
+                .expect("writing a diagnostic log timestamp to fixed storage");
+            prefix
+        },
+    );
+}
+
+fn flush_pending_with_timestamp<F>(
+    outputs: &mut SinkOutputs,
+    pending: &mut Vec<LogRecord>,
+    metrics: &SinkMetrics,
+    buffer: &mut Vec<u8>,
+    retained_byte_limit: usize,
+    prepare_timestamp: F,
+) where
+    F: FnOnce() -> TimestampPrefix,
+{
     if pending.is_empty() {
         return;
     }
 
     let record_count = pending.len();
-    let mut buffer = Vec::with_capacity(pending.iter().map(estimated_record_bytes).sum::<usize>());
-    let timestamp = current_log_timestamp();
-    for record in pending.drain(..) {
-        let line = diagnostic_log_line(&timestamp, record.level, &record.scope, &record.message);
-        buffer.extend_from_slice(line.as_bytes());
+    buffer.clear();
+    let estimated_bytes = pending.iter().fold(0usize, |total, record| {
+        total.saturating_add(estimated_record_bytes(record))
+    });
+    let prepared_timestamp = if estimated_bytes > retained_byte_limit {
+        Some(prepare_timestamp())
+    } else {
+        None
+    };
+    if let Some(prefix) = prepared_timestamp.as_ref() {
+        let encoded_bytes = encoded_pending_bytes(pending, prefix.as_bytes()).unwrap_or(usize::MAX);
+        if encoded_bytes > retained_byte_limit || encoded_bytes == usize::MAX {
+            let failed = if outputs.console_enabled {
+                let stderr = io::stderr().lock();
+                flush_oversized_pending(
+                    Some(stderr),
+                    outputs.file.as_deref_mut(),
+                    pending,
+                    (prefix.as_bytes(), encoded_bytes),
+                    retained_byte_limit,
+                    metrics,
+                    buffer,
+                )
+            } else {
+                flush_oversized_pending(
+                    None::<io::Sink>,
+                    outputs.file.as_deref_mut(),
+                    pending,
+                    (prefix.as_bytes(), encoded_bytes),
+                    retained_byte_limit,
+                    metrics,
+                    buffer,
+                )
+            };
+            outputs.failed |= failed;
+            return;
+        }
+    }
+
+    buffer.reserve_exact(estimated_bytes.min(retained_byte_limit));
+    let timestamp_prefix_start = buffer.len();
+    if let Some(prefix) = prepared_timestamp.as_ref() {
+        buffer.extend_from_slice(prefix.as_bytes());
+    } else {
+        append_current_log_timestamp_prefix(buffer);
+    }
+    let timestamp_prefix_len = buffer.len() - timestamp_prefix_start;
+    for (index, record) in pending.drain(..).enumerate() {
+        if index != 0 {
+            buffer.extend_from_within(
+                timestamp_prefix_start..timestamp_prefix_start + timestamp_prefix_len,
+            );
+        }
+        append_diagnostic_log_line(buffer, record.level, record.scope(), record.message());
     }
 
     let mut configured_outputs = 0usize;
@@ -397,7 +542,7 @@ fn flush_pending(outputs: &mut SinkOutputs, pending: &mut Vec<LogRecord>, metric
     if outputs.console_enabled {
         configured_outputs += 1;
         let mut stderr = io::stderr().lock();
-        if stderr.write_all(&buffer).is_err() || stderr.flush().is_err() {
+        if stderr.write_all(buffer.as_slice()).is_err() || stderr.flush().is_err() {
             metrics.record_output_error();
             outputs.failed = true;
         } else {
@@ -406,7 +551,7 @@ fn flush_pending(outputs: &mut SinkOutputs, pending: &mut Vec<LogRecord>, metric
     }
     if let Some(file) = outputs.file.as_mut() {
         configured_outputs += 1;
-        if file.write_all(&buffer).is_err() || file.flush().is_err() {
+        if file.write_all(buffer.as_slice()).is_err() || file.flush().is_err() {
             metrics.record_output_error();
             outputs.failed = true;
         } else {
@@ -418,6 +563,176 @@ fn flush_pending(outputs: &mut SinkOutputs, pending: &mut Vec<LogRecord>, metric
         buffer.len(),
         configured_outputs != 0 && configured_outputs == successful_outputs,
     );
+    buffer.clear();
+    if buffer.capacity() > retained_byte_limit {
+        // An oversized accepted record must not pin its temporary encoding allocation.
+        *buffer = Vec::new();
+    }
+}
+
+// The signed i32 year takes at most 11 bytes; the other prefix fields take 18.
+#[derive(Default)]
+struct TimestampPrefix {
+    bytes: [u8; 32],
+    len: usize,
+}
+
+impl TimestampPrefix {
+    fn as_bytes(&self) -> &[u8] {
+        &self.bytes[..self.len]
+    }
+}
+
+impl std::fmt::Write for TimestampPrefix {
+    fn write_str(&mut self, value: &str) -> std::fmt::Result {
+        let end = self
+            .len
+            .checked_add(value.len())
+            .filter(|&end| end <= self.bytes.len())
+            .ok_or(std::fmt::Error)?;
+        self.bytes[self.len..end].copy_from_slice(value.as_bytes());
+        self.len = end;
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+struct EncodedByteCounter(usize);
+
+impl Write for EncodedByteCounter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.0 = self
+            .0
+            .checked_add(bytes.len())
+            .ok_or_else(|| io::Error::other("diagnostic log encoded size overflow"))?;
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+fn encoded_pending_bytes(pending: &[LogRecord], prefix: &[u8]) -> io::Result<usize> {
+    let mut counter = EncodedByteCounter::default();
+    for record in pending {
+        counter.write_all(prefix)?;
+        write_diagnostic_log_line(&mut counter, record.level, record.scope(), record.message())?;
+    }
+    Ok(counter.0)
+}
+
+#[derive(Clone, Copy)]
+enum OutputChunkMode {
+    Utf8,
+    RawBytes,
+}
+
+struct BoundedOutput<'a, W: Write + ?Sized> {
+    output: &'a mut W,
+    byte_limit: usize,
+    mode: OutputChunkMode,
+    written_bytes: usize,
+}
+
+impl<W: Write + ?Sized> Write for BoundedOutput<'_, W> {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        let mut end = bytes.len().min(self.byte_limit);
+        if matches!(self.mode, OutputChunkMode::Utf8) {
+            // Formatter pieces are valid UTF-8. Windows console writes must keep scalars whole.
+            while end != 0 && end < bytes.len() && bytes[end] & 0xc0 == 0x80 {
+                end -= 1;
+            }
+            if end == 0 && !bytes.is_empty() {
+                // A scalar wider than the unchanged limit is borrowed whole, at most four bytes.
+                end = 1;
+                while end < bytes.len() && bytes[end] & 0xc0 == 0x80 {
+                    end += 1;
+                }
+            }
+        }
+        let written = self.output.write(&bytes[..end])?;
+        self.written_bytes = self
+            .written_bytes
+            .checked_add(written)
+            .ok_or_else(|| io::Error::other("diagnostic log encoded size overflow"))?;
+        Ok(written)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.output.flush()
+    }
+}
+
+fn write_pending_bounded<W: Write + ?Sized>(
+    output: &mut W,
+    pending: &[LogRecord],
+    prefix: &[u8],
+    byte_limit: usize,
+    mode: OutputChunkMode,
+) -> io::Result<usize> {
+    // Runtime settings normalize the existing byte limit to at least one.
+    debug_assert!(byte_limit != 0);
+    let mut output = BoundedOutput {
+        output,
+        byte_limit,
+        mode,
+        written_bytes: 0,
+    };
+    for record in pending {
+        output.write_all(prefix)?;
+        write_diagnostic_log_line(&mut output, record.level, record.scope(), record.message())?;
+    }
+    output.flush()?;
+    Ok(output.written_bytes)
+}
+
+fn flush_oversized_pending<C: Write, F: Write + ?Sized>(
+    console: Option<C>,
+    file: Option<&mut F>,
+    pending: &mut Vec<LogRecord>,
+    encoded: (&[u8], usize),
+    byte_limit: usize,
+    metrics: &SinkMetrics,
+    buffer: &mut Vec<u8>,
+) -> bool {
+    let (prefix, encoded_bytes) = encoded;
+    let mut configured_outputs = 0usize;
+    let mut successful_outputs = 0usize;
+    if let Some(mut console) = console {
+        configured_outputs += 1;
+        if write_pending_bounded(
+            &mut console,
+            pending,
+            prefix,
+            byte_limit,
+            OutputChunkMode::Utf8,
+        )
+        .is_err()
+        {
+            metrics.record_output_error();
+        } else {
+            successful_outputs += 1;
+        }
+    }
+    if let Some(file) = file {
+        configured_outputs += 1;
+        if write_pending_bounded(file, pending, prefix, byte_limit, OutputChunkMode::RawBytes)
+            .is_err()
+        {
+            metrics.record_output_error();
+        } else {
+            successful_outputs += 1;
+        }
+    }
+    metrics.record_batch(
+        pending.len(),
+        encoded_bytes,
+        configured_outputs != 0 && configured_outputs == successful_outputs,
+    );
+    pending.clear();
+    *buffer = Vec::new();
+    configured_outputs != successful_outputs
 }
 
 fn sync_outputs(outputs: &mut SinkOutputs, metrics: &SinkMetrics) -> io::Result<()> {
@@ -445,9 +760,14 @@ fn sync_outputs(outputs: &mut SinkOutputs, metrics: &SinkMetrics) -> io::Result<
 
 fn estimated_record_bytes(record: &LogRecord) -> usize {
     record
-        .scope
-        .len()
-        .saturating_add(record.message.len().saturating_mul(2))
+        .scope_len
+        .saturating_add(
+            record
+                .text
+                .len()
+                .saturating_sub(record.scope_len)
+                .saturating_mul(2),
+        )
         .saturating_add(64)
 }
 
@@ -460,3 +780,11 @@ fn deadline_after(duration: Duration) -> Instant {
 fn remaining(deadline: Instant) -> Duration {
     deadline.saturating_duration_since(Instant::now())
 }
+
+#[cfg(test)]
+#[path = "worker/batch_buffer_tests.rs"]
+mod batch_buffer_tests;
+
+#[cfg(test)]
+#[path = "worker/oversized_encoding_tests.rs"]
+mod oversized_encoding_tests;

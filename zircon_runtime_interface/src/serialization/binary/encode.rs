@@ -1,8 +1,7 @@
-use bincode::Options;
 use serde_json::Value;
 
 use crate::serialization::text::canonical::canonicalize_value;
-use crate::serialization::{PayloadHeader, WriteError};
+use crate::serialization::{PayloadHeader, PositionalEncodeError, WriteError};
 
 use super::envelope::BinaryEnvelope;
 use super::value::BinaryValue;
@@ -24,13 +23,11 @@ pub(in crate::serialization) fn encode_binary_payload(
     })?;
     match encode_binary_value(header, value) {
         Ok(bytes) => Ok(bytes),
-        Err(source) if matches!(source.as_ref(), bincode::ErrorKind::SizeLimit) => {
-            Err(WriteError::BinaryPayloadTooLarge {
-                schema_id,
-                schema_version,
-                max: MAX_BINARY_BODY_BYTES,
-            })
-        }
+        Err(PositionalEncodeError::SizeLimit { .. }) => Err(WriteError::BinaryPayloadTooLarge {
+            schema_id,
+            schema_version,
+            max: MAX_BINARY_BODY_BYTES,
+        }),
         Err(source) => Err(WriteError::BinaryEncode {
             schema_id,
             schema_version,
@@ -42,11 +39,9 @@ pub(in crate::serialization) fn encode_binary_payload(
 pub(in crate::serialization) fn encode_binary_value(
     header: PayloadHeader,
     payload: BinaryValue,
-) -> bincode::Result<Vec<u8>> {
+) -> Result<Vec<u8>, PositionalEncodeError> {
     let envelope = BinaryEnvelope { header, payload };
-    let body = options()
-        .with_limit(MAX_BINARY_BODY_BYTES as u64)
-        .serialize(&envelope)?;
+    let body = options().encode_bounded(&envelope, MAX_BINARY_BODY_BYTES as u64)?;
     let mut bytes = Vec::with_capacity(BINARY_PREFIX_LEN + body.len());
     append_prefix(&mut bytes);
     bytes.extend_from_slice(&body);

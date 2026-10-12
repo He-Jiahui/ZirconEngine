@@ -84,6 +84,28 @@ impl ResourceRegistry {
     pub fn descriptors(&self) -> &[ResourceDescriptor] {
         &self.descriptors
     }
+
+    /// Keep IDs used by retained native access metadata; staged resources are
+    /// stored by TypeId, so newly staged registry entries can be assigned here.
+    pub(in crate::scene) fn retain_staged_metadata(&mut self, staged: &Self) {
+        for descriptor in &staged.descriptors {
+            match &descriptor.source {
+                ResourceDescriptorSource::RustType { type_id } => {
+                    if self.ids_by_type.contains_key(type_id) {
+                        continue;
+                    }
+                    let id = ResourceId::new(self.descriptors.len());
+                    self.ids_by_type.insert(*type_id, id);
+                    let mut descriptor = descriptor.clone();
+                    descriptor.id = id;
+                    self.descriptors.push(descriptor);
+                }
+                ResourceDescriptorSource::ExternalNative { stable_id } => {
+                    self.external_resource_id(stable_id);
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]

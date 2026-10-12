@@ -22,6 +22,7 @@ from .paths import resolve_paths
 from .spec import load_spec, JenkinsError
 from .manager import DeploymentManager
 from ..state import State
+from ..state.atomic import atomic_json
 from tools.jenkins.processes.identity import current_identity, identity_from_popen, process_alive
 from .driver import active_driver_binding, runtime_agent_name
 from ..processes.job import NativeJob
@@ -32,10 +33,7 @@ from uuid import uuid4
 
 
 def _atomic(path: Path, value: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(value, sort_keys=True, indent=2), encoding="utf-8")
-    tmp.replace(path)
+    atomic_json(path, value)
 
 
 class LifecycleHost:
@@ -69,29 +67,26 @@ class LifecycleHost:
         value = {"status": "starting", "identity": self.job.identity.to_dict(), "agentLaunchAttempted": False,
                  "hostPid": os.getpid(), "startedAt": time.time(), "operationId": self.operation_id,
                  "generation": self.operation_id}
-        self._save(value)
-        headers = self._auth_headers()
-        if not wait_for_health(f"http://{self.spec.controller['listenAddress']}:{self.spec.controller['httpPort']}", 300,
-                               headers=headers, process=self.job):
-            self._save({**value, "status": "failed", "reasonCode": "health_timeout"})
-            try:
-                self.job.wait(timeout_seconds=30)
-            except TimeoutError:
-                # A controller that ignored its endpoint failure may still
-                # own descendants.  Retain the NativeJob handle and request
-                # its whole-tree termination before publishing any receipt.
-                proof = self.job.terminate(timeout_seconds=30)
-            else:
-                proof = self.job.proof(requested=False)
-            self._save({**value, "status": "failed", "nativeTerminationProof": proof.to_dict()})
-            self.job.close(); self.job = None
-            raise JenkinsError("controller_health_timeout", "controller did not become healthy")
         try:
+            self._save(value)
+            headers = self._auth_headers()
+            if not wait_for_health(f"http://{self.spec.controller['listenAddress']}:{self.spec.controller['httpPort']}", 300,
+                                   headers=headers, process=self.job):
+                raise JenkinsError("controller_health_timeout", "controller did not become healthy")
             manager = DeploymentManager(self.spec, self.paths, self.java, self.war)
             manager.bootstrap()
             manager.register_jobs()
             if os.environ.get("ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY") != "1":
                 self._start_agent()
+            value["controllerIdentity"] = self.job.identity.to_dict()
+            value["agentIdentity"] = self.agent_job.identity.to_dict() if self.agent_job else None
+            value["agentLaunchAttempted"] = self.agent_launch_attempted
+            value["controlPlaneOnly"] = os.environ.get("ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY") == "1"
+            value["status"] = "running"
+            value["healthProof"] = {"controller": True, "agent": self.agent_job is not None,
+                                    "ready": self.agent_job is not None}
+            self._save(value)
+            return value
         except Exception as exc:
             # Startup is all-or-nothing.  Never leave a controller running when
             # bootstrap or the inbound-agent handshake fails; persist both
@@ -127,21 +122,20 @@ class LifecycleHost:
                     self.job.close()
                 finally:
                     self.job = None
-            self._save({**value, "status": "failed", "reasonCode": getattr(exc, "code", "startup_failed"),
-                        "nativeTerminationProof": controller_proof,
-                        "agentTerminationProof": agent_proof})
+            failure = {**value, "status": "failed", "reasonCode": getattr(exc, "code", "startup_failed"),
+                       "nativeTerminationProof": controller_proof,
+                       "agentTerminationProof": agent_proof}
+            try:
+                self._save(failure)
+            except OSError:
+                # If the pointer itself remains locked, preserve the actual
+                # owned-job proofs in a new exclusive record before exiting.
+                fallback = self.root / ("startup-failed-" + self.operation_id + "-" + uuid4().hex + ".json")
+                with fallback.open("x", encoding="utf-8") as stream:
+                    json.dump({**failure, "stateRecordUncommitted": True}, stream, sort_keys=True, indent=2)
+                    stream.flush()
+                    os.fsync(stream.fileno())
             raise
-        value["controllerIdentity"] = self.job.identity.to_dict()
-        value["agentIdentity"] = self.agent_job.identity.to_dict() if self.agent_job else None
-        value["agentLaunchAttempted"] = self.agent_launch_attempted
-        value["controlPlaneOnly"] = os.environ.get("ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY") == "1"
-        # A control-plane recovery serves the UI/API while the agent and
-        # execution broker remain stopped. Do not mark full runtime readiness.
-        value["status"] = "running"
-        value["healthProof"] = {"controller": True, "agent": self.agent_job is not None,
-                                "ready": self.agent_job is not None}
-        self._save(value)
-        return value
 
     def _auth_headers(self) -> dict[str, str]:
         value = json.loads((self.paths.state / "credentials.json").read_text(encoding="utf-8"))
@@ -296,6 +290,35 @@ class LifecycleHost:
         if not self.launch_state.exists():
             return
         state = State(self.launch_state)
+        launches = state.list("execution_launch")
+        operation_id = getattr(self, "operation_id", None)
+        pending = bool(self._launches) or not isinstance(operation_id, str) or not operation_id
+        for row in launches:
+            payload = row.get("payload")
+            if not isinstance(payload, dict):
+                pending = True
+                continue
+            status = payload.get("status")
+            if status in {"exited", "failed", "cancelled"}:
+                continue
+            if status not in {"requested", "launching", "started"}:
+                pending = True
+                continue
+            execution_id = payload.get("executionId")
+            execution = state.get("execution", execution_id) if isinstance(execution_id, str) and execution_id else None
+            ep = execution.get("payload") if isinstance(execution, dict) else None
+            driver = ep.get("driver") if isinstance(ep, dict) else None
+            # This read only avoids idle verification. Ambiguous work still
+            # reaches the original complete driver and native admission gates.
+            complete = (isinstance(driver, dict)
+                        and all(isinstance(payload.get(name), str) and payload[name]
+                                for name in ("operationId", "generation", "driverDigest"))
+                        and driver.get("digest") == payload.get("driverDigest")
+                        and matches_binding(payload, ep, payload["driverDigest"], payload["operationId"]))
+            if not complete or payload["operationId"] == operation_id:
+                pending = True
+        if not pending:
+            return
         manager = DeploymentManager(self.spec, self.paths, self.java, self.war)
         try:
             driver_env = manager._driver_env()
@@ -319,7 +342,7 @@ class LifecycleHost:
         expected_python = (self.paths.repo / ".jenkins/runtime/python/python.exe").absolute()
         if Path(python).absolute() != expected_python or not expected_python.is_file():
             return
-        for row in state.list("execution_launch"):
+        for row in launches:
             payload = row["payload"]
             key = row["key"]
             status = payload.get("status")
@@ -408,14 +431,17 @@ class LifecycleHost:
                 host = state.get("execution_host", key)
                 if host:
                     hp = host["payload"]
-                    if (str(hp.get("operationId")) != str(payload.get("operationId"))
-                            or str(hp.get("generation")) != str(payload.get("generation"))):
-                        state.put("execution_launch", key, {**payload, "status": "failed", "reasonCode": "host_binding_mismatch"}, expected_version=row["version"])
-                        continue
-                    if hp.get("nativeJobId") and payload.get("nativeHostUUID") != hp.get("nativeJobId"):
-                        state.put("execution_launch", key, {**payload, "nativeHostUUID": hp.get("nativeJobId"),
-                                   "nativeHostIdentity": {"hostPid": hp.get("hostPid"), "hostBirthToken": hp.get("hostBirthToken")}}, expected_version=row["version"])
-                        payload = {**payload, "nativeHostUUID": hp.get("nativeJobId")}
+                    if not self._execution_host_matches_launch(key, payload, hp):
+                        raise JenkinsError("host_binding_mismatch", "Execution host does not match its owned launch")
+                    native_identity = {"hostPid": hp["hostPid"], "hostBirthToken": hp["hostBirthToken"]}
+                    if hp.get("nativeJobId") and (payload.get("nativeHostUUID") != hp.get("nativeJobId")
+                                                  or payload.get("nativeHostIdentity") != native_identity):
+                        row = state.put("execution_launch", key, {**payload, "nativeHostUUID": hp.get("nativeJobId"),
+                                        "nativeHostIdentity": native_identity},
+                                        expected_version=row["version"])
+                        # The next CAS must use this new version and preserve
+                        # the full identity just committed to durable state.
+                        payload = row["payload"]
                 handle = self._launches.get(key)
                 if handle and handle[0].poll() is not None:
                     proc, registry = handle
@@ -427,17 +453,29 @@ class LifecycleHost:
                     guard = registry.record_terminal(proc)
                     if not guard.payload.get("completeProof"):
                         continue
-                    proc.close(); self._launches.pop(key, None)
+                    if not self._execution_guard_matches_launch(key, payload, proc, guard):
+                        raise JenkinsError("execution_guard_identity_mismatch", "Terminal guard does not match its owned launch")
                     failed_host = not host or host["payload"].get("status") not in {"terminal", "cancelled"}
-                    if failed_host:
-                        state.put("execution_abort", key, {"executionId": key,
-                            "guardNativeJobId": guard.native_job_id,
-                            "proofDigest": digest(guard.payload["completeProof"]),
-                            "outcome": "failed", "artifactPublicationAllowed": False})
-                    if not host:
-                        state.put("execution_launch", key, {**payload, "status": "failed", "reasonCode": "launch_ambiguous"}, expected_version=row["version"])
-                    else:
-                        state.put("execution_launch", key, {**payload, "status": "exited", "exitCode": exit_code, "exitedAt": time.time()}, expected_version=row["version"])
+                    with state.transaction() as connection:
+                        fresh_execution = state.get("execution", execution_id, connection=connection)
+                        fresh_host = state.get("execution_host", key, connection=connection)
+                        if (not fresh_execution or not matches_binding(payload, fresh_execution["payload"], selected_digest, selected_operation)
+                                or fresh_host != host):
+                            raise JenkinsError("state_conflict", "Execution or host changed before launch finalization", retryable=True)
+                        if not host:
+                            final = {**payload, "status": "failed", "reasonCode": "launch_ambiguous"}
+                        else:
+                            final = {**payload, "status": "exited", "exitCode": exit_code, "exitedAt": time.time()}
+                        state.put("execution_launch", key, final, expected_version=row["version"], connection=connection)
+                        if failed_host:
+                            state.put("execution_abort", key, {"executionId": key,
+                                "guardNativeJobId": guard.native_job_id,
+                                "proofDigest": digest(guard.payload["completeProof"]),
+                                "outcome": "failed", "artifactPublicationAllowed": False}, connection=connection)
+                    # Keep the native handle through every durable write. A
+                    # CAS conflict leaves it available for the next tick.
+                    proc.close()
+                    self._launches.pop(key, None)
                 elif not handle:
                     # After a broker restart, an existing launcher can be
                     # observed by its durable PID/birth identity.  If it is
@@ -446,6 +484,47 @@ class LifecycleHost:
                     alive = process_alive(int(lp.get("pid", 0) or 0)) if lp.get("pid") else False
                     if alive is False and not host:
                         state.put("execution_launch", key, {**payload, "status": "failed", "reasonCode": "launch_ambiguous"}, expected_version=row["version"])
+
+    @staticmethod
+    def _execution_host_matches_launch(key: str, payload: dict, host: dict) -> bool:
+        launcher = payload.get("launcherIdentity")
+        if not isinstance(launcher, dict):
+            return False
+        identity = {"hostPid": host.get("hostPid"), "hostBirthToken": host.get("hostBirthToken")}
+        return all((
+            payload.get("executionId") == key,
+            host.get("executionId") == key,
+            host.get("operationId") == payload.get("operationId"),
+            host.get("generation") == payload.get("generation"),
+            type(identity["hostPid"]) is int and identity["hostPid"] > 0,
+            identity["hostPid"] == launcher.get("pid"),
+            isinstance(identity["hostBirthToken"], str) and bool(identity["hostBirthToken"]),
+            identity["hostBirthToken"] == launcher.get("creationTime"),
+            payload.get("nativeHostIdentity") in (None, identity),
+        ))
+
+    @staticmethod
+    def _execution_guard_matches_launch(key: str, payload: dict, proc: NativeJob, guard) -> bool:
+        identity = proc.identity.to_dict()
+        gp = guard.payload
+        proof = gp.get("completeProof")
+        return all((
+            payload.get("executionId") == key,
+            payload.get("launcherIdentity") == identity,
+            payload.get("guardNativeJobId") == guard.native_job_id,
+            guard.execution_id == key,
+            guard.owner == key,
+            gp.get("nativeJobId") == guard.native_job_id,
+            gp.get("executionId") == key,
+            gp.get("owner") == key,
+            gp.get("role") == "execution_host_guard",
+            gp.get("pid") == identity["pid"],
+            gp.get("birthToken") == identity["creationTime"],
+            gp.get("executable") == identity["executable"],
+            isinstance(proof, dict) and proof.get("complete") is True,
+            isinstance(proof, dict) and proof.get("identity") == identity,
+            gp.get("terminalProof") == proof,
+        ))
 
     @staticmethod
     def _execution_launch_binding(payload: dict, execution: dict, selected_digest: str,
@@ -473,6 +552,15 @@ class LifecycleHost:
                 return
             for request in sorted(self.commands.glob("*.json")):
                 if request.name.endswith(".result.json"):
+                    continue
+                # A result file is the durable acknowledgement for this
+                # command.  Once it exists, the command has already been
+                # observed by a lifecycle host (possibly an earlier host
+                # generation), so never replay the request or replace its
+                # original proof on restart.
+                result_path = request.with_suffix(".result.json")
+                if result_path.exists():
+                    seen.add(request.name)
                     continue
                 if request.name in seen:
                     continue

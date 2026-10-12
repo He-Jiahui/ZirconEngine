@@ -42,7 +42,7 @@ fn websocket_feature_manager_is_the_canonical_net_manager_authority() {
         )
         .unwrap();
     assert!(
-        zircon_runtime::core::framework::net::NetManager::backend_name(canonical.as_ref())
+        zircon_runtime::core::framework::net::NetManager::backend_name(&*canonical)
             .contains("+websocket"),
         "module activation must install WebSocket before the feature manager is resolved"
     );
@@ -52,9 +52,9 @@ fn websocket_feature_manager_is_the_canonical_net_manager_authority() {
         )
         .unwrap();
 
-    assert!(std::sync::Arc::ptr_eq(&canonical, &feature));
+    assert!(std::ptr::eq(&*canonical, &*feature));
     assert!(
-        zircon_runtime::core::framework::net::NetManager::backend_name(canonical.as_ref())
+        zircon_runtime::core::framework::net::NetManager::backend_name(&*canonical)
             .contains("+websocket")
     );
 }

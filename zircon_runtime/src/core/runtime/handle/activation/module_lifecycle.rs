@@ -1,7 +1,9 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use crate::core::{CoreError, LifecycleState, ModuleContext, ModuleLifecycle};
+use crate::core::{
+    CoreError, LifecycleState, ModuleCleanupContext, ModuleContext, ModuleLifecycle,
+};
 
 use super::super::super::descriptors::RegistryName;
 use super::super::CoreHandle;
@@ -59,7 +61,8 @@ impl CoreHandle {
     }
 
     pub(super) fn cleanup_module(&self, module_name: &str) -> Result<(), CoreError> {
-        let (lifecycle, context) = self.module_lifecycle_context(module_name)?;
+        let (lifecycle, _) = self.module_lifecycle_context(module_name)?;
+        let context = ModuleCleanupContext::new(self, module_name)?;
         lifecycle.cleanup(&context)
     }
 
@@ -68,7 +71,8 @@ impl CoreHandle {
         module_name: &str,
         deadline: Instant,
     ) -> Result<(), CoreError> {
-        let (lifecycle, context) = self.module_lifecycle_context(module_name)?;
+        let (lifecycle, _) = self.module_lifecycle_context(module_name)?;
+        let context = ModuleCleanupContext::new(self, module_name)?;
         lifecycle.cleanup_until(&context, deadline)
     }
 
@@ -88,6 +92,7 @@ impl CoreHandle {
             if let Some(entry) = services.get_mut(service_name) {
                 if entry.lifecycle == LifecycleState::Running
                     || entry.lifecycle == LifecycleState::Initializing
+                    || entry.lifecycle == LifecycleState::Stopping
                 {
                     if let Some(instance) = entry.reset_after_failed_activation() {
                         retired.push((module_name.to_owned(), service_name.to_string(), instance));

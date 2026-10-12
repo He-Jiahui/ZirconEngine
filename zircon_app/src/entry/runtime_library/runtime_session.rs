@@ -3,6 +3,7 @@ use std::path::Path;
 use std::slice;
 use std::sync::Arc;
 
+#[cfg(feature = "diagnostic-log")]
 use zircon_runtime::diagnostic_log::write_log;
 use zircon_runtime_host::foreign_output::{
     profile_control_response_item_count, RuntimeOwnedOutputReleaser,
@@ -11,14 +12,15 @@ use zircon_runtime_host::viewport_surface::ViewportSurfaceBindings;
 use zircon_runtime_interface::project::RelPath;
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeModuleCompositionReceiptV1;
 use zircon_runtime_interface::{
-    validate_runtime_frame_rgba_shape, ProfileControlRequest, ProfileControlResponse, ZrByteSlice,
-    ZrOwnedResultV2, ZrRuntimeAppSessionConfigurationV2, ZrRuntimeBindViewportSurfaceRequestV1,
-    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2,
-    ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimePluginEventDeliveryBatchV1,
-    ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscribeRequestV1,
-    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
+    validate_runtime_frame_rgba_shape, GatewaySessionIdentity, ProfileControlRequest,
+    ProfileControlResponse, ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAppSessionConfigurationV2,
+    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
+    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
+    ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
+    ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
@@ -50,10 +52,20 @@ use owned_buffer::{
 };
 use request_encoding::encode_runtime_request;
 
+#[cfg(not(feature = "diagnostic-log"))]
+fn write_log(module: &str, message: impl AsRef<str>) {
+    tracing::info!(
+        module,
+        message = message.as_ref(),
+        "runtime session diagnostic"
+    );
+}
+
 pub(crate) struct RuntimeSession {
     runtime: Option<LoadedRuntime>,
     creator_thread: std::thread::ThreadId,
     handle: ZrRuntimeSessionHandle,
+    gateway_identity: GatewaySessionIdentity,
     module_composition_receipt: Option<ZrRuntimeModuleCompositionReceiptV1>,
     wake_registration: Option<RuntimeWakeRegistration>,
     viewport_surface_bindings: Arc<ViewportSurfaceBindings>,
@@ -65,6 +77,10 @@ impl RuntimeSession {
     pub(in crate::entry) fn creator_thread(&self) -> std::thread::ThreadId {
         self.creator_thread
     }
+    pub(crate) fn gateway_identity(&self) -> GatewaySessionIdentity {
+        self.gateway_identity.clone()
+    }
+
     #[cfg(feature = "target-editor-host")]
     pub(crate) fn editor_gateway(
         self: &Arc<Self>,
@@ -78,10 +94,11 @@ impl RuntimeSession {
             .map_err(zircon_editor::core::gateway::GatewayError::from)?;
         let owner: Arc<dyn Send + Sync> = self.clone();
         let gateway = unsafe {
-            zircon_editor::core::gateway::SessionGateway::new(
+            zircon_editor::core::gateway::SessionGateway::new_with_identity(
                 owner,
                 self.runtime().editor_gateway_api_table(),
                 self.handle,
+                self.gateway_identity(),
                 capabilities,
                 self.foreign_output.clone(),
             )?
@@ -112,6 +129,9 @@ impl RuntimeSession {
         let mut handle = ZrRuntimeSessionHandle::invalid();
         let project_root =
             project_root_for_abi(project_root).map_err(RuntimeSessionCreateFailure::from)?;
+        let project_identity = project_root
+            .filter(|root| !root.is_empty())
+            .map(Arc::<str>::from);
         let project_root = project_root
             .filter(|root| !root.is_empty())
             .map(|root| ZrByteSlice {
@@ -155,10 +175,13 @@ impl RuntimeSession {
                 RuntimeLibraryError::new("runtime returned an invalid session handle").into(),
             );
         }
+        let gateway_identity =
+            GatewaySessionIdentity::new(runtime.runtime_instance(), handle, 1, project_identity);
         let mut session = Self {
             runtime: Some(runtime),
             creator_thread: std::thread::current().id(),
             handle,
+            gateway_identity,
             module_composition_receipt: None,
             wake_registration,
             viewport_surface_bindings: Arc::new(ViewportSurfaceBindings::default()),

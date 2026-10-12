@@ -4,12 +4,12 @@
 use std::any::Any;
 use std::error::Error;
 use std::fmt;
-use std::sync::Arc;
 use std::time::Duration;
 
 use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
 use zircon_runtime::core::{
-    CoreError, CoreHandle, CoreRuntime, ModuleDescriptor, TimePolicyError, TimePolicyTransaction,
+    CoreError, CoreHandle, CoreRuntime, ModuleDescriptor, ServiceCallGuard, TimePolicyError,
+    TimePolicyTransaction,
 };
 use zircon_runtime::plugin::{
     RuntimeExtensionCatalogReport, RuntimeExtensionRegistryError, RuntimePlugin,
@@ -153,7 +153,10 @@ impl TestRuntime {
         &self.activated_modules
     }
 
-    pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>> {
+    pub fn resolve_manager<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceCallGuard<T>> {
         self.runtime
             .resolve_manager(name)
             .map_err(|source| TestRuntimeError::Core {

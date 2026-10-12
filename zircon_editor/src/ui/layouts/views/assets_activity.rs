@@ -12,7 +12,8 @@ use crate::ui::retained_host::primitives::ModelRc;
 #[cfg(feature = "profiling")]
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 use crate::ui::workbench::asset_content_layout::{
-    asset_content_paint_metadata, AssetContentPaintNodeInput, AssetContentSurface,
+    asset_content_paint_metadata, ActivityAssetVirtualization, AssetContentPaintNodeInput,
+    AssetContentRect, AssetContentSurface, ACTIVITY_CONTENT_PANEL_CONTROL_ID,
 };
 use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -161,23 +162,44 @@ pub(crate) fn assets_activity_pane_data(
         };
     };
     let render_source_frame = projection.source_frame();
-    let generation = AssetWorkspaceProjectionGeneration::from_snapshot(snapshot);
+    // Resizing changes the materialized slot budget and retained viewport metadata.
+    let generation = (
+        AssetWorkspaceProjectionGeneration::from_snapshot(snapshot),
+        size.width.to_bits(),
+        size.height.to_bits(),
+    );
     let nodes = compose_view_template_node_model(
         "assets_activity.template_composition",
         projection,
         &generation,
         |nodes| {
-            append_assets_activity_content_nodes(nodes, snapshot);
+            apply_assets_activity_responsive_layout(nodes, snapshot, size);
+            let panel = nodes
+                .iter()
+                .find(|node| node.control_id == ACTIVITY_CONTENT_PANEL_CONTROL_ID)
+                .map(|node| AssetContentRect {
+                    x: node.frame.x,
+                    y: node.frame.y,
+                    width: node.frame.width,
+                    height: node.frame.height,
+                })
+                .unwrap_or(AssetContentRect {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 0.0,
+                    height: 0.0,
+                });
+            let virtual_rows = ActivityAssetVirtualization::new(snapshot, panel);
+            append_assets_activity_content_nodes(nodes, snapshot, &virtual_rows);
             if snapshot.utility_tab == AssetUtilityTab::References {
                 sync_assets_activity_reference_nodes(nodes, snapshot);
             }
             apply_assets_activity_kind_filter_state(nodes, snapshot.kind_filter);
             apply_assets_activity_visual_state(nodes, snapshot);
-            apply_assets_activity_responsive_layout(nodes, snapshot, size);
             if snapshot.utility_tab == AssetUtilityTab::References {
                 apply_assets_activity_reference_layout(nodes);
             }
-            apply_assets_activity_content_layout(nodes, snapshot);
+            apply_assets_activity_content_layout(nodes, snapshot, &virtual_rows);
 
             let metadata = asset_content_paint_metadata(
                 nodes.iter().map(|node| {
@@ -197,7 +219,7 @@ pub(crate) fn assets_activity_pane_data(
                 UiPerfCounter::AssetContentGenerationIdentityParseCount,
                 metadata.identity_parse_count() as f64,
             );
-            metadata
+            metadata.with_activity_virtual_rows(virtual_rows)
         },
     );
     AssetsActivityPaneViewData {

@@ -12,6 +12,7 @@ use zr_rhi::{
 mod batching;
 mod color_space;
 mod external_image_copy;
+mod frame_readback;
 mod geometry;
 mod image_cache;
 mod pipeline;
@@ -82,9 +83,26 @@ impl WgpuUiSurfaceCompletionOwner {
 /// The context is deliberately made of cloned WGPU handles rather than raw native pointers.
 /// Its creator must keep the instance, adapter, device, and queue from one negotiated backend;
 /// that invariant makes imported render products and UI sampling use the same WGPU device.
+
+/// Actual device completion and existing request-delivery owner supplied by the backend.
+/// External surfaces never acquire raw device poll authority through this contract.
+pub type WgpuUiSurfaceDiagnosticReceiptCallback =
+    Box<dyn FnOnce(zr_rhi::DiagnosticReadbackReceipt, Option<Vec<u8>>) + Send + 'static>;
+pub trait WgpuUiSurfaceDiagnosticCompletionOwner: Send + Sync {
+    fn register_receipt_callback(
+        &self,
+        admission: zr_rhi::DiagnosticReadbackAdmission,
+        callback: WgpuUiSurfaceDiagnosticReceiptCallback,
+    ) -> Result<bool, zr_rhi::RhiError>;
+    fn cancel_receipt_callback(&self, request: zr_rhi::DiagnosticReadbackRequestId);
+    /// One nonblocking operation by the existing backend completion owner.
+    fn drain_once(&self) -> Result<zr_rhi::SubmissionPollReceipt, zr_rhi::RhiError>;
+}
+
 #[derive(Clone)]
 pub struct WgpuUiSurfaceContext {
     completion_owner: WgpuUiSurfaceCompletionOwner,
+    diagnostic_completion_owner: Option<Arc<dyn WgpuUiSurfaceDiagnosticCompletionOwner>>,
     shared_image_registry: Arc<WgpuUiSharedImageRegistry>,
     render_device: Arc<WgpuRenderDevice>,
     queue: wgpu::Queue,
@@ -104,6 +122,7 @@ impl WgpuUiSurfaceContext {
     ) -> Self {
         Self {
             completion_owner: WgpuUiSurfaceCompletionOwner::External,
+            diagnostic_completion_owner: None,
             shared_image_registry,
             render_device,
             queue,
@@ -111,6 +130,14 @@ impl WgpuUiSurfaceContext {
             adapter,
             instance,
         }
+    }
+
+    pub fn with_diagnostic_completion_owner(
+        mut self,
+        owner: Arc<dyn WgpuUiSurfaceDiagnosticCompletionOwner>,
+    ) -> Self {
+        self.diagnostic_completion_owner = Some(owner);
+        self
     }
 
     fn with_local_completion_owner(mut self) -> Self {
@@ -542,6 +569,28 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         }
         Some(snapshot)
     }
+    fn request_frame_readback(
+        &mut self,
+        request: zr_rhi::UiSurfaceFrameReadbackRequest,
+    ) -> Result<(), RhiError> {
+        match &mut self.backend {
+            WgpuUiSurfaceBackend::Native(renderer) => renderer.request_frame_readback(request),
+            _ => Err(RhiError::SurfaceUnavailable(
+                "normal GPU surface readback unsupported".into(),
+            )),
+        }
+    }
+    fn drain_frame_readback(&mut self) -> Result<Option<zr_rhi::UiSurfaceFrameReadback>, RhiError> {
+        match &mut self.backend {
+            WgpuUiSurfaceBackend::Native(renderer) => renderer.drain_frame_readback(),
+            _ => Ok(None),
+        }
+    }
+    fn cancel_frame_readback(&mut self, reason: &str) {
+        if let WgpuUiSurfaceBackend::Native(renderer) = &mut self.backend {
+            renderer.cancel_frame_readback(reason);
+        }
+    }
     fn last_present_stats(&self) -> UiSurfacePresentStats {
         self.last_stats
     }
@@ -637,6 +686,11 @@ struct WgpuUiSurfaceRenderer {
     compiled_draw_buffers: WgpuUiDrawBufferCache,
     damage_draw_op_candidates: Vec<usize>,
     present_index: u64,
+    surface_epoch: u64,
+    diagnostic_completion_owner: Option<Arc<dyn WgpuUiSurfaceDiagnosticCompletionOwner>>,
+    frame_readback: Option<frame_readback::PendingFrameReadback>,
+    consumed_readback_nonces: Vec<String>,
+    native_target: Option<zr_rhi::RenderNativeSurfaceTarget>,
     queue: wgpu::Queue,
     device: wgpu::Device,
     _adapter: wgpu::Adapter,
@@ -743,6 +797,11 @@ impl WgpuUiSurfaceRenderer {
             compiled_draw_buffers: WgpuUiDrawBufferCache::default(),
             damage_draw_op_candidates: Vec::new(),
             present_index: 0,
+            surface_epoch: 0,
+            diagnostic_completion_owner: context.diagnostic_completion_owner,
+            frame_readback: None,
+            consumed_readback_nonces: Vec::new(),
+            native_target: descriptor.target,
             queue: context.queue,
             device: context.device,
             _adapter: context.adapter,
@@ -751,6 +810,8 @@ impl WgpuUiSurfaceRenderer {
     }
 
     fn resize(&mut self, size: (u32, u32)) -> Result<(), RhiError> {
+        self.cancel_frame_readback("normal surface was resized");
+        self.surface_epoch = self.surface_epoch.saturating_add(1);
         let size = (size.0.max(1), size.1.max(1));
         self.config.width = size.0;
         self.config.height = size.1;
@@ -772,6 +833,46 @@ impl WgpuUiSurfaceRenderer {
             packet.retain_ui_image_pins(pins);
         }
         self.render_device.submit_native_recording_packet(packet)
+    }
+    fn submit_present_command_buffer_with_diagnostics(
+        &self,
+        command_buffer: wgpu::CommandBuffer,
+        image_allocation_pins: Option<WgpuUiImageInFlightPins>,
+        frame: crate::WgpuNativeDiagnosticReadbackFrame,
+    ) -> Result<SubmissionTicket, RhiError> {
+        let mut recording = match self
+            .render_device
+            .begin_native_recording(RenderQueueClass::Graphics)
+        {
+            Ok(recording) => recording,
+            Err(error) => {
+                // This opaque frame still owns tracker.active_frame until the device binds it.
+                // Another scene begin is rejected by that existing tracker, so cancel only it.
+                self.render_device
+                    .abort_prepared_native_diagnostic_readback_frame(frame);
+                return Err(error);
+            }
+        };
+        recording.extend_recorded_command_buffers([command_buffer]);
+        let mut packet = match recording.finish() {
+            Ok(packet) => packet,
+            Err(error) => {
+                self.render_device
+                    .abort_prepared_native_diagnostic_readback_frame(frame);
+                return Err(error);
+            }
+        };
+        if let Some(pins) = image_allocation_pins {
+            packet.retain_ui_image_pins(pins);
+        }
+        self.render_device
+            .submit_native_recording_packet_with_diagnostics(packet, Some(frame))
+    }
+}
+
+impl Drop for WgpuUiSurfaceRenderer {
+    fn drop(&mut self) {
+        self.cancel_frame_readback("normal surface presenter closed or replaced");
     }
 }
 

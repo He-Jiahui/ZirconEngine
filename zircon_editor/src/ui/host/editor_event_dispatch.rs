@@ -61,6 +61,8 @@ impl EventRecordPolicy {
 #[derive(Debug, Error)]
 pub enum EditorEventBindingDispatchError {
     #[error(transparent)]
+    CoreService(#[from] zircon_runtime::core::CoreError),
+    #[error(transparent)]
     UiBinding(#[from] EditorUiBindingError),
     #[error(transparent)]
     OperationPath(#[from] EditorOperationPathError),
@@ -106,9 +108,8 @@ impl EditorHostEventController {
             EventRecordPolicy::Durable,
             move |controller, _| {
                 let changed = controller
-                    .shell()
-                    .lock()
-                    .manager
+                    .enter_editor_manager()
+                    .map_err(|source| EditorEventExecutionError::Layout { source })?
                     .close_views_with_discard(&window_id, &instance_ids, &discard)
                     .map_err(|source| EditorEventExecutionError::Layout { source })?;
                 Ok(ExecutionOutcome {
@@ -287,7 +288,22 @@ impl EditorHostEventController {
             }
         };
 
-        let (transaction_id, save_generation) = self.authoring_trace(&event, execution.changed());
+        let mut authoring_trace_error = None;
+        let mut result_override = result_override;
+        let (transaction_id, save_generation) =
+            match self.authoring_trace(&event, execution.changed()) {
+                Ok(trace) => trace,
+                Err(error) => {
+                    let message = error.to_string();
+                    self.shell().lock().state.set_status_line_with_level(
+                        message.clone(),
+                        EditorConsoleMessageLevel::Error,
+                    );
+                    result_override = Some(EditorEventResult::failure(message));
+                    authoring_trace_error = Some(error);
+                    (None, None)
+                }
+            };
         let record = EditorEventRecord {
             event_id: stamp.event_id,
             sequence: stamp.sequence,
@@ -315,7 +331,15 @@ impl EditorHostEventController {
             self.publish_scene_inspection_publication();
         }
         self.refresh_workbench_for_event_record(&record);
-        emit_mvp_authoring_product_trace(self.context().logs(), &record, "completed");
+        emit_mvp_authoring_product_trace(
+            self.context().logs(),
+            &record,
+            if authoring_trace_error.is_some() {
+                "failed"
+            } else {
+                "completed"
+            },
+        );
         let journal_record = if record_policy.retain_result_in_journal() {
             record.clone()
         } else {
@@ -327,45 +351,53 @@ impl EditorHostEventController {
             journal_record
         };
         self.context().events().record(journal_record);
+        if let Some(source) = authoring_trace_error {
+            emit_failed_event_log(self.context().logs(), &record);
+            return Err(EditorEventExecutionError::Animation { source }.into());
+        }
         Ok(record)
     }
 
-    fn authoring_trace(&self, event: &EditorEvent, changed: bool) -> (Option<u64>, Option<u64>) {
-        let transactions = self.context().transactions();
-        let scene_history_context = self.shell().lock().state.active_scene_history_context();
-        match event {
-            EditorEvent::Inspector(_) if changed => (
-                scene_history_context
-                    .and_then(|history| transactions.history_status(history).ok())
-                    .and_then(|history| history.top.map(|transaction| transaction.raw())),
-                None,
-            ),
-            EditorEvent::Animation(event)
-                if changed && animation_event_commits_document_transaction(event) =>
-            {
-                (
-                    self.shell()
-                        .lock()
-                        .manager
-                        .focused_animation_history_status()
+    fn authoring_trace(
+        &self,
+        event: &EditorEvent,
+        changed: bool,
+    ) -> Result<(Option<u64>, Option<u64>), crate::ui::host::EditorError> {
+        Ok({
+            let transactions = self.context().transactions();
+            let scene_history_context = self.shell().lock().state.active_scene_history_context();
+            match event {
+                EditorEvent::Inspector(_) if changed => (
+                    scene_history_context
+                        .and_then(|history| transactions.history_status(history).ok())
                         .and_then(|history| history.top.map(|transaction| transaction.raw())),
                     None,
-                )
+                ),
+                EditorEvent::Animation(event)
+                    if changed && animation_event_commits_document_transaction(event) =>
+                {
+                    (
+                        self.enter_editor_manager()?
+                            .focused_animation_history_status()
+                            .and_then(|history| history.top.map(|transaction| transaction.raw())),
+                        None,
+                    )
+                }
+                EditorEvent::Operation(EditorOperationEvent::CommandExecuted {
+                    transaction_id,
+                    ..
+                }) => (Some(*transaction_id), None),
+                EditorEvent::Operation(EditorOperationEvent::NativeCommandExecuted { .. }) => {
+                    (None, None)
+                }
+                EditorEvent::WorkbenchMenu(MenuAction::SaveProject) => (
+                    None,
+                    scene_history_context
+                        .and_then(|history| transactions.history_generation_snapshot(history).ok()),
+                ),
+                _ => (None, None),
             }
-            EditorEvent::Operation(EditorOperationEvent::CommandExecuted {
-                transaction_id,
-                ..
-            }) => (Some(*transaction_id), None),
-            EditorEvent::Operation(EditorOperationEvent::NativeCommandExecuted { .. }) => {
-                (None, None)
-            }
-            EditorEvent::WorkbenchMenu(MenuAction::SaveProject) => (
-                None,
-                scene_history_context
-                    .and_then(|history| transactions.history_generation_snapshot(history).ok()),
-            ),
-            _ => (None, None),
-        }
+        })
     }
 }
 
@@ -595,12 +627,15 @@ impl EditorHostEventController {
         source: EditorEventSource,
         view_id: crate::core::editor_event::ViewInstanceId,
     ) -> Result<EditorEventRecord, EditorEventBindingDispatchError> {
+        let manager = self
+            .editor_manager_handle()
+            .enter()
+            .map_err(EditorEventBindingDispatchError::from)?;
         let live = {
             let shell = self.shell().lock();
             let manager_view_id =
                 crate::ui::workbench::view::ViewInstanceId::new(view_id.0.clone());
-            let manager_live = shell
-                .manager
+            let manager_live = manager
                 .view_instance_ids_for_descriptor_key("editor.scene")
                 .iter()
                 .any(|candidate| candidate == &manager_view_id);

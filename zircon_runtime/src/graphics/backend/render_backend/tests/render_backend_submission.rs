@@ -6,7 +6,33 @@ fn raw_backend_submission_routes_only_through_the_wgpu_render_device() {
     assert!(source.contains("enqueue_native_buffer_upload_batch(batch)"));
     assert!(source.contains("enqueue_native_texture_upload_batch(batch)"));
     assert!(source.contains("enqueue_native_recording_packet(recorder.finish()?)"));
-    assert!(source.contains(".poll_submissions()"));
+    let completion = include_str!("../ui_surface_diagnostic_completion.rs");
+    let backend_poll = source
+        .split("pub(crate) fn poll_submission_completions(")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("pub(crate) fn wait_for_product_diagnostic_deliveries")
+                .next()
+        })
+        .expect("backend completion entry");
+    let central_poll = completion
+        .split("pub(super) fn drain_completion_owner_once(")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("impl WgpuUiSurfaceDiagnosticCompletionOwner")
+                .next()
+        })
+        .expect("shared completion owner");
+    assert!(backend_poll.contains("drain_completion_owner_once("));
+    assert!(backend_poll.contains("self.render_device.as_ref()"));
+    assert!(backend_poll.contains("self.diagnostic_delivery_router.as_ref()"));
+    assert!(central_poll.contains("device.poll_submissions()?"));
+    assert!(central_poll.contains("dispatch_deliveries(device, router)"));
+    assert!(completion
+        .contains("drain_completion_owner_once(self.device.as_ref(), self.router.as_ref())"));
+    assert!(!completion.contains("queue.submit"));
     assert!(source.contains("self.render_device.submission_metrics()"));
     assert!(source.contains(".append_submission_statuses(tickets, statuses)"));
     assert!(source.contains(".settle_abandoned_native_submissions(tickets)"));

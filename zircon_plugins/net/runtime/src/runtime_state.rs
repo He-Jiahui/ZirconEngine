@@ -10,6 +10,7 @@ use zircon_runtime::core::framework::net::{
     NetConnectionId, NetConnectionState, NetEndpoint, NetEvent, NetListenerId, NetRouteId,
     NetRuntimeMode, NetSocketId,
 };
+use zircon_runtime::core::runtime::tasks::EngineThreadBudget;
 
 use crate::http::{ManagedHttpListener, ManagedHttpRoute};
 use crate::poison_recovery::lock_recover;
@@ -37,8 +38,9 @@ pub(crate) struct ManagedTcpConnection {
 }
 
 pub(crate) struct NetRuntimeState {
-    pub(crate) runtime: Runtime,
+    // The socket owner must stop before its shared I/O driver is dropped.
     pub(crate) worker: NetWorker,
+    pub(crate) runtime: Runtime,
     pub(crate) mode: NetRuntimeMode,
     pub(crate) next_socket_id: AtomicU64,
     pub(crate) next_listener_id: AtomicU64,
@@ -62,17 +64,21 @@ pub(crate) struct NetRuntimeState {
 }
 
 impl NetRuntimeState {
-    pub(crate) fn new(mode: NetRuntimeMode) -> Self {
+    pub(crate) fn new(mode: NetRuntimeMode, budget: EngineThreadBudget) -> Self {
         let next_connection_id = Arc::new(AtomicU64::new(0));
+        let runtime = Builder::new_multi_thread()
+            .worker_threads(budget.net_async_worker_threads())
+            .max_blocking_threads(budget.net_blocking_threads())
+            .enable_io()
+            .enable_time()
+            .thread_name("zircon-net-runtime")
+            .build()
+            .expect("failed to create net Tokio runtime");
+        let worker = NetWorker::spawn(next_connection_id.clone(), runtime.handle().clone())
+            .expect("failed to create net worker");
         Self {
-            runtime: Builder::new_multi_thread()
-                .enable_io()
-                .enable_time()
-                .thread_name("zircon-net-runtime")
-                .build()
-                .expect("failed to create net Tokio runtime"),
-            worker: NetWorker::spawn(next_connection_id.clone())
-                .expect("failed to create net worker"),
+            worker,
+            runtime,
             mode,
             next_socket_id: AtomicU64::new(0),
             next_listener_id: AtomicU64::new(0),
@@ -176,3 +182,7 @@ impl NetRuntimeState {
         self.worker.fail_next_shutdown_after_submit_for_test();
     }
 }
+
+#[cfg(test)]
+#[path = "tests/thread_budget.rs"]
+mod thread_budget_tests;

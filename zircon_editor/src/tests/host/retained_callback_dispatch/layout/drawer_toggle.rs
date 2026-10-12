@@ -9,7 +9,7 @@ fn builtin_host_activity_toggle_collapses_active_hierarchy_drawer_from_typed_tar
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_template_bridge_activity_collapse");
-    let before = harness.runtime.current_layout();
+    let before = harness.runtime.current_layout().unwrap();
     let drawer = before
         .active_activity_window_drawers()
         .get(&ActivityDrawerSlot::LeftTop)
@@ -27,7 +27,7 @@ fn builtin_host_activity_toggle_collapses_active_hierarchy_drawer_from_typed_tar
     )
     .expect("typed activity target should collapse the drawer");
 
-    let after = harness.runtime.current_layout();
+    let after = harness.runtime.current_layout().unwrap();
     assert_eq!(
         after
             .active_activity_window_drawers()
@@ -68,7 +68,7 @@ fn builtin_host_activity_toggle_reopens_collapsed_hierarchy_drawer_from_typed_ta
     )
     .expect("typed activity target should reopen the drawer");
 
-    let after = harness.runtime.current_layout();
+    let after = harness.runtime.current_layout().unwrap();
     let drawer = after
         .active_activity_window_drawers()
         .get(&ActivityDrawerSlot::LeftTop)

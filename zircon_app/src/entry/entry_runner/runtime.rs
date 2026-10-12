@@ -173,12 +173,24 @@ fn runtime_project_diagnostic_cause(
     }
 }
 
-fn runtime_session_create_diagnostic(
+fn recover_runtime_session_create_failure(
     profile: RuntimeSessionProfile,
     project_root: Option<&ResolvedProjectPath>,
     error: RuntimeSessionCreateFailure,
 ) -> RuntimeStartupExecutionError {
+    let cleanup_error = if error.cleanup_pending() {
+        error.retry_cleanup().err()
+    } else {
+        None
+    };
     let cause = runtime_project_diagnostic_cause(project_root, &error);
+    let cause = match cleanup_error {
+        Some(cleanup_error) => format!(
+            "{cause}; cleanup retry failed: {}",
+            runtime_project_diagnostic_cause(project_root, cleanup_error),
+        ),
+        None => cause,
+    };
     let cause = match error.cleanup_recovery_context() {
         Some(recovery) => format!("runtime session creation failed: {cause}; {recovery}"),
         None => format!("runtime session creation failed: {cause}"),
@@ -598,7 +610,7 @@ impl EntryRunner {
             Some(wake_registration),
         )
         .map_err(|error| {
-            runtime_session_create_diagnostic(
+            recover_runtime_session_create_failure(
                 runtime_session_args.profile,
                 project_root.as_ref(),
                 error,

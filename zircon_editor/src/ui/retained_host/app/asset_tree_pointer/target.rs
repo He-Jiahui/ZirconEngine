@@ -8,16 +8,25 @@ impl RetainedEditorHost {
         height: f32,
     ) -> bool {
         self.use_committed_pointer_layout();
-        let Some(tree_size) = self
+        let size_result = self
             .asset_surface_pointer_state(surface_mode)
-            .and_then(|surface| {
+            .map(|surface| {
                 self.resolve_callback_surface_size_for_asset_surface(
                     surface_mode,
                     width,
                     height,
                     surface.tree_size,
                 )
-            })
+            }).transpose();
+        let tree_size = match size_result {
+            Ok(size) => size.flatten(),
+            Err(error) => {
+
+                self.set_status_line(error.to_string());
+                return false;
+            }
+        };
+        let Some(tree_size) = tree_size
         else {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return false;

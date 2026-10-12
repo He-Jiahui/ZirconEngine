@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::path::Path;
 use std::sync::Arc;
 
-use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{AssetManager, AssetUri};
 use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ProjectPluginManifest};
 use zircon_runtime::plugin::native::{
@@ -280,7 +280,15 @@ impl EditorManager {
         Installer: AuthoringSceneInstaller,
         Installer::Error: Display,
     {
-        self.route_project_scene::<Installer, _>(ticket, |route| route.open(request, installer))
+        let asset_manager = self.host.asset_manager()?;
+        let project = asset_manager.current_project_snapshot().ok_or_else(|| {
+            EditorError::Project(
+                "cannot route a scene request without an active project".to_string(),
+            )
+        })?;
+        self.route_project_scene::<Installer, _>(&project, ticket, |route| {
+            route.open(request, installer)
+        })
     }
 
     /// Creates and opens a picker-confirmed project scene through the same document route.
@@ -294,11 +302,15 @@ impl EditorManager {
         Installer: AuthoringSceneInstaller,
         Installer::Error: Display,
     {
-        let catalog = RuntimeSceneAssetCatalog::new(
-            self.host.asset_manager()?,
-            self.host.editor_asset_manager()?,
-        );
-        self.route_project_scene::<Installer, _>(ticket, |route| {
+        let asset_manager = self.host.asset_manager()?;
+        let editor_asset_manager = self.host.editor_asset_manager()?;
+        let project = asset_manager.current_project_snapshot().ok_or_else(|| {
+            EditorError::Project(
+                "cannot route a scene request without an active project".to_string(),
+            )
+        })?;
+        let catalog = RuntimeSceneAssetCatalog::new(&*asset_manager, &*editor_asset_manager);
+        self.route_project_scene::<Installer, _>(&project, ticket, |route| {
             route.create(request, installer, &catalog)
         })
     }
@@ -459,6 +471,7 @@ impl EditorManager {
 
     fn route_project_scene<Installer, Route>(
         &self,
+        project: &ProjectManager,
         ticket: ScenePickerTicket,
         route: Route,
     ) -> Result<SceneDocumentRouteResult, EditorError>
@@ -471,11 +484,6 @@ impl EditorManager {
             )
                 -> Result<SceneDocumentRouteResult, SceneDocumentRouteError<Installer::Error>>,
     {
-        let project = self.host.current_project_snapshot()?.ok_or_else(|| {
-            EditorError::Project(
-                "cannot route a scene request without an active project".to_string(),
-            )
-        })?;
         if project.paths().root() != ticket.project_root() {
             return Err(EditorError::Project(
                 "scene picker result belongs to a project session that is no longer active"
@@ -484,7 +492,7 @@ impl EditorManager {
         }
         let journal = self.document_journal()?;
         let result = route(SceneDocumentRoute::new(
-            &project,
+            project,
             &self.document_lifecycle,
             journal.as_ref(),
             ticket,
@@ -552,15 +560,15 @@ fn project_diagnostics_configuration_message(project_root: &Path, error: impl Di
     )
 }
 
-struct RuntimeSceneAssetCatalog {
-    asset_manager: Arc<dyn AssetManager>,
-    editor_asset_manager: Arc<dyn EditorAssetManager>,
+struct RuntimeSceneAssetCatalog<'a> {
+    asset_manager: &'a dyn AssetManager,
+    editor_asset_manager: &'a dyn EditorAssetManager,
 }
 
-impl RuntimeSceneAssetCatalog {
+impl<'a> RuntimeSceneAssetCatalog<'a> {
     fn new(
-        asset_manager: Arc<dyn AssetManager>,
-        editor_asset_manager: Arc<dyn EditorAssetManager>,
+        asset_manager: &'a dyn AssetManager,
+        editor_asset_manager: &'a dyn EditorAssetManager,
     ) -> Self {
         Self {
             asset_manager,
@@ -569,7 +577,7 @@ impl RuntimeSceneAssetCatalog {
     }
 }
 
-impl SceneAssetCatalog for RuntimeSceneAssetCatalog {
+impl SceneAssetCatalog for RuntimeSceneAssetCatalog<'_> {
     fn import_scene(
         &self,
         scene_uri: &AssetUri,

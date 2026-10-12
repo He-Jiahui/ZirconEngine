@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use zircon_runtime::core::runtime::ServiceHandle;
 
 use super::super::super::super::*;
 
@@ -6,7 +6,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) struct StartupMan
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) asset_runtime_access:
         RetainedHostAssetRuntimeAccess,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) editor_manager:
-        Arc<EditorManager>,
+        ServiceHandle<EditorManager>,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) asset_change_events:
         ChannelReceiver<AssetChange>,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) editor_asset_change_events:

@@ -33,7 +33,9 @@ impl TaskPools {
     /// Returns the process-wide default execution owner shared by default runtimes.
     pub fn process_default() -> Self {
         PROCESS_TASK_POOLS
-            .get_or_init(|| Self::from_options(TaskPoolOptions::default()))
+            .get_or_init(|| {
+                Self::from_options(super::EngineThreadBudget::process_default().task_pool_options())
+            })
             .clone()
     }
 

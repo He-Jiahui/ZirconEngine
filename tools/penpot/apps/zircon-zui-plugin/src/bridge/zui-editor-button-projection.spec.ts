@@ -34,12 +34,12 @@ describe('Editor retained Workbench button projection', () => {
   };
 
   it.each([
-    [{}, '#60aeff', '#151515', '#484848'],
-    [{ hovered: true }, '#66b2ff', '#151515', '#484848'],
-    [{ pressed: true, focused: true }, '#243f5a', '#e8e8e8', '#484848'],
-    [{ focused: true }, '#60aeff', '#151515', '#66b2ff'],
-    [{ selected: true }, '#66b2ff', '#151515', '#484848'],
-    [{ disabled: true, pressed: true }, '#2b2b2b', '#737373', '#363636'],
+    [{}, '#0070E0', '#151515', '#383838'],
+    [{ hovered: true }, '#0070E0', '#151515', '#383838'],
+    [{ pressed: true, focused: true }, '#0070E0', '#C0C0C0', '#383838'],
+    [{ focused: true }, '#0070E0', '#151515', '#0070E0'],
+    [{ selected: true }, '#0070E0', '#151515', '#383838'],
+    [{ disabled: true, pressed: true }, '#242424', '#808080', '#383838'],
   ])(
     'uses native palette precedence for state %j',
     (state, fill, text, border) => {
@@ -62,7 +62,7 @@ describe('Editor retained Workbench button projection', () => {
     delete document['penpot_host_theme_source'];
     const shape = projectZuiDocument(document).rootNodes[0];
     expect(shape.paint.fillColor).toBe('#242424');
-    expect(shape.text?.color).toBe('#e8e8e8');
+    expect(shape.text?.color).toBe('#C0C0C0');
   });
 
   it('rejects a primary surface edit that the native selector cannot consume', () => {
@@ -95,13 +95,13 @@ describe('Editor retained Workbench button projection', () => {
     );
     expect(shapes.get('button_demo')?.text?.color).toBe('#151515');
     expect(shapes.get('button_danger_demo')?.paint.fillColor).toBe('#383838');
-    expect(shapes.get('button_danger_demo')?.text?.color).toBe('#eb605c');
-    expect(shapes.get('button_disabled_demo')?.paint.fillColor).toBe('#2b2b2b');
-    expect(shapes.get('button_disabled_demo')?.text?.color).toBe('#737373');
+    expect(shapes.get('button_danger_demo')?.text?.color).toBe('#EF3535');
+    expect(shapes.get('button_disabled_demo')?.paint.fillColor).toBe('#242424');
+    expect(shapes.get('button_disabled_demo')?.text?.color).toBe('#808080');
     expect(shapes.get('button_outlined_demo')?.paint.strokeColor).toBe(
-      '#66b2ff',
+      '#0070E0',
     );
-    expect(shapes.get('button_text_demo')?.paint.fillColor).toBe('#454545');
+    expect(shapes.get('button_text_demo')?.paint.fillColor).toBe('#575757');
     expect(
       reconcileZuiDocument(
         document,
@@ -122,8 +122,8 @@ describe('Editor retained Workbench button projection', () => {
       },
     ];
     let shape = projectZuiDocument(document).rootNodes[0];
-    expect(shape.paint.fillColor).toBe('#60aeff');
-    expect(shape.paint.strokeColor).toBe('#60aeff');
+    expect(shape.paint.fillColor).toBe('#0070E0');
+    expect(shape.paint.strokeColor).toBe('#0070E0');
     expect(shape.text?.color).toBe('#151515');
     node.events = [
       {
@@ -137,8 +137,8 @@ describe('Editor retained Workbench button projection', () => {
     expect(shape.paint.strokeWidth).toBe(0);
     node.state = { selected: true };
     shape = projectZuiDocument(document).rootNodes[0];
-    expect(shape.paint.fillColor).toBe('#454545');
-    expect(shape.text?.color).toBe('#e8e8e8');
+    expect(shape.paint.fillColor).toBe('#575757');
+    expect(shape.text?.color).toBe('#C0C0C0');
   });
 
   it('keeps pointer focus quiet and gives drag precedence over a pressed focus state', () => {
@@ -146,11 +146,11 @@ describe('Editor retained Workbench button projection', () => {
     const node = Object.values(document.nodes!)[0];
     node.state = { focused: true, focus_visible: false };
     expect(projectZuiDocument(document).rootNodes[0].paint.strokeColor).toBe(
-      '#484848',
+      '#383838',
     );
     node.state = { focused: true, pressed: true, dragging: true };
     const shape = projectZuiDocument(document).rootNodes[0];
-    expect(shape.paint.fillColor).toBe('#66b2ff');
-    expect(shape.paint.strokeColor).toBe('#484848');
+    expect(shape.paint.fillColor).toBe('#0070E0');
+    expect(shape.paint.strokeColor).toBe('#383838');
   });
 });

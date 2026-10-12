@@ -11,7 +11,7 @@ use zircon_runtime_interface::math::UVec2;
 
 use super::{ActivityDecisionResolutionError, EditorHostEventController};
 
-fn controller() -> EditorHostEventController {
+fn controller() -> (CoreRuntime, EditorHostEventController) {
     let core = CoreRuntime::new();
     let manager = Arc::new(EditorManager::new(&core.handle()).unwrap());
     let state = EditorState::with_default_selection_with_context(
@@ -19,7 +19,12 @@ fn controller() -> EditorHostEventController {
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    EditorHostEventController::new(state, manager)
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
+    (core, controller)
 }
 
 fn publish(controller: &EditorHostEventController, id: &str) {
@@ -54,7 +59,7 @@ fn publish(controller: &EditorHostEventController, id: &str) {
 
 #[test]
 fn route_cannot_skip_the_current_fifo_decision() {
-    let controller = controller();
+    let (_core, controller) = controller();
     publish(&controller, "editor.activity.first");
     publish(&controller, "editor.activity.second");
 

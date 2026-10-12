@@ -1,5 +1,6 @@
 use thiserror::Error;
 use zircon_runtime_interface::reflect::ReflectError;
+use zircon_runtime_interface::world_sync::LifecycleTargetChange;
 
 use crate::scene::{
     ecs::{EntityRegistryError, ObserverId, StorageError},
@@ -10,6 +11,11 @@ pub type SceneResult<T> = std::result::Result<T, SceneError>;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum SceneError {
+    #[error("{operation} cancelled because a lifecycle callback replaced {target}")]
+    LifecycleTargetReplaced {
+        operation: &'static str,
+        target: LifecycleTargetChange,
+    },
     #[error("cannot {operation} missing entity {entity}")]
     MissingEntity {
         operation: &'static str,
@@ -179,6 +185,31 @@ pub enum SceneError {
 }
 
 impl SceneError {
+    /// Includes reflection failures carrying the same lifecycle cancellation.
+    pub fn lifecycle_target_change(&self) -> Option<LifecycleTargetChange> {
+        match self {
+            Self::LifecycleTargetReplaced { target, .. } => Some(*target),
+            Self::Reflect(error) => error.lifecycle_target_change(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn into_reflect_error(self, destination: String) -> ReflectError {
+        match self {
+            Self::LifecycleTargetReplaced { operation, target } => {
+                ReflectError::LifecycleTargetReplaced {
+                    operation: operation.to_owned(),
+                    target,
+                }
+            }
+            Self::Reflect(error) if error.lifecycle_target_change().is_some() => error,
+            error => ReflectError::UnsupportedConversion {
+                source: error.to_string(),
+                target: destination,
+            },
+        }
+    }
+
     pub(crate) fn missing_entity(operation: &'static str, entity: EntityId) -> Self {
         Self::MissingEntity { operation, entity }
     }

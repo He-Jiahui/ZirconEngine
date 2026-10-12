@@ -49,9 +49,10 @@ fn builtin_navigation_module_obeys_driver_manager_dependency_layers() {
     runtime
         .resolve_driver::<BuiltinNavigationManager>(BUILTIN_NAVIGATION_RUNTIME_DRIVER_NAME)
         .expect("internal navigation runtime driver must resolve");
-    runtime
-        .resolve_driver::<SceneNavigationRuntimeHandle>(SCENE_NAVIGATION_RUNTIME_DRIVER_NAME)
-        .expect("scene navigation runtime driver must resolve");
+    SceneNavigationRuntimeHandle::new(&runtime.handle())
+        .expect("scene navigation runtime token must resolve")
+        .enter()
+        .expect("scene navigation runtime driver must admit the original owner");
     let resolver = ManagerResolver::new(runtime.handle());
     resolver
         .resolve(

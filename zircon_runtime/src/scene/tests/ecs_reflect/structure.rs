@@ -333,7 +333,7 @@ fn derived_component_write_reinserts_through_world_with_direct_error_branches() 
     assert!(
         write_field.contains("match world.insert(entity, next) {")
             && write_field.contains("Ok(_) => Ok(true),")
-            && write_field.contains("Err(error) => Err(ReflectError::UnsupportedConversion")
+            && write_field.contains("Err(error) => Err(error.into_reflect_error(target))")
             && !write_field.contains(".map(")
             && !write_field.contains(".map_err("),
         "derived component writes must re-enter World invariants with direct success/error branches"

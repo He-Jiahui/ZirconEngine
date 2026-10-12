@@ -24,6 +24,15 @@ pub(super) fn draw_dock_layers(
         route.left = false;
         route.right = false;
     }
+    route.document = route.document
+        && scene.document_surfaces().iter().any(|document| {
+            !super::super::super::componentized_workbench_regions::owns_authored_level_viewport(
+                presentation,
+                document,
+            ) && frame.paint_clip().is_none_or(|clip| {
+                intersect(&document.region_frame, clip).is_some()
+            })
+        });
     let visited = [route.left, route.document, route.right, route.bottom]
         .into_iter()
         .filter(|visited| *visited)
@@ -47,28 +56,20 @@ pub(super) fn draw_dock_layers(
     }
     if route.document {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_document_dock");
-        if scene.document_leaves.is_empty() {
-            docks::draw_document_dock(
-                frame,
-                &scene.document_dock,
-                &interaction,
-                &viewport_images,
-                Some(&text_input_focus),
-            );
-        } else {
-            for leaf in &scene.document_leaves {
-                if frame
-                    .paint_clip()
-                    .is_none_or(|clip| intersect(&leaf.region_frame, clip).is_some())
-                {
-                    docks::draw_document_dock(
-                        frame,
-                        leaf,
-                        &interaction,
-                        &viewport_images,
-                        Some(&text_input_focus),
-                    );
-                }
+        for document in scene.document_surfaces() {
+            if !super::super::super::componentized_workbench_regions::owns_authored_level_viewport(
+                presentation,
+                document,
+            ) && frame.paint_clip().is_none_or(|clip| {
+                intersect(&document.region_frame, clip).is_some()
+            }) {
+                docks::draw_document_dock(
+                    frame,
+                    document,
+                    &interaction,
+                    &viewport_images,
+                    Some(&text_input_focus),
+                );
             }
         }
     }

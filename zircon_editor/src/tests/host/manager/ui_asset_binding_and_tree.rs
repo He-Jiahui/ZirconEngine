@@ -17,9 +17,10 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     let instance_id = manager
         .open_ui_asset_editor(&ui_asset_path, None)
@@ -55,9 +56,10 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
     );
     assert!(pane.source_dirty);
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     let button = document.node("button").expect("button node");
@@ -84,9 +86,10 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
     write_ui_asset(&ui_asset_path, STRUCTURED_BINDING_UI_LAYOUT_ASSET);
 
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     let instance_id = manager
         .open_ui_asset_editor(&ui_asset_path, None)
@@ -170,9 +173,10 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
     assert_eq!(pane.inspector_binding_payload_value, "true");
     assert!(pane.source_dirty);
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     let button = document.node("button").expect("button node");
@@ -204,9 +208,10 @@ fn editor_manager_runs_ui_asset_relative_nested_binding_payload_actions() {
     write_ui_asset(&ui_asset_path, STRUCTURED_BINDING_UI_LAYOUT_ASSET);
 
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     let instance_id = manager
         .open_ui_asset_editor(&ui_asset_path, None)
@@ -281,9 +286,10 @@ fn editor_manager_runs_ui_asset_relative_nested_binding_payload_actions() {
     );
     assert!(pane.source_dirty);
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     let button = document.node("button").expect("button node");
@@ -504,9 +510,10 @@ fn editor_manager_runs_ui_asset_palette_and_tree_authoring_actions() {
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     let instance_id = manager
         .open_ui_asset_editor(&ui_asset_path, None)
@@ -548,9 +555,10 @@ fn editor_manager_runs_ui_asset_palette_and_tree_authoring_actions() {
         .unwrap_ui_asset_editor_selected_node(&instance_id)
         .expect("unwrap selected node"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     assert!(document.contains_node("button_2"));

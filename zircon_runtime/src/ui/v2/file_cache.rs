@@ -16,8 +16,11 @@ use super::{
 };
 use crate::ui::template::{UiCompiledArtifactKey, UiCompiledArtifactStore};
 
-const UI_V2_PERSISTENT_FILE_CACHE_SCHEMA_VERSION: u32 = 5;
-const UI_V2_PERSISTENT_FILE_CACHE_RECORD_VERSION: u32 = 5;
+// V5 embedded authoring DTOs directly in a positional codec. TOML values
+// require deserialize_any, and omitted optional fields need named fields.
+// V6 uses a self-describing JSON body; the generic disk envelope stays v1.
+const UI_V2_PERSISTENT_FILE_CACHE_SCHEMA_VERSION: u32 = 6;
+const UI_V2_PERSISTENT_FILE_CACHE_RECORD_VERSION: u32 = 6;
 
 /// Raw-source proof for a parsed `.zui` file. `physical_path` names the selected
 /// package/development file; `source_path` and `resource_uri` retain its stable identity.
@@ -333,7 +336,7 @@ fn load_persistent_entry(
     else {
         return Ok(None);
     };
-    let record = match bincode::deserialize::<UiV2PersistentFileCacheRecord>(&bytes) {
+    let record: UiV2PersistentFileCacheRecord = match serde_json::from_slice(&bytes) {
         Ok(record) => record,
         Err(_) => return Ok(None),
     };
@@ -420,7 +423,7 @@ fn store_persistent_entry(
         unresolved_imports: entry.unresolved_imports.clone(),
         source_key: entry.source_key.clone(),
     };
-    let bytes = bincode::serialize(&record)
+    let bytes = serde_json::to_vec(&record)
         .map_err(|error| persistent_cache_data_error("serialize", &entry.root_asset_id, error))?;
     store
         .store_payload_bytes(&key, &bytes)
@@ -466,7 +469,9 @@ fn persistent_key_for_source_key(
     asset_id: &str,
     source_key: &UiV2FileStoreCacheKey,
 ) -> Option<UiCompiledArtifactKey> {
-    let bytes = bincode::serialize(source_key).ok()?;
+    let bytes = zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+        .encode(source_key)
+        .ok()?;
     let fingerprint = UiAssetFingerprint::from_bytes(&bytes).value;
     Some(UiCompiledArtifactKey::new(
         asset_id,
@@ -778,3 +783,7 @@ mod canonical_revalidation_tests;
 #[cfg(test)]
 #[path = "tests/file_source_capacity_tests.rs"]
 mod file_source_capacity_tests;
+
+#[cfg(test)]
+#[path = "file_cache/tests/persistent_compatibility_tests.rs"]
+mod persistent_compatibility_tests;

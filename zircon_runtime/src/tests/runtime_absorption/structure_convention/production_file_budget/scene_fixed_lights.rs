@@ -42,7 +42,7 @@ fn runtime_15_scene_fixed_light_reflection_write_fields_are_child_owner() {
             "let mut next = component::<T>(world, entity, type_path)?.clone();",
             "match world.insert(entity, next)",
             "Ok(_) => Ok(true)",
-            "Err(error) => Err(ReflectError::UnsupportedConversion",
+            "Err(error) => Err(error.into_reflect_error(target))",
         ],
     );
 

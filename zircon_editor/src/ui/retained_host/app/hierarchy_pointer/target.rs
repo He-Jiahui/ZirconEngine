@@ -10,20 +10,20 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
         focus_source_window: bool,
-    ) -> Arc<[WorldInspectionHierarchyRow]> {
+    ) -> Result<Arc<[WorldInspectionHierarchyRow]>, crate::ui::host::EditorError> {
         self.use_committed_pointer_layout();
         let generation = self.ui.get_host_presentation_generation();
         let authored_metrics = crate::ui::retained_host::host_contract::componentized_workbench_regions::authored_hierarchy(generation.structure()).map(|hierarchy| hierarchy.metrics);
         drop(generation);
-        let row_metrics_changed = self
-            .hierarchy_pointer_bridge
-            .set_authored_row_metrics(authored_metrics);
         let target_size = self.resolve_callback_surface_size_for_kind(
             width,
             height,
             self.hierarchy_pointer_size,
             ViewContentKind::Hierarchy,
-        );
+        )?;
+        let row_metrics_changed = self
+            .hierarchy_pointer_bridge
+            .set_authored_row_metrics(authored_metrics);
         let scene_entries = Arc::clone(&self.hierarchy_scene_entries);
         if self.hierarchy_pointer_size != target_size || row_metrics_changed {
             self.hierarchy_pointer_size = target_size;
@@ -32,7 +32,7 @@ impl RetainedEditorHost {
         if focus_source_window {
             self.focus_callback_source_window();
         }
-        scene_entries
+        Ok(scene_entries)
     }
 }
 

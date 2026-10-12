@@ -29,6 +29,22 @@ impl AssetIdOrder {
         Some(asset_id)
     }
 
+    /// Retires slots in one pass while preserving the FIFO order of live assets.
+    pub(super) fn retain(&mut self, mut keep: impl FnMut(&AssetId) -> bool) -> usize {
+        let before = self.order.len();
+        let queued = &mut self.queued;
+        self.order.retain(|asset_id| {
+            if keep(asset_id) {
+                true
+            } else {
+                let removed = queued.remove(asset_id);
+                debug_assert!(removed);
+                false
+            }
+        });
+        before - self.order.len()
+    }
+
     pub(super) fn contains(&self, asset_id: AssetId) -> bool {
         self.queued.contains(&asset_id)
     }

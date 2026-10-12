@@ -13,8 +13,10 @@ use crate::{
     },
     core::{
         framework::channel::{ChannelReceiver, ChannelWakeCallback},
+        manager::{resolve_manager_service, ManagerServiceHandle},
         resource::ResourceManager,
-        JobScheduler, TaskGraphScope,
+        CoreError, CoreHandle, CoreResult, CoreWeak, JobScheduler, ServiceCallGuard,
+        TaskGraphScope,
     },
     scene::LevelSystem,
 };
@@ -50,14 +52,34 @@ struct DeferredReload {
 }
 
 enum DynamicSceneReloadProjectSource {
-    AssetManager(ProjectAssetManager),
+    AssetManager {
+        core: CoreWeak,
+        handle: ManagerServiceHandle<ProjectAssetManager>,
+    },
     #[cfg(test)]
     Static,
+}
+
+impl DynamicSceneReloadProjectSource {
+    fn resolve(&self) -> CoreResult<Option<ServiceCallGuard<ProjectAssetManager>>> {
+        match self {
+            Self::AssetManager { core, handle } => {
+                let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+                resolve_manager_service(&core, handle.clone()).map(Some)
+            }
+            #[cfg(test)]
+            Self::Static => Ok(None),
+        }
+    }
 }
 
 pub struct DynamicSceneAssetReloadQueue {
     project: ProjectManager,
     project_source: DynamicSceneReloadProjectSource,
+    source_error: Option<CoreError>,
+    /// Terminal for this queue instance; old target-bound work is retained until disposal.
+    lifecycle_interruption: Option<crate::scene::DynamicSceneError>,
+    source_failure_report: Option<super::reports::DynamicSceneAssetReloadDrainReport>,
     catalog_generation_sequence: u64,
     resource_manager: ResourceManager,
     events: AssetEventReceiver<SceneAsset>,
@@ -125,6 +147,9 @@ impl DynamicSceneAssetReloadQueue {
         Self {
             project,
             project_source,
+            source_error: None,
+            lifecycle_interruption: None,
+            source_failure_report: None,
             catalog_generation_sequence,
             resource_manager,
             events,
@@ -151,27 +176,34 @@ impl DynamicSceneAssetReloadQueue {
 
     pub fn from_project_asset_manager(
         project: ProjectManager,
-        asset_manager: &ProjectAssetManager,
-    ) -> Self {
+        core: &CoreHandle,
+        handle: ManagerServiceHandle<ProjectAssetManager>,
+    ) -> CoreResult<Self> {
         Self::from_project_asset_manager_with_limits(
             project,
-            asset_manager,
+            core,
+            handle,
             DynamicSceneAssetReloadLimits::default(),
         )
     }
 
     pub fn from_project_asset_manager_with_limits(
         project: ProjectManager,
-        asset_manager: &ProjectAssetManager,
+        core: &CoreHandle,
+        handle: ManagerServiceHandle<ProjectAssetManager>,
         limits: DynamicSceneAssetReloadLimits,
-    ) -> Self {
-        Self::construct(
+    ) -> CoreResult<Self> {
+        let asset_manager = resolve_manager_service(core, handle.clone())?;
+        Ok(Self::construct(
             project,
-            DynamicSceneReloadProjectSource::AssetManager(asset_manager.clone()),
+            DynamicSceneReloadProjectSource::AssetManager {
+                core: core.downgrade(),
+                handle,
+            },
             asset_manager.subscribe_asset_events::<SceneAsset>(),
             asset_manager.resource_manager(),
             limits,
-        )
+        ))
     }
 
     pub(crate) fn with_task_graph_scope(mut self, task_graph_scope: TaskGraphScope) -> Self {
@@ -179,12 +211,28 @@ impl DynamicSceneAssetReloadQueue {
         self
     }
 
-    pub(crate) fn install_runtime_frame_wake(&mut self, wake: ChannelWakeCallback) {
-        let DynamicSceneReloadProjectSource::AssetManager(asset_manager) = &self.project_source
-        else {
-            return;
-        };
-        self.runtime_frame_wake_token = Some(asset_manager.subscribe_project_generation_wake(wake));
+    pub(crate) fn install_runtime_frame_wake(
+        &mut self,
+        wake: ChannelWakeCallback,
+    ) -> CoreResult<()> {
+        if self.lifecycle_interruption.is_some() {
+            // No new wake is needed. Rebinding a source must not retire retained work.
+            return Ok(());
+        }
+        if let Some(error) = &self.source_error {
+            return Err(error.clone());
+        }
+        let subscription = self
+            .project_source
+            .resolve()
+            .map(|manager| manager.map(|manager| manager.subscribe_project_generation_wake(wake)));
+        match subscription {
+            Ok(subscription) => {
+                self.runtime_frame_wake_token = subscription;
+                Ok(())
+            }
+            Err(error) => Err(self.fail_project_source(error)),
+        }
     }
 
     #[cfg(test)]
@@ -202,6 +250,44 @@ impl DynamicSceneAssetReloadQueue {
             self.latest_revisions.len() * LATEST_REVISION_METADATA_BYTES
                 + self.latest_order.len() * ORDER_ENTRY_METADATA_BYTES
         );
+    }
+
+    /// A live World or Schedule replacement freezes this queue until it is disposed and recreated.
+    /// Preflight target changes and ordinary preparation failures do not enter this state.
+    pub fn lifecycle_interruption(&self) -> Option<&crate::scene::DynamicSceneError> {
+        self.lifecycle_interruption.as_ref()
+    }
+
+    fn interrupted_drain_report(&self) -> super::reports::DynamicSceneAssetReloadDrainReport {
+        super::reports::DynamicSceneAssetReloadDrainReport {
+            lifecycle_interruption: self.lifecycle_interruption.clone(),
+            pending_count: self.pending_count(),
+            pending_metadata_bytes: self.pending_metadata_bytes,
+            ..Default::default()
+        }
+    }
+
+    fn interrupted_apply_report(&self) -> super::reports::DynamicSceneAssetReloadApplyReport {
+        super::reports::DynamicSceneAssetReloadApplyReport {
+            lifecycle_interruption: self.lifecycle_interruption.clone(),
+            pending_count: self.pending_count(),
+            deferred_count: self.target_staging.len(),
+            ..Default::default()
+        }
+    }
+
+    fn interrupted_frame_report(&self) -> DynamicSceneAssetReloadFrameApplyReport {
+        DynamicSceneAssetReloadFrameApplyReport {
+            drain: self.interrupted_drain_report(),
+            apply: self.interrupted_apply_report(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn target_stages_ready(&self) -> bool {
+        self.target_staging
+            .values()
+            .all(DynamicSceneAssetReloadStageTask::is_ready)
     }
 
     pub fn limits(&self) -> DynamicSceneAssetReloadLimits {
@@ -240,12 +326,17 @@ impl DynamicSceneAssetReloadQueue {
         scheduler: &JobScheduler,
         world: &mut World,
     ) -> DynamicSceneAssetReloadFrameApplyReport {
+        if self.lifecycle_interruption.is_some() {
+            return self.interrupted_frame_report();
+        }
         self.drain_runtime_frame_wake_token();
         let mut drain = self.drain_events(scheduler);
         let mut apply = self.commit_staged_into_world(world);
         apply.failed.append(&mut drain.failed);
-        let ready = self.collect_ready_report();
-        self.stage_ready_for_world(scheduler, world, ready, &mut apply);
+        if apply.lifecycle_interruption().is_none() {
+            let ready = self.collect_ready_report();
+            self.stage_ready_for_world(scheduler, world, ready, &mut apply);
+        }
         apply.pending_count = self.pending_count();
         if apply.apply_budget_overrun {
             self.diagnostics.apply_budget_overruns =
@@ -260,12 +351,17 @@ impl DynamicSceneAssetReloadQueue {
         scheduler: &JobScheduler,
         level: &LevelSystem,
     ) -> DynamicSceneAssetReloadFrameApplyReport {
+        if self.lifecycle_interruption.is_some() {
+            return self.interrupted_frame_report();
+        }
         self.drain_runtime_frame_wake_token();
         let mut drain = self.drain_events(scheduler);
         let mut apply = self.commit_staged_into_level(level);
         apply.failed.append(&mut drain.failed);
-        let ready = self.collect_ready_report();
-        self.stage_ready_for_level(scheduler, level, ready, &mut apply);
+        if apply.lifecycle_interruption().is_none() {
+            let ready = self.collect_ready_report();
+            self.stage_ready_for_level(scheduler, level, ready, &mut apply);
+        }
         apply.pending_count = self.pending_count();
         if apply.apply_budget_overrun {
             self.diagnostics.apply_budget_overruns =
@@ -297,12 +393,24 @@ impl DynamicSceneAssetReloadQueue {
     }
 
     pub(crate) fn has_pending_work(&self) -> bool {
+        if self.lifecycle_interruption.is_some() {
+            // Retained terminal rows are not runnable work. Disposal owns their reclamation.
+            return false;
+        }
+        if self.source_error.is_some() {
+            // Cancelled physical workers retain their permits until settlement.
+            return self.active_worker_count() > 0;
+        }
         self.pending_count() > 0
             || self.carried_event.is_some()
             || self.reconciliation.is_some()
             || !self.events.is_empty()
     }
 }
+
+#[cfg(test)]
+#[path = "queue/tests/registered_source.rs"]
+mod registered_source_tests;
 
 fn locator_metadata_bytes(locator: &AssetUri) -> usize {
     locator

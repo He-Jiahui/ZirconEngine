@@ -4,7 +4,7 @@ version = 1
 
 [[components]]
 component_id = "UiHostWindow"
-document_id = "res://ui/editor/host/workbench_shell.zui"
+document_id = "res://ui/editor/unreal/editor_shell.zui"
 binding_namespace = "UiHostWindow"
 tier = "region_panel"
 
@@ -106,7 +106,7 @@ accepts = ["WorkbenchStatusItem"]
 
 [[components]]
 component_id = "MenuBar"
-document_id = "res://ui/editor/host/workbench_shell.zui"
+document_id = "res://ui/editor/unreal/components/menus.zui"
 binding_namespace = "WorkbenchMenuBar"
 tier = "composite"
 
@@ -116,38 +116,17 @@ kind = "linear"
 multiple = true
 accepts = ["WorkbenchIconButton"]
 
-[[components.props]]
-name = "height"
-value_type = "dimension"
-default = { token = "$editor.control.height.default" }
-
-[[components]]
-component_id = "ActivityRail"
-document_id = "res://ui/editor/host/workbench_shell.zui"
-binding_namespace = "ActivityRail"
-tier = "composite"
-
-[[components.slots]]
-name = "items"
-kind = "linear"
-multiple = true
-accepts = ["WorkbenchRailButton"]
-
-[[components.props]]
-name = "width"
-value_type = "dimension"
-default = { token = "$editor.density.activity_rail_width" }
 
 [[components]]
 component_id = "DocumentHost"
-document_id = "res://ui/editor/host/workbench_shell.zui"
+document_id = "res://ui/editor/unreal/editor_shell.zui"
 binding_namespace = "DocumentHost"
 tier = "region_panel"
 
 [[components.slots]]
 name = "tabs"
 kind = "linear"
-required = true
+required = false
 accepts = ["DocumentTabs"]
 
 [[components.slots]]
@@ -158,7 +137,7 @@ accepts = ["PaneSurface"]
 
 [[components]]
 component_id = "StatusBar"
-document_id = "res://ui/editor/host/workbench_shell.zui"
+document_id = "res://ui/editor/unreal/components/status_bar.zui"
 binding_namespace = "StatusBar"
 tier = "composite"
 
@@ -171,7 +150,7 @@ accepts = ["WorkbenchStatusItem"]
 [[components.props]]
 name = "height"
 value_type = "dimension"
-default = { token = "$editor.control.height.dense" }
+default = { token = "$editor.control.height.default" }
 
 [[components]]
 component_id = "SceneViewportToolbar"

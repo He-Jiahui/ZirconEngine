@@ -193,7 +193,7 @@ fn tick_script_bindings(
         .map_err(ScriptSceneSystemError::from)?;
 
     for binding in bindings {
-        call_script_binding(core, level, manager.as_ref(), delta_seconds, phase, binding)?;
+        call_script_binding(core, level, &*manager, delta_seconds, phase, binding)?;
     }
 
     Ok(())

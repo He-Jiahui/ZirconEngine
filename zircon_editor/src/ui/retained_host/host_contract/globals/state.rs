@@ -1,3 +1,4 @@
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -80,6 +81,8 @@ pub(crate) struct HostContractState {
     pub(crate) drag_state: HostDragStateData,
     pub(crate) resize_state: HostResizeStateData,
     pub(crate) text_input_focus: Arc<HostTextInputFocusData>,
+    /// Routing address only; the session's Runtime Surface owns focus and capture.
+    pub(crate) retained_pane_input_pane: Option<crate::ui::retained_host::primitives::SharedString>,
     pub(crate) welcome_pane: WelcomePaneData,
     pub(in crate::ui::retained_host::host_contract) ui_callbacks: UiHostCallbacks,
     pub(in crate::ui::retained_host::host_contract) pane_callbacks: PaneSurfaceCallbacks,
@@ -140,6 +143,7 @@ impl HostContractState {
             drag_state: HostDragStateData::default(),
             resize_state: HostResizeStateData::default(),
             text_input_focus: Arc::new(HostTextInputFocusData::default()),
+            retained_pane_input_pane: None,
             welcome_pane: WelcomePaneData::default(),
             ui_callbacks: UiHostCallbacks::default(),
             pane_callbacks: PaneSurfaceCallbacks::default(),
@@ -185,16 +189,26 @@ impl HostContractState {
         );
     }
 
+    #[track_caller]
     fn advance_geometry_generation(&mut self) {
         self.presentation_geometry_generation =
             self.presentation_geometry_generation.saturating_add(1);
         self.reconcile_template_button_press();
+        capture_trace::record("geometry_counter_advanced", || {
+            format!(
+                "owner={:#x} cursor={:?}",
+                self as *const _ as usize,
+                self.presentation_generation().cursor()
+            )
+        });
     }
 
+    #[track_caller]
     pub(crate) fn replace_host_presentation(
         &mut self,
         mut presentation: HostWindowPresentationData,
     ) {
+        let trace_before = capture_trace::cursor_before(|| self.presentation_generation().cursor());
         if !self.workbench_hit_index.indexes_presentation(&presentation) {
             self.workbench_hit_index =
                 Arc::new(HostWorkbenchHitIndex::from_presentation(&presentation));
@@ -212,13 +226,21 @@ impl HostContractState {
         self.host_presentation = presentation;
         self.advance_structure_generation();
         self.advance_geometry_generation();
+        capture_trace::projection_commit(
+            self as *const _ as usize,
+            "replace_host_presentation",
+            trace_before,
+            || self.presentation_generation().cursor(),
+        );
     }
 
+    #[track_caller]
     pub(crate) fn replace_host_geometry_presentation(
         &mut self,
         geometry: HostWindowGeometryPresentationData,
         workbench_changed_rows: &[usize],
     ) -> bool {
+        let trace_before = capture_trace::cursor_before(|| self.presentation_generation().cursor());
         let presentation = geometry.apply_to(&self.host_presentation);
         let Some(next_hit_index) = self.workbench_hit_index.patch_geometry_presentation(
             &self.host_presentation,
@@ -237,13 +259,21 @@ impl HostContractState {
             self.presentation_hit_test_generation.saturating_add(1);
         self.host_presentation = Arc::new(presentation);
         self.advance_geometry_generation();
+        capture_trace::projection_commit(
+            self as *const _ as usize,
+            "replace_host_geometry_presentation",
+            trace_before,
+            || self.presentation_generation().cursor(),
+        );
         true
     }
 
+    #[track_caller]
     pub(crate) fn update_host_presentation<R>(
         &mut self,
         update: impl FnOnce(&mut HostWindowPresentationData) -> R,
     ) -> R {
+        let trace_before = capture_trace::cursor_before(|| self.presentation_generation().cursor());
         let result = update(Arc::make_mut(&mut self.host_presentation));
         if !self
             .workbench_hit_index
@@ -257,6 +287,12 @@ impl HostContractState {
         }
         self.advance_structure_generation();
         self.advance_geometry_generation();
+        capture_trace::projection_commit(
+            self as *const _ as usize,
+            "update_host_presentation",
+            trace_before,
+            || self.presentation_generation().cursor(),
+        );
         result
     }
 
@@ -282,6 +318,7 @@ impl HostContractState {
         );
     }
 
+    #[track_caller]
     pub(crate) fn replace_native_floating_window_presentation(
         &mut self,
         window_id: &str,
@@ -289,6 +326,7 @@ impl HostContractState {
         title: &str,
         bounds: &FrameRect,
     ) -> bool {
+        let trace_before = capture_trace::cursor_before(|| self.presentation_generation().cursor());
         let presentation = self.host_presentation.as_ref();
         let shell = &presentation.host_shell;
         let surface = &presentation.native_floating_surface_data;
@@ -340,13 +378,21 @@ impl HostContractState {
             "ui.native_floating_presentation.commit_count",
             1_u8
         );
+        capture_trace::projection_commit(
+            self as *const _ as usize,
+            "replace_native_floating_window_presentation",
+            trace_before,
+            || self.presentation_generation().cursor(),
+        );
         true
     }
 
+    #[track_caller]
     pub(crate) fn patch_host_presentation_panes(
         &mut self,
         patch: HostPanePresentationPatch,
     ) -> bool {
+        let trace_before = capture_trace::cursor_before(|| self.presentation_generation().cursor());
         let Some(model_replacements) =
             patch.paint_model_replacements(self.host_presentation.as_ref())
         else {
@@ -407,10 +453,18 @@ impl HostContractState {
             "ui.pane_presentation_transaction.paint_model_rebind_node_count",
             rebind_node_count
         );
+        capture_trace::projection_commit(
+            self as *const _ as usize,
+            "patch_host_presentation_panes",
+            trace_before,
+            || self.presentation_generation().cursor(),
+        );
         true
     }
 
+    #[track_caller]
     pub(crate) fn patch_host_presentation(&mut self, patch: HostPresentationPatch) -> bool {
+        let trace_before = capture_trace::cursor_before(|| self.presentation_generation().cursor());
         if patch.is_empty() {
             zircon_runtime::profile_counter!(
                 "editor",
@@ -488,14 +542,22 @@ impl HostContractState {
             "ui.sparse_presentation_transaction.workbench_changed_row_count",
             workbench_changed_row_count
         );
+        capture_trace::projection_commit(
+            self as *const _ as usize,
+            "patch_host_presentation",
+            trace_before,
+            || self.presentation_generation().cursor(),
+        );
         true
     }
 
+    #[track_caller]
     pub(crate) fn patch_workbench_window_nodes(
         &mut self,
         next_nodes: ModelRc<TemplatePaneNodeData>,
         changed_rows: &[usize],
     ) -> bool {
+        let trace_before = capture_trace::cursor_before(|| self.presentation_generation().cursor());
         let previous_nodes = self.host_presentation.workbench_window_nodes.clone();
         let Some(next_hit_index) = self.workbench_hit_index.rebind_workbench_nodes(
             &previous_nodes,
@@ -508,9 +570,16 @@ impl HostContractState {
         self.workbench_hit_index = Arc::new(next_hit_index);
         self.advance_structure_generation();
         self.advance_geometry_generation();
+        capture_trace::projection_commit(
+            self as *const _ as usize,
+            "patch_workbench_window_nodes",
+            trace_before,
+            || self.presentation_generation().cursor(),
+        );
         true
     }
 
+    #[track_caller]
     pub(crate) fn patch_host_presentation_dock(
         &mut self,
         expected_structure_generation: u64,
@@ -519,6 +588,7 @@ impl HostContractState {
         patch: HostDockPresentationPatch,
         replacements: &[(ModelRc<TemplatePaneNodeData>, ModelRc<TemplatePaneNodeData>)],
     ) -> bool {
+        let trace_before = capture_trace::cursor_before(|| self.presentation_generation().cursor());
         if self.presentation_structure_generation != expected_structure_generation {
             return false;
         }
@@ -560,6 +630,12 @@ impl HostContractState {
         self.advance_geometry_generation();
         self.presentation_hit_test_generation =
             self.presentation_hit_test_generation.saturating_add(1);
+        capture_trace::projection_commit(
+            self as *const _ as usize,
+            "patch_host_presentation_dock",
+            trace_before,
+            || self.presentation_generation().cursor(),
+        );
         true
     }
 

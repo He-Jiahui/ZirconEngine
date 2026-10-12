@@ -12,6 +12,29 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_template_node_primar
     if hit.disabled {
         return;
     }
+    if matches!(
+        hit.dispatch_kind.as_str(),
+        "ui_asset_palette" | "ui_asset_palette_page"
+    ) {
+        if !hit.pane_id.is_empty() {
+            if let Ok(index) = hit.action_id.as_str().parse::<i32>() {
+                if index >= 0 {
+                    let event = if hit.dispatch_kind.as_str() == "ui_asset_palette" {
+                        "selected"
+                    } else {
+                        "page"
+                    };
+                    pane_host.invoke_ui_asset_collection_event(
+                        hit.pane_id,
+                        "palette".into(),
+                        event.into(),
+                        index,
+                    );
+                }
+            }
+        }
+        return;
+    }
     if let Some(source_index) = hit.table_row_source_index {
         if !hit.pane_id.is_empty()
             && !hit.table_row_identity_kind.is_empty()

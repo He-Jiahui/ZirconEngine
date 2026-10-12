@@ -1,17 +1,22 @@
-use std::{cell::Cell, marker::PhantomData};
+use std::{cell::Cell, marker::PhantomData, sync::Arc};
 
 use crate::scene::ecs::{
     ChangeDetectionScanStats, ComponentStorageLocation, QueryAccess, QueryAccessError,
     QueryDataAccess, QueryFilter, StableEntityLocation,
 };
+use crate::scene::world::DetachPreparationOwner;
 use crate::scene::{EntityId, World};
 
 use super::{project_entity_from_plans, CachedArchetypePlan, QueryStateCacheStats};
 
 #[derive(Clone, Debug)]
-/// 保存创建 World 的组件访问摘要、原型绑定计划和统计；使用时需保持 World 配对，原型代际本身不校验身份。
+/// Keeps compiled access and cached plans paired with their original World.
+/// Cached and mutable entry points require that identity; generic uncached
+/// read-only helpers continue to fetch directly from their supplied World.
 pub struct QueryState<D, F = ()> {
     pub(super) access: QueryAccess,
+    pub(super) world_owner: DetachPreparationOwner,
+    pub(super) cached_storage_owner: Arc<()>,
     pub(super) cached_archetype_plans: Vec<CachedArchetypePlan>,
     pub(super) cached_archetype_generation: u64,
     pub(super) cached_entity_count: usize,
@@ -47,6 +52,8 @@ where
         F::update_access(world, &mut access)?;
         let mut state = Self {
             access,
+            world_owner: world.owner_identity().clone(),
+            cached_storage_owner: Arc::clone(world.query_storage_owner()),
             cached_archetype_plans: Vec::new(),
             cached_archetype_generation: u64::MAX,
             cached_entity_count: 0,
@@ -71,11 +78,37 @@ where
         Ok(state)
     }
 
+    /// Tests exact World identity without exposing its private token.
+    pub fn is_bound_to(&self, world: &World) -> bool {
+        self.world_owner.is_same_world(world.owner_identity())
+    }
+
+    pub(super) fn assert_bound_to(&self, world: &World) {
+        assert!(
+            self.is_bound_to(world),
+            "query state belongs to another World; rebind it before using cached plans"
+        );
+    }
+
+    /// Rebuilds data/filter access and every cached plan for the supplied World.
+    /// Ordinary access errors preserve the original query packet.
+    pub fn rebind(&mut self, world: &mut World) -> Result<(), QueryAccessError> {
+        let replacement = Self::try_new(world)?;
+        *self = replacement;
+        Ok(())
+    }
+
+    /// Returns original-owner metadata. Component IDs from different Worlds
+    /// cannot be compared as if they described a single access domain.
     pub fn access(&self) -> &QueryAccess {
         &self.access
     }
 
     pub fn conflicts_with<OtherD, OtherF>(&self, other: &QueryState<OtherD, OtherF>) -> bool {
+        assert!(
+            self.world_owner.is_same_world(&other.world_owner),
+            "query access conflicts require states from the same World"
+        );
         self.access.conflicts_with(&other.access)
     }
 
@@ -85,6 +118,7 @@ where
         entity: EntityId,
         component_locations: &mut Vec<ComponentStorageLocation>,
     ) -> Option<StableEntityLocation> {
+        self.assert_bound_to(world);
         project_entity_from_plans(
             &self.cached_archetype_plans,
             world,

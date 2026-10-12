@@ -7,7 +7,7 @@ use crate::ui::binding::EditorUiBinding;
 pub(super) use crate::ui::control::EditorUiControlService;
 pub(super) use crate::ui::template_runtime::{
     EditorUiCompatibilityHarness, EditorUiHostRuntime, RetainedUiHostAdapter,
-    RetainedUiHostComponentKind, RetainedUiHostValue, UI_HOST_WINDOW_DOCUMENT_ID,
+    RetainedUiHostComponentKind, RetainedUiHostValue, UNREAL_EDITOR_SHELL_DOCUMENT_ID,
 };
 pub(super) use toml::Value;
 pub(super) use zircon_runtime_interface::ui::{

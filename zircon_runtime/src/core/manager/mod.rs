@@ -6,6 +6,8 @@ mod resolver;
 mod service;
 mod service_names;
 
+pub use service::register_manager_alias;
+
 #[cfg(feature = "ai-contracts")]
 pub use resolver::ai_manager_handle;
 #[cfg(feature = "net-contracts")]

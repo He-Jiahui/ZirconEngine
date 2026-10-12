@@ -8,12 +8,14 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TREE_ROW_TEXT_SELECTED: [u8; 4] =
-    PALETTE.text;
+    PALETTE.text_selected;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchTreeRowPalette
 {
     pub marked_surface: [u8; 4],
+    pub inactive_marked_surface: [u8; 4],
+    pub selected_text: [u8; 4],
     pub pressed_surface: [u8; 4],
     pub hot_surface: [u8; 4],
     pub focus_border: [u8; 4],
@@ -31,9 +33,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
     palette: HostMaterialPalette,
 ) -> WorkbenchTreeRowPalette {
     WorkbenchTreeRowPalette {
-        marked_surface: palette.surface_pressed,
+        marked_surface: palette.surface_selected,
+        inactive_marked_surface: palette.surface_selected_inactive,
+        selected_text: palette.text_selected,
         pressed_surface: palette.surface_pressed,
-        hot_surface: palette.surface_hover,
+        hot_surface: palette.surface_panel,
         focus_border: palette.focus_ring,
         text: palette.text,
         text_muted: palette.text_muted,

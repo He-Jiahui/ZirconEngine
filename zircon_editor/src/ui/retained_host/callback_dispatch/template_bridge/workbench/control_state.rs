@@ -180,6 +180,11 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
+    #[cfg(test)]
+    pub(crate) fn control_bool_for_test(&self, control_id: &str, property: &str) -> bool {
+        self.control_bool(control_id, property)
+    }
+
     pub(super) fn control_bool(&self, control_id: &str, property: &str) -> bool {
         let Some(node_id) = self.control_node_id(control_id) else {
             return false;

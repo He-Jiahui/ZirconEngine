@@ -1,3 +1,4 @@
+//! 为 TAA reactive mask 复用材质 surface 与几何获取；mask 的 alpha 与材质 reactive strength 组合由专用 WGSL 模板定义。
 use crate::core::framework::render::{
     strip_wgsl_include_directives, GeometrySourceDescriptor, RenderShaderDefinitionValue,
     ShaderFeatureBits,
@@ -87,6 +88,7 @@ impl TaaReactiveMaskShaderTemplateRequest {
     }
 }
 
+/// 组装结果交给生产 shader admission 验证；请求只携带源码与模块依赖，不加载纹理或创建设备资源。
 pub(crate) fn assemble_taa_reactive_mask_shader_template(
     request: TaaReactiveMaskShaderTemplateRequest,
 ) -> Result<MaterialShaderTemplateAssembly, ShaderTemplateAssemblyError> {

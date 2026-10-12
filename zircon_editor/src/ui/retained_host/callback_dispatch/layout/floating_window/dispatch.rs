@@ -8,7 +8,10 @@ pub(crate) fn dispatch_builtin_floating_window_focus(
     runtime: &EditorHostEventController,
     window_id: &MainPageId,
 ) -> Option<Result<UiHostEventEffects, String>> {
-    let instance_id = runtime.floating_window_focus_target(window_id)?;
+    let instance_id = match runtime.floating_window_focus_target(window_id) {
+        Ok(instance_id) => instance_id?,
+        Err(error) => return Some(Err(error.to_string())),
+    };
     Some(dispatch_layout_command(
         runtime,
         LayoutCommand::FocusView { instance_id },

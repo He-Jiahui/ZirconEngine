@@ -44,7 +44,7 @@ impl ResourceStreamer {
         let asset_manager = self.asset_manager().ok()?;
         let (material, _) = asset_manager.load_effective_material_asset(*id).ok()?;
         let shader_contract =
-            Self::load_shader_contract(asset_manager.as_ref(), material.shader.clone());
+            Self::load_shader_contract(&*asset_manager, material.shader.clone());
         let descriptor = shader_contract
             .as_ref()
             .map(|shader| material.standard_material_descriptor_for_shader(shader.asset()))
@@ -74,15 +74,15 @@ impl ResourceStreamer {
             .resolve_texture_reference("emissive_texture", descriptor.emissive_texture.as_ref())
             .id();
         let (base_color_texture_revision, base_color_texture_center_rgba) =
-            self.current_texture_capture_snapshot(asset_manager.as_ref(), base_color_texture);
+            self.current_texture_capture_snapshot(&*asset_manager, base_color_texture);
         let (normal_texture_revision, normal_texture_center_rgba) =
-            self.current_texture_capture_snapshot(asset_manager.as_ref(), normal_texture);
+            self.current_texture_capture_snapshot(&*asset_manager, normal_texture);
         let (metallic_roughness_texture_revision, metallic_roughness_texture_center_rgba) = self
-            .current_texture_capture_snapshot(asset_manager.as_ref(), metallic_roughness_texture);
+            .current_texture_capture_snapshot(&*asset_manager, metallic_roughness_texture);
         let (occlusion_texture_revision, occlusion_texture_center_rgba) =
-            self.current_texture_capture_snapshot(asset_manager.as_ref(), occlusion_texture);
+            self.current_texture_capture_snapshot(&*asset_manager, occlusion_texture);
         let (emissive_texture_revision, emissive_texture_center_rgba) =
-            self.current_texture_capture_snapshot(asset_manager.as_ref(), emissive_texture);
+            self.current_texture_capture_snapshot(&*asset_manager, emissive_texture);
         Some(MaterialCaptureSeed {
             base_color: Vec4::from_array(descriptor.base_color),
             emissive: Vec3::from_array(descriptor.emissive),

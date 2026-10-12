@@ -15,18 +15,18 @@ describe('native IconButton design projection', () => {
   beforeAll(async () => dependencies.load(root, [assetPath, themePath]));
 
   it.each([
-    [{}, '#b3b3b3'],
-    [{ hovered: true }, '#e8e8e8'],
-    [{ pressed: true }, '#60aeff'],
-    [{ focused: true }, '#b3b3b3'],
-    [{ selected: true }, '#60aeff'],
-    [{ disabled: true, selected: true }, '#737373'],
+    [{}, '#C0C0C0'],
+    [{ hovered: true }, '#C0C0C0'],
+    [{ pressed: true }, '#0070E0'],
+    [{ focused: true }, '#C0C0C0'],
+    [{ selected: true }, '#0070E0'],
+    [{ disabled: true, selected: true }, '#808080'],
   ])('tints the authored SVG like the retained host for %j', (state, color) => {
     const document = parseZuiDocument(
       readFileSync(`${root}/${assetPath}`, 'utf8'),
     ).document;
     dependencies.embed(document, assetPath, themePath);
-    const node = document.nodes!.root;
+    const node = document.nodes!['root'];
     node.state = state;
     expect(previewIconTint(document, node)).toBe(color);
   });
@@ -36,8 +36,8 @@ describe('native IconButton design projection', () => {
       fills: [{ fillColor: '#26d8d1' }, { fillColor: 'transparent' }],
       strokes: [{ strokeColor: '#bafff8' }],
       children: [{ fills: [{ fillColor: '#ffffff' }], strokes: [] }],
-    } as unknown as Shape;
-    recolorIconShape(shape, '#60aeff');
+    };
+    recolorIconShape(shape as unknown as Shape, '#60aeff');
     expect(shape.fills?.map((fill) => fill.fillColor)).toEqual([
       '#60aeff',
       'transparent',
@@ -46,7 +46,7 @@ describe('native IconButton design projection', () => {
       '#60aeff',
     ]);
     expect(
-      (shape as unknown as { children: Shape[] }).children[0].fills?.[0]
+      shape.children[0].fills?.[0]
         .fillColor,
     ).toBe('#60aeff');
   });

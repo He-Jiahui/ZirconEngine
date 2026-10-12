@@ -426,7 +426,7 @@ fn shared_menu_pointer_bridge_opens_flipped_nested_popup_for_branch_hover() {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_nested_popup_hit");
     let mut layout = build_host_menu_pointer_layout(
         &menu_bar,
-        &harness.runtime.chrome_snapshot(),
+        &harness.runtime.chrome_snapshot().unwrap(),
         UiSize::new(420.0, 260.0),
         &[],
         None,

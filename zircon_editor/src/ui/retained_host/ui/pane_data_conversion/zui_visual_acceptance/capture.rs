@@ -252,6 +252,7 @@ fn render_internal(
             );
         geometry_evidence.value["sourceIdentityProvenance"]["runtimeLoadedSources"] =
             runtime_source_audit;
+        geometry_evidence.value["consumedUnrealDockHeaders"] = json!(product.dock_headers);
         geometry_evidence.issues.extend(runtime_source_issues);
     }
     let active_design_tokens = serde_json::to_value(tokens.as_ref())

@@ -1,7 +1,8 @@
 //! 验证 SVG 元数据解析与图集规划契约；这里只检查槽位、尺寸和携带的文档，不执行光栅化或 GPU 上传。
 use crate::asset::{UiIconAsset, UiIconSource, UiIconSourceKind};
 use crate::ui::icon_atlas::{
-    parse_ui_svg_icon, UiIconAtlasBuilder, UiIconRasterRequest, UiSvgIconElement,
+    parse_ui_svg_icon, UiIconAtlasBuildError, UiIconAtlasBuilder, UiIconRasterRequest,
+    UiSvgIconElement, UiSvgIconParseError,
 };
 
 const RUN_ICON_SVG: &str = r##"
@@ -188,4 +189,80 @@ fn request(icon_id: &str, size: f32, dpi_scale: f32, svg: &str) -> UiIconRasterR
         },
         dpi_scale,
     }
+}
+
+#[test]
+fn icon_atlas_rejects_oversized_icons_and_padding_overflow() {
+    for (size, padding) in [(5000.0, 2), (4093.0, 2), (16.0, u32::MAX)] {
+        let error = UiIconAtlasBuilder::new()
+            .with_padding_px(padding)
+            .build_plan([request("icons/oversized", size, 1.0, RUN_ICON_SVG)])
+            .unwrap_err();
+        assert_eq!(
+            error,
+            UiIconAtlasBuildError::IconTooLarge {
+                icon_id: "icons/oversized".to_string(),
+                pixel_size: size as u32,
+                padding_px: padding,
+                max_side_px: 4096,
+            }
+        );
+    }
+}
+
+#[test]
+fn icon_atlas_capacity_boundary_preserves_all_rects_and_uvs() {
+    let requests =
+        || (0..4).map(|index| request(&format!("icons/{index}"), 2044.0, 1.0, RUN_ICON_SVG));
+    let plan = UiIconAtlasBuilder::new().build_plan(requests()).unwrap();
+    assert_eq!((plan.atlas_width, plan.atlas_height), (4096, 4096));
+    assert_eq!(plan.slots.len(), 4);
+    for slot in &plan.slots {
+        assert!(slot.rect.x + slot.rect.width <= plan.atlas_width);
+        assert!(slot.rect.y + slot.rect.height <= plan.atlas_height);
+        assert!(slot.uv.min_u >= 0.0 && slot.uv.max_u <= 1.0);
+        assert!(slot.uv.min_v >= 0.0 && slot.uv.max_v <= 1.0);
+        assert_eq!(slot.pixel_size, 2044);
+    }
+
+    let error = UiIconAtlasBuilder::new()
+        .build_plan(requests().chain([request("icons/extra", 2044.0, 1.0, RUN_ICON_SVG)]))
+        .unwrap_err();
+    assert_eq!(
+        error,
+        UiIconAtlasBuildError::CapacityExceeded {
+            slot_count: 5,
+            cell_size: 2048,
+            max_side_px: 4096,
+        }
+    );
+}
+
+#[test]
+fn icon_atlas_svg_failures_keep_the_original_parse_error() {
+    let error = UiIconAtlasBuilder::new()
+        .build_plan([request("icons/invalid", 16.0, 1.0, "not an svg")])
+        .unwrap_err();
+    assert_eq!(
+        error,
+        UiIconAtlasBuildError::Svg(UiSvgIconParseError::MissingSvgRoot)
+    );
+}
+
+#[test]
+fn icon_atlas_allows_an_exact_maximum_slot_and_empty_batch() {
+    let plan = UiIconAtlasBuilder::new()
+        .build_plan([request("icons/max", 4092.0, 1.0, RUN_ICON_SVG)])
+        .unwrap();
+    assert_eq!((plan.atlas_width, plan.atlas_height), (4096, 4096));
+    assert_eq!(plan.slots[0].rect.x, 2);
+    assert_eq!(plan.slots[0].rect.width, 4092);
+    assert!(plan.slots[0].uv.max_u < 1.0);
+
+    let empty = UiIconAtlasBuilder::new()
+        .with_padding_px(u32::MAX)
+        .build_plan([])
+        .unwrap();
+    assert!(empty.slots.is_empty());
+    assert_eq!((empty.atlas_width, empty.atlas_height), (0, 0));
 }

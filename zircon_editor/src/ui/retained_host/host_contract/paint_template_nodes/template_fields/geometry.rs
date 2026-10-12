@@ -57,3 +57,33 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_s
 ) -> f32 {
     corner_radius_for_frame(rect, requested_radius)
 }
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_has_label_lane(
+    node: &TemplatePaneNodeData,
+) -> bool {
+    !super::search::is_search_field(node)
+        && node.authored_field_label_width
+            .is_some_and(|value| value.is_finite() && value > 0.0)
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_value_paint_rect(
+    node: &TemplatePaneNodeData,
+    row: &FrameRect,
+) -> FrameRect {
+    let width = if field_has_label_lane(node) {
+        super::metrics::workbench_field_metrics_for_node(node).label_width.min(row.width).max(0.0)
+    } else {
+        0.0
+    };
+    FrameRect { x: row.x + width, width: (row.width - width).max(0.0), ..row.clone() }
+}
+
+/// Edit feedback can only bind the emitted value slot, never the property name.
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_field_value_text_command(
+    node: &TemplatePaneNodeData,
+    layout: &FrameRect,
+    text: &FrameRect,
+) -> bool {
+    !field_has_label_lane(node)
+        || frame_is_within(text, &field_value_paint_rect(node, &field_paint_rect(node, layout)))
+}

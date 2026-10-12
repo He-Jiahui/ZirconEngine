@@ -1,8 +1,8 @@
-$script:ProfileScript = Join-Path $PSScriptRoot "..\profiling\shader_pbr\zircon_profile_shader_pbr_viewer.ps1"
+$script:ProfileScript = Join-Path $PSScriptRoot "..\analysis\profiling\shader_pbr\zircon_profile_shader_pbr_viewer.ps1"
 $script:ProfileSource = Get-Content -LiteralPath $script:ProfileScript -Raw
-$script:RuntimeEvidenceScript = Join-Path $PSScriptRoot "..\profiling\shader_pbr\shader-pbr-profile-runtime-evidence.ps1"
+$script:RuntimeEvidenceScript = Join-Path $PSScriptRoot "..\analysis\profiling\shader_pbr\shader-pbr-profile-runtime-evidence.ps1"
 $script:RuntimeEvidenceSource = Get-Content -LiteralPath $script:RuntimeEvidenceScript -Raw
-$script:EvidenceIdentityScript = Join-Path $PSScriptRoot "..\profiling\shader_pbr\shader-pbr-profile-evidence-identity.ps1"
+$script:EvidenceIdentityScript = Join-Path $PSScriptRoot "..\analysis\profiling\shader_pbr\shader-pbr-profile-evidence-identity.ps1"
 $script:EvidenceIdentitySource = Get-Content -LiteralPath $script:EvidenceIdentityScript -Raw
 . $script:ProfileScript -ViewerExe "E:\ZirconBuilds\fixture\zircon_shader_pbr_viewer.exe" -HdriPath "E:\fixtures\profile.hdr" -BuildProvenance "E:\ZirconBuilds\fixture\viewer-build-provenance.json" -CaptureToolchainManifest "E:\fixtures\capture-toolchain.json"
 $script:ProfileCoordinatorTicket = $null
@@ -32,51 +32,103 @@ function Get-ZirconShaderPbrCoordinatorArtifactReceipt {
     return $script:ProfileCoordinatorArtifactReceipt
 }
 
-Describe "zircon shader PBR viewer startup profile contract" {
-    It "keeps generated evidence beneath the Shader06 evidence root" {
-        $repoRoot = "E:\Git\ZirconEngine"
-        $expected = Join-Path $repoRoot "docs\tests\runtime\shader\profile-captures"
+$script:ProfileTestRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$script:ProfileTestPython = Join-Path $script:ProfileTestRepoRoot ".jenkins\runtime\python\python.exe"
 
-        Resolve-ZirconShaderPbrProfileEvidenceRoot -RepoRoot $repoRoot -Path $expected |
-            Should Be ([System.IO.Path]::GetFullPath($expected))
-        $junctionPath = Join-Path $repoRoot ("docs\tests\runtime\shader\profile-captures-junction-test-" + [guid]::NewGuid().ToString("N"))
+function New-ZirconShaderProfileTestOwnedRoot {
+    param([ValidatePattern('^[a-z0-9-]+$')][string]$Label)
+
+    $parent = Resolve-ZirconProfileOutputRoot -RepoRoot $script:ProfileTestRepoRoot -Path 'D:\cargo-targets\zircon-local\evidence\shader-profile-contract-fixtures'
+    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    $parent = Resolve-ZirconProfileOutputRoot -RepoRoot $script:ProfileTestRepoRoot -Path $parent
+    $path = Join-Path $parent ($Label + "-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $path -ErrorAction Stop | Out-Null
+    $path = Resolve-ZirconProfileOutputRoot -RepoRoot $script:ProfileTestRepoRoot -Path $path
+    return [pscustomobject]@{ path = $path; parent = $parent }
+}
+
+function Remove-ZirconShaderProfileTestOwnedRoot {
+    param([Parameter(Mandatory = $true)]$Fixture)
+
+    if (-not (Test-Path -LiteralPath $Fixture.path)) {
+        return
+    }
+    $parent = Resolve-ZirconProfileOutputRoot -RepoRoot $script:ProfileTestRepoRoot -Path $Fixture.parent
+    $path = Resolve-ZirconProfileOutputRoot -RepoRoot $script:ProfileTestRepoRoot -Path $Fixture.path
+    if (-not $path.Equals([string]$Fixture.path, [StringComparison]::OrdinalIgnoreCase) -or
+        -not (Split-Path -Parent $path).Equals($parent, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Shader profile fixture cleanup requires its owned physical direct child."
+    }
+    Remove-Item -LiteralPath $path -Recurse -Force
+}
+
+Describe "zircon shader PBR viewer startup profile contract" {
+    It "keeps generated evidence beneath physical cargo-targets roots" {
+        $repoRoot = $script:ProfileTestRepoRoot
+        Resolve-ZirconShaderPbrProfileEvidenceRoot -RepoRoot $repoRoot -Path "" |
+            Should Be 'D:\cargo-targets\zircon-local\profiles\shader-pbr'
+        $checkedRoots = 0
+        foreach ($drive in @("D", "E", "F")) {
+            if (-not (Test-Path -LiteralPath "${drive}:\" -PathType Container)) {
+                continue
+            }
+            $expected = "${drive}:\cargo-targets\zircon-local\profiles\shader-pbr\profile-captures"
+            Resolve-ZirconShaderPbrProfileEvidenceRoot -RepoRoot $repoRoot -Path $expected |
+                Should Be ([System.IO.Path]::GetFullPath($expected))
+            $checkedRoots++
+        }
+        ($checkedRoots -gt 0) | Should Be $true
+
+        $ownedRoot = New-ZirconShaderProfileTestOwnedRoot -Label "output-path"
+        $junctionPath = Join-Path $ownedRoot.path "junction"
         $createdJunction = $false
         try {
             New-Item -ItemType Junction -Path $junctionPath -Target "C:\Windows" | Out-Null
             $createdJunction = $true
-            $junctionFailure = $null
-            try {
-                Resolve-ZirconShaderPbrProfileEvidenceRoot -RepoRoot $repoRoot -Path $junctionPath | Out-Null
-            }
-            catch {
-                $junctionFailure = $_
-            }
-            $junctionFailure | Should Not BeNullOrEmpty
-            $junctionFailure.Exception.Message | Should Match "contains a reparse point"
+            { Resolve-ZirconShaderPbrProfileEvidenceRoot -RepoRoot $repoRoot -Path $junctionPath } |
+                Should Throw "contains a reparse point"
         }
         finally {
             if ($createdJunction -and (Test-Path -LiteralPath $junctionPath)) {
-                # Windows PowerShell's filesystem provider can throw while deleting a junction.
-                # Directory.Delete removes the generated link itself, never its C:\Windows target.
+                # Delete the generated junction itself; preserve its C:\Windows target.
                 [System.IO.Directory]::Delete($junctionPath)
             }
+            Remove-ZirconShaderProfileTestOwnedRoot -Fixture $ownedRoot
         }
+
         foreach ($unsafePath in @(
             "C:\zircon-profiles",
             "E:\Git\ZirconEngine\target\shader-profile",
-            "E:\Git\ZirconEngine\docs\tests\runtime\shader\..\outside"
+            "E:\Git\ZirconEngine\docs\tests\runtime\shader\..\outside",
+            "E:\Git\ZirconEngine\docs\tests\runtime\shader",
+            "E:\zircon-profiles\shader-profile",
+            "D:\targets\shader-profile",
+            "E:\ZirconBuilds\shader-profile",
+            "F:\nested\cargo-targets\zircon-local\shader-profile",
+            "D:\cargo-targets-other\zircon-local\shader-profile",
+            "D:\cargo-targets\zircon-local-other\shader-profile",
+            "D:relative", "\cargo-targets\zircon-local",
+            "\\server\share\cargo-targets\zircon-local",
+            "\\?\D:\cargo-targets\zircon-local\shader-profile",
+            "\\.\D:\cargo-targets\zircon-local\shader-profile"
         )) {
-            $failure = $null
-            try {
-                Resolve-ZirconShaderPbrProfileEvidenceRoot -RepoRoot $repoRoot -Path $unsafePath | Out-Null
+            $expectedMessage = 'Profile output root must be an absolute literal path beneath physical D/E/F:\cargo-targets\zircon-local.'
+            if ($unsafePath.EndsWith('\..\outside')) {
+                $expectedMessage = "Profile path component must be a plain child name: '..'."
             }
-            catch {
-                $failure = $_
-            }
-            $failure | Should Not BeNullOrEmpty
-            $failure.Exception.Message |
-                Should Be "Shader PBR profile evidence root must resolve beneath E:\Git\ZirconEngine\docs\tests\runtime\shader."
+            { Resolve-ZirconShaderPbrProfileEvidenceRoot -RepoRoot $repoRoot -Path $unsafePath } |
+                Should Throw $expectedMessage
         }
+    }
+
+    It "preserves approved visual-oracle paths as read-only inputs" {
+        $oracle = Join-Path $script:ProfileTestRepoRoot "docs\tests\runtime\shader\approved-oracle.json"
+        Resolve-ZirconShaderPbrDisplayVisualOraclePath -RepoRoot $script:ProfileTestRepoRoot -Path $oracle |
+            Should Be ([System.IO.Path]::GetFullPath($oracle))
+        { Resolve-ZirconShaderPbrProfileEvidenceRoot -RepoRoot $script:ProfileTestRepoRoot -Path $oracle } |
+            Should Throw 'Profile output root must be an absolute literal path beneath physical D/E/F:\cargo-targets\zircon-local.'
+        { Resolve-ZirconShaderPbrDisplayVisualOraclePath -RepoRoot $script:ProfileTestRepoRoot -Path 'C:\Windows\unapproved-oracle.json' } |
+            Should Throw "Shader PBR profile evidence root must resolve beneath"
     }
 
     It "defines five independent cold and warm measurements" {
@@ -147,8 +199,8 @@ Describe "zircon shader PBR viewer startup profile contract" {
     }
 
     It "accepts complete runtime profile evidence and rejects overwritten samples" {
-        $fixtureRoot = Join-Path "E:\Git\ZirconEngine\docs\tests\runtime\shader" `
-            ("runtime-profile-helper-" + [guid]::NewGuid().ToString("N"))
+        $ownedRoot = New-ZirconShaderProfileTestOwnedRoot -Label "runtime-profile-helper"
+        $fixtureRoot = $ownedRoot.path
         $exportRoot = Join-Path $fixtureRoot "fixture-export"
         New-Item -ItemType Directory -Force -Path $exportRoot | Out-Null
         try {
@@ -225,9 +277,7 @@ Describe "zircon shader PBR viewer startup profile contract" {
             $rejection | Should Match "lost spans samples"
         }
         finally {
-            if (Test-Path -LiteralPath $fixtureRoot) {
-                Remove-Item -LiteralPath $fixtureRoot -Recurse -Force
-            }
+            Remove-ZirconShaderProfileTestOwnedRoot -Fixture $ownedRoot
         }
     }
 
@@ -266,11 +316,13 @@ Describe "zircon shader PBR viewer startup profile contract" {
         $profileTools = @(Get-ZirconShaderPbrProfileToolPaths)
         $expectedTools = @(
             "tools/analysis/profiling/shared/performance-machine-manifest.ps1",
+            "tools/analysis/profiling/shared/profile-capture-paths.ps1",
             "tools/analysis/profiling/shared/profile-capture-manifest.ps1",
             "tools/analysis/profiling/shader_pbr/shader-pbr-profile-contract.ps1",
             "tools/analysis/profiling/shader_pbr/shader-pbr-profile-evidence-identity.ps1",
             "tools/analysis/profiling/shader_pbr/shader-pbr-profile-publication.ps1",
             "tools/analysis/profiling/shader_pbr/shader-pbr-profile-runtime-evidence.ps1",
+            "tools/analysis/profiling/shader_pbr/shader-pbr-profile-source-closure.ps1",
             "tools/analysis/profiling/shader_pbr/shader-pbr-profile-toolchain.ps1",
             "tools/analysis/profiling/shader_pbr/write_zircon_shader_pbr_build_provenance.ps1",
             "tools/analysis/visual/zircon_pbr_visual_oracle.py",
@@ -292,7 +344,7 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
     It "accepts a display oracle only when explicitly supplied beneath the evidence root" {
         $script:ProfileSource | Should Match '\[string\]\$DisplayVisualOracle = ""'
-        $script:ProfileSource | Should Match 'Resolve-ZirconShaderPbrProfileEvidenceRoot[\s\S]*-RepoRoot \$RepoRoot[\s\S]*-Path \$DisplayVisualOracle'
+        $script:ProfileSource | Should Match 'Resolve-ZirconShaderPbrDisplayVisualOraclePath[\s\S]*-RepoRoot \$RepoRoot[\s\S]*-Path \$DisplayVisualOracle'
         $script:ProfileSource | Should Match '"--display-visual-oracle", \$DisplayVisualOracle'
         $script:ProfileSource | Should Match 'display_visual_oracle = \$DisplayVisualOracleFingerprint'
         $script:ProfileSource | Should Match '-DisplayVisualOracleFingerprint \$displayVisualOracleFingerprint'
@@ -456,7 +508,7 @@ Describe "zircon shader PBR viewer startup profile contract" {
         $criticalSources = @(Get-ZirconShaderPbrProfileCriticalSourcePaths)
 
         foreach ($relativePath in @(
-            "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_profile_test_support.rs",
+            "zircon_runtime/src/graphics/scene/scene_renderer/environment/tests/realtime_ibl_profile_test_support.rs",
             "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/cache.rs",
             "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/mod.rs",
             "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/variant.rs"
@@ -856,7 +908,8 @@ Describe "zircon shader PBR viewer startup profile contract" {
 
     It "requires the coordinator response to match the requested ticket id" {
         $repoRoot = "E:\Git\ZirconEngine"
-        $fixtureRoot = Join-Path $repoRoot ("docs\tests\runtime\shader\ticket-id-contract-" + [guid]::NewGuid().ToString("N"))
+        $ownedRoot = New-ZirconShaderProfileTestOwnedRoot -Label "ticket-id-contract"
+        $fixtureRoot = $ownedRoot.path
         $sessionTool = Join-Path $fixtureRoot "tools\dev\zircon-session.ps1"
         try {
             New-Item -ItemType Directory -Force -Path (Split-Path -Parent $sessionTool) | Out-Null
@@ -886,15 +939,14 @@ $global:LASTEXITCODE = 0
                 Should Match "returned a ticket different from requested validation ticket"
         }
         finally {
-            if (Test-Path -LiteralPath $fixtureRoot) {
-                Remove-Item -LiteralPath $fixtureRoot -Recurse -Force
-            }
+            Remove-ZirconShaderProfileTestOwnedRoot -Fixture $ownedRoot
         }
     }
 
     It "requires a terminal managed artifact receipt for the exact viewer binary" {
         $repoRoot = "E:\Git\ZirconEngine"
-        $contractRoot = Join-Path $repoRoot ("docs\tests\runtime\shader\build-provenance-contract-" + [guid]::NewGuid().ToString("N"))
+        $ownedRoot = New-ZirconShaderProfileTestOwnedRoot -Label "build-provenance-contract"
+        $contractRoot = $ownedRoot.path
         $managedRoot = Join-Path $contractRoot "managed-artifacts\receipt"
         $viewerPath = Join-Path $managedRoot "zircon_shader_pbr_viewer.exe"
         $provenancePath = Join-Path $contractRoot "viewer-build-provenance.json"
@@ -1080,9 +1132,7 @@ $global:LASTEXITCODE = 0
         finally {
             $script:ProfileCoordinatorTicket = $null
             $script:ProfileCoordinatorArtifactReceipt = $null
-            if (Test-Path -LiteralPath $contractRoot) {
-                Remove-Item -LiteralPath $contractRoot -Recurse -Force
-            }
+            Remove-ZirconShaderProfileTestOwnedRoot -Fixture $ownedRoot
         }
     }
 
@@ -1121,8 +1171,8 @@ $global:LASTEXITCODE = 0
     }
 
     It "writes a profile tool closure accepted by the Python consumer" {
-        $fixtureRoot = Join-Path "E:\Git\ZirconEngine\target\codex-temp" `
-            ("profile-writer-integration-" + [guid]::NewGuid().ToString("N"))
+        $ownedRoot = New-ZirconShaderProfileTestOwnedRoot -Label "profile-writer-integration"
+        $fixtureRoot = $ownedRoot.path
         $profileRoot = Join-Path $fixtureRoot "profile"
         $viewerPath = Join-Path $fixtureRoot "viewer.exe"
         $hdriPath = Join-Path $fixtureRoot "input.hdr"
@@ -1163,11 +1213,11 @@ $global:LASTEXITCODE = 0
                     machine_id = "fixture"
                 })
             $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-            @($manifest.repository.profile_tool_files).Count | Should Be 16
+            @($manifest.repository.profile_tool_files).Count | Should Be 18
 
             $env:PYTHONDONTWRITEBYTECODE = "1"
             $validator = 'import json,sys; from pathlib import Path; from tools.analysis.profiling.shader_pbr.zircon_shader_pbr_profile_tool_identity import validate_profile_tool_files; p=Path(sys.argv[1]); m=json.loads(p.read_text(encoding="utf-8-sig")); validate_profile_tool_files(m["repository"], Path(m["repository"]["root"]).resolve(), p)'
-            $acceptOutput = @(& python -c $validator $manifestPath 2>&1)
+            $acceptOutput = @(& $script:ProfileTestPython -B -X utf8 -c $validator $manifestPath 2>&1)
             $acceptExitCode = $LASTEXITCODE
             $acceptExitCode | Should Be 0
             ($acceptOutput -join "`n") | Should Be ""
@@ -1176,16 +1226,34 @@ $global:LASTEXITCODE = 0
             $tamperedPath = Join-Path $profileRoot "profile_manifest_tampered.json"
             $manifest | ConvertTo-Json -Depth 8 |
                 Set-Content -LiteralPath $tamperedPath -Encoding UTF8
-            $tamperOutput = @(& python -c $validator $tamperedPath 2>&1)
+            $tamperOutput = @(& $script:ProfileTestPython -B -X utf8 -c $validator $tamperedPath 2>&1)
             $tamperExitCode = $LASTEXITCODE
             $tamperExitCode | Should Not Be 0
             ($tamperOutput -join "`n") | Should Match "profile tool SHA-256 changed"
         }
         finally {
             $env:PYTHONDONTWRITEBYTECODE = $previousPythonBytecode
-            if (Test-Path -LiteralPath $fixtureRoot) {
-                Remove-Item -LiteralPath $fixtureRoot -Recurse -Force
-            }
+            Remove-ZirconShaderProfileTestOwnedRoot -Fixture $ownedRoot
+        }
+    }
+}
+
+Describe "zircon shader profile output rejection precedes capture effects" {
+    It "rejects a repository output before toolchain lookup, writes or native launch" {
+        $previousEvidenceRoot = $script:EvidenceRoot
+        Mock Resolve-ZirconShaderPbrCaptureToolchain { throw "unexpected toolchain lookup" }
+        Mock New-Item { throw "unexpected profile write" }
+        Mock Start-Process { throw "unexpected native capture" }
+        try {
+            $script:EvidenceRoot = Join-Path $script:ProfileTestRepoRoot "docs\tests\runtime\shader"
+            { Invoke-ZirconShaderPbrProfileCapture } |
+                Should Throw 'Profile output root must be an absolute literal path beneath physical D/E/F:\cargo-targets\zircon-local.'
+            Assert-MockCalled Resolve-ZirconShaderPbrCaptureToolchain -Times 0 -Exactly
+            Assert-MockCalled New-Item -Times 0 -Exactly
+            Assert-MockCalled Start-Process -Times 0 -Exactly
+        }
+        finally {
+            $script:EvidenceRoot = $previousEvidenceRoot
         }
     }
 }

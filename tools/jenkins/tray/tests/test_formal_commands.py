@@ -1,5 +1,6 @@
 from __future__ import annotations
 import unittest
+from pathlib import Path
 from tools.jenkins.tray.formal_app import FormalTray
 from tools.jenkins.tray.menu import COMMANDS
 
@@ -30,6 +31,57 @@ class FormalCommandTests(unittest.TestCase):
         tray = FormalTray.__new__(FormalTray); tray.status={'state':'ready','ownerKnown':True,'canStop':True}; tray.last_command=None; tray._telemetry=lambda:None; tray._restart=lambda:None
         tray.command(COMMANDS['restart'])
         self.assertEqual(tray.last_command['commandId'], COMMANDS['restart'])
+
+    def test_telemetry_uses_transactional_state_pointer(self):
+        from unittest.mock import patch
+        import tools.jenkins.tray.formal_app as app
+        tray = FormalTray.__new__(FormalTray)
+        tray.config = type('C', (), {'paths': type('P', (), {'state': Path('E:/cargo-targets/zircon-ui-test/state')})(),
+                                     'url': 'http://127.0.0.1:53748/'})()
+        tray.status = {'state': 'ready', 'serviceReady': True}
+        tray.hwnd = 7; tray.icon_added = False; tray.last_command = None
+        with patch.object(app, 'atomic_json') as write, \
+             patch('tools.jenkins.tray.formal_native.identity', return_value=None):
+            tray._telemetry()
+        write.assert_called_once()
+        self.assertEqual(write.call_args.args[0], tray.config.paths.state / 'tray' / 'ui.json')
+
+    def test_icon_retry_stops_after_six_gui_attempts(self):
+        from unittest.mock import patch
+        import tools.jenkins.tray.formal_app as app
+        tray = FormalTray.__new__(FormalTray)
+        tray.hwnd = 7; tray.icon = None; tray._reset_icon_retry()
+        with patch.object(app.nw, 'add_icon', return_value=False) as add, \
+             patch.object(tray, '_telemetry'):
+            for _ in range(app.ICON_RETRY_LIMIT + 2):
+                tray._attempt_icon_add()
+        self.assertEqual(add.call_count, app.ICON_RETRY_LIMIT)
+        self.assertFalse(tray.icon_added)
+
+    def test_popup_creation_and_append_failures_are_typed(self):
+        from unittest.mock import patch
+        import ctypes
+        import tools.jenkins.tray.native_windows as nw
+
+        class FakeUser32:
+            def CreatePopupMenu(self): return 0
+
+        with patch.object(nw, 'IS_WINDOWS', True), patch.object(nw, 'user32', FakeUser32()):
+            ctypes.set_last_error(5)
+            with self.assertRaises(OSError):
+                nw.popup_menu(7, [], 0, 0)
+
+        class FakeAppendUser32:
+            def CreatePopupMenu(self): return 1
+            def AppendMenuW(self, *_args): return 0
+            def DestroyMenu(self, _menu): self.destroyed = True; return 1
+
+        fake = FakeAppendUser32()
+        with patch.object(nw, 'IS_WINDOWS', True), patch.object(nw, 'user32', fake):
+            ctypes.set_last_error(5)
+            with self.assertRaises(OSError):
+                nw.popup_menu(7, [(1, 'one', True)], 0, 0)
+        self.assertTrue(fake.destroyed)
 
     def test_tray_callback_decodes_v4_event_from_low_word(self):
         from unittest.mock import patch

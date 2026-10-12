@@ -553,3 +553,165 @@ fn project_root_without_manifest_emits_actionable_startup_diagnostic() {
         )
     );
 }
+
+#[cfg(all(
+    target_os = "windows",
+    feature = "dynamic-api",
+    not(feature = "gamepad-gilrs")
+))]
+mod runtime_session_create_cleanup {
+    use super::*;
+    use crate::entry::runtime_library::surface_teardown_fixture::{self, Call, Policy};
+
+    fn create_failure(runtime: LoadedRuntime) -> RuntimeSessionCreateFailure {
+        match RuntimeSession::create_with_profile_and_project(
+            runtime,
+            b"runtime",
+            None,
+            None,
+            None,
+            None,
+        ) {
+            Err(failure) => failure,
+            Ok(mut session) => {
+                session.destroy_for_host_resource_release();
+                panic!("the fixture's Minimal receipt must reject a Runtime request");
+            }
+        }
+    }
+
+    #[test]
+    fn creation_failure_retries_its_original_owner_before_returning_startup_error() {
+        surface_teardown_fixture::with_runtime(Policy::default(), |runtime, control| {
+            let failure = create_failure(runtime);
+            let primary = failure.to_string();
+            let startup = recover_runtime_session_create_failure(
+                RuntimeSessionProfile::Runtime,
+                None,
+                failure.clone(),
+            );
+            let pending = failure.cleanup_pending();
+            let snapshot = control.snapshot();
+            control.allow_cleanup();
+            failure
+                .retry_cleanup()
+                .expect("clean the original fixture owner before assertions");
+            drop(failure);
+
+            assert!(!pending);
+            assert!(!snapshot.active);
+            assert_eq!(snapshot.allocations, 0);
+            assert_eq!(
+                snapshot.calls,
+                [
+                    Call::Create,
+                    Call::Receipt,
+                    Call::ReleaseAllocation,
+                    Call::Destroy,
+                ]
+            );
+            assert_eq!(control.snapshot().calls, snapshot.calls);
+            assert!(startup.to_string().contains(&primary));
+            assert!(!startup
+                .to_string()
+                .contains("original ownership remains retained"));
+        });
+    }
+
+    #[test]
+    fn failed_creation_cleanup_keeps_the_primary_error_and_original_owner() {
+        let policy = Policy {
+            destroy_failures: 1,
+            ..Policy::default()
+        };
+        surface_teardown_fixture::with_runtime(policy, |runtime, control| {
+            let failure = create_failure(runtime);
+            let primary = failure.to_string();
+            let startup = recover_runtime_session_create_failure(
+                RuntimeSessionProfile::Runtime,
+                None,
+                failure.clone(),
+            );
+            let pending = failure.cleanup_pending();
+            let failed = control.snapshot();
+            control.allow_cleanup();
+            failure
+                .retry_cleanup()
+                .expect("clean the original fixture owner");
+            drop(failure);
+
+            assert!(pending);
+            assert!(failed.active);
+            assert_eq!(
+                failed.calls,
+                [
+                    Call::Create,
+                    Call::Receipt,
+                    Call::ReleaseAllocation,
+                    Call::Destroy,
+                ]
+            );
+            let diagnostic = startup.to_string();
+            assert!(
+                diagnostic.find(&primary).unwrap()
+                    < diagnostic.find("cleanup retry failed:").unwrap()
+            );
+            assert!(diagnostic.contains("controlled session destroy failure"));
+            assert!(diagnostic.contains("original ownership remains retained"));
+            assert_eq!(
+                control
+                    .snapshot()
+                    .calls
+                    .iter()
+                    .filter(|call| **call == Call::Destroy)
+                    .count(),
+                2
+            );
+            assert!(!control.snapshot().active);
+        });
+    }
+
+    #[test]
+    fn ownerless_creation_error_does_not_retry_an_unrelated_retained_session() {
+        surface_teardown_fixture::with_runtime(Policy::default(), |runtime, control| {
+            let retained = create_failure(runtime);
+            surface_teardown_fixture::with_runtime(Policy::default(), |runtime, other| {
+                let failure = create_failure(runtime);
+                let primary = failure.to_string();
+                let ownerless = !failure.cleanup_pending();
+                let startup = recover_runtime_session_create_failure(
+                    RuntimeSessionProfile::Runtime,
+                    None,
+                    failure,
+                );
+                let pending = retained.cleanup_pending();
+                let untouched = control.snapshot();
+                control.allow_cleanup();
+                retained
+                    .retry_cleanup()
+                    .expect("clean the unrelated fixture owner");
+
+                assert!(ownerless);
+                assert!(primary.contains("runtime admission pending:"));
+                assert!(startup.to_string().contains(&primary));
+                assert!(pending);
+                assert!(untouched.active);
+                assert_eq!(
+                    untouched.calls,
+                    [Call::Create, Call::Receipt, Call::ReleaseAllocation]
+                );
+                assert!(other.snapshot().calls.is_empty());
+                assert!(!other.snapshot().active);
+                assert_eq!(
+                    control.snapshot().calls,
+                    [
+                        Call::Create,
+                        Call::Receipt,
+                        Call::ReleaseAllocation,
+                        Call::Destroy,
+                    ]
+                );
+            });
+        });
+    }
+}

@@ -1,6 +1,9 @@
 use toml::Value;
-use zircon_runtime_interface::ui::{layout::UiSize, tree::UiTemplateNodeMetadata};
+use zircon_runtime_interface::ui::{
+    design_tokens::EditorDesignTokens, layout::UiSize, tree::UiTemplateNodeMetadata,
+};
 
+#[derive(Default)]
 pub(super) struct MaterialLayoutMetrics {
     pub padding_left: f32,
     pub padding_right: f32,
@@ -49,7 +52,12 @@ impl MaterialLayoutMetrics {
         authored_metric.then_some(metrics)
     }
 
-    fn apply_to_content(&self, content: UiSize, has_icon: bool) -> UiSize {
+    fn apply_to_content(
+        &self,
+        content: UiSize,
+        has_icon: bool,
+        trailing_extra_width: f32,
+    ) -> UiSize {
         let icon_size = if has_icon { self.icon_size } else { 0.0 };
         let icon_text_spacing = if has_icon && content.width > 0.0 {
             self.spacing
@@ -62,7 +70,8 @@ impl MaterialLayoutMetrics {
             + self.leading_slot_width
             + self.trailing_slot_width
             + self.padding_left
-            + self.padding_right;
+            + self.padding_right
+            + trailing_extra_width;
         let height = content.height.max(icon_size) + self.padding_top + self.padding_bottom;
         UiSize::new(width.max(self.min_width), height.max(self.min_height))
     }
@@ -79,12 +88,37 @@ pub(super) fn measure_material_content(
         return None;
     }
 
-    let Some(metrics) = MaterialLayoutMetrics::resolve(metadata) else {
-        return None;
+    let is_dropdown = metadata.component == "Dropdown";
+    let metrics = MaterialLayoutMetrics::resolve(metadata)
+        .or_else(|| is_dropdown.then(MaterialLayoutMetrics::default))?;
+    let has_icon = !is_dropdown
+        && (has_icon_attribute(metadata)
+            || (metadata.component == "IconButton" && metrics.icon_size > 0.0));
+    let trailing_extra_width = if is_dropdown {
+        dropdown_adornment_width(metadata)
+    } else {
+        0.0
     };
-    let has_icon = has_icon_attribute(metadata)
-        || (metadata.component == "IconButton" && metrics.icon_size > 0.0);
-    Some(metrics.apply_to_content(content, has_icon))
+    Some(metrics.apply_to_content(content, has_icon, trailing_extra_width))
+}
+
+// Keep the measured text lane wide enough for the same native adornments
+// reserved by the Dropdown painter, including its token-derived defaults.
+fn dropdown_adornment_width(metadata: &UiTemplateNodeMetadata) -> f32 {
+    let tokens = EditorDesignTokens::workbench_dark();
+    let metric = |key: &str, fallback: f32, positive: bool| {
+        metadata
+            .style_overrides
+            .get(key)
+            .or_else(|| metadata.attributes.get(key))
+            .and_then(value_as_f32)
+            .filter(|value| if positive { *value > 0.0 } else { *value >= 0.0 })
+            .unwrap_or(fallback)
+    };
+    metric("horizontal_inset", tokens.density.gap_medium, false)
+        + metric("caret_right_inset", tokens.density.gap_large, false)
+        + metric("caret_size", tokens.typography.overlay_size, true)
+        + metric("caret_gap", tokens.density.gap_small, false)
 }
 
 fn supports_material_layout(component: &str) -> bool {
@@ -98,6 +132,7 @@ fn supports_material_layout(component: &str) -> bool {
             | "TextField"
             | "ListRow"
             | "ComboBox"
+            | "Dropdown"
             | "RangeField"
             | "NumberField"
             | "Progress"

@@ -13,11 +13,16 @@ mod submit;
 
 use std::fmt;
 use std::mem;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use zircon_runtime::asset::{AssetManager, AssetStatusRecord, AssetUri};
-use zircon_runtime::core::CoreError;
+use zircon_runtime::asset::pipeline::manager::{ProjectAssetManager, PROJECT_ASSET_MANAGER_NAME};
+use zircon_runtime::asset::project::ProjectActivationIdentity;
+use zircon_runtime::asset::{AssetStatusRecord, AssetUri, ProjectImportReceipt};
+use zircon_runtime::core::manager::{resolve_manager_service, ManagerServiceHandle};
+use zircon_runtime::core::runtime::ServiceCallGuard;
+use zircon_runtime::core::{CoreError, CoreWeak};
 
 use crate::core::asset::EditorAssetIndex;
 use crate::core::jobs::{EditorJobSystem, JobError, JobId};
@@ -194,13 +199,37 @@ trait AssetImportBackend: Send + Sync {
     fn import(&self, uri: &AssetUri) -> Result<Option<AssetStatusRecord>, CoreError>;
 }
 
+#[derive(Clone)]
+struct RegisteredImportSource {
+    core: CoreWeak,
+    handle: ManagerServiceHandle<ProjectAssetManager>,
+    activation_identity: ProjectActivationIdentity,
+}
+
+impl RegisteredImportSource {
+    fn enter(&self) -> Result<ServiceCallGuard<ProjectAssetManager>, CoreError> {
+        let core = self.core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+        resolve_manager_service(&core, self.handle.clone())
+    }
+
+    fn import_asset(&self, uri: &AssetUri) -> Result<Option<AssetStatusRecord>, CoreError> {
+        let manager = self.enter()?;
+        manager.import_asset_for_project(&self.activation_identity, &uri.to_string())
+    }
+
+    fn import_model_source(&self, source_path: &Path) -> Result<ProjectImportReceipt, CoreError> {
+        let manager = self.enter()?;
+        manager.import_model_source_for_project(&self.activation_identity, source_path)
+    }
+}
+
 struct RuntimeAssetImportBackend {
-    manager: Arc<dyn AssetManager>,
+    source: RegisteredImportSource,
 }
 
 impl AssetImportBackend for RuntimeAssetImportBackend {
     fn import(&self, uri: &AssetUri) -> Result<Option<AssetStatusRecord>, CoreError> {
-        self.manager.import_asset(&uri.to_string())
+        self.source.import_asset(uri)
     }
 }
 
@@ -208,7 +237,7 @@ impl AssetImportBackend for RuntimeAssetImportBackend {
 pub struct EditorAssetImportFlow {
     jobs: EditorJobSystem,
     backend: Arc<dyn AssetImportBackend>,
-    model_manager: Option<Arc<dyn AssetManager>>,
+    model_source: Option<RegisteredImportSource>,
     index: Arc<Mutex<EditorAssetIndex>>,
     diagnostics: EditorAssetImportDiagnostics,
     state: Arc<ImportFlowSharedState>,
@@ -220,38 +249,81 @@ pub struct EditorAssetImportFlow {
 }
 
 impl EditorAssetImportFlow {
+    pub(crate) fn project_activation_identity(&self) -> Option<&ProjectActivationIdentity> {
+        self.model_source
+            .as_ref()
+            .map(|source| &source.activation_identity)
+    }
+
+    fn matches_index_activation(&self, index: &EditorAssetIndex) -> bool {
+        // Only the private test backend is unbound. Normal constructors require an activation.
+        self.project_activation_identity()
+            .is_none_or(|expected| index.project_activation_identity() == Some(expected))
+    }
+
+    fn inactive_project_error() -> CoreError {
+        CoreError::Initialization(
+            PROJECT_ASSET_MANAGER_NAME.to_owned(),
+            "asset import belongs to an inactive project activation".to_owned(),
+        )
+    }
+
     pub fn new(
         jobs: EditorJobSystem,
-        manager: Arc<dyn AssetManager>,
+        core: CoreWeak,
+        original: ManagerServiceHandle<ProjectAssetManager>,
         index: Arc<Mutex<EditorAssetIndex>>,
         logs: Arc<EditorLogService>,
-    ) -> Self {
+    ) -> Result<Self, CoreError> {
         Self::new_with_limits(
             jobs,
-            manager,
+            core,
+            original,
             index,
             EditorAssetImportAdmissionLimits::default(),
             logs,
         )
     }
 
+    /// Captures one index activation; no admitted manager guard is retained in the queue.
     pub fn new_with_limits(
         jobs: EditorJobSystem,
-        manager: Arc<dyn AssetManager>,
+        core: CoreWeak,
+        original: ManagerServiceHandle<ProjectAssetManager>,
         index: Arc<Mutex<EditorAssetIndex>>,
         limits: EditorAssetImportAdmissionLimits,
         logs: Arc<EditorLogService>,
-    ) -> Self {
-        Self::from_backend(
+    ) -> Result<Self, CoreError> {
+        let activation_identity = lock::lock_editor_asset_index_recovering_poison(index.as_ref())
+            .project_activation_identity()
+            .cloned()
+            .ok_or_else(|| CoreError::ServiceUnavailable("active Editor project".to_owned()))?;
+        let source = RegisteredImportSource {
+            core,
+            handle: original,
+            activation_identity,
+        };
+        let admitted = source.enter()?;
+        if !admitted.is_project_activation_current(&source.activation_identity) {
+            return Err(Self::inactive_project_error());
+        }
+        drop(admitted);
+        let current = lock::lock_editor_asset_index_recovering_poison(index.as_ref())
+            .project_activation_identity()
+            == Some(&source.activation_identity);
+        if !current {
+            return Err(Self::inactive_project_error());
+        }
+        Ok(Self::from_backend(
             jobs,
             Arc::new(RuntimeAssetImportBackend {
-                manager: Arc::clone(&manager),
+                source: source.clone(),
             }),
-            Some(manager),
+            Some(source),
             index,
             limits,
             logs,
-        )
+        ))
     }
 
     #[cfg(test)]
@@ -316,7 +388,7 @@ impl EditorAssetImportFlow {
     fn from_backend(
         jobs: EditorJobSystem,
         backend: Arc<dyn AssetImportBackend>,
-        model_manager: Option<Arc<dyn AssetManager>>,
+        model_source: Option<RegisteredImportSource>,
         index: Arc<Mutex<EditorAssetIndex>>,
         limits: EditorAssetImportAdmissionLimits,
         logs: Arc<EditorLogService>,
@@ -324,7 +396,7 @@ impl EditorAssetImportFlow {
         Self {
             jobs,
             backend,
-            model_manager,
+            model_source,
             index,
             diagnostics: EditorAssetImportDiagnostics::new(logs),
             state: Arc::new(ImportFlowSharedState::default()),

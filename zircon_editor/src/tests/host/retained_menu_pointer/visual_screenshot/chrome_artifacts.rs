@@ -73,7 +73,7 @@ fn capture_scrolled_window_popup_visual_artifact() {
         Some(workbench_window_bridge.host_projection()),
         componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
-        None,
+        Default::default(),
     );
     ui.global::<UiHostContext>()
         .set_menu_state(HostMenuStateData {
@@ -163,7 +163,7 @@ fn capture_close_prompt_visual_artifact() {
         Some(workbench_window_bridge.host_projection()),
         componentized_workbench_layout_frames,
         &floating_window_projection_bundle,
-        None,
+        Default::default(),
     );
     ui.set_close_prompt(HostClosePromptData {
         visible: true,

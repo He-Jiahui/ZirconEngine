@@ -50,7 +50,7 @@ class PhysicalPathTests(unittest.TestCase):
         target = self.fixture / "real"
         junction = self.fixture / "junction"
         target.mkdir(exist_ok=True)
-        result = subprocess.run(["cmd.exe", "/d", "/c", "mklink", "/J", str(junction), str(target)], capture_output=True, text=True)
+        result = subprocess.run(["cmd.exe", "/d", "/c", "mklink", "/J", str(junction), str(target)], capture_output=True)
         if result.returncode != 0:
             self.skipTest("mklink /J unavailable without elevated Windows privileges")
         try:

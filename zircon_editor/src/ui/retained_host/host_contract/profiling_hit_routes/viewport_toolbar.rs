@@ -13,36 +13,43 @@ pub(in crate::ui::retained_host::host_contract) fn viewport_toolbar_route_hit(
     x: f32,
     y: f32,
 ) -> bool {
-    pane_route_hits_viewport_toolbar(
+    scene.document_surfaces().iter().any(|document| {
+        let surface = if scene.document_leaves.is_empty() {
+            "document"
+        } else {
+            document.surface_key.as_str()
+        };
+        pane_route_hits_viewport_toolbar(
+            id,
+            x,
+            y,
+            surface,
+            &document.pane,
+            &translated(
+                &document.content_frame,
+                document.region_frame.x,
+                document.region_frame.y,
+            ),
+        )
+    }) || pane_route_hits_viewport_toolbar(
         id,
         x,
         y,
-        scene.document_dock.surface_key.as_str(),
-        &scene.document_dock.pane,
-        &translated(
-            &scene.document_dock.content_frame,
-            scene.document_dock.region_frame.x,
-            scene.document_dock.region_frame.y,
-        ),
-    ) || pane_route_hits_viewport_toolbar(
-        id,
-        x,
-        y,
-        scene.left_dock.surface_key.as_str(),
+        "left",
         &scene.left_dock.pane,
         &side_dock_content_frame(&scene.left_dock),
     ) || pane_route_hits_viewport_toolbar(
         id,
         x,
         y,
-        scene.right_dock.surface_key.as_str(),
+        "right",
         &scene.right_dock.pane,
         &side_dock_content_frame(&scene.right_dock),
     ) || pane_route_hits_viewport_toolbar(
         id,
         x,
         y,
-        scene.bottom_dock.surface_key.as_str(),
+        "bottom",
         &scene.bottom_dock.pane,
         &translated(
             &scene.bottom_dock.content_frame,

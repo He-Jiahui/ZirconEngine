@@ -193,7 +193,7 @@ fn scaled_full_and_sparse_workbench_projection_share_one_physical_boundary() {
     assert_eq!(initial_node.frame.x, 116.0);
     assert_eq!(initial_node.frame.y, 74.0);
     assert_eq!(initial_node.frame.width, 160.0);
-    assert_eq!(initial_node.font_size, 24.0);
+    assert_eq!(initial_node.font_size, 12.0);
     assert_eq!(initial_node.corner_radius, 6.0);
 
     node.text = Some("Run Project".to_string());
@@ -700,6 +700,7 @@ fn test_host_node<const N: usize>(
         focused: false,
         focus_visible: false,
         focus_visible_known: false,
+        tree_owner_focused: None,
         hovered: false,
         pressed: false,
         dragging: false,
@@ -718,4 +719,78 @@ fn test_host_node<const N: usize>(
         style_tokens: BTreeMap::new(),
         routes: Vec::new(),
     }
+}
+
+#[test]
+fn full_and_sparse_projection_preserve_valid_logical_paint_padding_presence() {
+    let mut node = test_host_node("Button", "button", Some("File"), []);
+    node.node_id = "authored-menu".into();
+    node.properties.extend([
+        (
+            "layout_padding_left".into(),
+            RetainedUiHostValue::Float(0.0),
+        ),
+        (
+            "layout_padding_right".into(),
+            RetainedUiHostValue::Float(12.0),
+        ),
+        (
+            "layout_padding_top".into(),
+            RetainedUiHostValue::Float(-1.0),
+        ),
+    ]);
+    let projection = RetainedUiHostProjection {
+        source_surface_frame: None,
+        document_id: "authored-menu-insets".into(),
+        nodes: vec![node.clone()],
+    };
+    let full = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+        Some(&projection),
+        None,
+        None,
+        1.5,
+    );
+    let first = full.get(0).unwrap();
+    assert_eq!(
+        first.authored_field_padding,
+        [Some(0.0), Some(12.0), None, None]
+    );
+    assert_eq!(first.layout_padding_right, 18.0);
+    node.properties.insert(
+        "layout_padding_right".into(),
+        RetainedUiHostValue::Float(7.0),
+    );
+    let sparse = patch_host_contract_workbench_window_nodes_at_mount_and_scale(
+        "authored-menu-insets",
+        &[node],
+        &full,
+        None,
+        1.5,
+    )
+    .unwrap();
+    let patched = sparse.get(0).unwrap();
+    assert_eq!(
+        patched.authored_field_padding,
+        [Some(0.0), Some(7.0), None, None]
+    );
+    assert_eq!(patched.layout_padding_right, 10.5);
+}
+
+#[test]
+fn labeled_field_projection_keeps_authored_name_and_logical_width_at_dpi() {
+    let mut node = test_host_node("InputField", "input-field", Some("200"), [("text", "Far"), ("value_text", "200")]);
+    node.properties.insert("layout_label_width".into(), RetainedUiHostValue::Float(92.0));
+    assert_eq!(projected_workbench_text(&node, "input-field"), "Far");
+    let projection = RetainedUiHostProjection {
+        source_surface_frame: None, document_id: "labeled-property".into(), nodes: vec![node.clone()],
+    };
+    let nodes = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+        Some(&projection), None, None, 1.5,
+    );
+    let data = nodes.get(0).unwrap();
+    assert_eq!(data.text.as_str(), "Far");
+    assert_eq!(data.value_text.as_str(), "200");
+    assert_eq!(data.authored_field_label_width, Some(92.0), "authored label width remains logical");
+    node.properties.insert("layout_label_width".into(), RetainedUiHostValue::Float(0.0));
+    assert_eq!(projected_workbench_text(&node, "input-field"), "200", "plain fields keep existing display semantics");
 }

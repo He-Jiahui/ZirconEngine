@@ -242,11 +242,13 @@ impl EditorUiHost {
         Ok(())
     }
 
-    pub(super) fn save_document_toolkit(
+    /// Submission stays inside the caller's admission. The returned ticket owns no call guard.
+    pub(super) fn submit_document_toolkit_save(
         &self,
+        original: zircon_runtime::core::runtime::ServiceHandle<super::EditorManager>,
         instance_id: &ViewInstanceId,
         reason: SaveReason,
-    ) -> Result<DocumentSaveReport, EditorError> {
+    ) -> Result<crate::core::jobs::JobTicket<DocumentSaveReport>, EditorError> {
         let toolkit_instance = ToolkitInstanceId::parse(instance_id.0.clone())?;
         let document = self
             .document_toolkits
@@ -258,9 +260,11 @@ impl EditorUiHost {
             .document_toolkits
             .autosave_source_path(document, self)?;
         let save_mutex = super::editor_document_autosave::document_save_mutex_group(&source_path)?;
-        let job = self
-            .runtime_services
-            .foreground_document_save_job(instance_id.clone(), reason)?;
+        let job = self.runtime_services.foreground_document_save_job(
+            original,
+            instance_id.clone(),
+            reason,
+        )?;
         let ticket = self
             .jobs
             .submit(
@@ -269,10 +273,8 @@ impl EditorUiHost {
                 ),
                 job,
             )
-            .map_err(|error| EditorError::Project(error.to_string()))?;
-        ticket
-            .wait()
-            .map_err(|error| EditorError::Project(error.to_string()))
+            .map_err(EditorError::from)?;
+        Ok(ticket)
     }
 
     pub(super) fn save_document_toolkit_canonical(
@@ -290,22 +292,34 @@ impl EditorUiHost {
         let dirty_snapshot = self.dirty_documents.snapshot(document)?;
         let save_token = self.dirty_documents.capture_save_token(document)?;
         let report = self.write_document_toolkit(document, reason)?;
-        self.dirty_documents
-            .mark_saved_if_unchanged(document, save_token)?;
-        if !self
-            .dirty_documents
-            .clear_saved_external_effects(&dirty_snapshot)?
-        {
-            return Err(
-                crate::core::asset::DirtyRegistryError::DocumentChangedDuringSave {
-                    document,
-                    expected_generation: dirty_snapshot.generation(),
-                }
-                .into(),
-            );
+        let completion = (|| -> Result<(), EditorError> {
+            self.dirty_documents
+                .mark_saved_if_unchanged(document, save_token)?;
+            if !self
+                .dirty_documents
+                .clear_saved_external_effects(&dirty_snapshot)?
+            {
+                return Err(
+                    crate::core::asset::DirtyRegistryError::DocumentChangedDuringSave {
+                        document,
+                        expected_generation: dirty_snapshot.generation(),
+                    }
+                    .into(),
+                );
+            }
+            self.sync_document_dirty_projection(instance_id)?;
+            Ok(())
+        })();
+        match completion {
+            Ok(()) => Ok(report),
+            Err(source) if report.cooperating_source_writes_are_serialized() => {
+                Err(EditorError::DocumentSaveCommitted {
+                    report,
+                    source: Box::new(source),
+                })
+            }
+            Err(source) => Err(source),
         }
-        self.sync_document_dirty_projection(instance_id)?;
-        Ok(report)
     }
 
     pub(super) fn write_document_toolkit(
@@ -313,7 +327,19 @@ impl EditorUiHost {
         document: crate::core::editor_message::DocumentId,
         reason: SaveReason,
     ) -> Result<DocumentSaveReport, EditorError> {
-        Ok(self.document_toolkits.save(document, self, reason)?)
+        match self.document_toolkits.save(document, self, reason) {
+            Ok(report) => Ok(report),
+            Err(crate::core::extension::SaveError::HookFailedAfterWrite { report, source }) => {
+                let document = report.document_id();
+                Err(EditorError::DocumentSaveCommitted {
+                    report,
+                    source: Box::new(EditorError::DocumentToolkitSave {
+                        source: crate::core::extension::SaveError::HookFailed { document, source },
+                    }),
+                })
+            }
+            Err(source) => Err(source.into()),
+        }
     }
 
     pub(super) fn validate_document_toolkit_references(
@@ -681,3 +707,7 @@ impl DocumentToolkit<EditorUiHost> for HostDocumentToolkit {
         (self.capture_autosave)(host, &self.instance)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/editor_ui_host/save_completion.rs"]
+pub(crate) mod save_completion_tests;

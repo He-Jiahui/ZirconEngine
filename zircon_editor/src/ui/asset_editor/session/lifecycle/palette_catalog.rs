@@ -25,12 +25,15 @@ pub(super) fn build_v2(
     widget_imports: &BTreeMap<String, UiV2AssetDocument>,
 ) -> Result<UiAssetPaletteCatalog, UiAssetEditorSessionError> {
     let reference_imports = v2_palette_reference_imports(widget_imports)?;
-    Ok(UiAssetPaletteCatalog::build(document, &reference_imports))
+    let descriptors = crate::ui::template_runtime::builtin::builtin_component_descriptors()?;
+    Ok(UiAssetPaletteCatalog::build(document, &reference_imports)
+        .with_builtin_primitives(descriptors))
 }
 
 pub(super) fn refresh_palette_catalog(
     session: &mut UiAssetEditorSession,
 ) -> Result<(), UiAssetEditorSessionError> {
+    let visible_start = session.palette_catalog.visible_start();
     session.palette_catalog = match session.source_schema {
         UiAssetSourceSchema::LayoutDocument => build_layout(
             &session.last_valid_document,
@@ -41,6 +44,7 @@ pub(super) fn refresh_palette_catalog(
             &session.v2_compiler_imports.widgets,
         )?,
     };
+    session.palette_catalog.set_visible_start(visible_start);
     #[cfg(test)]
     {
         session.palette_catalog_build_count += 1;

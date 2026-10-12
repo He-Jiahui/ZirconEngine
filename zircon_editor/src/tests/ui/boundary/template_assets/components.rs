@@ -49,8 +49,8 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchButton",
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_activity_rail.zui",
-            "WorkbenchActivityRail",
+            "assets/ui/editor/unreal/components/menus.zui",
+            "UnrealLevelEditorMenus",
         ),
         (
             "assets/ui/editor/components/workbench/primitives/inputs/workbench_checkbox.zui",
@@ -61,8 +61,8 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchChip",
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui",
-            "WorkbenchComponentDrawer",
+            "assets/ui/editor/unreal/components/menu_popups.zui",
+            "UnrealLevelEditorMenuPopups",
         ),
         (
             "assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui",
@@ -81,8 +81,8 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchSearchInput",
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui",
-            "WorkbenchInspectorPanel",
+            "assets/ui/editor/unreal/components/details.zui",
+            "UnrealDetailsPanel",
         ),
         (
             "assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui",
@@ -101,8 +101,8 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchDivider",
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_main_band.zui",
-            "WorkbenchMainBand",
+            "assets/ui/editor/unreal/components/content_drawer.zui",
+            "UnrealContentDrawer",
         ),
         (
             "assets/ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui",
@@ -133,8 +133,8 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchSectionTitle",
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui",
-            "WorkbenchSceneTreePanel",
+            "assets/ui/editor/unreal/components/outliner.zui",
+            "UnrealOutlinerPanel",
         ),
         (
             "assets/ui/editor/components/workbench/primitives/inputs/workbench_segmented_control.zui",
@@ -157,8 +157,8 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchStatusItem",
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_status_bar.zui",
-            "WorkbenchStatusBar",
+            "assets/ui/editor/unreal/components/status_bar.zui",
+            "UnrealEditorStatusBar",
         ),
         (
             "assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui",
@@ -177,16 +177,16 @@ fn imported_zui_components_are_single_component_assets() {
             "WorkbenchToast",
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui",
-            "WorkbenchTopToolbar",
+            "assets/ui/editor/unreal/components/toolbar.zui",
+            "UnrealLevelEditorToolbar",
         ),
         (
             "assets/ui/editor/components/workbench/primitives/inputs/workbench_toggle.zui",
             "WorkbenchToggle",
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui",
-            "WorkbenchViewportPanel",
+            "assets/ui/editor/unreal/components/viewport.zui",
+            "UnrealLevelViewport",
         ),
         (
             "assets/ui/editor/components/workbench/primitives/data/workbench_tree_row.zui",
@@ -195,6 +195,7 @@ fn imported_zui_components_are_single_component_assets() {
     ] {
         let document = UiZuiAssetLoader::load_zui_str(&source(relative))
             .unwrap_or_else(|error| panic!("{relative} should load as .zui: {error}"));
+        assert_eq!(document.asset.kind, zircon_runtime_interface::ui::v2::UiV2AssetKind::Component);
         assert!(
             document.components.contains_key(component),
             "{relative} should declare `{component}`"
@@ -204,6 +205,31 @@ fn imported_zui_components_are_single_component_assets() {
             1,
             "{relative} should stay a single component prototype"
         );
+    }
+
+    for (relative, root_node) in [
+        (
+            "assets/ui/editor/workbench_activity_rail.zui",
+            "activity_rail_root",
+        ),
+        (
+            "assets/ui/editor/component_showcase.zui",
+            "component_showcase_root",
+        ),
+        ("assets/ui/editor/unreal/level_editor_window.zui", "root"),
+    ] {
+        let document = UiZuiAssetLoader::load_zui_str(&source(relative))
+            .unwrap_or_else(|error| panic!("current View {relative} must load: {error}"));
+        assert_eq!(
+            document.asset.kind,
+            zircon_runtime_interface::ui::v2::UiV2AssetKind::View
+        );
+        assert!(
+            document.components.is_empty(),
+            "{relative} must not be relabeled as a Component"
+        );
+        assert_eq!(document.root_node_id(), Some(root_node));
+        assert!(document.nodes.contains_key(root_node));
     }
 
     let nav = UiZuiAssetLoader::load_zui_str(&source(
@@ -592,13 +618,13 @@ fn typed_component_event_product_assets_declare_lower_snake_routes() {
             UiComponentEventKind::DropHover,
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui",
-            "ComponentLab/ButtonDropdownOpen",
+            "assets/ui/editor/components/showcase/showcase_selection_section.zui",
+            "UiComponentShowcase/DropdownOpenPopup",
             UiComponentEventKind::OpenPopup,
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui",
-            "ComponentLab/InputSearchCommit",
+            "assets/ui/editor/unreal/components/outliner.zui",
+            "Workbench/SceneSearchCommitFromShell",
             UiComponentEventKind::Commit,
         ),
     ];

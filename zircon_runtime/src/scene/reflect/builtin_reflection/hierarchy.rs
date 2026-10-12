@@ -68,10 +68,7 @@ fn write_parent(
     };
     match world.set_parent_checked(entity, parent) {
         Ok(changed) => Ok(changed),
-        Err(error) => Err(ReflectError::UnsupportedConversion {
-            source: error.to_string(),
-            target: format!("{TYPE_PATH}.parent"),
-        }),
+        Err(error) => Err(error.into_reflect_error(format!("{TYPE_PATH}.parent"))),
     }
 }
 

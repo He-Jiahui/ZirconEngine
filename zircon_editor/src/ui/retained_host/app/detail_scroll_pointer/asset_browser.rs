@@ -11,12 +11,12 @@ impl RetainedEditorHost {
     ) {
         self.use_committed_pointer_layout();
         self.focus_callback_source_window();
-        let size = self.resolve_callback_surface_size_for_kind(
+        let size = (match self.resolve_callback_surface_size_for_kind(
             width,
             height,
             self.browser_asset_details_scroll_surface.size(),
             ViewContentKind::AssetBrowser,
-        );
+        ) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
         if self.browser_asset_details_scroll_surface.set_size(size) {
             let Some(snapshot) = self.asset_workspace_snapshot_for_pointer("browser") else {
                 self.set_status_line("Asset Browser pointer projection is not ready");

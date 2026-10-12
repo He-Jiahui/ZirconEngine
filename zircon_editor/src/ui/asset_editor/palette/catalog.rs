@@ -5,11 +5,14 @@ use zircon_runtime_interface::ui::{component::UiHostCapabilitySet, template::UiA
 
 use super::{UiAssetPaletteEntry, UiAssetPaletteEntryKind};
 
-/// Immutable palette entries published for one document/import generation.
+/// Immutable entries and the current session's bounded palette page.
 #[derive(Clone, Debug)]
 pub(crate) struct UiAssetPaletteCatalog {
     entries: Arc<[UiAssetPaletteEntry]>,
     reference_imports: Arc<BTreeMap<String, UiAssetDocument>>,
+    builtin_references: Arc<BTreeMap<usize, String>>,
+    visible_start: usize,
+    builtin_descriptors: Arc<BTreeMap<usize, crate::ui::template::EditorComponentDescriptor>>,
 }
 
 impl UiAssetPaletteCatalog {
@@ -55,7 +58,61 @@ impl UiAssetPaletteCatalog {
         Self {
             entries: entries.into(),
             reference_imports: Arc::new(reference_imports),
+            builtin_references: Arc::new(BTreeMap::new()),
+            visible_start: 0,
+            builtin_descriptors: Arc::new(BTreeMap::new()),
         }
+    }
+
+    /// Catalog metadata supplies choices; selection loads only the chosen source closure.
+    pub(crate) fn with_builtin_primitives(
+        mut self,
+        descriptors: Vec<crate::ui::template::EditorComponentDescriptor>,
+    ) -> Self {
+        let mut entries = self.entries.to_vec();
+        let mut builtin_references = BTreeMap::new();
+        let mut builtin_descriptors = BTreeMap::new();
+        for descriptor in descriptors {
+            if descriptor.tier != crate::ui::template::EditorComponentTier::Primitive {
+                continue;
+            }
+            let reference = format!("{}#{}", descriptor.document_id, descriptor.component_id);
+            builtin_descriptors.insert(entries.len(), descriptor.clone());
+            builtin_references.insert(entries.len(), reference.clone());
+            entries.push(UiAssetPaletteEntry {
+                label: format!("Builtin / {}", descriptor.component_id),
+                kind: UiAssetPaletteEntryKind::Reference {
+                    component_ref: reference.clone(),
+                },
+            });
+        }
+        self.entries = entries.into();
+        self.builtin_references = Arc::new(builtin_references);
+        self.builtin_descriptors = Arc::new(builtin_descriptors);
+        self
+    }
+
+    pub(crate) fn builtin_reference(&self, index: usize) -> Option<&str> {
+        self.builtin_references.get(&index).map(String::as_str)
+    }
+
+    pub(crate) fn builtin_descriptor(
+        &self,
+        index: usize,
+    ) -> Option<&crate::ui::template::EditorComponentDescriptor> {
+        self.builtin_descriptors.get(&index)
+    }
+
+    pub(crate) fn visible_start(&self) -> usize {
+        self.visible_start
+    }
+
+    pub(crate) fn set_visible_start(&mut self, index: usize) -> bool {
+        let last_page = self.entries.len().saturating_sub(1) / 4 * 4;
+        let next = (index / 4 * 4).min(last_page);
+        let changed = self.visible_start != next;
+        self.visible_start = next;
+        changed
     }
 
     pub(crate) fn entries(&self) -> &[UiAssetPaletteEntry] {

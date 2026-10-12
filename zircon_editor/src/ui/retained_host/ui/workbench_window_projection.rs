@@ -459,6 +459,17 @@ fn to_host_contract_workbench_window_node_with_previous(
         numeric_property(&node.properties, "layout_padding_top").unwrap_or(0.0) as f32;
     let layout_padding_bottom =
         numeric_property(&node.properties, "layout_padding_bottom").unwrap_or(0.0) as f32;
+    let authored_field_padding = [
+        "layout_padding_left",
+        "layout_padding_right",
+        "layout_padding_top",
+        "layout_padding_bottom",
+    ]
+    .map(|key| {
+        numeric_property(&node.properties, key)
+            .map(|value| value as f32)
+            .filter(|value| value.is_finite() && *value >= 0.0)
+    });
     let layout_spacing = numeric_property(&node.properties, "layout_spacing").unwrap_or(0.0) as f32;
     let layout_first_cell_offset_x =
         numeric_property(&node.properties, "layout_first_cell_offset_x")
@@ -534,12 +545,19 @@ fn to_host_contract_workbench_window_node_with_previous(
         layout_padding_right,
         layout_padding_top,
         layout_padding_bottom,
+        authored_field_padding,
+        authored_field_label_width: numeric_property(&node.properties, "layout_label_width")
+            .map(|value| value as f32)
+            .filter(|value| value.is_finite() && *value >= 0.0),
         layout_spacing,
         layout_first_cell_offset_x,
         layout_second_cell_offset_x,
         layout_third_cell_offset_x,
         layout_fourth_cell_offset_x,
         component_role: component_role.clone().into(),
+        toolbar_overflow_role: first_string_property(&node.properties, &["toolbar_overflow_role"])
+            .unwrap_or_default()
+            .into(),
         component_category: component_tokens.category.into(),
         component_layout_role: component_tokens.layout_role.into(),
         component_variant: component_variant.into(),
@@ -632,6 +650,7 @@ fn to_host_contract_workbench_window_node_with_previous(
         focused: node.focused,
         focus_visible: node.focus_visible,
         focus_visible_known: node.focus_visible_known,
+        tree_owner_focused: node.tree_owner_focused,
         hovered: node.hovered,
         pressed: node.pressed,
         dragging: node.dragging,
@@ -658,6 +677,24 @@ fn to_host_contract_workbench_window_node_with_previous(
             .unwrap_or_default()
             .into(),
         button_style: resolve_button_style_from_values(&button_style_values),
+        authored_field_colors: button_style_values
+            .get("focus_border_color")
+            .and_then(|value| {
+                let values = std::collections::BTreeMap::from([(
+                    "foreground_color".to_owned(),
+                    value.clone(),
+                )]);
+                resolve_button_style_from_values(&values)
+                    .element
+                    .foreground_color
+            })
+            .map(|color| {
+                std::collections::BTreeMap::from([("focus_border_color".to_owned(), color)])
+            })
+            .unwrap_or_default(),
+        authored_focus_border_width: numeric_property(&node.properties, "focus_border_width")
+            .map(|value| value as f32)
+            .filter(|value| value.is_finite() && *value >= 0.0),
         font_size: numeric_property(&node.properties, "font_size").unwrap_or(0.0) as f32,
         font_weight: integer_property(&node.properties, "font_weight").unwrap_or(0),
         text_align: first_string_property(&node.properties, &["text_align", "textAlign"])
@@ -690,7 +727,7 @@ fn to_host_contract_workbench_window_node_with_previous(
 #[path = "workbench_window_projection/tests/cases.rs"]
 mod tests;
 
-fn bind_published_source(
+pub(super) fn bind_published_source(
     node: &mut host_contract::TemplatePaneNodeData,
     frame: Option<&std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>>,
 ) {

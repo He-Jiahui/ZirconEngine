@@ -26,6 +26,7 @@ impl HostRgbaFrame {
                 font_size,
                 line_height,
                 style,
+                font_request: crate::ui::retained_host::host_contract::paint_text::active_authored_font_request(),
             },
         );
     }

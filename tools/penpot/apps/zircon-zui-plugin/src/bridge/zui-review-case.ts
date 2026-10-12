@@ -1,3 +1,6 @@
+import { readViewportToolbarPublication } from './zui-viewport-toolbar-publication';
+import { deriveViewportToolbarReview } from './zui-viewport-toolbar';
+import { deriveTreeSelectionOwnerReview, hasTreeSelectionRows } from './zui-tree-selection-owner';
 import type { LayoutReviewCaseMessage } from '../model';
 import {
   applyComponentReviewData,
@@ -965,12 +968,14 @@ function reviewDataWithoutWorkbenchState(
 ): Record<string, unknown> {
   if (
     !Object.hasOwn(data, 'workbenchState') &&
-    !Object.hasOwn(data, 'workbenchPresentation')
+    !Object.hasOwn(data, 'workbenchPresentation') &&
+    !Object.hasOwn(data, 'normal_window_evidence')
   )
     return data;
   const remaining = { ...data };
   delete remaining['workbenchState'];
   delete remaining['workbenchPresentation'];
+  delete remaining['normal_window_evidence'];
   return remaining;
 }
 
@@ -1143,7 +1148,8 @@ export function reviewDocumentForCase(
     reviewCase.state === 'default' &&
     !responsiveReview &&
     reviewCase.scrollPosition === undefined &&
-    !Object.keys(reviewCase.data).length
+    !Object.keys(reviewCase.data).length &&
+    !hasTreeSelectionRows(source)
   )
     return source;
   if (!Object.keys(source.nodes ?? {}).length)
@@ -1186,6 +1192,9 @@ export function reviewDocumentForCase(
         );
       applyReviewScrollPosition(document, position, scrollTarget);
     }
+    const normalEvidence = reviewCase.data['normal_window_evidence'];
+    deriveTreeSelectionOwnerReview(document, normalEvidence);
+    deriveViewportToolbarReview(document, normalEvidence, reviewCase.dpi);
     return document;
   };
   if (reviewCase.state === 'default') return finish();
@@ -1224,4 +1233,46 @@ export function reviewDocumentForCase(
     for (const key of REVIEW_STATES[reviewCase.state]) node.state[key] = true;
   }
   return finish();
+}
+
+/** The complete case is already present in the typed review host metadata. */
+export function importedActualNormalReviewCase(
+  document: ZuiDocument,
+): LayoutReviewCaseMessage | undefined {
+  const value = document['penpot_actual_normal_review_case'];
+  if (value === undefined) return undefined;
+  return requireActualNormalReviewCase(value);
+}
+
+function requireActualNormalReviewCase(value: unknown): LayoutReviewCaseMessage {
+  if (!isRecord(value) || value['host'] !== 'editor' || !isRecord(value['data']) ||
+    !isRecord(value['data']['normal_window_evidence']))
+    throw new Error('Imported actual normal review requires its complete Editor case');
+  const reviewCase = value as unknown as LayoutReviewCaseMessage;
+  validateReviewCaseEnvelope(reviewCase);
+  if (!readViewportToolbarPublication(reviewCase.data['normal_window_evidence']))
+    throw new Error('Imported actual normal review lacks its toolbar publication');
+  return reviewCase;
+}
+
+/** Read saved Board metadata anew; no previous document or WeakMap is required. */
+export function reviewCaseFromSavedMetadata(
+  document: ZuiDocument,
+  encoded: string,
+): LayoutReviewCaseMessage | null {
+  const imported = importedActualNormalReviewCase(document);
+  if (!encoded) {
+    if (imported) throw new Error('Imported actual normal review lacks saved case metadata');
+    return null;
+  }
+  const value: unknown = JSON.parse(encoded);
+  if (imported) {
+    const saved = requireActualNormalReviewCase(value);
+    if (saved.sourcePath !== imported.sourcePath)
+      throw new Error('Saved actual normal review belongs to a different Source owner');
+    return saved;
+  }
+  const saved = value as LayoutReviewCaseMessage;
+  validateReviewCaseEnvelope(saved);
+  return saved;
 }

@@ -27,12 +27,26 @@ pub(in crate::ui::retained_host::host_contract) fn create_host_chrome_presenter(
             if let Some(runtime_factory) = runtime_factory {
                 if runtime_factory.poll_ready().unwrap_or(false) {
                     if let Ok(surface) = runtime_factory.create(descriptor) {
-                        return Ok((Box::new(GpuChromePresenter::new(surface, size)), true));
+                        return Ok((
+                            Box::new(GpuChromePresenter::new_with_native_target(
+                                surface,
+                                size,
+                                descriptor.target,
+                            )),
+                            true,
+                        ));
                     }
                 }
             }
             let surface = create_default_ui_surface_presenter(descriptor)?;
-            Ok((Box::new(GpuChromePresenter::new(surface, size)), false))
+            Ok((
+                Box::new(GpuChromePresenter::new_with_native_target(
+                    surface,
+                    size,
+                    descriptor.target,
+                )),
+                false,
+            ))
         }
         HostPresenterBackend::Softbuffer => Ok((
             Box::new(SoftbufferHostPresenter::new(window).map_err(HostPresenterError::softbuffer)?),
@@ -52,5 +66,9 @@ pub(in crate::ui::retained_host::host_contract) fn create_runtime_host_chrome_pr
     }
     let size = descriptor.clamped_size();
     let surface = runtime_factory.create(descriptor)?;
-    Ok(Box::new(GpuChromePresenter::new(surface, size)))
+    Ok(Box::new(GpuChromePresenter::new_with_native_target(
+        surface,
+        size,
+        descriptor.target,
+    )))
 }

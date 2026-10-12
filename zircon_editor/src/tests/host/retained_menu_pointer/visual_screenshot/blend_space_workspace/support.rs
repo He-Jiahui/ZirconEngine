@@ -187,6 +187,112 @@ pub(super) fn required_frame(
         .unwrap_or_else(|| panic!("{control_id} should have a visible adaptive frame"))
 }
 
+pub(super) const BLEND_SPACE_SOURCE_URI: &str =
+    "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui";
+
+fn activate_blend_space_workspace(bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge) {
+    bridge
+        .dispatch_control_state("MenuSlot2", UiEventKind::Click)
+        .expect("Window menu should open through its live template control")
+        .expect("Window menu should expose its typed popup binding");
+    bridge
+        .dispatch_workbench_module_overflow_menu_item_state(
+            "UnrealWindowMenuPopup",
+            "menu.item.ability",
+        )
+        .expect("Window menu should mount the selected Ability workspace")
+        .expect("Ability menu item should expose its real module selection binding");
+    assert!(
+        bridge.has_control("WorkbenchAbilityBlendSpaceButton"),
+        "the selected Ability workspace must own the live Blend Space gateway"
+    );
+    bridge
+        .dispatch_control_state("WorkbenchAbilityBlendSpaceButton", UiEventKind::Click)
+        .expect("Blend Space gateway should mount its canonical extension workspace")
+        .expect("Blend Space gateway should expose its existing typed open binding");
+
+    let nodes = crate::ui::retained_host::to_host_contract_workbench_window_nodes(Some(
+        bridge.host_projection(),
+    ))
+    .iter()
+    .cloned()
+    .collect::<Vec<_>>();
+    assert_blend_space_native_source_parent_chain(&nodes, &bridge.surface().surface_frame());
+}
+
+pub(super) fn assert_blend_space_native_source_parent_chain(
+    nodes: &[TemplatePaneNodeData],
+    current_frame: &Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+) {
+    let pane = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "WorkbenchMainBandViewportPanel")
+        .expect("the actual authored viewport panel must own the mounted workspace");
+    let viewport = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "UnrealSceneViewViewport")
+        .expect("the actual Unreal viewport must contain the selected workspace");
+    let workspace = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "WorkbenchExtensionBlendSpaceWorkspace")
+        .expect("the canonical Blend Space workspace must be mounted");
+    assert_eq!(workspace.parent_node_id, viewport.node_id);
+    assert!(
+        native_node_reaches_ancestor(nodes, "UnrealSceneViewViewport", pane.node_id.as_str()),
+        "the actual Unreal viewport must remain inside its authored viewport panel"
+    );
+
+    let source_path = workspace.source_path.as_str().replace('\\', "/");
+    let source_relative = source_path
+        .strip_prefix("zircon_editor/assets/")
+        .expect("the mounted Source must name the physical current editor asset");
+    assert_eq!(format!("res://{source_relative}"), BLEND_SPACE_SOURCE_URI);
+    assert_eq!(workspace.source_node_id.as_str(), "blend_space_workspace");
+    let viewport_id = viewport
+        .surface_node_id
+        .expect("the viewport must retain its actual Runtime node identity");
+    let workspace_id = workspace
+        .surface_node_id
+        .expect("the workspace must retain its actual Runtime node identity");
+    assert_eq!(
+        current_frame
+            .arranged_tree
+            .get(workspace_id)
+            .expect("the mounted root must exist in the current arranged tree")
+            .parent,
+        Some(viewport_id),
+    );
+
+    for control_id in [
+        "UnrealSceneViewViewport",
+        "WorkbenchExtensionBlendSpaceWorkspace",
+        "WorkbenchExtensionBlendSpaceSearch",
+        "WorkbenchExtensionBlendSpaceSampleCanvas",
+        "WorkbenchExtensionBlendSpaceSampleGrid",
+        "WorkbenchExtensionBlendSpaceApplyButton",
+    ] {
+        let node = nodes
+            .iter()
+            .find(|node| node.control_id.as_str() == control_id)
+            .unwrap_or_else(|| panic!("{control_id} must exist in the native model"));
+        let source = node
+            .source_surface_frame
+            .as_ref()
+            .unwrap_or_else(|| panic!("{control_id} must retain its actual source frame"));
+        assert!(
+            Arc::ptr_eq(source, current_frame),
+            "{control_id} must publish the current bridge Surface frame"
+        );
+        let node_id = node
+            .surface_node_id
+            .unwrap_or_else(|| panic!("{control_id} must retain its Runtime node ID"));
+        assert!(
+            current_frame.arranged_tree.get(node_id).is_some(),
+            "{control_id} must refer to a live node in that same published frame"
+        );
+    }
+}
+
 pub(super) fn open_blend_space_bridge(
     width: u32,
     height: u32,
@@ -198,10 +304,7 @@ pub(super) fn open_blend_space_bridge(
         &chrome,
     );
     let mut bridge = workbench_window_bridge_for_visual_artifact(&model, width, height);
-    bridge
-        .dispatch_control_state("WorkbenchAbilityBlendSpaceButton", UiEventKind::Click)
-        .expect("Blend Space control should update production template state")
-        .expect("Blend Space production control should expose its open binding");
+    activate_blend_space_workspace(&mut bridge);
     bridge
 }
 
@@ -226,10 +329,7 @@ pub(in super::super) fn blend_space_window(width: u32, height: u32) -> UiHostWin
     );
     let floating_windows = build_floating_window_projection_bundle(&model, None, &metrics, &[]);
     let mut bridge = workbench_window_bridge_for_visual_artifact(&model, width, height);
-    bridge
-        .dispatch_control_state("WorkbenchAbilityBlendSpaceButton", UiEventKind::Click)
-        .expect("Blend Space production control should update the template")
-        .expect("Blend Space production control should expose its open binding");
+    activate_blend_space_workspace(&mut bridge);
     let ui = UiHostWindow::new().expect("workbench shell should instantiate for screenshot");
     ui.show()
         .expect("workbench shell should show for screenshot");
@@ -250,14 +350,12 @@ pub(in super::super) fn blend_space_window(width: u32, height: u32) -> UiHostWin
         Some(bridge.host_projection()),
         bridge.layout_frames(),
         &floating_windows,
-        None,
+        Default::default(),
     );
     let presentation = ui.get_host_presentation();
-    assert!(
-        (0..presentation.workbench_window_nodes.row_count())
-            .filter_map(|row| presentation.workbench_window_nodes.row_data(row))
-            .any(|node| node.control_id.as_str() == "WorkbenchExtensionBlendSpaceWorkspace"),
-        "Blend Space screenshot must carry the activated extension workspace into the native host presentation"
-    );
+    let nodes = (0..presentation.workbench_window_nodes.row_count())
+        .filter_map(|row| presentation.workbench_window_nodes.row_data(row))
+        .collect::<Vec<_>>();
+    assert_blend_space_native_source_parent_chain(&nodes, &bridge.surface().surface_frame());
     ui
 }

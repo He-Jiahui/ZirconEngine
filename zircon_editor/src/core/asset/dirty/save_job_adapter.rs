@@ -240,9 +240,9 @@ impl SaveDirtyViewsJobAdapter {
                         .downcast_ref::<SaveDirtyViewFailure>()
                         .cloned()
                         .unwrap_or_else(|| {
-                            SaveDirtyViewFailure::new(
+                            SaveDirtyViewFailure::from_job_error(
                                 SaveDirtyViewFailureKind::Job,
-                                error.to_string(),
+                                error,
                             )
                         });
                     self.complete_slot(slot_index, SaveDirtyViewCompletion::Failed(failure));
@@ -325,6 +325,9 @@ impl EditorJob for SaveDirtyViewJob {
         match self.executor.save(&self.intent, &context) {
             SaveDirtyViewCompletion::Saved { written_bytes } => {
                 Ok(SaveDirtyViewCompletion::Saved { written_bytes })
+            }
+            SaveDirtyViewCompletion::SavedDocument { report } => {
+                Ok(SaveDirtyViewCompletion::SavedDocument { report })
             }
             SaveDirtyViewCompletion::Failed(failure) => Err(JobError::failed(failure)),
             SaveDirtyViewCompletion::Cancelled => Err(JobError::Cancelled),

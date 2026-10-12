@@ -164,11 +164,11 @@ fn real_workbench_scene_split_routes_each_toolbar_to_its_leaf_and_rejects_retire
     manager
         .focus_view(&first)
         .expect("the workbench should retain the first Scene leaf as focused");
-    let saved_sessions = harness.runtime.scene_viewport_workspace_sessions();
+    let saved_sessions = harness.runtime.scene_viewport_workspace_sessions().unwrap();
     harness
         .runtime
-        .restore_scene_viewport_workspace_sessions(&saved_sessions, Some(&second_core));
-    let restored_sessions = harness.runtime.scene_viewport_workspace_sessions();
+        .restore_scene_viewport_workspace_sessions(&saved_sessions, Some(&second_core)).unwrap();
+    let restored_sessions = harness.runtime.scene_viewport_workspace_sessions().unwrap();
     assert_eq!(restored_sessions.len(), 2);
     assert!(restored_sessions.contains_key(&first_core));
     assert!(restored_sessions.contains_key(&second_core));
@@ -210,7 +210,7 @@ fn real_workbench_scene_split_routes_each_toolbar_to_its_leaf_and_rejects_retire
     )
     .expect("right toolbar should target the second committed Scene leaf");
 
-    let after_routes = harness.runtime.scene_viewport_workspace_sessions();
+    let after_routes = harness.runtime.scene_viewport_workspace_sessions().unwrap();
     assert_eq!(
         manager.current_focused_view(),
         Some(first.clone()),
@@ -234,7 +234,7 @@ fn real_workbench_scene_split_routes_each_toolbar_to_its_leaf_and_rejects_retire
     harness
         .runtime
         .retain_scene_viewports(&BTreeSet::from([first_core.clone()]));
-    let before_stale = harness.runtime.scene_viewport_workspace_sessions();
+    let before_stale = harness.runtime.scene_viewport_workspace_sessions().unwrap();
     let before_stale_journal = harness.runtime.journal().records().len();
     let stale = dispatch_shared_viewport_toolbar_pointer_click(
         &harness.runtime,
@@ -253,7 +253,7 @@ fn real_workbench_scene_split_routes_each_toolbar_to_its_leaf_and_rejects_retire
         .expect_err("a retired Scene leaf must reject toolbar dispatch")
         .contains("stale"));
     assert_eq!(
-        harness.runtime.scene_viewport_workspace_sessions(),
+        harness.runtime.scene_viewport_workspace_sessions().unwrap(),
         before_stale,
         "a stale toolbar event must leave the retained Scene state unchanged"
     );
@@ -271,7 +271,7 @@ fn real_workbench_scene_split_routes_each_toolbar_to_its_leaf_and_rejects_retire
     // A missing identity is rejected before journaling/execution and cannot
     // fall back to the active Scene session.
     let missing = ViewInstanceId::new("editor.scene#missing");
-    let before_missing = harness.runtime.scene_viewport_workspace_sessions();
+    let before_missing = harness.runtime.scene_viewport_workspace_sessions().unwrap();
     let before_missing_journal = harness.runtime.journal().records().len();
     let missing_result = dispatch_shared_viewport_toolbar_pointer_click(
         &harness.runtime,
@@ -290,7 +290,7 @@ fn real_workbench_scene_split_routes_each_toolbar_to_its_leaf_and_rejects_retire
         .expect_err("a missing Scene leaf must reject toolbar dispatch")
         .contains("stale"));
     assert_eq!(
-        harness.runtime.scene_viewport_workspace_sessions(),
+        harness.runtime.scene_viewport_workspace_sessions().unwrap(),
         before_missing,
         "a missing toolbar target must leave all live Scene state unchanged"
     );

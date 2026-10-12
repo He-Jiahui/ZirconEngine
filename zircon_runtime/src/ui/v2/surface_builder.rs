@@ -1,10 +1,10 @@
 use thiserror::Error;
-use zircon_runtime_interface::ui::event_ui::UiTreeId;
+use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::v2::{UiV2AssetError, UiV2CompiledDocument};
 
 use crate::text::font::shared_font_collection_service;
 use crate::text::{TextRuntimeContext, TextRuntimeContextAccessError};
-use crate::ui::surface::UiSurface;
+use crate::ui::surface::{UiSurface, UiSurfaceChildMountProof};
 use crate::ui::text::UiTextMeasureCache;
 use crate::ui::theme::UiThemeRegistry;
 
@@ -25,6 +25,30 @@ pub(crate) enum UiV2RuntimeSurfaceBuildError {
 }
 
 impl UiV2SurfaceBuilder {
+    /// Builds a replacement in isolation. The live surface is untouched until commit.
+    /// This accepts fresh V2 surfaces without a compiled binding program.
+    pub fn stage_child_surface(
+        surface: &UiSurface,
+        parent_id: UiNodeId,
+        previous_root_id: Option<UiNodeId>,
+        incoming: Option<UiSurface>,
+    ) -> Result<(UiSurface, Option<UiNodeId>, UiSurfaceChildMountProof), UiV2AssetError> {
+        let mut staged = surface.clone();
+        let (root_id, retired) =
+            staged.replace_v2_child_surface(parent_id, previous_root_id, incoming)?;
+        let proof = UiSurfaceChildMountProof::new(surface, retired);
+        Ok((staged, root_id, proof))
+    }
+
+    /// Transfers live session stores only after the caller validates staged layout/projection.
+    pub fn commit_child_surface(
+        staged: &mut UiSurface,
+        current: &mut UiSurface,
+        proof: &UiSurfaceChildMountProof,
+    ) -> Result<(), UiV2AssetError> {
+        staged.adopt_live_child_mount_state(current, proof)
+    }
+
     pub fn build_surface(
         tree_id: UiTreeId,
         document: &zircon_runtime_interface::ui::v2::UiV2AssetDocument,

@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use crate::core::framework::animation::AnimationManager;
 use crate::core::framework::foundation::FOUNDATION_MODULE_NAME;
-use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind,
-    StartupMode,
+    CoreError, DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
+    ServiceKind, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
@@ -68,12 +67,13 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "DefaultAnimationManager",
         )],
         factory(|core| {
-            let manager =
-                core.resolve_manager::<DefaultAnimationManager>(DEFAULT_ANIMATION_MANAGER_NAME)?;
-            Ok(
-                Arc::new(RegisteredManagerService::<dyn AnimationManager>::new(
-                    manager,
-                )) as ServiceObject,
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            core.register_service_alias::<DefaultAnimationManager, dyn AnimationManager>(
+                DEFAULT_ANIMATION_MANAGER_NAME,
+                ServiceKind::Manager,
+                crate::core::manager::ANIMATION_MANAGER_NAME,
+                ServiceKind::Manager,
+                |manager| manager,
             )
         }),
     ))

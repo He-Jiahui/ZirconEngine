@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::{
-    CoreResult, CoreRuntime, ModuleContext, ModuleDescriptor, ModuleLifecycle,
+    CoreResult, CoreRuntime, ModuleCleanupContext, ModuleContext, ModuleDescriptor, ModuleLifecycle,
 };
 use zircon_runtime::plugin::{
     RuntimePlugin, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
@@ -35,7 +35,7 @@ impl ModuleLifecycle for RecordingLifecycle {
         Ok(())
     }
 
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         self.record("cleanup");
         Ok(())
     }

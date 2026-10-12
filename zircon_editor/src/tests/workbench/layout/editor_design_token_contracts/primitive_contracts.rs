@@ -10,131 +10,47 @@ macro_rules! workbench_asset {
     };
 }
 
+macro_rules! unreal_asset {
+    ($path:literal) => {
+        include_str!(concat!("../../../../../assets/ui/editor/unreal/", $path))
+    };
+}
+
 mod foundational;
 
 #[test]
-fn component_drawer_list_and_table_samples_inherit_shared_row_geometry_and_states() {
-    let asset = workbench_asset!("shell/workbench_component_drawer.zui");
-    let document = asset
-        .parse::<Value>()
-        .expect("component drawer must remain valid ZUI TOML");
-    let nodes = document
-        .get("nodes")
-        .and_then(Value::as_table)
-        .expect("component drawer must expose nodes");
-    let row_kinds = ["WorkbenchListRow", "WorkbenchTableRow"];
-    let forbidden_properties = [
-        "background_color",
-        "border_color",
-        "foreground_color",
-        "text_color",
-        "icon_color",
-        "fourth_cell_text_color",
-        "layout_content_offset_x",
-        "layout_content_offset_y",
-        "layout_first_cell_offset_x",
-        "layout_fourth_cell_offset_x",
-        "layout_offset_x",
-        "layout_offset_y",
-        "layout_padding_bottom",
-        "layout_padding_top",
-        "layout_second_cell_offset_x",
-    ];
-    let mut list_count = 0usize;
-    let mut table_count = 0usize;
-    let mut overrides = Vec::new();
-
-    for (node_id, node) in nodes {
-        let Some(kind) = node.get("component").and_then(Value::as_str) else {
-            continue;
-        };
-        if !row_kinds.contains(&kind) {
-            continue;
-        }
-        if kind == "WorkbenchListRow" {
-            list_count += 1;
-        } else {
-            table_count += 1;
-        }
-
-        let props = node
-            .get("props")
-            .and_then(Value::as_table)
-            .expect("drawer row samples must expose a property table");
-        for property in forbidden_properties {
-            if props.contains_key(property) {
-                overrides.push(format!("{kind} `{node_id}` overrides `{property}`"));
-            }
-        }
+fn unreal_outliner_keeps_semantic_columns_and_virtual_rows() {
+    let asset = unreal_asset!("components/outliner.zui");
+    for required in [
+        "control_id = \"WorkbenchSceneTreePanel\"",
+        "control_id = \"UnrealOutlinerVisibilityColumn\"",
+        "control_id = \"UnrealOutlinerActorLabelColumn\"",
+        "control_id = \"UnrealOutlinerTypeColumn\"",
+        "control_id = \"WorkbenchSceneTree\"",
+        "repeat = {",
+    ] {
+        assert!(
+            asset.contains(required),
+            "Unreal outliner must retain `{required}`"
+        );
     }
-
-    assert_eq!(
-        list_count, 3,
-        "component drawer must retain list-row samples"
-    );
-    assert_eq!(
-        table_count, 4,
-        "component drawer must retain table-row samples"
-    );
-    assert!(
-        overrides.is_empty(),
-        "component drawer rows must inherit shared geometry and state visuals: {overrides:#?}"
-    );
 }
 
 #[test]
-fn component_drawer_feedback_and_text_samples_inherit_primitive_visuals() {
-    let asset = workbench_asset!("shell/workbench_component_drawer.zui");
-    let document = asset
-        .parse::<Value>()
-        .expect("component drawer must remain valid ZUI TOML");
-    let nodes = document
-        .get("nodes")
-        .and_then(Value::as_table)
-        .expect("component drawer must expose nodes");
-    let contracts: [(&str, &[&str]); 10] = [
-        ("sliders_title", &["label_color"]),
-        ("selection_title", &["label_color"]),
-        ("labs_tabs", &["background_color"]),
-        ("visual_label", &["foreground_color"]),
-        (
-            "feedback_tooltip",
-            &[
-                "arrow_color",
-                "arrow_size",
-                "background_color",
-                "border_color",
-                "icon_color",
-                "label_color",
-                "layout_content_offset_y",
-                "layout_icon_size",
-                "text_color",
-            ],
-        ),
-        (
-            "feedback_skeleton",
-            &["background_color", "highlight_color"],
-        ),
-        ("feedback_toast_spacer", &["border_width", "corner_radius"]),
-        ("list_group", &["border_width", "corner_radius"]),
-        ("table_group", &["border_width", "corner_radius"]),
-        ("popup_menu", &["layout_offset_y"]),
-    ];
-
-    for (node_id, forbidden_properties) in contracts {
-        let node = nodes
-            .get(node_id)
-            .unwrap_or_else(|| panic!("component drawer must retain `{node_id}`"));
-        let props = node
-            .get("props")
-            .and_then(Value::as_table)
-            .unwrap_or_else(|| panic!("component drawer node `{node_id}` must expose props"));
-        for property in forbidden_properties {
-            assert!(
-                !props.contains_key(*property),
-                "component drawer node `{node_id}` must inherit `{property}` from its primitive"
-            );
-        }
+fn unreal_details_panel_keeps_transform_and_component_property_slots() {
+    let asset = unreal_asset!("components/details.zui");
+    for required in [
+        "control_id = \"WorkbenchInspectorPanel\"",
+        "control_id = \"WorkbenchInspectorTransform\"",
+        "control_id = \"WorkbenchTransformPositionX\"",
+        "control_id = \"WorkbenchTransformRotationY\"",
+        "control_id = \"WorkbenchTransformScaleZ\"",
+        "control_id = \"WorkbenchComponentPropertySlot04Row\"",
+    ] {
+        assert!(
+            asset.contains(required),
+            "Unreal details panel must retain `{required}`"
+        );
     }
 }
 

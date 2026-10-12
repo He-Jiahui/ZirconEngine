@@ -40,6 +40,7 @@ pub(super) use super::super::*;
 pub(super) struct ChildWindowHostHarness {
     pub(super) _core: CoreRuntime,
     pub(super) config_path: PathBuf,
+    cleanup_config_file: bool,
     pub(super) host: Rc<RefCell<RetainedEditorHost>>,
     pub(super) root_ui: UiHostWindow,
 }
@@ -75,7 +76,18 @@ fn child_window_harness_reuses_the_manager_context_for_the_authoring_world() {
 
 impl ChildWindowHostHarness {
     pub(super) fn new(prefix: &str) -> Self {
-        let config_path = unique_temp_path(prefix);
+        Self::with_config_path(unique_temp_path(prefix), true)
+    }
+
+    pub(super) fn new_at_config_path(config_path: PathBuf) -> Self {
+        Self::with_config_path(config_path, false)
+    }
+
+    fn with_config_path(config_path: PathBuf, cleanup_config_file: bool) -> Self {
+        let restore_config_path =
+            crate::tests::editor_event::support::EnvironmentVariableRestoreGuard::capture(
+                "ZIRCON_CONFIG_PATH",
+            );
         std::env::set_var("ZIRCON_CONFIG_PATH", &config_path);
         let core = CoreRuntime::new();
         for engine_module in zircon_runtime::builtin::runtime_core_modules() {
@@ -89,7 +101,7 @@ impl ChildWindowHostHarness {
             .unwrap();
         core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
         crate::tests::support::configure_editor_test_runtime_build_set(&core);
-        std::env::remove_var("ZIRCON_CONFIG_PATH");
+        drop(restore_config_path);
 
         let root_ui = UiHostWindow::new().expect("root workbench shell should instantiate");
         root_ui
@@ -97,19 +109,23 @@ impl ChildWindowHostHarness {
             .expect("root workbench shell should show in the test backend");
 
         let manager = core
-            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
             .unwrap();
         // Mirror production startup: the shell and controller share one stable edit gateway.
         let mut state = EditorState::with_default_selection_with_context(
             DefaultLevelManager::default().create_default_level(),
             UVec2::new(1280, 720),
-            manager.context().clone(),
+            {
+                let manager = manager.enter().expect("editor manager context admission");
+                manager.context().clone()
+            },
         );
         state.mark_project_open();
         let host = Rc::new(RefCell::new(
             RetainedEditorHost::new_for_test(core.handle(), root_ui.clone_strong())
                 .map(|mut host| {
-                    host.runtime = EditorHostEventController::new(state, manager);
+                    host.runtime = EditorHostEventController::new(state, manager)
+                        .expect("editor controller manager admission");
                     host.sync_asset_workspace();
                     host
                 })
@@ -122,6 +138,7 @@ impl ChildWindowHostHarness {
         Self {
             _core: core,
             config_path,
+            cleanup_config_file,
             host,
             root_ui,
         }
@@ -201,6 +218,8 @@ impl ChildWindowHostHarness {
         let mut host = self.host.borrow_mut();
         host.runtime.set_session_mode(EditorSessionMode::Project);
         host.editor_manager
+            .enter()
+            .expect("editor manager admission")
             .dismiss_welcome_page()
             .expect("welcome page should dismiss");
         host.mark_layout_dirty();
@@ -261,7 +280,9 @@ impl Drop for ChildWindowHostHarness {
             .native_window_presenters
             .sync_targets(&[], |_ui, _target| {}, |_ui, _target| {});
         let _ = self.root_ui.hide();
-        let _ = fs::remove_file(&self.config_path);
+        if self.cleanup_config_file {
+            let _ = fs::remove_file(&self.config_path);
+        }
     }
 }
 

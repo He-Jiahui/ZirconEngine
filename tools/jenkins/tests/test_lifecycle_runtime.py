@@ -4,7 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from tools.jenkins.contracts import JenkinsError
 from tools.jenkins.deployment.manager import DeploymentManager
@@ -69,6 +69,42 @@ class LifecycleRuntimeTests(unittest.TestCase):
                 lifecycle.job.close()
                 lifecycle.agent_job.close()
 
+    def test_existing_command_result_is_acknowledged_without_replay_or_overwrite(self):
+        import sys
+        from tools.jenkins.processes import NativeJob
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            lifecycle = LifecycleHost.__new__(LifecycleHost)
+            lifecycle.root = root
+            lifecycle.commands = root / "commands"
+            lifecycle.commands.mkdir()
+            lifecycle.operation_id = "new-generation"
+            lifecycle._start = lambda: None
+            lifecycle._execution_broker_tick = lambda: None
+            lifecycle.job = NativeJob.launch((sys.executable, "-B", "-c", "print('controller exited')"),
+                cwd=root, log_dir=root / "controller")
+            lifecycle.agent_job = None
+            saved = []
+            lifecycle._save = saved.append
+            request = lifecycle.commands / "stop-old-generation.json"
+            result = request.with_suffix(".result.json")
+            request.write_text(json.dumps({
+                "action": "stop", "operationId": "old-generation", "generation": "old-generation",
+                "hostPid": 999, "controllerIdentity": {"pid": 998, "creationTime": "old"},
+            }), encoding="utf-8")
+            original = json.dumps({
+                "status": "stopped", "operationId": "old-generation", "generation": "old-generation",
+                "nativeTerminationProof": {"complete": True, "identity": {"pid": 998}},
+            }, indent=2) + "\n"
+            result.write_text(original, encoding="utf-8")
+            with patch.object(lifecycle, "_stop", side_effect=AssertionError("acknowledged command was replayed")):
+                try:
+                    lifecycle.run()
+                finally:
+                    lifecycle.job.close()
+            self.assertTrue(saved)
+            self.assertEqual(original, result.read_text(encoding="utf-8"))
+
     def test_start_preserves_lost_same_boot_deployment_without_spawning(self):
         from tools.jenkins.processes.boot import windows_boot_filetime
         with tempfile.TemporaryDirectory() as temp:
@@ -97,6 +133,102 @@ class LifecycleRuntimeTests(unittest.TestCase):
             self.assertEqual("100", manager._read()["creationTime"])
             self.assertEqual([], list((paths.state / "deployment").glob("history/*")))
 
+    def _broker_fixture(self, rows, *, owned=False):
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        lifecycle = LifecycleHost.__new__(LifecycleHost)
+        root = Path(__file__).absolute().parents[3]
+        lifecycle.paths = SimpleNamespace(repo=root, state=root / ".jenkins/state", logs=root / ".jenkins/logs")
+        lifecycle.spec, lifecycle.java, lifecycle.war = object(), root / "java.exe", root / "jenkins.war"
+        lifecycle.launch_state = Mock()
+        lifecycle.launch_state.exists.return_value = True
+        lifecycle.operation_id = "op-current"
+        job, registry = Mock(), Mock()
+        job.poll.return_value = 0
+        identity = {"pid": 7, "creationTime": "100", "executable": "python.exe", "commandDigest": "command"}
+        job.identity.to_dict.return_value = identity
+        proof = {"complete": True, "identity": identity}
+        registry.record_terminal.return_value = SimpleNamespace(native_job_id="guard", execution_id="e", owner="e",
+            payload={"nativeJobId": "guard", "executionId": "e", "owner": "e", "role": "execution_host_guard",
+                     "pid": 7, "birthToken": "100", "executable": "python.exe", "completeProof": proof, "terminalProof": proof})
+        for row in rows:
+            if row.get("payload", {}).get("status") == "started":
+                row["payload"].update({"launcherIdentity": identity, "guardNativeJobId": "guard"})
+        lifecycle._launches = {"e": (job, registry)} if owned else {}
+        state = Mock()
+        state.transaction.side_effect = lambda: nullcontext()
+        state.list.return_value = rows
+        execution = {"executionId": "e", "operationId": "op-current", "generation": "1",
+                     "driverDigest": "d", "driver": {"digest": "d", "generation": "1",
+                     "runtimeOperationId": "op-current"}}
+        def read(domain, key, *, connection=None):
+            if domain == "execution":
+                return {"payload": execution}
+            if domain == "execution_host":
+                return {"payload": {"status": "terminal", "executionId": "e", "operationId": "op-current", "generation": "1",
+                                    "hostPid": 7, "hostBirthToken": "100"}}
+            return None
+        state.get.side_effect = read
+        def write(domain, key, payload, *, expected_version=None, connection=None):
+            return {"domain": domain, "key": key, "payload": dict(payload),
+                    "version": (expected_version or 0) + 1}
+        state.put.side_effect = write
+        return lifecycle, state, job, registry
+
+    def test_idle_broker_skips_full_driver_verification_for_an_empty_or_completed_queue(self):
+        for rows in ([], [{"payload": {"status": "exited"}}], [{"payload": {"status": "cancelled"}}]):
+            with self.subTest(rows=rows):
+                lifecycle, state, _job, _registry = self._broker_fixture(rows)
+                with patch.object(host_module, "State", return_value=state), \
+                     patch.object(host_module, "DeploymentManager") as manager, \
+                     patch.object(host_module, "active_driver_binding") as binding, \
+                     patch.dict(host_module.os.environ, {"ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY": "0"}):
+                    lifecycle._execution_broker_tick()
+                manager.assert_not_called()
+                binding.assert_not_called()
+                state.put.assert_not_called()
+
+    def test_requested_and_ambiguous_broker_rows_retain_full_driver_verification(self):
+        requested = {"key": "e", "payload": {"status": "requested", "executionId": "e",
+            "operationId": "op-current", "generation": "1", "driverDigest": "d"}}
+        for row in (requested, {"key": "e", "payload": {"status": "requested"}},
+                    {"key": "e", "payload": {"status": "unknown"}}):
+            with self.subTest(row=row):
+                lifecycle, state, _job, _registry = self._broker_fixture([row])
+                with patch.object(host_module, "State", return_value=state), \
+                     patch.object(host_module, "DeploymentManager") as manager, \
+                     patch.object(host_module.NativeJob, "launch") as spawn, \
+                     patch.dict(host_module.os.environ, {"ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY": "0"}):
+                    manager.return_value._driver_env.side_effect = JenkinsError("driver_integrity_failed", "fixture")
+                    lifecycle._execution_broker_tick()
+                manager.return_value._driver_env.assert_called_once_with()
+                spawn.assert_not_called()
+                state.put.assert_not_called()
+
+    def test_owned_broker_guard_is_collected_through_the_existing_verified_path(self):
+        row = {"key": "e", "version": 1, "payload": {"status": "started", "executionId": "e",
+            "operationId": "op-current", "generation": "1", "driverDigest": "d"}}
+        lifecycle, state, job, registry = self._broker_fixture([row], owned=True)
+        python = lifecycle.paths.repo / ".jenkins/runtime/python/python.exe"
+        launcher = lifecycle.paths.repo / "launcher.py"
+        with patch.object(host_module, "State", return_value=state), \
+             patch.object(host_module, "DeploymentManager") as manager, \
+             patch.object(host_module, "active_driver_binding", return_value={
+                 "digest": "d", "generation": "op-current", "launcher": str(launcher)}) as binding, \
+             patch.object(Path, "is_file", return_value=True), \
+             patch.dict(host_module.os.environ, {"ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY": "0"}):
+            manager.return_value._driver_env.return_value = {"ZIRCON_DRIVER_LAUNCHER": str(launcher),
+                                                           "JENKINS_PYTHON": str(python)}
+            lifecycle._execution_broker_tick()
+        manager.return_value._driver_env.assert_called_once_with()
+        binding.assert_called_once_with(lifecycle.paths.repo)
+        job.wait.assert_called_once_with(timeout_seconds=1)
+        registry.record_terminal.assert_called_once_with(job)
+        job.close.assert_called_once_with()
+        self.assertEqual({}, lifecycle._launches)
+        state.put.assert_called_once()
+        self.assertEqual("exited", state.put.call_args.args[2]["status"])
+
     def test_broker_records_real_completed_native_host_without_losing_lifecycle(self):
         import sys
         from types import SimpleNamespace
@@ -122,11 +254,12 @@ class LifecycleRuntimeTests(unittest.TestCase):
             launcher = root / "launcher.py"
             state.put("execution_launch", "e", {"status": "started", "executionId": "e",
                 "operationId": "op", "generation": "1", "driverDigest": "d",
-                "guardNativeJobId": guard.native_job_id})
+                "guardNativeJobId": guard.native_job_id, "launcherIdentity": job.identity.to_dict()})
             state.put("execution", "e", {"status": "running", "executionId": "e",
                 "operationId": "op", "generation": "1", "driverDigest": "d",
                 "driver": {"runtimeOperationId": "op", "generation": "1", "digest": "d"}})
-            state.put("execution_host", "e", {"status": "terminal", "operationId": "op", "generation": "1"})
+            state.put("execution_host", "e", {"status": "terminal", "executionId": "e", "operationId": "op", "generation": "1",
+                "hostPid": job.identity.pid, "hostBirthToken": job.identity.creation_time})
             try:
                 job.wait(timeout_seconds=10)
                 with patch.object(host_module, "DeploymentManager") as manager, \

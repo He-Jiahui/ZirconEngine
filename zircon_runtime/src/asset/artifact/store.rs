@@ -6,8 +6,8 @@ use std::sync::{
     Arc,
 };
 
-use bincode::Options;
 use serde::{Deserialize, Serialize};
+use zircon_runtime_interface::serialization::PositionalEncoding;
 
 use crate::core::resource::io::atomic_write;
 use crate::core::resource::{ResourceRecord, ResourceScheme};
@@ -154,10 +154,8 @@ impl ArtifactStore {
         let reader = ChunkReader::new(inventory, self.chunk_residency.clone());
         let decoder = zstd::stream::read::Decoder::new(reader)?;
         let mut decoder = CountingReader::new(decoder);
-        let cache_asset: ArtifactCacheAsset = bincode::DefaultOptions::new()
-            .with_fixint_encoding()
-            .with_limit(expected_raw_bytes)
-            .deserialize_from(&mut decoder)
+        let cache_asset: ArtifactCacheAsset = PositionalEncoding::FixedLittleEndian
+            .decode_from(&mut decoder, expected_raw_bytes)
             .map_err(AssetImportError::ArtifactCacheDeserialize)?;
         let mut trailing = [0; ARTIFACT_CHUNK_BYTES];
         if decoder.read(&mut trailing)? != 0 {
@@ -253,7 +251,10 @@ impl StagedArtifactPayload {
             let writer = HashingWriter::new(file);
             let encoder = zstd::stream::Encoder::new(writer, ARTIFACT_CACHE_ZSTD_LEVEL)?;
             let mut raw_writer = RawPayloadLimitWriter::new(encoder);
-            if let Err(error) = bincode::serialize_into(&mut raw_writer, cache_asset) {
+            if let Err(error) =
+                zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+                    .encode_into(&mut raw_writer, cache_asset, u64::MAX)
+            {
                 if raw_writer.limit_exceeded() {
                     return Err(artifact_raw_payload_size_error(
                         ARTIFACT_RAW_PAYLOAD_MAX_BYTES.saturating_add(1),
@@ -515,7 +516,9 @@ fn existing_chunk_matches(
 }
 
 fn serialize_manifest(manifest: &ArtifactManifest) -> Result<Vec<u8>, AssetImportError> {
-    let bytes = bincode::serialize(manifest).map_err(AssetImportError::ArtifactCacheSerialize)?;
+    let bytes = zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+        .encode(manifest)
+        .map_err(AssetImportError::ArtifactCacheSerialize)?;
     let mut payload = Vec::with_capacity(ARTIFACT_MANIFEST_MAGIC.len() + bytes.len());
     payload.extend_from_slice(ARTIFACT_MANIFEST_MAGIC);
     payload.extend_from_slice(&bytes);
@@ -550,11 +553,8 @@ fn read_manifest(path: &Path) -> Result<ArtifactManifest, AssetImportError> {
             "unsupported artifact manifest format; expected versioned chunk manifest".to_string(),
         ));
     };
-    bincode::DefaultOptions::new()
-        .with_fixint_encoding()
-        .with_limit(max_bytes)
-        .reject_trailing_bytes()
-        .deserialize(bytes)
+    PositionalEncoding::FixedLittleEndian
+        .decode_bounded(bytes, max_bytes)
         .map_err(AssetImportError::ArtifactCacheDeserialize)
 }
 

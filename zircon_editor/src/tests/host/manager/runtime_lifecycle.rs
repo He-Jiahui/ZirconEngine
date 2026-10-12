@@ -1,7 +1,6 @@
 // 从注册表解析并释放管理器，约束项目打开失败和异常展开后运行时根对象不被保留。
 use std::fs;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::Arc;
 use std::time::Duration;
 
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
@@ -19,8 +18,9 @@ fn registry_owned_editor_manager_does_not_retain_the_runtime_root() {
     let weak = runtime.weak();
 
     let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    assert_eq!(manager.enter().unwrap().runtime_diagnostics(), Default::default());
 
     drop(runtime);
 
@@ -28,7 +28,10 @@ fn registry_owned_editor_manager_does_not_retain_the_runtime_root() {
         weak.upgrade().is_none(),
         "a registry-owned editor service must not keep CoreRuntime alive"
     );
-    assert_eq!(manager.runtime_diagnostics(), Default::default());
+    assert!(matches!(
+        manager.enter(),
+        Err(zircon_runtime::core::CoreError::RuntimeUnavailable)
+    ));
     drop(manager);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -43,17 +46,21 @@ fn failed_project_open_does_not_make_the_editor_manager_retain_the_runtime_root(
     let runtime = editor_runtime_with_disabled_subsystems_config_path(&config_path);
     let weak = runtime.weak();
     let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    assert!(manager.open_project(&missing_project).is_err());
+    assert!(manager.enter().unwrap().open_project(&missing_project).is_err());
+    assert_eq!(manager.enter().unwrap().runtime_diagnostics(), Default::default());
     drop(runtime);
 
     assert!(
         weak.upgrade().is_none(),
         "a failed project open must not add a strong Runtime back-reference"
     );
-    assert_eq!(manager.runtime_diagnostics(), Default::default());
+    assert!(matches!(
+        manager.enter(),
+        Err(zircon_runtime::core::CoreError::RuntimeUnavailable)
+    ));
     drop(manager);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -68,9 +75,9 @@ fn project_open_panic_unwind_drops_temporary_editor_manager_owners() {
     let runtime = editor_runtime_with_disabled_subsystems_config_path(&config_path);
     let weak = runtime.weak();
     let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let unwind_manager = Arc::clone(&manager);
+    let unwind_manager = manager.enter().unwrap();
 
     let panic_result = catch_unwind(AssertUnwindSafe(move || {
         unwind_manager
@@ -78,13 +85,17 @@ fn project_open_panic_unwind_drops_temporary_editor_manager_owners() {
             .expect("missing project deliberately drives the unwind path");
     }));
     assert!(panic_result.is_err());
+    assert_eq!(manager.enter().unwrap().runtime_diagnostics(), Default::default());
     drop(runtime);
 
     assert!(
         weak.upgrade().is_none(),
         "panic unwind must release temporary editor service owners"
     );
-    assert_eq!(manager.runtime_diagnostics(), Default::default());
+    assert!(matches!(
+        manager.enter(),
+        Err(zircon_runtime::core::CoreError::RuntimeUnavailable)
+    ));
     drop(manager);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -103,7 +114,7 @@ fn repeated_editor_runtime_fixtures_release_every_runtime_root() {
         let runtime = editor_runtime_with_disabled_subsystems_config_path(&config_path);
         let weak = runtime.weak();
         let manager = runtime
-            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
             .unwrap();
 
         drop(manager);

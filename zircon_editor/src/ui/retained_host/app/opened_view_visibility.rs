@@ -23,6 +23,7 @@ impl RetainedEditorHost {
         }
         let instance = self
             .editor_manager
+            .enter()?
             .current_view_instances()
             .into_iter()
             .find(|view| &view.instance_id == instance_id)
@@ -45,7 +46,12 @@ impl RetainedEditorHost {
             _ => return Ok(()),
         };
         if instance.host != ViewHost::Drawer(default_slot)
-            || self.editor_manager.current_layout().active_main_page != MainPageId::workbench()
+            || self
+                .editor_manager
+                .enter()?
+                .current_layout()
+                .active_main_page
+                != MainPageId::workbench()
         {
             return Ok(());
         }
@@ -61,7 +67,12 @@ impl RetainedEditorHost {
         // Hierarchy's registry slot is historically LeftTop, while the current authored
         // Outliner owns a right-hand pane. Check the actual authored pane, then move this
         // exact instance through the existing floating/native callback owner.
-        if self.editor_manager.detach_view_to_window(instance_id)? {
+        if self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.detach_view_to_window(instance_id))?
+        {
             self.invalidate_host(HostInvalidationMask::LAYOUT);
         }
         Ok(())

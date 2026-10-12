@@ -1,0 +1,94 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/unreal/components/content_drawer.zui"
+version = 2
+display_name = "Unreal content drawer"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+]
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[components.UnrealContentDrawer]
+root = "drawer"
+default_classes = ["unreal-content-drawer"]
+
+[nodes.drawer]
+component = "VerticalGroup"
+control_id = "UnrealContentDrawer"
+classes = ["unreal-content-drawer", "unreal-control"]
+props = { visibility = "collapsed", visible = false, background_color = "$unreal_panel", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+# The native owner toggles visibility; this is a full-width bottom surface above the 32 px status bar.
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, anchor = { x = 0.0, y = 1.0 }, pivot = { x = 0.0, y = 1.0 }, position = { x = 0.0, y = -32.0 }, width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.density.bottom_output_height", preferred = "$editor.density.bottom_output_height", max = "$editor.density.bottom_output_height", stretch = "Fixed" }, clip = true }
+children = [{ node = "header" }, { node = "controls" }, { node = "content" }]
+
+[nodes.header]
+component = "HorizontalGroup"
+control_id = "ContentDrawerHeader"
+classes = ["unreal-content-drawer-header"]
+props = { font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "title" }, { node = "fill" }, { node = "close" }]
+[nodes.title]
+component = "Label"
+control_id = "ContentDrawerTitle"
+classes = ["unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", text = "Content Drawer", font_size = 13.333333, font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 140.0, preferred = 180.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+[nodes.fill]
+component = "Space"
+control_id = "ContentDrawerHeaderFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+[nodes.close]
+component = "IconButton"
+control_id = "ContentDrawerClose"
+classes = ["unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", label = "Close content drawer", icon = "close-outline", icon_placement = "icon_only", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "Unreal/DismissContentDrawer", event = "Click", route = "workbench.content_drawer.dismiss" }]
+
+[nodes.controls]
+component = "HorizontalGroup"
+control_id = "ContentDrawerControls"
+classes = ["unreal-content-drawer-controls"]
+props = { font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [{ node = "search" }, { node = "view_mode" }, { node = "import" }]
+[nodes.search]
+component = "InputField"
+control_id = "SearchEdited"
+classes = ["unreal-content-drawer-search", "unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_input", hover_background_color = "$unreal_input", focused_background_color = "$unreal_input", border_color = "$unreal_input_outline", focus_border_color = "$unreal_primary", foreground_color = "$unreal_foreground", placeholder_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, placeholder = "Search Assets", value_text = "", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "workbench.asset.set_search_query" }]
+[nodes.view_mode]
+component = "WorkbenchDropdown"
+control_id = "SetViewMode"
+classes = ["unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_dropdown", hover_background_color = "#575757", pressed_background_color = "$unreal_input_outline", open_background_color = "$unreal_primary_press", disabled_background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", focus_border_color = "$unreal_primary", disabled_border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground", label_color = "$unreal_foreground", icon_color = "$unreal_foreground", disabled_foreground_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, value = "list", value_text = "List", options = ["list|label=List", "thumbnail|label=Thumbnails"], input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 60.0, preferred = 96.0, max = 132.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
+[nodes.import]
+component = "IconButton"
+control_id = "ImportModel"
+classes = ["unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", label = "Import", icon = "editor_pages/asset_browser/import_pipeline/import.svg", icon_placement = "leading", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { min = 60.0, preferred = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/ImportModel", event = "Click", route = "workbench.asset.import_model" }]
+[nodes.content]
+component = "ScrollableBox"
+control_id = "ContentDrawerAssetBrowser"
+layout = { container = { kind = "ScrollableBox", axis = "Vertical", scrollbar_visibility = "Auto", virtualization = { item_extent = 28.0, overscan = 2 } }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true }
+props = { input_hoverable = true, input_focusable = true }
+
+repeat = { kind = "virtual_rows", prototype = "UnrealContentAssetPrototype", virtual_control_prefix = "UnrealContentAssetRow", authored_count = 1, node_path_namespace = "v2" }
+children = [{ node = "asset_prototype" }]
+
+[nodes.asset_prototype]
+component = "Button"
+control_id = "UnrealContentAssetPrototype"
+classes = ["unreal-control", "unreal-content-asset-row"]
+props = { text = "", tooltip = "", content_browser_asset_uuid = "", content_browser_asset_locator = "", button_variant = "text", layout_icon_size = 20.0, background_color = "$unreal_panel", hover_background_color = "#575757", foreground_color = "$unreal_foreground", selected_background_color = "$unreal_primary", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "Unreal/SelectContentAsset", event = "Click", route = "workbench.content_drawer.select_asset" }]

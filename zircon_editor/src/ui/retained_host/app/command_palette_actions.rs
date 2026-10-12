@@ -21,7 +21,13 @@ const COMMAND_PALETTE_OVERSCAN_ROWS: usize = 4;
 impl RetainedEditorHost {
     pub(super) fn open_workbench_command_palette(&mut self) {
         let context = self.runtime.context().command_eval().shared_snapshot();
-        let mru = self.runtime.command_palette_mru();
+        let mru = match self.runtime.command_palette_mru() {
+            Ok(mru) => mru,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
         let catalog = {
             let commands = self.runtime.commands().lock();
             commands.command_palette_catalog()
@@ -65,7 +71,10 @@ impl RetainedEditorHost {
         }
 
         let context = self.runtime.context().command_eval().shared_snapshot();
-        let mru = self.runtime.command_palette_mru();
+        let mru = match self.runtime.command_palette_mru() {
+            Ok(mru) => mru,
+            Err(error) => return Some(Err(error.to_string())),
+        };
         let catalog = {
             let commands = self.runtime.commands().lock();
             commands.command_palette_catalog()
@@ -131,7 +140,10 @@ impl RetainedEditorHost {
             return Some(Ok(UiHostEventEffects::default()));
         };
         let context = self.runtime.context().command_eval().shared_snapshot();
-        let mru = self.runtime.command_palette_mru();
+        let mru = match self.runtime.command_palette_mru() {
+            Ok(mru) => mru,
+            Err(error) => return Some(Err(error.to_string())),
+        };
         let catalog = {
             let commands = self.runtime.commands().lock();
             commands.command_palette_catalog()

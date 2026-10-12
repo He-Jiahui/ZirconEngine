@@ -20,39 +20,54 @@ pub(in crate::ui::retained_host::app) struct HierarchyDragIdentity {
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn capture_hierarchy_drag_identity(
         &self,
-    ) -> Option<HierarchyDragIdentity> {
+    ) -> Result<Option<HierarchyDragIdentity>, crate::ui::host::EditorError> {
         let domain = self.runtime.active_hierarchy_world_domain();
-        Some(HierarchyDragIdentity {
+        let Some(gateway) = self.runtime.world_gateway_identity(domain) else {
+            return Ok(None);
+        };
+        Ok(Some(HierarchyDragIdentity {
             domain,
-            gateway: self.runtime.world_gateway_identity(domain)?,
+            gateway,
             history_context: self.runtime.active_scene_history_context(),
-            scene_document: self.editor_manager.active_scene_revision_for_session(),
+            scene_document: self
+                .editor_manager
+                .enter()?
+                .active_scene_revision_for_session(),
             source_window: self.callback_source_window.clone(),
-        })
+        }))
     }
 
-    pub(in crate::ui::retained_host::app) fn hierarchy_drag_identity_is_current(&self) -> bool {
-        self.active_hierarchy_drag_identity
-            .as_ref()
-            .is_some_and(|pressed| self.capture_hierarchy_drag_identity().as_ref() == Some(pressed))
+    pub(in crate::ui::retained_host::app) fn hierarchy_drag_identity_is_current(
+        &self,
+    ) -> Result<bool, crate::ui::host::EditorError> {
+        let Some(pressed) = self.active_hierarchy_drag_identity.as_ref() else {
+            return Ok(false);
+        };
+        Ok(self.capture_hierarchy_drag_identity()?.as_ref() == Some(pressed))
     }
 
-    fn hierarchy_drag_authority_is_current(&self) -> bool {
+    fn hierarchy_drag_authority_is_current(&self) -> Result<bool, crate::ui::host::EditorError> {
         let (Some(pressed), Some(current)) = (
             self.active_hierarchy_drag_identity.as_ref(),
-            self.capture_hierarchy_drag_identity(),
+            self.capture_hierarchy_drag_identity()?,
         ) else {
-            return false;
+            return Ok(false);
         };
-        pressed.domain == current.domain
+        Ok(pressed.domain == current.domain
             && pressed.gateway == current.gateway
             && pressed.history_context == current.history_context
-            && pressed.scene_document == current.scene_document
+            && pressed.scene_document == current.scene_document)
     }
 
     pub(in crate::ui::retained_host::app) fn retire_hierarchy_drag_if_stale(&mut self) {
         if self.active_hierarchy_drag_identity.is_some()
-            && !self.hierarchy_drag_authority_is_current()
+            && !match self.hierarchy_drag_authority_is_current() {
+                Ok(current) => current,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            }
         {
             self.retire_hierarchy_drag();
         }

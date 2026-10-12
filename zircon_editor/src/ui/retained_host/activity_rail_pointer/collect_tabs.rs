@@ -9,7 +9,7 @@ pub(super) fn collect_tabs(
     model: &WorkbenchViewModel,
     slots: &[ActivityDrawerSlot],
 ) -> Arc<[HostActivityRailPointerItem]> {
-    let tabs = slots
+    let tabs: Arc<[HostActivityRailPointerItem]> = slots
         .iter()
         .filter_map(|slot| model.tool_windows.get(slot))
         .flat_map(|stack| {

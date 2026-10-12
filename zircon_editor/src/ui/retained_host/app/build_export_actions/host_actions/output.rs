@@ -11,7 +11,7 @@ use super::super::DesktopExportActionError;
 
 impl RetainedEditorHost {
     pub(super) fn choose_desktop_export_output(&mut self, profile_name: &str) {
-        let project_path = self.runtime.editor_snapshot().project_path;
+        let project_path = (match self.runtime.editor_snapshot() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }).project_path;
         let result = project_root_path(&project_path)
             .map_err(DesktopExportActionError::from)
             .and_then(|project_root| {
@@ -42,7 +42,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn reveal_desktop_export_output(&mut self, profile_name: &str) {
-        let project_path = self.runtime.editor_snapshot().project_path;
+        let project_path = (match self.runtime.editor_snapshot() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }).project_path;
         let result = project_root_path(&project_path)
             .map_err(DesktopExportActionError::from)
             .and_then(|project_root| {

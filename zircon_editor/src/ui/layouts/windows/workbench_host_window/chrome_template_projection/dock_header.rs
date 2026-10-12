@@ -78,13 +78,14 @@ fn dock_header_nodes(
 ) -> ModelRc<ViewTemplateNodeData> {
     let mut text_overrides = tab_text_overrides(DOCK_TAB_PREFIX, tabs);
     text_overrides.insert(DOCK_SUBTITLE_CONTROL_ID.to_string(), subtitle.to_string());
+    let node_patches = dock_header_visual_state_patches(tabs);
     let nodes = tab_template_nodes(
         surface_id,
         DOCK_HEADER_ASSET,
         width,
         height,
         &text_overrides,
-        &BTreeMap::new(),
+        &node_patches,
         DOCK_TAB_PREFIX,
         tabs,
     );
@@ -393,4 +394,21 @@ fn expand_dock_tab_slot(
         widths[index] += extra;
         *remaining = (*remaining - extra).max(0.0);
     }
+}
+
+pub(super) fn dock_header_visual_state_patches(
+    tabs: &ModelRc<TabData>,
+) -> BTreeMap<String, ViewTemplateNodePatch> {
+    let mut patches = BTreeMap::new();
+    for (row, tab) in tabs.iter().enumerate() {
+        let patch = ViewTemplateNodePatch {
+            selected: Some(tab.active),
+            surface_variant: Some(if tab.active { "inset" } else { "transparent" }.into()),
+            text_tone: Some(if tab.active { "default" } else { "subtle" }.into()),
+            ..ViewTemplateNodePatch::default()
+        };
+        patches.insert(format!("{DOCK_TAB_PREFIX}{row}"), patch.clone());
+        patches.insert(format!("DockTabGroup{row}"), patch);
+    }
+    patches
 }

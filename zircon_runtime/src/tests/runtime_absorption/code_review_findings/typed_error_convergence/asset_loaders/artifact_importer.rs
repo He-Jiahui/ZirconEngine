@@ -40,8 +40,9 @@ fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
         "CachedTomlDatetime {",
         "UiDocument {",
         "UiV2Document {",
-        "ArtifactCacheSerialize(#[source] bincode::Error)",
-        "ArtifactCacheDeserialize(#[source] bincode::Error)",
+        "use zircon_runtime_interface::serialization::{PositionalDecodeError, PositionalEncodeError};",
+        "ArtifactCacheSerialize(#[source] PositionalEncodeError)",
+        "ArtifactCacheDeserialize(#[source] PositionalDecodeError)",
         "CachedJsonNonFiniteNumber {",
         "CachedJsonNumberParse {",
     ] {

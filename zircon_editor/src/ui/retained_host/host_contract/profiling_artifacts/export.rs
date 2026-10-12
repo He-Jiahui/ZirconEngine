@@ -109,6 +109,14 @@ fn submit_present_artifacts_with_export_dir(
             &stream,
             capture_sequence,
         );
+        geometry.normal_window_evidence = submitted_gpu_text
+            .as_ref()
+            .and_then(|text| text.get("normalWindowEvidence"))
+            .cloned();
+        if let Some(evidence) = geometry.normal_window_evidence.as_mut() {
+            evidence["captureSequence"] = serde_json::json!(capture_sequence);
+            evidence["winitScaleFactor"] = serde_json::json!(winit_scale_factor);
+        }
         geometry.submitted_gpu_text = submitted_gpu_text;
         let screenshot = screenshot_enabled.then(|| {
             let frame = paint_chrome_command_stream_to_frame(size.width, size.height, &stream);

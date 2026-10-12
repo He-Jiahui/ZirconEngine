@@ -8,7 +8,8 @@ use super::{
     EditorCommandPaletteMru, EditorKeymapOverrides, SettingValue, SettingsCatalog, SettingsKey,
     EDITOR_AUTOSAVE_INTERVAL_SECS_KEY, EDITOR_COMMAND_PALETTE_MRU_KEY, EDITOR_DESIGN_TOKENS_KEY,
     EDITOR_KEYMAP_OVERRIDES_KEY, EDITOR_LOCALE_KEY, VIEWPORT_ROTATE_STEP_DEGREES_KEY,
-    VIEWPORT_SCALE_STEP_KEY, VIEWPORT_TRANSLATE_STEP_KEY,
+    VIEWPORT_SCALE_STEP_KEY, VIEWPORT_TRANSLATE_STEP_KEY, VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY,
+    VIEWPORT_ROTATE_SNAP_ENABLED_KEY, VIEWPORT_SCALE_SNAP_ENABLED_KEY,
 };
 
 /// Parsed built-in keys retained by the registry at registration time.
@@ -26,6 +27,10 @@ pub(super) struct BuiltInSettingsSlots {
     viewport_translate_step: Option<SettingsKey>,
     viewport_rotate_step_degrees: Option<SettingsKey>,
     viewport_scale_step: Option<SettingsKey>,
+    viewport_translate_snap_enabled: Option<SettingsKey>,
+    viewport_rotate_snap_enabled: Option<SettingsKey>,
+    viewport_scale_snap_enabled: Option<SettingsKey>,
+
 }
 
 impl BuiltInSettingsSlots {
@@ -39,6 +44,9 @@ impl BuiltInSettingsSlots {
             VIEWPORT_TRANSLATE_STEP_KEY => &mut self.viewport_translate_step,
             VIEWPORT_ROTATE_STEP_DEGREES_KEY => &mut self.viewport_rotate_step_degrees,
             VIEWPORT_SCALE_STEP_KEY => &mut self.viewport_scale_step,
+            VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY => &mut self.viewport_translate_snap_enabled,
+            VIEWPORT_ROTATE_SNAP_ENABLED_KEY => &mut self.viewport_rotate_snap_enabled,
+            VIEWPORT_SCALE_SNAP_ENABLED_KEY => &mut self.viewport_scale_snap_enabled,
             _ => return,
         };
         *slot = Some(key.clone());
@@ -86,6 +94,18 @@ impl BuiltInSettingsSlots {
             .expect("the settings authority requires the viewport rotate-step slot")
     }
 
+    fn viewport_translate_snap_enabled(&self) -> &SettingsKey {
+        self.viewport_translate_snap_enabled.as_ref().expect("the snap-enable slot is registered")
+    }
+
+    fn viewport_rotate_snap_enabled(&self) -> &SettingsKey {
+        self.viewport_rotate_snap_enabled.as_ref().expect("the snap-enable slot is registered")
+    }
+
+    fn viewport_scale_snap_enabled(&self) -> &SettingsKey {
+        self.viewport_scale_snap_enabled.as_ref().expect("the snap-enable slot is registered")
+    }
+
     fn viewport_scale_step(&self) -> &SettingsKey {
         self.viewport_scale_step
             .as_ref()
@@ -99,9 +119,16 @@ pub struct ViewportSnapSettings {
     translate_step: f64,
     rotate_step_degrees: f64,
     scale_step: f64,
+    translate_enabled: bool,
+    rotate_enabled: bool,
+    scale_enabled: bool,
 }
 
 impl ViewportSnapSettings {
+    pub const fn translate_enabled(self) -> bool { self.translate_enabled }
+    pub const fn rotate_enabled(self) -> bool { self.rotate_enabled }
+    pub const fn scale_enabled(self) -> bool { self.scale_enabled }
+
     pub const fn translate_step(self) -> f64 {
         self.translate_step
     }
@@ -206,6 +233,9 @@ impl SettingsSnapshot {
                 translate_step: built_in_float(registry, slots.viewport_translate_step()),
                 rotate_step_degrees: built_in_float(registry, slots.viewport_rotate_step_degrees()),
                 scale_step: built_in_float(registry, slots.viewport_scale_step()),
+                translate_enabled: built_in_bool(registry, slots.viewport_translate_snap_enabled()),
+                rotate_enabled: built_in_bool(registry, slots.viewport_rotate_snap_enabled()),
+                scale_enabled: built_in_bool(registry, slots.viewport_scale_snap_enabled()),
             },
         }
     }
@@ -244,6 +274,12 @@ impl SettingsSnapshot {
         } else if &change.key == slots.autosave_interval_secs() {
             snapshot.autosave_interval =
                 built_in_autosave_interval(registry, slots.autosave_interval_secs());
+        } else if &change.key == slots.viewport_translate_snap_enabled() {
+            snapshot.viewport_snap.translate_enabled = built_in_bool(registry, slots.viewport_translate_snap_enabled());
+        } else if &change.key == slots.viewport_rotate_snap_enabled() {
+            snapshot.viewport_snap.rotate_enabled = built_in_bool(registry, slots.viewport_rotate_snap_enabled());
+        } else if &change.key == slots.viewport_scale_snap_enabled() {
+            snapshot.viewport_snap.scale_enabled = built_in_bool(registry, slots.viewport_scale_snap_enabled());
         } else if &change.key == slots.viewport_translate_step() {
             snapshot.viewport_snap.translate_step =
                 built_in_float(registry, slots.viewport_translate_step());
@@ -324,5 +360,12 @@ fn built_in_autosave_interval(registry: &SettingsRegistry, key: &SettingsKey) ->
                 .expect("the autosave-interval setting schema only permits positive seconds"),
         ),
         _ => unreachable!("the built-in autosave interval setting uses an integer schema"),
+    }
+}
+
+fn built_in_bool(registry: &SettingsRegistry, key: &SettingsKey) -> bool {
+    match registry.resolve(key).expect("the built-in boolean setting is registered") {
+        SettingValue::Bool(value) => *value,
+        _ => unreachable!("the built-in snap enable setting has a boolean schema"),
     }
 }

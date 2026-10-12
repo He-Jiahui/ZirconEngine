@@ -8,7 +8,7 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
     frame_from_ui, text_paint_style_from_font_weight,
 };
 
-use super::metrics::{resolved_font_size, resolved_line_height};
+use super::metrics::{resolved_font_size, resolved_line_height, rich_font_request};
 
 /// 运行片段未接管时沿用 Runtime 字形簇的行与字形几何；至少两个非空簇且绘制样式相同才按行合并，其余有簇行按可见簇输出，无簇行使用行级回退。
 pub(super) fn push_shaped_text_commands(
@@ -25,17 +25,20 @@ pub(super) fn push_shaped_text_commands(
 
     for line in &shaped.lines {
         if let Some(text_style) = uniform_cluster_text_style(line) {
-            output.push(HostPaintCommand::text(
-                frame_from_ui(line.frame),
-                clip_frame.clone(),
-                z_index,
-                line.text.clone(),
-                color,
-                resolved_font_size(text.font_size),
-                resolved_line_height(text.font_size, text.line_height),
-                text_style,
-                opacity,
-            ));
+            output.push(
+                HostPaintCommand::text(
+                    frame_from_ui(line.frame),
+                    clip_frame.clone(),
+                    z_index,
+                    line.text.clone(),
+                    color,
+                    resolved_font_size(text.font_size),
+                    resolved_line_height(text.font_size, text.line_height),
+                    text_style,
+                    opacity,
+                )
+                .with_text_font_request(Some(shaped_font_request(text, text_style))),
+            );
             continue;
         }
 
@@ -49,21 +52,30 @@ pub(super) fn push_shaped_text_commands(
                 color,
                 text.font_size,
                 text.line_height,
+                text,
             );
             continue;
         }
 
-        output.push(HostPaintCommand::text(
-            frame_from_ui(line.frame),
-            clip_frame.clone(),
-            z_index,
-            line.text.clone(),
-            color,
-            resolved_font_size(text.font_size),
-            resolved_line_height(text.font_size, text.line_height),
-            text_paint_style_from_font_weight(text.font_weight),
-            opacity,
-        ));
+        output.push(
+            HostPaintCommand::text(
+                frame_from_ui(line.frame),
+                clip_frame.clone(),
+                z_index,
+                line.text.clone(),
+                color,
+                resolved_font_size(text.font_size),
+                resolved_line_height(text.font_size, text.line_height),
+                text_paint_style_from_font_weight(text.font_weight),
+                opacity,
+            )
+            .with_text_font_request(Some(rich_font_request(
+                text.font_family.as_deref(),
+                text.font_weight,
+                zircon_runtime_interface::ui::surface::UiTextRunKind::Plain,
+                false,
+            ))),
+        );
     }
     true
 }
@@ -97,23 +109,47 @@ fn push_shaped_line_cluster_commands(
     color: [u8; 4],
     font_size: f32,
     line_height: f32,
+    text: &UiTextPaint,
 ) {
     for cluster in &line.clusters {
         if cluster.text.is_empty() {
             continue;
         }
-        output.push(HostPaintCommand::text(
-            shaped_cluster_frame(line, cluster),
-            clip_frame.clone(),
-            z_index,
-            cluster.text.clone(),
-            color,
-            resolved_font_size(font_size),
-            resolved_line_height(font_size, line_height),
-            UiTextRunPaintStyle::from_run_kind(cluster.kind),
-            opacity,
-        ));
+        output.push(
+            HostPaintCommand::text(
+                shaped_cluster_frame(line, cluster),
+                clip_frame.clone(),
+                z_index,
+                cluster.text.clone(),
+                color,
+                resolved_font_size(font_size),
+                resolved_line_height(font_size, line_height),
+                UiTextRunPaintStyle::from_run_kind(cluster.kind),
+                opacity,
+            )
+            .with_text_font_request(Some(rich_font_request(
+                text.font_family.as_deref(),
+                text.font_weight,
+                cluster.kind,
+                false,
+            ))),
+        );
     }
+}
+
+fn shaped_font_request(
+    text: &UiTextPaint,
+    style: UiTextRunPaintStyle,
+) -> crate::ui::retained_host::host_contract::paint_text::HostTextFontRequest {
+    use zircon_runtime_interface::ui::surface::UiTextRunKind;
+    let kind = if style.code {
+        UiTextRunKind::Code
+    } else if style.strong {
+        UiTextRunKind::Strong
+    } else {
+        UiTextRunKind::Plain
+    };
+    rich_font_request(text.font_family.as_deref(), text.font_weight, kind, false)
 }
 
 fn shaped_cluster_frame(line: &UiShapedTextLine, cluster: &UiShapedTextCluster) -> FrameRect {

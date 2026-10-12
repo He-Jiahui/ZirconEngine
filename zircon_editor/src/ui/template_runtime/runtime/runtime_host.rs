@@ -45,6 +45,8 @@ use super::{
 };
 
 mod dynamic_control_state;
+pub(super) mod generated_bottom_pane;
+mod workbench_module_workspace;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum EditorUiHostRuntimeError {

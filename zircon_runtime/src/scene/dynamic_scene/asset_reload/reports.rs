@@ -29,6 +29,10 @@ pub struct DynamicSceneAssetReloadDrainReport {
     pub failed: Vec<DynamicSceneAssetReloadApplyFailure>,
     pub skipped: Vec<DynamicSceneAssetReloadSkippedEvent>,
     pub superseded_pending: Vec<DynamicSceneAssetReloadSupersededTask>,
+    /// Terminal registered-source failure; subsequent drains keep reporting it.
+    pub source_error: Option<crate::core::CoreError>,
+    /// First live lifecycle cancellation. Retained work waits for queue disposal, not another tick.
+    pub lifecycle_interruption: Option<crate::scene::DynamicSceneError>,
     pub receiver_disconnected: bool,
     pub event_sequence_exhausted: bool,
     pub generation_gap: Option<crate::core::resource::ResourceEventGap>,
@@ -40,6 +44,10 @@ pub struct DynamicSceneAssetReloadDrainReport {
 }
 
 impl DynamicSceneAssetReloadDrainReport {
+    pub fn lifecycle_interruption(&self) -> Option<&crate::scene::DynamicSceneError> {
+        self.lifecycle_interruption.as_ref()
+    }
+
     pub fn skipped_count(&self) -> usize {
         self.skipped.len()
     }
@@ -87,6 +95,8 @@ pub struct DynamicSceneAssetReloadApplyReport {
     pub applied: Vec<DynamicSceneAssetReloadAppliedScene>,
     pub failed: Vec<DynamicSceneAssetReloadApplyFailure>,
     pub stale: Vec<DynamicSceneAssetReloadStaleResult>,
+    /// Live callbacks may already have published effects. This does not promise rollback.
+    pub lifecycle_interruption: Option<crate::scene::DynamicSceneError>,
     pub pending_count: usize,
     pub applied_bytes: usize,
     pub target_stages_scheduled: usize,
@@ -98,6 +108,10 @@ pub struct DynamicSceneAssetReloadApplyReport {
 }
 
 impl DynamicSceneAssetReloadApplyReport {
+    pub fn lifecycle_interruption(&self) -> Option<&crate::scene::DynamicSceneError> {
+        self.lifecycle_interruption.as_ref()
+    }
+
     pub fn applied_count(&self) -> usize {
         self.applied.len()
     }
@@ -258,6 +272,12 @@ pub struct DynamicSceneAssetReloadFrameApplyReport {
 }
 
 impl DynamicSceneAssetReloadFrameApplyReport {
+    pub fn lifecycle_interruption(&self) -> Option<&crate::scene::DynamicSceneError> {
+        self.apply
+            .lifecycle_interruption()
+            .or_else(|| self.drain.lifecycle_interruption())
+    }
+
     pub fn events_drained(&self) -> usize {
         self.drain.events_drained
     }

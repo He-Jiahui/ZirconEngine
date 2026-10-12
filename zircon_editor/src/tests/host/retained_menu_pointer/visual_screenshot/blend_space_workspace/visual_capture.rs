@@ -29,14 +29,23 @@ pub(in super::super) fn assert_blend_space_native_parent_chain_and_paint(
     let nodes = (0..presentation.workbench_window_nodes.row_count())
         .filter_map(|row| presentation.workbench_window_nodes.row_data(row))
         .collect::<Vec<_>>();
-    let host = nodes
+    let pane = nodes
         .iter()
-        .find(|node| node.control_id.as_str() == "WorkbenchExtensionModuleWorkspacesHost")
-        .expect("extension workspace host should be present in the native model");
+        .find(|node| node.control_id.as_str() == "WorkbenchMainBandViewportPanel")
+        .expect("the actual viewport panel should own the selected workspace");
+    let viewport = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "UnrealSceneViewViewport")
+        .expect("the actual Unreal viewport should contain the selected workspace");
     let workspace = nodes
         .iter()
         .find(|node| node.control_id.as_str() == "WorkbenchExtensionBlendSpaceWorkspace")
         .expect("Blend Space workspace should be present in the native model");
+    let source_frame = workspace
+        .source_surface_frame
+        .as_ref()
+        .expect("the mounted workspace must retain the bridge's actual source publication");
+    assert_blend_space_native_source_parent_chain(&nodes, source_frame);
     let canvas = nodes
         .iter()
         .find(|node| node.control_id.as_str() == "WorkbenchExtensionBlendSpaceSampleCanvas")
@@ -104,9 +113,11 @@ pub(in super::super) fn assert_blend_space_native_parent_chain_and_paint(
         );
     }
     eprintln!(
-        "blend-space-native-chain width={width}: host=({}, parent={}), workspace=({}, parent={}), canvas=({}, parent={}), grid=({}, parent={}), total_nodes={}, root_overlay_nodes={}",
-        host.node_id,
-        host.parent_node_id,
+        "blend-space-native-chain width={width}: pane=({}, parent={}), viewport=({}, parent={}), workspace=({}, parent={}), canvas=({}, parent={}), grid=({}, parent={}), total_nodes={}, root_overlay_nodes={}",
+        pane.node_id,
+        pane.parent_node_id,
+        viewport.node_id,
+        viewport.parent_node_id,
         workspace.node_id,
         workspace.parent_node_id,
         canvas.node_id,
@@ -125,8 +136,8 @@ pub(in super::super) fn assert_blend_space_native_parent_chain_and_paint(
         "WorkbenchExtensionBlendSpaceApplyButton",
     ] {
         assert!(
-            native_node_reaches_ancestor(&nodes, control_id, host.node_id.as_str()),
-            "{control_id} must remain inside the extension host's native parent chain"
+            native_node_reaches_ancestor(&nodes, control_id, viewport.node_id.as_str()),
+            "{control_id} must remain inside the actual Unreal viewport's native parent chain"
         );
     }
 
@@ -136,12 +147,6 @@ pub(in super::super) fn assert_blend_space_native_parent_chain_and_paint(
         height,
         [241, 17, 193, 255],
         presentation.workbench_window_nodes.clone(),
-    );
-    let isolated_extension = paint_componentized_extension_workspace_for_test(
-        width,
-        height,
-        [241, 17, 193, 255],
-        &presentation,
     );
     let paint_evidence = [
         ("WorkbenchExtensionBlendSpaceSearch", 4usize),
@@ -153,16 +158,30 @@ pub(in super::super) fn assert_blend_space_native_parent_chain_and_paint(
             .iter()
             .find(|node| node.control_id.as_str() == control_id)
             .unwrap_or_else(|| panic!("{control_id} should exist in the native model"));
+        let node_source = node
+            .source_surface_frame
+            .as_ref()
+            .expect("paint evidence must retain its actual Runtime source frame");
+        assert!(Arc::ptr_eq(node_source, source_frame));
+        let command_ref = node
+            .surface_render_command_ref
+            .expect("paint evidence must retain a live command reference");
+        assert_eq!(Some(command_ref.node_id), node.surface_node_id);
+        let command = source_frame
+            .render_extract
+            .command_by_ref(command_ref)
+            .expect("the current source frame must resolve the actual paint command");
+        assert_eq!(command.node_id, command_ref.node_id);
+        assert!(command.frame.width > 0.0 && command.frame.height > 0.0);
         (
             control_id,
             minimum_distinct_colors,
             distinct_frame_color_count(&painted, width, &node.frame),
             distinct_frame_color_count(&direct_template, width, &node.frame),
-            distinct_frame_color_count(&isolated_extension, width, &node.frame),
             node,
         )
     });
-    for (control_id, _, distinct_colors, direct_colors, isolated_colors, node) in &paint_evidence {
+    for (control_id, _, distinct_colors, direct_colors, node) in &paint_evidence {
         let row = nodes
             .iter()
             .position(|candidate| candidate.node_id == node.node_id)
@@ -172,7 +191,7 @@ pub(in super::super) fn assert_blend_space_native_parent_chain_and_paint(
             .position(|candidate| candidate.node_id == node.parent_node_id)
             .unwrap_or(usize::MAX);
         eprintln!(
-            "blend-space-native-paint width={width}: control={control_id}, row={row}, parent_row={parent_row}, colors={distinct_colors}, direct_colors={direct_colors}, isolated_colors={isolated_colors}, role={}, component_role={}, surface={}, button={}, text='{}', value='{}', frame=({}, {}, {}, {}), has_clip={}, clip=({}, {}, {}, {})",
+            "blend-space-native-paint width={width}: control={control_id}, row={row}, parent_row={parent_row}, colors={distinct_colors}, direct_colors={direct_colors}, role={}, component_role={}, surface={}, button={}, text='{}', value='{}', frame=({}, {}, {}, {}), has_clip={}, clip=({}, {}, {}, {})",
             node.role,
             node.component_role,
             node.surface_variant,
@@ -190,7 +209,7 @@ pub(in super::super) fn assert_blend_space_native_parent_chain_and_paint(
             node.clip_frame.height,
         );
     }
-    for (control_id, minimum_distinct_colors, distinct_colors, _, _, node) in paint_evidence {
+    for (control_id, minimum_distinct_colors, distinct_colors, _, node) in paint_evidence {
         assert!(
             distinct_colors >= minimum_distinct_colors,
             "{control_id} must paint native surface/text detail: distinct_colors={distinct_colors}, frame=({}, {}, {}, {})",

@@ -1,5 +1,7 @@
 const ZR_SHADING_MODEL_SUBSURFACE_ID: u32 = 16u;
 
+/// 将已解码的 custom0.w profile 编号归一化到 normal.a；次表面 setup 以 round(a * 255) 还原。
+/// 此路径使用 model 16，normal.a 由 profile 占用，透明度仍由 albedo 输出携带。
 fn encode_gbuffer(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> ZrDeferredGBufferOutput {
     let receive_shadows = ctx.shadow_params.z > 0.5;
     let profile_index = clamp(surface.custom0.w, 0.0, 15.0) / 255.0;

@@ -2,7 +2,8 @@
 use std::collections::{BTreeSet, HashMap};
 
 use thiserror::Error;
-use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime::ui::surface::{UiSurface, UiSurfaceChildMountProof};
+use zircon_runtime::ui::v2::UiV2SurfaceBuilder;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{UiFrame, UiSize},
@@ -12,11 +13,12 @@ use zircon_runtime_interface::ui::{
 use crate::ui::control::EditorUiControlService;
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, EditorUiHostRuntimeError, RetainedUiHostNodeModel,
-    RetainedUiHostProjection, RetainedUiProjection, RetainedUiProjectionSurfaceMetadataIndex,
-    WORKBENCH_WINDOW_DOCUMENT_ID,
+    RetainedUiHostProjection, RetainedUiNodeProjection, RetainedUiProjection,
+    RetainedUiProjectionSurfaceMetadataIndex, UNREAL_EDITOR_WINDOW_DOCUMENT_ID,
 };
 
 mod localized_text;
+mod viewport_toolbar_publication;
 
 use self::localized_text::WorkbenchLocalizedTextContext;
 use super::EditorWorkbenchReferenceMetrics;
@@ -28,13 +30,12 @@ impl EditorWorkbenchTemplateControlIds {
     pub const ROOT: &'static str = "WorkbenchWindowRoot";
     pub const TOP_TOOLBAR: &'static str = "WorkbenchWindowTopToolbarRegion";
     pub const MAIN_BAND: &'static str = "WorkbenchWindowMainBandRegion";
-    pub const ACTIVITY_RAIL: &'static str = "WorkbenchMainBandActivityRail";
     pub const SCENE_TREE: &'static str = "WorkbenchMainBandSceneTreePanel";
     pub const VIEWPORT: &'static str = "WorkbenchMainBandViewportPanel";
     pub const VIEWPORT_TOOLBAR: &'static str = "WorkbenchViewportToolbar";
     pub const VIEWPORT_SURFACE: &'static str = "WorkbenchViewportSurface";
     pub const INSPECTOR: &'static str = "WorkbenchMainBandInspectorPanel";
-    pub const COMPONENT_DRAWER: &'static str = "WorkbenchWindowComponentDrawerRegion";
+    pub const CONTENT_DRAWER: &'static str = "UnrealContentDrawerRegion";
     pub const STATUS_BAR: &'static str = "WorkbenchWindowStatusBarRegion";
     pub const PRIMARY_BUTTON: &'static str = "WorkbenchPrimaryButton";
 }
@@ -45,11 +46,9 @@ pub struct EditorWorkbenchTemplateFrames {
     pub root: UiFrame,
     pub top_toolbar: UiFrame,
     pub main_band: UiFrame,
-    pub activity_rail: UiFrame,
     pub scene_tree: UiFrame,
     pub viewport: UiFrame,
     pub inspector: UiFrame,
-    pub component_drawer: UiFrame,
     pub status_bar: UiFrame,
 }
 
@@ -74,11 +73,6 @@ impl EditorWorkbenchTemplateFrames {
                 control_nodes,
                 EditorWorkbenchTemplateControlIds::MAIN_BAND,
             )?,
-            activity_rail: required_control_frame(
-                surface,
-                control_nodes,
-                EditorWorkbenchTemplateControlIds::ACTIVITY_RAIL,
-            )?,
             scene_tree: required_control_frame(
                 surface,
                 control_nodes,
@@ -93,11 +87,6 @@ impl EditorWorkbenchTemplateFrames {
                 surface,
                 control_nodes,
                 EditorWorkbenchTemplateControlIds::INSPECTOR,
-            )?,
-            component_drawer: required_control_frame(
-                surface,
-                control_nodes,
-                EditorWorkbenchTemplateControlIds::COMPONENT_DRAWER,
             )?,
             status_bar: required_control_frame(
                 surface,
@@ -115,6 +104,11 @@ pub struct EditorWorkbenchTemplateSurface {
     pub metrics: EditorWorkbenchReferenceMetrics,
     pub frames: EditorWorkbenchTemplateFrames,
     pub host_projection: RetainedUiHostProjection,
+    /// Optional captured metadata outside the live tree and visual patch worksets.
+    pub(crate) prepared_viewport_toolbar_publication: Option<(
+        std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+        std::sync::Arc<serde_json::Value>,
+    )>,
     localization_context: Option<WorkbenchLocalizedTextContext>,
     layout_size: UiSize,
     #[cfg(test)]
@@ -181,6 +175,7 @@ impl EditorWorkbenchTemplateSurface {
         runtime: &EditorUiHostRuntime,
         size: UiSize,
     ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        self.prepared_viewport_toolbar_publication = None;
         self.synchronize_localized_text()?;
         let semantic_node_ids = self.surface.pending_rebuild_node_ids();
         zircon_runtime::profile_counter!(
@@ -224,6 +219,7 @@ impl EditorWorkbenchTemplateSurface {
         &mut self,
         runtime: &EditorUiHostRuntime,
     ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        self.prepared_viewport_toolbar_publication = None;
         self.synchronize_localized_text()?;
         let semantic_node_ids = self.surface.pending_rebuild_node_ids();
         let report = self.surface.rebuild_dirty(self.layout_size)?;
@@ -293,6 +289,7 @@ impl EditorWorkbenchTemplateSurface {
         workset: &HostProjectionRefreshWorkset,
         refresh_frames: bool,
     ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        self.prepared_viewport_toolbar_publication = None;
         if refresh_frames {
             zircon_runtime::profile_scope!(
                 "editor",
@@ -331,6 +328,7 @@ impl EditorWorkbenchTemplateSurface {
             let changed_node_ids = workset.changed_node_ids();
             if changed_node_ids.is_empty() && self.host_projection_roots == self.surface.tree.roots
             {
+                self.refresh_viewport_toolbar_publication();
                 zircon_runtime::profile_counter!(
                     "editor",
                     "ui.workbench_template.host_projection_noop_count",
@@ -430,7 +428,94 @@ impl EditorWorkbenchTemplateSurface {
                 self.last_host_projection_geometry_patch_count = geometry_patches.len();
             }
         }
+        self.refresh_viewport_toolbar_publication();
         Ok(())
+    }
+
+    /// Publish current source ownership for a validated mounted closure without rebuilding rows.
+    /// The original semantic/geometry workset keeps its entries and commit mode.
+    pub(crate) fn rebind_host_projection_sources(
+        &mut self,
+        node_ids: &BTreeSet<UiNodeId>,
+        source_row_ids: &BTreeSet<UiNodeId>,
+    ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        if node_ids.is_empty() {
+            return Ok(());
+        }
+        let source = self.surface.surface_frame();
+        let mut updates = Vec::with_capacity(node_ids.len());
+        for node_id in node_ids {
+            let invalid =
+                || EditorWorkbenchTemplateSurfaceError::SourcePublicationIdentityMismatch {
+                    node_id: *node_id,
+                };
+            let node = self.surface.tree.node(*node_id).ok_or_else(invalid)?;
+            let arranged = source.arranged_tree.get(*node_id).ok_or_else(invalid)?;
+            if arranged.node_path != node.node_path
+                || arranged.parent != node.parent
+                || arranged.children != node.children
+                || !self
+                    .host_projection_topology
+                    .get(node_id)
+                    .is_some_and(|identity| identity.matches_surface_node(node))
+            {
+                return Err(invalid());
+            }
+            let Some(index) = self.host_projection_node_indices.get(node_id).copied() else {
+                if arranged.control_id.is_some() {
+                    return Err(invalid());
+                }
+                continue;
+            };
+            let projected = self.host_projection.nodes.get(index).ok_or_else(invalid)?;
+            let metadata = node.template_metadata.as_ref().ok_or_else(invalid)?;
+            let parent_path = node
+                .parent
+                .and_then(|id| self.surface.tree.node(id))
+                .map(|parent| parent.node_path.0.as_str());
+            let geometry = surface_host_geometry(&self.surface, *node_id).ok_or_else(invalid)?;
+            if projected.surface_node_id != Some(*node_id)
+                || projected.node_id != node.node_path.0
+                || projected.parent_id.as_deref() != parent_path
+                || projected.component != metadata.component
+                || projected.control_id != metadata.control_id
+                || arranged.control_id != metadata.control_id
+                || projected.source_path != metadata.source_path
+                || projected.source_node_id != metadata.source_node_id
+                || projected.instance_path != metadata.instance_path
+                || (projected.frame, projected.clip_frame, projected.z_index) != geometry
+            {
+                return Err(invalid());
+            }
+            if projected
+                .source_surface_frame
+                .as_ref()
+                .is_some_and(|previous| std::sync::Arc::ptr_eq(previous, &source))
+            {
+                continue;
+            }
+            // Collapsed/Hidden nodes and non-control ancestors remain compiled-only.
+            // Existing visibility patches must still retire or add their actual UI rows.
+            let publish_row = source_row_ids.contains(node_id)
+                && projected.control_id.is_some()
+                && surface_node_render_visible(&self.surface, *node_id);
+            updates.push((index, publish_row));
+        }
+        // Validate the complete closure before changing any source owner.
+        for (index, publish_row) in updates {
+            self.host_projection.nodes[index].source_surface_frame =
+                Some(std::sync::Arc::clone(&source));
+            if publish_row {
+                self.pending_host_projection_patch_indices.insert(index);
+            }
+        }
+        self.host_projection.source_surface_frame = Some(source);
+        Ok(())
+    }
+
+    fn refresh_viewport_toolbar_publication(&mut self) {
+        self.prepared_viewport_toolbar_publication =
+            viewport_toolbar_publication::prepare(&self.host_projection, &self.surface);
     }
 
     /// 仅当根、节点拓扑和宿主索引身份仍一致时允许原位替换。
@@ -460,8 +545,10 @@ impl EditorWorkbenchTemplateSurface {
         &mut self,
         runtime: &EditorUiHostRuntime,
     ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        self.prepared_viewport_toolbar_publication = None;
         self.host_projection = runtime
             .build_retained_host_projection_with_surface(&self.source_projection, &self.surface)?;
+        self.refresh_viewport_toolbar_publication();
         let (indices, topology) = build_host_projection_state(&self.surface, &self.host_projection);
         self.host_projection_node_indices = indices;
         self.host_projection_topology = topology;
@@ -482,6 +569,110 @@ impl EditorWorkbenchTemplateSurface {
             self.last_host_projection_semantic_patch_count = 0;
             self.last_host_projection_geometry_patch_count = 0;
         }
+        Ok(())
+    }
+
+    pub(crate) fn source_projection(&self) -> &RetainedUiProjection {
+        &self.source_projection
+    }
+
+    /// Stage the selected module at the current viewport owner; publish only after validation.
+    pub(crate) fn stage_module_workspace(
+        &self,
+        runtime: &EditorUiHostRuntime,
+        previous_root_id: Option<UiNodeId>,
+        previous_control_id: Option<&str>,
+        incoming: Option<(RetainedUiProjection, UiSurface)>,
+    ) -> Result<
+        (Self, Option<UiNodeId>, UiSurfaceChildMountProof),
+        EditorWorkbenchTemplateSurfaceError,
+    > {
+        const PARENT: &str = "UnrealSceneViewViewport";
+        let parent_id = self
+            .control_node_id(PARENT)
+            .ok_or(EditorWorkbenchTemplateSurfaceError::MissingControl { control_id: PARENT })?;
+        let mut staged = self.clone();
+        let parent = projection_node_for_control(&mut staged.source_projection.root, PARENT)
+            .ok_or(EditorWorkbenchTemplateSurfaceError::MissingControl { control_id: PARENT })?;
+        let mut retired_bindings = BTreeSet::new();
+        if let Some(control_id) = previous_control_id {
+            for child in parent
+                .children
+                .iter()
+                .filter(|node| node.control_id.as_deref() == Some(control_id))
+            {
+                let mut nodes = vec![child];
+                while let Some(node) = nodes.pop() {
+                    retired_bindings.extend(node.binding_ids.iter().cloned());
+                    nodes.extend(node.children.iter());
+                }
+            }
+            parent
+                .children
+                .retain(|node| node.control_id.as_deref() != Some(control_id));
+        }
+        staged
+            .source_projection
+            .bindings
+            .retain(|binding| !retired_bindings.contains(&binding.binding_id));
+        let incoming_surface = if let Some((projection, surface)) = incoming {
+            let mut seen = staged
+                .source_projection
+                .bindings
+                .iter()
+                .map(|binding| binding.binding_id.clone())
+                .collect::<BTreeSet<_>>();
+            for binding in &projection.bindings {
+                if !seen.insert(binding.binding_id.clone()) {
+                    return Err(EditorUiHostRuntimeError::DuplicateRetainedControl {
+                        document_id: projection.document_id.clone(),
+                        control_id: format!("binding:{}", binding.binding_id),
+                    }
+                    .into());
+                }
+            }
+            projection_node_for_control(&mut staged.source_projection.root, PARENT)
+                .expect("validated projection parent")
+                .children
+                .push(projection.root);
+            staged
+                .source_projection
+                .bindings
+                .extend(projection.bindings);
+            Some(surface)
+        } else {
+            None
+        };
+        let (surface, root_id, retired) = UiV2SurfaceBuilder::stage_child_surface(
+            &self.surface,
+            parent_id,
+            previous_root_id,
+            incoming_surface,
+        )
+        .map_err(EditorUiHostRuntimeError::from)?;
+        staged.surface = surface;
+        let mut route_service = EditorUiControlService::default();
+        runtime.register_projection_routes(&mut route_service, &mut staged.source_projection)?;
+        staged.source_projection_metadata_index = staged.source_projection.surface_metadata_index();
+        staged.refresh_control_node_index()?;
+        Ok((staged, root_id, retired))
+    }
+
+    /// Rebind frames after the staged clone receives the original live session stores.
+    pub(crate) fn commit_module_workspace(
+        &mut self,
+        current: &mut Self,
+        proof: &UiSurfaceChildMountProof,
+    ) -> Result<(), EditorWorkbenchTemplateSurfaceError> {
+        self.prepared_viewport_toolbar_publication = None;
+        UiV2SurfaceBuilder::commit_child_surface(&mut self.surface, &mut current.surface, proof)
+            .map_err(EditorUiHostRuntimeError::from)?;
+        let frame = self.surface.surface_frame();
+        for node in &mut self.host_projection.nodes {
+            node.source_surface_frame = Some(std::sync::Arc::clone(&frame));
+        }
+        self.host_projection.source_surface_frame = Some(frame);
+        self.refresh_viewport_toolbar_publication();
         Ok(())
     }
 
@@ -611,6 +802,8 @@ impl HostProjectionNodeIdentity {
 
 #[derive(Debug, Error)]
 pub enum EditorWorkbenchTemplateSurfaceError {
+    #[error("workbench node {node_id:?} no longer matches its current source publication")]
+    SourcePublicationIdentityMismatch { node_id: UiNodeId },
     #[error(transparent)]
     Runtime(#[from] EditorUiHostRuntimeError),
     #[error(transparent)]
@@ -639,16 +832,18 @@ pub fn build_editor_workbench_template_surface(
     runtime: &EditorUiHostRuntime,
     metrics: EditorWorkbenchReferenceMetrics,
 ) -> Result<EditorWorkbenchTemplateSurface, EditorWorkbenchTemplateSurfaceError> {
-    let mut source_projection = runtime.project_document(WORKBENCH_WINDOW_DOCUMENT_ID)?;
+    let mut source_projection = runtime.project_document(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)?;
     let mut route_service = EditorUiControlService::default();
     runtime.register_projection_routes(&mut route_service, &mut source_projection)?;
     let source_projection_metadata_index = source_projection.surface_metadata_index();
-    let mut surface = runtime.build_shared_surface(WORKBENCH_WINDOW_DOCUMENT_ID)?;
+    let mut surface = runtime.build_shared_surface(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)?;
     surface.compute_layout(metrics.target_size())?;
     let control_nodes = build_control_node_index(&surface)?;
     let frames = EditorWorkbenchTemplateFrames::from_surface(&surface, &control_nodes)?;
     let host_projection =
         runtime.build_retained_host_projection_with_surface(&source_projection, &surface)?;
+    let prepared_viewport_toolbar_publication =
+        viewport_toolbar_publication::prepare(&host_projection, &surface);
     let (host_projection_node_indices, host_projection_topology) =
         build_host_projection_state(&surface, &host_projection);
     let host_projection_roots = surface.tree.roots.clone();
@@ -657,6 +852,7 @@ pub fn build_editor_workbench_template_surface(
         metrics,
         frames,
         host_projection,
+        prepared_viewport_toolbar_publication,
         localization_context: None,
         layout_size: metrics.target_size(),
         #[cfg(test)]
@@ -795,3 +991,15 @@ fn surface_node_render_visible(surface: &UiSurface, node_id: UiNodeId) -> bool {
 #[cfg(test)]
 #[path = "tests/template_surface_source_publication_tests.rs"]
 mod source_publication_tests;
+
+fn projection_node_for_control<'a>(
+    node: &'a mut RetainedUiNodeProjection,
+    control_id: &str,
+) -> Option<&'a mut RetainedUiNodeProjection> {
+    if node.control_id.as_deref() == Some(control_id) {
+        return Some(node);
+    }
+    node.children
+        .iter_mut()
+        .find_map(|child| projection_node_for_control(child, control_id))
+}

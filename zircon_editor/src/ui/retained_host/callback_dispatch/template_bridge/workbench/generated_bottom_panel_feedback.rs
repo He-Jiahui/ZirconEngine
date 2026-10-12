@@ -106,3 +106,92 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 }
+
+// Pure projection metadata from the existing Generated navigation owner.
+// The caller writes these attributes directly to its already leased pane Surface.
+impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    pub(crate) fn generated_bottom_pane_feedback_attributes(
+        action_id: &str,
+    ) -> (
+        std::collections::BTreeMap<String, std::collections::BTreeMap<String, toml::Value>>,
+        Option<String>,
+    ) {
+        use std::collections::BTreeMap;
+        let mut updates = BTreeMap::new();
+        let route = workbench_generated_bottom_route_target(action_id);
+        let mode = route
+            .map(|target| target.mode_control_id)
+            .or_else(|| workbench_generated_bottom_mode_control_id(action_id));
+        let mut status = None;
+        if let Some(target) = route {
+            for (control, value) in [
+                ("WorkbenchGeneratedBottomSelectedRoute", target.panel_route),
+                (
+                    "WorkbenchGeneratedBottomSelectedModule",
+                    target.module_label,
+                ),
+                ("WorkbenchGeneratedBottomSelectedPanel", target.panel_label),
+            ] {
+                updates.insert(
+                    control.to_string(),
+                    BTreeMap::from([(
+                        "value_text".to_string(),
+                        toml::Value::String(value.to_string()),
+                    )]),
+                );
+            }
+            status = Some(format!(
+                "{} {} bottom panel selected",
+                target.module_label, target.panel_label
+            ));
+        }
+        if let Some(mode) = mode {
+            for control in GENERATED_BOTTOM_MODE_CONTROLS {
+                let selected = *control == mode;
+                updates.insert(
+                    control.to_string(),
+                    BTreeMap::from([
+                        ("selected".to_string(), toml::Value::Boolean(selected)),
+                        ("checked".to_string(), toml::Value::Boolean(selected)),
+                        ("value".to_string(), toml::Value::Boolean(selected)),
+                    ]),
+                );
+            }
+            updates.insert(
+                "WorkbenchGeneratedBottomSelectedMode".to_string(),
+                BTreeMap::from([(
+                    "value_text".to_string(),
+                    toml::Value::String(
+                        mode.strip_prefix("WorkbenchGeneratedBottomMode")
+                            .unwrap_or("Output")
+                            .to_string(),
+                    ),
+                )]),
+            );
+            if status.is_none() {
+                status = Some("Generated bottom panel mode selected".to_string());
+            }
+        }
+        match action_id {
+            "workbench.generated_bottom.open_panel.invoke" => {
+                updates.insert(
+                    "WorkbenchGeneratedBottomPanelHost".to_string(),
+                    BTreeMap::from([(
+                        "visibility".to_string(),
+                        toml::Value::String("visible".to_string()),
+                    )]),
+                );
+                status = Some("Generated bottom panel opened".to_string());
+            }
+            "workbench.generated_bottom.pin_panel.invoke" => {
+                status = Some("Generated bottom panel pinned".to_string())
+            }
+            "workbench.generated_bottom.filter.edit"
+            | "workbench.generated_bottom.filter.commit" => {
+                status = Some("Generated bottom filter updated".to_string())
+            }
+            _ => {}
+        }
+        (updates, status)
+    }
+}

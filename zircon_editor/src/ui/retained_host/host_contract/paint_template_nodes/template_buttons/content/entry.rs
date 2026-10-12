@@ -13,7 +13,8 @@ use super::glyph::{
 };
 use super::layout::button_content_layout;
 use super::metrics::{
-    button_label_font_size_for_slot, button_label_paint_style, measured_label_ink_width,
+    button_label_font_size_for_slot, button_label_paint_style, button_vertical_content_frame,
+    measured_label_ink_width,
 };
 use super::style::button_content_style;
 use super::text::push_button_label;
@@ -28,6 +29,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
     kind: WorkbenchButtonKind,
     opacity: f32,
 ) {
+    let content_frame = button_vertical_content_frame(node, rect);
+    let rect = &content_frame;
     let label = if node.icon_placement.eq_ignore_ascii_case("icon_only") {
         String::new()
     } else {
@@ -90,6 +93,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
     if has_label {
         push_button_label(
             commands,
+            node,
             rect,
             clip,
             label_order(order),
@@ -105,17 +109,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
     }
 
     if has_trailing_chevron(glyph) {
-        let glyph_rect = offset_rect_y(trailing_glyph_rect(rect), content_y_offset);
-        if frame_is_within(&glyph_rect, rect) {
-            push_content_glyph(
-                commands,
-                &glyph_rect,
-                clip,
-                order,
-                glyph,
-                content_style.glyph,
-                opacity,
-            );
+        if let Some(glyph_rect) = trailing_glyph_rect(node, rect) {
+            let glyph_rect = offset_rect_y(glyph_rect, content_y_offset);
+            if frame_is_within(&glyph_rect, rect) {
+                push_content_glyph(
+                    commands,
+                    &glyph_rect,
+                    clip,
+                    order,
+                    glyph,
+                    content_style.glyph,
+                    opacity,
+                );
+            }
         }
     }
 }

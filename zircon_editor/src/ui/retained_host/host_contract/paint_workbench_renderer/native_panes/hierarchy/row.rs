@@ -29,14 +29,30 @@ pub(super) fn draw_hierarchy_row(
     if intersect(&row, row_clip).is_none() {
         return;
     }
+    let command_start = frame
+        .recording
+        .as_ref()
+        .map(|recording| recording.command_count());
     draw_rect_clipped(
         frame,
         row.clone(),
         Some(row_clip),
         hierarchy_row_color(index, node, interaction),
     );
-    if node.selected {
+    if node.selected
+        && interaction.focused_template_control_id == "HierarchyListPanel"
+        && interaction.template_focus_visible
+    {
         draw_border_clipped(frame, row.clone(), Some(row_clip), ACCENT);
     }
     draw_hierarchy_row_text(frame, &row, node, row_clip, inline_rename_value);
+    if let (Some(start), Some(recording)) = (command_start, frame.recording.as_ref()) {
+        crate::ui::retained_host::host_contract::paint_template_nodes::record_native_hierarchy_row(
+            node,
+            index,
+            &row,
+            row_clip,
+            recording.commands_since(start),
+        );
+    }
 }

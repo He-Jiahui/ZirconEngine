@@ -9,6 +9,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chrome_
     state: UiPainterResolvedState,
     palette: &WorkbenchChromePalette,
 ) -> Option<[u8; 4]> {
+    if kind == WorkbenchChromeKind::TopToolbar {
+        return Some(palette.topbar_bg);
+    }
     if kind == WorkbenchChromeKind::ContentPanel {
         return Some(content_panel_fill(state, palette));
     }

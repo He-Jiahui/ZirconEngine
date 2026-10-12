@@ -103,3 +103,167 @@ fn button_label_font_size_preserves_elide_overflow_at_the_declared_size() {
         button_label_font_size(&node, &rect),
     );
 }
+
+#[test]
+fn authored_zero_and_asymmetric_button_insets_control_text_budget_and_center() {
+    let node = TemplatePaneNodeData {
+        authored_field_padding: [Some(0.0), Some(7.0), Some(4.0), Some(4.0)],
+        ..Default::default()
+    };
+    let rect = FrameRect {
+        x: 10.0,
+        y: 20.0,
+        width: 90.0,
+        height: 26.0,
+    };
+    assert_eq!(max_label_slot_width(&node, &rect), 83.0);
+    let layout = super::super::layout::button_content_layout(&node, &rect, 0.0, 0.0, 20.0);
+    assert_eq!(layout.start_x, 41.5);
+    let vertical = button_vertical_content_frame(&node, &rect);
+    assert_eq!((vertical.y, vertical.height), (24.0, 18.0));
+    let high = button_content_metrics_from_host(HostControlMetrics {
+        scale_factor: 1.5,
+        ..METRICS
+    });
+    assert_eq!(
+        button_content_padding_from_metrics(&node, high),
+        [0.0, 10.5, 6.0, 6.0]
+    );
+}
+
+#[test]
+fn invalid_button_padding_uses_host_defaults_and_overlarge_padding_clamps_content() {
+    let node = TemplatePaneNodeData {
+        authored_field_padding: [Some(-1.0), Some(f32::NAN), Some(f32::INFINITY), None],
+        ..Default::default()
+    };
+    let metrics = button_content_metrics_from_host(METRICS);
+    assert_eq!(
+        button_content_padding_from_metrics(&node, metrics),
+        [METRICS.button_pad_x, METRICS.button_pad_x, 0.0, 0.0]
+    );
+    let empty = TemplatePaneNodeData {
+        authored_field_padding: [Some(100.0); 4],
+        ..Default::default()
+    };
+    let rect = FrameRect {
+        width: 40.0,
+        height: 26.0,
+        ..Default::default()
+    };
+    assert_eq!(max_label_slot_width(&empty, &rect), 0.0);
+    assert_eq!(button_vertical_content_frame(&empty, &rect).height, 0.0);
+}
+
+#[test]
+fn button_labels_use_authored_line_box_before_the_host_default() {
+    let mut node = TemplatePaneNodeData {
+        line_height_ratio: 1.2,
+        ..Default::default()
+    };
+    assert_eq!(button_label_line_height(&node, 13.333333), 16.0);
+    node.line_height = 18.0;
+    assert_eq!(button_label_line_height(&node, 13.333333), 18.0);
+}
+
+#[test]
+fn trailing_button_glyph_obeys_authored_padding_and_keeps_default_geometry() {
+    use super::super::glyph::trailing_glyph_rect;
+    use crate::ui::retained_host::host_contract::paint_template_nodes::template_button_glyphs::button_icon_size;
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        current_host_metrics, enter_host_paint_theme_scope,
+        host_paint_theme_snapshot_at_scale_for_test,
+    };
+    for scale in [1.0, 1.5] {
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(scale));
+        let rect = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 100.0 * scale,
+            height: 40.0 * scale,
+        };
+        let default = TemplatePaneNodeData::default();
+        let icon_size = button_icon_size();
+        let glyph = trailing_glyph_rect(&default, &rect).expect("default trailing glyph");
+        assert_eq!(
+            glyph.x,
+            rect.right() - current_host_metrics().button_pad_x - icon_size
+        );
+        let narrow = FrameRect {
+            width: current_host_metrics().button_pad_x + icon_size,
+            ..rect.clone()
+        };
+        assert!(
+            trailing_glyph_rect(&default, &narrow).is_some(),
+            "keep preexisting narrow default arrows"
+        );
+        let zero = TemplatePaneNodeData {
+            authored_field_padding: [Some(0.0); 4],
+            ..Default::default()
+        };
+        assert_eq!(
+            trailing_glyph_rect(&zero, &rect)
+                .expect("zero padding glyph")
+                .right(),
+            rect.right()
+        );
+        let authored = TemplatePaneNodeData {
+            authored_field_padding: [Some(3.0), Some(30.0), Some(4.0), Some(4.0)],
+            ..Default::default()
+        };
+        let vertical = button_vertical_content_frame(&authored, &rect);
+        let glyph = trailing_glyph_rect(&authored, &vertical).expect("authored trailing glyph");
+        assert_eq!(glyph.right(), rect.right() - 30.0 * scale);
+        assert!(glyph.x >= rect.x + 3.0 * scale);
+        assert!(glyph.y >= rect.y + 4.0 * scale);
+        assert!(glyph.bottom() <= rect.bottom() - 4.0 * scale);
+        let excessive = TemplatePaneNodeData {
+            authored_field_padding: [Some(0.0), Some(100.0), None, None],
+            ..Default::default()
+        };
+        assert!(trailing_glyph_rect(&excessive, &rect).is_none());
+        let invalid = TemplatePaneNodeData {
+            authored_field_padding: [Some(-1.0), Some(f32::NAN), None, None],
+            ..Default::default()
+        };
+        assert_eq!(
+            trailing_glyph_rect(&invalid, &rect),
+            trailing_glyph_rect(&default, &rect)
+        );
+    }
+}
+
+#[test]
+fn trailing_button_glyph_emits_no_commands_when_authored_padding_leaves_no_content() {
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        enter_host_paint_theme_scope, host_paint_theme_snapshot_at_scale_for_test,
+    };
+    let _scope = enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(1.0));
+    let node = TemplatePaneNodeData {
+        control_id: "WorkbenchDropdownButton".into(),
+        role: "Button".into(),
+        button_variant: "secondary".into(),
+        authored_field_padding: [Some(0.0), Some(100.0), None, None],
+        ..Default::default()
+    };
+    let rect = FrameRect {
+        width: 100.0,
+        height: 40.0,
+        ..Default::default()
+    };
+    let mut commands = Vec::new();
+    super::super::entry::push_button_content(
+        &mut commands,
+        &node,
+        &rect,
+        &rect,
+        0,
+        WorkbenchButtonKind::Secondary,
+        1.0,
+    );
+    assert!(
+        commands.is_empty(),
+        "an invisible trailing glyph must not produce paint commands"
+    );
+}

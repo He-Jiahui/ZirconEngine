@@ -21,7 +21,11 @@ fn renderer_pick_changes_only_the_matching_play_selection_domain() {
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     let edit_primary = controller
         .shell()
         .lock()

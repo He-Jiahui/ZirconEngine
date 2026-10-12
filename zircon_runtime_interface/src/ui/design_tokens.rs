@@ -460,6 +460,10 @@ pub struct EditorPaletteTokens {
     pub surface_hover: UiRgbaColor,
     #[serde(default = "default_palette_surface_selected")]
     pub surface_selected: UiRgbaColor,
+    #[serde(default = "default_palette_surface_selected_inactive")]
+    pub surface_selected_inactive: UiRgbaColor,
+    #[serde(default = "default_palette_text_selected")]
+    pub text_selected: UiRgbaColor,
     #[serde(default = "default_palette_surface_disabled")]
     pub surface_disabled: UiRgbaColor,
     pub accent: UiRgbaColor,
@@ -516,6 +520,8 @@ impl EditorPaletteTokens {
     pub const WORKBENCH_TEXT_TAB_ACTIVE: [u8; 4] = [255, 255, 255, 255];
     pub const WORKBENCH_SURFACE_HOVER: [u8; 4] = [87, 87, 87, 255];
     pub const WORKBENCH_SURFACE_SELECTED: [u8; 4] = [0, 112, 224, 255];
+    pub const WORKBENCH_SURFACE_SELECTED_INACTIVE: [u8; 4] = [64, 87, 111, 255];
+    pub const WORKBENCH_TEXT_SELECTED: [u8; 4] = [255, 255, 255, 255];
     pub const WORKBENCH_SURFACE_DISABLED: [u8; 4] = [36, 36, 36, 255];
     pub const WORKBENCH_ACCENT: [u8; 4] = [0, 112, 224, 255];
     pub const WORKBENCH_ACCENT_SOFT: [u8; 4] = [14, 134, 255, 255];
@@ -548,6 +554,8 @@ impl EditorPaletteTokens {
             text_tab_active: Self::rgba(Self::WORKBENCH_TEXT_TAB_ACTIVE),
             surface_hover: Self::rgba(Self::WORKBENCH_SURFACE_HOVER),
             surface_selected: Self::rgba(Self::WORKBENCH_SURFACE_SELECTED),
+            surface_selected_inactive: Self::rgba(Self::WORKBENCH_SURFACE_SELECTED_INACTIVE),
+            text_selected: Self::rgba(Self::WORKBENCH_TEXT_SELECTED),
             surface_disabled: Self::rgba(Self::WORKBENCH_SURFACE_DISABLED),
             accent: Self::rgba(Self::WORKBENCH_ACCENT),
             accent_soft: Self::rgba(Self::WORKBENCH_ACCENT_SOFT),
@@ -587,6 +595,12 @@ impl EditorPaletteTokens {
         insert_color_token(values, "editor.text.tab_active", self.text_tab_active);
         insert_color_token(values, "editor.surface.hover", self.surface_hover);
         insert_color_token(values, "editor.surface.selected", self.surface_selected);
+        insert_color_token(
+            values,
+            "editor.surface.selected_inactive",
+            self.surface_selected_inactive,
+        );
+        insert_color_token(values, "editor.text.selected", self.text_selected);
         insert_color_token(values, "editor.surface.disabled", self.surface_disabled);
         insert_color_token(values, "editor.accent", self.accent);
         insert_color_token(values, "editor.accent.soft", self.accent_soft);
@@ -646,6 +660,14 @@ fn default_palette_surface_recessed() -> UiRgbaColor {
 
 fn default_palette_surface_hover() -> UiRgbaColor {
     EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SURFACE_HOVER)
+}
+
+fn default_palette_surface_selected_inactive() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_SURFACE_SELECTED_INACTIVE)
+}
+
+fn default_palette_text_selected() -> UiRgbaColor {
+    EditorPaletteTokens::rgba(EditorPaletteTokens::WORKBENCH_TEXT_SELECTED)
 }
 
 fn default_palette_surface_selected() -> UiRgbaColor {

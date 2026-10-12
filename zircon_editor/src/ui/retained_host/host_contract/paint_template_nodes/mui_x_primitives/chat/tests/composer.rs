@@ -50,3 +50,42 @@ fn mui_x_chat_composer_paints_projected_value_text_before_send_action() {
                 .expect("send action order")
     );
 }
+
+#[test]
+fn authored_chat_composer_paint_scales_once_and_fallback_stays_physical() {
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        current_host_metrics, enter_host_paint_theme_scope,
+        host_paint_theme_snapshot_at_scale_for_test,
+    };
+    for scale in [1.0, 1.5] {
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(scale));
+
+        let rect = FrameRect {
+            width: 360.0,
+            height: 80.0,
+            ..Default::default()
+        };
+        for (font_size, expected) in [
+            (12.0, 12.0 * scale),
+            (0.0, current_host_metrics().font_body),
+        ] {
+            let node = TemplatePaneNodeData {
+                value_text: "DPI composer".into(),
+                font_size,
+                ..Default::default()
+            };
+            let mut commands = Vec::new();
+            push_chat_composer(&mut commands, &node, &rect, &rect, 0, 1.0);
+            let text = commands
+                .iter()
+                .find(|command| command.text.as_deref() == Some("DPI composer"))
+                .expect("composer paint command");
+            assert_eq!(text.font_size, expected);
+            assert_eq!(
+                text.line_height,
+                current_host_metrics().line_height(expected).max(expected)
+            );
+        }
+    }
+}

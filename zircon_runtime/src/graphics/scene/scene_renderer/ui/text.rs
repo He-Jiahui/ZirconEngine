@@ -184,7 +184,7 @@ impl ScreenSpaceUiTextSystem {
         let _ = refresh_font_asset_records(
             &mut text_state,
             &mut font_assets,
-            resolved_asset_manager.as_ref(),
+            &*resolved_asset_manager,
             &default_font_dependencies,
             &mut font_claim_scope,
         );
@@ -244,7 +244,7 @@ impl ScreenSpaceUiTextSystem {
             let font_refresh = refresh_font_asset_records(
                 &mut self.text_state,
                 &mut self.font_assets,
-                asset_manager.as_ref(),
+                &*asset_manager,
                 active_font_dependencies,
                 &mut self.font_claim_scope,
             );
@@ -293,14 +293,14 @@ impl ScreenSpaceUiTextSystem {
                 self.sdf_atlas.plan().atlas_size,
                 &self.sdf_atlas.plan().slots,
                 self.sdf_atlas.slot_product_generation(),
-                asset_manager.as_ref(),
+                &*asset_manager,
             );
             self.sdf_atlas
                 .record_generation_failures(&sdf_atlas_bake.generation_failures);
             let cpu_plan_reused = self.sdf_cpu_frame.prepare_retained_frame(
                 &frame_product,
                 &mut self.text_state,
-                asset_manager.as_ref(),
+                &*asset_manager,
             );
             debug_assert_eq!(
                 frame_product.sdf_run_count(),
@@ -355,7 +355,7 @@ impl ScreenSpaceUiTextSystem {
                     self.sdf_atlas.plan().atlas_size,
                     &self.sdf_atlas.plan().slots,
                     self.sdf_atlas.slot_product_generation(),
-                    asset_manager.as_ref(),
+                    &*asset_manager,
                 );
                 self.sdf_atlas
                     .record_generation_failures(&sdf_atlas_bake.generation_failures);

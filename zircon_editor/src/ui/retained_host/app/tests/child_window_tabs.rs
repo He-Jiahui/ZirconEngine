@@ -201,12 +201,12 @@ fn native_child_tab_drop_to_root_uses_child_state_and_projected_workbench_coordi
     let host = harness.host.borrow();
     assert!(
         matches!(
-            host.runtime.view_host_for_instance_key("editor.assets#1"),
+            host.runtime.view_host_for_instance_key("editor.assets#1").unwrap(),
             Some(ViewHost::Document(_, _))
         ),
         "a drop on the root document surface should attach the child tab to a document workspace"
     );
-    assert!(!host.runtime.floating_window_exists(&source_id));
+    assert!(!host.runtime.floating_window_exists(&source_id).unwrap());
     assert!(harness.delta_events_since(baseline).iter().any(|event| {
         matches!(
             event,
@@ -264,15 +264,15 @@ fn native_child_tab_drop_to_another_child_uses_target_window_route() {
 
     let host = harness.host.borrow();
     assert!(matches!(
-        host.runtime.view_host_for_instance_key("editor.assets#1"),
+        host.runtime.view_host_for_instance_key("editor.assets#1").unwrap(),
         Some(ViewHost::FloatingWindow(window_id, _)) if window_id == target_id
     ));
     assert!(host
         .runtime
-        .floating_window_instance_ids(&target_id)
+        .floating_window_instance_ids(&target_id).unwrap()
         .expect("target child should remain open")
         .contains(&ViewInstanceId::new("editor.assets#1")));
-    assert!(!host.runtime.floating_window_exists(&source_id));
+    assert!(!host.runtime.floating_window_exists(&source_id).unwrap());
     assert!(host_context(&harness.root_ui)
         .get_drag_state()
         .drag_tab_id
@@ -312,12 +312,12 @@ fn native_child_tab_drop_on_empty_workbench_space_detaches_to_a_new_window() {
     let detached_id = MainPageId::new("window:editor.assets:1");
     let host = harness.host.borrow();
     assert!(matches!(
-        host.runtime.view_host_for_instance_key("editor.assets#1"),
+        host.runtime.view_host_for_instance_key("editor.assets#1").unwrap(),
         Some(ViewHost::FloatingWindow(window_id, _)) if window_id == detached_id
     ));
-    assert!(host.runtime.floating_window_exists(&detached_id));
+    assert!(host.runtime.floating_window_exists(&detached_id).unwrap());
     assert!(host.native_window_presenters.window(&detached_id).is_some());
-    assert!(!host.runtime.floating_window_exists(&source_id));
+    assert!(!host.runtime.floating_window_exists(&source_id).unwrap());
     assert!(host_context(&harness.root_ui)
         .get_drag_state()
         .drag_tab_id

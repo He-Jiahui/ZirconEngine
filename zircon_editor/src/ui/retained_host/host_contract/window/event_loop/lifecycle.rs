@@ -2,6 +2,7 @@ mod native_minimum;
 mod native_window;
 mod presenter;
 
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use std::sync::Once;
 use std::time::{Duration, Instant};
 
@@ -24,6 +25,19 @@ use native_window::create_native_window_or_exit;
 use presenter::{create_presenter_or_exit, create_standalone_presenter_or_exit};
 
 const RUNTIME_PRESENTER_UPGRADE_POLL_INTERVAL: Duration = Duration::from_millis(50);
+
+pub(super) fn normal_capture_redraw(requested: bool) -> HostRedrawRequest {
+    if requested {
+        // Present the current retained projection once; a capture demand must
+        // not change business, selection, focus, layout or generation counters.
+        HostRedrawRequest::full_frame_for_scenario(
+            crate::ui::retained_host::ui_perf::current_ui_perf_scenario(),
+            false,
+        )
+    } else {
+        HostRedrawRequest::none()
+    }
+}
 
 fn log_startup_boundary_once(marker: &'static str, once: &Once) {
     once.call_once(|| {
@@ -91,6 +105,35 @@ impl UiHostWindowEventLoop {
         }
         let now = Instant::now();
         self.try_upgrade_to_runtime_presenter(event_loop, now);
+        let capture_cursor = self.host.get_host_presentation_generation().cursor();
+        let capture_export = self
+            .presenter
+            .as_mut()
+            .and_then(|presenter| presenter.drain_normal_capture(capture_cursor));
+        if let Some(export) = capture_export {
+            match self.host.profile_artifact_jobs() {
+                Some(jobs)=>match crate::ui::retained_host::host_contract::profiling_artifacts::normal_frame_readback::submit_normal_readback(&jobs,export) {
+                    Ok(Some(job))=>self.host.track_profile_artifact_job(job),Ok(None)=>{},Err(error)=>self.host.record_host_diagnostic(HostWindowDiagnosticSeverity::Warning,format!("actual normal GPU readback export rejected: {error}")),
+                },
+                None=>self.host.record_host_diagnostic(HostWindowDiagnosticSeverity::Warning,"actual normal GPU readback export has no injected editor job owner"),
+            }
+        }
+        let capture_requested = self
+            .presenter
+            .as_ref()
+            .is_some_and(|presenter| presenter.normal_capture_redraw_requested());
+        if capture_requested {
+            capture_trace::record("capture_demand", || {
+                format!("owner={:#x} cursor={capture_cursor:?} pending={:?} retry={:?}",
+                    self.host.state.as_ptr() as usize, self.pending_redraw, self.pending_surface_present_retry)
+            });
+        }
+        self.host
+            .queue_external_redraw(normal_capture_redraw(capture_requested));
+        let capture_deadline = self
+            .presenter
+            .as_ref()
+            .and_then(|presenter| presenter.normal_capture_wake_deadline());
         if self.host.take_visual_asset_completion_wake() {
             if let Some(completion) =
                 crate::ui::retained_host::host_contract::take_visual_asset_completion()
@@ -110,6 +153,9 @@ impl UiHostWindowEventLoop {
             }
         }
         if self.host.take_background_event_wake() {
+            capture_trace::record("idle_background_wake_consumed", || {
+                format!("owner={:#x} capture_requested={capture_requested}", self.host.state.as_ptr() as usize)
+            });
             self.host.request_maintenance_frame_update();
         }
         if self.host.has_window_attention_request() {
@@ -125,6 +171,12 @@ impl UiHostWindowEventLoop {
         let maintenance_frame_due = self.host.take_due_maintenance_frame_wake(now);
         let input_timer_frame_due = self.host.take_due_input_timer_frame_wake(now);
         let lifecycle_frame_due = self.host.take_due_lifecycle_frame_wake(now);
+        if runtime_frame_due || maintenance_frame_due || input_timer_frame_due || lifecycle_frame_due {
+            capture_trace::record("due_wakes", || {
+                format!("owner={:#x} capture_requested={capture_requested} runtime={runtime_frame_due} maintenance={maintenance_frame_due} input_timer={input_timer_frame_due} lifecycle={lifecycle_frame_due} pending={:?}",
+                    self.host.state.as_ptr() as usize, self.pending_redraw)
+            });
+        }
         if runtime_frame_due
             || maintenance_frame_due
             || input_timer_frame_due
@@ -135,7 +187,7 @@ impl UiHostWindowEventLoop {
             self.drain_external_redraw_request();
         }
         match earliest_wake_deadline(
-            self.host.runtime_frame_wake_deadline(),
+            earliest_wake_deadline(self.host.runtime_frame_wake_deadline(), capture_deadline),
             earliest_wake_deadline(
                 self.host.maintenance_frame_wake_deadline(),
                 earliest_wake_deadline(

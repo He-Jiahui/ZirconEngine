@@ -1,14 +1,55 @@
+use std::sync::Arc;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use crate::ui::workbench::asset_content_layout::AssetContentSurfaceProfile;
-use crate::ui::workbench::snapshot::{AssetViewMode, AssetWorkspaceItemGeneration};
+use crate::ui::workbench::snapshot::{
+    AssetFolderSnapshot, AssetViewMode, AssetWorkspaceItemGeneration,
+};
+
+/// Pointer routing borrows the same immutable folders as retained paint publication.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct AssetContentFolderIds(Arc<[AssetFolderSnapshot]>);
+
+impl AssetContentFolderIds {
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
+    pub(crate) fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl std::ops::Index<usize> for AssetContentFolderIds {
+    type Output = String;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index].folder_id
+    }
+}
+
+impl PartialEq for AssetContentFolderIds {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0) || (self.0.is_empty() && other.0.is_empty())
+    }
+}
+
+#[cfg(test)]
+impl PartialEq<Vec<String>> for AssetContentFolderIds {
+    fn eq(&self, other: &Vec<String>) -> bool {
+        self.0.len() == other.len()
+            && self
+                .0
+                .iter()
+                .zip(other)
+                .all(|(folder, id)| &folder.folder_id == id)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct AssetContentListPointerLayout {
     pub pane_size: UiSize,
     pub surface_profile: AssetContentSurfaceProfile,
     pub view_mode: AssetViewMode,
-    pub folder_ids: Vec<String>,
+    pub folder_ids: AssetContentFolderIds,
     pub items: AssetWorkspaceItemGeneration,
 }
 
@@ -28,7 +69,7 @@ impl Default for AssetContentListPointerLayout {
             pane_size: UiSize::new(0.0, 0.0),
             surface_profile: AssetContentSurfaceProfile::Browser,
             view_mode: AssetViewMode::List,
-            folder_ids: Vec::new(),
+            folder_ids: AssetContentFolderIds::default(),
             items: AssetWorkspaceItemGeneration::default(),
         }
     }
@@ -45,12 +86,10 @@ impl AssetContentListPointerLayout {
             surface_profile,
             view_mode: snapshot.view_mode,
             folder_ids: match surface_profile {
-                AssetContentSurfaceProfile::Activity => snapshot
-                    .visible_folders
-                    .iter()
-                    .map(|folder| folder.folder_id.clone())
-                    .collect(),
-                AssetContentSurfaceProfile::Browser => Vec::new(),
+                AssetContentSurfaceProfile::Activity => {
+                    AssetContentFolderIds(Arc::clone(&snapshot.visible_folders))
+                }
+                AssetContentSurfaceProfile::Browser => AssetContentFolderIds::default(),
             },
             items: snapshot.visible_assets.clone(),
         }
@@ -96,7 +135,15 @@ impl AssetContentListPointerLayout {
             pane_size,
             surface_profile,
             view_mode,
-            folder_ids,
+            folder_ids: AssetContentFolderIds(
+                folder_ids
+                    .into_iter()
+                    .map(|folder_id| AssetFolderSnapshot {
+                        folder_id,
+                        ..Default::default()
+                    })
+                    .collect(),
+            ),
             items,
         }
     }

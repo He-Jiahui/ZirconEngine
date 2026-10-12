@@ -19,7 +19,7 @@ pub(in crate::ui::retained_host::host_contract) use stream::{
 };
 
 #[cfg(test)]
-use extraction::chrome_command_from_recorded_for_test;
+pub(in crate::ui::retained_host::host_contract) use extraction::chrome_command_from_recorded_for_test;
 
 mod atlas;
 mod command;

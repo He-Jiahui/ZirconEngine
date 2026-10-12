@@ -47,6 +47,10 @@ pub(crate) fn dispatch_componentized_workbench_pointer_event(
             Ok(candidate) => candidate,
             Err(error) => return Some(Err(error.to_string())),
         };
+    let content_drawer_scroll_candidate = match bridge.refresh_content_drawer_assets_after_scroll(&route) {
+        Ok(candidate) => candidate,
+        Err(error) => return Some(Err(error.to_string())),
+    };
     let hover_feedback_candidate = match bridge.update_pointer_hover_feedback(&route) {
         Ok(candidate) => candidate,
         Err(error) => return Some(Err(error.to_string())),
@@ -78,7 +82,8 @@ pub(crate) fn dispatch_componentized_workbench_pointer_event(
         || range_feedback_candidate
         || text_input_feedback_candidate
         || focus_feedback_candidate
-        || virtual_row_scroll_candidate;
+        || virtual_row_scroll_candidate
+        || content_drawer_scroll_candidate;
     let cleared_search_control = match bridge.clear_search_field_from_pointer_route(&route) {
         Ok(control_id) => control_id,
         Err(error) => return Some(Err(error.to_string())),

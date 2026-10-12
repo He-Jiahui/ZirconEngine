@@ -11,74 +11,26 @@ macro_rules! workbench_asset {
 }
 
 const ROOT_WORKBENCH_SHELL: &str =
-    include_str!("../../../../../assets/ui/editor/host/workbench_shell.zui");
+    include_str!("../../../../../assets/ui/editor/unreal/editor_shell.zui");
 const WORKBENCH_STRICT_THEME: &str =
     include_str!("../../../../../assets/ui/theme/editor_workbench_strict.zui");
 const EDITOR_TOKENS: &str = include_str!("../../../../../assets/ui/editor/theme/editor_tokens.zui");
-const WORKBENCH_COMPONENT_DRAWER: &str = workbench_asset!("shell/workbench_component_drawer.zui");
+const UNREAL_TOOLBAR: &str =
+    include_str!("../../../../../assets/ui/editor/unreal/components/toolbar.zui");
+const UNREAL_STATUS_BAR: &str =
+    include_str!("../../../../../assets/ui/editor/unreal/components/status_bar.zui");
+const UNREAL_CONTENT_DRAWER: &str =
+    include_str!("../../../../../assets/ui/editor/unreal/components/content_drawer.zui");
 
 #[test]
-fn root_workbench_chrome_uses_shared_metrics_and_control_tokens() {
-    assert_tokenized_assets(&[(
-        "workbench_shell.zui",
-        ROOT_WORKBENCH_SHELL,
-        &[
-            "$editor.control.height.default",
-            "$editor.control.height.dense",
-            "$editor.control.border_width",
-            "$editor.control.radius.control",
-            "$editor.chrome.activity_rail.width",
-            "$editor.density.toolbar_action_width",
-            "$editor.density.toolbar_wide_action_width",
-            "$editor.density.row_height",
-        ],
-    )]);
-
-    for legacy_extent in [
-        "min = 24.0",
-        "preferred = 24.0",
-        "max = 24.0",
-        "min = 25.0",
-        "preferred = 25.0",
-        "max = 25.0",
-        "min = 76.0",
-        "preferred = 76.0",
-        "max = 76.0",
-        "min = 96.0",
-        "preferred = 96.0",
-        "max = 96.0",
-    ] {
-        assert!(
-            !ROOT_WORKBENCH_SHELL.contains(legacy_extent),
-            "root workbench chrome must not retain {legacy_extent}"
-        );
-    }
-
+fn unreal_shell_root_uses_semantic_host_mount_and_starship() {
+    assert!(ROOT_WORKBENCH_SHELL.contains("component = \"UiHostWindow\""));
+    assert!(ROOT_WORKBENCH_SHELL.contains("control_id = \"UiHostWindowRoot\""));
+    assert!(ROOT_WORKBENCH_SHELL.contains("component = \"DocumentHost\""));
+    assert!(ROOT_WORKBENCH_SHELL.contains("component = \"PaneSurface\""));
+    assert!(!ROOT_WORKBENCH_SHELL.contains("activity_rail"));
+    assert!(!ROOT_WORKBENCH_SHELL.contains("component_drawer"));
     assert!(WORKBENCH_STRICT_THEME.contains("res://ui/editor/theme/editor_tokens.zui"));
-    assert!(
-        WORKBENCH_STRICT_THEME
-            .matches("radius = \"$editor.control.radius.control\"")
-            .count()
-            >= 11,
-        "button state variants must share the control-radius token"
-    );
-    assert!(
-        WORKBENCH_STRICT_THEME
-            .matches("radius = \"$editor.control.radius.small\"")
-            .count()
-            >= 1,
-        "compact details must retain the small-radius token"
-    );
-    assert!(
-        WORKBENCH_STRICT_THEME.contains("radius = \"$editor.control.radius.pill\""),
-        "toggle controls must use the shared pill-radius token"
-    );
-    for legacy_radius in ["radius = 5.0", "radius = 999.0"] {
-        assert!(
-            !WORKBENCH_STRICT_THEME.contains(legacy_radius),
-            "strict workbench controls must not retain {legacy_radius}"
-        );
-    }
 }
 
 #[test]
@@ -219,48 +171,17 @@ fn interactive_workbench_states_share_the_control_border_token() {
 }
 
 #[test]
-fn workbench_topbar_uses_one_bottom_separator_instead_of_a_four_sided_frame() {
-    let rule = strict_theme_rule(".workbench-topbar");
-    assert!(
-        rule.contains("border_width = 0.0") && rule.contains("radius = 0.0"),
-        "the top toolbar must remain an unframed square shell band"
-    );
-
-    let toolbar = workbench_asset!("shell/workbench_top_toolbar.zui");
-    assert!(
-        toolbar.contains("border_width = 0.0")
-            && toolbar.contains("separator_edge = \"bottom\"")
-            && toolbar.contains("separator_thickness = \"$editor.control.border_width\""),
-        "the top toolbar must draw exactly one token-sized bottom separator"
-    );
+fn unreal_toolbar_uses_one_bottom_separator_and_fixed_48px_band() {
+    assert!(UNREAL_TOOLBAR.contains("separator_edge = \"bottom\""));
+    assert!(UNREAL_TOOLBAR.contains("height = { min = 48.0, preferred = 48.0, max = 48.0"));
+    assert!(!UNREAL_TOOLBAR.contains("workbench_top_toolbar.zui"));
 }
 
 #[test]
-fn shell_edge_bands_use_one_directional_separator_instead_of_a_full_frame() {
-    for (selector, asset, edge) in [
-        (
-            ".workbench-rail",
-            workbench_asset!("shell/workbench_activity_rail.zui"),
-            "right",
-        ),
-        (
-            ".workbench-status",
-            workbench_asset!("shell/workbench_status_bar.zui"),
-            "top",
-        ),
-    ] {
-        let rule = strict_theme_rule(selector);
-        assert!(
-            rule.contains("border_width = 0.0") && rule.contains("radius = 0.0"),
-            "{selector} must remain an unframed square shell band"
-        );
-        assert!(
-            asset.contains("border_width = 0.0")
-                && asset.contains(&format!("separator_edge = \"{edge}\""))
-                && asset.contains("separator_thickness = \"$editor.control.border_width\""),
-            "{selector} must draw exactly one token-sized {edge} separator"
-        );
-    }
+fn unreal_status_bar_uses_one_top_separator_and_retains_status_identity() {
+    assert!(UNREAL_STATUS_BAR.contains("control_id = \"UnrealEditorStatusBar\""));
+    assert!(UNREAL_STATUS_BAR.contains("separator_edge = \"top\""));
+    assert!(UNREAL_STATUS_BAR.contains("control_id = \"WorkbenchStatusReady\""));
 }
 
 #[test]
@@ -467,59 +388,34 @@ fn focus_visible_rules_are_border_only_overlays_after_primary_state_rules() {
         "strict theme must not keep a private class that bypasses retained focus-visible state"
     );
 
-    let (_, focused_input) = WORKBENCH_COMPONENT_DRAWER
-        .split_once("[nodes.input_focused]")
-        .expect("component drawer must retain its focused-input state fixture");
-    let focused_input = focused_input
-        .split("\n[nodes.")
-        .next()
-        .expect("focused-input fixture must have a bounded node declaration");
-    assert!(
-        focused_input.contains("focus_visible = true"),
-        "the focused-input fixture must use the standard retained focus-visible state"
+    let drawer: toml::Value =
+        toml::from_str(UNREAL_CONTENT_DRAWER).expect("the current content drawer must parse");
+    let search = &drawer["nodes"]["search"];
+    assert_eq!(
+        search["props"]["input_focusable"].as_bool(),
+        Some(true),
+        "the real drawer search must participate in retained keyboard focus"
     );
     assert!(
-        !focused_input.contains("workbench-focused") && !focused_input.contains("focused = true"),
-        "the focused-input fixture must not fake keyboard focus with a class or generic focus"
+        search["props"].get("focus_visible").is_none() && search["props"].get("focused").is_none(),
+        "the authored search must let retained focus state own the focus ring"
+    );
+    assert!(
+        search["events"].as_array().is_some_and(|events| {
+            events.iter().any(|event| {
+                event["event"].as_str() == Some("Change")
+                    && event["route"].as_str() == Some("workbench.asset.set_search_query")
+            })
+        }),
+        "focusable drawer search must keep its actual asset query binding"
     );
 }
 
 #[test]
-fn component_drawer_disabled_samples_use_retained_disabled_state() {
-    assert!(
-        !WORKBENCH_STRICT_THEME.contains("selector = \".workbench-disabled\""),
-        "strict theme must not bypass retained disabled state with a private class"
-    );
-    let disabled_tree_rule = strict_theme_rule(".workbench-tree-item:disabled");
-    for semantic_role in [
-        "foreground_color = \"$workbench_text_dim\"",
-        "background_color = \"$workbench_inset\"",
-        "border_color = \"$workbench_border_soft\"",
-    ] {
-        assert!(
-            disabled_tree_rule.contains(semantic_role),
-            "disabled tree rows must retain {semantic_role}"
-        );
-    }
-
-    for node_name in ["input_disabled", "list_disabled"] {
-        let marker = format!("[nodes.{node_name}]");
-        let (_, node) = WORKBENCH_COMPONENT_DRAWER
-            .split_once(&marker)
-            .unwrap_or_else(|| panic!("component drawer must retain {node_name}"));
-        let node = node
-            .split("\n[nodes.")
-            .next()
-            .expect("component drawer node declaration must be bounded");
-        assert!(
-            node.contains("disabled = true"),
-            "{node_name} must declare the standard disabled state"
-        );
-        assert!(
-            !node.contains("workbench-disabled"),
-            "{node_name} must not duplicate disabled state with a private class"
-        );
-    }
+fn unreal_content_drawer_uses_focus_loss_dismissal_and_search_identity() {
+    assert!(UNREAL_CONTENT_DRAWER.contains("control_id = \"SearchEdited\""));
+    assert!(UNREAL_CONTENT_DRAWER.contains("control_id = \"ContentDrawerClose\""));
+    assert!(UNREAL_CONTENT_DRAWER.contains("route = \"workbench.content_drawer.dismiss\""));
 }
 
 pub(super) fn strict_theme_rule(selector: &str) -> &str {

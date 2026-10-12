@@ -18,10 +18,9 @@ use crate::ui::retained_host::callback_dispatch::{
 };
 use crate::ui::retained_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::ui::retained_host::{
-    apply_presentation, paint_componentized_extension_workspace_for_test,
-    paint_host_frame_for_test, paint_template_nodes_for_test_with_background, FrameRect,
-    HostChromeControlFrameData, HostChromeTabData, HostClosePromptData, HostMenuChromeData,
-    HostMenuChromeItemData, HostMenuChromeMenuData, HostMenuStateData,
+    apply_presentation, paint_host_frame_for_test, paint_template_nodes_for_test_with_background,
+    FrameRect, HostChromeControlFrameData, HostChromeTabData, HostClosePromptData,
+    HostMenuChromeData, HostMenuChromeItemData, HostMenuChromeMenuData, HostMenuStateData,
     HostPageOverflowMenuStateData, HostWindowLayoutData, TabData, TemplateNodeFrameData,
     TemplatePaneNodeData, UiHostContext, UiHostWindow,
 };

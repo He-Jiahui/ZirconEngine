@@ -82,23 +82,23 @@ fn build_frame_submission_context_from_source(
     let asset_manager =
         asset_manager.map_err(|error| RenderFrameworkError::Backend(error.to_string()))?;
     let (subsurface_profiles, subsurface_material_profile_indices) =
-        resolve_subsurface_material_profiles(asset_manager.as_ref(), &submission_extract);
+        resolve_subsurface_material_profiles(&*asset_manager, &submission_extract);
     let material_features =
-        resolve_advanced_pbr_material_usage(asset_manager.as_ref(), &submission_extract);
+        resolve_advanced_pbr_material_usage(&*asset_manager, &submission_extract);
     let advanced_lighting_inputs = AdvancedLightingCompileInputs::new(
         material_features,
         subsurface_profiles,
         subsurface_material_profile_indices,
     );
     let environment_ibl_cache_resolution = resolve_and_rehydrate_environment_ibl_cache(
-        asset_manager.as_ref(),
+        &*asset_manager,
         &environment_ibl_hydration_cache,
         &submission_extract,
     )?;
     let resolved_camera_target = resolve_camera_target_descriptor(
         primary_target_size,
         submission_extract.view.selected_camera_target(),
-        asset_manager.as_ref(),
+        &*asset_manager,
     )?;
     let submission_size = resolved_camera_target.size();
     let compile_camera_target = resolved_camera_target.compile_fingerprint();

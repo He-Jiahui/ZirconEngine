@@ -85,7 +85,7 @@ fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_o
             ShellFrame::new(document.x, document.y, 800.0, document.height),
         );
 
-        let surface_size = host.viewport_toolbar_surface_size("editor.scene#1");
+        let surface_size = host.viewport_toolbar_surface_size("editor.scene#1").expect("viewport toolbar surface projection");
         assert!(
             surface_size.width > 1000.0,
             "shared projection width should outrank stale document geometry"
@@ -158,7 +158,7 @@ fn root_viewport_toolbar_surface_size_prefers_shared_projection_width_when_docum
     );
 
     assert_eq!(
-        host.viewport_toolbar_surface_size("editor.scene#1"),
+        host.viewport_toolbar_surface_size("editor.scene#1").expect("viewport toolbar surface projection"),
         UiSize::new(expected_width, 28.0),
         "shared projection width should remain authoritative even when legacy document geometry is wider"
     );
@@ -173,7 +173,7 @@ fn root_document_tab_native_receipt_ignores_stale_mirror_geometry() {
     let expected_instance = ViewInstanceId::new("editor.scene#1");
     let (tab_index, tab_x, point_x, point_y, tab_width) = {
         let mut host = harness.host.borrow_mut();
-        let chrome = host.runtime.chrome_snapshot();
+        let chrome = host.runtime.chrome_snapshot().unwrap();
         let model = WorkbenchViewModel::build(
             &crate::core::commands::EditorCommandRegistry::default_workbench(),
             &chrome,
@@ -239,7 +239,7 @@ fn root_document_tab_native_receipt_ignores_stale_mirror_geometry() {
             .host
             .borrow()
             .runtime
-            .editor_snapshot()
+            .editor_snapshot().unwrap()
             .status_line
             .contains("Unknown document tab surface"),
         "root document tab callbacks should use the same surface key registered by the pointer bridge"
@@ -253,7 +253,7 @@ fn root_host_page_pointer_click_uses_shared_projection_tab_slot() {
     let harness = ChildWindowHostHarness::new("zircon_retained_root_host_page_projection_width");
     {
         let mut host = harness.host.borrow_mut();
-        let chrome = host.runtime.chrome_snapshot();
+        let chrome = host.runtime.chrome_snapshot().unwrap();
         let model = WorkbenchViewModel::build(
             &crate::core::commands::EditorCommandRegistry::default_workbench(),
             &chrome,
@@ -290,7 +290,7 @@ fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_
     harness.activate_workbench_page();
     let (point_x, point_y) = {
         let mut host = harness.host.borrow_mut();
-        let chrome = host.runtime.chrome_snapshot();
+        let chrome = host.runtime.chrome_snapshot().unwrap();
         let model = WorkbenchViewModel::build(
             &crate::core::commands::EditorCommandRegistry::default_workbench(),
             &chrome,

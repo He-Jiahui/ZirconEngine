@@ -1,4 +1,5 @@
 use super::super::semantic_paths::slot_semantic_action_path;
+use crate::ui::host::EditorError;
 use super::super::*;
 use crate::ui::workbench::view::ViewInstanceId;
 
@@ -19,9 +20,12 @@ impl RetainedEditorHost {
                 );
             }
             "slot.semantic.delete" => {
-                match self
-                    .editor_manager
-                    .delete_ui_asset_editor_selected_slot_semantic(instance_id)
+                match self.editor_manager
+                    .enter()
+                    .map_err(EditorError::from)
+                    .and_then(|manager| {
+                        manager.delete_ui_asset_editor_selected_slot_semantic(instance_id)
+                    })
                     .map(|_| ())
                 {
                     Ok(()) => self.mark_presentation_dirty_for_view(instance_id),

@@ -171,6 +171,7 @@ pub(crate) struct UiV2RuntimeStyleIndex {
     base_attributes: BTreeMap<UiNodeId, BTreeMap<String, Value>>,
     base_style_overrides: BTreeMap<UiNodeId, BTreeMap<String, Value>>,
     base_style_tokens: BTreeMap<UiNodeId, BTreeMap<String, String>>,
+    mounted_indices: BTreeMap<UiNodeId, UiV2RuntimeStyleIndex>,
 }
 
 impl UiV2RuntimeStyleIndex {
@@ -215,15 +216,20 @@ impl UiV2RuntimeStyleIndex {
             base_attributes: BTreeMap::new(),
             base_style_overrides: BTreeMap::new(),
             base_style_tokens: BTreeMap::new(),
+            mounted_indices: BTreeMap::new(),
         })
     }
 
     pub(crate) fn has_runtime_rules(&self) -> bool {
-        !self.rules.is_empty()
+        !self.rules.is_empty() || self.mounted_indices.values().any(Self::has_runtime_rules)
     }
 
     pub(crate) fn depends_on_pseudo_state(&self, state: &str) -> bool {
         self.pseudo_state_names.contains(state)
+            || self
+                .mounted_indices
+                .values()
+                .any(|index| index.depends_on_pseudo_state(state))
     }
 
     pub(crate) fn node_state_can_affect_descendants(
@@ -235,13 +241,49 @@ impl UiV2RuntimeStyleIndex {
             .nodes
             .get(&node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        if self.ancestor_pseudo_segments.is_empty() {
-            return Ok(false);
-        }
-        Ok(self
+        if self
             .ancestor_pseudo_segments
             .iter()
-            .any(|segment| matches_tree_node_segment_ignoring_state(segment, node)))
+            .any(|segment| matches_tree_node_segment_ignoring_state(segment, node))
+        {
+            return Ok(true);
+        }
+        for index in self.mounted_indices.values() {
+            if index.node_state_can_affect_descendants(tree, node_id)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    /// A mounted document keeps its own rule index and only styles its remapped nodes.
+    pub(crate) fn mount_child_index(
+        &mut self,
+        root_id: UiNodeId,
+        mut index: Self,
+        node_ids: &BTreeMap<UiNodeId, UiNodeId>,
+    ) {
+        index.base_attributes = std::mem::take(&mut index.base_attributes)
+            .into_iter()
+            .map(|(id, values)| (node_ids[&id], values))
+            .collect();
+        index.base_style_overrides = std::mem::take(&mut index.base_style_overrides)
+            .into_iter()
+            .map(|(id, values)| (node_ids[&id], values))
+            .collect();
+        index.base_style_tokens = std::mem::take(&mut index.base_style_tokens)
+            .into_iter()
+            .map(|(id, values)| (node_ids[&id], values))
+            .collect();
+        self.mounted_indices.insert(root_id, index);
+    }
+
+    pub(crate) fn has_mounted_child_indices(&self) -> bool {
+        !self.mounted_indices.is_empty()
+    }
+
+    pub(crate) fn retire_child_index(&mut self, root_id: UiNodeId) {
+        self.mounted_indices.remove(&root_id);
     }
 
     pub(crate) fn capture_baseline_from_tree(&mut self, tree: &UiTree) {
@@ -271,7 +313,10 @@ impl UiV2RuntimeStyleIndex {
         value: Value,
     ) -> bool {
         let Some(attributes) = self.base_attributes.get_mut(&node_id) else {
-            return false;
+            return self
+                .mounted_indices
+                .values_mut()
+                .any(|index| index.set_base_attribute(node_id, property.clone(), value.clone()));
         };
         if attributes.get(&property) == Some(&value) {
             return false;
@@ -290,7 +335,7 @@ impl UiV2RuntimeStyleIndex {
         root_id: UiNodeId,
         mark_dirty: bool,
     ) -> Result<UiV2RuntimeStyleApplyReport, UiTreeError> {
-        if self.rules.is_empty() {
+        if !self.has_runtime_rules() {
             return Ok(UiV2RuntimeStyleApplyReport::default());
         }
         if !tree.nodes.contains_key(&root_id) {
@@ -359,7 +404,7 @@ impl UiV2RuntimeStyleIndex {
         node_id: UiNodeId,
         mark_dirty: bool,
     ) -> Result<UiV2RuntimeStyleApplyReport, UiTreeError> {
-        if self.rules.is_empty() {
+        if !self.has_runtime_rules() {
             return Ok(UiV2RuntimeStyleApplyReport::default());
         }
         if !tree.nodes.contains_key(&node_id) {
@@ -385,6 +430,17 @@ impl UiV2RuntimeStyleIndex {
         mark_dirty: bool,
     ) -> Result<Option<UiDirtyFlags>, UiTreeError> {
         let Some(base_attributes) = self.base_attributes.get(&node_id) else {
+            for index in self.mounted_indices.values() {
+                if index.base_attributes.contains_key(&node_id) {
+                    return index.apply_node_style(
+                        tree,
+                        node_id,
+                        path,
+                        candidate_indices,
+                        mark_dirty,
+                    );
+                }
+            }
             return Ok(None);
         };
         let mut node_style = UiV2ResolvedStyle::default();

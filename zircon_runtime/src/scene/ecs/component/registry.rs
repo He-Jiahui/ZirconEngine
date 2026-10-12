@@ -109,6 +109,34 @@ impl ComponentRegistry {
         &self.descriptors
     }
 
+    /// Overlapping IDs must name the same type and storage. A staging snapshot
+    /// can extend the original prefix or omit unused trailing registrations.
+    pub(in crate::scene) fn preserves_ids_of(&self, original: &Self) -> bool {
+        self.descriptors
+            .iter()
+            .zip(&original.descriptors)
+            .all(|(staged, live)| {
+                staged == live
+                    && self.table_column_layouts.get(&staged.id)
+                        == original.table_column_layouts.get(&live.id)
+            })
+    }
+
+    pub(in crate::scene) fn retain_missing_ids_from(&mut self, original: &Self) {
+        for descriptor in original.descriptors.iter().skip(self.descriptors.len()) {
+            self.descriptors.push(descriptor.clone());
+        }
+        for (type_id, id) in &original.rust_ids_by_type_id {
+            self.rust_ids_by_type_id.insert(*type_id, *id);
+        }
+        for (type_id, id) in &original.dynamic_ids_by_type_id {
+            self.dynamic_ids_by_type_id.insert(type_id.clone(), *id);
+        }
+        for (id, layout) in &original.table_column_layouts {
+            self.table_column_layouts.insert(*id, layout.clone());
+        }
+    }
+
     pub(crate) fn table_column_layout(&self, id: ComponentId) -> Option<&TableColumnLayout> {
         self.table_column_layouts.get(&id)
     }

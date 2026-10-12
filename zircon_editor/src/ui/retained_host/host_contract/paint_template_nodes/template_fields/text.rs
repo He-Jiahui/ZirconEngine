@@ -6,7 +6,7 @@ use super::super::style_selector::WorkbenchTextFieldStyle;
 use super::super::template_field_stepper::workbench_field_stepper_metrics;
 use super::super::template_node_labels::template_node_label;
 use super::geometry::frame_is_within;
-use super::metrics::workbench_field_metrics;
+use super::metrics::workbench_field_metrics_for_node;
 use super::search::{
     search_field_clear_action_rect, search_field_label_is_placeholder, search_field_text_left,
 };
@@ -23,7 +23,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     opacity: f32,
     style: &WorkbenchTextFieldStyle,
 ) {
-    let metrics = workbench_field_metrics();
+    let metrics = workbench_field_metrics_for_node(node);
+    let top = metrics.input_pad_top;
+    let bottom = metrics.input_pad_bottom;
     let right_reserve = if stepper_painted {
         workbench_field_stepper_metrics().width + metrics.input_pad_right
     } else {
@@ -35,7 +37,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     let text_left = search_field_text_left(node);
     let text_rect = FrameRect {
         x: rect.x + text_left,
-        y: rect.y + (rect.height - metrics.line_height).max(0.0) * 0.5,
+        y: rect.y + top + (rect.height - top - bottom - metrics.line_height).max(0.0) * 0.5,
         width: (rect.width - text_left - right_reserve).max(0.0),
         height: metrics.line_height,
     };
@@ -43,23 +45,67 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         return;
     }
     let label = field_label(node);
-    if label.trim().is_empty() {
+    if label.trim().is_empty() && !(super::geometry::field_has_label_lane(node) && node.focused) {
         return;
     }
+    let text_style = UiTextRunPaintStyle { strong: node.font_weight >= 600, ..UiTextRunPaintStyle::default() };
+    let font_request = crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(node, text_style);
+    let text_clip = if font_request.is_some() { rect.clone() } else { clip.clone() };
     commands.push(HostPaintCommand::text(
         text_rect,
-        Some(clip.clone()),
+        Some(text_clip),
         order,
         label,
         style.text,
         metrics.font_size,
         metrics.line_height,
-        UiTextRunPaintStyle::default(),
+        text_style,
         opacity,
-    ));
+    ).with_text_font_request(font_request));
+}
+
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_label(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    row: &FrameRect,
+    _clip: &FrameRect,
+    order: i32,
+    opacity: f32,
+    style: &WorkbenchTextFieldStyle,
+) {
+    if !super::geometry::field_has_label_lane(node) {
+        return;
+    }
+    let value = super::geometry::field_value_paint_rect(node, row);
+    let lane = FrameRect { width: value.x - row.x, ..row.clone() };
+    let metrics = workbench_field_metrics_for_node(node);
+    let text_rect = FrameRect {
+        x: lane.x + metrics.input_pad_left,
+        y: lane.y + metrics.input_pad_top
+            + (lane.height - metrics.input_pad_top - metrics.input_pad_bottom - metrics.line_height)
+                .max(0.0) * 0.5,
+        width: (lane.width - metrics.input_pad_left - metrics.input_pad_right).max(0.0),
+        height: metrics.line_height,
+    };
+    let label = if node.text.trim().is_empty() { node.label_text.to_string() } else { node.text.to_string() };
+    if label.trim().is_empty() || !frame_is_within(&text_rect, &lane) {
+        return;
+    }
+    let text_style = UiTextRunPaintStyle {
+        strong: node.font_weight >= 600, ..UiTextRunPaintStyle::default()
+    };
+    let font_request = crate::ui::retained_host::host_contract::paint_text::authored_font_request_for_node(node, text_style);
+    commands.push(HostPaintCommand::text(
+        text_rect, Some(lane), order, label, style.text,
+        metrics.font_size, metrics.line_height, text_style, opacity,
+    ).with_text_font_request(font_request));
 }
 
 fn field_label(node: &TemplatePaneNodeData) -> String {
+    if super::geometry::field_has_label_lane(node) {
+        return node.value_text.to_string();
+    }
     let label = template_node_label(node, None);
     if !label.trim().is_empty() {
         return label;

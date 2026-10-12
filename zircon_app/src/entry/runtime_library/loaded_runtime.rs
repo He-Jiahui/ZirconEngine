@@ -3,6 +3,7 @@
 
 use std::path::{Path, PathBuf};
 use std::ptr::NonNull;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use libloading::Library;
 use zircon_runtime_interface::runtime_api::ZrRuntimeProfileControlFnV2;
@@ -38,6 +39,7 @@ pub(crate) struct LoadedRuntime {
     size_bytes: usize,
     required: RequiredRuntimeApiV8,
     app_session_configuration: Option<ZrRuntimeConfigureAppSessionFnV2>,
+    runtime_instance: u64,
 }
 
 /// A data-only validation receipt for the runtime artifact selected for a
@@ -83,6 +85,21 @@ struct ValidatedRuntimeApiV8 {
 // The selected API table is immutable and remains valid while `_library` is held.
 unsafe impl Send for LoadedRuntime {}
 unsafe impl Sync for LoadedRuntime {}
+
+// Zero is the permanent exhausted state; IDs are never reused after u64::MAX.
+static NEXT_RUNTIME_INSTANCE_ID: AtomicU64 = AtomicU64::new(1);
+
+fn allocate_runtime_instance_id(counter: &AtomicU64) -> Result<u64, RuntimeLibraryError> {
+    counter
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
+            if next == 0 {
+                None
+            } else {
+                Some(next.checked_add(1).unwrap_or(0))
+            }
+        })
+        .map_err(|_| RuntimeLibraryError::new("runtime instance identity space exhausted"))
+}
 
 impl LoadedRuntime {
     pub(crate) fn load_default() -> Result<Self, RuntimeLibraryError> {
@@ -191,6 +208,8 @@ impl LoadedRuntime {
                 .ok()
                 .map(|symbol| *symbol)
         };
+        let runtime_instance = allocate_runtime_instance_id(&NEXT_RUNTIME_INSTANCE_ID)
+            .map_err(|error| runtime_library_startup_error_for_request(&requested_path, error))?;
         Ok(Self {
             _library: library,
             _artifact_manifest: artifact_manifest,
@@ -198,7 +217,12 @@ impl LoadedRuntime {
             size_bytes: validated.size_bytes,
             required: validated.required,
             app_session_configuration,
+            runtime_instance,
         })
+    }
+
+    pub(crate) fn runtime_instance(&self) -> u64 {
+        self.runtime_instance
     }
 
     pub(crate) fn configure_app_session(&self) -> Option<ZrRuntimeConfigureAppSessionFnV2> {
@@ -713,12 +737,7 @@ pub(super) fn runtime_api_supports_viewport_surface_present(
         && present_viewport.is_some()
 }
 
-#[cfg(all(
-    test,
-    target_os = "windows",
-    feature = "dynamic-api",
-    not(feature = "gamepad-gilrs")
-))]
+#[cfg(all(test, target_os = "windows", feature = "dynamic-api"))]
 #[path = "loaded_runtime/tests/surface_teardown_fixture.rs"]
 pub(in crate::entry) mod surface_teardown_fixture;
 

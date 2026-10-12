@@ -17,12 +17,18 @@ impl EditorHostEventController {
         {
             return self.dispatch_command_component_adapter_event(envelope);
         }
+        let manager =
+            self.enter_editor_manager()
+                .map_err(|error| UiComponentAdapterError::HostMutation {
+                    domain: envelope.target.domain.clone(),
+                    path: envelope.target.path.clone(),
+                    reason: error.to_string(),
+                })?;
         let result = {
             let mut inner = self.shell().lock();
-            let manager = inner.manager.clone();
             crate::ui::template_runtime::component_adapter::registry::EditorUiComponentAdapterRegistry::apply_envelope(
                     &mut inner.state,
-                    manager.as_ref(),
+                    &*manager,
                     envelope,
                 )?
         };
@@ -45,7 +51,13 @@ impl EditorHostEventController {
                 source_name: "subject".to_string(),
             }
         })?;
-        let customization = self.inspector_customization(component_type);
+        let customization = self
+            .inspector_customization(component_type)
+            .map_err(|error| UiComponentAdapterError::HostMutation {
+                domain: envelope.target.domain.clone(),
+                path: envelope.target.path.clone(),
+                reason: error.to_string(),
+            })?;
         let operation_path =
             crate::ui::template_runtime::component_adapter::component_drawer::validate_component_drawer_envelope(
                 envelope,

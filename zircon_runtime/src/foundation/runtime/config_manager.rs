@@ -148,6 +148,16 @@ impl DefaultConfigManager {
         })
     }
 
+    #[cfg(test)]
+    pub(super) fn install_publication_test_hooks(
+        &self,
+        after_publication: impl FnOnce() + Send + 'static,
+        on_contention: impl FnOnce() + Send + 'static,
+    ) {
+        self.persistence
+            .install_publication_test_hooks(after_publication, on_contention);
+    }
+
     fn runtime_core(&self) -> Result<CoreHandle, ConfigManagerError> {
         self.core
             .upgrade()
@@ -168,8 +178,8 @@ impl fmt::Debug for DefaultConfigManager {
 impl ConfigManager for DefaultConfigManager {
     fn set_value(&self, key: &str, value: Value) -> Result<(), ConfigManagerError> {
         let core = self.runtime_core()?;
-        let changed = store_config_value_if_changed(&core, key, value);
-        self.persistence.request_persistence(changed);
+        self.persistence
+            .publish_and_request(|| core.store_config_value_if_changed(key, value));
         Ok(())
     }
 
@@ -186,14 +196,6 @@ impl ConfigManager for DefaultConfigManager {
     fn persistence_report(&self) -> ConfigPersistenceReport {
         self.persistence.report()
     }
-}
-
-pub(super) fn store_config_value_if_changed(core: &CoreHandle, key: &str, value: Value) -> bool {
-    if core.load_config_value(key).as_ref() == Some(&value) {
-        return false;
-    }
-    core.store_config_value(key.to_string(), value);
-    true
 }
 
 fn recover_and_load_from_disk(

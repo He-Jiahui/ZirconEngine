@@ -31,6 +31,8 @@ impl RuntimeSystemSlots {
 
     pub(super) fn remove(&mut self, id: &str) -> Option<BoxedRuntimeSceneSystem> {
         let index = *self.indices.get(id)?;
+        // An in-flight slot owns its ID and graph definition until restore.
+        self.slots.get(index)?.system.as_ref()?;
         let slot = self.slots.remove(index);
         self.indices.remove(id);
         self.rebuild_indices_from(index);

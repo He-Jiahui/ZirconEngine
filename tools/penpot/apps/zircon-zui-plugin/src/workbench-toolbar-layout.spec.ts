@@ -12,7 +12,7 @@ describe('Workbench top toolbar responsive layout', () => {
   const { document } = parseZuiDocument(readFileSync(sourcePath, 'utf8'));
   const nodes = document.nodes!;
 
-  it('keeps each horizontal group at least as wide as its visible controls', () => {
+  it('sizes horizontal groups from visible controls without a clipping width cap', () => {
     expect(nodes['toolbar_command_row'].layout?.container).toMatchObject({
       kind: 'ScrollableBox',
       axis: 'Horizontal',
@@ -43,12 +43,15 @@ describe('Workbench top toolbar responsive layout', () => {
         4 * Math.max(visibleChildren.length - 1, 0),
       );
       const width = group.layout?.['width'];
-      for (const key of ['min', 'preferred', 'max']) {
-        expect(
-          width?.[key],
-          `${id}.${key} must hold ${minimum}px`,
-        ).toBeGreaterThanOrEqual(minimum);
-      }
+      expect(minimum).toBeGreaterThan(0);
+      expect(width?.['stretch']).toBe('Fixed');
+      for (const key of ['min', 'preferred', 'max'])
+        expect(width?.[key], `${id}.${key} must not cap measured content`).toBeUndefined();
+      const slot = nodes['toolbar_command_row'].children?.find((child) => child.node === id)?.slot;
+      expect(slot?.layout?.['linear_size']).toMatchObject({
+        rule: 'StretchContent',
+        shrink_value: 0,
+      });
     }
   });
 

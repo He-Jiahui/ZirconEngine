@@ -1,5 +1,8 @@
 mod runtime_modules;
 
+pub use runtime_modules::RuntimePluginId;
+
+#[cfg(feature = "native-host")]
 pub use runtime_modules::{
     default_manifest_for_target, manifest_for_runtime_profile, manifest_with_mode_baseline,
     runtime_core_modules, runtime_modules_for_compiled_project_plugin_plan,
@@ -14,5 +17,5 @@ pub use runtime_modules::{
     runtime_modules_for_target_with_plugin_registration_reports, BuiltinRuntimeModuleId,
     RuntimeModuleCompositionCompiler, RuntimeModuleCompositionIdentity,
     RuntimeModuleCompositionPlan, RuntimeModuleCompositionRejection,
-    RuntimeModuleCompositionResult, RuntimeModuleLoadDiagnostic, RuntimePluginId,
+    RuntimeModuleCompositionResult, RuntimeModuleLoadDiagnostic,
 };

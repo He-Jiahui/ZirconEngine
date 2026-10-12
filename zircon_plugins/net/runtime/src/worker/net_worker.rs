@@ -38,12 +38,15 @@ struct NetWorkerLifecycle {
 }
 
 impl NetWorker {
-    pub(crate) fn spawn(next_connection_id: Arc<AtomicU64>) -> Result<Self, NetError> {
+    pub(crate) fn spawn(
+        next_connection_id: Arc<AtomicU64>,
+        runtime: tokio::runtime::Handle,
+    ) -> Result<Self, NetError> {
         let (egress, worker_egress) = mpsc::sync_channel(DEFAULT_EGRESS_CAPACITY);
         let (worker_ingress, ingress) = mpsc::sync_channel(DEFAULT_INGRESS_CAPACITY);
         let thread = thread::Builder::new()
             .name("zircon-net-worker".to_string())
-            .spawn(move || run_worker(worker_egress, worker_ingress, next_connection_id))
+            .spawn(move || run_worker(worker_egress, worker_ingress, next_connection_id, runtime))
             .map_err(|error| NetError::Io(error.to_string()))?;
 
         Ok(Self {

@@ -7,7 +7,7 @@ import { ZUI_METADATA_NAMESPACE, ZUI_METADATA_ROLE, ZUI_ROLE_AUXILIARY } from '.
 export function refreshFieldDecoration(board: Board, field?: FieldProjection): boolean {
   if (!field) return false;
   const geometry = fieldGeometry(field, board.width, board.height);
-  if (field.search) {
+  if (field.search || (field.labelWidth ?? 0) > 0) {
     board.fills = [];
     board.strokes = [];
   }

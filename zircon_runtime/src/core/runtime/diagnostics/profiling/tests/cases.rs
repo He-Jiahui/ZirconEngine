@@ -318,3 +318,67 @@ fn disabled_profile_macros_do_not_evaluate_arguments() {
 
     assert!(!super::feature_enabled());
 }
+
+#[cfg(feature = "profiling")]
+#[test]
+fn nested_scope_paths_keep_current_epoch_depth_after_out_of_order_drop() {
+    let _guard = test_capture_lock();
+    reset_capture();
+    start_capture(ProfileCaptureConfig::default());
+    let retired = super::ProfileScope::enter("retired", "old", "ancestor");
+    reset_capture();
+    start_capture(ProfileCaptureConfig {
+        session_id: "borrowed-parent-path".to_string(),
+        max_frames: 2,
+        max_spans: 8,
+        ..ProfileCaptureConfig::default()
+    });
+
+    let frame = super::ProfileFrameScope::enter("runtime", "current_frame");
+    let outer = super::ProfileScope::enter_named("runtime", "test", "外/层:0".to_string());
+    let inner = super::ProfileScope::enter_named("editor", "test.child", "内/层:1".to_string());
+    drop(outer);
+    let leaf = super::ProfileScope::enter_named("worker", "test.leaf", "叶/层:2".to_string());
+    drop(retired);
+    drop(leaf);
+    drop(inner);
+    drop(frame);
+
+    let captured = snapshot();
+    reset_capture();
+    assert_eq!(captured.frames.len(), 1);
+    assert_eq!(captured.spans.len(), 3);
+    let outer = captured
+        .spans
+        .iter()
+        .find(|span| span.name == "外/层:0")
+        .unwrap();
+    let inner = captured
+        .spans
+        .iter()
+        .find(|span| span.name == "内/层:1")
+        .unwrap();
+    let leaf = captured
+        .spans
+        .iter()
+        .find(|span| span.name == "叶/层:2")
+        .unwrap();
+    assert_eq!(outer.path, "runtime/test:外/层:0");
+    assert_eq!(outer.parent_id, None);
+    assert_eq!(outer.depth, 0);
+    assert_eq!(inner.path, "runtime/test:外/层:0/test.child:内/层:1");
+    assert_eq!(inner.parent_id, Some(outer.id));
+    assert_eq!(inner.depth, 1);
+    assert_eq!(
+        leaf.path,
+        "runtime/test:外/层:0/test.child:内/层:1/test.leaf:叶/层:2"
+    );
+    assert_eq!(leaf.parent_id, Some(inner.id));
+    // The outer token has exited, so the live epoch depth is one despite its stored path.
+    assert_eq!(leaf.depth, 1);
+    assert_eq!(inner.stream, "editor");
+    assert_eq!(leaf.stream, "worker");
+    for span in &captured.spans {
+        assert_eq!(span.frame_index, Some(captured.frames[0].frame_index));
+    }
+}

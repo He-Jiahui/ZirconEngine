@@ -1,4 +1,4 @@
-$script:ZirconShaderPbrProfileContractRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+$script:ZirconShaderPbrProfileContractRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
 $script:ZirconShaderPbrProfileSourceClosurePath = Join-Path `
     $PSScriptRoot `
     "shader-pbr-profile-source-closure.ps1"
@@ -10,11 +10,13 @@ if (-not (Test-Path -LiteralPath $script:ZirconShaderPbrProfileSourceClosurePath
 function Get-ZirconShaderPbrProfileToolPaths {
     return @(
         "tools/analysis/profiling/shared/performance-machine-manifest.ps1",
+        "tools/analysis/profiling/shared/profile-capture-paths.ps1",
         "tools/analysis/profiling/shared/profile-capture-manifest.ps1",
         "tools/analysis/profiling/shader_pbr/shader-pbr-profile-contract.ps1",
         "tools/analysis/profiling/shader_pbr/shader-pbr-profile-evidence-identity.ps1",
         "tools/analysis/profiling/shader_pbr/shader-pbr-profile-publication.ps1",
         "tools/analysis/profiling/shader_pbr/shader-pbr-profile-runtime-evidence.ps1",
+        "tools/analysis/profiling/shader_pbr/shader-pbr-profile-source-closure.ps1",
         "tools/analysis/profiling/shader_pbr/shader-pbr-profile-toolchain.ps1",
         "tools/analysis/profiling/shader_pbr/write_zircon_shader_pbr_build_provenance.ps1",
         "tools/analysis/visual/zircon_pbr_visual_oracle.py",
@@ -150,7 +152,7 @@ function Get-ZirconShaderPbrProfileCriticalSourcePaths {
         "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_resources/execution_resource_cache.rs",
         "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs",
         "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan.rs",
-        "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_profile_test_support.rs",
+        "zircon_runtime/src/graphics/scene/scene_renderer/environment/tests/realtime_ibl_profile_test_support.rs",
         "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime.rs",
         "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/cache.rs",
         "zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/compiled_graph_cache/mod.rs",

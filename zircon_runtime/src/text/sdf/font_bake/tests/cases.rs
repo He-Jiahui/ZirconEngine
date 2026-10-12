@@ -23,6 +23,49 @@ mod owner_recovery;
 const TEXT_SDF_MANIFEST_WORK_DIRECTORY: &str = ".runtime_text_sdf_manifest_work";
 const TEST_FONT_COLLECTION: TextFontCollectionHandle = TextFontCollectionHandle::new(1);
 
+fn sdf_test_context() -> (SdfFontBakeCache, FontDatabase) {
+    let database = runtime_default_font_database_for_test();
+    let collection = FontCollectionService::from_database(database.clone());
+    (
+        SdfFontBakeCache::new_with_font_collection(collection),
+        database,
+    )
+}
+
+#[cfg(target_os = "windows")]
+fn sdf_system_cjk_test_context() -> (
+    SdfFontBakeCache,
+    FontDatabase,
+    FontFaceId,
+    TextFontFaceHandle,
+) {
+    use crate::text::font::{register_font_handle_batch_for_collection, SystemFontPolicy};
+
+    // Runtime defaults deliberately disable system discovery. This test must
+    // admit the real system face before registering handles for its own owner.
+    let mut database = runtime_default_font_database_for_test();
+    assert!(database.apply_system_font_policy(SystemFontPolicy::Discover) > 0);
+    let face = database
+        .match_face(&FontQuery::single_family("Microsoft YaHei UI"))
+        .expect("Windows CJK system font")
+        .face;
+    assert!(database.face_glyph_id(face, '本').unwrap().is_some());
+    let collection = FontCollectionService::from_database(database.clone());
+    let handle = register_font_handle_batch_for_collection(
+        &collection,
+        &[(Some(face), None)],
+        collection.generation(),
+    )[0]
+    .0
+    .expect("system face Text handle");
+    (
+        SdfFontBakeCache::new_with_font_collection(collection),
+        database,
+        face,
+        handle,
+    )
+}
+
 #[derive(Default)]
 struct SdfAtlasPlan {
     atlas_size: UVec2,
@@ -361,8 +404,7 @@ fn sdf_scalar_slot_policy_is_owned_by_text() {
 
 #[test]
 fn sdf_font_bake_produces_distinct_ascii_glyph_patterns() {
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let plan = atlas_plan_for_glyphs(&['A', 'I', 'O']);
 
@@ -396,8 +438,7 @@ fn sdf_font_bake_produces_distinct_ascii_glyph_patterns() {
 
 #[test]
 fn sdf_font_bake_writes_page_indexed_slots_into_matching_layers() {
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let plan = atlas_plan_for_page_glyphs(&[('A', 0), ('B', 1)]);
 
@@ -494,9 +535,8 @@ fn sdf_font_query_for_key_preserves_font_weight() {
 }
 
 #[test]
-fn sdf_font_bake_falls_back_when_fontsdf_cannot_open_requested_face_index() {
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+fn sdf_font_bake_falls_back_when_parser_cannot_open_requested_face_index() {
+    let (mut bake, mut font_database) = sdf_test_context();
     let asset_manager = ProjectAssetManager::default();
     let manifest = write_face_index_manifest(1);
     assert!(manifest.path().starts_with(

@@ -21,8 +21,21 @@ impl EditorManager {
         self.host.focused_animation_history_status()
     }
 
-    pub fn save_animation_editor(&self, instance_id: &ViewInstanceId) -> Result<(), EditorError> {
-        self.host.save_animation_editor(instance_id)
+    pub fn save_animation_editor(
+        original: zircon_runtime::core::runtime::ServiceHandle<Self>,
+        instance_id: &ViewInstanceId,
+    ) -> Result<(), EditorError> {
+        let ticket = {
+            let manager = original.enter()?;
+            manager.host.ensure_animation_editor_session(instance_id)?;
+            manager.host.submit_document_toolkit_save(
+                original.clone(),
+                instance_id,
+                crate::core::extension::SaveReason::Explicit,
+            )?
+        };
+        ticket.wait().map_err(EditorError::from)?;
+        Ok(())
     }
 
     pub fn animation_editor_pane_presentation(

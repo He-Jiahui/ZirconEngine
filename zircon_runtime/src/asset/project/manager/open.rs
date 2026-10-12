@@ -14,7 +14,7 @@ use super::super::{
     PackageAssetRegistry, ProjectCatalogInputGeneration, ProjectManifest, ProjectPaths,
     ResolvedProjectPath,
 };
-use super::ProjectManager;
+use super::{ProjectActivationIdentity, ProjectManager};
 
 impl ProjectManager {
     /// 从项目根建立可导入候选；返回时已恢复磁盘事务并加载注册表，但资源内容仍待扫描导入。
@@ -47,6 +47,7 @@ impl ProjectManager {
             package_assets.clone(),
         );
         Ok(Self {
+            activation_identity: ProjectActivationIdentity::new(),
             paths,
             manifest,
             registry: ResourceRegistry::default(),

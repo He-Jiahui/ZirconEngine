@@ -12,6 +12,9 @@ from .spec import JenkinsError
 def handle(action, payload, state, repo_root, *, domain="deployment"):
     spec = load_spec(payload.get("spec", repo_root / ".jenkins" / "deployment-spec.json"))
     paths = resolve_paths(spec, payload.get("buildRoot"))
+    if action == "register-acceptance-checkout":
+        from ..patch_context import register_acceptance_checkout
+        return register_acceptance_checkout(state, repo_root, payload)
     if action == "validate": return {"status": "ready", "repositoryRoot": str(spec.repository_root), "home": str(paths.home), "buildRoot": str(paths.build_root)}
     if action == "prepare-runtime":
         for p in (paths.root, paths.home, paths.runtime, paths.logs, paths.state, paths.cache, paths.tmp, paths.agent): p.mkdir(parents=True, exist_ok=True)

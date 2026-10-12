@@ -10,6 +10,8 @@ fn physical_projection_scales_geometry_and_visual_metrics_but_not_semantic_value
         height: 40.0,
     };
     node.font_size = 12.0;
+    node.line_height = 16.0;
+    node.authored_field_padding = [Some(0.0), Some(12.0), Some(4.0), None];
     node.corner_radius = 3.0;
     node.border_width = 1.0;
     node.value_number = 0.75;
@@ -31,7 +33,15 @@ fn physical_projection_scales_geometry_and_visual_metrics_but_not_semantic_value
     assert_eq!(projected.frame.x, 116.0);
     assert_eq!(projected.frame.y, 74.0);
     assert_eq!(projected.frame.width, 160.0);
-    assert_eq!(projected.font_size, 24.0);
+    assert_eq!(
+        projected.font_size, 12.0,
+        "painters scale authored logical typography exactly once"
+    );
+    assert_eq!(projected.line_height, 16.0);
+    assert_eq!(
+        projected.authored_field_padding,
+        [Some(0.0), Some(12.0), Some(4.0), None]
+    );
     assert_eq!(projected.corner_radius, 6.0);
     assert_eq!(projected.border_width, 2.0);
     assert_eq!(projected.value_number, 0.75);

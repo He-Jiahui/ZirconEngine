@@ -1,6 +1,6 @@
 # 用临时阶段目录验证着色器画像的租约恢复、完整性收据和原子发布。
-$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profiling\shared\profile-capture-manifest.ps1"
-$script:PublicationScript = Join-Path $PSScriptRoot "..\profiling\shader_pbr\shader-pbr-profile-publication.ps1"
+$script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\analysis\profiling\shared\profile-capture-manifest.ps1"
+$script:PublicationScript = Join-Path $PSScriptRoot "..\analysis\profiling\shader_pbr\shader-pbr-profile-publication.ps1"
 
 if (Test-Path -LiteralPath $script:ProfileCaptureManifest) {
     . $script:ProfileCaptureManifest
@@ -9,12 +9,42 @@ if (Test-Path -LiteralPath $script:PublicationScript) {
     . $script:PublicationScript
 }
 
+$script:PublicationTestRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+
+function New-ZirconPublicationTestFixture {
+    $parent = Resolve-ZirconProfileOutputRoot -RepoRoot $script:PublicationTestRepoRoot -Path 'D:\cargo-targets\zircon-local\evidence\shader-publication-contract-fixtures'
+    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    $parent = Resolve-ZirconProfileOutputRoot -RepoRoot $script:PublicationTestRepoRoot -Path $parent
+    $path = Join-Path $parent ("publication-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $path -ErrorAction Stop | Out-Null
+    $path = Resolve-ZirconProfileOutputRoot -RepoRoot $script:PublicationTestRepoRoot -Path $path
+    return [pscustomobject]@{ path = $path; parent = $parent }
+}
+
+function Remove-ZirconPublicationTestFixture {
+    param([Parameter(Mandatory = $true)]$Fixture)
+
+    if (-not (Test-Path -LiteralPath $Fixture.path)) {
+        return
+    }
+    $parent = Resolve-ZirconProfileOutputRoot -RepoRoot $script:PublicationTestRepoRoot -Path $Fixture.parent
+    $path = Resolve-ZirconProfileOutputRoot -RepoRoot $script:PublicationTestRepoRoot -Path $Fixture.path
+    if (-not $path.Equals([string]$Fixture.path, [StringComparison]::OrdinalIgnoreCase) -or
+        -not (Split-Path -Parent $path).Equals($parent, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Publication fixture cleanup requires its owned physical direct child."
+    }
+    Remove-Item -LiteralPath $path -Recurse -Force
+}
+
 Describe "shader PBR profile publication contract" {
+    BeforeEach { $script:PublicationFixture = New-ZirconPublicationTestFixture }
+    AfterEach { Remove-ZirconPublicationTestFixture -Fixture $script:PublicationFixture }
+
     It "creates a contained unique staging root for a stable profile id" {
         Get-Command New-ZirconShaderPbrProfileStagingRoot -ErrorAction SilentlyContinue |
             Should Not BeNullOrEmpty
 
-        $capturesRoot = Join-Path $TestDrive "profile-captures"
+        $capturesRoot = Join-Path $script:PublicationFixture.path "profile-captures"
         New-Item -ItemType Directory -Force -Path $capturesRoot | Out-Null
         $stagingRoot = New-ZirconShaderPbrProfileStagingRoot `
             -ProfileCapturesRoot $capturesRoot `
@@ -35,7 +65,7 @@ Describe "shader PBR profile publication contract" {
         Get-Command Update-ZirconShaderPbrProfileRunLeaseHeartbeat -ErrorAction SilentlyContinue |
             Should Not BeNullOrEmpty
 
-        $capturesRoot = Join-Path $TestDrive "profile-captures"
+        $capturesRoot = Join-Path $script:PublicationFixture.path "profile-captures"
         $profileId = "shader-pbr-20260825-000006"
         $stagingRoot = New-ZirconShaderPbrProfileStagingRoot `
             -ProfileCapturesRoot $capturesRoot `
@@ -75,7 +105,7 @@ Describe "shader PBR profile publication contract" {
         Get-Command Invoke-ZirconShaderPbrProfileStaleRunScavenger -ErrorAction SilentlyContinue |
             Should Not BeNullOrEmpty
 
-        $capturesRoot = Join-Path $TestDrive "profile-captures"
+        $capturesRoot = Join-Path $script:PublicationFixture.path "profile-captures"
         $profileId = "shader-pbr-20260825-000007"
         $stagingRoot = New-ZirconShaderPbrProfileStagingRoot `
             -ProfileCapturesRoot $capturesRoot `
@@ -120,7 +150,7 @@ Describe "shader PBR profile publication contract" {
     }
 
     It "recovers a published completion receipt left by a released running lease" {
-        $capturesRoot = Join-Path $TestDrive "profile-captures"
+        $capturesRoot = Join-Path $script:PublicationFixture.path "profile-captures"
         $profileId = "shader-pbr-20260825-000008"
         $stagingRoot = New-ZirconShaderPbrProfileStagingRoot `
             -ProfileCapturesRoot $capturesRoot `
@@ -151,7 +181,7 @@ Describe "shader PBR profile publication contract" {
     }
 
     It "finishes a quarantined staging move interrupted after terminal state persistence" {
-        $capturesRoot = Join-Path $TestDrive "profile-captures"
+        $capturesRoot = Join-Path $script:PublicationFixture.path "profile-captures"
         $profileId = "shader-pbr-20260825-000009"
         $stagingRoot = New-ZirconShaderPbrProfileStagingRoot `
             -ProfileCapturesRoot $capturesRoot `
@@ -195,7 +225,7 @@ Describe "shader PBR profile publication contract" {
     }
 
     It "rejects mutually contradictory terminal lease fields" {
-        $capturesRoot = Join-Path $TestDrive "profile-captures"
+        $capturesRoot = Join-Path $script:PublicationFixture.path "profile-captures"
         $profileId = "shader-pbr-20260825-000010"
         $stagingRoot = New-ZirconShaderPbrProfileStagingRoot `
             -ProfileCapturesRoot $capturesRoot `
@@ -232,7 +262,7 @@ Describe "shader PBR profile publication contract" {
         Get-Command Publish-ZirconShaderPbrProfileCompletion -ErrorAction SilentlyContinue |
             Should Not BeNullOrEmpty
 
-        $capturesRoot = Join-Path $TestDrive "profile-captures"
+        $capturesRoot = Join-Path $script:PublicationFixture.path "profile-captures"
         $profileId = "shader-pbr-20260824-000002"
         $stagingRoot = Join-Path $capturesRoot ".staging\$profileId"
         New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
@@ -267,7 +297,7 @@ Describe "shader PBR profile publication contract" {
         Get-Command Assert-ZirconShaderPbrProfileCompletion -ErrorAction SilentlyContinue |
             Should Not BeNullOrEmpty
 
-        $capturesRoot = Join-Path $TestDrive "profile-captures"
+        $capturesRoot = Join-Path $script:PublicationFixture.path "profile-captures"
         $profileId = "shader-pbr-20260825-000005"
         $stagingRoot = Join-Path $capturesRoot ".staging\$profileId"
         New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
@@ -295,7 +325,7 @@ Describe "shader PBR profile publication contract" {
     }
 
     It "orders staged artifact paths with ordinal semantics" {
-        $stagingRoot = Join-Path $TestDrive ".staging\shader-pbr-20260824-000004"
+        $stagingRoot = Join-Path $script:PublicationFixture.path ".staging\shader-pbr-20260824-000004"
         New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
         Set-Content -LiteralPath (Join-Path $stagingRoot "alpha.bin") -Value "alpha" -Encoding UTF8
         Set-Content -LiteralPath (Join-Path $stagingRoot "Zebra.bin") -Value "zebra" -Encoding UTF8
@@ -308,7 +338,7 @@ Describe "shader PBR profile publication contract" {
         Get-Command Write-ZirconShaderPbrProfileIncompleteReceipt -ErrorAction SilentlyContinue |
             Should Not BeNullOrEmpty
 
-        $stagingRoot = Join-Path $TestDrive ".staging\shader-pbr-20260824-000003"
+        $stagingRoot = Join-Path $script:PublicationFixture.path ".staging\shader-pbr-20260824-000003"
         New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
         $receiptPath = Write-ZirconShaderPbrProfileIncompleteReceipt `
             -ProfileRoot $stagingRoot `
@@ -322,5 +352,96 @@ Describe "shader PBR profile publication contract" {
 
         [System.IO.File]::ReadAllBytes($receiptPath) | Should Be $firstBytes
         (Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json).status | Should Be "incomplete"
+    }
+}
+
+Describe "shader PBR physical publication outputs" {
+    BeforeEach { $script:PublicationFixture = New-ZirconPublicationTestFixture }
+    AfterEach { Remove-ZirconPublicationTestFixture -Fixture $script:PublicationFixture }
+
+    Context "staging ancestor identity" {
+        It "rejects a staging junction before writes and preserves its target" {
+            $capturesRoot = Join-Path $script:PublicationFixture.path "captures"
+            $target = Join-Path $script:PublicationFixture.path "target"
+            New-Item -ItemType Directory -Path $capturesRoot, $target | Out-Null
+            $targetData = Join-Path $target "existing.json"
+            [System.IO.File]::WriteAllText($targetData, "preserve staging target")
+            $alias = Join-Path $capturesRoot ".staging"
+            New-Item -ItemType Junction -Path $alias -Target $target | Out-Null
+            Mock New-Item { throw "unexpected staging write" }
+            try {
+                { New-ZirconShaderPbrProfileStagingRoot -ProfileCapturesRoot $capturesRoot -ProfileId "shader-pbr-alias-001" } |
+                    Should Throw "contains a reparse point"
+                Assert-MockCalled New-Item -Times 0 -Exactly
+                [System.IO.File]::ReadAllText($targetData) | Should Be "preserve staging target"
+                Test-Path -LiteralPath (Join-Path $target "shader-pbr-alias-001") | Should Be $false
+            }
+            finally {
+                [System.IO.Directory]::Delete($alias)
+            }
+        }
+    }
+
+    Context "lease ancestor identity" {
+        It "rejects a lease directory junction before lease or lock writes" {
+            $capturesRoot = Join-Path $script:PublicationFixture.path "captures"
+            $profileId = "shader-pbr-alias-002"
+            $stagingRoot = New-ZirconShaderPbrProfileStagingRoot -ProfileCapturesRoot $capturesRoot -ProfileId $profileId
+            $target = Join-Path $script:PublicationFixture.path "target"
+            New-Item -ItemType Directory -Path $target | Out-Null
+            $targetData = Join-Path $target "existing.json"
+            [System.IO.File]::WriteAllText($targetData, "preserve lease target")
+            $alias = Join-Path $capturesRoot ".leases"
+            New-Item -ItemType Junction -Path $alias -Target $target | Out-Null
+            Mock New-Item { throw "unexpected lease write" }
+            try {
+                { New-ZirconShaderPbrProfileRunLease -ProfileCapturesRoot $capturesRoot -ProfileRoot $stagingRoot -ProfileId $profileId } |
+                    Should Throw "contains a reparse point"
+                Assert-MockCalled New-Item -Times 0 -Exactly
+                [System.IO.File]::ReadAllText($targetData) | Should Be "preserve lease target"
+                Test-Path -LiteralPath (Join-Path $target "$profileId.json") | Should Be $false
+            }
+            finally {
+                [System.IO.Directory]::Delete($alias)
+            }
+        }
+    }
+
+    Context "lock file identity" {
+        It "rejects a hardlinked lock leaf before opening or writing it" {
+            $capturesRoot = Join-Path $script:PublicationFixture.path "captures"
+            $profileId = "shader-pbr-alias-003"
+            $stagingRoot = New-ZirconShaderPbrProfileStagingRoot -ProfileCapturesRoot $capturesRoot -ProfileId $profileId
+            $locksRoot = Join-Path $capturesRoot ".lease-locks"
+            New-Item -ItemType Directory -Path $locksRoot | Out-Null
+            $targetData = Join-Path $script:PublicationFixture.path "existing-lock.json"
+            [System.IO.File]::WriteAllText($targetData, "preserve lock target")
+            New-Item -ItemType HardLink -Path (Join-Path $locksRoot "$profileId.lock") -Target $targetData | Out-Null
+            Mock New-Item { throw "unexpected lock setup write" }
+            { New-ZirconShaderPbrProfileRunLease -ProfileCapturesRoot $capturesRoot -ProfileRoot $stagingRoot -ProfileId $profileId } |
+                Should Throw "file aliases are not allowed"
+            Assert-MockCalled New-Item -Times 0 -Exactly
+            [System.IO.File]::ReadAllText($targetData) | Should Be "preserve lock target"
+            Test-Path -LiteralPath (Join-Path $capturesRoot ".leases\$profileId.json") | Should Be $false
+        }
+    }
+
+    Context "receipt file identity" {
+        It "rejects a hardlinked completion leaf and preserves prior data" {
+            $capturesRoot = Join-Path $script:PublicationFixture.path "captures"
+            $profileId = "shader-pbr-alias-004"
+            $stagingRoot = New-ZirconShaderPbrProfileStagingRoot -ProfileCapturesRoot $capturesRoot -ProfileId $profileId
+            Set-Content -LiteralPath (Join-Path $stagingRoot "profile_summary.json") -Value "owned summary" -Encoding UTF8
+            $receiptsRoot = Join-Path $capturesRoot ".completed"
+            New-Item -ItemType Directory -Path $receiptsRoot | Out-Null
+            $targetData = Join-Path $script:PublicationFixture.path "existing-receipt.json"
+            [System.IO.File]::WriteAllText($targetData, "preserve receipt target")
+            New-Item -ItemType HardLink -Path (Join-Path $receiptsRoot "$profileId.json") -Target $targetData | Out-Null
+            Mock New-Item { throw "unexpected receipt write" }
+            { Publish-ZirconShaderPbrProfileCompletion -ProfileCapturesRoot $capturesRoot -ProfileRoot $stagingRoot -ProfileId $profileId } |
+                Should Throw "file aliases are not allowed"
+            Assert-MockCalled New-Item -Times 0 -Exactly
+            [System.IO.File]::ReadAllText($targetData) | Should Be "preserve receipt target"
+        }
     }
 }

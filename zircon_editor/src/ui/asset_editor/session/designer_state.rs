@@ -12,6 +12,31 @@ use zircon_runtime_interface::ui::{
 };
 
 impl UiAssetEditorSession {
+    pub fn dispatch_preview_input(
+        &mut self,
+        source_frame: &std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+        event: zircon_runtime_interface::ui::window::UiWindowInputPumpEvent,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        if self.designer_tool_mode != UiDesignerToolMode::PreviewInteract {
+            return Err(UiAssetEditorSessionError::RetiredPreviewInput);
+        }
+        let host = self
+            .preview_host
+            .as_mut()
+            .ok_or(UiAssetEditorSessionError::RetiredPreviewInput)?;
+        host.dispatch_input(source_frame, event)
+    }
+
+    pub(crate) fn deactivate_preview_input(
+        &mut self,
+        metadata: zircon_runtime_interface::ui::window::UiWindowEventMetadata,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        match self.preview_host.as_mut() {
+            Some(host) => host.deactivate_input(metadata),
+            None => Ok(false),
+        }
+    }
+
     pub fn designer_tool_mode(&self) -> UiDesignerToolMode {
         self.designer_tool_mode
     }

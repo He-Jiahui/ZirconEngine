@@ -74,14 +74,15 @@ pub fn translate_winit_window_event(
             *is_synthetic,
         ))),
         WindowEvent::Ime(event) => translate_ime_event(context, event),
-        WindowEvent::MouseWheel { delta, .. } => Some(input_event(translate_mouse_wheel_event(
-            context,
+        WindowEvent::MouseWheel { delta, .. } => {
             // Wheel events carry no cursor position. Use the last known position so the
             // event routes to the widget currently under the pointer instead of always
             // hitting the origin.
-            context.last_cursor_position.unwrap_or_default(),
-            *delta,
-        ))),
+            let point = context.last_cursor_position.unwrap_or_default();
+            Some(input_event(translate_mouse_wheel_event(
+                context, point, *delta,
+            )))
+        }
         WindowEvent::RedrawRequested => Some(window_event(
             &context,
             UiWindowEventKind::RequestRedraw {

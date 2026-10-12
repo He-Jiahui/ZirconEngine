@@ -20,9 +20,9 @@ fn tree_row_style_uses_shared_state_priority() {
 
     let selected_pressed = tree_row_style(&node);
     assert_eq!(selected_pressed.state, UiPainterResolvedState::Pressed);
-    assert_eq!(selected_pressed.background, Some(PALETTE.surface_pressed));
-    assert_ne!(selected_pressed.background, Some(PALETTE.surface_selected));
-    assert_eq!(selected_pressed.border, Some(PALETTE.accent));
+    assert_eq!(selected_pressed.background, Some(PALETTE.surface_selected));
+    assert_ne!(selected_pressed.background, Some(PALETTE.surface_pressed));
+    assert_eq!(selected_pressed.border, Some(PALETTE.focus_ring));
     assert_ne!(selected_pressed.border, Some(PALETTE.border));
     assert_eq!(selected_pressed.text, TREE_TEXT_SELECTED);
 
@@ -45,7 +45,7 @@ fn tree_row_style_uses_shared_state_priority() {
     node.hovered = true;
     let hovered = tree_row_style(&node);
     assert_eq!(hovered.state, UiPainterResolvedState::Hovered);
-    assert_eq!(hovered.background, Some(PALETTE.surface_hover));
+    assert_eq!(hovered.background, Some(PALETTE.surface_panel));
     assert_eq!(hovered.border, None);
 
     node.disabled = true;
@@ -57,7 +57,7 @@ fn tree_row_style_uses_shared_state_priority() {
 }
 
 #[test]
-fn tree_row_selected_state_uses_muted_fill_with_teal_outline() {
+fn tree_row_selected_state_uses_authoritative_selection_fill() {
     let mut node = tree_node(
         "WorkbenchScenePlayerItem",
         "TreeRow",
@@ -71,9 +71,9 @@ fn tree_row_selected_state_uses_muted_fill_with_teal_outline() {
 
     let selected = tree_row_style(&node);
 
-    assert_eq!(selected.background, Some(PALETTE.surface_pressed));
-    assert_ne!(selected.background, Some(PALETTE.surface_selected));
-    assert_eq!(selected.border, Some(PALETTE.accent));
+    assert_eq!(selected.background, Some(PALETTE.surface_selected));
+    assert_ne!(selected.background, Some(PALETTE.surface_pressed));
+    assert_eq!(selected.border, None);
     assert_ne!(selected.border, Some(PALETTE.border));
     assert_eq!(selected.text, TREE_TEXT_SELECTED);
 }

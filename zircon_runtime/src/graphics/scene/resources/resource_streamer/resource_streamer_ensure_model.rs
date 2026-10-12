@@ -25,7 +25,7 @@ impl ResourceStreamer {
         if self.models.get(&id).is_some_and(|prepared| {
             prepared.source_revision == source_revision
                 && model_dependencies_are_current(
-                    asset_manager.as_ref(),
+                    &*asset_manager,
                     &prepared.mesh_dependency_states,
                 )
         }) {
@@ -34,7 +34,7 @@ impl ResourceStreamer {
         let model = self
             .load_model_asset(id)
             .ok_or_else(|| GraphicsError::Asset(format!("failed to load model asset {id:?}")))?;
-        let resolved = resolve_model_geometry(asset_manager.as_ref(), model.as_ref());
+        let resolved = resolve_model_geometry(&*asset_manager, model.as_ref());
         let revision = model_geometry_revision(id, source_revision, &resolved.dependency_states);
         let local_bounds = resolved.local_bounds;
         let mesh_sdf = mesh_sdf_seed_from_primitives(&resolved.primitives);

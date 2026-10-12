@@ -47,48 +47,51 @@ impl EditorHostEventController {
     pub(crate) fn project_command_eval_snapshot(
         &self,
         chrome: &EditorChromeSnapshot,
-    ) -> CommandEvalCtx {
-        let shell = self.shell().lock();
-        let capabilities = shell
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .to_vec();
-        let context = shell
-            .state
-            .project_command_eval_ctx(command_eval_ctx_from_chrome(
-                chrome,
-                self.play_sessions().mode(),
-                capabilities,
-            ));
-        self.context().command_eval().replace(context.clone());
-        context
+    ) -> Result<CommandEvalCtx, zircon_runtime::core::CoreError> {
+        Ok({
+            let manager = self.editor_manager_handle().enter()?;
+            let shell = self.shell().lock();
+            let capabilities = manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .to_vec();
+            let context = shell
+                .state
+                .project_command_eval_ctx(command_eval_ctx_from_chrome(
+                    chrome,
+                    self.play_sessions().mode(),
+                    capabilities,
+                ));
+            self.context().command_eval().replace(context.clone());
+            context
+        })
     }
 
     pub(crate) fn command_eval_ctx_for_source(
         &self,
         source: &EditorOperationSource,
-    ) -> CommandEvalCtx {
-        match source {
-            EditorOperationSource::Remote | EditorOperationSource::Cli => {
-                let capabilities = self
-                    .shell()
-                    .lock()
-                    .manager
-                    .capability_snapshot()
-                    .enabled_capabilities()
-                    .to_vec();
-                CommandEvalCtx::headless(capabilities)
-                    .with_play_state(play_state_from_mode(self.play_sessions().mode()))
+    ) -> Result<CommandEvalCtx, zircon_runtime::core::CoreError> {
+        Ok({
+            match source {
+                EditorOperationSource::Remote | EditorOperationSource::Cli => {
+                    let capabilities = self
+                        .editor_manager_handle()
+                        .enter()?
+                        .capability_snapshot()
+                        .enabled_capabilities()
+                        .to_vec();
+                    CommandEvalCtx::headless(capabilities)
+                        .with_play_state(play_state_from_mode(self.play_sessions().mode()))
+                }
+                EditorOperationSource::Menu | EditorOperationSource::UiBinding => {
+                    // Play transitions commit before the next chrome projection. Admission must
+                    // observe the live session authority while preserving the stored UI context.
+                    self.context()
+                        .command_eval()
+                        .snapshot()
+                        .with_play_state(play_state_from_mode(self.play_sessions().mode()))
+                }
             }
-            EditorOperationSource::Menu | EditorOperationSource::UiBinding => {
-                // Play transitions commit before the next chrome projection. Admission must
-                // observe the live session authority while preserving the stored UI context.
-                self.context()
-                    .command_eval()
-                    .snapshot()
-                    .with_play_state(play_state_from_mode(self.play_sessions().mode()))
-            }
-        }
+        })
     }
 }

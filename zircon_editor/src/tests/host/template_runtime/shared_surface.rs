@@ -112,18 +112,18 @@ fn editor_ui_host_runtime_builds_shared_surface_for_builtin_template() {
     runtime.load_builtin_host_templates().unwrap();
 
     let surface = runtime
-        .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
+        .build_shared_surface(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
 
     assert_eq!(
         surface.tree.tree_id.0,
-        format!("template.v2.{UI_HOST_WINDOW_DOCUMENT_ID}")
+        format!("template.v2.{UNREAL_EDITOR_SHELL_DOCUMENT_ID}")
     );
     assert_eq!(surface.tree.roots.len(), 1);
     assert_eq!(surface.tree.nodes.len(), 27);
     assert_eq!(
         surface.render_extract.tree_id.0,
-        format!("template.v2.{UI_HOST_WINDOW_DOCUMENT_ID}")
+        format!("template.v2.{UNREAL_EDITOR_SHELL_DOCUMENT_ID}")
     );
     assert!(surface.render_extract.list.commands.is_empty());
     assert!(surface.arranged_tree.nodes.is_empty());
@@ -157,7 +157,7 @@ fn editor_ui_compatibility_harness_captures_shared_surface_snapshot() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let surface = runtime
-        .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
+        .build_shared_surface(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
 
     let snapshot = EditorUiCompatibilityHarness::capture_shared_surface_snapshot(&surface);
@@ -187,14 +187,14 @@ fn editor_ui_host_runtime_builds_laid_out_host_model_from_shared_surface_authori
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
-        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
         .unwrap();
     let mut surface = runtime
-        .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
+        .build_shared_surface(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
     surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
 
@@ -239,14 +239,14 @@ fn editor_ui_compatibility_harness_captures_shared_layout_frames_from_surface_an
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
-        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
     let mut service = EditorUiControlService::default();
     runtime
         .register_projection_routes(&mut service, &mut projection)
         .unwrap();
     let mut surface = runtime
-        .build_shared_surface(UI_HOST_WINDOW_DOCUMENT_ID)
+        .build_shared_surface(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
     surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
     let host_model = runtime

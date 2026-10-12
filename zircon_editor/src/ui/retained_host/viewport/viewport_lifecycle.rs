@@ -1,5 +1,5 @@
 use std::collections::BTreeSet;
-use std::sync::Arc;
+use super::viewport_state::ViewportRenderFrameworkCall;
 
 use crate::scene::viewport::{
     RenderFramework, RenderFrameworkError, RenderViewportDescriptor, RenderViewportHandle,
@@ -15,7 +15,7 @@ impl RetainedViewportController {
         &self,
         surface_key: &str,
         size: UVec2,
-    ) -> Result<Option<(RenderViewportHandle, Arc<dyn RenderFramework>)>, RenderFrameworkError>
+    ) -> Result<Option<(RenderViewportHandle, ViewportRenderFrameworkCall)>, RenderFrameworkError>
     {
         let size = UVec2::new(size.x.max(1), size.y.max(1));
         let (render_framework, previous) = {

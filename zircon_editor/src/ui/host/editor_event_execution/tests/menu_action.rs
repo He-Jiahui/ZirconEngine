@@ -19,7 +19,7 @@ use super::{
 };
 
 #[test]
-fn stop_menu_detaches_play_gateway_without_relocking_the_shell_guard() {
+fn stop_menu_detaches_play_gateway_with_menu_owned_shell_guard() {
     let (completed, result) = mpsc::channel();
     let worker = std::thread::spawn(move || {
         let core = CoreRuntime::new();
@@ -32,7 +32,11 @@ fn stop_menu_detaches_play_gateway_without_relocking_the_shell_guard() {
             UVec2::new(1280, 720),
             std::sync::Arc::clone(manager.context()),
         );
-        let controller = EditorHostEventController::new(state, manager);
+        let controller = EditorHostEventController::new(
+            state,
+            crate::tests::support::register_test_editor_manager(&core, manager),
+        )
+        .expect("editor controller manager admission");
         let play_instance = controller
             .start_test_play_gateway(
                 PlayKind::Play,
@@ -45,7 +49,9 @@ fn stop_menu_detaches_play_gateway_without_relocking_the_shell_guard() {
             .state
             .enter_play_mode()
             .expect("the retained shell should enter Play mode");
-        let action_result = execute_menu_action(&controller, &mut shell, &MenuAction::ExitPlayMode);
+        drop(shell);
+        let action_result = execute_menu_action(&controller, &MenuAction::ExitPlayMode);
+        let shell = controller.shell().lock();
         let stopped = action_result.is_ok()
             && controller.play_sessions().mode() == PlayModeKind::Edit
             && !shell.state.is_playing()
@@ -59,7 +65,7 @@ fn stop_menu_detaches_play_gateway_without_relocking_the_shell_guard() {
 
     let stopped = result
         .recv_timeout(Duration::from_secs(10))
-        .expect("Stop must finish while the menu already owns the shell guard");
+        .expect("Stop must finish while the menu execution owns its shell guard");
     worker
         .join()
         .expect("the Stop menu regression test thread should complete");
@@ -139,4 +145,75 @@ fn project_save_diagnostics_expose_a_display_path_without_the_verbatim_prefix() 
 
     assert!(diagnostic.contains("project=C%3A%5Cprojects%5Cf3%20save"));
     assert!(!diagnostic.contains("%5C%5C%3F%5C"));
+}
+
+#[test]
+fn stop_menu_completes_owned_teardown_after_original_manager_admission_closes() {
+    let (completed, result) = mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        let core = CoreRuntime::new();
+        let manager = std::sync::Arc::new(
+            EditorManager::new(&core.handle())
+                .expect("the host test should construct an editor manager"),
+        );
+        let state = EditorState::with_default_selection_with_context(
+            DefaultLevelManager::default().create_default_level(),
+            UVec2::new(1280, 720),
+            std::sync::Arc::clone(manager.context()),
+        );
+        let original = crate::tests::support::register_test_editor_manager(&core, manager);
+        let controller = EditorHostEventController::new(state, original)
+            .expect("editor controller manager admission");
+        let play_instance = controller
+            .start_test_play_gateway(
+                PlayKind::Play,
+                std::sync::Arc::new(DetachedEditorRuntimeGateway),
+            )
+            .expect("the detached test gateway should attach to the Play domain");
+
+        {
+            let mut shell = controller.shell().lock();
+            shell
+                .state
+                .enter_play_mode()
+                .expect("the retained shell should enter Play mode");
+        }
+        core.deactivate_module(crate::ui::host::module::EDITOR_MODULE_NAME)
+            .expect("the original EditorModule generation should retire");
+        core.activate_module(crate::ui::host::module::EDITOR_MODULE_NAME)
+            .expect("the replacement EditorModule generation should activate");
+        match controller.editor_manager_handle().enter() {
+            Err(zircon_runtime::core::CoreError::StaleServiceHandle { .. }) => {}
+            Err(error) => panic!("the menu must observe the typed stale admission: {error}"),
+            Ok(_) => panic!("the menu unexpectedly admitted the retired manager"),
+        }
+
+        let action_result = execute_menu_action(&controller, &MenuAction::ExitPlayMode);
+        let shell = controller.shell().lock();
+        let stopped = action_result.is_ok()
+            && controller.play_sessions().mode() == PlayModeKind::Edit
+            && !shell.state.is_playing()
+            && controller
+                .gateway_for(crate::core::play::WorldDomain::Play(play_instance))
+                .is_none();
+        let admission_diagnostic = shell.state.status_line.contains("stale service handle");
+        completed
+            .send((stopped, admission_diagnostic))
+            .expect("the test thread should report Stop completion");
+    });
+
+    let (stopped, admission_diagnostic) = result
+        .recv_timeout(Duration::from_secs(10))
+        .expect("Stop must finish after the original manager admission closes");
+    worker
+        .join()
+        .expect("the closed-admission Stop regression test thread should complete");
+    assert!(
+        stopped,
+        "closed manager admission must not suppress owned Play teardown"
+    );
+    assert!(
+        admission_diagnostic,
+        "the stale admission must remain visible as a diagnostic after cleanup"
+    );
 }

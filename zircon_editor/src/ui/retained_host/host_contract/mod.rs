@@ -12,6 +12,7 @@ mod host_page_overflow_menu;
 mod menu_popup_metrics;
 mod native_keyboard;
 mod native_pointer;
+pub(in crate::ui::retained_host) mod normal_capture_redraw_trace;
 mod native_popup_dismiss;
 mod paint_asset_deletion_blocker;
 mod paint_close_prompt;
@@ -105,4 +106,10 @@ pub(crate) use paint_workbench_renderer::paint_scrollbar_component_for_test;
 pub(crate) use surface_hit_test::{
     build_pane_template_surface_frame, rebuild_pane_template_hit_artifacts,
 };
+#[cfg(test)]
+pub(in crate::ui::retained_host) use surface_hit_test::{
+    hit_test_workbench_window_template_node_with_index, HostWorkbenchHitIndex,
+};
+#[cfg(test)]
+pub(in crate::ui::retained_host) use template_popup_layout::menu_item_row_frame;
 pub(crate) use window::{primary_host_window_id, HierarchyPointerSource, UiHostWindow};

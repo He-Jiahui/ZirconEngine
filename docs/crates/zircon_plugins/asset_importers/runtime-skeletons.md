@@ -483,7 +483,9 @@ trait-backed runtime plugin entry and keeps importer descriptor registration pri
 
 `data` declares and registers runtime backends for TOML, JSON, YAML, YML, and XML data importers.
 The plugin emits `DataAsset` values with source text plus canonical JSON. YAML is decoded through
-`serde_yaml`; XML is decoded through `roxmltree` into a stable neutral element tree object so XML can
+`serde-saphyr`, with explicit YAML compatibility options described in the
+[dependency boundary contract](../../../tooling/runtime-dependency-boundaries.md).
+XML is decoded through `roxmltree` into a stable neutral element tree object so XML can
 participate in the same artifact path without pretending to be native JSON syntax. The
 `src/plugin.rs` owner contains the trait-backed runtime plugin entry and keeps importer descriptor
 registration private to the trait. It also projects the standalone distribution contract consumed by

@@ -1,7 +1,11 @@
 #[path = "../state/tests/normal_catalog_prepared_project.rs"]
 mod normal_catalog_prepared_project;
+#[path = "../state/tests/reload_source_settlement.rs"]
+mod reload_source_settlement;
 #[path = "../state/tests/shutdown_consumer.rs"]
 mod shutdown_consumer;
+#[path = "../state/tests/shutdown_resources.rs"]
+mod shutdown_resources;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};

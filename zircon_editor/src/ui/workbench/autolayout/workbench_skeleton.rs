@@ -14,9 +14,9 @@ use super::{
 /// 壳资源与语义区域绑定基线；尺寸令牌在使用时按当前主题解析，和具体layout用户状态分开。
 pub struct WorkbenchSkeleton {
     pub top_toolbar_asset: String,
-    pub activity_rail_left_asset: String,
+    pub activity_rail_left_asset: Option<String>,
     pub activity_rail_right_asset: Option<String>,
-    pub document_tabs_asset: String,
+    pub document_tabs_asset: Option<String>,
     pub regions: Vec<RegionBinding>,
     pub bottom_output_asset: String,
     pub status_bar_asset: String,
@@ -28,15 +28,15 @@ impl WorkbenchSkeleton {
     pub fn default_region_extents_from_tokens(
         tokens: &EditorDesignTokens,
     ) -> BTreeMap<ShellRegionId, f32> {
-        static DEFAULT_WORKBENCH_SKELETON: OnceLock<WorkbenchSkeleton> = OnceLock::new();
+        static DEFAULT_UNREAL_SKELETON: OnceLock<WorkbenchSkeleton> = OnceLock::new();
 
-        DEFAULT_WORKBENCH_SKELETON
-            .get_or_init(Self::jetbrains_default)
+        DEFAULT_UNREAL_SKELETON
+            .get_or_init(Self::unreal_default)
             .preferred_region_extents_from_tokens(tokens)
     }
 
     /// 内建六区域与chrome资源基线，供正常host及作者资产加载后的其余壳字段复用。
-    pub fn jetbrains_default() -> Self {
+    pub fn unreal_default() -> Self {
         let regions = vec![
             region(
                 EditorRegion::LeftTop,
@@ -71,23 +71,20 @@ impl WorkbenchSkeleton {
             region(
                 EditorRegion::Center,
                 EditorRegionRole::CenterDocument,
-                "res://ui/editor/components/workbench/shell/workbench_main_band.zui",
+                "res://ui/editor/unreal/components/viewport.zui",
                 None,
             ),
         ];
 
         Self {
             top_toolbar_asset:
-                "res://ui/editor/components/workbench/shell/workbench_top_toolbar.zui".to_string(),
-            activity_rail_left_asset:
-                "res://ui/editor/components/workbench/shell/workbench_activity_rail.zui".to_string(),
+                "res://ui/editor/unreal/components/toolbar.zui".to_string(),
+            activity_rail_left_asset: None,
             activity_rail_right_asset: None,
-            document_tabs_asset:
-                "res://ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui"
-                    .to_string(),
+            document_tabs_asset: None,
             regions,
             bottom_output_asset: "res://ui/editor/host/console_body.zui".to_string(),
-            status_bar_asset: "res://ui/editor/components/workbench/shell/workbench_status_bar.zui"
+            status_bar_asset: "res://ui/editor/unreal/components/status_bar.zui"
                 .to_string(),
             default_drawer_modes: EditorRegion::ALL
                 .into_iter()

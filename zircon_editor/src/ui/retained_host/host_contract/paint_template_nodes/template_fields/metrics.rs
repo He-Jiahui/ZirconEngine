@@ -13,6 +13,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub line_height: f32,
     pub input_pad_left: f32,
     pub input_pad_right: f32,
+    pub input_pad_top: f32,
+    pub input_pad_bottom: f32,
+    pub label_width: f32,
     pub search_icon_size: f32,
     pub search_text_left: f32,
     pub search_max_height: f32,
@@ -49,6 +52,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         line_height: metrics.line_height(metrics.font_body),
         input_pad_left: metrics.input_pad[0],
         input_pad_right: metrics.input_pad[1],
+        input_pad_top: 0.0,
+        input_pad_bottom: 0.0,
+        label_width: 0.0,
         search_icon_size,
         search_text_left,
         search_max_height: metrics.row_height + border_width * 4.0,
@@ -61,6 +67,50 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         stepper_glyph_width,
         stepper_glyph_height: search_icon_size,
     }
+}
+
+/// Resolve authored field text and paint insets once, before the line box is built.
+/// Runtime layout.padding is deliberately absent from this paint contract.
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_field_metrics_for_node(
+    node: &super::super::super::data::TemplatePaneNodeData,
+) -> WorkbenchFieldMetrics {
+    workbench_field_metrics_for_node_from_host(node, current_host_metrics())
+}
+
+fn workbench_field_metrics_for_node_from_host(
+    node: &super::super::super::data::TemplatePaneNodeData,
+    host: HostControlMetrics,
+) -> WorkbenchFieldMetrics {
+    let mut metrics = workbench_field_metrics_from_host(host);
+    let scale = host.scale_factor;
+    if node.font_size.is_finite() && node.font_size > 0.0 {
+        metrics.font_size = node.font_size * scale;
+        metrics.line_height = host.line_height(metrics.font_size);
+    }
+    if node.line_height_ratio.is_finite() && node.line_height_ratio > 0.0 {
+        metrics.line_height = metrics.font_size * node.line_height_ratio;
+    }
+    if node.line_height.is_finite() && node.line_height > 0.0 {
+        metrics.line_height = node.line_height * scale;
+    }
+    let old_left = metrics.input_pad_left;
+    if let Some(value) = node.authored_field_padding[0].filter(|v| v.is_finite() && *v >= 0.0) {
+        metrics.input_pad_left = value * scale;
+    }
+    if let Some(value) = node.authored_field_padding[1].filter(|v| v.is_finite() && *v >= 0.0) {
+        metrics.input_pad_right = value * scale;
+    }
+    if let Some(value) = node.authored_field_padding[2].filter(|v| v.is_finite() && *v >= 0.0) {
+        metrics.input_pad_top = value * scale;
+    }
+    if let Some(value) = node.authored_field_padding[3].filter(|v| v.is_finite() && *v >= 0.0) {
+        metrics.input_pad_bottom = value * scale;
+    }
+    metrics.label_width = node.authored_field_label_width
+        .filter(|value| value.is_finite() && *value >= 0.0)
+        .unwrap_or(0.0) * scale;
+    metrics.search_text_left += metrics.input_pad_left - old_left;
+    metrics
 }
 
 #[cfg(test)]

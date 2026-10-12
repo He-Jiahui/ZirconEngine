@@ -119,6 +119,7 @@ fn borrowed_and_owned_runtime_draw_lists_project_resolved_editor_text_style() {
         clip: None,
         source: None,
         kind: ChromeCommandKind::Text {
+            font_request: None,
             text: "Code".to_string(),
             color: [220, 220, 220, 255],
             size: 12.0,
@@ -141,6 +142,7 @@ fn borrowed_and_owned_runtime_draw_lists_project_resolved_editor_text_style() {
         clip: None,
         source: None,
         kind: ChromeCommandKind::Text {
+            font_request: None,
             text: "Strong".to_string(),
             color: [240, 240, 240, 255],
             size: 12.0,
@@ -213,6 +215,7 @@ fn runtime_draw_list_font_projection_work_is_bounded_per_stream() {
             clip: None,
             source: None,
             kind: ChromeCommandKind::Text {
+                font_request: None,
                 text: format!("label-{index}"),
                 color: [255; 4],
                 size: 12.0,
@@ -260,6 +263,7 @@ fn owned_runtime_draw_list_moves_image_pixels_into_the_draw_list_resource_table(
         clip: None,
         source: None,
         kind: ChromeCommandKind::Text {
+            font_request: None,
             text: "move-me".to_string(),
             color: [255; 4],
             size: 12.0,
@@ -548,4 +552,165 @@ fn versioned_owned_runtime_draw_list_interns_repeated_chrome_styles() {
         .commands
         .iter()
         .all(|command| matches!(command.kind, UiSurfaceCommandKind::Styled { .. })));
+}
+
+#[test]
+fn authored_request_is_preserved_in_borrowed_and_owned_gpu_commands_under_outer_scope() {
+    use crate::ui::retained_host::host_contract::paint_text::HostTextFontRequest;
+    let request = HostTextFontRequest {
+        face: HostTextFontFace::Ui,
+        family: "Fira Sans".into(),
+        weight: 650,
+    };
+    let mut stream = ChromeCommandStream::full_rebuild((160, 48));
+    stream.push_command_for_test(ChromeCommand {
+        layer: ChromeCommandLayer::Text,
+        z_index: 1,
+        frame: FrameRect {
+            x: 8.0,
+            y: 16.0,
+            width: 140.0,
+            height: 8.0,
+        },
+        clip: Some(FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 160.0,
+            height: 48.0,
+        }),
+        source: None,
+        kind: ChromeCommandKind::Text {
+            text: "Authored input".into(),
+            color: [255; 4],
+            size: 17.0,
+            line_height: 8.0,
+            style: UiTextRunPaintStyle {
+                strong: true,
+                ..Default::default()
+            },
+            font_request: Some(request.clone()),
+        },
+    });
+    stream.push_text(
+        2,
+        FrameRect {
+            x: 8.0,
+            y: 32.0,
+            width: 140.0,
+            height: 16.0,
+        },
+        None,
+        "Legacy",
+        [255; 4],
+        12.0,
+    );
+    use crate::ui::retained_host::host_contract::paint_text::{
+        active_authored_font_request, HostTextFontRequestScope,
+    };
+    let fallback = font_request_for_face(HostTextFontFace::Ui);
+    let outer = HostTextFontRequest {
+        face: HostTextFontFace::Ui,
+        family: "Outer unrelated family".into(),
+        weight: 450,
+    };
+    let _outer = HostTextFontRequestScope::enter(Some(&outer));
+    let borrowed = ui_surface_draw_list_from_stream(&stream);
+    assert_eq!(active_authored_font_request(), Some(outer.clone()));
+    let owned = ui_surface_draw_list_from_owned_stream(stream);
+    assert_eq!(active_authored_font_request(), Some(outer));
+    for list in [&borrowed, &owned] {
+        let UiSurfaceCommandKind::Text {
+            font_family,
+            font_weight,
+            font_size,
+            line_height,
+            style,
+            ..
+        } = &list.commands[0].kind
+        else {
+            panic!("authored GPU text");
+        };
+        assert_eq!(font_family.as_deref(), Some(request.family.as_str()));
+        assert_eq!((*font_weight, *font_size, *line_height), (650, 17.0, 8.0));
+        assert_eq!(*style, UiSurfaceTextStyle::Regular);
+        let UiSurfaceCommandKind::Text {
+            font_family,
+            font_weight,
+            ..
+        } = &list.commands[1].kind
+        else {
+            panic!("legacy GPU text");
+        };
+        assert_eq!(font_family.as_deref(), Some(fallback.family.as_str()));
+        assert_eq!(*font_weight, fallback.weight);
+    }
+}
+
+#[test]
+fn recorded_request_survives_extraction_and_cpu_replay() {
+    use crate::ui::retained_host::host_contract::chrome_command_stream::paint_chrome_command_stream_to_frame;
+    use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
+    use crate::ui::retained_host::host_contract::paint_text::{
+        active_authored_font_request, draw_text_with_size_and_style, HostTextFontRequestScope,
+        TextPaintEvidenceScope,
+    };
+    let request = font_request_for_face(HostTextFontFace::Mono);
+    let rect = FrameRect {
+        x: 8.0,
+        y: 16.0,
+        width: 140.0,
+        height: 8.0,
+    };
+    let clip = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 160.0,
+        height: 48.0,
+    };
+    let mut recording = HostRgbaFrame::recording_only(160, 48);
+    {
+        let _request = HostTextFontRequestScope::enter(Some(&request));
+        draw_text_with_size_and_style(
+            &mut recording,
+            rect,
+            "Recorded input",
+            Some(&clip),
+            [255; 4],
+            17.0,
+            8.0,
+            UiTextRunPaintStyle::default(),
+        );
+    }
+    let mut stream = ChromeCommandStream::full_rebuild((160, 48));
+    for recorded in recording.into_recorded_commands() {
+        let command =
+            super::super::chrome_command_from_recorded_for_test(recorded, true, true).unwrap();
+        let ChromeCommandKind::Text {
+            font_request,
+            size,
+            line_height,
+            ..
+        } = &command.kind
+        else {
+            panic!("recorded text");
+        };
+        assert_eq!(font_request.as_ref(), Some(&request));
+        assert_eq!((*size, *line_height), (17.0, 8.0));
+        stream.push_command_for_test(command);
+    }
+    assert!(!stream.commands().is_empty());
+    let outer = font_request_for_face(HostTextFontFace::UiStrong);
+    let _outer = HostTextFontRequestScope::enter(Some(&outer));
+    let evidence = TextPaintEvidenceScope::begin().unwrap();
+    let pixels = paint_chrome_command_stream_to_frame(160, 48, &stream);
+    let evidence = evidence.finish().unwrap();
+    assert!(pixels
+        .as_bytes()
+        .chunks_exact(4)
+        .any(|pixel| pixel != [0, 0, 0, 255]));
+    assert_eq!(evidence["runs"][0]["fontFamily"], request.family);
+    assert_eq!(evidence["runs"][0]["fontWeight"], request.weight);
+    assert_eq!(evidence["runs"][0]["fontSize"], 17.0);
+    assert_eq!(evidence["runs"][0]["lineHeight"], 8.0);
+    assert_eq!(active_authored_font_request(), Some(outer));
 }

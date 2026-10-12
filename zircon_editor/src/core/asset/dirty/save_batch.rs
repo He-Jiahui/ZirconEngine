@@ -5,7 +5,8 @@ use thiserror::Error;
 
 use crate::core::editing::engine::{EditCommandError, EditorTransactionEngine, HistorySaveToken};
 use crate::core::editor_message::DocumentId;
-use crate::core::extension::{DocumentToolkitSnapshot, ToolkitInstanceId};
+use crate::core::extension::{DocumentSaveReport, DocumentToolkitSnapshot, ToolkitInstanceId};
+use crate::core::jobs::JobError;
 
 use super::{DirtyDocumentSnapshot, DirtyRegistry};
 
@@ -206,18 +207,28 @@ impl SaveDirtyViewsRequest {
     ) -> Result<SaveDirtyViewsResult, SaveDirtyViewsApplyError> {
         let mut expected = HashSet::with_capacity(self.intents.len());
         expected.extend(self.intents.iter().map(SaveDirtyViewIntent::document_id));
-        let mut completions_by_document = HashMap::with_capacity(self.intents.len());
-        for (document, completion) in completions {
-            if !expected.contains(&document) {
-                return Err(SaveDirtyViewsApplyError::UnknownCompletion { document });
+        // Collect the owned terminal batch before validation. A malformed entry must
+        // not discard another document's already recorded publication.
+        let completions = completions.into_iter().collect::<Vec<_>>();
+        let mut seen = HashSet::with_capacity(completions.len());
+        for (document, _) in &completions {
+            if !expected.contains(document) {
+                return Err(SaveDirtyViewsApplyError::UnknownCompletion {
+                    document: *document,
+                    request: self,
+                    completions,
+                });
             }
-            if completions_by_document
-                .insert(document, completion)
-                .is_some()
-            {
-                return Err(SaveDirtyViewsApplyError::DuplicateCompletion { document });
+            if !seen.insert(*document) {
+                return Err(SaveDirtyViewsApplyError::DuplicateCompletion {
+                    document: *document,
+                    request: self,
+                    completions,
+                });
             }
         }
+        let mut completions_by_document = HashMap::with_capacity(self.intents.len());
+        completions_by_document.extend(completions);
 
         let mut outcomes = Vec::with_capacity(self.intents.len());
         for intent in self.intents.iter().cloned() {
@@ -235,6 +246,7 @@ impl SaveDirtyViewsRequest {
                 document,
                 dirty_generation: status.0,
                 status: status.1,
+                report: status.2,
             });
         }
         Ok(SaveDirtyViewsResult {
@@ -249,16 +261,36 @@ fn apply_one_completion(
     completion: SaveDirtyViewCompletion,
     dirty: &DirtyRegistry,
     transactions: &EditorTransactionEngine,
-) -> (u64, SaveDirtyViewOutcomeStatus) {
+) -> (u64, SaveDirtyViewOutcomeStatus, Option<DocumentSaveReport>) {
     let document = intent.document_id();
     let generation = intent.dirty_generation();
-    let written_bytes = match completion {
-        SaveDirtyViewCompletion::Saved { written_bytes } => written_bytes,
-        SaveDirtyViewCompletion::Failed(failure) => {
-            return (generation, SaveDirtyViewOutcomeStatus::Failed(failure));
+    let (written_bytes, report) = match completion {
+        SaveDirtyViewCompletion::Saved { written_bytes } => (written_bytes, None),
+        SaveDirtyViewCompletion::SavedDocument { report } => {
+            if report.document_id() != document || report.instance_id() != intent.toolkit_instance()
+            {
+                let failure = SaveDirtyViewFailure::new(
+                    SaveDirtyViewFailureKind::CompletionApply,
+                    "save report identity differs from its admitted document or toolkit instance",
+                );
+                return (
+                    generation,
+                    SaveDirtyViewOutcomeStatus::Failed(failure),
+                    Some(report),
+                );
+            }
+            (report.written_bytes(), Some(report))
+        }
+        SaveDirtyViewCompletion::Failed(mut failure) => {
+            let report = failure.report.take();
+            return (
+                generation,
+                SaveDirtyViewOutcomeStatus::Failed(failure),
+                report,
+            );
         }
         SaveDirtyViewCompletion::Cancelled => {
-            return (generation, SaveDirtyViewOutcomeStatus::Cancelled);
+            return (generation, SaveDirtyViewOutcomeStatus::Cancelled, None);
         }
     };
     if let Err(error) = transactions.mark_saved_if_unchanged(
@@ -266,44 +298,57 @@ fn apply_one_completion(
         intent.save_token,
     ) {
         if matches!(error, EditCommandError::HistoryChangedDuringSave { .. }) {
-            return (generation, SaveDirtyViewOutcomeStatus::StaleGeneration);
+            return (
+                generation,
+                SaveDirtyViewOutcomeStatus::StaleGeneration,
+                report,
+            );
         }
-        return (
-            generation,
-            SaveDirtyViewOutcomeStatus::Failed(SaveDirtyViewFailure::new(
-                SaveDirtyViewFailureKind::CompletionApply,
-                error.to_string(),
-            )),
-        );
+        return completion_apply_failure(generation, report, error);
     }
 
     match dirty.clear_saved_external_effects(&intent.snapshot) {
         Ok(true) => {}
-        Ok(false) => return (generation, SaveDirtyViewOutcomeStatus::StaleGeneration),
-        Err(error) => return completion_apply_failure(generation, error),
+        Ok(false) => {
+            return (
+                generation,
+                SaveDirtyViewOutcomeStatus::StaleGeneration,
+                report,
+            )
+        }
+        Err(error) => return completion_apply_failure(generation, report, error),
     }
     (
         generation,
         SaveDirtyViewOutcomeStatus::Saved { written_bytes },
+        report,
     )
 }
 
 fn completion_apply_failure(
     generation: u64,
-    error: impl ToString,
-) -> (u64, SaveDirtyViewOutcomeStatus) {
+    report: Option<DocumentSaveReport>,
+    error: impl std::error::Error + Send + Sync + 'static,
+) -> (u64, SaveDirtyViewOutcomeStatus, Option<DocumentSaveReport>) {
     (
         generation,
-        SaveDirtyViewOutcomeStatus::Failed(SaveDirtyViewFailure::new(
+        SaveDirtyViewOutcomeStatus::Failed(SaveDirtyViewFailure::from_job_error(
             SaveDirtyViewFailureKind::CompletionApply,
-            error.to_string(),
+            JobError::failed(error),
         )),
+        report,
     )
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SaveDirtyViewCompletion {
-    Saved { written_bytes: u64 },
+    Saved {
+        written_bytes: u64,
+    },
+    /// The actual toolkit report; receipt=false remains a valid count-only report.
+    SavedDocument {
+        report: DocumentSaveReport,
+    },
     Failed(SaveDirtyViewFailure),
     Cancelled,
 }
@@ -325,6 +370,9 @@ pub enum SaveDirtyViewFailureKind {
 pub struct SaveDirtyViewFailure {
     kind: SaveDirtyViewFailureKind,
     message: String,
+    #[source]
+    source: Option<JobError>,
+    report: Option<DocumentSaveReport>,
 }
 
 impl SaveDirtyViewFailure {
@@ -332,7 +380,31 @@ impl SaveDirtyViewFailure {
         Self {
             kind,
             message: message.into(),
+            source: None,
+            report: None,
         }
+    }
+
+    pub fn from_job_error(kind: SaveDirtyViewFailureKind, source: JobError) -> Self {
+        Self {
+            kind,
+            message: source.to_string(),
+            source: Some(source),
+            report: None,
+        }
+    }
+
+    pub fn with_report(mut self, report: DocumentSaveReport) -> Self {
+        self.report = Some(report);
+        self
+    }
+
+    pub fn job_error(&self) -> Option<&JobError> {
+        self.source.as_ref()
+    }
+
+    pub fn save_report(&self) -> Option<&DocumentSaveReport> {
+        self.report.as_ref()
     }
 
     pub fn kind(&self) -> SaveDirtyViewFailureKind {
@@ -349,6 +421,7 @@ pub struct SaveDirtyViewOutcome {
     document: DocumentId,
     dirty_generation: u64,
     status: SaveDirtyViewOutcomeStatus,
+    report: Option<DocumentSaveReport>,
 }
 
 impl SaveDirtyViewOutcome {
@@ -362,6 +435,11 @@ impl SaveDirtyViewOutcome {
 
     pub fn status(&self) -> &SaveDirtyViewOutcomeStatus {
         &self.status
+    }
+
+    /// Actual immutable publication metadata, including on failure or a stale save token.
+    pub fn save_report(&self) -> Option<&DocumentSaveReport> {
+        self.report.as_ref()
     }
 }
 
@@ -393,6 +471,18 @@ impl SaveDirtyViewsResult {
             (!matches!(outcome.status, SaveDirtyViewOutcomeStatus::Saved { .. }))
                 .then_some(outcome.document)
         })
+    }
+
+    pub fn committed_documents(&self) -> usize {
+        self.outcomes
+            .iter()
+            .filter(|outcome| {
+                outcome
+                    .report
+                    .as_ref()
+                    .is_some_and(|report| report.cooperating_source_writes_are_serialized())
+            })
+            .count()
     }
 
     pub fn all_saved(&self) -> bool {
@@ -448,9 +538,34 @@ impl SaveDirtyViewsPreflightReport {
 #[derive(Debug, Error)]
 pub enum SaveDirtyViewsApplyError {
     #[error("save completion references unknown document {document:?}")]
-    UnknownCompletion { document: DocumentId },
+    UnknownCompletion {
+        document: DocumentId,
+        request: SaveDirtyViewsRequest,
+        completions: Vec<(DocumentId, SaveDirtyViewCompletion)>,
+    },
     #[error("save completion contains duplicate document {document:?}")]
-    DuplicateCompletion { document: DocumentId },
+    DuplicateCompletion {
+        document: DocumentId,
+        request: SaveDirtyViewsRequest,
+        completions: Vec<(DocumentId, SaveDirtyViewCompletion)>,
+    },
+}
+
+impl SaveDirtyViewsApplyError {
+    pub fn request(&self) -> &SaveDirtyViewsRequest {
+        match self {
+            Self::UnknownCompletion { request, .. } | Self::DuplicateCompletion { request, .. } => {
+                request
+            }
+        }
+    }
+
+    pub fn completions(&self) -> &[(DocumentId, SaveDirtyViewCompletion)] {
+        match self {
+            Self::UnknownCompletion { completions, .. }
+            | Self::DuplicateCompletion { completions, .. } => completions,
+        }
+    }
 }
 
 #[cfg(test)]

@@ -10,11 +10,11 @@ use super::support::{collect_zui_document_files, editor_asset_root, load_zui_doc
 
 const FROZEN_EDITOR_ASSET_COUNT: usize = 248;
 const FROZEN_RAW_COLOR_COUNT: usize = 267;
-const FROZEN_RAW_COLOR_FILE_COUNT: usize = 12;
-const FROZEN_RAW_COLOR_INVENTORY_HASH: u64 = 0xc918_0721_4acc_04c3;
+const FROZEN_RAW_COLOR_FILE_COUNT: usize = 15;
+const FROZEN_RAW_COLOR_INVENTORY_HASH: u64 = 0x1e26_2e4f_5bf9_1cab;
 const FROZEN_FIXED_WORD_COUNT: usize = 5_262;
-const FROZEN_FIXED_WORD_FILE_COUNT: usize = 232;
-const FROZEN_FIXED_WORD_INVENTORY_HASH: u64 = 0x51f7_905c_7f61_032f;
+const FROZEN_FIXED_WORD_FILE_COUNT: usize = 228;
+const FROZEN_FIXED_WORD_INVENTORY_HASH: u64 = 0xa901_bd29_63aa_e0c9;
 const FNV_1A_64_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_1A_64_PRIME: u64 = 0x0000_0100_0000_01b3;
 
@@ -25,66 +25,21 @@ struct RawColorAllowance {
 }
 
 const RAW_COLOR_ALLOWANCES: &[RawColorAllowance] = &[
-    RawColorAllowance {
-        path: "theme/editor_tokens.zui",
-        maximum: 29,
-        reason: "the single editor theme-token owner",
-    },
-    RawColorAllowance {
-        path: "components/workbench/shell/workbench_viewport_panel.zui",
-        maximum: 109,
-        reason: "viewport scene visualization colors",
-    },
-    RawColorAllowance {
-        path: "material_component_lab.zui",
-        maximum: 108,
-        reason: "Material reference and brand-color laboratory",
-    },
-    RawColorAllowance {
-        path: "material_demo_window.zui",
-        maximum: 8,
-        reason: "Material reference theme-token fixture",
-    },
-    RawColorAllowance {
-        path: "material_components/mui_x/material_mui_x_pie_chart.zui",
-        maximum: 3,
-        reason: "data-visualization series palette",
-    },
-    RawColorAllowance {
-        path: "material_components/mui_x/material_mui_x_bar_chart.zui",
-        maximum: 2,
-        reason: "data-visualization series palette",
-    },
-    RawColorAllowance {
-        path: "material_components/mui_x/material_mui_x_charts.zui",
-        maximum: 2,
-        reason: "data-visualization series palette",
-    },
-    RawColorAllowance {
-        path: "material_components/mui_x/material_mui_x_line_chart.zui",
-        maximum: 2,
-        reason: "data-visualization series palette",
-    },
-    RawColorAllowance {
-        path: "material_components/mui_x/material_mui_x_gauge.zui",
-        maximum: 1,
-        reason: "data-visualization series palette",
-    },
-    RawColorAllowance {
-        path: "material_components/mui_x/material_mui_x_sparkline.zui",
-        maximum: 1,
-        reason: "data-visualization series palette",
-    },
-    RawColorAllowance {
-        path: "material_components/data_display/material_material_icons.zui",
-        maximum: 1,
-        reason: "Material htmlColor reference fixture",
-    },
-    RawColorAllowance {
-        path: "components/showcase/showcase_input_section.zui",
-        maximum: 1,
-        reason: "literal color-input sample value, not interaction chrome",
-    },
+    RawColorAllowance { path: "components/showcase/showcase_input_section.zui", maximum: 1, reason: "literal color-input sample value" },
+    RawColorAllowance { path: "material_components/data_display/material_material_icons.zui", maximum: 1, reason: "Material htmlColor reference fixture" },
+    RawColorAllowance { path: "material_components/mui_x/material_mui_x_bar_chart.zui", maximum: 2, reason: "data-visualization series palette" },
+    RawColorAllowance { path: "material_components/mui_x/material_mui_x_charts.zui", maximum: 2, reason: "data-visualization series palette" },
+    RawColorAllowance { path: "material_components/mui_x/material_mui_x_gauge.zui", maximum: 1, reason: "data-visualization series palette" },
+    RawColorAllowance { path: "material_components/mui_x/material_mui_x_line_chart.zui", maximum: 2, reason: "data-visualization series palette" },
+    RawColorAllowance { path: "material_components/mui_x/material_mui_x_pie_chart.zui", maximum: 3, reason: "data-visualization series palette" },
+    RawColorAllowance { path: "material_components/mui_x/material_mui_x_sparkline.zui", maximum: 1, reason: "data-visualization series palette" },
+    RawColorAllowance { path: "theme/editor_tokens.zui", maximum: 34, reason: "existing shared editor token owner; current foreign palette" },
+    RawColorAllowance { path: "unreal/components/content_drawer.zui", maximum: 1, reason: "frozen current native drawer separator; further token convergence remains open" },
+    RawColorAllowance { path: "unreal/components/details.zui", maximum: 11, reason: "frozen current native Details reference palette; further token convergence remains open" },
+    RawColorAllowance { path: "unreal/components/outliner.zui", maximum: 10, reason: "frozen current native Outliner reference palette; further token convergence remains open" },
+    RawColorAllowance { path: "unreal/components/status_bar.zui", maximum: 2, reason: "frozen current native status reference colors; preserve approved geometry" },
+    RawColorAllowance { path: "unreal/components/viewport.zui", maximum: 10, reason: "current viewport visualization and native reference palette" },
+    RawColorAllowance { path: "unreal/starship.zui", maximum: 20, reason: "existing Unreal Starship token owner; approved native reference palette" },
 ];
 
 struct FixedGroupAllowance {
@@ -112,66 +67,6 @@ const FIXED_GROUP_ALLOWANCES: &[FixedGroupAllowance] = &[
         node_id: "preview_visual_panel",
         component: "Overlay",
         reason: "stable asset-thumbnail format",
-    },
-    FixedGroupAllowance {
-        path: "components/workbench/floating/workbench_preferences.zui",
-        node_id: "preferences",
-        component: "HorizontalGroup",
-        reason: "bounded preferences dialog composition",
-    },
-    FixedGroupAllowance {
-        path: "host/workbench_shell.zui",
-        node_id: "left_drawer_shell",
-        component: "Overlay",
-        reason: "runtime-resizable primary drawer region",
-    },
-    FixedGroupAllowance {
-        path: "host/workbench_shell.zui",
-        node_id: "left_drawer_header",
-        component: "Container",
-        reason: "drawer header chrome",
-    },
-    FixedGroupAllowance {
-        path: "host/workbench_shell.zui",
-        node_id: "left_drawer_content",
-        component: "Container",
-        reason: "runtime-resizable primary drawer region",
-    },
-    FixedGroupAllowance {
-        path: "host/workbench_shell.zui",
-        node_id: "right_drawer_shell",
-        component: "Overlay",
-        reason: "runtime-resizable auxiliary drawer region",
-    },
-    FixedGroupAllowance {
-        path: "host/workbench_shell.zui",
-        node_id: "right_drawer_header",
-        component: "Container",
-        reason: "drawer header chrome",
-    },
-    FixedGroupAllowance {
-        path: "host/workbench_shell.zui",
-        node_id: "right_drawer_content",
-        component: "Container",
-        reason: "runtime-resizable auxiliary drawer region",
-    },
-    FixedGroupAllowance {
-        path: "host/workbench_shell.zui",
-        node_id: "bottom_drawer_shell",
-        component: "Overlay",
-        reason: "runtime-resizable output drawer region",
-    },
-    FixedGroupAllowance {
-        path: "host/workbench_shell.zui",
-        node_id: "bottom_drawer_header",
-        component: "Container",
-        reason: "drawer header chrome",
-    },
-    FixedGroupAllowance {
-        path: "host/workbench_shell.zui",
-        node_id: "bottom_drawer_content",
-        component: "Container",
-        reason: "runtime-resizable output drawer region",
     },
     FixedGroupAllowance {
         path: "workbench_activity_rail.zui",

@@ -316,3 +316,361 @@ fn viewport_toolbar_surface_frame_for_test(nodes: Vec<(u64, &str, UiFrame)>) -> 
     surface.rebuild();
     surface.surface_frame().as_ref().clone()
 }
+
+fn unreal_profile_presentation() -> HostWindowPresentationData {
+    let node = |id: &str, parent: &str, control: &str, x, y, width, height| TemplatePaneNodeData {
+        node_id: id.into(),
+        parent_node_id: parent.into(),
+        control_id: control.into(),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..Default::default()
+    };
+    let mut move_control = node(
+        "viewport/tools/move",
+        "viewport/tools",
+        "WorkbenchToolMove",
+        8.0,
+        90.0,
+        80.0,
+        24.0,
+    );
+    move_control.action_id = "WorkbenchSceneMode/Move".into();
+    move_control.component_role = "button".into();
+    let mut presentation = HostWindowPresentationData {
+        workbench_window_nodes: ModelRc::from(Rc::new(VecModel::from(vec![
+            node("root", "", "WorkbenchWindowRoot", 0.0, 0.0, 1280.0, 800.0),
+            node(
+                "content",
+                "root",
+                "UnrealLevelEditorContent",
+                0.0,
+                74.0,
+                1280.0,
+                626.0,
+            ),
+            node(
+                "viewport",
+                "content",
+                "WorkbenchMainBandViewportPanel",
+                0.0,
+                80.0,
+                800.0,
+                520.0,
+            ),
+            node(
+                "viewport/media",
+                "viewport",
+                "WorkbenchViewportSurface",
+                0.0,
+                120.0,
+                800.0,
+                480.0,
+            ),
+            node(
+                "viewport/tools",
+                "viewport",
+                "UnrealViewportToolbar",
+                0.0,
+                86.0,
+                800.0,
+                28.0,
+            ),
+            move_control,
+        ]))),
+        ..Default::default()
+    };
+    let old_tab = |id: &str| {
+        ModelRc::from(Rc::new(VecModel::from(vec![HostChromeTabData {
+            control_id: id.into(),
+            frame: FrameRect {
+                x: 4.0,
+                y: 2.0,
+                width: 90.0,
+                height: 24.0,
+            },
+            ..Default::default()
+        }])))
+    };
+    let scene = &mut presentation.host_scene_data;
+    scene.document_dock.surface_key = "document".into();
+    scene.document_dock.pane.kind = "Scene".into();
+    scene.document_dock.pane.show_toolbar = true;
+    scene.document_dock.region_frame = FrameRect {
+        x: 0.0,
+        y: 80.0,
+        width: 800.0,
+        height: 520.0,
+    };
+    scene.document_dock.content_frame = FrameRect {
+        x: 0.0,
+        y: 30.0,
+        width: 800.0,
+        height: 490.0,
+    };
+    scene.document_dock.tab_frames = old_tab("old-scene-tab");
+    scene.document_dock.pane.viewport.toolbar_surface_frame = Some(std::sync::Arc::new(
+        viewport_toolbar_surface_frame_for_test(vec![(
+            2,
+            "old-tool",
+            UiFrame::new(0.0, 0.0, 80.0, 20.0),
+        )]),
+    ));
+    for (dock, id) in [
+        (&mut scene.left_dock, "old-left-tab"),
+        (&mut scene.right_dock, "old-right-tab"),
+    ] {
+        dock.tab_frames = old_tab(id);
+        dock.region_frame = FrameRect {
+            x: 900.0,
+            y: 80.0,
+            width: 200.0,
+            height: 520.0,
+        };
+        dock.rail_width_px = 32.0;
+        dock.rail_button_frames = ModelRc::from(Rc::new(VecModel::from(vec![
+            super::super::data::HostChromeControlFrameData {
+                control_id: format!("{id}-rail").into(),
+                frame: FrameRect {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 32.0,
+                    height: 32.0,
+                },
+            },
+        ])));
+    }
+    scene.page_chrome.tab_frames = old_tab("old-host-page-tab");
+    scene.bottom_dock.tab_frames = old_tab("live-bottom-tab");
+    presentation.host_layout.viewport_content_frame = FrameRect {
+        x: 0.0,
+        y: 150.0,
+        width: 100.0,
+        height: 80.0,
+    };
+    presentation
+}
+
+#[test]
+fn unreal_profile_uses_authored_viewport_toolbar_and_omits_retired_native_chrome() {
+    let presentation = unreal_profile_presentation();
+    let geometry = UiProfileGeometry::from_presentation(
+        &presentation,
+        &PhysicalSize::new(1280, 800),
+        1.0,
+        HostPresenterBackend::Gpu,
+    );
+    assert!(geometry.document_tabs.is_empty());
+    assert!(geometry.host_page_tabs.is_empty());
+    assert!(geometry.activity_rail_buttons.is_empty());
+    assert_eq!(
+        geometry
+            .drawer_tabs
+            .iter()
+            .map(|tab| tab.id.as_str())
+            .collect::<Vec<_>>(),
+        ["live-bottom-tab"]
+    );
+    let viewport = geometry
+        .viewport_frame
+        .as_ref()
+        .expect("authored media frame");
+    assert_eq!(
+        (viewport.x, viewport.y, viewport.width, viewport.height),
+        (0.0, 120.0, 800.0, 480.0)
+    );
+    assert_eq!(geometry.viewport_toolbar_controls.len(), 1);
+    let toolbar = &geometry.viewport_toolbar_controls[0];
+    assert_eq!(
+        toolbar.id,
+        "viewport_toolbar_control.document.WorkbenchToolMove"
+    );
+    assert_eq!((toolbar.frame.x, toolbar.frame.y), (8.0, 90.0));
+    assert!(!geometry
+        .clickable_frames
+        .iter()
+        .any(|frame| frame.id.contains("old-")));
+    let center = geometry
+        .hit_samples
+        .iter()
+        .find(|sample| sample.id == toolbar.id && sample.sample == "center")
+        .unwrap();
+    assert!(
+        center.route_hit,
+        "profile must query the same authored input index as the real window"
+    );
+    assert!(geometry
+        .hit_samples
+        .iter()
+        .filter(|sample| sample.id == toolbar.id && sample.sample != "center")
+        .all(|sample| !sample.route_hit));
+}
+
+#[test]
+fn unreal_profile_keeps_neighbor_document_frames_and_actual_native_routes() {
+    let mut presentation = unreal_profile_presentation();
+    let mut neighbor = super::super::data::HostDocumentDockSurfaceData::default();
+    neighbor.surface_key = "document:inspector-neighbor".into();
+    neighbor.pane.kind = "Inspector".into();
+    neighbor.region_frame = FrameRect {
+        x: 900.0,
+        y: 80.0,
+        width: 300.0,
+        height: 520.0,
+    };
+    neighbor.header_frame = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 300.0,
+        height: 30.0,
+    };
+    neighbor.content_frame = FrameRect {
+        x: 0.0,
+        y: 30.0,
+        width: 300.0,
+        height: 490.0,
+    };
+    neighbor.tab_frames = ModelRc::from(Rc::new(VecModel::from(vec![HostChromeTabData {
+        control_id: "live-neighbor-tab".into(),
+        frame: FrameRect {
+            x: 4.0,
+            y: 2.0,
+            width: 90.0,
+            height: 24.0,
+        },
+        ..Default::default()
+    }])));
+    neighbor.pane.inspector.nodes =
+        ModelRc::from(Rc::new(VecModel::from(vec![TemplatePaneNodeData {
+            control_id: "NativeNeighborField".into(),
+            action_id: "inspector.edit.neighbor".into(),
+            component_role: "input-field".into(),
+            frame: TemplateNodeFrameData {
+                x: 12.0,
+                y: 40.0,
+                width: 100.0,
+                height: 24.0,
+            },
+            ..Default::default()
+        }])));
+    super::super::surface_hit_test::rebuild_pane_template_hit_artifacts(
+        &mut neighbor.pane,
+        zircon_runtime_interface::ui::layout::UiSize::new(300.0, 490.0),
+    );
+    presentation.host_scene_data.document_leaves =
+        vec![presentation.host_scene_data.document_dock.clone(), neighbor];
+    let geometry = UiProfileGeometry::from_presentation(
+        &presentation,
+        &PhysicalSize::new(1280, 800),
+        1.0,
+        HostPresenterBackend::Gpu,
+    );
+    assert_eq!(geometry.document_tabs.len(), 1);
+    assert_eq!(geometry.document_tabs[0].id, "live-neighbor-tab");
+    assert_eq!(
+        (
+            geometry.document_tabs[0].frame.x,
+            geometry.document_tabs[0].frame.y
+        ),
+        (904.0, 82.0)
+    );
+    let field = geometry
+        .template_controls
+        .iter()
+        .find(|control| control.id.ends_with(".NativeNeighborField"))
+        .expect("neighbor native field");
+    assert_eq!(field.surface, "document:inspector-neighbor");
+    assert_eq!((field.frame.x, field.frame.y), (912.0, 150.0));
+    assert!(geometry
+        .hit_samples
+        .iter()
+        .any(|sample| sample.id == field.id && sample.sample == "center" && sample.route_hit));
+    assert!(geometry
+        .hit_samples
+        .iter()
+        .any(|sample| sample.id == "live-neighbor-tab"
+            && sample.sample == "center"
+            && sample.route_hit));
+}
+
+#[test]
+fn unreal_profile_rejects_authored_toolbar_control_under_wrong_surface_or_kind() {
+    let mut presentation = unreal_profile_presentation();
+    let route = super::super::profiling_hit_routes::route_contains_profile_frame;
+    for surface in ["left", "right", "bottom", "document:not-this-leaf"] {
+        let id = format!("viewport_toolbar_control.{surface}.WorkbenchToolMove");
+        assert!(
+            !route(
+                &presentation,
+                "viewport_toolbar_control",
+                &id,
+                surface,
+                48.0,
+                102.0
+            ),
+            "{surface}"
+        );
+    }
+    assert!(!route(
+        &presentation,
+        "template_control",
+        "template.document.WorkbenchToolMove",
+        "document",
+        48.0,
+        102.0
+    ));
+    let mut leaf = presentation.host_scene_data.document_dock.clone();
+    leaf.surface_key = "document:scene-leaf".into();
+    presentation.host_scene_data.document_leaves = vec![leaf];
+    assert!(route(
+        &presentation,
+        "viewport_toolbar_control",
+        "viewport_toolbar_control.document:scene-leaf.WorkbenchToolMove",
+        "document:scene-leaf",
+        48.0,
+        102.0
+    ));
+    assert!(!route(
+        &presentation,
+        "viewport_toolbar_control",
+        "viewport_toolbar_control.document.WorkbenchToolMove",
+        "document",
+        48.0,
+        102.0
+    ));
+}
+
+#[test]
+fn unreal_profile_retains_native_document_owner_when_authored_media_does_not_fit() {
+    let mut presentation = unreal_profile_presentation();
+    presentation
+        .host_scene_data
+        .document_dock
+        .region_frame
+        .width = 799.0;
+    let geometry = UiProfileGeometry::from_presentation(
+        &presentation,
+        &PhysicalSize::new(1280, 800),
+        1.0,
+        HostPresenterBackend::Gpu,
+    );
+    assert_eq!(geometry.document_tabs.len(), 1);
+    assert_eq!(geometry.document_tabs[0].id, "old-scene-tab");
+    assert_eq!(geometry.viewport_toolbar_controls.len(), 1);
+    assert_eq!(
+        geometry.viewport_toolbar_controls[0].id,
+        "viewport_toolbar_control.document.old-tool"
+    );
+    assert!(!geometry
+        .template_controls
+        .iter()
+        .any(|control| control.id.ends_with(".WorkbenchToolMove")));
+    assert!(geometry.hit_samples.iter().any(|sample| sample.id
+        == "viewport_toolbar_control.document.old-tool"
+        && sample.sample == "center"
+        && sample.route_hit));
+}

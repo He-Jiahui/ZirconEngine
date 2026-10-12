@@ -90,7 +90,7 @@ pub(crate) fn patch_shell_content_presentation_from_state(
         crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
     >,
     componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     hierarchy_filter_query: &str,
     chrome_projection_cache: &mut host_window::HostChromeProjectionCache,
     console_projection_cache: &mut super::pane_data_conversion::ConsolePaneProjectionCache,
@@ -190,7 +190,7 @@ pub(crate) fn patch_shell_content_presentation_from_state(
     let welcome = welcome_presentation(&chrome.welcome);
     let (damage, patch) = convert_patch(
         patch,
-        component_showcase_runtime,
+        pane_runtimes,
         Some(&welcome),
         hierarchy_filter_query,
         console_projection_cache,
@@ -236,7 +236,7 @@ pub(super) fn patch_shell_content_presentation(
     presentation: &ShellPresentation,
     host_layout: &host_window::HostWindowLayoutData,
     chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut super::pane_data_conversion::ConsolePaneProjectionCache,
     module_plugins_projection_cache: &mut super::pane_data_conversion::ModulePluginsPaneProjectionCache,
@@ -274,7 +274,7 @@ pub(super) fn patch_shell_content_presentation(
     );
     let (damage, patch) = convert_patch(
         patch,
-        component_showcase_runtime,
+        pane_runtimes,
         Some(&presentation.welcome),
         hierarchy_filter_query,
         console_projection_cache,
@@ -385,7 +385,7 @@ enum ConvertedDockPatch {
 
 fn convert_patch(
     patch: HostDockSurfacePatch,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     welcome: Option<&crate::ui::layouts::views::WelcomePresentation>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut super::pane_data_conversion::ConsolePaneProjectionCache,
@@ -395,7 +395,7 @@ fn convert_patch(
         HostDockSurfacePatch::Left(dock) => {
             let converted = to_host_contract_side_dock(
                 &dock,
-                component_showcase_runtime,
+                pane_runtimes,
                 welcome,
                 hierarchy_filter_query,
                 console_projection_cache,
@@ -409,7 +409,7 @@ fn convert_patch(
         HostDockSurfacePatch::Right(dock) => {
             let converted = to_host_contract_side_dock(
                 &dock,
-                component_showcase_runtime,
+                pane_runtimes,
                 welcome,
                 hierarchy_filter_query,
                 console_projection_cache,
@@ -423,7 +423,7 @@ fn convert_patch(
         HostDockSurfacePatch::Bottom(dock) => {
             let converted = to_host_contract_bottom_dock(
                 &dock,
-                component_showcase_runtime,
+                pane_runtimes,
                 welcome,
                 hierarchy_filter_query,
                 console_projection_cache,

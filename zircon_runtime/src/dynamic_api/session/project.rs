@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use zircon_runtime_interface::project::RelPath;
 use zircon_runtime_interface::{ZrByteSlice, ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1};
@@ -247,16 +246,12 @@ impl RuntimePreparedProject {
                 root: self.root.clone(),
                 source,
             })?;
-        crate::scene::load_level_asset(
-            core,
-            asset_manager.as_ref(),
-            self.manifest.default_scene.as_str(),
-        )
-        .map_err(|source| RuntimeProjectError::LoadDefaultScene {
-            root: self.root.clone(),
-            scene: self.manifest.default_scene.clone(),
-            source,
-        })
+        crate::scene::load_level_asset(core, &*asset_manager, self.manifest.default_scene.as_str())
+            .map_err(|source| RuntimeProjectError::LoadDefaultScene {
+                root: self.root.clone(),
+                scene: self.manifest.default_scene.clone(),
+                source,
+            })
     }
 
     pub(super) fn load_play_scene_level(
@@ -312,13 +307,13 @@ impl RuntimePreparedProject {
                         root: self.root.clone(),
                         source,
                     })?;
-                crate::scene::load_level_asset(core, asset_manager.as_ref(), uri).map_err(
-                    |source| RuntimeProjectError::LoadPlaySceneAsset {
+                crate::scene::load_level_asset(core, &*asset_manager, uri).map_err(|source| {
+                    RuntimeProjectError::LoadPlaySceneAsset {
                         root: self.root.clone(),
                         scene: play_scene.relative.clone(),
                         source,
-                    },
-                )
+                    }
+                })
             }
         }
     }
@@ -327,27 +322,38 @@ impl RuntimePreparedProject {
         &self,
         core: &CoreHandle,
     ) -> RuntimeProjectResult<DynamicSceneAssetReloadQueue> {
-        let asset_manager = project_asset_manager_handle(core)
-            .and_then(|handle| resolve_manager_service(core, handle))
-            .map_err(|source| RuntimeProjectError::ResolveProjectAssetManager {
+        let handle = project_asset_manager_handle(core).map_err(|source| {
+            RuntimeProjectError::ResolveProjectAssetManager {
                 root: self.root.clone(),
                 source,
-            })?;
-        let project = asset_manager.current_project_manager().ok_or_else(|| {
-            RuntimeProjectError::MissingActiveProjectManager {
-                root: self.root.clone(),
             }
         })?;
-        Ok(DynamicSceneAssetReloadQueue::from_project_asset_manager(
-            project,
-            asset_manager.as_ref(),
-        ))
+        let project = {
+            let asset_manager =
+                resolve_manager_service(core, handle.clone()).map_err(|source| {
+                    RuntimeProjectError::ResolveProjectAssetManager {
+                        root: self.root.clone(),
+                        source,
+                    }
+                })?;
+            asset_manager.current_project_manager().ok_or_else(|| {
+                RuntimeProjectError::MissingActiveProjectManager {
+                    root: self.root.clone(),
+                }
+            })?
+        };
+        DynamicSceneAssetReloadQueue::from_project_asset_manager(project, core, handle).map_err(
+            |source| RuntimeProjectError::ResolveProjectAssetManager {
+                root: self.root.clone(),
+                source,
+            },
+        )
     }
 
     pub(super) fn load_runtime_ui_surfaces(
         &self,
         core: &CoreHandle,
-        text_context: Arc<TextRuntimeContext>,
+        text_context: &TextRuntimeContext,
     ) -> RuntimeProjectResult<RuntimeUiSurfaceSet> {
         if self.manifest.ui_roots.is_empty() {
             return Ok(RuntimeUiSurfaceSet::default());
@@ -375,7 +381,7 @@ impl RuntimePreparedProject {
         })?;
         RuntimeUiSurfaceSet::load(
             &project,
-            asset_manager.as_ref(),
+            &*asset_manager,
             &self.manifest.ui_roots,
             text_context,
         )

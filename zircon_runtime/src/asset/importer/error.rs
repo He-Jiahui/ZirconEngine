@@ -1,4 +1,5 @@
 use thiserror::Error;
+use zircon_runtime_interface::serialization::{PositionalDecodeError, PositionalEncodeError};
 
 use super::AssetImporterRegistryError;
 use crate::asset::assets::ProjectDocumentError;
@@ -265,9 +266,9 @@ pub enum AssetImportError {
         source: UiIconAssetDocumentError,
     },
     #[error("artifact cache serialization failed: {0}")]
-    ArtifactCacheSerialize(#[source] bincode::Error),
+    ArtifactCacheSerialize(#[source] PositionalEncodeError),
     #[error("artifact cache deserialization failed: {0}")]
-    ArtifactCacheDeserialize(#[source] bincode::Error),
+    ArtifactCacheDeserialize(#[source] PositionalDecodeError),
     #[error("asset serialization failed: {0}")]
     SerdeJson(#[from] serde_json::Error),
 }

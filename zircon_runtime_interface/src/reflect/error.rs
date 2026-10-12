@@ -3,10 +3,16 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+use crate::world_sync::LifecycleTargetChange;
+
 /// 反射目录、值转换和世界适配器用这些变体区分契约失败，调用端可直接匹配错误类型。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum ReflectError {
+    LifecycleTargetReplaced {
+        operation: String,
+        target: LifecycleTargetChange,
+    },
     InvalidTypePath {
         type_path: String,
         reason: String,
@@ -77,9 +83,23 @@ pub enum ReflectError {
     },
 }
 
+impl ReflectError {
+    /// A callback retired the producer's target; callers must stop old-target work.
+    pub fn lifecycle_target_change(&self) -> Option<LifecycleTargetChange> {
+        match self {
+            Self::LifecycleTargetReplaced { target, .. } => Some(*target),
+            _ => None,
+        }
+    }
+}
+
 impl fmt::Display for ReflectError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::LifecycleTargetReplaced { operation, target } => write!(
+                formatter,
+                "{operation} cancelled because a lifecycle callback replaced {target}"
+            ),
             Self::InvalidTypePath { type_path, reason } => write!(
                 formatter,
                 "invalid reflected type path `{type_path}`: {reason}"
@@ -171,3 +191,55 @@ impl fmt::Display for ReflectError {
 }
 
 impl std::error::Error for ReflectError {}
+
+#[cfg(test)]
+mod lifecycle_cancellation_tests {
+    use super::*;
+
+    #[test]
+    fn reflected_lifecycle_cancellation_preserves_kind_and_target_on_the_wire() {
+        for (target, wire_target) in [
+            (LifecycleTargetChange::World, "world"),
+            (LifecycleTargetChange::Schedule, "schedule"),
+        ] {
+            let error = ReflectError::LifecycleTargetReplaced {
+                operation: "remove component".into(),
+                target,
+            };
+            let encoded = serde_json::to_value(&error).unwrap();
+            assert_eq!(
+                encoded,
+                serde_json::json!({
+                    "kind": "LifecycleTargetReplaced",
+                    "operation": "remove component",
+                    "target": wire_target,
+                })
+            );
+            let decoded: ReflectError = serde_json::from_value(encoded).unwrap();
+            assert_eq!(decoded, error);
+            assert_eq!(decoded.lifecycle_target_change(), Some(target));
+        }
+    }
+
+    #[test]
+    fn ordinary_reflection_conversion_keeps_its_existing_wire_contract() {
+        let error = ReflectError::UnsupportedConversion {
+            source: "authored conversion".into(),
+            target: "Name.value".into(),
+        };
+        let encoded = serde_json::to_value(&error).unwrap();
+        assert_eq!(
+            encoded,
+            serde_json::json!({
+                "kind": "UnsupportedConversion",
+                "source": "authored conversion",
+                "target": "Name.value",
+            })
+        );
+        assert_eq!(
+            serde_json::from_value::<ReflectError>(encoded).unwrap(),
+            error
+        );
+        assert_eq!(error.lifecycle_target_change(), None);
+    }
+}

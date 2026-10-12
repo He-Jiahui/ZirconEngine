@@ -1,4 +1,4 @@
-"""Run local Cargo with physical output checks and no coordinator dependency."""
+"""Submit scoped Cargo work through ordinary Jenkins; retain pinned runner helpers."""
 from __future__ import annotations
 
 import argparse
@@ -55,7 +55,9 @@ def free_bytes(path: Path) -> int:
     return shutil.disk_usage(probe).free
 
 
-def prepare_command(arguments: list[str], target: Path) -> list[str]:
+def prepare_command(arguments: list[str], target: Path, *, locked: bool = True) -> list[str]:
+    if type(locked) is not bool:
+        raise ValueError("Cargo locked control must be a boolean")
     args = list(arguments)
     separator = args.index("--") if "--" in args else len(args)
     options = args[:separator]
@@ -67,7 +69,9 @@ def prepare_command(arguments: list[str], target: Path) -> list[str]:
     if options[command_index] == "rustc" and separator < len(args):
         raise ValueError("Raw rustc flags are not admitted by this bounded wrapper")
     generated = ["--target-dir", str(validate_output_path(target))]
-    if "--locked" not in options:
+    if not locked and "--locked" in options:
+        raise ValueError("Unlocked input conflicts with --locked")
+    if locked and "--locked" not in options:
         generated.append("--locked")
     return ["cargo", *options, *generated, *args[separator:]]
 
@@ -484,86 +488,39 @@ def _run_with_evidence(command: list[str], repo: Path, target: Path, environment
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Submit scoped Cargo work through ordinary Jenkins")
     parser.add_argument("--repo-root", default=str(Path(__file__).resolve().parents[2]))
     parser.add_argument("--target-dir")
+    parser.add_argument("--build-root")
     parser.add_argument("--evidence-directory")
     parser.add_argument("--evidence-input-manifest")
     parser.add_argument("--evidence-timeout-seconds", type=float)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--query-only", action="store_true")
+    parser.add_argument("--unlocked", action="store_true")
     parser.add_argument("--jenkins-identity-file")
     parser.add_argument("--independent-preview", action="store_true")
     parser.add_argument("cargo_args", nargs=argparse.REMAINDER)
     options = parser.parse_args(argv)
     args = options.cargo_args[1:] if options.cargo_args[:1] == ["--"] else options.cargo_args
     try:
-        repo = Path(options.repo_root).resolve()
-        evidence_requested = options.evidence_directory is not None
-        if evidence_requested != (options.evidence_input_manifest is not None):
-            raise ValueError("Evidence directory and selected-input manifest must be supplied together")
-        evidence_timeout = 21600 if options.evidence_timeout_seconds is None else options.evidence_timeout_seconds
-        if options.evidence_timeout_seconds is not None and not evidence_requested:
-            raise ValueError("Evidence timeout requires evidence mode")
-        if evidence_requested:
-            if not options.independent_preview or not options.target_dir or not 0 < evidence_timeout <= 86400:
-                raise ValueError("Evidence mode requires independent preview, explicit fresh target and bounded timeout")
-            if _evidence_output(options.evidence_directory).exists():
-                raise ValueError("Evidence directory must be exclusively new; existing paths are preserved")
-        if options.jenkins_identity_file:
-            os.environ["ZIRCON_JENKINS_IDENTITY_FILE"] = str(Path(options.jenkins_identity_file).resolve())
-        # M8 owns all known build/test entry points once activated.  The
-        # identity file is supplied by the caller/session; without it we fail
-        # before Cargo can start.  Prior to M8 this returns None and preserves
-        # the independent local evidence path below.
-        from tools.jenkins.frontend import entry_from_environment, sole_entry_enforced
-        gate_repo = Path(__file__).resolve().parents[2]
-        if options.independent_preview and sole_entry_enforced(gate_repo):
-            raise ValueError("Jenkins sole-entry gate active; independent preview refuses service dispatch")
-        forwarded = None if options.independent_preview else entry_from_environment(
-            gate_repo, job="zircon-flow", parameters={"cargoVerb": args[0] if args else ""})
-        if forwarded is not None:
-            print(json.dumps(forwarded, ensure_ascii=False, sort_keys=True))
-            return 0
-        target = validate_output_path(options.target_dir or _default_target(repo, args, dry_run=options.dry_run))
-        command = prepare_command(args, target)
-        if evidence_requested and target == target.parent / "build":
-            raise ValueError("Evidence target and build directories must be distinct")
-        if evidence_requested and (target.exists() or validate_output_path(target.parent / "build").exists()):
-            raise ValueError("Evidence requires a new target/build namespace; existing outputs are preserved")
-        if options.dry_run:
-            plan = {"status": "dry_run", "command": command, "formalAcceptance": False}
-            if evidence_requested:
-                plan["evidencePlan"] = {"directory": options.evidence_directory,
-                                        "inputManifest": options.evidence_input_manifest,
-                                        "timeoutSeconds": evidence_timeout}
-            print(json.dumps(plan, ensure_ascii=False))
-            return 0
-        if free_bytes(target) < MIN_FREE_BYTES:
-            raise ValueError("The target drive must have at least 35 GiB free before Cargo starts")
-        root = next(root for root in storage_roots() if target.is_relative_to(root))
-        cache = validate_output_path(root / "zircon-local/cache")
-        scratch = validate_output_path(root / "zircon-local/scratch" / uuid.uuid4().hex)
-        directories = [target, cache / "cargo-home", cache / "sccache", scratch / "temporary", target.parent / "build"]
-        for directory in directories:
-            exclusive = evidence_requested and directory in {target, target.parent / "build"}
-            validate_output_path(directory).mkdir(parents=True, exist_ok=not exclusive)
-            validate_output_path(directory)
-        environment = dict(os.environ)
-        environment.update({
-            "CARGO_TARGET_DIR": str(target), "CARGO_HOME": str(cache / "cargo-home"),
-            "CARGO_BUILD_BUILD_DIR": str(target.parent / "build"),
-            "SCCACHE_DIR": str(cache / "sccache"),
-            "RUSTC_WRAPPER": "", "RUSTC_WORKSPACE_WRAPPER": "",
-            "TEMP": str(scratch / "temporary"), "TMP": str(scratch / "temporary"),
-            "TMPDIR": str(scratch / "temporary"),
-        })
-        # Cargo retains its native target locks; no shared index or old pool is changed.
-        if evidence_requested:
-            return _run_with_evidence(command, repo, target, environment, options.evidence_directory,
-                                      options.evidence_input_manifest, evidence_timeout)
-        return subprocess.run(command, cwd=repo, env=environment, check=False).returncode
-    except (OSError, ValueError, JenkinsError) as error:
-        print(f"Local Cargo preflight failed: {error}", file=sys.stderr)
+        if options.independent_preview or any(value is not None for value in (
+                options.evidence_directory, options.evidence_input_manifest, options.evidence_timeout_seconds)):
+            raise ValueError("Independent Cargo execution/evidence options have no ordinary Jenkins recipe")
+        root = Path(__file__).resolve().parents[2]
+        from tools.jenkins.frontend import management_entry
+        entry = management_entry(root)
+        if entry.plain(options.repo_root) != entry.plain(root):
+            raise ValueError("Use the identity file's registered worktree sourceView for another source root")
+        result = entry.cargo_entry(
+            root, args, identity_file=options.jenkins_identity_file,
+            target_dir=options.target_dir, build_root=options.build_root,
+            dry_run=options.dry_run, query_only=options.query_only, unlocked=options.unlocked)
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+        return 2 if result["status"] == "pending" else 0
+    except Exception as error:
+        print(json.dumps({"status": "pending", "reasonCode": getattr(error, "code", "ordinary_entry_pending"),
+                          "message": str(error), "formalAcceptance": False, "m8Accepted": False}))
         return 2
 
 

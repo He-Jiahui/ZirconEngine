@@ -5,7 +5,7 @@ use std::{panic, panic::AssertUnwindSafe};
 
 use super::super::super::super::super::*;
 use crate::core::{
-    CoreError, CoreResult, LifecycleState, ModuleContext, ModuleLifecycle,
+    CoreError, CoreResult, LifecycleState, ModuleCleanupContext, ModuleContext, ModuleLifecycle,
     RuntimeModuleLifecycleBlock, RuntimeModuleLifecycleObserver,
 };
 
@@ -15,7 +15,7 @@ struct CleanupCounterLifecycle {
 }
 
 impl ModuleLifecycle for CleanupCounterLifecycle {
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         self.cleanup_count.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }
@@ -37,7 +37,7 @@ impl ModuleLifecycle for BuildCounterLifecycle {
 struct PanicCleanupLifecycle;
 
 impl ModuleLifecycle for PanicCleanupLifecycle {
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         panic!("m2 module cleanup panic")
     }
 }

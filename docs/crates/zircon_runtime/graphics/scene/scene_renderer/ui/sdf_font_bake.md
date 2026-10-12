@@ -29,7 +29,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`sdf_font_bake.rs` converts renderer-neutral atlas keys into SDF, MSDF, or MTSDF glyph bitmaps and metrics. It owns the renderer-side materialized `fontsdf::Font` cache, glyph bake cache, offline artifact lookup, dynamic generation fallback, page pixel assembly, and the typed bake report consumed by the screen-space SDF renderer.
+`text/sdf/font_bake.rs` converts renderer-neutral atlas keys into SDF, MSDF, or MTSDF glyph bitmaps and metrics. Text owns shared font bytes and borrowed `ttf-parser::Face` metrics, the glyph bake cache, offline artifact lookup, `fdsm` dynamic generation, page pixel assembly, and the typed bake report consumed by the screen-space SDF renderer.
 
 The module does not own shaping or fallback policy. Shaping supplies an authoritative `font_id` and optional backend glyph ID whenever that identity exists. Only scalar-only callers, or stale/mismatched handles that cannot be trusted, ask `FontDatabase` to resolve a face from the exact FontObject owner, its CompositeFont, owner-local typeface, locale, and base fallback chain.
 

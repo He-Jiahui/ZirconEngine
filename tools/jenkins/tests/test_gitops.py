@@ -11,7 +11,7 @@ from tools.jenkins.gitops import GitRepository
 
 class GitOpsTests(unittest.TestCase):
     def setUp(self):
-        self.parent = Path(__file__).resolve().parents[3] / ".jenkins/state/test-repos"
+        self.parent = Path(tempfile.gettempdir())
         self.parent.mkdir(parents=True, exist_ok=True)
         self.temp = tempfile.TemporaryDirectory(dir=self.parent)
         self.root = Path(self.temp.name)
@@ -68,6 +68,33 @@ class GitOpsTests(unittest.TestCase):
         with self.assertRaises(JenkinsError) as raised:
             self.repo.plan((candidate,), authorization={"allowCommit": True}, message="blocked")
         self.assertEqual("foreign_index_entry", raised.exception.code)
+
+    def test_foreign_owned_commit_before_planning_is_preserved(self):
+        candidate = self.candidate()
+        (self.root / "owned.txt").write_text("foreign committed value", encoding="utf-8")
+        subprocess.run(["git", "-C", str(self.root), "add", "owned.txt"], check=True)
+        subprocess.run(["git", "-C", str(self.root), "commit", "-qm", "foreign owned change"], check=True)
+        head, index = self.repo.head(), self.repo.index_digest()
+        with self.assertRaises(JenkinsError) as raised:
+            self.repo.plan((candidate,), authorization={"allowCommit": True}, message="stale accepted change")
+        self.assertEqual("foreign_head_change", raised.exception.code)
+        self.assertEqual(head, self.repo.head())
+        self.assertEqual(index, self.repo.index_digest())
+        self.assertEqual("foreign committed value", (self.root / "owned.txt").read_text(encoding="utf-8"))
+
+    def test_unrelated_committed_advance_keeps_candidate_and_later_edits(self):
+        candidate = self.candidate()
+        (self.root / "foreign.txt").write_text("foreign committed value", encoding="utf-8")
+        subprocess.run(["git", "-C", str(self.root), "add", "foreign.txt"], check=True)
+        subprocess.run(["git", "-C", str(self.root), "commit", "-qm", "unrelated foreign change"], check=True)
+        (self.root / "owned.txt").write_text("later foreign worktree edit", encoding="utf-8")
+        plan = self.repo.plan((candidate,), authorization={"allowCommit": True}, message="accepted candidate")
+        self.repo.publish(plan, authorization={"allowCommit": True})
+        contents = subprocess.run(["git", "-C", str(self.root), "show", "HEAD:foreign.txt"],
+                                  capture_output=True, text=True, check=True).stdout
+        self.assertEqual("foreign committed value", contents)
+        self.assertEqual("later foreign worktree edit", (self.root / "owned.txt").read_text(encoding="utf-8"))
+        self.assertEqual("complete", self.repo.reconcile(plan).status)
 
     def test_unrelated_foreign_staging_survives_owned_publish(self):
         (self.root / "foreign.txt").write_text("staged later", encoding="utf-8")

@@ -11,6 +11,34 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  portable-runtime-core:
+    name: Portable runtime core (Wasm)
+    # local-cargo requires a physical D/E/F build root and 35 GiB free.
+    runs-on: [self-hosted, Windows, X64]
+    env:
+      CARGO_HOME: D:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: D:\cargo-targets\zircon-local\cache\rustup
+      TEMP: D:\cargo-targets\zircon-local\tmp
+      TMP: D:\cargo-targets\zircon-local\tmp
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path $env:CARGO_HOME, $env:RUSTUP_HOME, $env:TEMP | Out-Null
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Rust and real Wasm standard library
+        uses: dtolnay/rust-toolchain@1.94.1
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Guard resolved platform and text dependencies
+        run: python -B tools/audits/check_runtime_dependency_boundaries.py --text
+      - name: Compile portable core for the real Wasm target
+        shell: pwsh
+        run: ./tools/dev/local-cargo.ps1 -PythonInterpreter (Get-Command python).Source -TargetDir D:\cargo-targets\zircon-local\wasm\ci\target check -p zircon_runtime --lib --no-default-features --features core-min --target wasm32-unknown-unknown --locked
+
   dependency-governance:
     name: Dependency governance (${{ matrix.manifest }})
     runs-on: ubuntu-latest

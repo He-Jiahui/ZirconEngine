@@ -21,6 +21,8 @@ use crate::core::jobs::{
 mod concurrency;
 #[path = "diagnostics.rs"]
 mod diagnostics;
+#[path = "registered_runtime_commit.rs"]
+mod registered_runtime_commit;
 use super::diagnostics::{EditorAssetImportDiagnostics, EditorModelImportDiagnostics};
 use super::{
     lock::lock_editor_asset_index_recovering_poison, AssetImportBackend,
@@ -615,7 +617,44 @@ fn ticket_wait_until_returns_pending_at_an_explicit_deadline() {
 }
 
 #[test]
-fn shared_flight_cancel_releases_importing_once() {
+fn shared_flight_cancel_request_preserves_backend_success() {
+    struct BoundedBackend(Arc<BlockingBackend>);
+    impl AssetImportBackend for BoundedBackend {
+        fn import(&self, uri: &AssetUri) -> Result<Option<AssetStatusRecord>, CoreError> {
+            self.0.calls.fetch_add(1, Ordering::SeqCst);
+            if let Some(started) = self
+                .0
+                .started
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .take()
+            {
+                let _ = started.send(());
+            }
+            let (released, changed) = &self.0.released;
+            let mut released = released.lock().unwrap_or_else(|p| p.into_inner());
+            let deadline = Instant::now() + Duration::from_secs(30);
+            while !*released {
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(CoreError::Initialization(
+                        "bounded asset import projection test".to_owned(),
+                        "test backend release timed out".to_owned(),
+                    ));
+                }
+                (released, _) = changed
+                    .wait_timeout(released, remaining)
+                    .unwrap_or_else(|p| p.into_inner());
+            }
+            Ok(Some(imported_status(uri)))
+        }
+    }
+    struct ReleaseOnDrop(Arc<BlockingBackend>);
+    impl Drop for ReleaseOnDrop {
+        fn drop(&mut self) {
+            self.0.release();
+        }
+    }
     let jobs =
         test_job_system_with_limits(EditorJobLimits::default().with_limit(JobCategory::Import, 1));
     let (started_tx, started_rx) = mpsc::channel();
@@ -624,11 +663,15 @@ fn shared_flight_cancel_releases_importing_once() {
         started: Mutex::new(Some(started_tx)),
         released: (Mutex::new(false), Condvar::new()),
     });
+    let _release = ReleaseOnDrop(Arc::clone(&backend));
     let target = uri("res://models/blocked.glb");
     let index = index_for("res://models/blocked.glb");
-    let flow = EditorAssetImportFlow::with_backend(jobs.clone(), backend.clone(), index.clone());
+    let flow = EditorAssetImportFlow::with_backend(
+        jobs.clone(),
+        Arc::new(BoundedBackend(Arc::clone(&backend))),
+        index.clone(),
+    );
     let request = EditorAssetImportRequest::new(target.clone(), EditorAssetImportReason::Manual);
-
     let first = flow.submit(request.clone()).unwrap();
     started_rx.recv_timeout(Duration::from_secs(5)).unwrap();
     let second = flow.submit(request).unwrap();
@@ -638,10 +681,10 @@ fn shared_flight_cancel_releases_importing_once() {
         import_state(&index, &target),
         EditorAssetImportState::Importing
     );
-
     backend.release();
-    assert!(matches!(first.wait(), Err(JobError::Cancelled)));
-    assert!(matches!(second.wait(), Err(JobError::Cancelled)));
+    let original_status = imported_status(&target);
+    assert_eq!(first.wait().unwrap().status(), &original_status);
+    assert_eq!(second.wait().unwrap().status(), &original_status);
     assert_eq!(backend.calls.load(Ordering::SeqCst), 1);
     assert_eq!(import_state(&index, &target), EditorAssetImportState::Stale);
 }

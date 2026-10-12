@@ -140,10 +140,13 @@ impl UiCompiledArtifactStore {
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(error),
         };
-        let record = match bincode::deserialize::<UiCompiledArtifactDiskRecord>(&payload) {
-            Ok(record) => record,
-            Err(_) => return Ok(None),
-        };
+        let record =
+            match zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+                .decode::<UiCompiledArtifactDiskRecord>(&payload)
+            {
+                Ok(record) => record,
+                Err(_) => return Ok(None),
+            };
         if record.record_version != STORE_RECORD_VERSION || record.key != *key {
             return Ok(None);
         }
@@ -164,10 +167,13 @@ impl UiCompiledArtifactStore {
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(error),
         };
-        let record = match bincode::deserialize::<UiCompiledPayloadDiskRecord>(&payload) {
-            Ok(record) => record,
-            Err(_) => return Ok(None),
-        };
+        let record =
+            match zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+                .decode::<UiCompiledPayloadDiskRecord>(&payload)
+            {
+                Ok(record) => record,
+                Err(_) => return Ok(None),
+            };
         if record.record_version != STORE_RECORD_VERSION || record.key != *key {
             return Ok(None);
         }
@@ -208,7 +214,10 @@ impl UiCompiledArtifactStore {
             key: key.clone(),
             artifact_bytes: artifact_bytes.to_vec(),
         };
-        let payload = bincode::serialize(&record).map_err(invalid_data)?;
+        let payload =
+            zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+                .encode(&record)
+                .map_err(invalid_data)?;
         fs::write(&path, payload)?;
         Ok(path)
     }
@@ -228,7 +237,10 @@ impl UiCompiledArtifactStore {
             key: key.clone(),
             payload_bytes: payload_bytes.to_vec(),
         };
-        let payload = bincode::serialize(&record).map_err(invalid_data)?;
+        let payload =
+            zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+                .encode(&record)
+                .map_err(invalid_data)?;
         fs::write(&path, payload)?;
         Ok(path)
     }
@@ -307,10 +319,12 @@ impl UiCompiledArtifactStore {
 }
 
 fn disk_payload_matches_asset_id(payload: &[u8], asset_id: &str) -> bool {
-    bincode::deserialize::<UiCompiledArtifactDiskRecord>(payload)
+    zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+        .decode::<UiCompiledArtifactDiskRecord>(payload)
         .map(|record| record.key.asset_id == asset_id)
         .unwrap_or_else(|_| {
-            bincode::deserialize::<UiCompiledPayloadDiskRecord>(payload)
+            zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+                .decode::<UiCompiledPayloadDiskRecord>(payload)
                 .map(|record| record.key.asset_id == asset_id)
                 .unwrap_or(false)
         })

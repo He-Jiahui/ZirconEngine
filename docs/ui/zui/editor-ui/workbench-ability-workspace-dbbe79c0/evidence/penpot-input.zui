@@ -1,7 +1,7 @@
 penpot_host_theme_source = "zircon_editor/assets/ui/editor/theme/editor_tokens.zui"
 stylesheets = []
 penpot_dependency_sources = [ "zircon_editor/assets/ui/editor/theme/editor_tokens.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui", "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui", "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui", "zircon_editor/assets/icons/zircon_editor_shell/controls/search.svg", "zircon_editor/assets/icons/ionicons/close-outline.svg", "zircon_editor/assets/icons/zircon_editor_shell/controls/field-stepper.svg" ]
-penpot_original_source = "[asset]\nkind = \"component\"\nid = \"res://ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\"\nversion = 2\ndisplay_name = \"Workbench Ability Workspace\"\n\n[imports]\nwidgets = [\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown\",\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField\",\n  \"res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow\",\n  \"res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle\",\n  \"res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow\",\n]\nstyles = []\n[components.WorkbenchAbilityWorkspace]\nroot = \"ability_workspace\"\ndefault_classes = [\"workbench-module-body\"]\n\n[nodes.ability_workspace]\ncomponent = \"Overlay\"\ncontrol_id = \"WorkbenchModuleAbilityWorkspace\"\nclasses = [\"workbench-module-body\"]\nprops = { visibility = \"collapsed\" }\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [\n  { node = \"ability_workspace_main\" },\n  { node = \"ability_right\", slot = { layout = { alignment = { horizontal = \"End\", vertical = \"Fill\" }, z_order = 20 } } },\n]\n\n[nodes.ability_workspace_main]\ncomponent = \"HorizontalGroup\"\nclasses = [\"workbench-module-layout-main\"]\nlayout = { clip = true, container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"ability_rail_gap\" }, { node = \"ability_left\" }, { node = \"ability_center\" }, { node = \"ability_right_reserve\" }]\n\n[nodes.ability_right_reserve]\ncomponent = \"Container\"\nclasses = [\"workbench-module-details-reserve\"]\nprops = { responsive_min_tier = \"wide\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n[nodes.ability_rail_gap]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchAbilityRailGap\"\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { width = { min = \"$editor.chrome.activity_rail.width\", preferred = \"$editor.chrome.activity_rail.width\", max = \"$editor.chrome.activity_rail.width\", stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.ability_left]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchAbilityLeftPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"narrow\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"ability_title\" }, { node = \"ability_left_content\" }]\n\n[nodes.ability_left_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchAbilityLeftContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"ability_task_row_01\" }, { node = \"ability_task_row_02\" }, { node = \"ability_asset_row\" }]\n\n[nodes.ability_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchAbilityTitle\"\nprops = { text = \"Gameplay Ability\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.ability_task_row_01]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchAbilityTaskActivateRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"Activate Ability\", icon = \"play\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/AbilityTaskActivate\", event = \"Click\", route = \"workbench.module.ability.task.activate\" }]\n\n[nodes.ability_task_row_02]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchAbilityTaskCostRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"Apply Cost\", icon = \"gear\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/AbilityTaskCost\", event = \"Click\", route = \"workbench.module.ability.task.cost\" }]\n\n[nodes.ability_asset_row]\ncomponent = \"WorkbenchListRow\"\ncontrol_id = \"WorkbenchAbilityAssetRow\"\nclasses = [\"workbench-list-row\"]\nprops = { text = \"GA_DashAttack\", icon = \"play\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/AbilityAssetDash\", event = \"Click\", route = \"workbench.module.ability.asset.dash\" }]\n\n[nodes.ability_center]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchAbilityCenterPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-center\"]\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"ability_center_header\" }, { node = \"ability_graph_canvas\" }, { node = \"ability_output\" }]\n\n[nodes.ability_center_header]\ncomponent = \"HorizontalGroup\"\ncontrol_id = \"WorkbenchAbilityCenterHeader\"\nclasses = [\"workbench-panel-toolbar\"]\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"ability_center_title\" }, { node = \"ability_header_fill\" }, { node = \"ability_playtest_button\" }]\n\n[nodes.ability_center_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchAbilityCenterTitle\"\nprops = { text = \"Ability Graph\" }\nlayout = { width = { min = 160.0, preferred = 160.0, max = 180.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.ability_header_fill]\ncomponent = \"Container\"\ncontrol_id = \"WorkbenchAbilityHeaderFill\"\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\n\n[nodes.ability_playtest_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchAbilityPlaytestButton\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { text = \"Playtest\", button_variant = \"filled\", button_color = \"accent\" }\nlayout = { width = { min = 82, preferred = 82, max = 92, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/AbilityPlaytest\", event = \"Click\", route = \"workbench.module.ability.playtest\" }]\n\n[nodes.ability_graph_canvas]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchAbilityGraphCanvas\"\nclasses = [\"workbench-panel\", \"workbench-module-graph\"]\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.regular\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"ability_phase_table\" }, { node = \"ability_phase_row_01\" }, { node = \"ability_phase_row_02\" }, { node = \"ability_graph_row\" }]\n\n[nodes.ability_phase_table]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchAbilityPhaseTable\"\nprops = { text = \"Phase Matrix\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.ability_phase_row_01]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchAbilityPhaseActivateRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Activation\", value_text = \"Activate Ability   Server   Ready\", options = [\"Activation\",\"Activate Ability\",\"Server\",\"Ready\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/AbilityPhaseActivate\", event = \"Click\", route = \"workbench.module.ability.phase.activate\" }]\n\n[nodes.ability_phase_row_02]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchAbilityPhaseCostRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Cost\", value_text = \"GE_DashAttack_Cost   Predicted   Ready\", options = [\"Cost\",\"GE_DashAttack_Cost\",\"Predicted\",\"Ready\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/AbilityPhaseCost\", event = \"Click\", route = \"workbench.module.ability.phase.cost\" }]\n\n[nodes.ability_graph_row]\ncomponent = \"WorkbenchPropertyRow\"\ncontrol_id = \"WorkbenchAbilityGraphRow\"\nclasses = [\"workbench-property-row\"]\nprops = { text = \"Graph\", value_text = \"Activate -> Cost -> Montage -> Damage -> End\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/AbilityGraphSelect\", event = \"Click\", route = \"workbench.module.ability.graph.select\" }]\n\n[nodes.ability_output]\ncomponent = \"WorkbenchTableRow\"\ncontrol_id = \"WorkbenchAbilityOutputRow\"\nclasses = [\"workbench-table-row\"]\nprops = { text = \"Timeline\", value_text = \"1.22s Ability Activated   OK   GA_DashAttack\", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, options = [\"Timeline\",\"1.22s Ability Activated\",\"OK\",\"GA_DashAttack\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\n\n[nodes.ability_right]\ncomponent = \"VerticalGroup\"\ncontrol_id = \"WorkbenchAbilityRightPanel\"\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\nprops = { responsive_min_tier = \"wide\", responsive_compact_drawer = \"module_details\" }\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"ability_details_title\" }, { node = \"ability_right_content\" }]\n\n[nodes.ability_right_content]\ncomponent = \"ScrollableBox\"\ncontrol_id = \"WorkbenchAbilityRightContent\"\nprops = { input_hoverable = true }\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\nchildren = [{ node = \"ability_name_property_row\" }, { node = \"ability_net_policy_property_row\" }, { node = \"ability_cooldown_property_row\" }, { node = \"ability_animation_tools_button\" }]\n\n[nodes.ability_details_title]\ncomponent = \"WorkbenchSectionTitle\"\ncontrol_id = \"WorkbenchAbilityDetailsTitle\"\nprops = { text = \"Details\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\n\n[nodes.ability_name_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchAbilityNamePropertyRow\"\nprops = { text = \"Name\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"ability_name_field\", slot = { name = \"value\" } }]\n\n[nodes.ability_name_field]\ncomponent = \"WorkbenchField\"\ncontrol_id = \"WorkbenchAbilityNameField\"\nclasses = [\"workbench-field\", \"workbench-component-field\"]\nprops = { value = \"GA_DashAttack\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchModule/AbilityNameEdit\", event = \"Change\", route = \"workbench.module.ability.name.edit\" },\n  { id = \"WorkbenchModule/AbilityNameCommit\", event = \"Submit\", route = \"workbench.module.ability.name.commit\" },\n]\n\n[nodes.ability_net_policy_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchAbilityNetPolicyPropertyRow\"\nprops = { text = \"Net Policy\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"ability_net_policy_dropdown\", slot = { name = \"value\" } }]\n\n[nodes.ability_net_policy_dropdown]\ncomponent = \"WorkbenchDropdown\"\ncontrol_id = \"WorkbenchAbilityNetPolicyDropdown\"\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\nprops = { value = \"server_initiated\", value_text = \"Server Initiated\", options = [\"server_initiated|label=Server Initiated\", \"client_predicted|label=Client Predicted\", \"local_only|label=Local Only\"] }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchModule/AbilityNetPolicyEdit\", event = \"Change\", route = \"workbench.module.ability.net_policy.edit\" },\n  { id = \"WorkbenchModule/AbilityNetPolicyCommit\", event = \"Submit\", route = \"workbench.module.ability.net_policy.commit\" },\n]\n\n[nodes.ability_cooldown_property_row]\ncomponent = \"WorkbenchPropertyEditorRow\"\ncontrol_id = \"WorkbenchAbilityCooldownPropertyRow\"\nprops = { text = \"Cooldown\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\nchildren = [{ node = \"ability_cooldown_field\", slot = { name = \"value\" } }]\n\n[nodes.ability_cooldown_field]\ncomponent = \"WorkbenchField\"\ncontrol_id = \"WorkbenchAbilityCooldownField\"\nclasses = [\"workbench-field\", \"workbench-component-field\"]\nprops = { value = \"4.00s\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\nevents = [\n  { id = \"WorkbenchModule/AbilityCooldownEdit\", event = \"Change\", route = \"workbench.module.ability.cooldown.edit\" },\n  { id = \"WorkbenchModule/AbilityCooldownCommit\", event = \"Submit\", route = \"workbench.module.ability.cooldown.commit\" },\n]\n\n[nodes.ability_animation_tools_button]\ncomponent = \"WorkbenchButton\"\ncontrol_id = \"WorkbenchAbilityAnimationTools\"\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\nprops = { text = \"Animation Tools\", icon = \"more\", button_variant = \"outlined\", button_color = \"secondary\" }\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\nevents = [{ id = \"WorkbenchModule/AbilityAnimationToolsOpen\", event = \"Click\", route = \"workbench.module.ability.animation_tools.open\" }]\n"
+penpot_original_source = "[asset]\r\nkind = \"component\"\r\nid = \"res://ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\"\r\nversion = 2\r\ndisplay_name = \"Workbench Ability Workspace\"\r\n\r\n[imports]\r\nwidgets = [\r\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton\",\r\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown\",\r\n  \"res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField\",\r\n  \"res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow\",\r\n  \"res://ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow\",\r\n  \"res://ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow\",\r\n  \"res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle\",\r\n  \"res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow\",\r\n]\r\nstyles = []\r\n[components.WorkbenchAbilityWorkspace]\r\nroot = \"ability_workspace\"\r\ndefault_classes = [\"workbench-module-body\"]\r\n\r\n[nodes.ability_workspace]\r\ncomponent = \"Overlay\"\r\ncontrol_id = \"WorkbenchModuleAbilityWorkspace\"\r\nclasses = [\"workbench-module-body\"]\r\nprops = { visibility = \"collapsed\" }\r\nlayout = { clip = true, container = { kind = \"Overlay\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [\r\n  { node = \"ability_workspace_main\" },\r\n  { node = \"ability_right\", slot = { layout = { alignment = { horizontal = \"End\", vertical = \"Fill\" }, z_order = 20 } } },\r\n  { node = \"ability_animation_tools_menu\", slot = { layout = { alignment = { horizontal = \"Start\", vertical = \"Start\" }, z_order = 30 } } },\r\n]\r\n\r\n[nodes.ability_workspace_main]\r\ncomponent = \"HorizontalGroup\"\r\nclasses = [\"workbench-module-layout-main\"]\r\nlayout = { clip = true, container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"ability_rail_gap\" }, { node = \"ability_left\" }, { node = \"ability_center\" }, { node = \"ability_right_reserve\" }]\r\n\r\n[nodes.ability_right_reserve]\r\ncomponent = \"Container\"\r\nclasses = [\"workbench-module-details-reserve\"]\r\nprops = { responsive_min_tier = \"wide\" }\r\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\r\n[nodes.ability_rail_gap]\r\ncomponent = \"Container\"\r\ncontrol_id = \"WorkbenchAbilityRailGap\"\r\nprops = { responsive_min_tier = \"narrow\" }\r\nlayout = { width = { min = \"$editor.chrome.activity_rail.width\", preferred = \"$editor.chrome.activity_rail.width\", max = \"$editor.chrome.activity_rail.width\", stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.ability_left]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"WorkbenchAbilityLeftPanel\"\r\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\r\nprops = { responsive_min_tier = \"narrow\" }\r\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"ability_title\" }, { node = \"ability_left_content\" }]\r\n\r\n[nodes.ability_left_content]\r\ncomponent = \"ScrollableBox\"\r\ncontrol_id = \"WorkbenchAbilityLeftContent\"\r\nprops = { input_hoverable = true }\r\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"ability_task_row_01\" }, { node = \"ability_task_row_02\" }, { node = \"ability_asset_row\" }]\r\n\r\n[nodes.ability_title]\r\ncomponent = \"WorkbenchSectionTitle\"\r\ncontrol_id = \"WorkbenchAbilityTitle\"\r\nprops = { text = \"Gameplay Ability\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.ability_task_row_01]\r\ncomponent = \"WorkbenchListRow\"\r\ncontrol_id = \"WorkbenchAbilityTaskActivateRow\"\r\nclasses = [\"workbench-list-row\"]\r\nprops = { text = \"Activate Ability\", icon = \"play\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\r\nevents = [{ id = \"WorkbenchModule/AbilityTaskActivate\", event = \"Click\", route = \"workbench.module.ability.task.activate\" }]\r\n\r\n[nodes.ability_task_row_02]\r\ncomponent = \"WorkbenchListRow\"\r\ncontrol_id = \"WorkbenchAbilityTaskCostRow\"\r\nclasses = [\"workbench-list-row\"]\r\nprops = { text = \"Apply Cost\", icon = \"gear\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\r\nevents = [{ id = \"WorkbenchModule/AbilityTaskCost\", event = \"Click\", route = \"workbench.module.ability.task.cost\" }]\r\n\r\n[nodes.ability_asset_row]\r\ncomponent = \"WorkbenchListRow\"\r\ncontrol_id = \"WorkbenchAbilityAssetRow\"\r\nclasses = [\"workbench-list-row\"]\r\nprops = { text = \"GA_DashAttack\", icon = \"play\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\r\nevents = [{ id = \"WorkbenchModule/AbilityAssetDash\", event = \"Click\", route = \"workbench.module.ability.asset.dash\" }]\r\n\r\n[nodes.ability_center]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"WorkbenchAbilityCenterPanel\"\r\nclasses = [\"workbench-panel\", \"workbench-module-center\"]\r\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"ability_center_header\" }, { node = \"ability_graph_canvas\" }, { node = \"ability_output\" }]\r\n\r\n[nodes.ability_center_header]\r\ncomponent = \"HorizontalGroup\"\r\ncontrol_id = \"WorkbenchAbilityCenterHeader\"\r\nclasses = [\"workbench-panel-toolbar\"]\r\nlayout = { container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }, width = { stretch = \"Stretch\" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = \"Fixed\" } }\r\nchildren = [{ node = \"ability_center_title\" }, { node = \"ability_header_fill\" }, { node = \"ability_playtest_button\" }]\r\n\r\n[nodes.ability_center_title]\r\ncomponent = \"WorkbenchSectionTitle\"\r\ncontrol_id = \"WorkbenchAbilityCenterTitle\"\r\nprops = { text = \"Ability Graph\" }\r\nlayout = { width = { min = 160.0, preferred = 160.0, max = 180.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.ability_header_fill]\r\ncomponent = \"Container\"\r\ncontrol_id = \"WorkbenchAbilityHeaderFill\"\r\nlayout = { width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\n\r\n[nodes.ability_playtest_button]\r\ncomponent = \"WorkbenchButton\"\r\ncontrol_id = \"WorkbenchAbilityPlaytestButton\"\r\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\r\nprops = { text = \"Playtest\", button_variant = \"filled\", button_color = \"accent\" }\r\nlayout = { width = { min = 82, preferred = 82, max = 92, stretch = \"Fixed\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\r\nevents = [{ id = \"WorkbenchModule/AbilityPlaytest\", event = \"Click\", route = \"workbench.module.ability.playtest\" }]\r\n\r\n[nodes.ability_graph_canvas]\r\ncomponent = \"ScrollableBox\"\r\ncontrol_id = \"WorkbenchAbilityGraphCanvas\"\r\nclasses = [\"workbench-panel\", \"workbench-module-graph\"]\r\nprops = { input_hoverable = true }\r\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.regular\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"ability_phase_table\" }, { node = \"ability_phase_row_01\" }, { node = \"ability_phase_row_02\" }, { node = \"ability_graph_row\" }]\r\n\r\n[nodes.ability_phase_table]\r\ncomponent = \"WorkbenchSectionTitle\"\r\ncontrol_id = \"WorkbenchAbilityPhaseTable\"\r\nprops = { text = \"Phase Matrix\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.ability_phase_row_01]\r\ncomponent = \"WorkbenchTableRow\"\r\ncontrol_id = \"WorkbenchAbilityPhaseActivateRow\"\r\nclasses = [\"workbench-table-row\"]\r\nprops = { text = \"Activation\", value_text = \"Activate Ability   Server   Ready\", options = [\"Activation\",\"Activate Ability\",\"Server\",\"Ready\"] }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\r\nevents = [{ id = \"WorkbenchModule/AbilityPhaseActivate\", event = \"Click\", route = \"workbench.module.ability.phase.activate\" }]\r\n\r\n[nodes.ability_phase_row_02]\r\ncomponent = \"WorkbenchTableRow\"\r\ncontrol_id = \"WorkbenchAbilityPhaseCostRow\"\r\nclasses = [\"workbench-table-row\"]\r\nprops = { text = \"Cost\", value_text = \"GE_DashAttack_Cost   Predicted   Ready\", options = [\"Cost\",\"GE_DashAttack_Cost\",\"Predicted\",\"Ready\"] }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = \"Fixed\" } }\r\nevents = [{ id = \"WorkbenchModule/AbilityPhaseCost\", event = \"Click\", route = \"workbench.module.ability.phase.cost\" }]\r\n\r\n[nodes.ability_graph_row]\r\ncomponent = \"WorkbenchPropertyRow\"\r\ncontrol_id = \"WorkbenchAbilityGraphRow\"\r\nclasses = [\"workbench-property-row\"]\r\nprops = { text = \"Graph\", value_text = \"Activate -> Cost -> Montage -> Damage -> End\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = \"Fixed\" } }\r\nevents = [{ id = \"WorkbenchModule/AbilityGraphSelect\", event = \"Click\", route = \"workbench.module.ability.graph.select\" }]\r\n\r\n[nodes.ability_output]\r\ncomponent = \"WorkbenchTableRow\"\r\ncontrol_id = \"WorkbenchAbilityOutputRow\"\r\nclasses = [\"workbench-table-row\"]\r\nprops = { text = \"Timeline\", value_text = \"1.22s Ability Activated   OK   GA_DashAttack\", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, options = [\"Timeline\",\"1.22s Ability Activated\",\"OK\",\"GA_DashAttack\"] }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.ability_right]\r\ncomponent = \"VerticalGroup\"\r\ncontrol_id = \"WorkbenchAbilityRightPanel\"\r\nclasses = [\"workbench-panel\", \"workbench-module-side\"]\r\nprops = { responsive_min_tier = \"wide\", responsive_compact_drawer = \"module_details\" }\r\nlayout = { container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = \"Fixed\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"ability_details_title\" }, { node = \"ability_right_content\" }]\r\n\r\n[nodes.ability_right_content]\r\ncomponent = \"ScrollableBox\"\r\ncontrol_id = \"WorkbenchAbilityRightContent\"\r\nprops = { input_hoverable = true }\r\nlayout = { clip = true, container = { kind = \"ScrollableBox\", axis = \"Vertical\", gap = \"$editor.density.gap.small\", scrollbar_visibility = \"Auto\" }, input_policy = \"Receive\", width = { stretch = \"Stretch\" }, height = { stretch = \"Stretch\" } }\r\nchildren = [{ node = \"ability_name_property_row\" }, { node = \"ability_net_policy_property_row\" }, { node = \"ability_cooldown_property_row\" }, { node = \"ability_animation_tools_button\" }]\r\n\r\n[nodes.ability_details_title]\r\ncomponent = \"WorkbenchSectionTitle\"\r\ncontrol_id = \"WorkbenchAbilityDetailsTitle\"\r\nprops = { text = \"Details\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = \"Fixed\" } }\r\n\r\n[nodes.ability_name_property_row]\r\ncomponent = \"WorkbenchPropertyEditorRow\"\r\ncontrol_id = \"WorkbenchAbilityNamePropertyRow\"\r\nprops = { text = \"Name\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\r\nchildren = [{ node = \"ability_name_field\", slot = { name = \"value\" } }]\r\n\r\n[nodes.ability_name_field]\r\ncomponent = \"WorkbenchField\"\r\ncontrol_id = \"WorkbenchAbilityNameField\"\r\nclasses = [\"workbench-field\", \"workbench-component-field\"]\r\nprops = { value = \"GA_DashAttack\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\r\nevents = [\r\n  { id = \"WorkbenchModule/AbilityNameEdit\", event = \"Change\", route = \"workbench.module.ability.name.edit\" },\r\n  { id = \"WorkbenchModule/AbilityNameCommit\", event = \"Submit\", route = \"workbench.module.ability.name.commit\" },\r\n]\r\n\r\n[nodes.ability_net_policy_property_row]\r\ncomponent = \"WorkbenchPropertyEditorRow\"\r\ncontrol_id = \"WorkbenchAbilityNetPolicyPropertyRow\"\r\nprops = { text = \"Net Policy\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\r\nchildren = [{ node = \"ability_net_policy_dropdown\", slot = { name = \"value\" } }]\r\n\r\n[nodes.ability_net_policy_dropdown]\r\ncomponent = \"WorkbenchDropdown\"\r\ncontrol_id = \"WorkbenchAbilityNetPolicyDropdown\"\r\nclasses = [\"workbench-dropdown\", \"workbench-component-dropdown\"]\r\nprops = { value = \"server_initiated\", value_text = \"Server Initiated\", options = [\"server_initiated|label=Server Initiated\", \"client_predicted|label=Client Predicted\", \"local_only|label=Local Only\"] }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\r\nevents = [\r\n  { id = \"WorkbenchModule/AbilityNetPolicyEdit\", event = \"Change\", route = \"workbench.module.ability.net_policy.edit\" },\r\n  { id = \"WorkbenchModule/AbilityNetPolicyCommit\", event = \"Submit\", route = \"workbench.module.ability.net_policy.commit\" },\r\n]\r\n\r\n[nodes.ability_cooldown_property_row]\r\ncomponent = \"WorkbenchPropertyEditorRow\"\r\ncontrol_id = \"WorkbenchAbilityCooldownPropertyRow\"\r\nprops = { text = \"Cooldown\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = \"Fixed\" } }\r\nchildren = [{ node = \"ability_cooldown_field\", slot = { name = \"value\" } }]\r\n\r\n[nodes.ability_cooldown_field]\r\ncomponent = \"WorkbenchField\"\r\ncontrol_id = \"WorkbenchAbilityCooldownField\"\r\nclasses = [\"workbench-field\", \"workbench-component-field\"]\r\nprops = { value = \"4.00s\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 32, preferred = 32, max = 32, stretch = \"Fixed\" } }\r\nevents = [\r\n  { id = \"WorkbenchModule/AbilityCooldownEdit\", event = \"Change\", route = \"workbench.module.ability.cooldown.edit\" },\r\n  { id = \"WorkbenchModule/AbilityCooldownCommit\", event = \"Submit\", route = \"workbench.module.ability.cooldown.commit\" },\r\n]\r\n\r\n[nodes.ability_animation_tools_button]\r\ncomponent = \"WorkbenchButton\"\r\ncontrol_id = \"WorkbenchAbilityAnimationTools\"\r\nclasses = [\"workbench-control-button\", \"workbench-module-command\"]\r\nprops = { text = \"Animation Tools\", icon = \"more\", button_variant = \"outlined\", button_color = \"secondary\" }\r\nlayout = { width = { stretch = \"Stretch\" }, height = { min = 28, preferred = 28, max = 28, stretch = \"Fixed\" } }\r\nevents = [{ id = \"WorkbenchModule/AbilityAnimationToolsOpen\", event = \"Click\", route = \"workbench.module.ability.animation_tools.open\" }]\r\n\r\n[nodes.ability_animation_tools_menu]\r\ncomponent = \"PopupMenu\"\r\ncontrol_id = \"WorkbenchAbilityAnimationToolsMenu\"\r\nwidget = { behavior = \"popup\", popup_anchor = { kind = \"control\", control_id = \"WorkbenchAbilityAnimationTools\" }, open_property = \"popup_open\" }\r\nclasses = [\"workbench-popup-menu\"]\r\nprops = { visibility = \"collapsed\", popup_open = false, menu_items = [], component_role = \"popup-menu\", layout_padding_left = \"$editor.density.gap.medium\", layout_padding_right = \"$editor.density.gap.medium\", layout_padding_top = \"$editor.density.gap.small\", layout_padding_bottom = \"$editor.density.gap.small\", layout_spacing = \"$editor.density.gap.small\", border_width = \"$editor.control.border_width\", corner_radius = \"$editor.control.radius.panel\", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }\r\nlayout = { width = { stretch = \"Fixed\" }, height = { stretch = \"Fixed\" } }\r\n"
 
 [asset]
 kind = "component"
@@ -21,6 +21,9 @@ default_classes = [ "workbench-module-body" ]
 component = "Overlay"
 control_id = "WorkbenchModuleAbilityWorkspace"
 classes = [ "workbench-module-body" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_workspace"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_workspace.props]
 visibility = "visible"
@@ -50,9 +53,22 @@ z_order = 20
 horizontal = "End"
 vertical = "Fill"
 
+[[nodes.ability_workspace.children]]
+node = "ability_animation_tools_menu"
+
+[nodes.ability_workspace.children.slot.layout]
+z_order = 30
+
+[nodes.ability_workspace.children.slot.layout.alignment]
+horizontal = "Start"
+vertical = "Start"
+
 [nodes.ability_workspace_main]
 component = "HorizontalGroup"
 classes = [ "workbench-module-layout-main" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_workspace_main"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_workspace_main.layout]
 clip = true
@@ -82,6 +98,9 @@ node = "ability_right_reserve"
 [nodes.ability_right_reserve]
 component = "Container"
 classes = [ "workbench-module-details-reserve" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_right_reserve"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_right_reserve.props]
 responsive_min_tier = "wide"
@@ -102,6 +121,9 @@ stretch = "Stretch"
 [nodes.ability_rail_gap]
 component = "Container"
 control_id = "WorkbenchAbilityRailGap"
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_rail_gap"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_rail_gap.props]
 responsive_min_tier = "narrow"
@@ -119,6 +141,9 @@ stretch = "Stretch"
 component = "VerticalGroup"
 control_id = "WorkbenchAbilityLeftPanel"
 classes = [ "workbench-panel", "workbench-module-side" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_left"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_left.props]
 responsive_min_tier = "narrow"
@@ -145,6 +170,9 @@ node = "ability_left_content"
 [nodes.ability_left_content]
 component = "ScrollableBox"
 control_id = "WorkbenchAbilityLeftContent"
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_left_content"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_left_content.props]
 input_hoverable = true
@@ -178,6 +206,9 @@ node = "ability_asset_row"
 component = "Label"
 control_id = "WorkbenchAbilityTitle"
 classes = [ "workbench-section-title", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_title\"}]"
 events = []
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
@@ -208,6 +239,9 @@ stretch = "Fixed"
 component = "ListRow"
 control_id = "WorkbenchAbilityTaskActivateRow"
 classes = [ "workbench-list-row", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_task_row_01\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
 
@@ -271,6 +305,9 @@ route = "workbench.module.ability.task.activate"
 component = "ListRow"
 control_id = "WorkbenchAbilityTaskCostRow"
 classes = [ "workbench-list-row", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_task_row_02\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
 
@@ -334,6 +371,9 @@ route = "workbench.module.ability.task.cost"
 component = "ListRow"
 control_id = "WorkbenchAbilityAssetRow"
 classes = [ "workbench-list-row", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_asset_row\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui#WorkbenchListRow"
 
@@ -397,6 +437,9 @@ route = "workbench.module.ability.asset.dash"
 component = "VerticalGroup"
 control_id = "WorkbenchAbilityCenterPanel"
 classes = [ "workbench-panel", "workbench-module-center" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_center"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_center.layout.container]
 kind = "VerticalBox"
@@ -421,6 +464,9 @@ node = "ability_output"
 component = "HorizontalGroup"
 control_id = "WorkbenchAbilityCenterHeader"
 classes = [ "workbench-panel-toolbar" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_center_header"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_center_header.layout.container]
 kind = "HorizontalBox"
@@ -448,6 +494,9 @@ node = "ability_playtest_button"
 component = "Label"
 control_id = "WorkbenchAbilityCenterTitle"
 classes = [ "workbench-section-title", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_center_title\"}]"
 events = []
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
@@ -480,6 +529,9 @@ stretch = "Stretch"
 [nodes.ability_header_fill]
 component = "Container"
 control_id = "WorkbenchAbilityHeaderFill"
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_header_fill"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_header_fill.layout.width]
 stretch = "Stretch"
@@ -491,6 +543,9 @@ stretch = "Stretch"
 component = "Button"
 control_id = "WorkbenchAbilityPlaytestButton"
 classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_playtest_button\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
 
@@ -564,6 +619,9 @@ route = "workbench.module.ability.playtest"
 component = "ScrollableBox"
 control_id = "WorkbenchAbilityGraphCanvas"
 classes = [ "workbench-panel", "workbench-module-graph" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_graph_canvas"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_graph_canvas.props]
 input_hoverable = true
@@ -600,6 +658,9 @@ node = "ability_graph_row"
 component = "Label"
 control_id = "WorkbenchAbilityPhaseTable"
 classes = [ "workbench-section-title", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_phase_table\"}]"
 events = []
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
@@ -630,6 +691,9 @@ stretch = "Fixed"
 component = "Table"
 control_id = "WorkbenchAbilityPhaseActivateRow"
 classes = [ "workbench-table-row", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_phase_row_01\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
 
@@ -696,6 +760,9 @@ route = "workbench.module.ability.phase.activate"
 component = "Table"
 control_id = "WorkbenchAbilityPhaseCostRow"
 classes = [ "workbench-table-row", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_phase_row_02\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
 
@@ -762,6 +829,9 @@ route = "workbench.module.ability.phase.cost"
 component = "PropertyRow"
 control_id = "WorkbenchAbilityGraphRow"
 classes = [ "workbench-property-row", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_graph_row\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui#WorkbenchPropertyRow"
 
@@ -796,6 +866,9 @@ route = "workbench.module.ability.graph.select"
 component = "Table"
 control_id = "WorkbenchAbilityOutputRow"
 classes = [ "workbench-table-row", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_output\"}]"
 events = []
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow"
@@ -858,6 +931,9 @@ stretch = "Fixed"
 component = "VerticalGroup"
 control_id = "WorkbenchAbilityRightPanel"
 classes = [ "workbench-panel", "workbench-module-side" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_right"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_right.props]
 responsive_min_tier = "wide"
@@ -898,6 +974,9 @@ node = "ability_right_content"
 [nodes.ability_right_content]
 component = "ScrollableBox"
 control_id = "WorkbenchAbilityRightContent"
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_right_content"
+penpot_review_instance_path = "[]"
 
 [nodes.ability_right_content.props]
 input_hoverable = true
@@ -934,6 +1013,9 @@ node = "ability_animation_tools_button"
 component = "Label"
 control_id = "WorkbenchAbilityDetailsTitle"
 classes = [ "workbench-section-title", "workbench-primitive" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_details_title\"}]"
 events = []
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle"
@@ -964,6 +1046,9 @@ stretch = "Fixed"
 component = "PropertyRow"
 control_id = "WorkbenchAbilityNamePropertyRow"
 classes = [ "workbench-property-editor-row", "workbench-composite" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_name_property_row\"}]"
 events = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
 
@@ -1009,6 +1094,9 @@ stretch = "Stretch"
 component = "InputField"
 control_id = "WorkbenchAbilityNameField"
 classes = [ "workbench-field", "workbench-primitive", "workbench-component-field" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_name_field\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField"
 
@@ -1020,10 +1108,10 @@ focused = false
 hovered = false
 disabled = false
 editable_text = true
-background_color = "$editor.surface.recessed"
-hover_background_color = "$editor.surface.hover"
-pressed_background_color = "$editor.surface.3"
-focused_background_color = "$editor.surface.recessed"
+background_color = "$editor.surface.input"
+hover_background_color = "$editor.surface.input"
+pressed_background_color = "$editor.surface.input"
+focused_background_color = "$editor.surface.input"
 disabled_background_color = "$editor.surface.disabled"
 border_color = "$editor.separator.soft"
 hover_border_color = "$editor.border"
@@ -1073,6 +1161,9 @@ route = "workbench.module.ability.name.commit"
 component = "PropertyRow"
 control_id = "WorkbenchAbilityNetPolicyPropertyRow"
 classes = [ "workbench-property-editor-row", "workbench-composite" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_net_policy_property_row\"}]"
 events = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
 
@@ -1119,6 +1210,9 @@ component = "Dropdown"
 control_id = "WorkbenchAbilityNetPolicyDropdown"
 pixel_snapping = "disabled"
 classes = [ "workbench-field", "workbench-dropdown", "workbench-primitive", "workbench-component-dropdown" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_net_policy_dropdown\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown"
 
@@ -1196,6 +1290,9 @@ route = "workbench.module.ability.net_policy.commit"
 component = "PropertyRow"
 control_id = "WorkbenchAbilityCooldownPropertyRow"
 classes = [ "workbench-property-editor-row", "workbench-composite" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_cooldown_property_row\"}]"
 events = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow"
 
@@ -1241,6 +1338,9 @@ stretch = "Stretch"
 component = "InputField"
 control_id = "WorkbenchAbilityCooldownField"
 classes = [ "workbench-field", "workbench-primitive", "workbench-component-field" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_cooldown_field\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField"
 
@@ -1252,10 +1352,10 @@ focused = false
 hovered = false
 disabled = false
 editable_text = true
-background_color = "$editor.surface.recessed"
-hover_background_color = "$editor.surface.hover"
-pressed_background_color = "$editor.surface.3"
-focused_background_color = "$editor.surface.recessed"
+background_color = "$editor.surface.input"
+hover_background_color = "$editor.surface.input"
+pressed_background_color = "$editor.surface.input"
+focused_background_color = "$editor.surface.input"
 disabled_background_color = "$editor.surface.disabled"
 border_color = "$editor.separator.soft"
 hover_border_color = "$editor.border"
@@ -1305,6 +1405,9 @@ route = "workbench.module.ability.cooldown.commit"
 component = "Button"
 control_id = "WorkbenchAbilityAnimationTools"
 classes = [ "workbench-control-button", "workbench-primitive", "workbench-module-command" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui"
+penpot_review_source_node_id = "root"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_animation_tools_button\"}]"
 children = []
 penpot_prefab_source = "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"
 
@@ -1372,8 +1475,57 @@ route = "workbench.module.ability.animation_tools.open"
 [nodes.ability_animation_tools_button.style.self]
 [nodes.ability_animation_tools_button.style.slot]
 [nodes.ability_animation_tools_button.slots]
+[nodes.ability_animation_tools_menu]
+component = "PopupMenu"
+control_id = "WorkbenchAbilityAnimationToolsMenu"
+classes = [ "workbench-popup-menu" ]
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui"
+penpot_review_source_node_id = "ability_animation_tools_menu"
+penpot_review_instance_path = "[]"
+
+[nodes.ability_animation_tools_menu.widget]
+behavior = "popup"
+open_property = "popup_open"
+
+[nodes.ability_animation_tools_menu.widget.popup_anchor]
+kind = "control"
+control_id = "WorkbenchAbilityAnimationTools"
+
+[nodes.ability_animation_tools_menu.props]
+visibility = "collapsed"
+popup_open = false
+menu_items = []
+component_role = "popup-menu"
+layout_padding_left = "$editor.density.gap.medium"
+layout_padding_right = "$editor.density.gap.medium"
+layout_padding_top = "$editor.density.gap.small"
+layout_padding_bottom = "$editor.density.gap.small"
+layout_spacing = "$editor.density.gap.small"
+border_width = "$editor.control.border_width"
+corner_radius = "$editor.control.radius.panel"
+input_interactive = true
+input_clickable = true
+input_hoverable = true
+input_focusable = true
+
+[nodes.ability_animation_tools_menu.layout]
+z_order = 30
+
+[nodes.ability_animation_tools_menu.layout.width]
+stretch = "Fixed"
+
+[nodes.ability_animation_tools_menu.layout.height]
+stretch = "Fixed"
+
+[nodes.ability_animation_tools_menu.layout.alignment]
+horizontal = "Start"
+vertical = "Start"
+
 [nodes.ability_name_property_row__name_column]
 component = "Container"
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui"
+penpot_review_source_node_id = "name_column"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_name_property_row\"}]"
 
 [nodes.ability_name_property_row__name_column.layout.width]
 min = 60
@@ -1386,6 +1538,9 @@ stretch = "Stretch"
 
 [nodes.ability_net_policy_property_row__name_column]
 component = "Container"
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui"
+penpot_review_source_node_id = "name_column"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_net_policy_property_row\"}]"
 
 [nodes.ability_net_policy_property_row__name_column.layout.width]
 min = 60
@@ -1398,6 +1553,9 @@ stretch = "Stretch"
 
 [nodes.ability_cooldown_property_row__name_column]
 component = "Container"
+penpot_review_source_path = "zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui"
+penpot_review_source_node_id = "name_column"
+penpot_review_instance_path = "[{\"sourcePath\":\"zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui\",\"sourceNodeId\":\"ability_cooldown_property_row\"}]"
 
 [nodes.ability_cooldown_property_row__name_column.layout.width]
 min = 60
@@ -1409,76 +1567,81 @@ stretch = "Fixed"
 stretch = "Stretch"
 
 [penpot_host_colors]
-primary = "#60aeff"
-accent = "#60aeff"
-"material.primary" = "#60aeff"
-material_color_primary = "#60aeff"
+primary = "#0070E0"
+accent = "#0070E0"
+"material.primary" = "#0070E0"
+material_color_primary = "#0070E0"
 on_primary = "#151515"
 "material.on_primary" = "#151515"
 material_color_on_primary = "#151515"
 surface = "#2f2f2f"
 "material.surface" = "#2f2f2f"
-surface_inset = "#0f0f0f"
-"material.surface_inset" = "#0f0f0f"
-surface_hover = "#454545"
-"material.surface_hover" = "#454545"
+surface_inset = "#1a1a1a"
+"material.surface_inset" = "#1a1a1a"
+surface_hover = "#575757"
+"material.surface_hover" = "#575757"
 surface_pressed = "#383838"
 "material.surface_pressed" = "#383838"
-surface_selected = "#243f5a"
-"material.surface_selected" = "#243f5a"
-disabled = "#2b2b2b"
-"material.disabled" = "#2b2b2b"
-border = "#484848"
-outline = "#484848"
-"material.outline" = "#484848"
-focus = "#66b2ff"
-focus_ring = "#66b2ff"
-"material.focus_ring" = "#66b2ff"
-text = "#e8e8e8"
-on_surface = "#e8e8e8"
-"material.text" = "#e8e8e8"
-"material.on_surface" = "#e8e8e8"
-text_muted = "#b3b3b3"
-muted = "#b3b3b3"
-"material.text_muted" = "#b3b3b3"
-text_disabled = "#737373"
-"material.text_disabled" = "#737373"
-warning = "#dcac50"
-"material.warning" = "#dcac50"
-error = "#eb605c"
-danger = "#eb605c"
-"material.error" = "#eb605c"
-success = "#55be78"
-"material.success" = "#55be78"
-info = "#5faae6"
-"material.info" = "#5faae6"
+surface_selected = "#0070E0"
+"material.surface_selected" = "#0070E0"
+disabled = "#242424"
+"material.disabled" = "#242424"
+border = "#383838"
+outline = "#383838"
+"material.outline" = "#383838"
+focus = "#0070E0"
+focus_ring = "#0070E0"
+"material.focus_ring" = "#0070E0"
+text = "#C0C0C0"
+on_surface = "#C0C0C0"
+"material.text" = "#C0C0C0"
+"material.on_surface" = "#C0C0C0"
+text_muted = "#C0C0C0"
+muted = "#C0C0C0"
+"material.text_muted" = "#C0C0C0"
+text_disabled = "#808080"
+"material.text_disabled" = "#808080"
+warning = "#FFB800"
+"material.warning" = "#FFB800"
+error = "#EF3535"
+danger = "#EF3535"
+"material.error" = "#EF3535"
+success = "#1FE44B"
+"material.success" = "#1FE44B"
+info = "#26BBFF"
+"material.info" = "#26BBFF"
 
 [penpot_host_palette]
 surface = [ "#151515", "#242424", "#2f2f2f", "#383838" ]
-surface_recessed = "#0f0f0f"
-surface_hover = "#454545"
-surface_selected = "#243f5a"
-surface_disabled = "#2b2b2b"
-accent = "#60aeff"
-accent_soft = "#253f59"
-border = "#484848"
-border_disabled = "#363636"
-separator_strong = "#565656"
-separator_soft = "#333333"
-text_primary = "#e8e8e8"
-text_secondary = "#b3b3b3"
-text_disabled = "#737373"
-success = "#55be78"
+surface_recessed = "#1a1a1a"
+surface_input = "#0f0f0f"
+surface_tab_hover = "#242424cc"
+text_tab_active = "#ffffff"
+surface_hover = "#575757"
+surface_selected = "#0070E0"
+surface_selected_inactive = "#40576f"
+text_selected = "#ffffff"
+surface_disabled = "#242424"
+accent = "#0070E0"
+accent_soft = "#0E86FF"
+border = "#383838"
+border_disabled = "#383838"
+separator_strong = "#575757"
+separator_soft = "#383838"
+text_primary = "#C0C0C0"
+text_secondary = "#C0C0C0"
+text_disabled = "#808080"
+success = "#1FE44B"
 success_container = "#1d472f"
-info = "#5faae6"
+info = "#26BBFF"
 info_container = "#18395b"
-warning = "#dcac50"
+warning = "#FFB800"
 warning_container = "#463112"
-error = "#eb605c"
+error = "#EF3535"
 error_container = "#4c2427"
-popup = "#242424"
-track = "#3b3b3b"
-focus_ring = "#66b2ff"
+popup = "#383838"
+track = "#0F0F0F"
+focus_ring = "#0070E0"
 shadow = "#00000073"
 
 [tokens]
@@ -1486,60 +1649,65 @@ shadow = "#00000073"
 "theme.palette.surface.1" = "#242424"
 "theme.palette.surface.2" = "#2f2f2f"
 "theme.palette.surface.3" = "#383838"
-"theme.palette.text.primary" = "#e8e8e8"
-"theme.palette.text.secondary" = "#b3b3b3"
-"theme.palette.text.disabled" = "#737373"
-"theme.palette.accent" = "#60aeff"
-"theme.palette.success" = "#55be78"
-"theme.palette.info" = "#5faae6"
-"theme.palette.warning" = "#dcac50"
-"theme.palette.error" = "#eb605c"
-"theme.palette.separator" = "#484848"
+"theme.palette.text.primary" = "#C0C0C0"
+"theme.palette.text.secondary" = "#C0C0C0"
+"theme.palette.text.disabled" = "#808080"
+"theme.palette.accent" = "#0070E0"
+"theme.palette.success" = "#1FE44B"
+"theme.palette.info" = "#26BBFF"
+"theme.palette.warning" = "#FFB800"
+"theme.palette.error" = "#EF3535"
+"theme.palette.separator" = "#383838"
 "editor.surface.0" = "#151515"
 "editor.surface.1" = "#242424"
 "editor.surface.2" = "#2f2f2f"
 "editor.surface.3" = "#383838"
-"editor.surface.recessed" = "#0f0f0f"
-"editor.surface.hover" = "#454545"
-"editor.surface.selected" = "#243f5a"
-"editor.surface.disabled" = "#2b2b2b"
-"editor.accent" = "#60aeff"
-"editor.accent.soft" = "#253f59"
-"editor.border" = "#484848"
-"editor.border.disabled" = "#363636"
-"editor.separator.strong" = "#565656"
-"editor.separator.soft" = "#333333"
-"editor.text.primary" = "#e8e8e8"
-"editor.text.secondary" = "#b3b3b3"
-"editor.text.disabled" = "#737373"
-"editor.semantic.success" = "#55be78"
+"editor.surface.recessed" = "#1a1a1a"
+"editor.surface.input" = "#0f0f0f"
+"editor.surface.tab_hover" = "#242424cc"
+"editor.text.tab_active" = "#ffffff"
+"editor.surface.hover" = "#575757"
+"editor.surface.selected" = "#0070E0"
+"editor.surface.selected_inactive" = "#40576f"
+"editor.text.selected" = "#ffffff"
+"editor.surface.disabled" = "#242424"
+"editor.accent" = "#0070E0"
+"editor.accent.soft" = "#0E86FF"
+"editor.border" = "#383838"
+"editor.border.disabled" = "#383838"
+"editor.separator.strong" = "#575757"
+"editor.separator.soft" = "#383838"
+"editor.text.primary" = "#C0C0C0"
+"editor.text.secondary" = "#C0C0C0"
+"editor.text.disabled" = "#808080"
+"editor.semantic.success" = "#1FE44B"
 "editor.semantic.success.container" = "#1d472f"
-"editor.semantic.info" = "#5faae6"
+"editor.semantic.info" = "#26BBFF"
 "editor.semantic.info.container" = "#18395b"
-"editor.semantic.warning" = "#dcac50"
+"editor.semantic.warning" = "#FFB800"
 "editor.semantic.warning.container" = "#463112"
-"editor.semantic.error" = "#eb605c"
+"editor.semantic.error" = "#EF3535"
 "editor.semantic.error.container" = "#4c2427"
-"editor.popup" = "#242424"
-"editor.track" = "#3b3b3b"
-"editor.focus.ring" = "#66b2ff"
+"editor.popup" = "#383838"
+"editor.track" = "#0F0F0F"
+"editor.focus.ring" = "#0070E0"
 "editor.shadow" = "#00000073"
-"editor.typography.ui.family" = "Fira Sans"
-"editor.typography.ui.strong.family" = "Fira Sans"
-"editor.typography.code.family" = "Fira Mono"
+"editor.typography.ui.family" = "Roboto"
+"editor.typography.ui.strong.family" = "Roboto"
+"editor.typography.code.family" = "Droid Sans Mono"
 "editor.typography.utility_tab.text_role" = "ui"
 "editor.typography.font_smoothing" = "grayscale"
-"editor.typography.body.size" = 14
-"editor.typography.caption.size" = 12
+"editor.typography.body.size" = 13.333333
+"editor.typography.caption.size" = 10.666667
 "editor.typography.overlay.size" = 12
-"editor.typography.heading.size" = 16
-"editor.typography.title.size" = 20
+"editor.typography.heading.size" = 13.333333
+"editor.typography.title.size" = 18.666667
 "editor.typography.body.weight" = 400
 "editor.typography.medium.weight" = 500
-"editor.typography.strong.weight" = 600
+"editor.typography.strong.weight" = 700
 "editor.typography.emphasis.weight" = 700
 "editor.typography.code.weight" = 400
-"editor.typography.line_height" = 1.4
+"editor.typography.line_height" = 1.2
 "editor.control.height.large" = 48
 "editor.control.height.default" = 32
 "editor.control.height.compact" = 32
@@ -1552,8 +1720,8 @@ shadow = "#00000073"
 "editor.control.border_width" = 1
 "editor.chrome.top_bar.height" = 25
 "editor.chrome.host_bar.height" = 32
-"editor.chrome.workbench_toolbar.height" = 66
-"editor.chrome.workbench_toolbar.command_row.height" = 34
+"editor.chrome.workbench_toolbar.height" = 42
+"editor.chrome.workbench_toolbar.command_row.height" = 42
 "editor.chrome.workbench_toolbar.popup.command_offset_y" = 29
 "editor.chrome.workbench_toolbar.popup.module_offset_y" = -6
 "editor.chrome.status_bar.height" = 24
@@ -1624,7 +1792,7 @@ shadow = "#00000073"
 "editor.density.axis_value_field.max_width" = 72
 "editor.density.row_height" = 28
 "editor.density.left_drawer_width" = 332
-"editor.density.right_drawer_width" = 404
+"editor.density.right_drawer_width" = 320
 "editor.density.bottom_output_height" = 228
 "editor.density.breakpoint_ultra_width" = 480
 "editor.density.breakpoint_narrow_width" = 640

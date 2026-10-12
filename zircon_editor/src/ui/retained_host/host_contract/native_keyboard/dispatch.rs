@@ -25,6 +25,14 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_workbench_popup_keyb
     command: WorkbenchPopupKeyboardCommand,
 ) -> NativePointerDispatchResult {
     let Some(target) = active_popup_keyboard_target_for_ui(ui) else {
+        if matches!(command, WorkbenchPopupKeyboardCommand::Cancel) {
+            let generation = ui.get_host_presentation_generation();
+            if let Some(target) = crate::ui::retained_host::host_contract::native_popup_dismiss::unreal_viewport_overflow_dismiss_target(&generation.structure().workbench_window_nodes) {
+                ui.global::<crate::ui::retained_host::host_contract::globals::PaneSurfaceHostContext>().invoke_surface_control_clicked(target.control_id, crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID.into());
+                ui.clear_hovered_template_node_for_pointer_move();
+                return NativePointerDispatchResult::region_with_frame_update(target.damage_frame);
+            }
+        }
         return NativePointerDispatchResult::idle();
     };
 

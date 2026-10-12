@@ -335,7 +335,7 @@ fn core_resolve_plugin_exposes_vm_plugin_runtime_and_manager_facade_shares_it() 
         .resolve_driver::<PluginHostDriver>(PLUGIN_HOST_DRIVER_NAME)
         .expect("resolve plugin host driver");
 
-    assert!(Arc::ptr_eq(&plugin, &manager));
+    assert!(std::ptr::eq(&*plugin, &*manager));
 
     let capability = driver
         .registry()

@@ -35,6 +35,7 @@ struct TextFieldVisual {
     border_hover: UiRgbaColor,
     border_focus: UiRgbaColor,
     border_disabled: UiRgbaColor,
+    border_error: UiRgbaColor,
     text: UiRgbaColor,
     placeholder_text: UiRgbaColor,
     text_disabled: UiRgbaColor,
@@ -75,6 +76,8 @@ impl TextFieldVisual {
             first_rgba_attribute(metadata, &["hover_border_color"]).unwrap_or(visual.border_hover);
         visual.border_focus =
             first_rgba_attribute(metadata, &["focus_border_color"]).unwrap_or(visual.border_focus);
+        visual.border_error =
+            first_rgba_attribute(metadata, &["error_border_color"]).unwrap_or(visual.border_error);
         visual.border_disabled = first_rgba_attribute(metadata, &["disabled_border_color"])
             .unwrap_or(visual.border_disabled);
         visual.text = first_rgba_attribute(metadata, &["foreground_color", "text_color"])
@@ -126,15 +129,16 @@ fn default_text_field_visual() -> &'static TextFieldVisual {
         let density = &tokens.density;
         let typography = &tokens.typography;
         TextFieldVisual {
-            surface_idle: colors.surface_recessed,
-            surface_hover: colors.surface_hover,
-            surface_pressed: colors.surface[3],
-            surface_focused: colors.surface_recessed,
-            surface_disabled: colors.surface_disabled,
+            surface_idle: colors.surface_input,
+            surface_hover: colors.surface_input,
+            surface_pressed: colors.surface_input,
+            surface_focused: colors.surface_input,
+            surface_disabled: colors.surface[2],
             border_idle: colors.separator_soft,
-            border_hover: colors.border,
-            border_focus: colors.accent,
+            border_hover: colors.surface_hover,
+            border_focus: colors.focus_ring,
             border_disabled: colors.border_disabled,
+            border_error: colors.error,
             text: colors.text_primary,
             placeholder_text: colors.text_secondary,
             text_disabled: colors.text_disabled,
@@ -208,6 +212,7 @@ struct TextFieldRenderState {
     family: UiPainterFamily,
     visual_state: UiPainterResolvedState,
     surface_hot: bool,
+    has_validation_error: bool,
 }
 
 impl TextFieldRenderState {
@@ -226,6 +231,8 @@ impl TextFieldRenderState {
             family,
             visual_state: painter_state.resolved_state_for_family(family),
             surface_hot,
+            has_validation_error: string_attribute(metadata, "validation_level")
+                .is_some_and(|level| matches!(level, "error" | "danger")),
         }
     }
 
@@ -521,6 +528,8 @@ fn surface_color(state: &TextFieldRenderState, visual: &TextFieldVisual) -> UiRg
 fn border_color(state: &TextFieldRenderState, visual: &TextFieldVisual) -> UiRgbaColor {
     if state.unavailable() {
         visual.border_disabled
+    } else if state.has_validation_error {
+        visual.border_error
     } else if state.focused() || state.pressed() {
         visual.border_focus
     } else if state.hot() {
@@ -622,6 +631,11 @@ fn line_height(
 }
 
 fn parse_css_color(value: &str) -> Option<UiRgbaColor> {
+    let value = value.trim();
+    if value.eq_ignore_ascii_case("transparent") {
+        return Some(UiRgbaColor::from_u8(0, 0, 0, 0));
+    }
+
     let encoded = value.trim().strip_prefix('#')?;
     if !encoded.as_bytes().iter().all(u8::is_ascii_hexdigit) {
         return None;
@@ -653,4 +667,26 @@ fn css_color(color: UiRgbaColor) -> String {
     };
     value.insert(0, '#');
     value
+}
+
+#[cfg(test)]
+mod authored_fallback_tests {
+    use super::*;
+    #[test]
+    fn input_fallback_uses_shared_stable_surface_and_state_outlines() {
+        let visual = TextFieldVisual::resolve(&UiTemplateNodeMetadata::default());
+        let palette = EditorDesignTokens::workbench_dark().palette;
+        for surface in [
+            visual.surface_idle,
+            visual.surface_hover,
+            visual.surface_pressed,
+            visual.surface_focused,
+        ] {
+            assert_eq!(surface, palette.surface_input);
+        }
+        assert_eq!(visual.surface_disabled, palette.surface[2]);
+        assert_eq!(visual.border_hover, palette.surface_hover);
+        assert_eq!(visual.border_focus, palette.focus_ring);
+        assert_eq!(visual.border_error, palette.error);
+    }
 }

@@ -1,5 +1,7 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::super::paint_theme::current_host_metrics;
+use super::super::super::super::super::paint_theme::{
+    current_host_metrics, logical_font_size_to_physical,
+};
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::style::chat_text_color;
 use super::messages::agent_chat_message_layout;
@@ -24,7 +26,7 @@ pub(super) fn push_agent_chat_content(
 
     let metrics = current_host_metrics();
     let font_size = if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
+        logical_font_size_to_physical(node.font_size, metrics.scale_factor)
     } else {
         metrics.font_small
     };

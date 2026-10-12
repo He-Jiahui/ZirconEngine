@@ -8,13 +8,22 @@ impl RetainedEditorHost {
     ) -> Result<(), String> {
         self.startup_session.recent_projects = self
             .editor_manager
-            .recent_projects_snapshot()
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.recent_projects_snapshot())
             .map_err(|error| error.to_string())?;
         self.startup_session.status_message = status_message.into();
         self.editor_manager
-            .show_welcome_page()
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.show_welcome_page())
             .map_err(|error| error.to_string())?;
-        if !self.runtime.editor_snapshot().project_open {
+        if !self
+            .runtime
+            .editor_snapshot()
+            .map_err(|error| error.to_string())?
+            .project_open
+        {
             self.runtime.set_session_mode(EditorSessionMode::Welcome);
         }
         self.schedule_welcome_project_probe();

@@ -46,6 +46,7 @@ impl HostPaintCommand {
             line_height,
             text_style: Default::default(),
             text_layout_policy: HostTextLayoutPolicy::SingleLineEllipsis,
+            text_font_request: None,
             image_key: Some(image_key),
             image_pixels: None,
             opacity,
@@ -84,6 +85,7 @@ impl HostPaintCommand {
             line_height,
             text_style: Default::default(),
             text_layout_policy: HostTextLayoutPolicy::SingleLineEllipsis,
+            text_font_request: None,
             image_key: None,
             image_pixels: Some(HostPaintImagePixels {
                 resource_key,

@@ -15,17 +15,26 @@ impl RetainedEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return None;
         };
-        let Some(list_size) = self
+        let size_result = self
             .asset_surface_pointer_state(surface_mode)
             .and_then(|surface| surface.reference_list(list_kind))
-            .and_then(|list| {
+            .map(|list| {
                 self.resolve_callback_surface_size_for_asset_surface(
                     surface_mode,
                     width,
                     height,
                     list.size,
                 )
-            })
+            }).transpose();
+        let list_size = match size_result {
+            Ok(size) => size.flatten(),
+            Err(error) => {
+                self.clear_asset_reference_drag_on_error(clear_drag_on_error);
+                self.set_status_line(error.to_string());
+                return None;
+            }
+        };
+        let Some(list_size) = list_size
         else {
             self.clear_asset_reference_drag_on_error(clear_drag_on_error);
             self.set_status_line(format!(

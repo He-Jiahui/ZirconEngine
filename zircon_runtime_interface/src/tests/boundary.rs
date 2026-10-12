@@ -3,7 +3,7 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 const ALLOWED_DEPENDENCIES: &[&str] = &[
-    "bincode",
+    "bincode-next",
     "blake3",
     "glam",
     "semver",

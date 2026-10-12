@@ -77,11 +77,11 @@ fn manager_for(
     path: &std::path::Path,
 ) -> (
     zircon_runtime::core::CoreRuntime,
-    std::sync::Arc<EditorManager>,
+    zircon_runtime::core::runtime::ServiceHandle<EditorManager>,
 ) {
     let runtime = editor_runtime_with_config_path(path);
     let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
     (runtime, manager)
 }
@@ -90,7 +90,8 @@ fn manager_for(
 fn editor_manager_reports_an_empty_observable_watch_poll_without_a_project() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_watch_poll_report");
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
 
     let report = manager
         .poll_ui_asset_workspace_watcher()
@@ -113,7 +114,8 @@ fn editor_manager_refreshes_clean_zui_asset_session_from_external_file_change() 
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
 
     let changed = SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External ZUI");
@@ -143,7 +145,8 @@ fn editor_manager_refreshes_clean_ui_asset_session_from_external_file_change() {
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
 
     let changed = SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "External");
@@ -173,7 +176,8 @@ fn editor_manager_marks_dirty_ui_asset_session_conflicted_without_overwriting_lo
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
@@ -223,7 +227,8 @@ fn editor_manager_save_detects_an_unobserved_external_source_change() {
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
@@ -237,7 +242,10 @@ fn editor_manager_save_detects_an_unobserved_external_source_change() {
     )
     .unwrap();
 
-    let _error = manager.save_ui_asset_editor(&instance_id).unwrap_err();
+    drop(manager);
+    let _error =
+        EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id).unwrap_err();
+    let manager = manager_handle.enter().unwrap();
     assert!(fs::read_to_string(&ui_asset_path)
         .unwrap()
         .contains("External Before Save"));
@@ -264,7 +272,8 @@ fn editor_manager_saves_dirty_conflict_local_source_as_copy_without_resolving_co
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
@@ -330,7 +339,8 @@ fn editor_manager_retries_adjacent_local_copy_name_without_overwriting_existing_
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
     fs::write(&existing_copy_path, "existing local copy").unwrap();
 
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
@@ -369,7 +379,8 @@ fn editor_manager_emergency_shell_reverts_invalid_ui_asset_source_to_last_valid(
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     let edited = SIMPLE_ZUI_VIEW_ASSET.replace("Ready", "Edited");
     manager
@@ -413,7 +424,8 @@ fn editor_manager_resolves_conflict_by_reloading_from_disk_or_keeping_local() {
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     fs::write(&ui_asset_path, SIMPLE_ZUI_VIEW_ASSET).unwrap();
 
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
     let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
     manager
         .update_ui_asset_editor_source(
@@ -453,9 +465,10 @@ fn editor_manager_resolves_conflict_by_reloading_from_disk_or_keeping_local() {
     manager
         .refresh_ui_asset_workspace_for_changes(vec![ui_asset_path.to_string_lossy().to_string()])
         .unwrap();
-    manager
-        .keep_ui_asset_editor_local_and_save(&instance_id)
+    drop(manager);
+    EditorManager::keep_ui_asset_editor_local_and_save(manager_handle.clone(), &instance_id)
         .expect("keep local save");
+    let manager = manager_handle.enter().unwrap();
     assert!(fs::read_to_string(&ui_asset_path)
         .unwrap()
         .contains("Local Again"));
@@ -490,7 +503,8 @@ fn editor_manager_marks_and_recovers_stale_imports_from_watched_changes() {
     fs::write(&layout_path, DETACH_THEME_ZUI_VIEW_ASSET).unwrap();
     fs::write(&theme_path, IMPORTED_THEME_COLLISION_ZUI_STYLE_ASSET).unwrap();
 
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
     manager.open_project(&project_root).unwrap();
     let instance_id = manager
         .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
@@ -551,7 +565,8 @@ fn editor_manager_indexes_an_import_that_is_invalid_during_initial_hydration() {
     fs::write(&layout_path, DETACH_THEME_ZUI_VIEW_ASSET).unwrap();
     fs::write(&theme_path, "not = [valid").unwrap();
 
-    let (_runtime, manager) = manager_for(&path);
+    let (_runtime, manager_handle) = manager_for(&path);
+    let manager = manager_handle.enter().unwrap();
     manager.open_project(&project_root).unwrap();
     let instance_id = manager
         .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)

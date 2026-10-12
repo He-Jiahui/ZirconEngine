@@ -3,33 +3,31 @@ use zircon_runtime_interface::ui::design_tokens::{EditorChromeTokens, EditorDesi
 
 const EDITOR_TOKENS_ASSET: &str =
     include_str!("../../../../assets/ui/editor/theme/editor_tokens.zui");
-const WORKBENCH_SKELETON_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/components/workbench/shell/workbench_skeleton.zui");
-const WORKBENCH_STATUS_BAR_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/shell/workbench_status_bar.zui"
+const WORKBENCH_SKELETON_ASSET: &str = include_str!(
+    "../../../../assets/ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui"
 );
-const WORKBENCH_TOP_TOOLBAR_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui"
-);
-const WORKBENCH_COMPONENT_DRAWER_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui"
-);
-const WORKBENCH_MAIN_BAND_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/components/workbench/shell/workbench_main_band.zui");
-const WORKBENCH_SCENE_TREE_PANEL_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui"
-);
-const WORKBENCH_INSPECTOR_PANEL_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui"
-);
+const UNREAL_LEVEL_EDITOR_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/unreal/level_editor_window.zui");
+const UNREAL_EDITOR_SHELL_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/unreal/editor_shell.zui");
+const UNREAL_STYLE_ASSET: &str = include_str!("../../../../assets/ui/editor/unreal/starship.zui");
+const UNREAL_TOOLBAR_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/unreal/components/toolbar.zui");
+const UNREAL_STATUS_BAR_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/unreal/components/status_bar.zui");
+const UNREAL_CONTENT_DRAWER_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/unreal/components/content_drawer.zui");
+const UNREAL_VIEWPORT_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/unreal/components/viewport.zui");
+const UNREAL_OUTLINER_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/unreal/components/outliner.zui");
+const UNREAL_DETAILS_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/unreal/components/details.zui");
 const COMMAND_PALETTE_ASSET: &str = include_str!(
     "../../../../assets/ui/editor/components/workbench/floating/workbench_command_palette.zui"
 );
 const PREFERENCES_ASSET: &str = include_str!(
     "../../../../assets/ui/editor/components/workbench/floating/workbench_preferences.zui"
-);
-const WORKBENCH_VIEWPORT_PANEL_ASSET: &str = include_str!(
-    "../../../../assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui"
 );
 const UI_ASSET_EDITOR_ASSET: &str =
     include_str!("../../../../assets/ui/editor/ui_asset_editor.zui");
@@ -38,154 +36,36 @@ const WORKBENCH_UI_ASSET_ACTION_BAR_ASSET: &str = include_str!(
 );
 const WORKBENCH_MENU_POPUP_ASSET: &str =
     include_str!("../../../../assets/ui/editor/workbench_menu_popup.zui");
-const WORKBENCH_DOCK_HEADER_ASSET: &str =
-    include_str!("../../../../assets/ui/editor/workbench_dock_header.zui");
+const UNREAL_DOCK_HEADER_ASSET: &str =
+    include_str!("../../../../assets/ui/editor/unreal/components/dock_header.zui");
 const WELCOME_ASSET: &str = include_str!("../../../../assets/ui/editor/welcome.zui");
 
 mod ui_asset_editor;
 
 #[test]
-fn layout_shell_and_floating_assets_reference_editor_tokens_instead_of_hex_colors() {
-    assert!(EDITOR_TOKENS_ASSET.contains("editor.surface.0"));
-    assert!(EDITOR_TOKENS_ASSET.contains("editor.control.height.default"));
-    assert!(EDITOR_TOKENS_ASSET.contains("editor.control.radius.pill"));
-    assert!(
-        EDITOR_TOKENS_ASSET.contains("editor.density.toolbar_action_width")
-            && EDITOR_TOKENS_ASSET.contains("editor.density.toolbar_wide_action_width"),
-        "editor token asset must name both toolbar action width tokens"
-    );
-    assert!(EDITOR_TOKENS_ASSET.contains("--left-drawer-width"));
-    let typography_tokens = EDITOR_TOKENS_ASSET
-        .split("[typography]")
-        .nth(1)
-        .and_then(|section| section.split("[controls]").next())
-        .expect("editor token asset must contain typography and controls sections");
-    assert!(
-        typography_tokens.contains("font_smoothing = \"grayscale\""),
-        "the typography asset must mirror the central font smoothing token"
-    );
-
-    for (asset_name, asset_source, required_tokens) in [
-        ("workbench_skeleton.zui", WORKBENCH_SKELETON_ASSET, &[][..]),
-        (
-            "workbench_command_palette.zui",
-            COMMAND_PALETTE_ASSET,
-            &[
-                "$editor.control.border_width",
-                "$editor.control.radius.large",
-            ][..],
-        ),
-        (
-            "workbench_preferences.zui",
-            PREFERENCES_ASSET,
-            &[
-                "$editor.control.border_width",
-                "$editor.control.radius.large",
-            ][..],
-        ),
-        (
-            "workbench_status_bar.zui",
-            WORKBENCH_STATUS_BAR_ASSET,
-            &[
-                "$editor.text.secondary",
-                "$editor.semantic.success",
-                "$editor.semantic.warning",
-                "$editor.semantic.info",
-                "$editor.density.gap.medium",
-                "$editor.control.height.default",
-                "$editor.control.height.dense",
-            ][..],
-        ),
-        (
-            "workbench_top_toolbar.zui",
-            WORKBENCH_TOP_TOOLBAR_ASSET,
-            &[
-                "$editor.density.gap.small",
-                "$editor.control.height.compact",
-                "$editor.control.height.default",
-                "$editor.control.border_width",
-            ][..],
-        ),
-        (
-            "workbench_component_drawer.zui",
-            WORKBENCH_COMPONENT_DRAWER_ASSET,
-            &[
-                "$editor.accent",
-                "$editor.accent.soft",
-                "$editor.surface.recessed",
-                "$editor.surface.selected",
-                "$editor.text.primary",
-                "$editor.text.secondary",
-                "$editor.text.disabled",
-                "$editor.semantic.error",
-                "$editor.separator.soft",
-                "$editor.density.gap.small",
-                "$editor.density.gap.medium",
-                "$editor.density.gap.large",
-                "$editor.control.height.default",
-                "$editor.control.height.dense",
-                "$editor.control.radius.small",
-                "$editor.control.border_width",
-            ][..],
-        ),
-        (
-            "workbench_inspector_panel.zui",
-            WORKBENCH_INSPECTOR_PANEL_ASSET,
-            &[
-                "$editor.density.right_drawer_width",
-                "$editor.density.gap.small",
-                "$editor.density.gap.large",
-                "$editor.typography.body.size",
-                "$editor.typography.caption.size",
-                "$editor.text.disabled",
-                "$editor.text.secondary",
-                "$editor.text.primary",
-                "$editor.surface.0",
-                "$editor.separator.soft",
-                "$editor.control.height.default",
-                "$editor.control.height.dense",
-            ][..],
-        ),
-        (
-            "workbench_scene_tree_panel.zui",
-            WORKBENCH_SCENE_TREE_PANEL_ASSET,
-            &[
-                "$editor.density.left_drawer_width",
-                "$editor.density.gap.medium",
-                "$editor.control.height.default",
-            ][..],
-        ),
-        (
-            "workbench_main_band.zui",
-            WORKBENCH_MAIN_BAND_ASSET,
-            &[
-                "$editor.density.left_drawer_width",
-                "$editor.density.right_drawer_width",
-            ][..],
-        ),
+fn unreal_default_assets_mount_real_shell_regions_and_starship() {
+    assert!(WORKBENCH_SKELETON_ASSET.contains("component = \"Skeleton\""));
+    assert!(UNREAL_LEVEL_EDITOR_ASSET.contains("control_id = \"WorkbenchWindowRoot\""));
+    assert!(UNREAL_LEVEL_EDITOR_ASSET.contains("res://ui/editor/unreal/starship.zui"));
+    assert!(UNREAL_EDITOR_SHELL_ASSET.contains("component = \"UiHostWindow\""));
+    assert!(UNREAL_EDITOR_SHELL_ASSET.contains("component = \"DocumentHost\""));
+    assert!(UNREAL_EDITOR_SHELL_ASSET.contains("component = \"PaneSurface\""));
+    for source in [
+        UNREAL_TOOLBAR_ASSET,
+        UNREAL_STATUS_BAR_ASSET,
+        UNREAL_CONTENT_DRAWER_ASSET,
+        UNREAL_VIEWPORT_ASSET,
+        UNREAL_OUTLINER_ASSET,
+        UNREAL_DETAILS_ASSET,
     ] {
         assert!(
-            asset_source.contains("res://ui/editor/theme/editor_tokens.zui"),
-            "{asset_name} must import the editor token asset"
-        );
-        assert!(
-            asset_source.contains("$editor.surface.")
-                || asset_source.contains("$editor.text.")
-                || asset_source.contains("$editor.border")
-                || asset_source.contains("$editor.density."),
-            "{asset_name} must use the canonical $editor token reference grammar"
-        );
-        for token in required_tokens {
-            assert!(
-                asset_source.contains(token),
-                "{asset_name} must reference {token} instead of a raw control metric"
-            );
-        }
-        assert!(
-            !contains_hex_color(asset_source),
-            "{asset_name} must not reintroduce naked hex colors"
+            source.contains("res://ui/editor/unreal/starship.zui")
+                || source.contains("res://ui/editor/theme/editor_tokens.zui"),
+            "every Unreal default surface must import the approved Starship/editor style"
         );
     }
+    assert!(!UNREAL_LEVEL_EDITOR_ASSET.contains("activity_rail"));
+    assert!(!UNREAL_LEVEL_EDITOR_ASSET.contains("component_drawer"));
 }
 
 #[test]
@@ -432,48 +312,38 @@ fn workbench_menu_popup_uses_the_shared_chrome_and_text_tokens() {
 }
 
 #[test]
-fn workbench_dock_header_uses_the_shared_chrome_and_text_tokens() {
-    assert!(
-        WORKBENCH_DOCK_HEADER_ASSET.contains("res://ui/editor/theme/editor_tokens.zui"),
-        "Workbench dock header must import the editor token asset"
-    );
+fn unreal_dock_header_uses_starship_styles_and_keeps_tab_controls() {
+    assert!(UNREAL_DOCK_HEADER_ASSET.contains("res://ui/editor/unreal/starship.zui"));
+    for required in [
+        "control_id = \"DockHeaderRoot\"",
+        "control_id = \"DockHeaderBar\"",
+        "control_id = \"DockTabStrip\"",
+        "control_id = \"DockTab0\"",
+        "control_id = \"DockTabClose0\"",
+        "control_id = \"DockTab1\"",
+        "control_id = \"DockTabClose1\"",
+        "control_id = \"DockTab2\"",
+    ] {
+        assert!(UNREAL_DOCK_HEADER_ASSET.contains(required));
+    }
     for token in [
-        "$editor.chrome.document_header.height",
-        "$editor.control.height.compact",
-        "$editor.control.radius.small",
-        "$editor.typography.caption.size",
-        "$editor.typography.body.size",
+        "$unreal_font_family",
+        "$unreal_font_size",
+        "$unreal_font_small_size",
+        "$unreal_foreground_disabled",
+        "$unreal_dropdown",
+        "$unreal_recessed",
+        "$unreal_foreground_hover",
+        "$unreal_foreground_header",
     ] {
-        assert!(
-            WORKBENCH_DOCK_HEADER_ASSET.contains(token),
-            "Workbench dock header must use Workbench token {token}"
-        );
+        assert!(UNREAL_DOCK_HEADER_ASSET.contains(token));
     }
-    for raw_metric in [
-        "radius = 4.0",
-        "font_size = 10.666667",
-        "font_size = 13.333333",
-        "min = 31.0, preferred = 31.0, max = 31.0",
-        "min = 30.0, preferred = 30.0, max = 30.0",
+    for selector in [
+        "selector = \".unreal-dock-tab:hovered\"",
+        "selector = \".unreal-dock-tab:selected\"",
     ] {
-        assert!(
-            !WORKBENCH_DOCK_HEADER_ASSET.contains(raw_metric),
-            "Workbench dock header must not retain raw shared chrome metric {raw_metric}"
-        );
+        assert!(UNREAL_DOCK_HEADER_ASSET.contains(selector));
     }
-
-    assert!(
-        WORKBENCH_DOCK_HEADER_ASSET
-            .contains("surface_variant = \"panel\", radius = 0.0, border_width = 0.0"),
-        "dock header bar must intentionally remain a square, borderless chrome band"
-    );
-    assert_eq!(
-        WORKBENCH_DOCK_HEADER_ASSET
-            .matches("border_width = 0.0")
-            .count(),
-        3,
-        "dock header may use zero border width only for its borderless bar and two close icons"
-    );
 }
 
 #[test]
@@ -541,84 +411,39 @@ fn welcome_controls_keep_the_compatibility_chain_but_use_workbench_states() {
 }
 
 #[test]
-fn shell_drawer_assets_use_canonical_design_tokens_instead_of_inline_drawer_widths() {
-    for (asset_name, asset_source, token_name, removed_width) in [
-        (
-            "workbench_main_band.zui",
-            WORKBENCH_MAIN_BAND_ASSET,
-            "$editor.density.left_drawer_width",
-            "332.0",
-        ),
-        (
-            "workbench_main_band.zui",
-            WORKBENCH_MAIN_BAND_ASSET,
-            "$editor.density.right_drawer_width",
-            "404.0",
-        ),
-        (
-            "workbench_scene_tree_panel.zui",
-            WORKBENCH_SCENE_TREE_PANEL_ASSET,
-            "$editor.density.left_drawer_width",
-            "332.0",
-        ),
-        (
-            "workbench_inspector_panel.zui",
-            WORKBENCH_INSPECTOR_PANEL_ASSET,
-            "$editor.density.right_drawer_width",
-            "404.0",
-        ),
+fn unreal_main_band_keeps_the_80_20_dock_split_and_native_regions() {
+    for required in [
+        "control_id = \"WorkbenchWindowMainBandRegion\"",
+        "linear_size = { rule = \"Stretch\", value = 1.0 }",
+        "linear_size = { rule = \"Stretch\", value = 0.25 }",
+        "control_id = \"WorkbenchMainBandViewportPanel\"",
+        "control_id = \"WorkbenchMainBandSceneTreePanel\"",
+        "control_id = \"WorkbenchMainBandInspectorPanel\"",
     ] {
         assert!(
-            asset_source.contains("res://ui/editor/theme/editor_tokens.zui"),
-            "{asset_name} must import the editor token asset"
-        );
-        assert!(
-            asset_source.contains(token_name),
-            "{asset_name} must reference {token_name}"
-        );
-        assert!(
-            !asset_source.contains(removed_width),
-            "{asset_name} must not keep the old inline drawer width {removed_width}"
+            UNREAL_LEVEL_EDITOR_ASSET.contains(required),
+            "Unreal main band must retain `{required}`"
         );
     }
-
-    assert!(
-        !WORKBENCH_MAIN_BAND_ASSET.contains("$--"),
-        "workbench_main_band.zui must not use the retired $-- token grammar"
-    );
-    assert!(
-        !WORKBENCH_SCENE_TREE_PANEL_ASSET.contains("$--"),
-        "workbench_scene_tree_panel.zui must not use the retired $-- token grammar"
-    );
-    assert!(
-        !WORKBENCH_INSPECTOR_PANEL_ASSET.contains("$--"),
-        "workbench_inspector_panel.zui must not use the retired $-- token grammar"
-    );
+    assert!(!UNREAL_LEVEL_EDITOR_ASSET.contains("min = 0.0, preferred = 0.0, max = 0.0"));
 }
 
 #[test]
-fn viewport_overlay_text_uses_central_typography_tokens() {
-    assert!(
-        WORKBENCH_VIEWPORT_PANEL_ASSET.contains("res://ui/editor/theme/editor_tokens.zui"),
-        "workbench_viewport_panel.zui must import the editor token asset"
-    );
-    for token in [
-        "$editor.typography.overlay.size",
-        "$editor.typography.emphasis.weight",
+fn unreal_viewport_preserves_native_identity_and_interactive_surface() {
+    for required in [
+        "[components.UnrealLevelViewport]",
+        "control_id = \"UnrealLevelViewport\"",
+        "component = \"SceneViewViewport\"",
+        "control_id = \"WorkbenchViewportSurface\"",
+        "input_interactive = true",
+        "input_focusable = true",
+        "workbench.viewport.set_projection_mode",
     ] {
         assert!(
-            WORKBENCH_VIEWPORT_PANEL_ASSET.contains(token),
-            "workbench_viewport_panel.zui must reference {token}"
+            UNREAL_VIEWPORT_ASSET.contains(required),
+            "native viewport must retain `{required}`"
         );
     }
-    assert!(
-        !WORKBENCH_VIEWPORT_PANEL_ASSET.contains("font_size = 12.0"),
-        "viewport overlay labels must not keep a local font size"
-    );
-    assert!(
-        !WORKBENCH_VIEWPORT_PANEL_ASSET.contains("font_weight = 700"),
-        "viewport overlay labels must not keep a local font weight"
-    );
 }
 
 fn contains_hex_color(source: &str) -> bool {

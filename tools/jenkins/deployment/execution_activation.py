@@ -78,6 +78,9 @@ def verify_regression(repo: Path, reference: dict, candidate: dict) -> dict:
     if path.parent != expected_root or _sha(path) != reference.get("sha256"):
         raise JenkinsError("execution_transition_regression", "Complete support regression reference changed")
     receipt = _json(path)
+    from .support_regression import SCOPED_SCOPE, verify_support_regression
+    if receipt.get("scope") == SCOPED_SCOPE:
+        return verify_support_regression(repo, reference, candidate)
     if (receipt.get("scope") != "complete-current-Jenkins-support-pytest-discovery"
             or receipt.get("status") != "passed" or receipt.get("sourceIdentityStable") is not True
             or type(receipt.get("testsRun")) is not int or receipt["testsRun"] <= 0
@@ -241,8 +244,17 @@ class ExecutionActivation:
             return result
 
 
-def assert_activation_start_allowed(manager) -> None:
-    """Guard normal starts until an activation outcome is durably resolved."""
+def assert_activation_start_allowed(manager, *, owned_keeper_start=None, guard_only=False) -> None:
+    """Guard starts; a read-only issuance check grants no start capability."""
+    from .keeper_control import (assert_no_unresolved_keeper_command, assert_keeper_managed_start,
+                                 consume_owned_keeper_start)
+    if type(guard_only) is not bool or (guard_only and owned_keeper_start is not None):
+        raise JenkinsError("formal_keeper_evidence_unproven", "Ambiguous start guard authority")
+    if owned_keeper_start is not None:
+        return consume_owned_keeper_start(manager, owned_keeper_start)
+    assert_no_unresolved_keeper_command(manager)
+    if not guard_only:
+        assert_keeper_managed_start(manager)
     journal = manager.paths.state / "deployment/execution-activation.json"
     if not journal.is_file():
         return

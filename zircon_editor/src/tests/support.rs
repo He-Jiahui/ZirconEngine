@@ -96,6 +96,36 @@ pub(crate) fn env_lock() -> &'static TestEnvironmentLock {
     LOCK.get_or_init(TestEnvironmentLock::new)
 }
 
+/// Registers the fixture's existing manager with its actual Core owner.
+/// The caller keeps the Core alive and enters the returned handle per call.
+pub(crate) fn register_test_editor_manager(
+    core: &CoreRuntime,
+    manager: std::sync::Arc<EditorManager>,
+) -> zircon_runtime::core::runtime::ServiceHandle<EditorManager> {
+    use zircon_runtime::core::runtime::ServiceObject;
+    use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, StartupMode};
+    use zircon_runtime::engine_module::factory;
+
+    core.register_module(
+        ModuleDescriptor::new("EditorModule", "Editor manager test fixture")
+            .with_manager(ManagerDescriptor::new(
+                zircon_runtime::engine_module::qualified_name(
+                    "EditorModule",
+                    zircon_runtime::core::ServiceKind::Manager,
+                    "EditorManager",
+                ),
+                StartupMode::Immediate,
+                Vec::new(),
+                factory(move |_| Ok(manager.clone() as ServiceObject)),
+            )),
+    )
+    .expect("fixture manager registration");
+    core.activate_module("EditorModule")
+        .expect("fixture manager activation");
+    core.resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
+        .expect("fixture manager handle")
+}
+
 /// Test runtime activation explicitly supplies the BuildSet that production receives from App.
 pub(crate) fn configure_editor_test_runtime_build_set(runtime: &CoreRuntime) {
     let manager = runtime
@@ -374,4 +404,216 @@ struct FlatUiComponentDefinition {
     params: BTreeMap<String, UiComponentParamSchema>,
     #[serde(default)]
     slots: BTreeMap<String, UiNamedSlotSchema>,
+}
+
+/// Owns one exclusively created source-write test leaf under the authorized physical TEMP.
+pub(crate) struct OwnedSourceWriteFixture {
+    root: std::path::PathBuf,
+    created: std::time::SystemTime,
+    directory_handle: Option<std::fs::File>,
+    files: Vec<OwnedSourceWriteFixtureFile>,
+}
+
+struct OwnedSourceWriteFixtureFile {
+    path: std::path::PathBuf,
+    created: std::time::SystemTime,
+    bytes: Vec<u8>,
+}
+
+impl OwnedSourceWriteFixture {
+    pub(crate) fn new(prefix: &str) -> std::io::Result<Self> {
+        if prefix.is_empty()
+            || !prefix
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+        {
+            return Err(std::io::Error::other(
+                "fixture prefix must be a single plain component",
+            ));
+        }
+        let temp = std::fs::canonicalize(std::env::temp_dir())?;
+        Self::require_authorized_physical_path(&temp)?;
+        let root = temp.join(format!(
+            "{prefix}_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(std::io::Error::other)?
+                .as_nanos(),
+        ));
+        // An existing leaf is foreign. Never merge into it or retry after AlreadyExists.
+        std::fs::create_dir(&root)?;
+        let metadata = std::fs::symlink_metadata(&root)?;
+        let mut fixture = Self {
+            root,
+            created: metadata.created()?,
+            directory_handle: None,
+            files: Vec::new(),
+        };
+        fixture.verify_root()?;
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::OpenOptionsExt;
+            // Hold the real directory without delete sharing until fixed-file cleanup ends.
+            fixture.directory_handle = Some(
+                std::fs::OpenOptions::new()
+                    .read(true)
+                    .share_mode(0x0001 | 0x0002)
+                    .custom_flags(0x0200_0000 | 0x0020_0000)
+                    .open(&fixture.root)?,
+            );
+        }
+        Ok(fixture)
+    }
+
+    pub(crate) fn root(&self) -> &std::path::Path {
+        &self.root
+    }
+
+    pub(crate) fn create_file(
+        &mut self,
+        name: &str,
+        bytes: &[u8],
+    ) -> std::io::Result<std::path::PathBuf> {
+        use std::io::Write;
+        self.verify_root()?;
+        let mut components = std::path::Path::new(name).components();
+        if !matches!(components.next(), Some(std::path::Component::Normal(_)))
+            || components.next().is_some()
+        {
+            return Err(std::io::Error::other(
+                "fixture file must be one fixed component",
+            ));
+        }
+        let path = self.root.join(name);
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)?;
+        let created = file.metadata()?.created()?;
+        self.files.push(OwnedSourceWriteFixtureFile {
+            path: path.clone(),
+            created,
+            bytes: bytes.to_vec(),
+        });
+        file.write_all(bytes)?;
+        Ok(path)
+    }
+
+    /// Accepts only a known file's explicitly asserted publication bytes, never arbitrary contents.
+    pub(crate) fn expect_written_bytes(&mut self, name: &str, bytes: &[u8]) -> std::io::Result<()> {
+        self.verify_root()?;
+        let path = self.root.join(name);
+        let file = self
+            .files
+            .iter_mut()
+            .find(|file| file.path == path)
+            .ok_or_else(|| std::io::Error::other("unowned fixture file"))?;
+        let metadata = std::fs::symlink_metadata(&path)?;
+        Self::require_plain_path(&metadata)?;
+        if metadata.len() != bytes.len() as u64 || std::fs::read(&path)? != bytes {
+            return Err(std::io::Error::other(
+                "fixture publication differs from asserted bytes",
+            ));
+        }
+        if std::fs::canonicalize(&path)? != path {
+            return Err(std::io::Error::other(
+                "fixture publication path was replaced",
+            ));
+        }
+        file.created = metadata.created()?;
+        file.bytes = bytes.to_vec();
+        Ok(())
+    }
+
+    fn require_authorized_physical_path(path: &std::path::Path) -> std::io::Result<()> {
+        let display = zircon_runtime::asset::project::ProjectPaths::display_path(path);
+        let allowed = [
+            std::path::Path::new(r"D:\cargo-targets\zircon-local"),
+            std::path::Path::new(r"E:\cargo-targets\zircon-local"),
+            std::path::Path::new(r"F:\cargo-targets\zircon-local"),
+        ];
+        if !allowed.iter().any(|root| display.starts_with(root)) {
+            return Err(std::io::Error::other(format!(
+                "fixture TEMP is outside authorized physical output: {}",
+                display.display()
+            )));
+        }
+        Ok(())
+    }
+
+    fn require_plain_path(metadata: &std::fs::Metadata) -> std::io::Result<()> {
+        if metadata.file_type().is_symlink() {
+            return Err(std::io::Error::other("fixture path became a link"));
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            if metadata.file_attributes() & 0x0400 != 0 {
+                return Err(std::io::Error::other("fixture path became a reparse point"));
+            }
+        }
+        Ok(())
+    }
+
+    fn verify_root(&self) -> std::io::Result<()> {
+        let metadata = std::fs::symlink_metadata(&self.root)?;
+        Self::require_plain_path(&metadata)?;
+        if !metadata.is_dir() || metadata.created()? != self.created {
+            return Err(std::io::Error::other("owned fixture leaf was replaced"));
+        }
+        if std::fs::canonicalize(&self.root)? != self.root {
+            return Err(std::io::Error::other(
+                "owned fixture leaf no longer has its captured physical path",
+            ));
+        }
+        Self::require_authorized_physical_path(&self.root)
+    }
+}
+
+impl Drop for OwnedSourceWriteFixture {
+    fn drop(&mut self) {
+        if let Err(error) = self.verify_root() {
+            eprintln!(
+                "retained source-write fixture {}: {error}",
+                self.root.display()
+            );
+            return;
+        }
+        for file in &self.files {
+            let cleanup = (|| -> std::io::Result<()> {
+                let metadata = match std::fs::symlink_metadata(&file.path) {
+                    Ok(metadata) => metadata,
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+                    Err(error) => return Err(error),
+                };
+                Self::require_plain_path(&metadata)?;
+                if !metadata.is_file()
+                    || metadata.created()? != file.created
+                    || metadata.len() != file.bytes.len() as u64
+                    || std::fs::canonicalize(&file.path)? != file.path
+                    || std::fs::read(&file.path)? != file.bytes
+                {
+                    return Err(std::io::Error::other(
+                        "fixture file ownership or contents changed",
+                    ));
+                }
+                std::fs::remove_file(&file.path)
+            })();
+            if let Err(error) = cleanup {
+                eprintln!(
+                    "retained source-write fixture file {}: {error}",
+                    file.path.display()
+                );
+            }
+        }
+        // Remove only an empty leaf; unknown files and changed contents remain for diagnosis.
+        drop(self.directory_handle.take());
+        if let Err(error) = std::fs::remove_dir(&self.root) {
+            eprintln!(
+                "retained source-write fixture leaf {}: {error}",
+                self.root.display()
+            );
+        }
+    }
 }

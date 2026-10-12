@@ -7,7 +7,9 @@ use std::sync::Arc;
 use std::sync::{MutexGuard, RwLockReadGuard, RwLockWriteGuard, TryLockError};
 use std::time::Instant;
 
-use crate::asset::project::{ImportSourceWatchEcho, ProjectGenerationPhase};
+use crate::asset::project::{
+    ImportSourceWatchEcho, ProjectActivationIdentity, ProjectGenerationPhase,
+};
 use crate::asset::{AssetImporterRegistry, AssetUri, ProjectManager};
 use crate::core::framework::channel::{ChannelSender, ChannelWakeCallback};
 use crate::core::CoreError;
@@ -52,11 +54,16 @@ impl ProjectAssetGenerationSnapshot {
 /// Runtime-issued identity for work prepared from one active project generation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProjectAssetGenerationToken {
+    activation_identity: ProjectActivationIdentity,
     project_root: PathBuf,
     catalog_sequence: u64,
 }
 
 impl ProjectAssetGenerationToken {
+    pub fn activation_identity(&self) -> &ProjectActivationIdentity {
+        &self.activation_identity
+    }
+
     pub fn project_root(&self) -> &Path {
         &self.project_root
     }
@@ -82,7 +89,12 @@ fn project_generation_match(
         project.is_some_and(|project| project.paths().root() == expected.project_root);
     let current_catalog_sequence =
         project.map(|project| project.catalog_input_generation().sequence());
-    if same_project && current_catalog_sequence == Some(expected.catalog_sequence) {
+    let same_activation = project
+        .is_some_and(|project| project.activation_identity() == &expected.activation_identity);
+    if same_activation
+        && same_project
+        && current_catalog_sequence == Some(expected.catalog_sequence)
+    {
         ProjectGenerationMatch::Current
     } else {
         ProjectGenerationMatch::Superseded {
@@ -137,12 +149,22 @@ impl ProjectWatcherActivation {
 }
 
 impl ProjectAssetManager {
+    /// Checks the active packet identity under the existing generation gate.
+    /// This is an observation, not a permit to import within a read-lock callback.
+    pub fn is_project_activation_current(&self, expected: &ProjectActivationIdentity) -> bool {
+        let _generation = self.project_generation_read();
+        self.project_read()
+            .as_ref()
+            .is_some_and(|project| project.activation_identity() == expected)
+    }
+
     /// Captures the active project and its commit identity under one generation read fence.
     pub fn current_project_generation_snapshot(&self) -> Option<ProjectAssetGenerationSnapshot> {
         let _generation = self.project_generation_read();
         let project = self.project_read();
         let project = project.as_ref()?;
         let token = ProjectAssetGenerationToken {
+            activation_identity: project.activation_identity().clone(),
             project_root: project.paths().root().to_path_buf(),
             catalog_sequence: project.catalog_input_generation().sequence(),
         };

@@ -1,5 +1,5 @@
 mod enable;
-mod geometry;
+pub(in crate::entry::runtime_entry_app) mod geometry;
 mod request;
 mod surrounding_text;
 

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::core::document::{
     ActiveSceneDocumentIdentity, ActiveSceneReloader, AuthoringSceneInstaller,
     SceneDocumentReloadCoordinator, SceneDocumentReloadError, SceneDocumentReloadOutcome,
@@ -17,7 +15,7 @@ use super::{EditorHostEventController, EditorManager};
 
 /// The only host adapter allowed to install a project-authorized scene into editor state.
 struct EditorStateSceneInstaller<'a> {
-    manager: Arc<EditorManager>,
+    manager: &'a EditorManager,
     state: &'a mut EditorState,
     project_path: String,
 }
@@ -138,8 +136,8 @@ impl EditorHostEventController {
         dirty_policy: &PreparedActiveSceneReloadDirtyPolicy,
     ) -> Result<PreparedActiveSceneReloadOutcome, String> {
         let result = {
+            let manager = self.enter_editor_manager().map_err(|error| error.to_string())?;
             let mut shell = self.shell().lock();
-            let manager = Arc::clone(&shell.manager);
             let mut reloader = EditorStateActiveSceneReloader {
                 state: &mut shell.state,
                 project_asset_manager,
@@ -195,10 +193,10 @@ impl EditorHostEventController {
     ) -> Result<SceneDocumentRouteResult, String> {
         let project_path = ticket.project_root().to_string_lossy().into_owned();
         let result = {
+            let manager = self.enter_editor_manager().map_err(|error| error.to_string())?;
             let mut shell = self.shell().lock();
-            let manager = Arc::clone(&shell.manager);
             let mut installer = EditorStateSceneInstaller {
-                manager: Arc::clone(&manager),
+                manager: &manager,
                 state: &mut shell.state,
                 project_path,
             };
@@ -217,10 +215,10 @@ impl EditorHostEventController {
     ) -> Result<SceneDocumentRouteResult, String> {
         let project_path = ticket.project_root().to_string_lossy().into_owned();
         let result = {
+            let manager = self.enter_editor_manager().map_err(|error| error.to_string())?;
             let mut shell = self.shell().lock();
-            let manager = Arc::clone(&shell.manager);
             let mut installer = EditorStateSceneInstaller {
-                manager: Arc::clone(&manager),
+                manager: &manager,
                 state: &mut shell.state,
                 project_path,
             };
@@ -233,7 +231,7 @@ impl EditorHostEventController {
 
     /// Captures the active session before a UI picker is shown.
     pub fn begin_scene_picker(&self) -> Result<ScenePickerTicket, String> {
-        let manager = { Arc::clone(&self.shell().lock().manager) };
+        let manager = self.enter_editor_manager().map_err(|error| error.to_string())?;
         manager
             .scene_picker_ticket()
             .map_err(|error| error.to_string())

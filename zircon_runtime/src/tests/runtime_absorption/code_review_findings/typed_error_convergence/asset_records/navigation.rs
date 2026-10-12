@@ -19,8 +19,8 @@ fn review_f5_navigation_asset_uses_typed_error() {
     for required in [
         "pub type NavigationAssetResult<T> = std::result::Result<T, NavigationAssetError>;",
         "pub enum NavigationAssetError",
-        "Serialize(#[source] bincode::Error)",
-        "Deserialize(#[source] bincode::Error)",
+        "Serialize(#[source] zircon_runtime_interface::serialization::PositionalEncodeError)",
+        "Deserialize(#[source] zircon_runtime_interface::serialization::PositionalDecodeError)",
         "pub fn to_bytes(&self) -> NavigationAssetResult<Vec<u8>>",
         "pub fn from_bytes(bytes: &[u8]) -> NavigationAssetResult<Self>",
     ] {

@@ -8,6 +8,10 @@ use super::{
 use crate::ui::retained_host::primitives::ModelRc;
 #[derive(Clone, Default)]
 pub(crate) struct HostWindowPresentationData {
+    /// Immutable capture metadata; stale stamps are omitted at the successful present boundary.
+    pub(crate) normal_workbench_business: Option<(super::HostPresentationGenerationCursor, std::sync::Arc<crate::ui::retained_host::ui::NormalWorkbenchBusinessSnapshot>)>,
+    /// Prepared readonly toolbar metadata; associated only at successful present.
+    pub(crate) normal_viewport_toolbar: Option<(super::HostPresentationGenerationCursor,std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,std::sync::Arc<serde_json::Value>)>,
     pub host_shell: HostWindowShellData,
     pub host_layout: HostWindowLayoutData,
     pub host_scene_data: HostWindowSceneData,
@@ -56,6 +60,8 @@ impl HostWindowGeometryPresentationData {
         current: &HostWindowPresentationData,
     ) -> HostWindowPresentationData {
         let mut next = HostWindowPresentationData {
+            normal_workbench_business: None,
+            normal_viewport_toolbar: None,
             host_shell: self.host_shell,
             host_layout: self.host_layout,
             host_scene_data: self.host_scene_data,

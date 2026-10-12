@@ -17,12 +17,12 @@ fn editor_template_adapter_resolves_stable_binding_ids_to_typed_editor_bindings(
     template_service
         .register_asset_document(
             &mut registry,
-            "res://ui/editor/host/workbench_shell.zui",
+            "res://ui/editor/unreal/editor_shell.zui",
             document,
         )
         .unwrap();
     let instance = template_service
-        .instantiate(&registry, "res://ui/editor/host/workbench_shell.zui")
+        .instantiate(&registry, "res://ui/editor/unreal/editor_shell.zui")
         .unwrap();
 
     let mut adapter = EditorTemplateAdapter::default();
@@ -66,12 +66,12 @@ fn editor_template_adapter_rejects_missing_binding_resolution() {
     template_service
         .register_asset_document(
             &mut registry,
-            "res://ui/editor/host/workbench_shell.zui",
+            "res://ui/editor/unreal/editor_shell.zui",
             document,
         )
         .unwrap();
     let instance = template_service
-        .instantiate(&registry, "res://ui/editor/host/workbench_shell.zui")
+        .instantiate(&registry, "res://ui/editor/unreal/editor_shell.zui")
         .unwrap();
 
     let error = EditorTemplateAdapter::default()

@@ -30,7 +30,7 @@ fn optimization_batch_20260830dq_region_lookup_uses_expected_slot() {
 
 #[test]
 fn optimization_batch_20260830dq_region_lookup_preserves_reordered_payloads() {
-    let mut skeleton = WorkbenchSkeleton::jetbrains_default();
+    let mut skeleton = WorkbenchSkeleton::unreal_default();
     skeleton.regions.swap(0, 5);
 
     assert_eq!(

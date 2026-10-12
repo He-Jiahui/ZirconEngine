@@ -1,5 +1,6 @@
 mod present;
 
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
 
@@ -97,6 +98,7 @@ impl UiHostWindowEventLoop {
         }
     }
 
+    #[track_caller]
     pub(in crate::ui::retained_host::host_contract) fn queue_redraw(
         &mut self,
         redraw: HostRedrawRequest,
@@ -106,6 +108,9 @@ impl UiHostWindowEventLoop {
         }
         let existing = std::mem::replace(&mut self.pending_redraw, HostRedrawRequest::None);
         let should_schedule = !existing.request_redraw();
+        capture_trace::record("pending_redraw_merge", || {
+            format!("owner={:#x} existing={existing:?} next={redraw:?}", self.host.state.as_ptr() as usize)
+        });
         self.pending_redraw = existing.merge(redraw);
         should_schedule
     }
@@ -127,6 +132,10 @@ impl UiHostWindowEventLoop {
         if !redraw.request_redraw() {
             return;
         }
+        capture_trace::record("native_redraw", || {
+            format!("owner={:#x} redraw={redraw:?} cursor={:?}",
+                self.host.state.as_ptr() as usize, self.host.get_host_presentation_generation().cursor())
+        });
         let slow_redraw_started = slow_redraw_trace_enabled().then(Instant::now);
         // The standalone startup presenter may redraw before the runtime-owned surface exists.
         let trace_runtime_first_redraw = self.shared_gpu_presenter_active;
@@ -159,6 +168,7 @@ impl UiHostWindowEventLoop {
         } else {
             None
         };
+        let trace_before = capture_trace::cursor_before(|| self.host.get_host_presentation_generation().cursor());
         if requested_frame_update {
             static FRAME_UPDATE_ENTER: Once = Once::new();
             static FRAME_UPDATE_RETURNED: Once = Once::new();
@@ -174,6 +184,10 @@ impl UiHostWindowEventLoop {
                 log_startup_boundary_once("frame_update_returned", &FRAME_UPDATE_RETURNED);
             }
         }
+        capture_trace::record("frame_update_outcome", || {
+            format!("owner={:#x} redraw={redraw:?} requested_frame_update={requested_frame_update} before={trace_before:?} after={:?}",
+                self.host.state.as_ptr() as usize, self.host.get_host_presentation_generation().cursor())
+        });
         let frame_update_elapsed =
             frame_update_started.map_or(Duration::ZERO, |started| started.elapsed());
         self.sync_native_window_minimum_from_presentation();
@@ -251,7 +265,11 @@ impl UiHostWindowEventLoop {
 
     fn take_redraw_for_present(&mut self) -> HostRedrawRequest {
         let queued = self.take_pending_redraw();
-        queued.merge(self.take_surface_present_retry())
+        let retry = self.take_surface_present_retry();
+        capture_trace::record("redraw_for_present_merge", || {
+            format!("owner={:#x} queued={queued:?} retry={retry:?}", self.host.state.as_ptr() as usize)
+        });
+        queued.merge(retry)
     }
 
     fn take_surface_present_retry(&mut self) -> HostRedrawRequest {

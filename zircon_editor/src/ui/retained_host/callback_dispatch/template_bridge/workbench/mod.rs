@@ -61,8 +61,16 @@ mod tags_workspace_state;
 mod toolbar_layout;
 mod toolbar_run_state;
 mod transform_edit;
+mod unreal_content_drawer;
+mod unreal_content_drawer_adapter;
+mod unreal_viewport_overflow;
+mod unreal_viewport_toolbar;
 mod vfx_workspace_state;
 mod window_menu_state;
+
+pub(crate) use unreal_content_drawer_adapter::{
+    unreal_content_drawer_asset_browser_data, UnrealContentDrawerAssetBrowserData,
+};
 
 pub(crate) use bridge::BuiltinHostWindowTemplateBridge;
 pub(crate) use command_palette::WorkbenchCommandPaletteOpenState;
@@ -79,3 +87,6 @@ pub(crate) use settings_window::{
     WorkbenchSettingsEditorKind, WorkbenchSettingsOpenState, WorkbenchSettingsWindowRevision,
     WORKBENCH_SETTINGS_WINDOW_CONTROL_ID,
 };
+
+#[cfg(test)]
+mod module_tools_test_support;

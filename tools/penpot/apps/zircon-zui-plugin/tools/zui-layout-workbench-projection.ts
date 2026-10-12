@@ -1,4 +1,5 @@
 import { sourceNode, sourceNodeByControl } from './zui-layout-source-control';
+import { readViewportSnapState, viewportSnapControlProps } from '../src/bridge/zui-viewport-snap-state';
 import {
   prepareInspectorPropertyRows,
   applyInspectorPropertyRows,
@@ -6,12 +7,18 @@ import {
 import { validateWorkbenchPresentation } from './zui-layout-workbench-presentation';
 import type { ZuiDocument, ZuiNode } from '../src/bridge/zui-document';
 
+const WORKBENCH_WINDOW_SOURCE =
+  'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
 const WORKBENCH_SHELL_SOURCE =
-  'zircon_editor/assets/ui/editor/host/workbench_shell.zui';
+  'zircon_editor/assets/ui/editor/unreal/editor_shell.zui';
+const VIEWPORT_SOURCE =
+  'zircon_editor/assets/ui/editor/unreal/components/viewport.zui';
 const SCENE_TREE_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui';
+  'zircon_editor/assets/ui/editor/unreal/components/outliner.zui';
 const INSPECTOR_SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui';
+  'zircon_editor/assets/ui/editor/unreal/components/details.zui';
+const STATUS_BAR_SOURCE =
+  'zircon_editor/assets/ui/editor/unreal/components/status_bar.zui';
 const WORKBENCH_TAB_COMPONENT =
   'res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab';
 
@@ -87,24 +94,19 @@ export function prepareWorkbenchPresentationStructure(
   validateWorkbenchPresentation(value);
   const pages = object(value['pages'], 'workbenchPresentation.pages');
   const pageItems = array(pages['items'], 'workbenchPresentation.pages.items');
-  const pageStrip = sourceNode(
-    document,
-    WORKBENCH_SHELL_SOURCE,
-    'host_page_strip',
-  );
-  replaceWithTabRows(
-    document,
-    pageStrip,
-    'workbench_page',
+  // The Unreal level editor has no legacy host page strip. Keep the complete
+  // product page DTO source-owned for review/provenance without fabricating a
+  // non-existent control or changing the authored menu/toolbar structure.
+  const windowRoot = sourceNode(document, WORKBENCH_WINDOW_SOURCE, 'root');
+  windowRoot['penpot_review_pages'] = structuredClone(
     pageItems.map((item) => {
       const row = object(item, 'workbench page');
       return productRow(
         row,
         stringValue(row['id'], 'workbench page id') === pages['activeId'],
-        'workbench page',
+        'mainPage',
       );
     }),
-    'mainPage',
   );
 
   const documents = object(
@@ -115,15 +117,10 @@ export function prepareWorkbenchPresentationStructure(
     documents['items'],
     'workbenchPresentation.documents.items',
   );
-  const documentTabs = sourceNode(
-    document,
-    WORKBENCH_SHELL_SOURCE,
-    'document_tabs',
-  );
-  replaceWithTabRows(
-    document,
-    documentTabs,
-    'workbench_document',
+  // UE HideTabWell owns no authored DocumentTabs node. Preserve the typed
+  // document inventory for provenance and let the retained host own its tab
+  // surface; do not synthesize an invisible control into the Penpot file.
+  windowRoot['penpot_review_documents'] = structuredClone(
     documentItems.map((item) => {
       const row = object(item, 'workbench document');
       return productRow(
@@ -133,49 +130,13 @@ export function prepareWorkbenchPresentationStructure(
         'workbench document',
       );
     }),
-    'document',
   );
 
   const drawers = array(value['drawers'], 'workbenchPresentation.drawers');
-  const grouped = new Map<string, JsonObject[]>();
-  for (const drawerValue of drawers) {
-    const drawer = object(drawerValue, 'workbench drawer');
-    const target = drawerShell(String(drawer['slot']));
-    grouped.set(target, [...(grouped.get(target) ?? []), drawer]);
-  }
-  for (const [targetId, entries] of grouped) {
-    const visible = entries.filter(
-      (entry) => entry['visible'] === true && entry['mode'] !== 'collapsed',
-    );
-    if (visible.length > 1)
-      throw new Error(
-        `WorkbenchShell cannot project multiple visible product drawers into ${targetId}`,
-      );
-    const drawer = visible[0] ?? entries[0]!;
-    const shell = sourceNode(document, WORKBENCH_SHELL_SOURCE, targetId);
-    const headerId = `${targetId.replace('_shell', '')}_header`;
-    const header = sourceNode(document, WORKBENCH_SHELL_SOURCE, headerId);
-    const tabs = array(
-      drawer['tabs'],
-      `workbench drawer ${String(drawer['slot'])}.tabs`,
-    );
-    replaceWithTabRows(
-      document,
-      header,
-      `workbench_drawer_${String(drawer['slot'])}`,
-      tabs.map((item) => {
-        const row = object(item, 'workbench drawer tab');
-        return productRow(
-          row,
-          stringValue(row['id'], 'workbench drawer tab id') ===
-            drawer['activeTabId'],
-          'workbench drawer tab',
-        );
-      }),
-      `drawer:${String(drawer['slot'])}`,
-    );
-    shell['penpot_review_drawer'] = structuredClone(drawer);
-  }
+  // Drawer slots are retained as typed product state. The Unreal authored view
+  // owns one real content-drawer overlay; left/right legacy shell overlays do
+  // not exist and must never be synthesized into the Penpot document.
+  windowRoot['penpot_review_drawers'] = structuredClone(drawers);
 }
 
 /** Bind factual product rows and values to the expanded authored workbench. */
@@ -185,6 +146,12 @@ export function applyWorkbenchPresentationProjection(
 ): void {
   validateWorkbenchPresentation(value);
   document['penpot_review_workbench_presentation'] = structuredClone(value);
+
+  const snapProps = viewportSnapControlProps(readViewportSnapState(value['viewportSnap']));
+  for (const [controlId, stateProps] of Object.entries(snapProps)) {
+    const control = sourceNodeByControl(document, VIEWPORT_SOURCE, controlId);
+    control.props = { ...(control.props ?? {}), ...stateProps };
+  }
 
   for (const node of Object.values(document.nodes ?? {})) {
     const generated = node['penpot_review_generated_product_row'];
@@ -317,22 +284,9 @@ export function applyWorkbenchPresentationProjection(
   }
 
   const status = object(value['status'], 'workbenchPresentation.status');
-  const shellStatus = sourceNode(
-    document,
-    WORKBENCH_SHELL_SOURCE,
-    'status_text',
-  );
-  shellStatus.props = {
-    ...(shellStatus.props ?? {}),
-    text: stringValue(
-      status['primary'],
-      'workbenchPresentation.status.primary',
-    ),
-  };
-  shellStatus['penpot_review_product_status'] = structuredClone(status);
   const windowStatus = sourceNodeByControl(
     document,
-    'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_status_bar.zui',
+    STATUS_BAR_SOURCE,
     'WorkbenchStatusReady',
   );
   windowStatus.props = {
@@ -343,36 +297,32 @@ export function applyWorkbenchPresentationProjection(
     ),
   };
   windowStatus['penpot_review_product_status'] = structuredClone(status);
-  for (const controlId of [
-    'WorkbenchStatusErrors',
-    'WorkbenchStatusWarnings',
-    'WorkbenchStatusMessages',
-    'WorkbenchStatusTaskProgress',
-    'WorkbenchStatusGrid',
-    'WorkbenchStatusSnap',
-    'WorkbenchStatusSnapToggle',
-    'WorkbenchStatusWorld',
-    'WorkbenchStatusTarget',
-    'WorkbenchStatusZoom',
-  ])
-    setVisibilityByControl(
-      document,
-      'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_status_bar.zui',
-      controlId,
-      'collapsed',
-    );
 
   applyInspectorProjection(document, value['inspector']);
   applyDrawerProjection(document, value['drawers']);
 }
 
 function applyInspectorProjection(document: ZuiDocument, value: unknown): void {
-  const panel = sourceNode(document, INSPECTOR_SOURCE, 'inspector_panel');
-  if (value === null) {
-    panel.props = { ...(panel.props ?? {}), visibility: 'collapsed' };
+  const panel = sourceNode(document, INSPECTOR_SOURCE, 'panel');
+  panel.props = { ...(panel.props ?? {}), visibility: 'visible' };
+  const hasSelection = value !== null;
+  const filter = sourceNodeByControl(document, INSPECTOR_SOURCE, 'WorkbenchInspectorFilter');
+  filter.props = { ...(filter.props ?? {}), disabled: !hasSelection };
+  for (const controlId of [
+    'WorkbenchInspectorMetadata', 'WorkbenchInspectorTransform', 'WorkbenchAddComponent',
+  ])
+    setVisibilityByControl(document, INSPECTOR_SOURCE, controlId, hasSelection ? 'visible' : 'collapsed');
+  setVisibilityByControl(document, INSPECTOR_SOURCE, 'WorkbenchInspectorFilterEmpty', 'collapsed');
+  const title = sourceNodeByControl(document, INSPECTOR_SOURCE, 'WorkbenchInspectorTitle');
+  if (!hasSelection) {
+    title.props = { ...(title.props ?? {}), text: 'No Selection' };
+    for (const controlId of ['WorkbenchInspectorMesh', 'WorkbenchInspectorMeshProperties'])
+      setVisibilityByControl(document, INSPECTOR_SOURCE, controlId, 'collapsed');
     return;
   }
   const inspector = object(value, 'workbenchPresentation.inspector');
+  const name = stringValue(inspector['name'], 'inspector.name').trim();
+  title.props = { ...(title.props ?? {}), text: name || 'Entity' };
   panel['penpot_review_inspector'] = structuredClone(inspector);
   const [x, y, z] = array(inspector['translation'], 'inspector.translation');
   const [sx, sy, sz] = array(inspector['scale'], 'inspector.scale');
@@ -418,42 +368,17 @@ function applyInspectorProjection(document: ZuiDocument, value: unknown): void {
 
 function applyDrawerProjection(document: ZuiDocument, value: unknown): void {
   const drawers = array(value, 'workbenchPresentation.drawers');
-  const bySide = new Map<string, JsonObject[]>();
-  for (const item of drawers) {
-    const drawer = object(item, 'workbench drawer');
-    const side = drawerShell(String(drawer['slot']));
-    bySide.set(side, [...(bySide.get(side) ?? []), drawer]);
-  }
-  for (const [sourceNodeId, entries] of bySide) {
-    const node = sourceNode(document, WORKBENCH_SHELL_SOURCE, sourceNodeId);
-    const visibleEntries = entries.filter(
-      (entry) => entry['visible'] === true && entry['mode'] !== 'collapsed',
-    );
-    if (visibleEntries.length > 1)
-      throw new Error(
-        `WorkbenchShell cannot project multiple visible product drawers into ${sourceNodeId}`,
-      );
-    const drawer = visibleEntries[0] ?? entries[0]!;
-    const visible =
-      drawer['visible'] === true && drawer['mode'] !== 'collapsed';
-    node.props = {
-      ...(node.props ?? {}),
-      visibility: visible ? 'visible' : 'collapsed',
-    };
-    node['penpot_review_drawers'] = structuredClone(entries);
-    const layout = { ...(node.layout ?? {}) };
-    const extent = numberValue(drawer['extent'], 'workbench drawer extent');
-    const slot = String(drawer['slot']);
-    const axis = slot === 'bottom' ? 'height' : 'width';
-    const size = visible ? extent : 0;
-    layout[axis] = {
-      min: size,
-      preferred: size,
-      max: size,
-      stretch: 'Fixed',
-    };
-    node.layout = layout;
-  }
+  const windowRoot = sourceNode(document, WORKBENCH_WINDOW_SOURCE, 'root');
+  windowRoot['penpot_review_drawers'] = structuredClone(drawers);
+  const bottom = drawers
+    .map((item) => object(item, 'workbench drawer'))
+    .find((drawer) => String(drawer['slot']).toLowerCase() === 'bottom');
+  if (!bottom) return;
+  const node = sourceNode(document, WORKBENCH_WINDOW_SOURCE, 'content_drawer');
+  const visible =
+    bottom['visible'] === true && bottom['mode'] !== 'collapsed';
+  node.props = { ...(node.props ?? {}), visibility: visible ? 'visible' : 'collapsed' };
+  node['penpot_review_drawer'] = structuredClone(bottom);
 }
 
 function replaceWithTabRows(
@@ -496,21 +421,6 @@ function setVisibilityByControl(
 ): void {
   const node = sourceNodeByControl(document, sourcePath, controlId);
   node.props = { ...(node.props ?? {}), visibility };
-}
-
-function drawerShell(slot: string): string {
-  switch (slot) {
-    case 'leftTop':
-    case 'leftBottom':
-      return 'left_drawer_shell';
-    case 'rightTop':
-    case 'rightBottom':
-      return 'right_drawer_shell';
-    case 'bottom':
-      return 'bottom_drawer_shell';
-    default:
-      throw new Error(`Unsupported workbench drawer slot: ${slot}`);
-  }
 }
 
 function object(value: unknown, context: string): JsonObject {

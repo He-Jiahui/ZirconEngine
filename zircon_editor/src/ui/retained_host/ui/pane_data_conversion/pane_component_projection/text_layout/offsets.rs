@@ -13,6 +13,8 @@ pub(super) struct ProjectedLayoutOffsets {
     pub(super) layout_padding_right: f32,
     pub(super) layout_padding_top: f32,
     pub(super) layout_padding_bottom: f32,
+    pub(super) authored_field_padding: [Option<f32>; 4],
+    pub(super) authored_field_label_width: Option<f32>,
     pub(super) layout_spacing: f32,
     pub(super) layout_first_cell_offset_x: f32,
     pub(super) layout_second_cell_offset_x: f32,
@@ -48,6 +50,24 @@ pub(super) fn projected_layout_offsets(
         layout_padding_right: f32_attribute(attributes, "layout_padding_right", 0.0),
         layout_padding_top: f32_attribute(attributes, "layout_padding_top", 0.0),
         layout_padding_bottom: f32_attribute(attributes, "layout_padding_bottom", 0.0),
+        authored_field_padding: [
+            "layout_padding_left",
+            "layout_padding_right",
+            "layout_padding_top",
+            "layout_padding_bottom",
+        ]
+        .map(|name| {
+            attributes
+                .get(name)
+                .and_then(value_as_f64)
+                .map(|value| value as f32)
+                .filter(|value| value.is_finite() && *value >= 0.0)
+        }),
+        authored_field_label_width: attributes
+            .get("layout_label_width")
+            .and_then(value_as_f64)
+            .map(|value| value as f32)
+            .filter(|value| value.is_finite() && *value >= 0.0),
         layout_spacing: f32_attribute(attributes, "layout_spacing", 0.0),
         layout_first_cell_offset_x: attributes
             .get("layout_first_cell_offset_x")

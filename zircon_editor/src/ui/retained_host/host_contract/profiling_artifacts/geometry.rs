@@ -15,6 +15,9 @@ mod text_runs;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) use pane_frames::collect_surface_frame_controls;
 
+use super::super::componentized_workbench_regions::{
+    authored_level_viewport, owns_authored_level_viewport, owns_ordinary_panes,
+};
 use super::super::data::HostWindowPresentationData;
 use super::super::presenter::HostPresenterBackend;
 use super::{UiProfileGeometry, UiProfileLogicalSize, UiProfileSize};
@@ -60,10 +63,24 @@ impl UiProfileGeometry {
         };
         let scene = &presentation.host_scene_data;
         let resize_splitters = collect_resize_splitters(&scene.resize_layer);
-        let document_tabs = collect_document_tabs(&scene.document_dock);
-        let drawer_tabs = collect_drawer_tabs(scene);
-        let host_page_tabs = collect_host_page_tabs(&scene.page_chrome.tab_frames);
-        let activity_rail_buttons = collect_activity_rail_profile_buttons(scene);
+        let authored = owns_ordinary_panes(presentation);
+        let document_tabs = scene
+            .document_surfaces()
+            .iter()
+            .filter(|document| !owns_authored_level_viewport(presentation, document))
+            .flat_map(collect_document_tabs)
+            .collect::<Vec<_>>();
+        let drawer_tabs = collect_drawer_tabs(presentation);
+        let host_page_tabs = if authored {
+            Vec::new()
+        } else {
+            collect_host_page_tabs(&scene.page_chrome.tab_frames)
+        };
+        let activity_rail_buttons = if authored {
+            Vec::new()
+        } else {
+            collect_activity_rail_profile_buttons(scene)
+        };
         let pane_controls = collect_pane_profile_controls(presentation);
         let native_hierarchy = collect_native_hierarchy_profiles(presentation);
         let clickable_frames = collect_clickable_frames(
@@ -93,7 +110,14 @@ impl UiProfileGeometry {
             drawer_tabs,
             host_page_tabs,
             activity_rail_buttons,
-            viewport_frame: visible_profile_frame(&presentation.host_layout.viewport_content_frame),
+            viewport_frame: scene
+                .document_surfaces()
+                .iter()
+                .find_map(|document| authored_level_viewport(presentation, document))
+                .map_or_else(
+                    || visible_profile_frame(&presentation.host_layout.viewport_content_frame),
+                    |viewport| visible_profile_frame(&viewport.clip),
+                ),
             viewport_toolbar_controls: pane_controls.viewport_toolbar_controls,
             template_controls: pane_controls.template_controls,
             welcome_recent_frame: pane_controls.welcome_recent_frame,
@@ -103,6 +127,7 @@ impl UiProfileGeometry {
             rounded_shapes: Vec::new(),
             text_runs: Vec::new(),
             submitted_gpu_text: None,
+            normal_window_evidence: None,
             native_hierarchy,
         }
     }

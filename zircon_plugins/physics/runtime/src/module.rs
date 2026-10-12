@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use zircon_runtime::core::framework::foundation::FOUNDATION_MODULE_NAME;
 use zircon_runtime::core::framework::physics::PhysicsManager;
-use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind,
-    StartupMode,
+    CoreError, DriverDescriptor, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
+    ServiceKind, StartupMode,
 };
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
@@ -71,11 +70,13 @@ pub(crate) fn module_descriptor_with_manager(
             "DefaultPhysicsManager",
         )],
         factory(|core| {
-            let manager =
-                core.resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)?;
-            Ok(
-                Arc::new(RegisteredManagerService::<dyn PhysicsManager>::new(manager))
-                    as ServiceObject,
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            core.register_service_alias::<DefaultPhysicsManager, dyn PhysicsManager>(
+                DEFAULT_PHYSICS_MANAGER_NAME,
+                ServiceKind::Manager,
+                zircon_runtime::core::manager::PHYSICS_MANAGER_NAME,
+                ServiceKind::Manager,
+                |manager| manager,
             )
         }),
     ))

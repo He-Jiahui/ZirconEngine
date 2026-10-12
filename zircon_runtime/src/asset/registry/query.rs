@@ -14,8 +14,10 @@ impl AssetRegistryIndex {
     /// UE `GetAssets(FARFilter)` equivalent.
     pub fn get_assets(&self, filter: &AssetRegistryFilter) -> Vec<&AssetRegistryEntry> {
         if let Some(type_marker) = filter.type_marker {
-            return self
-                .sorted_type_matches(type_marker, |entry| entry_matches_filter(entry, filter));
+            if filter.required_tags.is_empty() && filter.package_id.is_none() {
+                return self
+                    .sorted_type_matches(type_marker, |entry| entry_matches_filter(entry, filter));
+            }
         }
         if filter.required_tags.is_empty()
             && filter.path_prefix.is_none()
@@ -23,8 +25,7 @@ impl AssetRegistryIndex {
         {
             return self.entries();
         }
-        let mut entries = self.candidate_entries(filter);
-        entries.retain(|entry| entry_matches_filter(entry, filter));
+        let mut entries = self.matching_candidate_entries(filter);
         entries.sort_by(|left, right| left.path().cmp(right.path()));
         entries
     }
@@ -108,8 +109,10 @@ impl AssetRegistryIndex {
             .filter(|current| *current != path)
     }
 
+    // Keep the original profile baseline producer independent of selective query changes.
+    #[cfg(all(test, windows))]
     fn candidate_entries(&self, filter: &AssetRegistryFilter) -> Vec<&AssetRegistryEntry> {
-        // Keep direct postings borrowed; build a path-prefix union only when no direct
+        // Keep direct postings borrowed; range-scan exact path buckets only when no direct
         // posting can already bound the candidate set.
         let mut candidate_uuids = None;
 
@@ -129,31 +132,89 @@ impl AssetRegistryIndex {
 
         if candidate_uuids.is_none() {
             if let Some(prefix) = filter.path_prefix.as_deref() {
-                let mut posting = HashSet::new();
-                for (path, uuids) in self
+                // Each authoritative UUID occupies one exact path bucket, so
+                // these disjoint postings need no temporary UUID union.
+                let postings = self
                     .uuids_by_path_prefix
                     .range::<str, _>((Bound::Included(prefix), Bound::Unbounded))
-                {
-                    if !path.starts_with(prefix) {
-                        break;
-                    }
-                    posting.extend(uuids.iter().copied());
-                }
-                if posting.is_empty() {
-                    return Vec::new();
-                }
-                choose_owned_posting(&mut candidate_uuids, posting);
+                    .take_while(|(path, _)| path.starts_with(prefix));
+                let candidate_count = postings
+                    .clone()
+                    .map(|(_, uuids)| uuids.len())
+                    .sum::<usize>();
+                let mut entries = Vec::with_capacity(candidate_count);
+                entries.extend(
+                    postings
+                        .flat_map(|(_, uuids)| uuids.iter())
+                        .filter_map(|uuid| self.entries_by_uuid.get(uuid)),
+                );
+                return entries;
             }
         }
 
         match candidate_uuids {
-            Some(CandidatePosting::Borrowed(uuids)) => uuids
+            Some(uuids) => uuids
                 .iter()
                 .filter_map(|uuid| self.entries_by_uuid.get(uuid))
                 .collect(),
-            Some(CandidatePosting::Owned(uuids)) => uuids
-                .into_iter()
-                .filter_map(|uuid| self.entries_by_uuid.get(&uuid))
+            None => self.entries_iter().collect(),
+        }
+    }
+
+    fn matching_candidate_entries(&self, filter: &AssetRegistryFilter) -> Vec<&AssetRegistryEntry> {
+        // Keep direct postings borrowed; range-scan exact path buckets only when no direct
+        // posting can already bound the candidate set.
+        let mut candidate_uuids = None;
+
+        if let Some(type_marker) = filter.type_marker {
+            let Some(posting) = self.uuids_by_type.get(&type_marker) else {
+                return Vec::new();
+            };
+            choose_borrowed_posting(&mut candidate_uuids, posting);
+        }
+
+        if let Some(package_id) = filter.package_id.as_deref() {
+            let Some(posting) = self.uuids_by_package.get(package_id) else {
+                return Vec::new();
+            };
+            choose_borrowed_posting(&mut candidate_uuids, posting);
+        }
+
+        for tag in &filter.required_tags {
+            let Some(posting) = self.uuids_by_tag.get(tag) else {
+                return Vec::new();
+            };
+            choose_borrowed_posting(&mut candidate_uuids, posting);
+        }
+
+        if candidate_uuids.is_none() {
+            if let Some(prefix) = filter.path_prefix.as_deref() {
+                // Each authoritative UUID occupies one exact path bucket, so
+                // these disjoint postings need no temporary UUID union.
+                let postings = self
+                    .uuids_by_path_prefix
+                    .range::<str, _>((Bound::Included(prefix), Bound::Unbounded))
+                    .take_while(|(path, _)| path.starts_with(prefix));
+                let candidate_count = postings
+                    .clone()
+                    .map(|(_, uuids)| uuids.len())
+                    .sum::<usize>();
+                let mut entries = Vec::with_capacity(candidate_count);
+                entries.extend(
+                    postings
+                        .flat_map(|(_, uuids)| uuids.iter())
+                        .filter_map(|uuid| self.entries_by_uuid.get(uuid))
+                        .filter(|entry| entry_matches_filter(entry, filter)),
+                );
+                return entries;
+            }
+        }
+
+        match candidate_uuids {
+            Some(uuids) => uuids
+                .iter()
+                .filter_map(|uuid| self.entries_by_uuid.get(uuid))
+                .filter(|entry| entry_matches_filter(entry, filter))
                 .collect(),
             None => self.entries_iter().collect(),
         }
@@ -177,41 +238,12 @@ impl AssetRegistryIndex {
     }
 }
 
-enum CandidatePosting<'a> {
-    Borrowed(&'a HashSet<AssetUuid>),
-    Owned(HashSet<AssetUuid>),
-}
-
-impl CandidatePosting<'_> {
-    fn len(&self) -> usize {
-        match self {
-            Self::Borrowed(posting) => posting.len(),
-            Self::Owned(posting) => posting.len(),
-        }
-    }
-}
-
 fn choose_borrowed_posting<'a>(
-    selected: &mut Option<CandidatePosting<'a>>,
+    selected: &mut Option<&'a HashSet<AssetUuid>>,
     posting: &'a HashSet<AssetUuid>,
 ) {
-    if selected
-        .as_ref()
-        .is_none_or(|current| posting.len() < current.len())
-    {
-        *selected = Some(CandidatePosting::Borrowed(posting));
-    }
-}
-
-fn choose_owned_posting<'a>(
-    selected: &mut Option<CandidatePosting<'a>>,
-    posting: HashSet<AssetUuid>,
-) {
-    if selected
-        .as_ref()
-        .is_none_or(|current| posting.len() < current.len())
-    {
-        *selected = Some(CandidatePosting::Owned(posting));
+    if selected.is_none_or(|current| posting.len() < current.len()) {
+        *selected = Some(posting);
     }
 }
 
@@ -236,3 +268,7 @@ fn entry_matches_filter(entry: &AssetRegistryEntry, filter: &AssetRegistryFilter
 #[cfg(all(test, windows))]
 #[path = "query/tests/unfiltered_profile.rs"]
 mod unfiltered_profile;
+
+#[cfg(test)]
+#[path = "query/tests/selectivity.rs"]
+mod selectivity;

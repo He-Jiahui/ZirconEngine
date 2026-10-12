@@ -2,6 +2,7 @@ use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 
 use crate::core::framework::scene::WorldHandle;
+use crate::core::runtime::ServiceHandle;
 use crate::core::{CoreError, CoreWeak};
 use crate::scene::world::World;
 
@@ -9,69 +10,89 @@ use super::DefaultLevelManager;
 use crate::scene::{LevelMetadata, LevelSystem};
 
 /// A fully initialized level that is not visible to the runtime registry until publication.
+/// The idle seed retains an exact service generation without holding call admission.
 pub struct PreparedLevel {
-    manager: Arc<DefaultLevelManager>,
+    // Release an unsubmitted World/resource lease before its idle service token.
     level: Option<LevelSystem>,
+    manager: ServiceHandle<DefaultLevelManager>,
+}
+
+/// Preserves the distinct admission and consumer installation failures.
+#[derive(Debug)]
+pub enum PreparedLevelPublishError<E> {
+    Admission(CoreError),
+    Install(E),
 }
 
 impl PreparedLevel {
-    pub(super) fn new(manager: Arc<DefaultLevelManager>, level: LevelSystem) -> Self {
+    pub(super) fn new(manager: ServiceHandle<DefaultLevelManager>, level: LevelSystem) -> Self {
         Self {
-            manager,
             level: Some(level),
+            manager,
         }
     }
 
-    pub fn publish(mut self) -> PreparedLevelPublication {
+    /// Publishes and installs the level under one exact-generation call admission.
+    ///
+    /// Installation runs outside the registry mutex. An error or panic removes the
+    /// temporary registry entry and releases this transaction's level before admission
+    /// drains. A successful consumer may retain its own LevelSystem resource lease.
+    pub fn try_publish_with<E>(
+        mut self,
+        install: impl FnOnce(&LevelSystem) -> Result<(), E>,
+    ) -> Result<LevelSystem, PreparedLevelPublishError<E>> {
+        let manager = self
+            .manager
+            .enter()
+            .map_err(PreparedLevelPublishError::Admission)?;
         let level = self
             .level
             .take()
             .expect("a prepared level can be published at most once");
-        let previous = self
-            .manager
+        let publication = PreparedLevelRollback {
+            manager: &manager,
+            level: Some(level),
+        };
+        let previous = manager
             .lock_levels()
-            .insert(level.handle(), level.clone());
+            .insert(publication.level().handle(), publication.level().clone());
         debug_assert!(
             previous.is_none(),
             "prepared level handles are globally unique"
         );
-        PreparedLevelPublication {
-            manager: Arc::clone(&self.manager),
-            level: Some(level),
-            committed: false,
-        }
+        install(publication.level()).map_err(PreparedLevelPublishError::Install)?;
+        Ok(publication.commit())
     }
 }
 
-/// Removes a published level on drop until its consumer commits the publication.
-pub struct PreparedLevelPublication {
-    manager: Arc<DefaultLevelManager>,
+/// This rollback owner cannot outlive the publishing call's admitted manager.
+struct PreparedLevelRollback<'a> {
+    manager: &'a DefaultLevelManager,
     level: Option<LevelSystem>,
-    committed: bool,
 }
 
-impl PreparedLevelPublication {
-    pub fn level(&self) -> &LevelSystem {
+impl PreparedLevelRollback<'_> {
+    fn level(&self) -> &LevelSystem {
         self.level
             .as_ref()
             .expect("published level remains available until commit")
     }
 
-    pub fn commit(mut self) -> LevelSystem {
-        self.committed = true;
+    fn commit(mut self) -> LevelSystem {
         self.level
             .take()
             .expect("published level remains available until commit")
     }
 }
 
-impl Drop for PreparedLevelPublication {
+impl Drop for PreparedLevelRollback<'_> {
     fn drop(&mut self) {
-        if self.committed {
-            return;
-        }
-        if let Some(level) = self.level.as_ref() {
-            self.manager.lock_levels().remove(&level.handle());
+        if let Some(level) = self.level.take() {
+            let removed = self.manager.lock_levels().remove(&level.handle());
+            // Drop World/resource leases outside the registry lock and before the
+            // enclosing ServiceCallGuard announces that the publishing call drained.
+            drop(removed);
+            drop(level);
         }
     }
 }

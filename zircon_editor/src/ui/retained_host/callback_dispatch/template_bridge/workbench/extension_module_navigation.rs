@@ -17,6 +17,191 @@ pub(super) fn workbench_extension_workspace_control_id(action_id: &str) -> Optio
         .and_then(|route| route.workspace_control_id)
 }
 
+/// Canonical sources loaded only when their registered extension is selected.
+pub(super) fn workbench_extension_workspace_document(
+    action_id: &str,
+) -> Option<(&'static str, &'static str)> {
+    match action_id {
+        "workbench.extension.particle_library.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui",
+            "WorkbenchExtensionParticleLibraryWorkspace",
+        )),
+        "workbench.extension.terrain_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui",
+            "WorkbenchExtensionTerrainEditorWorkspace",
+        )),
+        "workbench.extension.foliage_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui",
+            "WorkbenchExtensionFoliageEditorWorkspace",
+        )),
+        "workbench.extension.level_streaming.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_streaming_workspace.zui",
+            "WorkbenchExtensionLevelStreamingWorkspace",
+        )),
+        "workbench.extension.level_variant.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui",
+            "WorkbenchExtensionLevelVariantWorkspace",
+        )),
+        "workbench.extension.prefab_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui",
+            "WorkbenchExtensionPrefabEditorWorkspace",
+        )),
+        "workbench.extension.scatter_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui",
+            "WorkbenchExtensionScatterEditorWorkspace",
+        )),
+        "workbench.extension.volume_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_volume_editor_workspace.zui",
+            "WorkbenchExtensionVolumeEditorWorkspace",
+        )),
+        "workbench.extension.weather_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui",
+            "WorkbenchExtensionWeatherEditorWorkspace",
+        )),
+        "workbench.extension.spawn_rules.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui",
+            "WorkbenchExtensionSpawnRulesWorkspace",
+        )),
+        "workbench.extension.world_state.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui",
+            "WorkbenchExtensionWorldStateWorkspace",
+        )),
+        "workbench.extension.collision_proxy.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui",
+            "WorkbenchExtensionCollisionProxyWorkspace",
+        )),
+        "workbench.extension.physics_collision.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_physics_collision_workspace.zui",
+            "WorkbenchExtensionPhysicsCollisionWorkspace",
+        )),
+        "workbench.extension.navmesh_ai.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui",
+            "WorkbenchExtensionNavmeshAiWorkspace",
+        )),
+        "workbench.extension.lobby_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_lobby_editor_workspace.zui",
+            "WorkbenchExtensionLobbyEditorWorkspace",
+        )),
+        "workbench.extension.matchmaking_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_matchmaking_editor_workspace.zui",
+            "WorkbenchExtensionMatchmakingEditorWorkspace",
+        )),
+        "workbench.extension.data_table.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/data/workbench_extension_data_table_workspace.zui",
+            "WorkbenchExtensionDataTableWorkspace",
+        )),
+        "workbench.extension.source_control.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/production/workbench_extension_source_control_workspace.zui",
+            "WorkbenchExtensionSourceControlWorkspace",
+        )),
+        "workbench.extension.build_export.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/production/workbench_extension_build_export_workspace.zui",
+            "WorkbenchExtensionBuildExportWorkspace",
+        )),
+        "workbench.extension.automation_report.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/production/workbench_extension_automation_report_workspace.zui",
+            "WorkbenchExtensionAutomationReportWorkspace",
+        )),
+        "workbench.extension.project_overview.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/production/workbench_extension_project_overview_workspace.zui",
+            "WorkbenchExtensionProjectOverviewWorkspace",
+        )),
+        "workbench.extension.plugin_manager.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/production/workbench_extension_plugin_manager_workspace.zui",
+            "WorkbenchExtensionPluginManagerWorkspace",
+        )),
+        "workbench.extension.save_data.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui",
+            "WorkbenchExtensionSaveDataWorkspace",
+        )),
+        "workbench.extension.sequencer.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui",
+            "WorkbenchExtensionSequencerWorkspace",
+        )),
+        "workbench.extension.montage_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui",
+            "WorkbenchExtensionMontageEditorWorkspace",
+        )),
+        "workbench.extension.blend_space.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui",
+            "WorkbenchExtensionBlendSpaceWorkspace",
+        )),
+        "workbench.extension.pose_library.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui",
+            "WorkbenchExtensionPoseLibraryWorkspace",
+        )),
+        "workbench.extension.retarget.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui",
+            "WorkbenchExtensionRetargetWorkspace",
+        )),
+        "workbench.extension.control_rig.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui",
+            "WorkbenchExtensionControlRigWorkspace",
+        )),
+        "workbench.extension.motion_matching.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui",
+            "WorkbenchExtensionMotionMatchingWorkspace",
+        )),
+        "workbench.extension.animation_compression.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/animation/workbench_extension_animation_compression_workspace.zui",
+            "WorkbenchExtensionAnimationCompressionWorkspace",
+        )),
+        "workbench.extension.shader_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_shader_editor_workspace.zui",
+            "WorkbenchExtensionShaderEditorWorkspace",
+        )),
+        "workbench.extension.lighting_bake.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui",
+            "WorkbenchExtensionLightingBakeWorkspace",
+        )),
+        "workbench.extension.post_process.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui",
+            "WorkbenchExtensionPostProcessWorkspace",
+        )),
+        "workbench.extension.console_diagnostics.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui",
+            "WorkbenchExtensionConsoleDiagnosticsWorkspace",
+        )),
+        "workbench.extension.runtime_diagnostics.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui",
+            "WorkbenchExtensionRuntimeDiagnosticsWorkspace",
+        )),
+        "workbench.extension.telemetry_dashboard.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui",
+            "WorkbenchExtensionTelemetryDashboardWorkspace",
+        )),
+        "workbench.extension.performance.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui",
+            "WorkbenchExtensionPerformanceWorkspace",
+        )),
+        "workbench.extension.font_atlas.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/ui/workbench_extension_font_atlas_workspace.zui",
+            "WorkbenchExtensionFontAtlasWorkspace",
+        )),
+        "workbench.extension.menu_flow.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui",
+            "WorkbenchExtensionMenuFlowWorkspace",
+        )),
+        "workbench.extension.accessibility_audit.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/ui/workbench_extension_accessibility_audit_workspace.zui",
+            "WorkbenchExtensionAccessibilityAuditWorkspace",
+        )),
+        "workbench.extension.icon_library.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui",
+            "WorkbenchExtensionIconLibraryWorkspace",
+        )),
+        "workbench.extension.ui_binding.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_binding_workspace.zui",
+            "WorkbenchExtensionUiBindingWorkspace",
+        )),
+        "workbench.extension.ui_asset_editor.open" => Some((
+            "res://ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui",
+            "WorkbenchExtensionUiAssetEditorWorkspace",
+        )),
+        _ => None,
+    }
+}
+
 pub(super) fn workbench_extension_panel_row_control_id(action_id: &str) -> Option<&'static str> {
     extension_action_index()
         .get(action_id)

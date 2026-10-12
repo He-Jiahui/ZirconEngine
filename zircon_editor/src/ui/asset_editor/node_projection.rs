@@ -14,7 +14,10 @@ use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::ui::{
     style::resolve_button_style_from_values,
     surface::UiSurface,
-    v2::{UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder},
+    v2::{
+        UiV2CompiledDocument, UiV2DocumentCompiler, UiV2PrototypeStore,
+        UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder,
+    },
 };
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
@@ -68,11 +71,24 @@ struct TemplateRenderInfo<'a> {
 }
 
 pub(crate) fn ui_asset_editor_node_projection(size: UiSize) -> UiAssetEditorNodeProjection {
+    ui_asset_editor_node_projection_with_palette(size, &[], 0, -1)
+}
+
+pub(crate) fn ui_asset_editor_node_projection_with_palette(
+    size: UiSize,
+    labels: &[String],
+    visible_start: usize,
+    selected_index: i32,
+) -> UiAssetEditorNodeProjection {
     let session =
         NODE_PROJECTION_SESSION.get_or_init(|| Mutex::new(NodeProjectionSession::default()));
     session
         .lock()
-        .map(|mut session| session.project(size).unwrap_or_default())
+        .map(|mut session| {
+            session
+                .project(size, labels, visible_start, selected_index)
+                .unwrap_or_default()
+        })
         .unwrap_or_default()
 }
 
@@ -119,31 +135,49 @@ struct NodeProjectionSession {
     document: Option<NodeProjectionDocument>,
     surface: Option<UiSurface>,
     size: Option<UiSize>,
+    palette: Option<(Vec<String>, usize, i32)>,
 }
 
 impl NodeProjectionSession {
     fn project(
         &mut self,
         size: UiSize,
+        labels: &[String],
+        visible_start: usize,
+        selected_index: i32,
     ) -> Result<UiAssetEditorNodeProjection, UiAssetEditorNodeProjectionError> {
         if self.document.is_none() {
             self.document = Some(load_node_projection_document()?);
         }
 
-        if self.surface.is_none() {
+        let palette_changed = self.palette.as_ref().is_none_or(|previous| {
+            previous.0 != labels || previous.1 != visible_start || previous.2 != selected_index
+        });
+        if self.surface.is_none() || palette_changed {
             let document = self
                 .document
                 .as_ref()
                 .expect("v2 projection document should be initialized");
-            let prepared_document = prepare_editor_v2_document(document.root_document.as_ref());
+            let source = palette_document(
+                document.root_document.as_ref(),
+                labels,
+                visible_start,
+                selected_index,
+            );
+            let compiled = UiV2DocumentCompiler::compile_with_prototype_store(
+                &source,
+                document.store.as_ref(),
+            )?;
+            let prepared_document = prepare_editor_v2_document(&source);
             let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
                 UiTreeId::new("ui_asset_editor.node_projection".to_string()),
                 &prepared_document,
-                document.compiled.as_ref(),
+                &compiled,
             )?;
             surface.compute_layout(size)?;
             self.surface = Some(surface);
             self.size = Some(size);
+            self.palette = Some((labels.to_vec(), visible_start, selected_index));
         } else if self.size != Some(size) {
             if let Some(surface) = self.surface.as_mut() {
                 mark_surface_roots_layout_dirty(surface);
@@ -164,6 +198,7 @@ impl NodeProjectionSession {
 struct NodeProjectionDocument {
     root_document: Arc<UiV2AssetDocument>,
     compiled: Arc<UiV2CompiledDocument>,
+    store: Arc<UiV2PrototypeStore>,
 }
 
 fn load_node_projection_document(
@@ -179,12 +214,77 @@ fn load_node_projection_document(
     Ok(NodeProjectionDocument {
         root_document: outcome.root_document,
         compiled: outcome.compiled,
+        store: outcome.store,
     })
 }
 
-fn node_projection_v2_store_file_cache() -> &'static Mutex<UiV2PrototypeStoreFileCache> {
+pub(in crate::ui::asset_editor) fn node_projection_v2_store_file_cache(
+) -> &'static Mutex<UiV2PrototypeStoreFileCache> {
     static CACHE: OnceLock<Mutex<UiV2PrototypeStoreFileCache>> = OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(UiV2PrototypeStoreFileCache::new()))
+}
+
+fn palette_document(
+    source: &UiV2AssetDocument,
+    labels: &[String],
+    start: usize,
+    selected: i32,
+) -> UiV2AssetDocument {
+    let mut document = source.clone();
+    if labels.is_empty() {
+        return document;
+    }
+    for (offset, key) in [
+        "palette_button",
+        "palette_label",
+        "palette_image",
+        "palette_container",
+    ]
+    .iter()
+    .enumerate()
+    {
+        let index = start.saturating_add(offset);
+        if let Some(node) = document.nodes.get_mut(*key) {
+            let label = labels.get(index);
+            node.control_id = Some(format!("UiAssetPaletteEntry{index}"));
+            node.props.insert(
+                "text".into(),
+                Value::String(label.cloned().unwrap_or_default()),
+            );
+            node.props
+                .insert("disabled".into(), Value::Boolean(label.is_none()));
+            node.props.insert(
+                "selected".into(),
+                Value::Boolean(selected >= 0 && selected as usize == index),
+            );
+            node.props.insert(
+                "dispatch_kind".into(),
+                Value::String("ui_asset_palette".into()),
+            );
+            node.props
+                .insert("action_id".into(), Value::String(index.to_string()));
+        }
+    }
+    for (key, index, disabled) in [
+        ("palette_previous", start.saturating_sub(4), start == 0),
+        (
+            "palette_next",
+            start.saturating_add(4),
+            start.saturating_add(4) >= labels.len(),
+        ),
+    ] {
+        if let Some(node) = document.nodes.get_mut(key) {
+            node.props
+                .insert("disabled".into(), Value::Boolean(disabled));
+            node.props.insert(
+                "dispatch_kind".into(),
+                Value::String("ui_asset_palette_page".into()),
+            );
+            node.props
+                .insert("action_id".into(), Value::String(index.to_string()));
+        }
+    }
+    document
 }
 
 fn mark_surface_roots_layout_dirty(surface: &mut UiSurface) {

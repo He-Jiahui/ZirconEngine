@@ -14,7 +14,7 @@ impl RetainedEditorHost {
     pub(super) fn build_export_pane_data(
         &self,
         chrome: &EditorChromeSnapshot,
-    ) -> BuildExportPaneViewData {
+    ) -> Result<BuildExportPaneViewData, crate::ui::host::EditorError> {
         let project_path = std::path::Path::new(&chrome.project_path);
         let base_lookup = self
             .desktop_export_wizard_sessions
@@ -27,7 +27,7 @@ impl RetainedEditorHost {
                 projection,
             } => (Some(revision), projection),
             BuildExportBaseLookup::Miss(build_token) => {
-                let base = Arc::new(targets::rebuild_export_targets(self, chrome));
+                let base = Arc::new(targets::rebuild_export_targets(self, chrome)?);
                 let revision = self
                     .desktop_export_wizard_sessions
                     .projection_cache()
@@ -45,7 +45,7 @@ impl RetainedEditorHost {
                 .borrow()
                 .cached_rendered(revision, overlay_generation)
         }) {
-            return cached;
+            return Ok(cached);
         }
 
         let targets = targets::apply_export_target_overlays(self, base.as_ref());
@@ -66,6 +66,6 @@ impl RetainedEditorHost {
                 .borrow_mut()
                 .store_rendered(revision, overlay_generation, pane.clone());
         }
-        pane
+        Ok(pane)
     }
 }

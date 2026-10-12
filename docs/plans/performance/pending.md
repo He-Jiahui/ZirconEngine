@@ -150,3 +150,119 @@ See [`01/2026-08-31-runtime-ui-input-dispatch-closure.md`](01/2026-08-31-runtime
 - 2026-09-02 文档约定门使用 `python tools/audits/check_conventions.py --repo-root . --only docs --json`，报告写入 `E:/cargo-targets/zircon-perf/m0-docs-conventions.json`：受当前全工作树影响为 **1,619 violations / 5,294 documents / 91,836 checked paths**，含 22 repository escape、1 absolute path、1,596 missing path；性能计划自身不能据此宣称 GREEN。该全局问题路由既有 documentation-path failure，禁止在本计划批量猜路径或覆盖其他 owner 文档。
 - 2026-09-02 复跑非 Cargo 契约：App 请求编码性能契约与 Cargo product receipt 契约共 **74/74 passed**；插件结构审计 `E:/cargo-targets/m0-plugin-structure-rerun.json` 为 `classified-and-clear`、`sample-clean-migration-debt-clear`、`runtime-capability-single-source-clean`，但均为静态/源码契约，不构成 Runtime/Editor/Plugin 动态验收。
 - 2026-09-02 受管 Runtime 动态门再次被 coordinator 拒绝：`maintenance_hold_active`、`state=draining`、`lastReasonCode=tray.recovery_circuit_open`；不得绕过 coordinator。Runtime/Editor/Plugin Cargo 测试、CPU/GPU/RenderDoc/功耗数据继续保持 pending。
+
+
+### 2026-10-09 current-source 调度与编辑器复核
+
+沿用[当前执行流 7.25](2026-10-04-architecture-audit-flow.md#725-当前调度生命周期与-ui-owner-复核2026-10-09-utc)。本轮不改变 2026-08-14 的历史文件计数、不增加已验收模块。
+
+Runtime03/ECS 的 44 文件候选正在关闭整帧/整回放归属、有效注册发布和替换 World 的 stale tail。有限复核还定位到 direct spawn 生命周期事件丢失、三个候选编译类型错误及取消报告丢失已记录错误。原始物理字节重放与格式解析只是实现切片证据；新的生产路径回归、当前 Runtime package 检查和 scene/product 验证仍 pending。项目激活九文件已经在 Main，直接 mutation 的旧 activation 拒绝回归等待同一当前输入批次。
+
+[UI Core 独立判断](../../../.codex/sessions/performance-audit/reviews/ui-core/core-owner-decision-20261009-r1.json) 绑定 48 个 current raw pins，保留 18 个 foreign 已采用 postimage，旧候选严格投影 11/12、toolbar 原 before 缺失。十个 workspace 文档实际事件数为 139，另有 17 个 chrome producer 义务；当前缺失资产测试、选项派发 payload、样例完整 host dispatch、lazy-mount 三项缺陷及 96 个组件强可达门保持开放，归现有 owner 的下一窗口。Details V3 为已集成源码，仍非动态接受。
+
+本轮三个 Luna/max 文件审查因子代理缺少文件工具而未执行，不计覆盖。Sol/max 核心实现与独立复核继续。当前聊天无法向指定 Jenkins chat 发送消息，verified active 状态、当前产物、真实工具捕获与五次前/五次后性能样本均未完成；当前编译先满足 35 GiB 容量及物理盘根门槛，结果只能按其实际证据范围记录。
+
+### 2026-10-09 App V8 与公开生命周期有限结果（当前仍待验收）
+
+[owner／调用链及准确读取范围](../../../.codex/sessions/performance-audit/m0-owner-boundaries-r1.md) 已补。remove_entity、typed remove 与 compact publication 的原 owner 替换风险仍为 preexisting P1；当前 44 文件 ECS 集成不关闭这些公开路径。App 的 CR-APP-ENTRY-0003 在 target-editor-host 下包含旧 linked API 消费者及基础身份失配；Root 保留现有非零身份契约，候选编写中，Main 未采用。两份核心有限审查均无 Cargo 或动态行为执行；搜索 pin 不提升为完整源码覆盖。三 Luna 委派的工具阻塞不计审查，整模块已验收计数不变。F drive-root 与实际 Jenkins 发送／接受、当前原生基线和性能门仍开放。
+
+
+### 2026-10-09 App r2 已集成，公开 lifecycle 完整消费者仍开放
+
+沿用[执行流 7.28](2026-10-04-architecture-audit-flow.md#728-app-身份源码集成与取消消费者窗口2026-10-09-utc)。App 五叶已获精确独立复核并集成 Main；5/5 after、scoped diff 0、Runtime 59 输入和共享 index/lock 保持，当前没有编译/行为结果。永久非零 owner 身份与真实 Gateway provider 回归保留；旧 report.remove 消费者静态修复，真实 navigation bootstrap 和双 provider resource_scope 执行仍 pending，不关闭 CR-APP-ENTRY-0003。
+
+公开生命周期 13 后像仅有界源码批准、仍 RAM；18 条新测试未执行。records/detached replay、Editor Unchanged/Applied 补偿与 fault/history/replay、move-only 取消 payload、Physics cleanup 是下一统一消费者窗口。已发布 rows 的取消不承诺回滚；restore preflight intact batch 与消费后取消必须分开；不把更换 World 后的旧 batch 自动补偿回新 World。entry flush 替换假设已按实际无 callback 链排除。两个核心设计任务分属 scene cancellation 和 dynamic plugin bootstrap；非 MVP 实施继续遵守基础门槛。
+
+原生检查仅有 D/F 控制准备和真实 prelaunch 失败，无 Cargo 启动。D 35 GiB 空间/F 父目录、Jenkins 实际消息送达和接受、当前产品与工具捕获、五次性能样本仍开放。不同 target lane 的并行 package 验证不受 Root 旧全局 any-Cargo 前检约束；性能采样单独独占。三 Luna 明文重试仍无有效审查；整模块已验收计数和 review.md 不变。
+
+
+### 2026-10-10 当前原生基线修复与取消消费者
+
+沿用[当前执行流 7.29](2026-10-04-architecture-audit-flow.md)。原 D 生产 Cargo check exit 0、外层控制因十项外来 UI 输入漂移 exit 1；后续 Runtime libtest no-run 实际 exit 101，五条诊断、四个原因，列表/测试执行 0。旧终态、Job 身份、EOF、选定输入和输出均保留，不登记当前编译接受。
+
+[五个最小测试消费者修复](../../../.codex/sessions/performance-audit/runtime-native-baseline-fix/integration-r2.json) 已在 Main，独立审查和 5/5 after 匹配；失败写入 sourceWrites 0 的旧 receipt 保留。新的 [source context r2](../../../.codex/sessions/performance-audit/ecs-current-source-context-r2.json) 精确继承 59 项并覆盖四个测试 pin、显式加入 UI 测试。修复后的当前编译及行为等待 F 原生批次。
+
+[生命周期统一范围](../../../.codex/sessions/performance-audit/lifecycle-cancellation-source-scopes-r3.json) 为 59 个唯一文件，其中 57 个仍为 RAM 候选，另两项是已合入基线：Shared10/Core22/Engine6/Editor6/Asset9/Physics4。Core25 新声明、Engine/Editor 与 Physics 新行为尚未执行；有限源码批准不进入已验收账本。Shared 的两项旧源码错误 token 消费者已补十叶候选。Asset r2 的首次取消 marker 未覆盖公开事件入口，被独立复核要求修改；第九 events 叶和真实 transform/wheel owned transport 回归由原 owner 修复中。Context 同时重复 callback/dispatch Err 的诊断丢失保留下一窗口，没有在本批改写 Context。
+
+[F 正向物理和写入前检](../../../.codex/sessions/performance-audit/native-f-preflight/receipt-r1.json) 通过，F 实际现有父目录和授权 zircon-local 下唯一 probe 保留，空闲 102,910,431,232 bytes ≥35 GiB；不代表 native 或完整权限 enforcement。F 原生控制准备后先验证当前 Main，执行期间暂停本轮源码集成。Jenkins 消息仍未送达；E:\zircon-profiles 写入、当前产品及工具捕获、五次前后性能、MVP 00/F0–F5、模块和里程碑接受全部开放。历史计数、外来字节、共享 index/lock 与 review.md 保持。
+
+
+### 2026-10-10 独立取消复核与第二次输入漂移
+
+沿用[执行流 7.30](2026-10-04-architecture-audit-flow.md)。F-r3 与唯一一次 F-r4 launch 均在 sourceObservation 前检因外来输入漂移退出，原生命名空间未创建，Cargo/list/tests 0；不误记 Rust 失败或通过，不重提封存请求。r3 的三 Picking 叶是已核对的注释/空行变化，仍保留真实观察；r4 新漂移待分类。F-r4 packet-only 错误及 source-focused successor 独立保留，原完整 fresh receipt 未取得的事实不改。
+
+[Shared10 独立源码复核](../../../.codex/sessions/performance-audit/reviews/lifecycle-unified-review/shared-r2-bounded-r1.json) 有界通过。[Asset9 r4 独立复核](../../../.codex/sessions/performance-audit/reviews/lifecycle-unified-review/asset-r4-bounded-r1.json) 静态关闭公开事件入口、真实测试 API 与两项 state 行数预算；state 796，十条声明执行 0。Root 57 叶统一 RAM raw replay/Git check 成功后又发现 Core1 typed_api 801 越界及第三 World restore 夹具未真实建立兼容 storage；统一包不获集成接受。原 owner 正在同 22 叶内修两生产、一测试，剩 19 后像保持；Core2 及独立再审 pending，Main 的最小五项基线修复保留。
+
+[Bootstrap 独立设计](../../../.codex/sessions/performance-audit/reviews/runtime-bootstrap-independent/runtime-bootstrap-independent-review-r1.json) 确认 Runtime construction 为最低启动 owner，before-first-effect 清理/保留、companion 配置与 public export、真实产品 caller 仍未闭合；当前 abort 与 V8/V3/V4 外层契约不改，新的 ABI/layout/实现未批准。Context 诊断合同另作只读，不写入该窗口。当前 native、产品/工具捕获、五次前后性能、Jenkins 送达与接受、MVP 00/F0–F5 和整模块/里程碑仍开放；旧 Source/diff、共享 index/lock、失败回执及已验收计数保持。
+
+
+### 2026-10-10 统一 57 文件已集成，当前编译与行为待验收
+
+沿用[执行流 7.31](2026-10-04-architecture-audit-flow.md)。Core2 三叶修正经独立有界复核，Root [r2c 实际集成](../../../.codex/sessions/performance-audit/lifecycle-unified-integration/integration-r2c.json) 完成 57 文件，最终字节与 scoped diff-check 通过；新 [context r3](../../../.codex/sessions/performance-audit/ecs-current-source-context-r3.json) 记录 110 个唯一当前 pin 和十二项 supersession。HEAD/index/原空 lock 保持；没有 compiler-input seal 或当前原生接受。
+
+[验证计划](../../../.codex/sessions/performance-audit/reviews/lifecycle-validation-closure-r1/package-validation-plan-r1.json) 覆盖原始 31 项、本轮 68 项新增声明及完整四 package 消费者，三编译阶段合计 248 普通测试加八项 guard，执行仍待完成。先恢复原始 Runtime31。F-r5b 控制修正与独立复核尚未 prepare/launch，旧 r3/r4 前检失败保持。event_processing 的既有全局行数预算风险仍开放。Context5 仅 RAM 候选和独立复核，不混入基线。Bootstrap 的新输入、before-first-effect owner 和真实产品调用方尚未实施；现有 abort 与 V8/V3/V4 契约保持。当前源码/native、产品、性能、Jenkins 送达/接受、模块及里程碑未验收，已验收计数不增。
+
+
+### 2026-10-11 当前原生失败终态与 E 盘产物门槛
+
+沿用[执行流 7.32](2026-10-04-architecture-audit-flow.md)。实际 F-r5c 一次 Cargo 依赖获取因 Schannel SEC_E_NO_CREDENTIALS 退出 101；Job、进程与 EOF 已归档，列表/测试执行为 0。921 个锁定 archive 与 807 个 sparse 文件的离线供应已核验；1,729 文件的 E 盘供应后继尚未执行，不登记编译通过。
+
+当前 context r4 精确核对 110 项并显式保留一项外来测试 helper 修正；外部 Git 提交、index 与 lock 变化保留历史，不制造跨历史保护一致性。Context5＋event2 的七文件集成尚未完成；r2 证据读取比较错误将 atime 变化当成修改，原失败 Source=0，r3 校验修正进行中。
+
+新产物按实际配置使用 E 盘，并先登记稳定任务 artifacts.json，状态 active、实际释放 0。E 空间低于 35 GiB 门槛约 14.36 GiB；共享 E 默认构建树和未知历史产物保留。拟执行根工作区 249 项与另行 Physics11 项均未接受；当前产品、性能、Jenkins 送达/接受、MVP 与模块里程碑门槛仍开放，review.md 和已验收计数不变。
+
+
+### 2026-10-11 七文件与离线供给已完成操作核对，原生验收待执行
+
+沿用[执行流 7.33](2026-10-04-architecture-audit-flow.md)。Root 已实际写入 Context5＋event2 七文件；原始 primary 与 protocol/dispatch 顺序保留、event_processing/task_admission 为 658/165 行。实际写入、截断、读回及保护输入经独立操作核对通过，父 context 110 项加有限 delta 后为 114 项；静态操作接受未提升为 Rust 类型、全局 guard、行为或产品接受。
+
+E 供应根已实际复制并读回 1,729 文件、208,979,433 payload 字节，645 子目录及两个辅助回执，child exit 0、wait/EOF 完成。独立审计中的整数报告显示舍入已用有限 delta 更正，未来校验使用原始准确整数回执。Cargo 尚未执行该供给；不可变供给和各阶段私有 CargoHome 的职责保持。
+
+用户释放空间后 Root 核实 E 剩余约 205 GiB，35 GiB 磁盘门已恢复，launch 时再查。稳定 artifacts.json revision 2 登记实际交付，初始清单原样归档；Root 实际释放 0、任务 active，外来与共享产物保留。当前 E 原生控制与独立审查进行中：Runtime 191＋3、Interface 2、Editor 48＋5，共 241 功能＋8 guard，功能全部先于 guard。Physics11 与 72 个额外版本供应继续开放。三个 Luna/max 的实际有限模块阅读进行中，不计整模块验收。
+
+当前原生编译/测试、MVP、产品与性能均待验收；Jenkins 消息仍未送达，原始 profile 写入 grant 未具备。已验收计数和 review.md 保持。
+
+
+### 2026-10-12 当前完整准备通过，原生恢复与工具能力仍待验收
+
+沿用[执行流 7.34](2026-10-04-architecture-audit-flow.md)。当前 prepared 完整观察 20,119 个源码/相关输入并通过；随后 runner 的一次启动在 CONFIG 初始化前因 WindowsStorage create=True 对只读 cargo-targets 祖先请求写入失败，exit 2、wait/EOF 归档。禁止 FILE_CREATE 的有限诊断确认 Errno 5；空 execution 身份已绑定原 failed command 与 prepared，CONFIG/task-parent/TEMP 仍 absent。R5 将仅从授权 zircon-local 锚点相对创建同一配置，Root explicit recovery launch、完整 guard、旧 metadata custody、新 control/review pins 和逐层创建结果仍待复核与执行。没有当前编译或测试通过。
+
+资产准入、普通编辑诊断和启动 custody 的三个 Luna 审查已实际完成，静态风险分别归并到 queue owner、既有诊断消费者、启动 construction owner；动态复现和完整模块处置保持开放。新增有限阅读确认 Hub→App→retained Editor 入口与 cleanup 可见，但首帧、World 激活、保存重开与退出仍未执行。RenderDoc v1.44 安装可见但 MCP disabled；Tracy feature/caller、GPU timestamp 实现及 WPR 命令存在不证明当前产品可采集，原始 E profile 写入授权仍未具备。
+
+Root 新一轮释放 0，任务与稳定产物保留。Physics11/额外版本供应、当前 native、MVP、产品与五次前后性能、Jenkins 送达/接受及模块/里程碑继续 pending；已验收计数和 review.md 不变。实际 checkout 校验与产物 staging 沿用当前用户授权，不创建计划历史措辞中的 Source validation copy。
+
+### 2026-10-12 恢复启动因共享源码变化终止，后继绑定新 epoch
+
+沿用[执行流 7.35](2026-10-04-architecture-audit-flow.md)。R5-r2 build-parent 单组件创建方案完成 Root 阅读和 Sol 独立复核；既有未 join 异常的 Job/目录持有 caveat 保持开放。实际恢复 child PID 2344 运行 684.105 秒后 exit 2，wait/EOF 完成，失败为 original prepared snapshot 不同。CONFIG/task/TEMP/request/receipt 仍 absent，Cargo/test 未开始；未把完整准入 passed 当编译或产品通过。
+
+当前 full-admission Source fingerprint 50f2ac678f882b82a86edff74d13fbfbeb458a57290a319a9cce23e9b37e49b3，20119 项；16 个共享 Editor/input 叶变化，20103 项及其余 snapshot 字段、五组 protected/tools/environment/supply/supplyIdentity 保持。精确 before/after 与现稳定身份由 Root drift 4b710fa4445eb02a0012aff1899ffb2ba5c46237a0554a5f3b0bcceaa154a302/18614 记录。保留所有已有修改；r2 claim 已消费，新 Root Source-epoch token/控制/独立复核待完成，不重发旧启动。三路 Luna 对 16 叶只读，Sol 辅助最小更新；供给、critical114、选择和 Native tail 不改，后续仍对新 baseline 严格校验。
+
+新增 App 生命周期和 typed cleanup 责任风险继续只读归因；Tracy feature 默认未启用、调用方忽略安装结果，日志 sink 自有实现不足以证明全局 subscriber 冲突根因。当前正常/失败退出和 worker/callback quiescence、首帧、World、保存重开仍需实际产品证据。工具捕获及 E 原始 profile 写入 grant、五次前后性能、Jenkins 送达/接受和 Physics 供应均开放。Root 本轮释放 0，任务 active，失败证据保留；当前 native/MVP/产品/模块/里程碑未接受。
+
+### 2026-10-12 epoch 复核完成，当前编译入口变化需重新交接
+
+沿用[执行流 7.36](2026-10-04-architecture-audit-flow.md)。R5-r3 精确 16/20103 投影、旧 22 metadata 和 bounded control 已经 Root/Sol 独立复核，未提升为 Native 接受。final contract 75c653b5…/25904 只换两个 review refs。实际 child19932 在 06:31:09 UTC、0.534 秒后 exit2、wait/EOF 完成，before-admission 被 local_cargo.py 指纹变化拒绝；命令回执 f2ccc854…/4091。r3claim/admission/build/TEMP/request/receipt absent，Cargo/tests=0，原 approval 保留、不重试。工具当前 e9259f18…/29471 的 main 转普通 Jenkins；三路 Luna 核对 driver、身份消费者与 helper，Sol 核对固定 pins，后继据实际可用入口及原任务授权交接，不改配置、不创建源码副本或恢复退役服务。
+
+Input12＋Editor4 的 epoch 全文阅读完成 6379 行，但同帧手柄断连重连、混合单位、设备代际和 hide 部分失败/token 等仅静态风险。CR-INPUT-FRAME-0001 已确认测试查找不存在的 drain_host_requests marker，现实现为 collect_host_requests；这是守卫缺陷，非产品帧顺序故障，且不在本次 249 选集，完整 Input 回归仍开放。App 最低方案为 typed failure 的原线程、本 owner 条件重试；全局 ThreadId registry 强持有及原线程退出后的恢复缺口仍未解决，现无 owner 测试不能验收 DLL 生命周期。
+
+当前完整基线仍须新观察；114 Source 与 build/related 固定 pin 核对已完成，六项预期缺失全同，仍不替代当前全树观察。Root 本轮未写生产源码/共享 helper/Git，释放 0，任务 active；供给、原控制及失败证据保留。Native、MVP、产品、性能、工具、Physics 供应、Jenkins 送达/接受及整模块/里程碑继续 pending，review.md 和已验收账本不增加。
+
+### 2026-10-12 App 清理与 Input 守卫切片已集成，等待合法原生交接
+
+沿用[执行流 7.37](2026-10-04-architecture-audit-flow.md)。App 创建失败现在在创建线程仅重试本错误的 pending owner 一次，保留 primary 与清理次级诊断；三项真实 session/owner 回归已写入并经 Sol/Luna 独立静态复核。完整测试 features 为 dynamic-api,platform-winit 且关闭默认 features，后续必须确认三例实际编入并运行；默认配置和单 dynamic-api 都会过滤这组。DLL 卸载、持续失败后原线程退出的恢复与 CR-APP-ENTRY-0003 整体仍开放。
+
+CR-INPUT-FRAME-0001 的故障重复用例删除，真正 tick→begin_frame owner 静态 guard 与 manager 行为用例保留；三个消费者完整迁移。event_buffer 纳入二十三例总清单，失焦 marker 和两处旧文档路径更新；重复泛化说明精简后 frame_state 为 759 行，原 <800 门槛保持。静态路径/锚点、RAM inverse 与 scoped diff-check 通过；二十三例、三项契约/预算守卫、owner guard 和真实 Level observer 行为均尚未执行。
+
+当前六叶 before/after 与受管参数记录在[既有 Jenkins 交接正文](../../../.codex/outbox/engine-audit-20261009-01a12097/jenkins-runtime-baseline-handoff-r2.md)，尚未发送。E 约 201.6 GiB，35 GiB 门恢复；Root 原始 Jenkins identity/authorization 未具备，等待合法交接，不借其他 chat actor、扩权限或重试旧 runner。当前 Native=0，完整源码/产物基线未建立；MVP、产品、工具与五次前后性能、Jenkins 和整模块/里程碑接受继续开放。无新构建/采样产物，实际释放 0，供给及历史/共享证据保留，已验收账本不增。
+
+### 2026-10-12 Jenkins 本地任务消息已留存，接收与原生验证待回执
+
+沿用[执行流 7.38](2026-10-04-architecture-audit-flow.md)。按用户指定，已在 `.jenkins/records` 写入并读回核验[任务消息](../../../.jenkins/records/engine-audit-20261009-01a12097-to-jenkins-01a0f6e1.md)，SHA256 `ccfeb8c1fe2e04209f8e4e878494ff54d437b136db065b8d9c1e9d8d539cf142`，5965 字节；接收聊天为 `01a0f6e1-e9a8-7b92-aed8-5220c71a9c43`。六叶及 outbox 哈希在写入前重新核对；artifact registry revision3 和精确历史 revision2 已保留。此前未发送状态只属历史 outbox，本次本地消息已 posted；接收 ACK、合法 identity/request/receipt 仍待返回，不计聊天送达、提交或验收。Native=0，各门槛继续开放；无新增构建/采样产物，实际释放0字节，任务active，已验收账本不增。
+
+### 2026-10-12 调用方复核撤回候选风险，F1 事务两项待复现
+
+沿用[执行流 7.39](2026-10-04-architecture-audit-flow.md)的真实阅读范围与十三叶当前哈希。existing 项目在 admission 后重验证 receipt，UI finish 错误进入有终态/隔离区分的 rollback，路径解析器拒绝 dangling link；三项先前候选疑虑撤回，Welcome 与 runtime owner 完整补偿仍需下游及动态证据。PAM readiness 只检查发布门，不据 poison 分支提出 registry 健康缺陷。
+
+PAM 在 `RecoveryDeferred` 成功 outcome 后发布新 active/resources/watchers，再由 `ensure_durable` 返回错误的静态顺序已获 Root/Sol 确认；创建失败的 staging 删除错误丢失已获 Root/Luna 确认。两项进入既有统一问题队列，分别归复合激活/磁盘事务和 ProjectAuthority owner，均无实际故障执行或数据丢失结论。实现依00/F0顺序；需真实 PAM 一次性提交点失败 seam 与原目标保护回归，不以已有发布前失败测试代替。
+
+Runtime 主程序创建失败返回进程 main，不把 creator线程风险列为直接F0线程泄漏；Editor embedded Play 的 typed error→String 边界并入 CR-APP-ENTRY-0003，snapshot清理和native恢复分别验收。最终 GUI handler/线程、host rollback、真实DLL与退出仍有明确未读/未测项。五个助手只读任务均收束；无 F1 源码更改或新增 Native/性能/模块接受，Jenkins ACK仍pending，释放0字节，任务active。

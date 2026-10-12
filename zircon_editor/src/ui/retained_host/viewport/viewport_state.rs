@@ -13,6 +13,23 @@ use super::render_framework_access::ViewportRenderFrameworkAccess;
 use super::render_framework_resolve_job::RenderFrameworkResolveJob;
 use super::world_space_ui::WorldSpaceUiMergeCache;
 
+/// Runtime variant admits exactly one operation and cannot be cloned.
+pub(super) enum ViewportRenderFrameworkCall {
+    Runtime(zircon_runtime::core::runtime::ServiceCallGuard<dyn RenderFramework>),
+    #[cfg(test)]
+    Test(Arc<dyn RenderFramework>),
+}
+impl std::ops::Deref for ViewportRenderFrameworkCall {
+    type Target = dyn RenderFramework;
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Runtime(service) => &**service,
+            #[cfg(test)]
+            Self::Test(service) => &**service,
+        }
+    }
+}
+
 pub(super) struct ViewportState {
     pub(super) render_framework: Option<ManagerServiceHandle<dyn RenderFramework>>,
     render_framework_access: Option<ViewportRenderFrameworkAccess>,
@@ -47,7 +64,7 @@ impl ViewportState {
 
     pub(super) fn render_framework(
         &mut self,
-    ) -> Result<Arc<dyn RenderFramework>, RenderFrameworkError> {
+    ) -> Result<ViewportRenderFrameworkCall, RenderFrameworkError> {
         self.poll_or_start_render_framework()?.ok_or_else(|| {
             RenderFrameworkError::Backend("render framework is still starting".into())
         })
@@ -55,7 +72,7 @@ impl ViewportState {
 
     pub(super) fn poll_or_start_render_framework(
         &mut self,
-    ) -> Result<Option<Arc<dyn RenderFramework>>, RenderFrameworkError> {
+    ) -> Result<Option<ViewportRenderFrameworkCall>, RenderFrameworkError> {
         if self.render_framework.is_some() {
             return self.resolve_stored_render_framework();
         }
@@ -151,10 +168,10 @@ impl ViewportState {
 
     pub(super) fn resolve_stored_render_framework(
         &self,
-    ) -> Result<Option<Arc<dyn RenderFramework>>, RenderFrameworkError> {
+    ) -> Result<Option<ViewportRenderFrameworkCall>, RenderFrameworkError> {
         #[cfg(test)]
         if let Some(render_framework) = &self.test_render_framework {
-            return Ok(Some(Arc::clone(render_framework)));
+            return Ok(Some(ViewportRenderFrameworkCall::Test(Arc::clone(render_framework))));
         }
 
         let Some(handle) = &self.render_framework else {
@@ -167,7 +184,7 @@ impl ViewportState {
         };
         render_framework_access
             .resolve_render_framework(handle.clone())
-            .map(Some)
+            .map(|service| Some(ViewportRenderFrameworkCall::Runtime(service)))
             .map_err(|error| RenderFrameworkError::Backend(error.to_string()))
     }
 

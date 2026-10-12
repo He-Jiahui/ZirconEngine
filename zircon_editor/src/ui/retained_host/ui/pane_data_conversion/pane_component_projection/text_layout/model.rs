@@ -14,6 +14,8 @@ pub(in super::super) struct ProjectedTextLayout {
     pub(in super::super) layout_padding_right: f32,
     pub(in super::super) layout_padding_top: f32,
     pub(in super::super) layout_padding_bottom: f32,
+    pub(in super::super) authored_field_padding: [Option<f32>; 4],
+    pub(in super::super) authored_field_label_width: Option<f32>,
     pub(in super::super) layout_spacing: f32,
     pub(in super::super) layout_first_cell_offset_x: f32,
     pub(in super::super) layout_second_cell_offset_x: f32,
@@ -25,6 +27,9 @@ pub(in super::super) struct ProjectedTextLayout {
     pub(in super::super) selected_segment_underline_color: Color,
     pub(in super::super) font_size: f32,
     pub(in super::super) font_weight: i32,
+    pub(in super::super) line_height: f32,
+    pub(in super::super) line_height_ratio: f32,
+    pub(in super::super) font_family: String,
     pub(in super::super) text_align: String,
     pub(in super::super) overflow: String,
 }

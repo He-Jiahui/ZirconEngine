@@ -66,7 +66,8 @@ fn selected_folder_breadcrumb_preserves_selection_and_parent_source_priority() {
                 "Visible Props",
                 7,
             ),
-        ],
+        ]
+        .into(),
         ..AssetWorkspaceSnapshot::default()
     };
 

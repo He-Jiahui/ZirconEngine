@@ -13,7 +13,7 @@ import { hasNativePainterSourceParts } from './zui-native-painter-projection';
 
 const SIDES = ['top', 'right', 'bottom', 'left'] as const;
 const WORKBENCH_WINDOW_SOURCE_PATH =
-  'zircon_editor/assets/ui/editor/windows/workbench_window.zui';
+  'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
 const WORKBENCH_PREFERENCES_SOURCE_PATH =
   'zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui';
 const table = (value: unknown): ZuiTable | undefined =>

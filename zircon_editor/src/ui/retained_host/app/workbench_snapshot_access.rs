@@ -3,12 +3,12 @@ use crate::ui::workbench::snapshot::{EditorChromeSnapshot, MainPageSnapshot, Wor
 
 impl RetainedEditorHost {
     #[cfg(test)]
-    pub(super) fn active_activity_window_template_document_id(&self) -> Option<String> {
-        let chrome = self.runtime.chrome_snapshot();
-        active_activity_window_template_document_id(&chrome).map(str::to_string)
+    pub(super) fn active_activity_window_template_document_id(&self) -> Result<Option<String>, crate::ui::host::EditorError> {
+        let chrome = self.runtime.chrome_snapshot()?;
+        Ok(active_activity_window_template_document_id(&chrome).map(str::to_string))
     }
 
-    pub(super) fn active_activity_window_template_document_is(&self, document_id: &str) -> bool {
+    pub(super) fn active_activity_window_template_document_is(&self, document_id: &str) -> Result<bool, crate::ui::host::EditorError> {
         self.runtime
             .active_activity_window_template_document_is(document_id)
     }

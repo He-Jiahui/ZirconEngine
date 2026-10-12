@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
 use toml::Value;
+use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
+use zircon_runtime::ui::v2::UiV2PrototypeStoreFileCache;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 use super::super::support::{editor_asset_root, load_zui_document};
@@ -116,49 +118,148 @@ fn workbench_primitive_component_assets_keep_native_component_contract() {
 
 #[test]
 fn workbench_component_drawer_composes_workbench_primitive_assets() {
-    let path = editor_asset_root()
-        .join("ui/editor/components")
-        .join("workbench/shell/workbench_component_drawer.zui");
-    let document = load_zui_document(&path);
-    let widget_imports = document
-        .imports
-        .widgets
-        .iter()
-        .map(String::as_str)
-        .collect::<BTreeSet<_>>();
-    let node_components = document
-        .nodes
-        .values()
-        .map(|node| node.component.as_str())
-        .collect::<BTreeSet<_>>();
-
-    let mut offenders = Vec::new();
-    for contract in WORKBENCH_PRIMITIVE_CONTRACTS
-        .iter()
-        .filter(|contract| contract.sampled_in_component_drawer)
-    {
-        let import = format!(
-            "res://ui/editor/components/{}#{}",
-            contract.file_name, contract.component_name
+    let path = editor_asset_root().join("ui/editor/component_showcase.zui");
+    let mut cache = UiV2PrototypeStoreFileCache::new();
+    let outcome = cache
+        .load_store(std::iter::once(path))
+        .expect("registered native Showcase must compile through the real cache");
+    assert!(outcome.unresolved_imports.is_empty());
+    let document = &outcome.root_document;
+    assert_eq!(document.asset.kind, UiV2AssetKind::View);
+    assert_eq!(document.root_node_id(), Some("component_showcase_root"));
+    assert!(
+        document.components.is_empty(),
+        "Showcase is an independent View"
+    );
+    let mut mounted_native_components = BTreeSet::new();
+    for (asset_id, component_name, root_node) in [
+        (
+            "res://ui/editor/components/showcase/showcase_visual_section.zui",
+            "ShowcaseVisualSection",
+            "visual_section_root",
+        ),
+        (
+            "res://ui/editor/components/showcase/showcase_input_section.zui",
+            "ShowcaseInputSection",
+            "input_section_root",
+        ),
+        (
+            "res://ui/editor/components/showcase/showcase_selection_section.zui",
+            "ShowcaseSelectionSection",
+            "selection_section_root",
+        ),
+        (
+            "res://ui/editor/components/showcase/showcase_collections_section.zui",
+            "ShowcaseCollectionsSection",
+            "collections_section_root",
+        ),
+    ] {
+        let import = format!("{asset_id}#{component_name}");
+        assert!(
+            document
+                .imports
+                .widgets
+                .iter()
+                .any(|candidate| candidate == &import),
+            "Showcase must import {import}"
         );
-        if !widget_imports.contains(import.as_str()) {
-            offenders.push(format!(
-                "{} should import `{}` for componentized low-level samples",
-                path.display(),
-                import
-            ));
-        }
-        if !node_components.contains(contract.component_name) {
-            offenders.push(format!(
-                "{} should mount `{}` instead of duplicating its structure inline",
-                path.display(),
-                contract.component_name
-            ));
+        assert!(
+            document
+                .nodes
+                .values()
+                .any(|node| node.component == component_name),
+            "Showcase must mount {component_name}"
+        );
+        let section = outcome
+            .store
+            .get(asset_id)
+            .expect("imported Showcase section must be loaded");
+        assert_eq!(section.asset.kind, UiV2AssetKind::Component);
+        assert_eq!(section.components.len(), 1);
+        assert_eq!(section.components[component_name].root, root_node);
+        assert!(section.nodes.contains_key(root_node));
+        for node in section.nodes.values() {
+            mounted_native_components.insert(node.component.clone());
         }
     }
-
+    let expected = [
+        "ArrayField",
+        "AssetField",
+        "Badge",
+        "Button",
+        "Checkbox",
+        "ColorField",
+        "ComboBox",
+        "CommandPalette",
+        "ConfirmDialog",
+        "ContextActionMenu",
+        "ContextMenu",
+        "Dialog",
+        "Dropdown",
+        "DropdownPopup",
+        "EnumField",
+        "FlagsField",
+        "Foldout",
+        "Group",
+        "HelpRow",
+        "Icon",
+        "IconButton",
+        "Image",
+        "InputField",
+        "InspectorSection",
+        "InstanceField",
+        "Label",
+        "ListRow",
+        "MapField",
+        "NotificationCenter",
+        "NumberField",
+        "ObjectField",
+        "PagedList",
+        "ProgressBar",
+        "PropertyRow",
+        "Radio",
+        "RangeField",
+        "RangeSlider",
+        "RichLabel",
+        "ScrollableBox",
+        "SearchSelect",
+        "SegmentedControl",
+        "Separator",
+        "Skeleton",
+        "Slider",
+        "Spinner",
+        "SvgIcon",
+        "Tab",
+        "TableRow",
+        "Tabs",
+        "TextField",
+        "ToggleButton",
+        "TreeRow",
+        "Vector2Field",
+        "Vector3Field",
+        "Vector4Field",
+        "VirtualList",
+        "WorldSpaceSurface",
+    ]
+    .into_iter()
+    .collect::<BTreeSet<_>>();
+    assert_eq!(
+        mounted_native_components
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>(),
+        expected,
+        "current Showcase must preserve the complete native atom/collection/property sample set"
+    );
+    let catalog = UiComponentDescriptorRegistry::editor_showcase_shared();
+    for component in &mounted_native_components {
+        assert!(
+            catalog.descriptor(component).is_some(),
+            "sample {component} must use the shared native catalog used by surface input"
+        );
+    }
     assert!(
-        offenders.is_empty(),
-        "workbench component drawer must keep composing low-level Workbench primitives through .zui imports: {offenders:#?}"
+        mounted_native_components.len() >= 39,
+        "the native gallery must retain broad low-level sample coverage"
     );
 }

@@ -28,7 +28,7 @@ fn asset_module_manager_uses_the_activating_runtime_io_owner() {
         .expect("asset module should activate");
 
     let core = runtime.handle();
-    let manager: Arc<ProjectAssetManager> =
+    let manager: crate::core::runtime::ServiceCallGuard<ProjectAssetManager> =
         resolve_manager_service(&core, project_asset_manager_handle(&core).unwrap()).unwrap();
 
     let pool = manager.worker_task_pool();

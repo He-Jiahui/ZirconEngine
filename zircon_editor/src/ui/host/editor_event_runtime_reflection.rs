@@ -26,75 +26,93 @@ const WORKBENCH_ROOT_VIEW_INSTANCE_ID: &str = "workbench.root";
 
 impl EditorHostEventController {
     pub(crate) fn refresh_reflection(&self) {
+        match self.enter_editor_manager() {
+            Ok(manager) => self.refresh_reflection_admitted(&manager),
+            Err(error) => self.shell().lock().state.set_status_line_with_level(
+                error.to_string(),
+                crate::ui::workbench::snapshot::EditorConsoleMessageLevel::Error,
+            ),
+        }
+    }
+
+    fn refresh_reflection_admitted(&self, manager: &crate::ui::host::EditorManager) {
         let mut shell = self.shell().lock();
         let commands = self.commands().lock();
         let i18n = self.context().i18n();
         let locale = i18n.active_locale();
-        Self::refresh_reflection_for_shell(
+        if let Err(error) = Self::refresh_reflection_for_shell(
             &mut shell,
+            manager,
             &commands,
             i18n,
             &locale,
             self.context().command_eval(),
             self.play_sessions().mode(),
-        );
+        ) {
+            shell.state.set_status_line_with_level(
+                error.to_string(),
+                crate::ui::workbench::snapshot::EditorConsoleMessageLevel::Error,
+            );
+        }
     }
 
     pub(crate) fn refresh_reflection_for_shell(
         shell: &mut WorkbenchShellStateData,
+        manager: &crate::ui::host::EditorManager,
         commands: &crate::core::commands::EditorCommandRegistry,
         i18n: &EditorI18nService,
         locale: &EditorLocale,
         command_eval: &crate::core::commands::CommandEvalSnapshotHandle,
         play_mode: crate::core::play::PlayModeKind,
-    ) {
-        let descriptors = shell.manager.descriptors();
-        let (views, windows) = activity_descriptors_from_views(&descriptors);
-        register_activity_descriptors(&mut shell.control_service, views, windows);
+    ) -> Result<(), crate::ui::host::EditorError> {
+        Ok({
+            let descriptors = manager.descriptors();
+            let (views, windows) = activity_descriptors_from_views(&descriptors);
 
-        let chrome = Self::build_chrome_for_shell(shell, descriptors);
-        let enabled_capabilities = shell
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .to_vec();
-        let contribution_capabilities = enabled_capabilities
-            .iter()
-            .cloned()
-            .collect::<CapabilitySet>();
-        let contributions = shell.contributions.snapshot();
-        let focused_toolkit = shell.manager.focused_document_toolkit();
-        shell
-            .state
-            .viewport_controller
-            .set_viewport_overlay_capabilities(&enabled_capabilities);
-        let eval_context = shell
-            .state
-            .project_command_eval_ctx(command_eval_ctx_from_chrome(
+            let chrome = Self::build_chrome_for_shell(shell, manager, descriptors)?;
+            let enabled_capabilities = manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .to_vec();
+            let contribution_capabilities = enabled_capabilities
+                .iter()
+                .cloned()
+                .collect::<CapabilitySet>();
+            let contributions = shell.contributions.snapshot();
+            let focused_toolkit = manager.focused_document_toolkit();
+            let keymap = manager.keymap();
+            register_activity_descriptors(&mut shell.control_service, views, windows);
+            shell
+                .state
+                .viewport_controller
+                .set_viewport_overlay_capabilities(&enabled_capabilities);
+            let eval_context = shell
+                .state
+                .project_command_eval_ctx(command_eval_ctx_from_chrome(
+                    &chrome,
+                    play_mode,
+                    enabled_capabilities.clone(),
+                ));
+            command_eval.replace(eval_context.clone());
+            let view_model = WorkbenchViewModel::build_with_contributions_and_context(
+                commands,
+                &keymap,
+                i18n,
+                locale,
                 &chrome,
-                play_mode,
-                enabled_capabilities.clone(),
-            ));
-        command_eval.replace(eval_context.clone());
-        let keymap = shell.manager.keymap();
-        let view_model = WorkbenchViewModel::build_with_contributions_and_context(
-            commands,
-            &keymap,
-            i18n,
-            locale,
-            &chrome,
-            &contributions,
-            &contribution_capabilities,
-            focused_toolkit.as_ref(),
-            &eval_context,
-        );
-        let model = register_workbench_reflection_routes(
-            &mut shell.control_service,
-            build_workbench_reflection_model(&chrome, &view_model),
-        );
-        let mut snapshot = crate::ui::EditorUiReflectionAdapter::build_snapshot(&model);
-        apply_transient_projection(&mut snapshot, &shell.transient);
-        shell.control_service.publish_snapshot(snapshot);
+                &contributions,
+                &contribution_capabilities,
+                focused_toolkit.as_ref(),
+                &eval_context,
+            );
+            let model = register_workbench_reflection_routes(
+                &mut shell.control_service,
+                build_workbench_reflection_model(&chrome, &view_model),
+            );
+            let mut snapshot = crate::ui::EditorUiReflectionAdapter::build_snapshot(&model);
+            apply_transient_projection(&mut snapshot, &shell.transient);
+            shell.control_service.publish_snapshot(snapshot);
+        })
     }
 
     pub fn refresh_view(
@@ -114,6 +132,13 @@ impl EditorHostEventController {
     }
 
     pub fn drain_pending_view_refreshes(&self) -> EditorViewRefreshReport {
+        self.drain_pending_view_refreshes_using(|| self.refresh_reflection())
+    }
+
+    fn drain_pending_view_refreshes_using(
+        &self,
+        mut refresh: impl FnMut(),
+    ) -> EditorViewRefreshReport {
         let (dirty, deltas) = self.context().bus().drain_view_updates();
         let has_structure_update = dirty
             .iter()
@@ -125,7 +150,7 @@ impl EditorHostEventController {
             self.publish_scene_inspection_publication();
         }
         if used_full_snapshot_fallback {
-            self.refresh_reflection();
+            refresh();
         }
         let patches = deltas.reflection_patches();
         if !patches.is_empty() {
@@ -135,7 +160,7 @@ impl EditorHostEventController {
                 .control_service
                 .apply_reflection_patches(&patches);
             if patch_result.is_err() && !used_full_snapshot_fallback {
-                self.refresh_reflection();
+                refresh();
                 used_full_snapshot_fallback = true;
                 let _ = self
                     .shell()
@@ -145,6 +170,17 @@ impl EditorHostEventController {
             }
         }
         EditorViewRefreshReport::new(dirty, deltas, used_full_snapshot_fallback)
+    }
+
+    pub(crate) fn refresh_workbench_view_admitted(
+        &self,
+        manager: &crate::ui::host::EditorManager,
+    ) -> EditorViewRefreshReport {
+        self.mark_view_invalidation(
+            ViewInstanceId::new(WORKBENCH_ROOT_VIEW_INSTANCE_ID),
+            EditorViewInvalidationMask::RENDER.union(EditorViewInvalidationMask::PRESENTATION_DATA),
+        );
+        self.drain_pending_view_refreshes_using(|| self.refresh_reflection_admitted(manager))
     }
 
     pub(crate) fn refresh_workbench(&self, mask: EditorViewInvalidationMask) {
@@ -188,74 +224,83 @@ impl EditorHostEventController {
 
     pub(crate) fn build_chrome_for_shell(
         shell: &mut WorkbenchShellStateData,
+        manager: &crate::ui::host::EditorManager,
         descriptors: Vec<ViewDescriptor>,
-    ) -> EditorChromeSnapshot {
-        let inspector_customizations = Self::active_inspector_customizations_for_shell(shell);
-        let field_editors = Self::active_field_editors_for_shell(shell);
-        let mut editor_snapshot = shell
-            .state
-            .snapshot_with_inspector_customizations(&inspector_customizations, &field_editors);
-        if let Err(error) = Self::project_asset_type_registry_for_shell(shell, &mut editor_snapshot)
-        {
-            Self::present_asset_type_registry_projection_error(&mut editor_snapshot, error);
-        }
-        if !shell.state.is_playing() {
-            if let Some(history) = shell.manager.focused_animation_history_status() {
-                editor_snapshot.can_undo = history.can_undo;
-                editor_snapshot.can_redo = history.can_redo;
+    ) -> Result<EditorChromeSnapshot, crate::ui::host::EditorError> {
+        Ok({
+            let inspector_customizations =
+                Self::active_inspector_customizations_for_shell(shell, manager)?;
+            let field_editors = Self::active_field_editors_for_shell(shell, manager)?;
+            let mut editor_snapshot = shell
+                .state
+                .snapshot_with_inspector_customizations(&inspector_customizations, &field_editors);
+            if let Err(error) =
+                Self::project_asset_type_registry_for_shell(shell, manager, &mut editor_snapshot)
+            {
+                Self::present_asset_type_registry_projection_error(&mut editor_snapshot, error);
             }
-        }
-        editor_snapshot.console_output = activity_log_console_output_for_shell(shell);
-        EditorChromeSnapshot::build(
-            editor_snapshot,
-            &shell.manager.current_layout(),
-            shell.manager.current_view_instances(),
-            descriptors,
-            shell.manager.current_focused_view().as_ref(),
-        )
+            if !shell.state.is_playing() {
+                if let Some(history) = manager.focused_animation_history_status() {
+                    editor_snapshot.can_undo = history.can_undo;
+                    editor_snapshot.can_redo = history.can_redo;
+                }
+            }
+            editor_snapshot.console_output = activity_log_console_output_for_shell(shell, manager)?;
+            EditorChromeSnapshot::build(
+                editor_snapshot,
+                &manager.current_layout(),
+                manager.current_view_instances(),
+                descriptors,
+                manager.current_focused_view().as_ref(),
+            )
+        })
     }
 
     pub(crate) fn active_inspector_customizations_for_shell(
         shell: &WorkbenchShellStateData,
-    ) -> InspectorCustomizationChain {
-        let capabilities = shell
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .iter()
-            .cloned()
-            .collect::<CapabilitySet>();
-        let mut customizations = InspectorCustomizationChain::default();
-        for customization in shell
-            .contributions
-            .snapshot()
-            .inspector_customizations(&capabilities)
-        {
+        manager: &crate::ui::host::EditorManager,
+    ) -> Result<InspectorCustomizationChain, crate::ui::host::EditorError> {
+        Ok({
+            let capabilities = manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .iter()
+                .cloned()
+                .collect::<CapabilitySet>();
+            let mut customizations = InspectorCustomizationChain::default();
+            for customization in shell
+                .contributions
+                .snapshot()
+                .inspector_customizations(&capabilities)
+            {
+                customizations
+                    .register(customization)
+                    .expect("contribution store must only retain valid customization ids");
+            }
             customizations
-                .register(customization)
-                .expect("contribution store must only retain valid customization ids");
-        }
-        customizations
+        })
     }
 
     pub(crate) fn active_field_editors_for_shell(
         shell: &WorkbenchShellStateData,
-    ) -> FieldEditorContainer {
-        let capabilities = shell
-            .manager
-            .capability_snapshot()
-            .enabled_capabilities()
-            .iter()
-            .cloned()
-            .collect::<CapabilitySet>();
-        FieldEditorContainer::with_contributions(
-            shell
-                .contributions
-                .snapshot()
-                .field_editors(&capabilities)
-                .cloned(),
-        )
-        .expect("contribution store must only retain valid field editor definitions")
+        manager: &crate::ui::host::EditorManager,
+    ) -> Result<FieldEditorContainer, crate::ui::host::EditorError> {
+        Ok({
+            let capabilities = manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .iter()
+                .cloned()
+                .collect::<CapabilitySet>();
+            FieldEditorContainer::with_contributions(
+                shell
+                    .contributions
+                    .snapshot()
+                    .field_editors(&capabilities)
+                    .cloned(),
+            )
+            .expect("contribution store must only retain valid field editor definitions")
+        })
     }
 }
 

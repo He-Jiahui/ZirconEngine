@@ -315,13 +315,13 @@ fn scene_viewport_click_focus_survives_split_workspace_reopen_without_hover_stea
     ] {
         harness
             .runtime
-            .route_scene_viewport_pointer(scene_runtime_id.clone(), event_kind);
+            .route_scene_viewport_pointer(scene_runtime_id.clone(), event_kind).unwrap();
         assert_eq!(manager.project_workspace(), unfocused_workspace);
     }
 
     assert!(harness
         .runtime
-        .route_scene_viewport_pointer(scene_runtime_id.clone(), UiPointerEventKind::Down));
+        .route_scene_viewport_pointer(scene_runtime_id.clone(), UiPointerEventKind::Down).unwrap());
     let saved = manager.project_workspace();
     assert_eq!(saved.focused_view, Some(scene.clone()));
     let saved_json = serde_json::to_vec(&saved).unwrap();
@@ -425,9 +425,10 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
     drop(project);
 
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     let mut startup_session = manager.open_project_and_remember(&project_root).unwrap();
     assert!(
         startup_session
@@ -438,16 +439,16 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
         "normal ProjectManager open must decode the serialized workspace before startup"
     );
     let state = build_startup_state(
-        manager.as_ref(),
+        &*manager,
         &mut startup_session,
         UVec2::new(1280, 720),
     )
     .unwrap();
     let startup =
-        EditorHostStartupSession::from_parts(startup_session, state, Arc::clone(&manager)).unwrap();
+        EditorHostStartupSession::from_parts(startup_session, state, manager_handle.clone()).unwrap();
     let controller = startup.controller();
 
-    let restored = controller.scene_viewport_workspace_sessions();
+    let restored = controller.scene_viewport_workspace_sessions().unwrap();
     assert_eq!(
         restored.len(),
         2,
@@ -498,7 +499,7 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
         left_surface_key.as_str(),
         right_surface_key.as_str(),
     ]));
-    let before_commands = controller.scene_viewport_workspace_sessions();
+    let before_commands = controller.scene_viewport_workspace_sessions().unwrap();
     let before_journal = controller.journal().records().len();
     dispatch_shared_viewport_toolbar_pointer_click(
         controller,
@@ -514,7 +515,7 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
         UiPoint::new(4.0, 4.0),
     )
     .unwrap();
-    let after_left_command = controller.scene_viewport_workspace_sessions();
+    let after_left_command = controller.scene_viewport_workspace_sessions().unwrap();
     assert_ne!(
         after_left_command[&left_core].camera, before_commands[&left_core].camera,
         "left toolbar callback must mutate only its restored leaf"
@@ -539,7 +540,7 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
         UiPoint::new(4.0, 4.0),
     )
     .unwrap();
-    let after_right_command = controller.scene_viewport_workspace_sessions();
+    let after_right_command = controller.scene_viewport_workspace_sessions().unwrap();
     assert_eq!(
         after_right_command[&left_core], after_left_command[&left_core],
         "right toolbar callback must preserve the independently routed left leaf"
@@ -552,7 +553,7 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
     assert_eq!(manager.current_focused_view(), Some(right.clone()));
 
     controller.retain_scene_viewports(&std::collections::BTreeSet::from([right_core.clone()]));
-    let before_stale = controller.scene_viewport_workspace_sessions();
+    let before_stale = controller.scene_viewport_workspace_sessions().unwrap();
     let before_journal = controller.journal().records().len();
     let stale = dispatch_shared_viewport_toolbar_pointer_click(
         controller,
@@ -568,7 +569,7 @@ fn serialized_startup_split_scene_leaves_seed_before_retained_toolbar_dispatch()
         UiPoint::new(4.0, 4.0),
     );
     assert!(stale.unwrap_err().contains("stale"));
-    assert_eq!(controller.scene_viewport_workspace_sessions(), before_stale);
+    assert_eq!(controller.scene_viewport_workspace_sessions().unwrap(), before_stale);
     assert_eq!(controller.journal().records().len(), before_journal);
     assert_eq!(manager.current_focused_view(), Some(right));
 

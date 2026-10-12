@@ -107,3 +107,48 @@ fn sample_csv(samples: &[u128]) -> String {
         .collect::<Vec<_>>()
         .join(",")
 }
+
+#[test]
+fn authored_field_metrics_reach_text_command_and_reject_an_overfull_line_box() {
+    use crate::ui::retained_host::host_contract::data::FrameRect;
+    use crate::ui::retained_host::host_contract::paint_template_nodes::style_selector::select_workbench_text_field_style;
+    let mut node = TemplatePaneNodeData {
+        text: "Authored input".into(),
+        font_size: 17.0,
+        font_weight: 700,
+        line_height: 25.0,
+        authored_field_padding: [Some(0.0), Some(7.0), Some(3.0), Some(9.0)],
+        ..Default::default()
+    };
+    let rect = FrameRect {
+        x: 10.0,
+        y: 20.0,
+        width: 320.0,
+        height: 80.0,
+    };
+    let style = select_workbench_text_field_style(&node, false);
+    let mut commands = Vec::new();
+    super::push_field_text(&mut commands, &node, &rect, &rect, 1, false, 1.0, &style);
+    assert_eq!(commands.len(), 1);
+    let command = &commands[0];
+    let metrics = super::super::metrics::workbench_field_metrics_for_node(&node);
+    assert_eq!(command.font_size, metrics.font_size);
+    assert_eq!(command.line_height, metrics.line_height);
+    assert_eq!(command.frame.x, rect.x);
+    assert_eq!(command.frame.height, metrics.line_height);
+    assert_eq!(
+        command.frame.y,
+        rect.y
+            + metrics.input_pad_top
+            + (rect.height
+                - metrics.input_pad_top
+                - metrics.input_pad_bottom
+                - metrics.line_height)
+                * 0.5
+    );
+    assert!(command.text_style.strong);
+    node.line_height = 800.0;
+    commands.clear();
+    super::push_field_text(&mut commands, &node, &rect, &rect, 1, false, 1.0, &style);
+    assert!(commands.is_empty());
+}

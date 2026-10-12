@@ -1,12 +1,12 @@
-//! 验证工作台运行按钮及弹出菜单的 token 密度。
+//! Verify the retained Unreal toolbar owns the run controls after the Workbench cutover.
 
 const WORKBENCH_TOP_TOOLBAR_TEMPLATE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui"
+    "/assets/ui/editor/unreal/components/toolbar.zui"
 ));
 const WORKBENCH_WINDOW_TEMPLATE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/windows/workbench_window.zui"
+    "/assets/ui/editor/unreal/level_editor_window.zui"
 ));
 const WORKBENCH_STRICT_THEME: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -16,12 +16,13 @@ const WORKBENCH_STRICT_THEME: &str = include_str!(concat!(
 #[test]
 fn workbench_run_controls_keep_their_tokenized_mvp_command_contract() {
     for required in [
-        "res://ui/editor/theme/editor_tokens.zui",
-        "WorkbenchToolbarRunGroup",
+        "res://ui/editor/unreal/starship.zui",
+        "WorkbenchToolbarCommandRow",
         "WorkbenchRunPlay",
         "WorkbenchRunMode",
-        "$editor.density.gap.small",
-        "$editor.control.height.compact",
+        "WorkbenchRunStop",
+        "height = { min = 48.0, preferred = 48.0, max = 48.0",
+        "gap = 4.0",
         "action = { action = \"runtime.play_mode.enter\" }",
         "route = \"workbench.run.open_mode_menu\"",
     ] {
@@ -33,51 +34,31 @@ fn workbench_run_controls_keep_their_tokenized_mvp_command_contract() {
 }
 
 #[test]
-fn workbench_popup_menus_use_shared_density_tokens_and_popup_surface() {
+fn unreal_level_editor_mounts_native_popup_and_shell_regions() {
     for required in [
-        "$editor.density.gap.medium",
-        "$editor.density.gap.small",
-        "$editor.control.height.compact",
-        "control_id = \"WorkbenchRunModeMenu\"",
-        "Play In Editor|icon=play",
-        "Simulate|icon=play",
+        "res://ui/editor/unreal/components/toolbar.zui#UnrealLevelEditorToolbar",
+        "res://ui/editor/unreal/components/menus.zui#UnrealLevelEditorMenus",
+        "res://ui/editor/unreal/components/menu_popups.zui#UnrealLevelEditorMenuPopups",
+        "res://ui/editor/unreal/starship.zui",
+        "control_id = \"WorkbenchWindowRoot\"",
+        "{ node = \"content_drawer\" }",
+        "{ node = \"menu_popups\" }",
+        "control_id = \"UnrealEditorMenuPopups\"",
+        "z_index = 180",
     ] {
         assert!(
             WORKBENCH_WINDOW_TEMPLATE.contains(required),
-            "Workbench popup presentation must consume `{required}`"
+            "Unreal level-editor window must retain `{required}`"
         );
     }
 
-    for authored_business_state in [
-        "Play In Editor|checked,icon=play",
-        "Default Layout|checked,disabled,icon=grid",
-    ] {
-        assert!(
-            !WORKBENCH_WINDOW_TEMPLATE.contains(authored_business_state),
-            "Workbench popup templates must not author live state `{authored_business_state}`"
-        );
-    }
-
-    for required in [
-        "background_color = \"$editor.popup\"",
-        "border_color = \"$workbench_border\"",
-        "radius = \"$editor.control.radius.panel\"",
-    ] {
-        assert!(
-            WORKBENCH_STRICT_THEME.contains(required),
-            "Workbench popup theme must consume `{required}`"
-        );
-    }
-
-    for legacy_primitive in [
-        "layout_padding_left = 10.0",
-        "layout_padding_right = 10.0",
-        "layout_spacing = 6.0",
-        "layout_min_height = 30.0",
-    ] {
-        assert!(
-            !WORKBENCH_WINDOW_TEMPLATE.contains(legacy_primitive),
-            "Workbench window must not retain popup-local `{legacy_primitive}`"
-        );
-    }
+    assert!(
+        !WORKBENCH_WINDOW_TEMPLATE.contains("workbench_window.zui")
+            && !WORKBENCH_WINDOW_TEMPLATE.contains("workbench_shell.zui"),
+        "Unreal level-editor window must not refer back to retired Workbench roots"
+    );
+    assert!(
+        WORKBENCH_STRICT_THEME.contains("res://ui/editor/theme/editor_tokens.zui"),
+        "shared editor theme remains available to retained compatibility surfaces"
+    );
 }

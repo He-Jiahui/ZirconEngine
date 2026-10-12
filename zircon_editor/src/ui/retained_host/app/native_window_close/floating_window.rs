@@ -25,10 +25,13 @@ impl RetainedEditorHost {
             }
         }
         self.recompute_if_dirty();
-        if self.runtime.floating_window_exists(window_id) {
-            CloseRequestResponse::KeepWindowShown
-        } else {
-            CloseRequestResponse::HideWindow
+        match self.runtime.floating_window_exists(window_id) {
+            Ok(true) => CloseRequestResponse::KeepWindowShown,
+            Ok(false) => CloseRequestResponse::HideWindow,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                CloseRequestResponse::KeepWindowShown
+            }
         }
     }
 
@@ -55,18 +58,20 @@ impl RetainedEditorHost {
         }
 
         self.recompute_if_dirty();
-        let window_still_exists = self.runtime.floating_window_exists(&window_id);
-        if window_still_exists {
-            CloseRequestResponse::KeepWindowShown
-        } else {
-            CloseRequestResponse::HideWindow
+        match self.runtime.floating_window_exists(&window_id) {
+            Ok(true) => CloseRequestResponse::KeepWindowShown,
+            Ok(false) => CloseRequestResponse::HideWindow,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                CloseRequestResponse::KeepWindowShown
+            }
         }
     }
 
     pub(super) fn floating_window_close_instance_ids(
         &self,
         window_id: &MainPageId,
-    ) -> Option<Vec<ViewInstanceId>> {
+    ) -> Result<Option<Vec<ViewInstanceId>>, crate::ui::host::EditorError> {
         self.runtime.floating_window_instance_ids(window_id)
     }
 }

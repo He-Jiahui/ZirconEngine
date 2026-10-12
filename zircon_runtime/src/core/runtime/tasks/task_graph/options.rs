@@ -24,7 +24,7 @@ impl EngineTaskGraphOptions {
 impl Default for EngineTaskGraphOptions {
     fn default() -> Self {
         Self::with_worker_threads(
-            std::thread::available_parallelism().map_or(1, |parallelism| parallelism.get()),
+            super::super::EngineThreadBudget::process_default().task_worker_threads(),
         )
     }
 }

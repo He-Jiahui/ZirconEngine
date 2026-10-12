@@ -1,5 +1,5 @@
 //! 专用 worker 的 socket 所有者，单线程串行处理 TCP/UDP 命令，内部 Tokio runtime 只执行实际 I/O。
-//! 与 manager 的 HTTP/WS Tokio runtime 分离，feature 不直接触摸 worker socket 表。
+//! 与 HTTP/WS 共用 manager 拥有的 Tokio I/O driver；feature 不直接触摸 worker socket 表。
 
 mod dispatch;
 
@@ -15,7 +15,7 @@ use std::sync::{mpsc, Arc};
 use std::time::Duration;
 
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
-use tokio::runtime::{Builder, Runtime};
+use tokio::runtime::Handle;
 use tokio::time::timeout;
 use zircon_runtime::core::framework::net::{
     NetConnectionId, NetConnectionState, NetEndpoint, NetError, NetEvent, NetListenerId, NetPacket,
@@ -51,7 +51,7 @@ struct WorkerTcpConnection {
 }
 
 struct WorkerCore {
-    runtime: Runtime,
+    runtime: Handle,
     ingress: mpsc::SyncSender<NetIngress>,
     next_connection_id: Arc<AtomicU64>,
     udp_sockets: HashMap<NetSocketId, WorkerUdpSocket>,
@@ -63,20 +63,16 @@ impl WorkerCore {
     fn new(
         ingress: mpsc::SyncSender<NetIngress>,
         next_connection_id: Arc<AtomicU64>,
-    ) -> Result<Self, NetError> {
-        Ok(Self {
-            runtime: Builder::new_multi_thread()
-                .enable_io()
-                .enable_time()
-                .thread_name("zircon-net-worker-runtime")
-                .build()
-                .map_err(|error| NetError::Io(error.to_string()))?,
+        runtime: Handle,
+    ) -> Self {
+        Self {
+            runtime,
             ingress,
             next_connection_id,
             udp_sockets: HashMap::new(),
             tcp_listeners: HashMap::new(),
             tcp_connections: HashMap::new(),
-        })
+        }
     }
 
     fn bind_udp(

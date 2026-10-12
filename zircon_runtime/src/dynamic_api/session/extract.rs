@@ -25,6 +25,15 @@ impl RuntimeDynamicSession {
     pub(super) fn current_ui_submission(
         &mut self,
     ) -> RuntimeDynamicSessionResult<Option<Arc<UiRenderSubmission>>> {
+        let ui_extract_cache =
+            self.ui_extract_cache
+                .as_mut()
+                .ok_or_else(|| RuntimeDynamicSessionError::CoreStep {
+                    step: "extract stopped runtime session UI",
+                    source: crate::core::CoreError::ServiceUnavailable(
+                        "runtime session UI".to_owned(),
+                    ),
+                })?;
         let viewport_size = self.camera_controller.viewport_size();
         if let Some(project_ui) = self
             .runtime_ui
@@ -34,7 +43,6 @@ impl RuntimeDynamicSession {
             return Ok(Some(project_ui));
         }
         let level = &self.level;
-        let ui_extract_cache = &mut self.ui_extract_cache;
         Ok(level.with_world(|world| {
             ui_extract_cache
                 .current_extract(world, viewport_size)

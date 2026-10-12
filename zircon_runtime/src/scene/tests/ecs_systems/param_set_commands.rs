@@ -11,7 +11,7 @@ fn param_set_commands_are_merged_and_applied_once() {
     let mut state = SystemState::<ParamSet<(CommandsParam,)>>::new(&mut world).unwrap();
 
     state.run(&mut world, |mut set| {
-        set.p0().entity(entity).insert(Marker);
+        set.p0().entity(entity).insert((Marker,));
     });
     assert!(world.get::<Marker>(entity).is_none());
     world.apply_deferred();
@@ -39,7 +39,7 @@ fn nested_param_set_commands_survive_tuple_composition() {
     state.run(&mut world, |(mut local, mut outer)| {
         local.0 += 1;
         assert_eq!(outer.p0().0, 7);
-        outer.p1().p0().entity(entity).insert(Marker);
+        outer.p1().p0().entity(entity).insert((Marker,));
     });
     world.apply_deferred();
     assert_eq!(world.get::<Marker>(entity), Some(&Marker));
@@ -55,7 +55,7 @@ fn param_set_commands_from_panicking_run_are_discarded() {
 
     let result = catch_unwind(AssertUnwindSafe(|| {
         state.run(&mut world, |mut set| {
-            set.p0().entity(entity).insert(Marker);
+            set.p0().entity(entity).insert((Marker,));
             panic!("intentional command callback failure");
         });
     }));
@@ -64,7 +64,7 @@ fn param_set_commands_from_panicking_run_are_discarded() {
     assert!(world.get::<Marker>(entity).is_none());
 
     state.run(&mut world, |mut set| {
-        set.p0().entity(entity).insert(Marker);
+        set.p0().entity(entity).insert((Marker,));
     });
     world.apply_deferred();
     assert_eq!(world.get::<Marker>(entity), Some(&Marker));

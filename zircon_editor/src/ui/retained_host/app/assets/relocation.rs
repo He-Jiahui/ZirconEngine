@@ -67,11 +67,7 @@ impl RetainedEditorHost {
         let Some(mut pending) = self.pending_asset_relocation.take() else {
             return true;
         };
-        let _ = self
-            .editor_manager
-            .context()
-            .jobs()
-            .cancel(pending.ticket.id());
+        let _ = self.runtime.context().jobs().cancel(pending.ticket.id());
         if pending.ticket.try_take().is_some() {
             return true;
         }

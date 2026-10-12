@@ -48,7 +48,7 @@ fn viewport_consumes_successful_framework_ticket_once() {
         .poll_or_start_render_framework()
         .expect("resolved framework should remain available")
         .expect("resolved framework should be returned");
-    assert!(Arc::ptr_eq(&resolved, &second));
+    assert!(std::ptr::eq(&*resolved, &*second));
 }
 
 #[test]
@@ -223,7 +223,10 @@ fn dropping_viewport_cancels_pending_ticket_and_releases_dependents() {
 
 fn poll_framework_until_terminal(
     state: &mut ViewportState,
-) -> Result<Arc<dyn RenderFramework>, crate::scene::viewport::RenderFrameworkError> {
+) -> Result<
+    super::viewport_state::ViewportRenderFrameworkCall,
+    crate::scene::viewport::RenderFrameworkError,
+> {
     let deadline = Instant::now() + Duration::from_secs(5);
     loop {
         match state.poll_or_start_render_framework() {

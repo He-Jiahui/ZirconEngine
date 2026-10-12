@@ -56,14 +56,19 @@ impl EditorTransactionEngine {
         };
         if let Err(apply_error) = command.apply(context.as_mut()) {
             let apply_effect = apply_error.effect;
-            let apply_error = apply_error.source;
+            let apply_error = apply_error.into_source();
+            if apply_error.is_interrupted() {
+                active.commands.push(command);
+                self.finish_active(context, active, true);
+                return Err(apply_error);
+            }
             if apply_effect == CommandEffect::Applied {
                 if let Err(rollback_error) = command.revert(context.as_mut()) {
                     active.commands.push(command);
                     self.finish_active(context, active, true);
                     return Err(EditCommandError::RollbackFailed {
                         command_error: Box::new(apply_error),
-                        rollback_error: Box::new(rollback_error.source),
+                        rollback_error: Box::new(rollback_error.into_source()),
                     });
                 }
             }
@@ -152,6 +157,10 @@ impl EditorTransactionEngine {
         };
         let selection_after = context.selection_snapshot();
         if let Err(error) = after_apply(&selection_after) {
+            if error.is_interrupted() {
+                self.restore_active(context, active, true);
+                return Err(error);
+            }
             let event = active.root.then(|| Self::canceled_event(&active));
             return match Self::cancel_frame(&mut active, context.as_mut()) {
                 Ok(()) => {
@@ -309,16 +318,22 @@ impl EditorTransactionEngine {
         let original_selection = context.selection_snapshot();
         for index in (0..frame.commands.len()).rev() {
             if let Err(command_error) = frame.commands[index].revert(context) {
+                if command_error.effect == CommandEffect::Interrupted
+                    || command_error.source.is_interrupted()
+                {
+                    return Err(command_error.into_source());
+                }
                 let rollback_start = match command_error.effect {
                     CommandEffect::Unchanged => index + 1,
                     CommandEffect::Applied => index,
+                    CommandEffect::Interrupted => return Err(command_error.into_source()),
                 };
-                let command_error = command_error.source;
+                let command_error = command_error.into_source();
                 for rollback_index in rollback_start..frame.commands.len() {
                     if let Err(rollback_error) = frame.commands[rollback_index].apply(context) {
                         return Err(EditCommandError::RollbackFailed {
                             command_error: Box::new(command_error),
-                            rollback_error: Box::new(rollback_error.source),
+                            rollback_error: Box::new(rollback_error.into_source()),
                         });
                     }
                 }
@@ -332,11 +347,14 @@ impl EditorTransactionEngine {
             }
         }
         if let Err(command_error) = context.restore_selection(&frame.selection_before) {
+            if command_error.is_interrupted() {
+                return Err(command_error);
+            }
             for command in &mut frame.commands {
                 if let Err(rollback_error) = command.apply(context) {
                     return Err(EditCommandError::RollbackFailed {
                         command_error: Box::new(command_error),
-                        rollback_error: Box::new(rollback_error.source),
+                        rollback_error: Box::new(rollback_error.into_source()),
                     });
                 }
             }

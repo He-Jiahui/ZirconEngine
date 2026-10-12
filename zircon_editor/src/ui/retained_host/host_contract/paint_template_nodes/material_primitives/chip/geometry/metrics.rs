@@ -1,6 +1,9 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::super::bounded_extent as chip_bounded_extent;
 use super::super::identity::{chip_is_outlined, chip_is_small};
+use crate::ui::retained_host::host_contract::paint_theme::{
+    current_host_metrics, logical_font_size_to_physical,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_MEDIUM_HEIGHT:
     f32 = 32.0;
@@ -31,7 +34,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_fo
     rect: &FrameRect,
 ) -> f32 {
     let requested = if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
+        logical_font_size_to_physical(node.font_size, current_host_metrics().scale_factor)
     } else if chip_is_small(node) {
         CHIP_SMALL_LABEL_FONT_SIZE
     } else {

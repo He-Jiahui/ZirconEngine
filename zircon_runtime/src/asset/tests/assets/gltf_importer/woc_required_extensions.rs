@@ -559,8 +559,14 @@ fn all_checked_in_woc_glbs_import_from_original_bytes() {
 #[test]
 fn woc_imported_assets_and_dependency_graph_roundtrip_through_artifacts() {
     let (_, outcome) = import_woc_beach_anchor();
-    let encoded_outcome = bincode::serialize(&outcome).unwrap();
-    let decoded_outcome = bincode::deserialize::<AssetImportOutcome>(&encoded_outcome).unwrap();
+    let encoded_outcome =
+        zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+            .encode(&outcome)
+            .unwrap();
+    let decoded_outcome =
+        zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+            .decode::<AssetImportOutcome>(&encoded_outcome)
+            .unwrap();
     assert_eq!(decoded_outcome, outcome);
 
     let root = unique_temp_project_root("woc_gltf_artifact_roundtrip");

@@ -112,3 +112,14 @@ fn pending_resize_is_consumed_before_testing_presenter_availability() {
 
     assert!(consume_size < presenter_gate);
 }
+
+#[test]
+fn capture_demand_presents_without_mutating_the_retained_business_projection() {
+    let absent = super::super::lifecycle::normal_capture_redraw(false);
+    assert!(!absent.request_redraw());
+    let capture = super::super::lifecycle::normal_capture_redraw(true);
+    assert!(capture.request_redraw());
+    assert!(capture.requires_present());
+    assert!(!capture.requires_frame_update());
+    assert!(!capture.prefers_interactive_frame_update());
+}

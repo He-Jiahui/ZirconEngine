@@ -19,9 +19,9 @@ pub type NavigationAssetResult<T> = std::result::Result<T, NavigationAssetError>
 #[derive(Debug, Error)]
 pub enum NavigationAssetError {
     #[error("serialize navmesh asset: {0}")]
-    Serialize(#[source] bincode::Error),
+    Serialize(#[source] zircon_runtime_interface::serialization::PositionalEncodeError),
     #[error("deserialize navmesh asset: {0}")]
-    Deserialize(#[source] bincode::Error),
+    Deserialize(#[source] zircon_runtime_interface::serialization::PositionalDecodeError),
     #[error("unsupported navmesh asset version {version}")]
     UnsupportedVersion { version: u32 },
     #[error("navmesh v1 contains too many off-mesh links to assign stable ids: {count}")]
@@ -186,23 +186,32 @@ impl NavMeshAsset {
     }
 
     pub fn to_bytes(&self) -> NavigationAssetResult<Vec<u8>> {
-        bincode::serialize(self).map_err(NavigationAssetError::Serialize)
+        zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+            .encode(self)
+            .map_err(NavigationAssetError::Serialize)
     }
 
     /// 读取持久化网格时先辨认线格式，再把旧版连接迁移到当前契约；调用方应在交给管理器前处理版本错误。
     pub fn from_bytes(bytes: &[u8]) -> NavigationAssetResult<Self> {
-        let mut header = bytes;
-        let version = bincode::deserialize_from::<_, u32>(&mut header)
-            .map_err(NavigationAssetError::Deserialize)?;
+        let (version, _) =
+            zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+                .decode_prefix_bounded::<u32>(bytes, bytes.len() as u64)
+                .map_err(NavigationAssetError::Deserialize)?;
         match version {
             v1::VERSION => {
-                let asset = bincode::deserialize::<v1::NavMeshAssetV1>(bytes)
-                    .map_err(NavigationAssetError::Deserialize)?;
+                let asset =
+                    zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+                        .decode::<v1::NavMeshAssetV1>(bytes)
+                        .map_err(NavigationAssetError::Deserialize)?;
                 asset
                     .migrate()
                     .map_err(|count| NavigationAssetError::TooManyOffMeshLinks { count })
             }
-            Self::VERSION => bincode::deserialize(bytes).map_err(NavigationAssetError::Deserialize),
+            Self::VERSION => {
+                zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+                    .decode(bytes)
+                    .map_err(NavigationAssetError::Deserialize)
+            }
             version => Err(NavigationAssetError::UnsupportedVersion { version }),
         }
     }

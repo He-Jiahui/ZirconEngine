@@ -20,12 +20,12 @@ impl RetainedEditorHost {
                 return;
             }
         }
-        let size = self.resolve_callback_surface_size_for_kind(
+        let size = (match self.resolve_callback_surface_size_for_kind(
             width,
             height,
             self.inspector_scroll_surface.size(),
             ViewContentKind::Inspector,
-        );
+        ) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
         if self.inspector_scroll_surface.set_size(size) {
             self.sync_inspector_pointer_layout();
         }

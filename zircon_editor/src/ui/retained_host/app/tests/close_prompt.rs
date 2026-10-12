@@ -33,12 +33,16 @@ fn open_dirty_ui_asset(
         .host
         .borrow()
         .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .open_ui_asset_editor(&path, None)
         .expect("ui asset editor should open");
     harness
         .host
         .borrow()
         .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .mark_document_external_effect(&instance_id, DirtyExternalEffectId::ui_source_buffer())
         .unwrap();
     (path, instance_id)
@@ -51,6 +55,8 @@ fn await_owned_document_save(harness: &ChildWindowHostHarness, owner: DirtyDocum
             .host
             .borrow()
             .editor_manager
+            .enter()
+            .expect("editor manager admission")
             .poll_dirty_document_save(owner)
             .unwrap()
         {
@@ -80,7 +86,8 @@ fn clean_single_tab_floating_close_uses_window_scoped_batch_command() {
         .host
         .borrow()
         .runtime
-        .floating_window_exists(&window_id));
+        .floating_window_exists(&window_id)
+        .unwrap());
     assert!(harness
         .delta_events_since(before_close)
         .iter()
@@ -123,6 +130,7 @@ fn dirty_floating_window_close_request_shows_cancelable_prompt() {
         .borrow()
         .runtime
         .current_layout()
+        .unwrap()
         .floating_windows
         .iter()
         .any(|window| window.window_id == window_id));
@@ -200,6 +208,7 @@ fn dirty_saveable_floating_window_save_prompt_schedules_then_closes_window() {
         .borrow()
         .runtime
         .current_layout()
+        .unwrap()
         .floating_windows
         .iter()
         .any(|window| window.window_id == window_id));
@@ -211,6 +220,7 @@ fn dirty_saveable_floating_window_save_prompt_schedules_then_closes_window() {
             .borrow()
             .runtime
             .current_layout()
+            .unwrap()
             .floating_windows
             .iter()
             .any(|window| window.window_id == window_id)
@@ -224,6 +234,7 @@ fn dirty_saveable_floating_window_save_prompt_schedules_then_closes_window() {
         .borrow()
         .runtime
         .current_layout()
+        .unwrap()
         .floating_windows
         .iter()
         .all(|window| window.window_id != window_id));
@@ -262,6 +273,7 @@ fn dirty_floating_window_discard_prompt_closes_all_window_tabs() {
         .borrow()
         .runtime
         .current_layout()
+        .unwrap()
         .floating_windows
         .iter()
         .all(|window| window.window_id != window_id));
@@ -279,6 +291,8 @@ fn floating_discard_reprompts_when_dirty_generation_changes_before_decision() {
         .host
         .borrow()
         .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .update_ui_asset_editor_source(
             &instance_id,
             CLOSE_PROMPT_UI_ASSET.replace("Ready", "First"),
@@ -298,6 +312,8 @@ fn floating_discard_reprompts_when_dirty_generation_changes_before_decision() {
         .host
         .borrow()
         .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .update_ui_asset_editor_source(
             &instance_id,
             CLOSE_PROMPT_UI_ASSET.replace("Ready", "Second"),
@@ -313,6 +329,7 @@ fn floating_discard_reprompts_when_dirty_generation_changes_before_decision() {
         .borrow()
         .runtime
         .current_layout()
+        .unwrap()
         .floating_windows
         .iter()
         .any(|window| window.window_id == window_id));
@@ -327,6 +344,7 @@ fn floating_discard_reprompts_when_dirty_generation_changes_before_decision() {
         .borrow()
         .runtime
         .current_layout()
+        .unwrap()
         .floating_windows
         .iter()
         .all(|window| window.window_id != window_id));
@@ -389,6 +407,7 @@ fn floating_discard_reprompts_if_a_tab_is_attached_after_the_decision() {
         .borrow()
         .runtime
         .current_layout()
+        .unwrap()
         .floating_windows
         .into_iter()
         .find(|window| window.window_id == window_id)
@@ -405,7 +424,8 @@ fn floating_discard_reprompts_if_a_tab_is_attached_after_the_decision() {
         .host
         .borrow()
         .runtime
-        .floating_window_exists(&window_id));
+        .floating_window_exists(&window_id)
+        .unwrap());
     let _ = std::fs::remove_file(ui_asset_path);
 }
 
@@ -491,21 +511,20 @@ fn save_all_queues_behind_close_prompt_save_then_acquires_the_released_owner() {
         .host
         .borrow()
         .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .dirty_document_toolkits()
         .unwrap()[0]
         .document_id;
 
     assert_eq!(
-        harness
-            .host
-            .borrow()
-            .editor_manager
-            .begin_dirty_document_save(
-                DirtyDocumentSaveOwner::ClosePrompt,
-                [document],
-                SaveReason::Explicit,
-            )
-            .unwrap(),
+        crate::ui::host::EditorManager::begin_dirty_document_save(
+            harness.host.borrow().editor_manager.clone(),
+            DirtyDocumentSaveOwner::ClosePrompt,
+            [document],
+            SaveReason::Explicit,
+        )
+        .unwrap(),
         DirtyDocumentSaveStart::Scheduled
     );
     harness.host.borrow_mut().request_document_save_all();
@@ -517,6 +536,8 @@ fn save_all_queues_behind_close_prompt_save_then_acquires_the_released_owner() {
         .host
         .borrow()
         .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .mark_document_external_effect(&instance_id, DirtyExternalEffectId::ui_source_buffer())
         .unwrap();
     harness.host.borrow_mut().poll_document_save_all();
@@ -533,6 +554,8 @@ fn save_all_queues_behind_close_prompt_save_then_acquires_the_released_owner() {
         .host
         .borrow()
         .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .dirty_document_toolkits()
         .unwrap()
         .is_empty());
@@ -550,20 +573,19 @@ fn project_close_cannot_teardown_until_close_prompt_save_terminalizes() {
         .host
         .borrow()
         .editor_manager
+        .enter()
+        .expect("editor manager admission")
         .dirty_document_toolkits()
         .unwrap()[0]
         .document_id;
     assert_eq!(
-        harness
-            .host
-            .borrow()
-            .editor_manager
-            .begin_dirty_document_save(
-                DirtyDocumentSaveOwner::ClosePrompt,
-                [document],
-                SaveReason::Explicit,
-            )
-            .unwrap(),
+        crate::ui::host::EditorManager::begin_dirty_document_save(
+            harness.host.borrow().editor_manager.clone(),
+            DirtyDocumentSaveOwner::ClosePrompt,
+            [document],
+            SaveReason::Explicit,
+        )
+        .unwrap(),
         DirtyDocumentSaveStart::Scheduled
     );
 
@@ -577,6 +599,8 @@ fn project_close_cannot_teardown_until_close_prompt_save_terminalizes() {
             .host
             .borrow()
             .editor_manager
+            .enter()
+            .expect("editor manager admission")
             .dirty_document_save_owner(),
         Some(DirtyDocumentSaveOwner::ClosePrompt)
     );
@@ -625,7 +649,8 @@ fn clean_child_hide_close_cancels_native_tab_without_detaching_it() {
         .host
         .borrow()
         .runtime
-        .floating_window_exists(&window_id));
+        .floating_window_exists(&window_id)
+        .unwrap());
     let close_events = harness.delta_events_since(baseline);
     assert!(close_events.iter().any(|event| matches!(
         event,

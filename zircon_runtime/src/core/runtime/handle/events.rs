@@ -53,6 +53,10 @@ impl CoreHandle {
         self.inner.config_store.store_value(key, value);
     }
 
+    pub(crate) fn store_config_value_if_changed(&self, key: &str, value: Value) -> bool {
+        self.inner.config_store.store_value_if_changed(key, value)
+    }
+
     pub fn load_config_value(&self, key: &str) -> Option<Value> {
         self.inner.config_store.load_value(key)
     }

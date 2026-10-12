@@ -1,17 +1,17 @@
 use std::any::Any;
-use std::sync::Arc;
 
 use crate::core::framework::navigation::{
     NavMeshBakeRequest, NavigationClearBakeRequest, NavigationGeneratedBakeChange,
     NavigationGeneratedBakeSnapshot,
 };
+use crate::core::runtime::ServiceCallGuard;
 use crate::operation::{
     RuntimeOperationApply, RuntimeOperationContext, RuntimeOperationHandler,
     RuntimeOperationHandlerError, RuntimeOperationPrepared, RuntimeOperationSnapshot,
 };
 use crate::scene::{
     SceneNavigationRuntime, SceneNavigationRuntimeHandle, WorldPublicationError,
-    WorldPublicationSource, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+    WorldPublicationSource,
 };
 
 #[derive(Clone, Copy)]
@@ -34,7 +34,7 @@ struct NavigationSnapshotChange {
 
 struct NavigationSnapshotOwnerState {
     source: WorldPublicationSource,
-    runtime: Arc<SceneNavigationRuntimeHandle>,
+    runtime: SceneNavigationRuntimeHandle,
     before: NavigationGeneratedBakeSnapshot,
     after: NavigationGeneratedBakeSnapshot,
     generated_mutation_epoch: u64,
@@ -42,14 +42,14 @@ struct NavigationSnapshotOwnerState {
 
 struct NavigationBakeOwnerState {
     source: WorldPublicationSource,
-    runtime: Arc<SceneNavigationRuntimeHandle>,
+    runtime: SceneNavigationRuntimeHandle,
     before: NavigationGeneratedBakeSnapshot,
     backend_snapshot: Box<dyn Any + Send>,
 }
 
 struct NavigationBakePreparedState {
     source: WorldPublicationSource,
-    runtime: Arc<SceneNavigationRuntimeHandle>,
+    runtime: SceneNavigationRuntimeHandle,
     before: NavigationGeneratedBakeSnapshot,
     backend_prepared: Box<dyn Any + Send>,
 }
@@ -61,10 +61,16 @@ impl NavigationOperationHandler {
 
     fn resolve_runtime(
         context: &RuntimeOperationContext<'_>,
-    ) -> Result<std::sync::Arc<SceneNavigationRuntimeHandle>, RuntimeOperationHandlerError> {
-        context
-            .core()
-            .resolve_driver::<SceneNavigationRuntimeHandle>(SCENE_NAVIGATION_RUNTIME_DRIVER_NAME)
+    ) -> Result<SceneNavigationRuntimeHandle, RuntimeOperationHandlerError> {
+        SceneNavigationRuntimeHandle::new(context.core())
+            .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))
+    }
+
+    fn enter_runtime(
+        runtime: &SceneNavigationRuntimeHandle,
+    ) -> Result<ServiceCallGuard<dyn SceneNavigationRuntime>, RuntimeOperationHandlerError> {
+        runtime
+            .enter()
             .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))
     }
 
@@ -98,6 +104,7 @@ impl NavigationOperationHandler {
         request: NavigationClearBakeRequest,
     ) -> Result<serde_json::Value, RuntimeOperationHandlerError> {
         let runtime = Self::resolve_runtime(&context)?;
+        let runtime = Self::enter_runtime(&runtime)?;
         let before = runtime.generated_bake_snapshot(request.surface_entity);
         let target = before.surface_entity.or(request.surface_entity);
         encode_snapshot_change(NavigationSnapshotChange {
@@ -112,6 +119,7 @@ impl NavigationOperationHandler {
     ) -> Result<serde_json::Value, RuntimeOperationHandlerError> {
         Self::reject_null_restore_target(snapshot.surface_entity)?;
         let runtime = Self::resolve_runtime(&context)?;
+        let runtime = Self::enter_runtime(&runtime)?;
         let before = runtime.generated_bake_snapshot(snapshot.surface_entity);
         Self::reject_noncanonical_restore_target(snapshot.surface_entity, &before)?;
         encode_snapshot_change(NavigationSnapshotChange {
@@ -158,7 +166,8 @@ impl NavigationOperationHandler {
         }
         let runtime = Self::resolve_runtime(context)?;
         let source = context.level().capture();
-        let before = runtime.generated_bake_snapshot(
+        let runtime_call = Self::enter_runtime(&runtime)?;
+        let before = runtime_call.generated_bake_snapshot(
             restore
                 .as_ref()
                 .map(|snapshot| snapshot.surface_entity)
@@ -167,7 +176,8 @@ impl NavigationOperationHandler {
         if let Some(snapshot) = restore.as_ref() {
             Self::reject_noncanonical_restore_target(snapshot.surface_entity, &before)?;
         }
-        let generated_mutation_epoch = runtime.generated_bake_mutation_epoch(before.surface_entity);
+        let generated_mutation_epoch =
+            runtime_call.generated_bake_mutation_epoch(before.surface_entity);
         let after = restore.unwrap_or_else(|| {
             NavigationGeneratedBakeSnapshot::empty(before.surface_entity.or(request.surface_entity))
         });
@@ -228,6 +238,7 @@ impl NavigationOperationHandler {
             after,
             generated_mutation_epoch,
         } = owner;
+        let runtime = Self::enter_runtime(&runtime)?;
         source
             .publish(|_| {
                 if runtime.generated_bake_snapshot(before.surface_entity) != before {
@@ -296,7 +307,7 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                 let request = self.operation_request(payload)?;
                 let runtime = Self::resolve_runtime(&context)?;
                 let source = context.level().capture();
-                let (backend_snapshot, owner_bytes, before) = runtime
+                let (backend_snapshot, owner_bytes, before) = Self::enter_runtime(&runtime)?
                     .capture_bake_operation(&source, request.clone())
                     .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))?;
                 let source_bytes = source_retained_bytes(&source);
@@ -365,7 +376,7 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                     before,
                     backend_snapshot,
                 } = *owner;
-                let (backend_prepared, report, after, owner_bytes) = runtime
+                let (backend_prepared, report, after, owner_bytes) = Self::enter_runtime(&runtime)?
                     .prepare_bake_operation(backend_snapshot)
                     .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))?;
                 let (command, _) = encode_prepared_snapshot_values(NavigationSnapshotChange {
@@ -452,7 +463,7 @@ impl RuntimeOperationHandler for NavigationOperationHandler {
                     before,
                     backend_prepared,
                 } = *owner;
-                runtime
+                Self::enter_runtime(&runtime)?
                     .apply_bake_operation(&source, &before, backend_prepared)
                     .map_err(|error| RuntimeOperationHandlerError::new(error.to_string()))
             }

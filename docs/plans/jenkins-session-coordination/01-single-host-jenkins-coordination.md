@@ -29,21 +29,37 @@ created: 2026-10-02
 
 本计划交付一套以 Jenkins 为唯一构建提交入口的本机协调流程：多个 Session 共享 checkout 和兼容构建池，按改动范围选择校验、构建和测试，串行保护共享写入，在 CPU、内存和磁盘预算内尽快完成正式验收。
 
-当前正在实施，正式运行切换尚未验收；产品仓库 Git 提交、推送和外部通知仍分别核对动作授权。多机器、远程节点接入与跨机器产物传输暂缓。在线驱动仍绑定 2026-10-04 的历史规格，只运行控制器。工作树规格与准入已同步为真实驱动器根级 `D/E/F:\cargo-targets`，默认 `D:\cargo-targets`，命名空间为 `<buildRoot>\zircon-local\zircon-jenkins`；明确选根不得自动换盘。在线驱动尚未加载新版本，编译仍暂停。历史目录、执行身份和回执保留为证据。
+当前正在实施，唯一构建入口切换及 M0–M8 的完整验收仍待完成；产品仓库 Git 提交、推送和外部通知分别核对动作授权。多机器、远程节点接入与跨机器产物传输暂缓。2026-10-09 的运行观察已确认工程内 controller、Windows agent 和托盘就绪，纯注释补丁流程已通过正式验收。构建根为真实驱动器根级 `D/E/F:\cargo-targets`，默认 `D:\cargo-targets`，命名空间为 `<buildRoot>\zircon-local\zircon-jenkins`；明确选根不得自动换盘。原 M4 请求在容量等待后因流水线轮询预算耗尽而失败，保留原请求、失败回执和历史保护记录。
 
 详细的模块职责、三类 Jenkins job、身份与状态模型、流程拼接、资源准入、Git 集成和恢复协议见[架构与实施方案](../../tooling/jenkins-session-coordination-architecture.md)。本文拥有里程碑顺序与交付门槛，架构文档拥有具体设计。
 
 ## 当前基线与实施约束
 
-当前控制器为 `controller-running-quiet`：Home、专用 JDK／WAR／Python、79 个已校验插件和 Windows agent 组件位于工程 `.jenkins`。管理页面与认证 API 已在 `http://127.0.0.1:18080/` 直接启动，没有重启 Windows。三类 job、支持库和入口适配已实现，已有纯注释及三种真实 Cargo 流程回执。前次尚未启动 agent 的失联部署已通过专用仅控制器恢复核验；agent 与执行 broker 暂停，遗留构建的预约及 writer 保护保留，运行验收尚未通过。实时状态见 `.jenkins/state/deployment/service-health.json`，规格中的历史离线标签不作为实时健康状态。旧入口 `tools/dev/zircon-session.ps1` 与 `tools/session_coordinator/retirement.py` 明确拒绝启动、租约、验证与集成；旧服务不得恢复。以前的试点、状态数据库和源码保留为历史证据与迁移参考。
+截至 2026-10-10，正式驱动 `0c1f8adb…` 的 controller、Windows agent 和 79 个插件已就绪，当前运行身份为 `start-1791615932752147100`。可见桌面托盘的实际右键、停止、启动及单请求重启均已通过运行核对和独立协议复查。新 M4 两轮 `zircon-flow #38`（queue 48）与 `#39`（queue 72）均为 SUCCESS，真实补丁、编译、两项测试发现、测试执行、物理产物及权威验收通过；独立原始 API 审计核对九项请求参数及十八项空默认值。兼容修改复用同一 PreparationKey 池，源码身份改变后重新运行测试；公开源码交接及日常入口的同 ID 只读对账也已通过。这些结果来自六文件受控 Rust 工程，不表示产品仓库整体验收、M4 全覆盖或 M5–M8 全部通过。运行数据位于工程 `.jenkins`，管理地址为 `http://127.0.0.1:18080/`，日常入口见[托盘及补丁操作说明](../../tooling/jenkins-tray.md)。完整证据及前代失败历史保存在[已选版本的启动恢复记录](01/2026-10-09-selected-runtime-recovery.md)。本次 runtime、M5 与缓存维护边界见[2026-10-11 状态记录](01/2026-10-11-runtime-completion-and-cache-maintenance.md)。
+
+当前 `0c1f8adb…` 的支持层完整回归为 784 项收集、782 项通过、2 项环境跳过、零失败／错误，证据为 `.jenkins/state/migration-baseline/patch-support-regression-1791603326075578800.json`。早期驱动的回归为 609 项通过、2 项环境跳过，证据为 `.jenkins/state/migration-baseline/patch-support-regression-1791560293816932500.json`。纯注释流程 `zircon-flow #32`（queue 438）为 SUCCESS；对原描述符、完整请求身份、封存源码、轻量 producer 回执、正式验收回执及无 Cargo 副作用的只读核对已通过，证据为 `.jenkins/state/migration-baseline/m3-comment-c33-readonly-1791568305940553900.json`。本次没有 Git 提交授权，提交步骤按约定跳过。
+
+原 M4 请求的 `zircon-flow #31`（queue 97）和 `zircon-execution #19`（queue 105）均已终止为 FAILURE。补丁、语法和格式步骤已通过；execution `72d20aa74113e0637d60d4e1d3fd9a99` 在容量等待后取消，消费者引用已释放，源码补偿完成，且没有 native host、launch 或 Cargo 记录。原失败观察时 D 盘剩余约 30.2 GiB，低于 35 GiB 保留线；2026-10-09 后续容量观察约为 35.9 GiB，该历史失败不代表当前容量。该原请求未取得 compile/list/test 或 M4 接受结果，不能用后续新请求的通过结果覆盖失败。四项历史预约／writer 保护保持原样；共享 checkout 已修改内容的增量交付入口已经实现，原失败时尚未部署到对应驱动。
+
+2026-10-09 后续完整支持层回归收集 692 项，其中 690 项通过、2 项目录别名环境检查跳过，无失败或错误，源码身份保持稳定；证据为 `.jenkins/state/migration-baseline/patch-support-regression-1791571680008228500.json`。已据此封存并选中候选驱动 `613a0b5d47bcb59a9f53d28207e803abe17c59b2387f42b25b5c2dc6f1466124`；不可变准备记录中的 `prepared-not-selected` 描述的是签发时状态，当前选择以真实 selector 与选择日志为准。原 M4 的失败已按真实已调度、取消前未启动 native 的类型完成升级日志收尾；`.jenkins/state/deployment/history/execution-upgrade-prelaunch-closeout-ee6c1f7d7dd430b34241dc01d9ac0942afed513ac994ca8390351a249fcdb6d4.json` 保留失败结果，不形成 M4 接受结果。
+
+编辑器会话新增 `mvp-preview-20261009-r4` 的源码准备曾阻断切换。其源引用 `dbf6f212cb1ea0aca5508f90f304a13aa9ed70580e08df800cc6f5b57c547dac` 返回 `current_source_hash_mismatch`，持久化 operation 仍为初始 `prepared`、version 1、result null，没有该请求的 flow 或 native 执行登记。新增保护对账已核对完整快照与三条精确新增记录；派生的历史视图仍匹配原失败收尾，独立证据为 `.jenkins/state/migration-baseline/protected-r4-intake-delta-observation-1791578084955177900.json`。该视图不是当前权威快照，也不终结原请求。152 项受影响控制回归已通过，证据为 `.jenkins/state/migration-baseline/protected-intake-delta-focused-1791578412891480700.json`。该请求继续按原身份待对账，外来源码和身份不明的物理对象全部保留；没有获得 native 终止、物理对象不存在、接受、重放或 GC 资格。
+
+采用该保护对账后的实际候选核验与历史 drain 核验均已通过。宿主交接检查原本会把正常的 30 秒心跳刷新误判为固定身份变化；修复保留首次原始观察及最终观察，只允许三个既有心跳字段变化，固定身份按类型和完整字段核对。145 项受影响控制通过，实际候选、drain 和交接也已通过；证据为 `.jenkins/state/migration-baseline/keeper-heartbeat-delta-focused-1791579737052202700.json` 和 `existing-candidate-delta-release-1791580190521464600.json`。
+
+该次正式受限预检曾被 `boot_evidence_unavailable` 阻断，发生在服务停止或候选选择之前。实测确认 WMI 查询返回 `0x80041003` 拒绝访问，而同一受限宿主的原生双查询能读取实际启动 FILETIME `134358454705000000`。升级操作器固定原生观察器的原始 SHA，并保留原有历史归属、启动边界及资源保护检查；174 项受影响测试通过，新的操作器、清单及正式受限预检也已通过。后续真实切换及失败恢复见子记录；该次候选 `613a…` 和对应完整支持层回归未改变，当时尚未通过真实 Cargo 验收。
+
+独立真实 Cargo 验收显式选择 `F:\cargo-targets`；其物理根核对记录为 `.jenkins/state/migration-baseline/explicit-f-build-root-identity-1791574668938012800.json`。全局默认仍为 `D:\cargo-targets`，现有请求的根不变。早期正常托盘启停的新运行身份继承与受限启动入口缺口保存在 `.jenkins/state/migration-baseline/formal-tray-normal-lifecycle-lineage-review-1791574702840389800.json`；修复后实际停止／启动／单请求重启的独立复查为 `formal-m2-normal-lifecycle-independent-review-1791616558464923100.json`，168 项检查和 37 个原件 hash 复核通过。M2 的其余迁移、回退和恢复场景仍按各自门槛验收。
+
+旧入口 `tools/dev/zircon-session.ps1` 与 `tools/session_coordinator/retirement.py` 明确拒绝启动、租约、验证与集成；旧服务持续退役。以前的试点、状态数据库、执行身份、回执和源码保留为历史证据与迁移参考。
 
 现有工程主包为 `zircon_app`、`zircon_runtime`、`zircon_editor`，构建仍受 workspace、lockfile、外部依赖及现有产品 profile 约束。本项属于 MVP 验收自动化，优先支撑构建与验收；不扩展引擎功能。验证范围遵循[里程碑验证政策](../milestone-validation-policy.md)。
 
 必须保持以下边界：
 
 - Jenkins Home、配置、用户、插件包、日志和协调状态放在工程 `.jenkins` 下；运行数据与密钥排除在 Git 之外。
-- Jenkins 运行组件及控制数据留在工程 `.jenkins`；编译产物、编译器缓存和构建工作集使用已登记的真实驱动器根级 `D/E/F:\cargo-targets`。拒绝 C 盘、工程内 target、路径别名和 junction/symlink；当前历史工程内构建规格尚待同步，编译保持暂停。
-- 不新增 Git worktree，不按 Session 或 build number 新建完整 target；采用有限、兼容性受管的构建池。
+- Jenkins 运行组件及控制数据留在工程 `.jenkins`；编译产物、编译器缓存和构建工作集使用已登记的真实驱动器根级 `D/E/F:\cargo-targets`。拒绝 C 盘、工程内 target、路径别名和 junction/symlink；每次重步骤均须通过实际路径及资源准入。
+- 默认共享开发 checkout；用户要求的分支和工作树由 Jenkins 创建、登记、验证、合并及释放。AI 不自行执行这些版本操作。编译使用按完整兼容性选择的稳定共享池，不按 Session、worktree 或 build number 新建完整 target。
 - 源码归属、路径租约、资源预约、产物索引和验收各有一个权威。Jenkins 调度流程；新支持库拥有这些策略和状态，不恢复旧服务、旧工作队列或自动离线重放。
 - 每个重步骤使用不可变输入与真实进程回执；Jenkins SUCCESS、零退出码或 pending receipt 均不能单独代替正式验收。
 - 修改共享代码前核对当前差异与任务归属。计划阶段不注册旧服务、不清历史状态、不改其他 Session 的变更。

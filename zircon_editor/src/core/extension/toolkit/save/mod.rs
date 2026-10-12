@@ -5,7 +5,7 @@ mod report;
 mod source_write_authority;
 
 pub use context::{SaveContextError, SaveCtx};
-pub use error::SaveError;
+pub use error::{SaveError, SaveHookPanic};
 pub use reason::SaveReason;
 pub use report::DocumentSaveReport;
 pub(crate) use source_write_authority::{

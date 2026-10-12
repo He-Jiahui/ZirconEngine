@@ -732,7 +732,7 @@ fn production_test_device_with_policy(
     )
 }
 
-fn production_test_context_with_policy(
+pub(in crate::production) fn production_test_context_with_policy(
     memory_budget: GpuMemoryBudget,
     policy: &RenderDeviceRequestPolicy,
 ) -> Option<(WgpuRenderDeviceContext, RenderDeviceProfile)> {
@@ -798,7 +798,10 @@ fn test_profile() -> RenderDeviceProfile {
     )
 }
 
-fn wait_for_submission(device: &dyn RenderDevice, ticket: zr_rhi::SubmissionTicket) {
+pub(in crate::production) fn wait_for_submission(
+    device: &dyn RenderDevice,
+    ticket: zr_rhi::SubmissionTicket,
+) {
     assert_eq!(
         device
             .wait_for_submission(ticket, Duration::from_secs(5))

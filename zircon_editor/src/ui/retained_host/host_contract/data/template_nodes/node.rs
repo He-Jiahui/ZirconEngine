@@ -45,6 +45,11 @@ pub(crate) struct TemplatePaneNodeData {
     pub layout_padding_right: f32,
     pub layout_padding_top: f32,
     pub layout_padding_bottom: f32,
+    /// Valid authored paint insets (left, right, top, bottom); None uses host defaults.
+    /// Separate from runtime layout.padding, which arranges child content.
+    pub authored_field_padding: [Option<f32>; 4],
+    /// Authored logical label lane; None and zero retain a plain value field.
+    pub authored_field_label_width: Option<f32>,
     pub layout_spacing: f32,
     pub layout_first_cell_offset_x: f32,
     pub layout_second_cell_offset_x: f32,
@@ -52,6 +57,8 @@ pub(crate) struct TemplatePaneNodeData {
     pub layout_fourth_cell_offset_x: f32,
     pub icon_placement: SharedString,
     pub component_role: SharedString,
+    /// Source-owned overflow contract; the registered widget role stays separate.
+    pub toolbar_overflow_role: SharedString,
     pub component_category: SharedString,
     pub component_layout_role: SharedString,
     pub component_variant: SharedString,
@@ -147,6 +154,8 @@ pub(crate) struct TemplatePaneNodeData {
     pub focused: bool,
     pub focus_visible: bool,
     pub focus_visible_known: bool,
+    /// None is an unknown legacy/static owner; false is runtime focus loss.
+    pub tree_owner_focused: Option<bool>,
     pub hovered: bool,
     pub pressed: bool,
     pub dragging: bool,
@@ -199,9 +208,19 @@ pub(crate) struct TemplatePaneNodeData {
     pub text_tone: SharedString,
     pub button_variant: SharedString,
     pub button_style: ResolvedButtonStyle,
+    /// Retained authored TextField state colors; Default keeps legacy callers on host fallback.
+    pub authored_field_colors:
+        std::collections::BTreeMap<String, zircon_runtime_interface::ui::style::UiStyleColor>,
+    /// Independent authored focus width; None uses host metrics, Some(0) suppresses the outline.
+    pub authored_focus_border_width: Option<f32>,
     /// Authored logical pixels; zero selects role-based host typography.
     pub font_size: f32,
     pub font_weight: i32,
+    /// Authored logical line-box pixels; zero uses host line-height ratio.
+    pub line_height: f32,
+    pub line_height_ratio: f32,
+    /// Preserved for native font-request propagation; no family alias is substituted.
+    pub font_family: SharedString,
     pub text_align: SharedString,
     pub overflow: SharedString,
     pub corner_radius: f32,

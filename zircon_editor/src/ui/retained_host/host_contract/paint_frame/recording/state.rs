@@ -29,6 +29,15 @@ impl HostPaintRecording {
         }
     }
 
+    pub(in crate::ui::retained_host::host_contract) fn command_count(&self) -> usize {
+        self.commands.len()
+    }
+    pub(in crate::ui::retained_host::host_contract) fn commands_since(
+        &self,
+        start: usize,
+    ) -> &[HostRecordedPaintCommand] {
+        self.commands.get(start..).unwrap_or_default()
+    }
     pub(in crate::ui::retained_host::host_contract) fn is_record_only(&self) -> bool {
         self.record_only
     }

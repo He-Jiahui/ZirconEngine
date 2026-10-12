@@ -37,8 +37,10 @@ impl SaveCtx {
         receipt: DocumentSourceWriteReceipt,
     ) -> Result<(), SaveContextError> {
         let _ = receipt;
-        self.record_written_bytes(bytes)?;
+        // Publication already happened. Preserve its guarantee before byte-count
+        // accounting can fail; an overflow cannot revoke that physical fact.
         self.source_write_guarantee = DocumentSaveGuarantee::serialized_project_source();
+        self.record_written_bytes(bytes)?;
         Ok(())
     }
 

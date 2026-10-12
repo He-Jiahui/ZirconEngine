@@ -22,7 +22,9 @@ pub(super) fn tree_row_commands(
     let visual = CollectionRowVisual::resolve(metadata);
     let depth = depth(metadata);
     let mut commands = Vec::with_capacity(tree_row_command_capacity(depth));
-    if let Some(background) = background(&visual, state) {
+    if let Some(background) = background(&visual, state).or_else(|| {
+        (!state.unavailable() && state.focus_visible).then_some(UiRgbaColor::from_u8(0, 0, 0, 0))
+    }) {
         commands.push(quad_command(
             node_id,
             frame,
@@ -141,6 +143,8 @@ pub(super) fn tree_row_commands(
 fn background(visual: &CollectionRowVisual, state: &RowRenderState) -> Option<UiRgbaColor> {
     if state.unavailable() {
         None
+    } else if state.marked() && state.tree_owner_focused == Some(false) {
+        Some(visual.inactive_selected_surface)
     } else if state.marked() && state.hot() {
         Some(visual.selected_hover_surface)
     } else if state.marked() {
@@ -157,8 +161,7 @@ fn background(visual: &CollectionRowVisual, state: &RowRenderState) -> Option<Ui
 }
 
 fn border(visual: &CollectionRowVisual, state: &RowRenderState) -> Option<UiRgbaColor> {
-    (!state.unavailable() && (state.focus_or_press() || state.marked()))
-        .then_some(visual.focus_border)
+    (!state.unavailable() && state.focus_visible).then_some(visual.focus_border)
 }
 
 fn border_width(visual: &CollectionRowVisual, state: &RowRenderState) -> f32 {

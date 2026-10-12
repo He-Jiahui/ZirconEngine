@@ -33,6 +33,8 @@ export interface SegmentedProjection {
   options: Array<{ key: string; selected: boolean }>;
   hasLabel: boolean;
   active: boolean;
+  focusVisible?: boolean;
+  focusBorderWidth?: number;
   offsetX: number;
   offsetY: number;
   labelHeight: number;
@@ -53,6 +55,7 @@ export interface SegmentedProjection {
     selected: string;
     selectedBorder: string;
     underline: string;
+    focusBorder?: string;
   };
 }
 
@@ -136,6 +139,9 @@ export function projectSegmentedControl(
   const active = props['checked'] === true || props['selected'] === true;
   const pressed = !unavailable && props['pressed'] === true;
   const focused = !unavailable && props['focused'] === true;
+  const focusVisible = !unavailable && [
+    'focus_visible', 'focusVisible', 'focus-visible',
+  ].some((key) => props[key] === true);
   const hot = [
     'hovered',
     'open',
@@ -253,6 +259,8 @@ export function projectSegmentedControl(
       options: options.map(({ key, selected }) => ({ key, selected })),
       hasLabel: Boolean(label),
       active,
+      focusVisible,
+      focusBorderWidth: metric(['focus_border_width'], 1),
       offsetX: number(['layout_offset_x'], 0),
       offsetY: number(['layout_offset_y'], 0),
       labelHeight: metric(['group_label_height'], 14, true),
@@ -269,21 +277,18 @@ export function projectSegmentedControl(
       tabInsetX: metric(['tab_text_inset_x'], 12),
       colors: {
         background,
-        border: tab
-          ? '#484848'
-          : unavailable
-            ? color(['disabled_border_color'], '#363636')
-            : pressed || focused || hot
-              ? color(['focus_border_color'], '#60aeff')
+        border: unavailable
+          ? color(['disabled_border_color'], '#363636')
+          : pressed || focused || hot
+            ? color(['focus_border_color'], '#60aeff')
+            : tab && resolve('border_color') === 'transparent'
+              ? '#00000000'
               : color(['border_color'], '#484848'),
-        selected: tab
-          ? '#243f5a'
-          : unavailable
-            ? color(['disabled_background_color'], '#2b2b2b')
-            : color(['selected_background_color'], '#243f5a'),
-        selectedBorder: tab
-          ? '#60aeff'
-          : color(['selected_border_color'], '#60aeff'),
+        selected: unavailable
+          ? color(['disabled_background_color'], '#2b2b2b')
+          : color(['selected_background_color'], '#243f5a'),
+        selectedBorder: color(['selected_border_color'], '#60aeff'),
+        focusBorder: color(['focus_border_color'], '#60aeff'),
         underline: unavailable
           ? disabledColor
           : color(['selected_underline_color', 'accent_color'], '#60aeff'),

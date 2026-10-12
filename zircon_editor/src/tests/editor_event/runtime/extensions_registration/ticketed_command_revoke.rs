@@ -411,7 +411,7 @@ fn ticketed_command_router_rejected_candidate_publishes_neither_generation() {
             ResourceKind::Material,
         ))
         .expect("initial weather contribution should register");
-    let store_generation = runtime.runtime.extension_projection_revision().0;
+    let store_generation = runtime.runtime.extension_projection_revision().unwrap().0;
     let command_generation = runtime.runtime.commands().lock().generation();
     let tool_snapshot = runtime.runtime.context().tools().snapshot();
 
@@ -427,7 +427,7 @@ fn ticketed_command_router_rejected_candidate_publishes_neither_generation() {
     assert!(error.to_string().contains("editor extension owner"));
     assert!(error.to_string().contains("weather"));
     assert_eq!(
-        runtime.runtime.extension_projection_revision().0,
+        runtime.runtime.extension_projection_revision().unwrap().0,
         store_generation
     );
     let commands = runtime.runtime.commands().lock();
@@ -474,7 +474,7 @@ fn stale_contribution_handle_cannot_revoke_a_reloaded_plugin_generation() {
             ResourceKind::Material,
         ))
         .expect("reloaded weather contribution should register");
-    let store_generation = runtime.runtime.extension_projection_revision();
+    let store_generation = runtime.runtime.extension_projection_revision().unwrap();
     let command_generation = runtime.runtime.commands().lock().generation();
     let tool_snapshot = runtime.runtime.context().tools().snapshot();
 
@@ -502,7 +502,7 @@ fn stale_contribution_handle_cannot_revoke_a_reloaded_plugin_generation() {
         .revoke_editor_plugin_contribution(&first_handle)
         .expect("stale contribution handle should be an idempotent no-op"));
     assert_eq!(
-        runtime.runtime.extension_projection_revision(),
+        runtime.runtime.extension_projection_revision().unwrap(),
         store_generation
     );
     assert_eq!(
@@ -626,7 +626,7 @@ fn cross_plugin_tool_resource_namespace_is_rejected_without_publication() {
             .unwrap(),
         )
         .unwrap();
-    let store_generation = runtime.runtime.extension_projection_revision();
+    let store_generation = runtime.runtime.extension_projection_revision().unwrap();
     let command_generation = runtime.runtime.commands().lock().generation();
     let tool_snapshot = runtime.runtime.context().tools().snapshot();
 
@@ -634,6 +634,9 @@ fn cross_plugin_tool_resource_namespace_is_rejected_without_publication() {
         .runtime
         .register_editor_plugin_registration(registration)
         .expect_err("plugin must not reserve another plugin's tool resource namespace");
+    let crate::ui::host::EditorError::ExtensionRegistry { source: error } = error else {
+        panic!("expected original typed extension validation error");
+    };
     assert!(matches!(
         error,
         crate::core::editor_extension::EditorExtensionRegistryError::ToolResourceKindOwnerMismatch {
@@ -642,7 +645,7 @@ fn cross_plugin_tool_resource_namespace_is_rejected_without_publication() {
         } if owner_id == "weather"
     ));
     assert_eq!(
-        runtime.runtime.extension_projection_revision(),
+        runtime.runtime.extension_projection_revision().unwrap(),
         store_generation
     );
     assert_eq!(
@@ -665,7 +668,7 @@ fn ticketed_runtime_consumer_collision_publishes_no_store_or_router_generation()
             ResourceKind::Material,
         ))
         .expect("initial weather contribution should register");
-    let store_generation = runtime.runtime.extension_projection_revision().0;
+    let store_generation = runtime.runtime.extension_projection_revision().unwrap().0;
     let command_generation = runtime.runtime.commands().lock().generation();
     let mut climate = plugin_registration(
         "climate",
@@ -682,7 +685,7 @@ fn ticketed_runtime_consumer_collision_publishes_no_store_or_router_generation()
 
     assert!(error.to_string().contains("plugin.weather.events"));
     assert_eq!(
-        runtime.runtime.extension_projection_revision().0,
+        runtime.runtime.extension_projection_revision().unwrap().0,
         store_generation
     );
     let commands = runtime.runtime.commands().lock();

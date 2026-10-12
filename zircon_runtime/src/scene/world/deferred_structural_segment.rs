@@ -119,7 +119,14 @@ impl DeferredStructuralBatch {
         for segment in &mut self.segments {
             segment.materialize_component_reservations(world);
         }
+        let owner = world.owner_identity().clone();
+        let plan_owner = world.schedule().stage_plan();
         for segment in &mut self.segments {
+            if !owner.is_same_world(world.owner_identity())
+                || !world.schedule().owns_stage_plan(&plan_owner)
+            {
+                break;
+            }
             segment.publish(world);
         }
         self.take_errors()

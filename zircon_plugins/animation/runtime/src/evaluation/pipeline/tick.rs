@@ -44,7 +44,8 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
 
     let asset_manager = project_asset_manager_handle(core)
         .and_then(|handle| resolve_manager_service(core, handle))
-        .ok();
+        .ok()
+        .map(Arc::new);
     let replacement_epoch = level.capture_world_replacement_epoch();
     let Some((
         previous_graph_times,
@@ -74,7 +75,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         replacement_epoch,
         &mut projection,
         &playback_settings,
-        asset_manager.as_deref(),
+        asset_manager.as_deref().map(|manager| &**manager),
         delta_seconds,
     ) else {
         return;

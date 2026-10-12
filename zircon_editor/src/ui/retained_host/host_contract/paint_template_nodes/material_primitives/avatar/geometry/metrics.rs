@@ -1,5 +1,8 @@
 pub(super) use super::super::super::bounded_extent as avatar_bounded_extent;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
+use crate::ui::retained_host::host_contract::paint_theme::{
+    current_host_metrics, logical_font_size_to_physical,
+};
 
 pub(super) const AVATAR_DEFAULT_EDGE: f32 = 40.0;
 pub(super) const AVATAR_TEXT_FONT_RATIO: f32 = 0.5;
@@ -12,7 +15,7 @@ const AVATAR_TEXT_CENTER_RATIO: f32 = 0.5;
 pub(super) fn avatar_font_size(node: &TemplatePaneNodeData, rect: &FrameRect) -> f32 {
     let available_edge = avatar_bounded_extent(rect.width).min(avatar_bounded_extent(rect.height));
     let requested = if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
+        logical_font_size_to_physical(node.font_size, current_host_metrics().scale_factor)
     } else {
         available_edge * AVATAR_TEXT_FONT_RATIO
     };

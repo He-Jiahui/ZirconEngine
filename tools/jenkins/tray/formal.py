@@ -84,8 +84,18 @@ def status(config: FormalTrayConfig) -> dict:
 
 
 def start(config: FormalTrayConfig) -> dict:
-    return DeploymentManager(config.spec, config.paths, config.java, config.war).start()
+    from ..deployment.keeper_control import request_keeper_action
+    request_keeper_action(config, "start")
+    return status(config)
 
 
 def stop(config: FormalTrayConfig) -> dict:
-    return DeploymentManager(config.spec, config.paths, config.java, config.war).stop()
+    from ..deployment.keeper_control import request_keeper_action
+    request_keeper_action(config, "stop")
+    return status(config)
+
+
+def restart(config: FormalTrayConfig) -> dict:
+    from ..deployment.keeper_control import request_keeper_action
+    request_keeper_action(config, "restart")
+    return status(config)

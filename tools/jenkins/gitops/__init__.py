@@ -13,6 +13,10 @@ import subprocess
 from tools.jenkins.contracts import JenkinsError
 
 
+def _path_key(path: str) -> str:
+    return str(path).replace("\\", "/").casefold()
+
+
 def _physical_repository_root(value: str | os.PathLike[str]) -> Path:
     """Admit a repository only after checking every existing parent physically.
 
@@ -67,12 +71,16 @@ def _sealed_blob_oids(manifest: dict, sealed: dict, *, object_root: str | os.Pat
     if physical_object_root != expected_namespace:
         raise JenkinsError("object_root_mismatch", "Sealed object root is not the approved build namespace")
     objects = physical_object_root / "inputs" / "objects"
-    owned = set(str(x).replace("\\", "/") for x in sealed.get("ownedPaths", ()))
-    dependencies = set(str(x).replace("\\", "/") for x in manifest.get("declaredDependencies", ()))
+    owned = {_path_key(path) for path in sealed.get("ownedPaths", ())}
+    dependencies = {_path_key(path) for path in manifest.get("declaredDependencies", ())}
+    entries = [entry for entry in manifest.get("entries", ()) if _path_key(entry.get("path", "")) in owned]
+    entry_keys = [_path_key(entry.get("path", "")) for entry in entries]
+    if not owned or owned & dependencies or set(entry_keys) != owned or len(entry_keys) != len(owned):
+        raise JenkinsError("git_source_scope_mismatch", "Every owned path must appear exactly once in the accepted source")
     result: dict[str, str] = {}
-    for entry in manifest.get("entries", ()):
+    for entry in entries:
         path = str(entry.get("path", "")).replace("\\", "/")
-        if path not in owned or path in dependencies or entry.get("status") != "present":
+        if entry.get("status") != "present":
             continue
         object_digest = entry.get("objectDigest")
         if not isinstance(object_digest, str) or len(object_digest) != 64 or any(c not in "0123456789abcdef" for c in object_digest.lower()):
@@ -95,7 +103,32 @@ from .integration import (
     IntegrationPlan,
     IntegrationReceipt,
     JournalState,
+    git_mode,
 )
+
+
+def _flow_scoped_sealed(state, workflow: dict, sealed: dict) -> dict:
+    """Use the current consumer's preparation scope for shared input objects."""
+    manifest = sealed.get("sourceManifest") or sealed.get("manifest") or {}
+    kind = manifest.get("preparationKind")
+    if kind not in {"current-source", "already-applied-patch"}:
+        return sealed
+    reference = workflow.get("sourcePreparationRef")
+    if not isinstance(reference, str) or workflow.get("patchOperationRefs"):
+        raise JenkinsError("source_preparation_untrusted", "Git flow requires its typed source preparation")
+    from ..workflow.handler import _require_flow_source_preparation
+    preparation = _require_flow_source_preparation(
+        state, reference, identity=workflow.get("identity", {}),
+        source_digest=workflow.get("sourceDigest"), preparation_kind=kind)
+    owned = preparation.get("result", {}).get("ownedPaths")
+    flow_owned = workflow.get("ownedPaths")
+    if (not isinstance(owned, list) or not owned
+            or not all(isinstance(path, str) for path in owned)
+            or len(set(owned)) != len(owned)
+            or not isinstance(flow_owned, list) or sorted(flow_owned) != sorted(owned)):
+        raise JenkinsError("git_source_scope_mismatch", "Git flow ownership differs from its consumer preparation")
+    # Do not add ownership to the shared State row or replace its first author.
+    return {**sealed, "ownedPaths": list(owned)}
 
 
 def handle(action, payload, state, repo_root, *, domain="gitops"):
@@ -160,6 +193,8 @@ def handle(action, payload, state, repo_root, *, domain="gitops"):
                 raise JenkinsError("acceptance_binding_mismatch", "Workflow acceptance is not the authoritative State receipt")
         if not acceptance or acceptance.get("status") not in {"accepted", "passed"}:
             raise JenkinsError("acceptance_missing", "Workflow lacks accepted authority receipt")
+        if acceptance.get("sourceDigest") != source_digest:
+            raise JenkinsError("acceptance_source_mismatch", "Acceptance does not cover the workflow's sealed source")
         if sealed.get("coverageDigest") and acceptance.get("coverageDigest") != sealed.get("coverageDigest"):
             raise JenkinsError("acceptance_coverage_mismatch", "Acceptance does not cover sealed input")
         # Formal flows must carry the immutable source-owned consumer binding.
@@ -171,6 +206,7 @@ def handle(action, payload, state, repo_root, *, domain="gitops"):
             require_sealed_consumer(state, repository_id_value=str(identity["repositoryId"]),
                                     session_id=str(identity["sessionId"]), owner=str(owner),
                                     source_digest=str(source_digest))
+        sealed = _flow_scoped_sealed(state, workflow, sealed)
         return workflow, sealed, acceptance
 
     effective_root = _physical_repository_root(repo_root)
@@ -200,7 +236,8 @@ def handle(action, payload, state, repo_root, *, domain="gitops"):
             if "paths" not in manifest and manifest.get("entries") is not None:
                 # Entries in a sealed source manifest are SHA-256 identities
                 # in the external object store, never Git blob OIDs.  Import
-                # only the owned closure and inject the authoritative receipt.
+                # only owned blobs; retain the complete accepted input manifest
+                # so the actual planned tree must also match every dependency.
                 object_oids = _sealed_blob_oids(
                     manifest, sealed, object_root=sealed.get("objectRoot", ""),
                     build_root=sealed.get("buildRoot"))
@@ -209,14 +246,13 @@ def handle(action, payload, state, repo_root, *, domain="gitops"):
                                     if isinstance(acceptance_ref_value, dict)
                                     else acceptance_ref_value)
                 candidate_id = workflow.get("candidateId") or workflow.get("identity", {}).get("attemptId") or f"{workflow.get('sourceDigest')}-candidate"
-                manifest = {**manifest, "paths": [
+                manifest = {**manifest, "inputManifest": manifest, "paths": [
                     {"path": e.get("path"), "blobOid": object_oids.get(str(e.get("path")).replace("\\", "/")),
-                     "mode": (format(e.get("mode"), "o") if isinstance(e.get("mode"), int) else e.get("mode", "100644")),
+                     "mode": git_mode(e.get("mode")) or "100644",
                      "deleted": bool(e.get("deleted", False) or e.get("status") == "deleted")}
                     for e in manifest["entries"]
-                    if str(e.get("path")).replace("\\", "/") in set(sealed.get("ownedPaths", ()))
-                    and str(e.get("path")).replace("\\", "/") not in {
-                        str(x).replace("\\", "/") for x in manifest.get("declaredDependencies", ())}
+                    if _path_key(e.get("path")) in {_path_key(path) for path in sealed.get("ownedPaths", ())}
+                    and _path_key(e.get("path")) not in {_path_key(path) for path in manifest.get("declaredDependencies", ())}
                     and (e.get("status") == "deleted" or str(e.get("path")).replace("\\", "/") in object_oids)],
                     "candidateId": candidate_id,
                     "repositoryRoot": str(effective_root),
@@ -253,9 +289,9 @@ def handle(action, payload, state, repo_root, *, domain="gitops"):
             if plan:
                 payload["plan"] = plan
     if state and payload.get("sourceDigest"):
-        sealed = state.get("sealed_input", payload["sourceDigest"])
-        if sealed:
-            sealed_value = sealed.get("payload", sealed)
+        sealed_record = state.get("sealed_input", payload["sourceDigest"])
+        if sealed_record:
+            sealed_value = sealed_record.get("payload", sealed_record)
             trusted_root = sealed_value.get("repositoryRoot")
             if trusted_root and _physical_repository_root(trusted_root) != effective_root:
                 raise JenkinsError("repository_binding_mismatch", "Repository root differs from sealed input")
@@ -278,7 +314,8 @@ def handle(action, payload, state, repo_root, *, domain="gitops"):
                                  value.get("source_digest", value.get("sourceDigest")),
                                  value.get("coverage_digest", value.get("coverageDigest")),
                                  tuple(value.get("acceptance_receipts", value.get("acceptanceReceipts", ()))),
-                                 value.get("coauthor_map", {}))
+                                 value.get("coauthor_map", {}),
+                                 value.get("input_manifest", value.get("inputManifest")))
     if action == "seal":
         result = repo.seal_candidate(**payload)
         return {**result.__dict__, "paths": [p.__dict__ for p in result.paths]}
@@ -334,21 +371,25 @@ def handle(action, payload, state, repo_root, *, domain="gitops"):
         if authorization.get("repositoryId") != identity.get("repositoryId") or authorization.get("sessionId") != identity.get("sessionId"):
             raise JenkinsError("git_journal_owner_mismatch", "Git journal belongs to another authorized workflow")
         plan = IntegrationPlan(**plan_data)
+        source_manifest = sealed.get("sourceManifest") or sealed.get("manifest") or {}
+        if source_manifest.get("entries") is not None:
+            if (len(plan.input_closures) != 1
+                    or plan.input_closures[0].get("sourceDigest") != workflow.get("sourceDigest")
+                    or plan.input_closures[0].get("manifest") != source_manifest):
+                raise JenkinsError("git_input_closure_binding_mismatch", "Journal does not retain the complete accepted input closure; revalidation is required",
+                                   retryable=True, details={"revalidationRequired": True})
+            owned = {_path_key(path) for path in sealed.get("ownedPaths", ())}
+            accepted_paths = {_path_key(entry["path"]) for entry in source_manifest["entries"] if _path_key(entry["path"]) in owned}
+            if {_path_key(path) for path in plan.owned_paths} != accepted_paths or accepted_paths != owned:
+                raise JenkinsError("git_reconcile_scope_mismatch", "journal paths differ from accepted source scope")
         receipt = repo.reconcile(plan).__dict__
         if receipt.get("status") in {"complete", "index_pending"}:
             manifest = sealed.get("sourceManifest") or sealed.get("manifest") or {}
-            owned = set(sealed.get("ownedPaths", ()))
+            owned = {_path_key(path) for path in sealed.get("ownedPaths", ())}
             if manifest.get("entries") is not None:
-                expected = {e["path"]: e for e in manifest["entries"] if e["path"] in owned}
-                if set(plan.owned_paths) != set(expected):
-                    raise JenkinsError("git_reconcile_scope_mismatch", "journal paths differ from accepted source scope")
-                for path, entry in expected.items():
-                    result = subprocess.run(["git", "show", f"{plan.planned_commit}:{path}"], cwd=effective_root, capture_output=True)
-                    if entry.get("status") == "deleted":
-                        if result.returncode == 0:
-                            raise JenkinsError("git_reconcile_source_mismatch", "accepted deleted path exists in commit")
-                    elif result.returncode or hashlib.sha256(result.stdout).hexdigest() != (entry.get("sha256") or entry.get("objectDigest")):
-                        raise JenkinsError("git_reconcile_source_mismatch", "committed bytes differ from accepted source")
+                # GitRepository.reconcile has verified the actual commit tree
+                # against the journal's entire retained accepted input closure.
+                repo.verify_plan(plan)
             if receipt["status"] == "complete" and operation["status"] != "complete":
                 state.transition_operation(operation_id, operation["status"], "complete", receipt)
         record_commit_receipt(payload.get("workflowKey"), receipt)

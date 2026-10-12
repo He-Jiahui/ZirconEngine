@@ -38,7 +38,7 @@ fn menu_undo_replays_the_focused_animation_document_history() {
         "a persistent animation mutation must record its document transaction identity"
     );
     assert!(
-        harness.runtime.chrome_snapshot().can_undo,
+        harness.runtime.chrome_snapshot().unwrap().can_undo,
         "the focused document history must enable the workbench undo command"
     );
     harness
@@ -55,7 +55,7 @@ fn menu_undo_replays_the_focused_animation_document_history() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should remain open");
@@ -73,7 +73,7 @@ fn menu_undo_replays_the_focused_animation_document_history() {
         !instance.dirty,
         "undoing back to the saved history mark must clear document dirty metadata"
     );
-    assert_eq!(harness.runtime.editor_snapshot().status_line, "Undo");
+    assert_eq!(harness.runtime.editor_snapshot().unwrap().status_line, "Undo");
 }
 
 #[test]
@@ -117,7 +117,7 @@ fn animation_graph_ignores_duplicate_output_node_requests() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -138,7 +138,7 @@ fn animation_graph_ignores_duplicate_output_node_requests() {
         "duplicate output node request should remain a no-op"
     );
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         "Ignored animation command because it did not change the current document"
     );
 }
@@ -182,7 +182,7 @@ fn animation_graph_removes_output_node_when_requested() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -201,7 +201,7 @@ fn animation_graph_removes_output_node_when_requested() {
         "removing the output node should mark the document dirty"
     );
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         format!("Removed animation graph node output from {}", asset_locator)
     );
 }
@@ -247,7 +247,7 @@ fn animation_graph_ignores_connections_from_missing_source_nodes() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -270,7 +270,7 @@ fn animation_graph_ignores_connections_from_missing_source_nodes() {
         "invalid source connection should remain a no-op"
     );
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         "Ignored animation command because it did not change the current document"
     );
 }
@@ -315,7 +315,7 @@ fn animation_graph_ignores_self_referential_connections() {
         .unwrap();
     let instance = harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph"))
         .expect("graph editor view should stay open");
@@ -334,7 +334,7 @@ fn animation_graph_ignores_self_referential_connections() {
         "self-referential graph connections should remain a no-op"
     );
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         "Ignored animation command because it did not change the current document"
     );
 }
@@ -386,7 +386,7 @@ fn animation_graph_rejects_declared_but_unimplemented_node_kinds() {
         ) if diagnostic.code() == "ZR-ANIM-CMD-002"
     ));
     assert_eq!(
-        harness.runtime.editor_snapshot().status_line,
+        harness.runtime.editor_snapshot().unwrap().status_line,
         "animation event execution failed: [ZR-ANIM-CMD-002] animation graph node kind `clip` is declared but not implemented"
     );
 }

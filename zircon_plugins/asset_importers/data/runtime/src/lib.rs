@@ -2,13 +2,12 @@ use serde_json::{Map, Value};
 use std::collections::HashSet;
 use std::ops::Range;
 use zircon_runtime::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, AssetUri, DataAsset,
-    DataAssetFormat, ImportedAsset,
+    AssetImportContext, AssetImportError, AssetImportOutcome, AssetUri, DataAsset, DataAssetFormat,
+    ImportedAsset,
 };
 use zircon_runtime::core::resource::ResourceScheme;
 
-const PERSISTED_ASSET_URI_PREFIXES: [&str; 4] =
-    ["res://", "lib://", "package://", "builtin://"];
+const PERSISTED_ASSET_URI_PREFIXES: [&str; 4] = ["res://", "lib://", "package://", "builtin://"];
 
 mod capability;
 mod plugin;
@@ -54,7 +53,14 @@ pub fn import_yaml_data(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let text = context.source_text()?;
-    let canonical_json: Value = serde_yaml::from_str(&text)
+    // Keep YAML 1.2 scalar inference and ordinary `<<` keys from existing imports.
+    // Filesystem includes remain disabled; imports only read admitted sources.
+    let options = serde_saphyr::options! {
+        strict_booleans: true,
+        merge_keys: serde_saphyr::options::MergeKeyPolicy::AsOrdinary,
+        duplicate_keys: serde_saphyr::options::DuplicateKeyPolicy::LastWins,
+    };
+    let canonical_json: Value = serde_saphyr::from_str_with_options(&text, options)
         .map_err(|error| AssetImportError::Parse(format!("parse yaml data: {error}")))?;
     data_outcome(context, DataAssetFormat::Yaml, text, canonical_json)
 }

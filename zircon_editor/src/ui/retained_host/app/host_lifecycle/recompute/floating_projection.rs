@@ -9,7 +9,7 @@ impl RetainedEditorHost {
     pub(super) fn build_recompute_floating_window_projection_bundle(
         &mut self,
         model: &WorkbenchViewModel,
-    ) -> FloatingWindowProjectionBundle {
+    ) -> Result<FloatingWindowProjectionBundle, crate::ui::host::EditorError> {
         {
             zircon_runtime::profile_scope!(
                 "editor",
@@ -41,10 +41,12 @@ impl RetainedEditorHost {
                     window_index,
                     floating_window_shared_source,
                 );
-                self.editor_manager.sync_native_window_projection_bounds(
-                    &window.window_id,
-                    [frame.x, frame.y, frame.width, frame.height],
-                );
+                self.editor_manager
+                    .enter()?
+                    .sync_native_window_projection_bounds(
+                        &window.window_id,
+                        [frame.x, frame.y, frame.width, frame.height],
+                    );
             }
         }
         let native_window_hosts = {
@@ -53,7 +55,7 @@ impl RetainedEditorHost {
                 "retained_host",
                 "recompute_native_window_hosts"
             );
-            self.editor_manager.native_window_hosts()
+            self.editor_manager.enter()?.native_window_hosts()
         };
         {
             zircon_runtime::profile_scope!(
@@ -61,12 +63,12 @@ impl RetainedEditorHost {
                 "retained_host",
                 "recompute_floating_projection_bundle"
             );
-            build_floating_window_projection_bundle_with_shared_source(
+            Ok(build_floating_window_projection_bundle_with_shared_source(
                 model,
                 floating_window_shared_source,
                 &self.chrome_metrics,
                 &native_window_hosts,
-            )
+            ))
         }
     }
 }

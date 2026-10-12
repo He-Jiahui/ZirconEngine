@@ -49,6 +49,24 @@ impl UiHostWindow {
         if self.chord_capture_focus_active() {
             return self.dispatch_focused_chord_key_event(event, keyboard.as_ref());
         }
+        if event.state == ElementState::Pressed
+            && keyboard.as_ref().is_some_and(|input| {
+                input.metadata.modifiers.control
+                    && !input.metadata.modifiers.shift
+                    && !input.metadata.modifiers.alt
+            })
+            && matches!(&event.logical_key, Key::Character(key) if key.as_str() == " ")
+        {
+            dispatch_unhandled_keyboard_input(self, event, keyboard);
+            return NativePointerDispatchResult::idle();
+        }
+        if event.state == ElementState::Pressed
+            && matches!(&event.logical_key, Key::Named(NamedKey::Escape))
+            && self.state.borrow().text_input_focus.control_id.as_str() == "SearchEdited"
+        {
+            dispatch_unhandled_keyboard_input(self, event, keyboard);
+            return NativePointerDispatchResult::idle();
+        }
         let text_focus_was_active = self.text_input_focus_active();
         let popup_enter_is_owned = !text_focus_was_active && popup_enter_is_owned(self, event);
         let modifiers = keyboard.as_ref().map(|input| &input.metadata.modifiers);

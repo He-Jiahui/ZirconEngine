@@ -99,7 +99,15 @@ fn shared_surface_present_uses_the_arc_device_owner_and_keeps_its_ticket() {
     assert!(presentation
         .split_whitespace()
         .collect::<String>()
-        .contains("letsubmission=Some(self.submit_present_command_buffer"));
+        .contains("Some(self.submit_present_command_buffer"));
+    assert!(presentation.contains("self.submit_present_command_buffer_with_diagnostics("));
+    let diagnostic_submit = source
+        .split("fn submit_present_command_buffer_with_diagnostics(")
+        .nth(1)
+        .expect("normal readback must retain its actual device packet owner");
+    assert!(diagnostic_submit
+        .contains(".submit_native_recording_packet_with_diagnostics(packet, Some(frame))"));
+    assert!(diagnostic_submit.contains("packet.retain_ui_image_pins(pins)"));
     assert!(!presentation.contains("self.queue.submit(Some(encoder.finish()));"));
     assert!(neutral_stats.contains("pub submission: Option<SubmissionTicket>"));
     assert!(source.contains("stats.submission = presentation.submission"));

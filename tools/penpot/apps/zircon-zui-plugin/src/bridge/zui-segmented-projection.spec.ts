@@ -294,4 +294,51 @@ describe('native segmented and tab projection', () => {
       segmentedGeometry(node.segmented!, 120, 32).parts['surface'].fill,
     ).toBe('#454545');
   });
+  it('matches native keyboard focus independently of selected, pressed, and hovered tab state', () => {
+    const source = fixture();
+    source.nodes!['root'].component = 'Tab';
+    source.nodes!['root'].props = {
+      text: 'Scene', background_color: 'transparent',
+      focus_border_color: '#0070E0', focus_border_width: 2,
+      selected_background_color: '#242424',
+      selected_border_color: '#0070E0',
+      selected_underline_color: '#0070E0',
+    };
+    for (const state of [
+      {focused: true, focus_visible: true},
+      {selected: true, focus_visible: true},
+      {pressed: true, focus_visible: true},
+      {hovered: true, focus_visible: true},
+    ]) {
+      source.nodes!['root'].state = state;
+      const node = projectZuiDocument(source).shapes[0];
+      const parts = segmentedGeometry(node.segmented!, 120, 32).parts;
+      expect(parts['focus-ring']).toEqual({
+        x: 0, y: 0, width: 120, height: 32, fill: 'transparent',
+        stroke: '#0070E0', strokeWidth: 2, radius: 0,
+      });
+      if ('selected' in state) expect(parts['underline'].fill).toBe('#0070E0');
+      expect(reconcileZuiDocument(source, cloneProjectionSnapshot(projectZuiDocument(source))).document)
+        .toEqual(source);
+    }
+  });
+
+  it('suppresses the native tab focus ring for unavailable or pointer-only focus', () => {
+    const source = fixture();
+    source.nodes!['root'].component = 'Tab';
+    source.nodes!['root'].props = {
+      text: 'Scene', focus_border_color: '#0070E0', focus_border_width: 1,
+    };
+    for (const state of [
+      {focused: true, focus_visible: false},
+      {disabled: true, focused: true, focus_visible: true},
+      {loading: true, selected: true, focus_visible: true},
+    ]) {
+      source.nodes!['root'].state = state;
+      const node = projectZuiDocument(source).shapes[0];
+      expect(segmentedGeometry(node.segmented!, 120, 32).parts['focus-ring'])
+        .toBeUndefined();
+    }
+  });
+
 });

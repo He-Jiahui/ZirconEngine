@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -76,14 +77,30 @@ pub fn export_snapshot(
     export_snapshot_with_after_native(snapshot, include_perfetto, || {})
 }
 
+// The recorder caller already owns its frozen sample rows; reuse them in the report.
+pub(super) fn export_owned_snapshot(
+    snapshot: ProfileSnapshot,
+    include_perfetto: bool,
+) -> ProfileExportResult<ProfileExportReport> {
+    export_snapshot_impl(Cow::Owned(snapshot), include_perfetto, || {})
+}
+
 fn export_snapshot_with_after_native(
     snapshot: &ProfileSnapshot,
     include_perfetto: bool,
     after_native: impl FnOnce(),
 ) -> ProfileExportResult<ProfileExportReport> {
-    let hotspots = analyze_hotspots(snapshot);
-    let counter_hotspots = analyze_counter_hotspots(snapshot);
-    let ui_hotspots = analyze_ui_hotspots(snapshot);
+    export_snapshot_impl(Cow::Borrowed(snapshot), include_perfetto, after_native)
+}
+
+fn export_snapshot_impl(
+    snapshot: Cow<'_, ProfileSnapshot>,
+    include_perfetto: bool,
+    after_native: impl FnOnce(),
+) -> ProfileExportResult<ProfileExportReport> {
+    let hotspots = analyze_hotspots(&snapshot);
+    let counter_hotspots = analyze_counter_hotspots(&snapshot);
+    let ui_hotspots = analyze_ui_hotspots(&snapshot);
     let export_dir =
         PathBuf::from(&snapshot.output_root).join(profile_session_basename(&snapshot.session_id));
     fs::create_dir_all(&export_dir).map_err(|source| {
@@ -96,14 +113,14 @@ fn export_snapshot_with_after_native(
     // 同一规范目录的整次写出串行执行，避免同一 session 的文件来自交错导出。
     session_owner::with_session_owner(&export_dir, || {
         let mut files = Vec::new();
-        write_json(&export_dir, PROFILE_TIMELINE_NATIVE_FILE, snapshot)?;
+        write_json(&export_dir, PROFILE_TIMELINE_NATIVE_FILE, snapshot.as_ref())?;
         files.push(PROFILE_TIMELINE_NATIVE_FILE.to_string());
         after_native();
         if include_perfetto {
             write_json(
                 &export_dir,
                 PROFILE_TIMELINE_PERFETTO_FILE,
-                &perfetto_trace(snapshot),
+                &perfetto_trace(&snapshot),
             )?;
             files.push(PROFILE_TIMELINE_PERFETTO_FILE.to_string());
         } else {
@@ -133,7 +150,7 @@ fn export_snapshot_with_after_native(
         let summary_path = export_dir.join(PROFILE_SUMMARY_FILE);
         fs::write(
             &summary_path,
-            summary_markdown(snapshot, &hotspots, &counter_hotspots, &ui_hotspots),
+            summary_markdown(&snapshot, &hotspots, &counter_hotspots, &ui_hotspots),
         )
         .map_err(|source| ProfileExportError::WriteFile {
             path: path_string(&summary_path),
@@ -142,7 +159,7 @@ fn export_snapshot_with_after_native(
         files.push(PROFILE_SUMMARY_FILE.to_string());
 
         Ok(ProfileExportReport {
-            snapshot: snapshot.clone(),
+            snapshot: snapshot.into_owned(),
             hotspots,
             counter_hotspots,
             ui_hotspots,

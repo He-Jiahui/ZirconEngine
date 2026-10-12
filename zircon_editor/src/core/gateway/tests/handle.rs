@@ -7,3 +7,6 @@ fn next_gateway_generation_returns_typed_error_at_u64_max() {
         Err(GatewayError::GenerationExhausted)
     );
 }
+
+#[path = "handle/prepared_publication.rs"]
+mod prepared_publication;

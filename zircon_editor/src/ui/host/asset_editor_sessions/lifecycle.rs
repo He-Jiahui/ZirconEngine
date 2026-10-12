@@ -149,7 +149,7 @@ impl EditorUiHost {
         Ok(())
     }
 
-    pub(super) fn ensure_ui_asset_editor_session(
+    pub(in crate::ui::host) fn ensure_ui_asset_editor_session(
         &self,
         instance_id: &ViewInstanceId,
     ) -> Result<(), EditorError> {

@@ -2,7 +2,8 @@ use crate::core::math::{Mat4, Transform};
 
 use super::{SceneError, SceneResult, World};
 use crate::scene::components::{
-    ActiveSelf, CameraComponent, Hierarchy, LocalTransform, Mobility, RenderLayerMask, SceneNode,
+    ActiveSelf, CameraComponent, Hierarchy, LocalTransform, MeshRenderer, Mobility, Name,
+    RenderLayerMask, SceneNode,
 };
 use std::any::TypeId;
 
@@ -144,6 +145,10 @@ impl World {
                     .get_with_ticks_at_location::<T>(location),
             }
         }
+    }
+
+    pub(crate) fn query_storage_owner(&self) -> &std::sync::Arc<()> {
+        self.archetype_index.storage_owner()
     }
 
     pub(crate) fn archetype_generation(&self) -> u64 {
@@ -553,6 +558,15 @@ impl World {
 
     pub fn find_node(&self, entity: EntityId) -> Option<SceneNode> {
         self.project_node_for_read(entity)
+    }
+
+    /// Checks the node projection's typed mesh presence without cloning its payload.
+    ///
+    /// A MeshRenderer with no mesh resource still counts as present.
+    pub(in crate::scene) fn has_mesh_node_for_extract(&self, entity: EntityId) -> bool {
+        self.get::<Name>(entity).is_some()
+            && self.node_kind(entity).is_some()
+            && self.get::<MeshRenderer>(entity).is_some()
     }
 
     /// Reads only the entity's local transform without projecting an owned scene node.

@@ -2,7 +2,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use crate::core::{CoreError, CoreResult, LifecycleState, ModuleContext, ModuleLifecycle};
+use crate::core::{
+    CoreError, CoreResult, LifecycleState, ModuleCleanupContext, ModuleContext, ModuleLifecycle,
+};
 use crate::diagnostic_log::DynamicProcessLogLease;
 
 use super::super::super::profile::RuntimeDynamicSessionProfile;
@@ -27,11 +29,15 @@ impl ModuleLifecycle for FailOnceCleanupLifecycle {
         self.inner.finish(context)
     }
 
-    fn cleanup(&self, context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         self.inner.cleanup(context)
     }
 
-    fn cleanup_until(&self, context: &ModuleContext, deadline: Instant) -> CoreResult<()> {
+    fn cleanup_until(
+        &self,
+        context: &ModuleCleanupContext<'_>,
+        deadline: Instant,
+    ) -> CoreResult<()> {
         if self.cleanup_attempts.fetch_add(1, Ordering::SeqCst) == 0 {
             return Err(CoreError::MissingConfig(
                 "test-only immediate module cleanup failure".to_owned(),

@@ -1,5 +1,8 @@
 use std::collections::BTreeMap;
 
+mod unreal_dock_header_source;
+pub(crate) use unreal_dock_header_source::UnrealDockHeaderSource;
+
 use zircon_runtime::ui::v2::UiV2SurfaceBuilder;
 use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiSize};
 
@@ -124,6 +127,12 @@ fn build_view_template_node_projection_from_v2_asset(
         zircon_runtime::profile_scope!("editor", "template_projection", "load_compiled_store");
         store_cache::load_view_v2_store(layout_asset_path, style_imports)?
     };
+    let outcome = unreal_dock_header_source::prepare(
+        outcome,
+        layout_asset_path,
+        text_overrides,
+        node_patches,
+    )?;
     let design_tokens = active_editor_v2_design_tokens_snapshot();
     let projection = {
         zircon_runtime::profile_scope!("editor", "template_projection", "project_cached_nodes");
@@ -151,9 +160,18 @@ fn build_view_template_node_projection_from_v2_asset(
             },
         )?
     };
+    let unreal_dock_header = unreal_dock_header_source::capture(
+        &outcome,
+        layout_asset_path,
+        size,
+        &projection.source_frame,
+        text_overrides,
+        node_patches,
+    );
     Ok(ViewTemplateNodeProjection {
         base_rows: projection.base_rows,
         row_patches: projection.row_patches,
         source_frame: Some(projection.source_frame),
+        unreal_dock_header,
     })
 }

@@ -5,7 +5,7 @@ use crate::core::editor_event::{
     EditorAssetEvent, EditorEvent, EditorEventRecord, EditorEventSource,
 };
 use crate::core::logging::{EditorLogService, LogJumpTarget};
-use crate::ui::host::EditorHostEventController;
+use crate::ui::host::{EditorError, EditorHostEventController};
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 use crate::ui::workbench::snapshot::ConsoleOutputSnapshot;
 use crate::ui::workbench::ActivityLogConsoleProjection;
@@ -32,13 +32,13 @@ pub(crate) fn activity_log_console_output(
 
 pub(crate) fn activity_log_console_output_for_shell(
     shell: &mut WorkbenchShellStateData,
-) -> ConsoleOutputSnapshot {
-    let manager = Arc::clone(&shell.manager);
-    shell.activity_log_console_projection.project(
+    manager: &crate::ui::host::EditorManager,
+) -> Result<ConsoleOutputSnapshot, EditorError> {
+    Ok(shell.activity_log_console_projection.project(
         manager.context().logs(),
         shell.console_message_filter,
         shell.console_source_filter,
-    )
+    ))
 }
 
 pub(crate) fn activity_log_jump_action_id(sequence: u64) -> String {

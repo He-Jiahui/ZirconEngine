@@ -78,16 +78,38 @@ impl RetainedEditorHost {
         zircon_runtime::profile_frame!("editor", "retained_host_tick");
         zircon_runtime::profile_scope!("editor", "retained_host", "tick");
         self.pump_editor_job_events();
-        let plugin_watch_deadline = self.poll_module_plugin_development_watches();
-        if let Err(error) = self.editor_manager.pump_runtime_task_diagnostics(0) {
-            self.set_status_line(error.to_string());
-        }
-        if let Err(error) = self.editor_manager.pump_project_recovery_decisions() {
+        let plugin_watch_deadline = match self.poll_module_plugin_development_watches() {
+            Ok(deadline) => deadline,
+            Err(error) => {
+                self.set_status_line(error);
+                return;
+            }
+        };
+        if let Err(error) = self
+            .editor_manager
+            .enter()
+            .map_err(|error| error.to_string())
+            .and_then(|manager| {
+                manager
+                    .pump_runtime_task_diagnostics(0)
+                    .map_err(|error| error.to_string())
+            })
+        {
             self.set_status_line(error.to_string());
         }
         if let Err(error) = self
             .editor_manager
-            .refresh_project_session_heartbeat_if_due(Instant::now())
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.pump_project_recovery_decisions())
+        {
+            self.set_status_line(error.to_string());
+        }
+        if let Err(error) = self
+            .editor_manager
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.refresh_project_session_heartbeat_if_due(Instant::now()))
         {
             let message = error.to_string();
             let entry = LogEntry::new(
@@ -104,7 +126,17 @@ impl RetainedEditorHost {
         }
         let lifecycle_deadline = [
             plugin_watch_deadline,
-            self.editor_manager.project_session_heartbeat_deadline(),
+            match self
+                .editor_manager
+                .enter()
+                .map(|manager| manager.project_session_heartbeat_deadline())
+            {
+                Ok(deadline) => deadline,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            },
         ]
         .into_iter()
         .flatten()
@@ -231,11 +263,18 @@ impl RetainedEditorHost {
     }
 
     fn sync_play_preview_input_focus(&mut self) {
+        let view_focused = match self.runtime.play_preview_view_focused() {
+            Ok(focused) => focused,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
         let active = self.runtime.play_preview_input_active();
         if active && !self.play_preview_input_focus_active {
             self.ui.global::<UiHostContext>().clear_text_input_focus();
         }
-        let view_focused = active && self.runtime.play_preview_view_focused();
+        let view_focused = active && view_focused;
         if active && self.play_preview_view_focus_active && !view_focused {
             self.route_play_preview_focus_lost();
         }
@@ -256,7 +295,7 @@ impl RetainedEditorHost {
 
     // Retained host tick owns publishing worker job events into the editor bus.
     fn pump_editor_job_events(&self) {
-        self.editor_manager.context().jobs().pump_events();
+        self.runtime.context().jobs().pump_events();
     }
 }
 

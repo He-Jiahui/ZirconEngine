@@ -25,7 +25,7 @@ events = [{ id = "WelcomeSurface/ProjectNameEdited", event = "Change", route = "
 [nodes.location]
 component = "InputField"
 control_id = "LocationEdited"
-props = { label = "Location", placeholder = "Project location", value_text = "", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.default" }
+props = { label = "Parent folder", placeholder = "Folder containing the project", value_text = "", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.default" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "WelcomeSurface/LocationEdited", event = "Change", route = "workbench.welcome.set_location" }]
 

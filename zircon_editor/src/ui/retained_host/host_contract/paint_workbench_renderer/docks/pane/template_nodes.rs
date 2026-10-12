@@ -9,7 +9,8 @@ use super::super::super::super::data::{
 };
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_template_nodes::{
-    draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,
+    draw_runtime_surface_frame, draw_template_nodes, draw_template_nodes_with_transform,
+    has_template_nodes,
 };
 
 use asset_content::{ActivityAssetContentProjector, BrowserAssetContentProjector};
@@ -30,7 +31,7 @@ pub(super) fn draw_pane_template_nodes(
         "AssetBrowser" => pane.asset_browser.render_source_frame.as_ref(),
         _ => None,
     };
-    frame.with_render_source_frame(render_source_frame, |frame| {
+    let shell_drawn = frame.with_render_source_frame(render_source_frame, |frame| {
         select_pane_template_nodes(pane)
             .map(|nodes| {
                 draw_if_present(
@@ -44,7 +45,34 @@ pub(super) fn draw_pane_template_nodes(
                 )
             })
             .unwrap_or(false)
-    })
+    });
+    let preview_drawn = if pane.kind.as_str() == "UiAssetEditor" {
+        let canvas = &pane.ui_asset.preview.canvas;
+        if let (Some(source), Some(transform)) = (
+            canvas.source_surface_frame.as_ref(),
+            canvas.transform(&pane.ui_asset.designer_canvas_panel_node, body),
+        ) {
+            if let Some(canvas_clip) =
+                super::super::super::super::paint_geometry::intersect(&transform.clip, clip)
+            {
+                draw_runtime_surface_frame(
+                    frame,
+                    source,
+                    transform.origin_x,
+                    transform.origin_y,
+                    transform.scale,
+                    &canvas_clip,
+                )
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+    shell_drawn || preview_drawn
 }
 
 fn draw_if_present(

@@ -32,13 +32,21 @@ impl World {
         if self.command_queue.is_empty() {
             return DeferredCommandReport::default();
         }
+        let world_owner = self.owner_identity().clone();
+        let execution = self.begin_schedule_execution();
+        let plan_owner = execution.plan();
         let mut queue = std::mem::take(&mut self.command_queue);
         let tick = self.advance_change_tick();
+        let active_tick = self.active_change_tick_slot();
         let previous_active_tick = self.replace_active_change_tick(Some(tick));
         let result = catch_unwind(AssertUnwindSafe(|| queue.apply(self)));
-        self.replace_active_change_tick(previous_active_tick);
-        queue.append(&mut self.command_queue);
-        self.command_queue = queue;
+        active_tick.replace(previous_active_tick);
+        if world_owner.is_same_world(self.owner_identity())
+            && self.schedule().owns_stage_plan(plan_owner)
+        {
+            queue.append(&mut self.command_queue);
+            self.command_queue = queue;
+        }
 
         match result {
             Ok(report) => report,

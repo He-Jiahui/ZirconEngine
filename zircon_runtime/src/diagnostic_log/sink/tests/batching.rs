@@ -70,3 +70,52 @@ fn byte_threshold_flushes_before_accepting_the_next_batch_record() {
     assert!(runtime.shutdown(Duration::from_secs(2)));
     assert!(output.text().contains("second"));
 }
+
+#[test]
+fn batch_encoding_preserves_multirecord_bytes_and_order() {
+    let output = SharedOutput::default();
+    let runtime = SinkRuntime::start(
+        Some(Box::new(output.clone())),
+        false,
+        DiagnosticLogSinkSettings::default()
+            .with_queue_capacity(16)
+            .with_max_batch_records(16)
+            .with_max_batch_bytes(usize::MAX)
+            .with_flush_interval(Duration::from_secs(60)),
+    )
+    .expect("sink worker");
+    let records = [
+        (DiagnosticLogLevel::Log, "runtime", "first"),
+        (
+            DiagnosticLogLevel::Warn,
+            "path",
+            r"literal \n and C:\assets\demo",
+        ),
+        (DiagnosticLogLevel::Error, "场景", "节点 🧭\n第二行"),
+        (DiagnosticLogLevel::Debug, "runtime", "last"),
+    ];
+    for (level, scope, message) in &records {
+        assert!(runtime.enqueue(*level, scope, message));
+    }
+    assert!(runtime.flush(Duration::from_secs(2)));
+    assert!(runtime.shutdown(Duration::from_secs(2)));
+
+    let text = output.text();
+    let (timestamp_prefix, _) = text.split_once("] ").expect("batch timestamp prefix");
+    let expected = format!(
+        "{timestamp_prefix}] [log] [runtime] first\n\
+         {timestamp_prefix}] [warn] [path] literal \\n and C:\\assets\\demo\n\
+         {timestamp_prefix}] [error] [场景] 节点 🧭\\n第二行\n\
+         {timestamp_prefix}] [debug] [runtime] last\n"
+    );
+    assert_eq!(text, expected);
+
+    let snapshot = runtime.snapshot();
+    assert_eq!(snapshot.dequeued_records, records.len() as u64);
+    assert_eq!(snapshot.written_records, records.len() as u64);
+    assert_eq!(snapshot.written_bytes, text.len() as u64);
+    assert_eq!(snapshot.flush_batches, 1);
+    assert_eq!(snapshot.queue_depth, 0);
+    assert_eq!(snapshot.output_errors, 0);
+    assert!(snapshot.closed);
+}

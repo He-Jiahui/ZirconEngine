@@ -31,7 +31,7 @@ class WorkflowOrchestratorTests(unittest.TestCase):
     def test_real_owned_comment_flow_acceptance(self):
         """Bounded sealed comment flow fixture; no Cargo or product checkout writes."""
         import hashlib, subprocess
-        from tools.jenkins.source import handle as source_handle
+        from tools.jenkins.source import handle as source_handle, repository_id
         with tempfile.TemporaryDirectory(dir=str(JENKINS_TMP)) as temp:
             root = Path(temp); (root / "src").mkdir(); (root / ".jenkins/tmp").mkdir(parents=True)
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
@@ -39,20 +39,21 @@ class WorkflowOrchestratorTests(unittest.TestCase):
             (root / "src/lib.rs").write_text(original)
             subprocess.run(["git", "add", "."], cwd=root, check=True); subprocess.run(["git", "-c", "user.email=a@b", "-c", "user.name=t", "commit", "-qm", "base"], cwd=root, check=True)
             state = State(root / "state.sqlite3")
-            state.authorize_session("repo", "session-1", "tester", ["src/lib.rs"], ["implementation", "validation"], {"source":"user", "task":"m3"})
+            repo_id = repository_id(root)
+            state.authorize_session(repo_id, "session-1", "tester", ["src/lib.rs"], ["implementation", "validation"], {"source":"user", "task":"m3"})
             before = hashlib.sha256(original.encode()).hexdigest()
-            claim = source_handle("claim", {"repositoryId":"repo", "sessionId":"session-1", "owner":"attempt-1", "ownedPaths":["src/lib.rs"]}, state, root)
+            claim = source_handle("claim", {"repositoryId":repo_id, "sessionId":"session-1", "owner":"attempt-1", "ownedPaths":["src/lib.rs"]}, state, root)
             changed = "// note\nfn main() {}\n"
-            source_handle("apply", {"repositoryId":"repo", "sessionId":"session-1", "owner":"attempt-1", "patch":{"src/lib.rs":changed}, "beforeHashes":{"src/lib.rs":claim["claims"][0]["before_hash"]}, "operationId":"patch-1"}, state, root)
-            from tools.jenkins.source import repository_id
+            source_handle("apply", {"repositoryId":repo_id, "sessionId":"session-1", "owner":"attempt-1", "patch":{"src/lib.rs":changed}, "beforeHashes":{"src/lib.rs":claim["claims"][0]["before_hash"]}, "operationId":"patch-1"}, state, root)
             current_claim = state.get("path_claims", repository_id(root) + ":src/lib.rs")
             claim = {"claims": [{"path":"src/lib.rs", "owner":"attempt-1", "epoch":1,
                                   "before_hash":current_claim["payload"]["beforeHash"], "version":current_claim["version"]}]}
             objroot = root / "objects"; objroot.mkdir()
             build_root = BUILD_ROOT
             object_root = canonical_build_root(build_root).namespace()
-            sealed = source_handle("seal", {"repositoryId":"repo", "sessionId":"session-1", "owner":"attempt-1", "buildRoot":str(build_root), "claims":claim["claims"], "objectRoot":str(object_root), "coverage":{"selectedTests":1}, "patchOperationRefs":["patch-1"], "baseHead":subprocess.run(["git","rev-parse","HEAD"],cwd=root,capture_output=True,text=True,check=True).stdout.strip()}, state, root)
+            sealed = source_handle("seal", {"repositoryId":repo_id, "sessionId":"session-1", "owner":"attempt-1", "buildRoot":str(build_root), "claims":claim["claims"], "objectRoot":str(object_root), "coverage":{"selectedTests":1}, "patchOperationRefs":["patch-1"], "baseHead":subprocess.run(["git","rev-parse","HEAD"],cwd=root,capture_output=True,text=True,check=True).stdout.strip()}, state, root)
             identity = dict(IDENTITY); identity["sourceInputDigest"] = sealed["sourceDigest"]
+            identity["repositoryId"] = repo_id
             identity["coverageDigest"] = state.get("sealed_input", sealed["sourceDigest"])["payload"]["coverageDigest"]
             # source_handle(seal) is the authoritative sealed input record.
             registered = handle("register-flow", {"identity":identity, "sealedInputRef":sealed["sourceDigest"]}, state, root)
@@ -62,6 +63,15 @@ class WorkflowOrchestratorTests(unittest.TestCase):
             handle("run-stage", {"identity":identity, "stage":"format"}, state, root)
             accepted = handle("accept-flow", {"identity":identity}, state, root)
             self.assertEqual(accepted["status"], "accepted")
+            flow_id = f"{identity['sessionId']}:{identity['requestId']}:{identity['attemptId']}"
+            persisted = state.get("workflow", flow_id)["payload"]
+            self.assertEqual("accepted", persisted["status"])
+            self.assertEqual(accepted["receipt"], persisted["acceptance"])
+            self.assertEqual("passed", next(stage for stage in persisted["stages"]
+                                            if stage["name"] == "acceptance")["status"])
+            self.assertEqual([], state.list("execution"))
+            self.assertEqual([], state.list("native_job"))
+            self.assertEqual([], state.list("artifact_ref"))
             self.assertFalse((root / "target").exists())
     def test_fixed_job_names(self):
         self.assertEqual((FLOW_JOB, EXECUTION_JOB, MAINTENANCE_JOB),

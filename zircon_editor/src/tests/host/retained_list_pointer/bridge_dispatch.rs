@@ -270,7 +270,7 @@ fn shared_hierarchy_pointer_bridge_scrolls_and_dispatches_selection() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_hierarchy_pointer");
-    let scene_entries = harness.runtime.editor_snapshot().scene_entries;
+    let scene_entries = harness.runtime.editor_snapshot().unwrap().scene_entries;
     assert!(
         scene_entries.len() >= 2,
         "default fixture should expose hierarchy rows"

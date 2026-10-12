@@ -160,3 +160,8 @@ pub(crate) use project_session_close::{
     ProjectCloseOperation, ProjectCloseReceipt, ProjectCloseTransitionError,
 };
 pub use window_host_manager::NativeWindowHostState;
+
+#[cfg(test)]
+pub(crate) use editor_ui_host::save_completion_tests::{
+    register_completion_toolkit, CompletionAction,
+};

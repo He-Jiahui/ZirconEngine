@@ -1,3 +1,6 @@
+//! 以逻辑导入 token 组织 WGSL 模块，按材质根裁剪依赖并输出依赖先行顺序。
+//! 来源加载由上游资源流负责；此处将装配接受的 token 与内容散列交给模板装配器。
+
 use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::{
@@ -136,6 +139,8 @@ const STANDARD_PBR_GBUFFER_ENCODE_INCLUDE: &str =
 const SUBSURFACE_GBUFFER_ENCODE_INCLUDE: &str =
     include_str!("../wgsl/zr_gbuffer_encode_subsurface.wgsl");
 
+/// 持有剥离 include 指令的正文及有序依赖，另保留来源诊断信息。
+/// `source_hash` 标识输入原文，`content_hash` 标识正文与依赖序列；token 仅用于查找和去重。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ShaderTemplateInclude {
     pub(crate) token: String,
@@ -173,6 +178,8 @@ impl ShaderTemplateInclude {
         include
     }
 
+    /// 补充未写在 WGSL 指令中的依赖，保留既有顺序并避免新增重复项。
+    /// 依赖变化后重算装配散列；原文散列继续描述构造时收到的输入文本。
     pub(crate) fn with_dependencies(
         mut self,
         dependencies: impl IntoIterator<Item = impl Into<String>>,
@@ -198,6 +205,8 @@ fn shader_module_content_hash(source: &str, dependencies: &[String]) -> String {
     hasher.finalize().to_hex().to_string()
 }
 
+/// 按首次出现的 token 保存已进入模板的模块及其装配身份。
+/// 装配器先接受所选内建特性变体，再追加依赖解析结果，同 token 的后项不会替换它。
 #[derive(Default)]
 pub(crate) struct ShaderTemplateIncludeRegistry {
     includes: Vec<ShaderTemplateInclude>,
@@ -214,6 +223,7 @@ impl ShaderTemplateIncludeRegistry {
         }
     }
 
+    /// 模板正文装配完成后，按相同顺序移出 token 与内容散列，形成等长且索引对应的 manifest。
     pub(crate) fn into_manifest(self) -> (Vec<String>, Vec<String>) {
         let mut tokens = Vec::with_capacity(self.includes.len());
         let mut content_hashes = Vec::with_capacity(self.includes.len());
@@ -237,6 +247,8 @@ pub(crate) enum ShaderModuleResolutionError {
     CircularDependency { cycle: Vec<String> },
 }
 
+/// 保存每个逻辑 token 的最终来源，登记同 token 时以后项覆盖前项。
+/// 解析顺序由请求根与依赖向量决定，不依赖 HashMap 的枚举顺序。
 #[derive(Clone, Default)]
 pub(crate) struct ShaderModuleRegistry {
     modules: HashMap<String, ShaderTemplateInclude>,
@@ -255,6 +267,8 @@ impl ShaderModuleRegistry {
         self.modules.insert(include.token.clone(), include);
     }
 
+    /// 仅构造请求根的依赖闭包，提供的来源优先于同 token 的内建 factory；提供来源内部以后项为准。
+    /// 缺失 token 留待解析时报告；此处 visited 只防止重复构造，循环诊断由解析阶段完成。
     pub(crate) fn with_builtin_modules_for_roots(
         roots: impl IntoIterator<Item = String>,
         source_includes: impl IntoIterator<Item = ShaderTemplateInclude>,
@@ -293,6 +307,8 @@ impl ShaderModuleRegistry {
         self.resolve_roots(wgsl_include_paths(source))
     }
 
+    /// 按根的输入顺序解析，每个普通模块只输出一次，且依赖先于使用它的模块。
+    /// `self::` 模块由模板装配器提供，不在此处查找；成功完成后才计算有序模块集合的内容身份。
     pub(crate) fn resolve_roots(
         &self,
         roots: impl IntoIterator<Item = String>,
@@ -334,6 +350,8 @@ impl ShaderModuleRegistry {
                 token: token.to_string(),
             }
         })?;
+        // visiting 表示当前递归路径，visited 只接纳依赖已全部完成的模块。
+        // 先解析依赖，再退栈并标记完成，以保留循环诊断与依赖先行顺序。
         visiting.push(token.to_string());
         for dependency in &module.dependencies {
             self.visit(dependency.as_str(), visiting, visited, ordered_sources)?;
@@ -412,6 +430,8 @@ fn builtin_module_include_for_token(token: &str) -> Option<ShaderTemplateInclude
     }
 }
 
+/// 为 IDE 将单独保存的依赖写回 include 指令，恢复可供导入工具读取的源码形式。
+/// 直接消费者只取 token 与 source；此导出不重新定义运行时装配 manifest 中的内容身份。
 pub(crate) fn builtin_shader_ide_module_includes() -> Vec<ShaderTemplateInclude> {
     builtin_module_includes()
         .into_iter()

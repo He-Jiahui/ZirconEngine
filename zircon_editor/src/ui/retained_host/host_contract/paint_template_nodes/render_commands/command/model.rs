@@ -34,6 +34,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Hos
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) text: Option<String>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) font_size: f32,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) line_height: f32,
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) text_font_request:
+        Option<crate::ui::retained_host::host_contract::paint_text::HostTextFontRequest>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) text_style:
         UiTextRunPaintStyle,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) text_layout_policy:

@@ -57,7 +57,7 @@ fn automation_selection_uses_hierarchy_callback_and_changes_the_real_selection_m
         .host
         .borrow()
         .runtime
-        .editor_snapshot()
+        .editor_snapshot().unwrap()
         .scene_entries
         .iter()
         .last()
@@ -81,7 +81,7 @@ fn automation_selection_uses_hierarchy_callback_and_changes_the_real_selection_m
         .host
         .borrow()
         .runtime
-        .editor_snapshot()
+        .editor_snapshot().unwrap()
         .scene_entries
         .is_selected(selected));
     assert_eq!(
@@ -103,7 +103,7 @@ fn automation_selection_initializes_missing_hierarchy_callback_bounds() {
         .host
         .borrow()
         .runtime
-        .editor_snapshot()
+        .editor_snapshot().unwrap()
         .scene_entries
         .iter()
         .last()
@@ -131,7 +131,7 @@ fn automation_selection_initializes_missing_hierarchy_callback_bounds() {
         .host
         .borrow()
         .runtime
-        .editor_snapshot()
+        .editor_snapshot().unwrap()
         .scene_entries
         .is_selected(selected));
     assert_eq!(harness.delta_events_since(baseline).len(), 1);
@@ -159,7 +159,7 @@ fn automation_transform_commit_uses_componentized_callback_and_transaction_path(
         ),
     );
 
-    let snapshot = harness.host.borrow().runtime.editor_snapshot();
+    let snapshot = harness.host.borrow().runtime.editor_snapshot().unwrap();
     assert_eq!(
         snapshot
             .inspector
@@ -227,7 +227,7 @@ fn automation_undo_and_redo_restore_and_reapply_an_inspector_transaction() {
         .host
         .borrow()
         .runtime
-        .editor_snapshot()
+        .editor_snapshot().unwrap()
         .inspector
         .expect("default selection should expose an inspector")
         .translation[0]
@@ -253,7 +253,7 @@ fn automation_undo_and_redo_restore_and_reapply_an_inspector_transaction() {
             .host
             .borrow()
             .runtime
-            .editor_snapshot()
+            .editor_snapshot().unwrap()
             .inspector
             .expect("transform commit should retain the inspector")
             .translation[0],
@@ -281,7 +281,7 @@ fn automation_undo_and_redo_restore_and_reapply_an_inspector_transaction() {
                 .host
                 .borrow()
                 .runtime
-                .editor_snapshot()
+                .editor_snapshot().unwrap()
                 .inspector
                 .expect("history action should retain the inspector")
                 .translation[0],
@@ -416,7 +416,7 @@ fn automation_report_marks_retained_callback_records_as_cli_evidence() {
         .host
         .borrow()
         .runtime
-        .editor_snapshot()
+        .editor_snapshot().unwrap()
         .scene_entries
         .iter()
         .last()
@@ -454,7 +454,7 @@ fn automation_report_rejects_callback_records_with_editor_errors_without_exposin
         .host
         .borrow()
         .runtime
-        .editor_snapshot()
+        .editor_snapshot().unwrap()
         .scene_entries
         .iter()
         .last()

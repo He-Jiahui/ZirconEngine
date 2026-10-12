@@ -28,6 +28,9 @@ layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "S
 children = [
   { node = "assets_workspace_main" },
   { node = "assets_right", slot = { layout = { alignment = { horizontal = "End", vertical = "Fill" }, z_order = 20 } } },
+  { node = "assets_production_tools_menu", slot = { layout = { alignment = { horizontal = "Start", vertical = "Start" }, z_order = 30 } } },
+  { node = "assets_gameplay_tools_menu", slot = { layout = { alignment = { horizontal = "Start", vertical = "Start" }, z_order = 30 } } },
+  { node = "assets_world_tools_menu", slot = { layout = { alignment = { horizontal = "Start", vertical = "Start" }, z_order = 30 } } },
 ]
 
 [nodes.assets_workspace_main]
@@ -265,3 +268,27 @@ classes = ["workbench-control-button", "workbench-module-command", "workbench-me
 props = { text = "Production Tools", button_variant = "outlined", button_color = "secondary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 28, preferred = 28, max = 28, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/AssetsProductionToolsOpen", event = "Click", route = "workbench.module.assets.production_tools.open" }]
+
+[nodes.assets_world_tools_menu]
+component = "PopupMenu"
+control_id = "WorkbenchAssetsWorldToolsMenu"
+widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "WorkbenchAssetsWorldTools" }, open_property = "popup_open" }
+classes = ["workbench-popup-menu"]
+props = { visibility = "collapsed", popup_open = false, menu_items = [], component_role = "popup-menu", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.panel", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Fixed" } }
+
+[nodes.assets_gameplay_tools_menu]
+component = "PopupMenu"
+control_id = "WorkbenchAssetsGameplayToolsMenu"
+widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "WorkbenchAssetsGameplayTools" }, open_property = "popup_open" }
+classes = ["workbench-popup-menu"]
+props = { visibility = "collapsed", popup_open = false, menu_items = [], component_role = "popup-menu", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.panel", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Fixed" } }
+
+[nodes.assets_production_tools_menu]
+component = "PopupMenu"
+control_id = "WorkbenchAssetsProductionToolsMenu"
+widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "WorkbenchAssetsProductionTools" }, open_property = "popup_open" }
+classes = ["workbench-popup-menu"]
+props = { visibility = "collapsed", popup_open = false, menu_items = [], component_role = "popup-menu", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.panel", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Fixed" } }

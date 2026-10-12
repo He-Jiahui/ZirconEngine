@@ -48,7 +48,7 @@ impl InspectorNativeFieldSnapshot {
                     field.field_name.as_str(),
                 ) {
                     ("zircon_runtime::scene::components::CameraComponent", "fov_y_radians") => {
-                        "FOV Y (Radians)".to_string()
+                        "FOV Y (rad)".to_string()
                     }
                     ("zircon_runtime::scene::components::CameraComponent", "z_near") => {
                         "Near Clip".to_string()

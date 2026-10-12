@@ -55,7 +55,7 @@ impl HandleTool for MoveHandleTool {
         ctx: &HandlePickContext<'_>,
         axis: GizmoAxis,
     ) -> Option<HandleDragSession> {
-        Some(HandleDragSession::Move(begin_transform_session(ctx, axis)?))
+        Some(HandleDragSession::Move(begin_transform_session(ctx, axis, crate::scene::viewport::TransformHandleKind::Move)?))
     }
 
     fn update_drag(

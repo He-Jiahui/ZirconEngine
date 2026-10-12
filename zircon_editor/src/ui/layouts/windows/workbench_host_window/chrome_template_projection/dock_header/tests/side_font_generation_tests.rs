@@ -17,7 +17,8 @@ fn sidebar_tabs() -> ModelRc<TabData> {
                 title: title.into(),
                 active,
                 closeable: true,
-                ..Default::default()
+                slot: "".into(),
+                icon_key: "".into()
             })
             .collect(),
     )
@@ -30,10 +31,12 @@ fn side_header_active_titles_fit_the_physical_button_budget_at_both_scales() {
         for tabs in [
             sidebar_tabs(),
             model_rc(vec![TabData {
+                id: "".into(),
                 title: "Details".into(),
                 active: true,
                 closeable: true,
-                ..Default::default()
+                slot: "".into(),
+                icon_key: "".into()
             }]),
         ] {
             let nodes = side_dock_header_nodes_with_metrics(

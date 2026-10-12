@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use zircon_runtime::core::runtime::ServiceCallGuard;
 
 use zircon_runtime::asset::{project_asset_manager_handle, ProjectAssetManager};
 use zircon_runtime::core::manager::{
@@ -32,7 +32,7 @@ impl ViewportRenderFrameworkAccess {
 
     pub(super) fn has_active_project(&self) -> Result<bool, CoreError> {
         let core = self.core()?;
-        let manager: Arc<ProjectAssetManager> =
+        let manager: ServiceCallGuard<ProjectAssetManager> =
             resolve_manager_service(&core, project_asset_manager_handle(&core)?)?;
         Ok(manager.current_project_manager().is_some())
     }
@@ -40,7 +40,7 @@ impl ViewportRenderFrameworkAccess {
     pub(super) fn resolve_render_framework(
         &self,
         handle: ManagerServiceHandle<dyn RenderFramework>,
-    ) -> Result<Arc<dyn RenderFramework>, CoreError> {
+    ) -> Result<ServiceCallGuard<dyn RenderFramework>, CoreError> {
         let core = self.core()?;
         resolve_manager_service(&core, handle)
     }

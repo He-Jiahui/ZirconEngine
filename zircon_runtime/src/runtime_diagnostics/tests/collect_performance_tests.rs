@@ -8,7 +8,7 @@ use crate::core::CoreRuntime;
 fn runtime_diagnostic_collection_uses_static_metadata_recording() {
     let source = include_str!("../collect.rs");
     let end = source
-        .find("mod performance_tests {")
+        .find("mod performance_tests;")
         .expect("performance test module");
 
     assert!(!source[..end].contains("store.record("));
@@ -95,3 +95,7 @@ fn runtime_diagnostic_collection_preserves_authoritative_series_history() {
     assert_eq!(series.min, Some(60.0));
     assert_eq!(series.max, Some(120.0));
 }
+
+#[cfg(windows)]
+#[path = "original_store_matrix.rs"]
+mod original_store_matrix;

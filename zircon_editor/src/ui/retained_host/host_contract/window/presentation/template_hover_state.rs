@@ -12,6 +12,7 @@ impl UiHostWindow {
         let before = state.pane_interaction_state.as_ref().clone();
         state.update_pane_interaction(|interaction| {
             if pressed {
+                interaction.template_focus_observed = true;
                 interaction.focused_template_control_id = control_id.unwrap_or_default().into();
                 interaction.pressed_template_control_id = control_id.unwrap_or_default().into();
                 interaction.template_button_frame = frame.cloned().unwrap_or_default();
@@ -41,6 +42,26 @@ impl UiHostWindow {
             width: old.right().max(new.right()) - x,
             height: old.bottom().max(new.bottom()) - y,
         })
+    }
+
+    /// Window focus loss clears the same semantic owner established by pointer routing.
+    pub(crate) fn clear_template_focus_owner(
+        &self,
+    ) -> super::super::super::redraw::NativePointerDispatchResult {
+        let mut state = self.state.borrow_mut();
+        let frame = state.pane_interaction_state.template_button_frame.clone();
+        state.update_pane_interaction(|interaction| {
+            interaction.template_focus_observed = true;
+            interaction.focused_template_control_id.clear();
+            interaction.template_focus_visible = false;
+        });
+        if frame.width > 0.0 && frame.height > 0.0 {
+            super::super::super::redraw::NativePointerDispatchResult::region_with_frame_update(
+                frame,
+            )
+        } else {
+            super::super::super::redraw::NativePointerDispatchResult::idle()
+        }
     }
 
     pub(crate) fn set_hovered_template_node_for_pointer_move(

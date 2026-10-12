@@ -16,11 +16,11 @@ mod rows;
 pub(super) fn rebuild_export_targets(
     host: &RetainedEditorHost,
     chrome: &EditorChromeSnapshot,
-) -> BuildExportBaseProjection {
+) -> Result<BuildExportBaseProjection, crate::ui::host::EditorError> {
     let (project_root, manifest) = match project::load_active_project_manifest(&chrome.project_path)
     {
         Ok(project) => project,
-        Err(error) => return BuildExportBaseProjection::uncacheable(error),
+        Err(error) => return Ok(BuildExportBaseProjection::uncacheable(error)),
     };
 
     let export_dir = project_root.join("export");
@@ -77,14 +77,14 @@ pub(super) fn rebuild_export_targets(
                 profile,
             ))
         })
-        .collect();
-    BuildExportBaseProjection {
+        .collect::<Result<Vec<_>, crate::ui::host::EditorError>>()?;
+    Ok(BuildExportBaseProjection {
         project_root,
         targets,
         diagnostics,
         preset_paths,
         cacheable: true,
-    }
+    })
 }
 
 pub(super) fn apply_export_target_overlays(

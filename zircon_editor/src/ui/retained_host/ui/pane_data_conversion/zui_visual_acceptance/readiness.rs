@@ -424,8 +424,8 @@ fn runtime_loaded_sources_are_complete(
         return false;
     }
     let required_roots = [
-        "res://ui/editor/host/workbench_shell.zui",
-        "res://ui/editor/windows/workbench_window.zui",
+        "res://ui/editor/unreal/editor_shell.zui",
+        "res://ui/editor/unreal/level_editor_window.zui",
     ];
     if required_roots.iter().any(|root| {
         !document_ids

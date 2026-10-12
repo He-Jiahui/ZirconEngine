@@ -18,9 +18,33 @@ from .paths import DeploymentPaths
 from .spec import DeploymentSpec, JenkinsError
 from tools.jenkins.processes.identity import current_identity
 from tools.jenkins.state.locks import process_lock
+from tools.jenkins.state.atomic import atomic_json, replace_file
 from tools.jenkins.contracts import digest
 
 _LIVE_JOBS: dict[int, Any] = {}
+
+
+def _supervisor_creation_flags() -> int:
+    """Return lifecycle-supervisor flags with explicit parent-Job breakaway.
+
+    The lifecycle supervisor is the durable owner that must outlive the
+    caller which starts it.  On Windows a supervisor launched from a parent
+    Job otherwise inherits that Job's kill-on-close lifetime.  Requesting
+    ``CREATE_BREAKAWAY_FROM_JOB`` is therefore part of the supervisor's
+    ownership contract; a missing flag or a rejected CreateProcess call must
+    fail closed rather than silently falling back to an inherited lifetime.
+    Native controller, agent, and execution processes are launched through
+    ``NativeJob`` and keep their own atomic kill-on-close Job containment.
+    """
+    flags = (getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+             | getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    if os.name != "nt":
+        return flags
+    breakaway = getattr(subprocess, "CREATE_BREAKAWAY_FROM_JOB", None)
+    if not isinstance(breakaway, int) or breakaway <= 0:
+        raise JenkinsError("supervisor_breakaway_unavailable",
+                           "Windows lifecycle supervisor requires Job breakaway")
+    return flags | breakaway
 
 
 def identity(pid: int) -> dict | None:
@@ -46,10 +70,7 @@ class DeploymentManager:
         return f"http://{self.spec.controller['listenAddress']}:{self.spec.controller['httpPort']}"
 
     def _write(self, value: dict) -> None:
-        self.paths.state.mkdir(parents=True, exist_ok=True)
-        tmp = self.journal.with_suffix(".tmp")
-        tmp.write_text(json.dumps(value, sort_keys=True, indent=2), encoding="utf-8")
-        tmp.replace(self.journal)
+        atomic_json(self.journal, value)
 
     def _read(self) -> dict | None:
         try:
@@ -98,6 +119,10 @@ class DeploymentManager:
         return driver_environment(snapshot, python, self.paths.repo)
 
     def _request(self, path: str, *, method: str = "GET", data: bytes | None = None, headers: dict[str, str] | None = None, timeout: float = 5.0) -> tuple[int, bytes]:
+        status, body, _ = self._request_with_headers(path, method=method, data=data, headers=headers, timeout=timeout)
+        return status, body
+
+    def _request_with_headers(self, path: str, *, method: str = "GET", data: bytes | None = None, headers: dict[str, str] | None = None, timeout: float = 5.0) -> tuple[int, bytes, dict[str, str]]:
         import base64
         user, token = self._credentials()
         auth = base64.b64encode(f"{user}:{token}".encode()).decode()
@@ -113,17 +138,21 @@ class DeploymentManager:
             # operation evidence; following the dashboard can obscure it.
             opener = urllib.request.build_opener(DirectResponse())
             with opener.open(req, timeout=timeout) as response:
-                return response.status, response.read()
+                return response.status, response.read(), dict(response.headers.items())
         except urllib.error.HTTPError as exc:
-            return exc.code, exc.read()
+            return exc.code, exc.read(), dict(exc.headers.items()) if exc.headers is not None else {}
         except (urllib.error.URLError, TimeoutError) as exc:
             raise JenkinsError("controller_unreachable", "Jenkins controller is unreachable", retryable=True) from exc
 
     def health(self) -> dict:
         controller = agent = plugins = False
+        quieting_down = None
         try:
             status, body = self._request("api/json")
-            controller = status == 200 and bool(json.loads(body or b"{}"))
+            controller_value = json.loads(body or b"{}")
+            controller = status == 200 and isinstance(controller_value, dict) and bool(controller_value)
+            if controller and type(controller_value.get("quietingDown")) is bool:
+                quieting_down = controller_value["quietingDown"]
             if controller:
                 _, body = self._request("computer/api/json?depth=1")
                 nodes = json.loads(body).get("computer", [])
@@ -155,17 +184,39 @@ class DeploymentManager:
                     plugins = plugins and set(expected).issubset(observed)
         except (Exception, ValueError):
             pass
-        return {"controller": controller, "agent": agent, "plugins": plugins, "ready": controller and agent and plugins}
+        accepting = quieting_down is False
+        return {"controller": controller, "agent": agent, "plugins": plugins,
+                "quietingDown": quieting_down, "acceptingRequests": controller and accepting,
+                "ready": controller and agent and plugins and accepting}
 
     def start(self) -> dict:
         with process_lock(self.paths.state / "deployment-start.lock", reason="deployment_start_busy"):
             return self._start_locked(self.paths.state / "deployment-start.lock")
 
-    def _start_locked(self, lock: Path, *, recovery_driver: dict | None = None, execution_activation=None) -> dict:
+    def _start_locked(self, lock: Path, *, recovery_driver: dict | None = None, execution_activation=None,
+                      owned_keeper_start=None, lost_owner_recovery=None, recovery_keeper_start=None,
+                      owned_upgrade_start=None) -> dict:
+        if sum(value is not None for value in (execution_activation, owned_keeper_start, recovery_keeper_start)) > 1:
+            raise JenkinsError("execution_activation_invalid", "Lifecycle start authorities cannot be combined")
+        if lost_owner_recovery is not None and owned_upgrade_start is not None:
+            raise JenkinsError("owned_recovery_upgrade_unproven", "Lost interruption and owned transfer cannot be combined")
+        if (lost_owner_recovery is not None or owned_upgrade_start is not None) and recovery_keeper_start is None:
+            raise JenkinsError("formal_lost_owner_unproven", "Reviewed ownership requires the retained strict recovery keeper")
+        if recovery_keeper_start is not None:
+            from .recovery_keeper import RecoveryKeeperStart
+            from .lost_owner import LostFormalOwnerRecovery
+            from .lost_recovery_runtime import LostRecoveryRuntimeInterruption
+            from .owned_upgrade import OwnedRecoveryUpgradePlan
+            if (type(recovery_keeper_start) is not RecoveryKeeperStart
+                    or lost_owner_recovery is not None and type(lost_owner_recovery) not in {LostFormalOwnerRecovery, LostRecoveryRuntimeInterruption}
+                    or owned_upgrade_start is not None and type(owned_upgrade_start) is not OwnedRecoveryUpgradePlan):
+                raise JenkinsError("formal_lost_owner_unproven", "An issued recovery keeper capability is required")
+            recovery_keeper_start.consume(self, owned_upgrade_start if owned_upgrade_start is not None else lost_owner_recovery)
         start_directive = None
-        if execution_activation is None:
+        if execution_activation is None and recovery_keeper_start is None:
             from .execution_activation import assert_activation_start_allowed
-            start_directive = assert_activation_start_allowed(self)
+            start_directive = (assert_activation_start_allowed(self) if owned_keeper_start is None
+                               else assert_activation_start_allowed(self, owned_keeper_start=owned_keeper_start))
             if start_directive is not None:
                 receipt = start_directive.get("recoveryReceipt") if isinstance(start_directive, dict) else None
                 if not (isinstance(start_directive, dict) and start_directive.get("controlPlaneOnly") is True
@@ -173,10 +224,17 @@ class DeploymentManager:
                         and isinstance(receipt.get("sha256"), str) and len(receipt["sha256"]) == 64):
                     raise JenkinsError("execution_recovery_unresolved", "Verified recovery startup directive is incomplete")
         old = self._read() or {}
+        operation_id = f"start-{time.time_ns()}"
+        recovery_transaction = None
         # A controller-only deployment remains controller-only across a
         # normal stop/start cycle. Enabling an agent or execution broker is a
         # separate, explicit runtime transition.
-        control_plane_only = old.get("controlPlaneOnly") is True or start_directive is not None
+        control_plane_only = (lost_owner_recovery.document["controlPlaneOnly"] if lost_owner_recovery is not None
+                              else old.get("controlPlaneOnly") is True or start_directive is not None)
+        if owned_upgrade_start is not None:
+            if old.get("state") != "stopped" or old.get("controlPlaneOnly") is not False:
+                raise JenkinsError("owned_recovery_upgrade_unproven", "Owned transfer requires its genuinely stopped full runtime")
+            control_plane_only = False
         if execution_activation is not None:
             from .execution_activation import ActivationPlan
             if not isinstance(execution_activation, ActivationPlan):
@@ -201,7 +259,37 @@ class DeploymentManager:
                 if not has_terminal_lifecycle_proofs(old, host_record, str(self.paths.home.absolute()), host_observation):
                     raise JenkinsError("deployment_termination_unproven", "Lifecycle supervisor departure is unproven",
                                        retryable=True)
-            if not terminal:
+            if lost_owner_recovery is not None:
+                # This records interrupted management ownership. It never
+                # substitutes for execution EOF or a native terminal receipt.
+                evidence = lost_owner_recovery.revalidate(self)
+                if (digest(old) != evidence["operationDigest"] or digest(host_record) != evidence["hostRecordDigest"]):
+                    raise JenkinsError("formal_lost_owner_changed", "The exact interrupted generation changed")
+                from .start_transaction import RecoveryStartTransaction
+                recovery_transaction = RecoveryStartTransaction(self, recovery_keeper_start, operation_id)
+                history = self.paths.state / "deployment/history"
+                history.mkdir(parents=True, exist_ok=True)
+                interruption = history / ("formal-lost-owner-interruption-" + evidence["recoveryDigest"] + ".json")
+                with interruption.open("x", encoding="utf-8") as stream:
+                    json.dump(evidence, stream, sort_keys=True, indent=2)
+                    stream.write("\n")
+                self._archive_deployment(old, host_record, evidence)
+                self._write({**old, "state": "interrupted", "deploymentRecoveryEvidence": evidence})
+                recovery_transaction.update("predecessor-interrupted", interruption=evidence)
+            elif owned_upgrade_start is not None:
+                if not terminal:
+                    raise JenkinsError("owned_recovery_upgrade_unproven", "Owned transfer cannot replace missing NativeJob termination")
+                evidence = owned_upgrade_start.revalidate(self)
+                selected_before = json.loads((self.paths.state / "deployment/driver.json").read_text(encoding="utf-8"))
+                if (digest(old) != evidence["operationDigest"] or digest(host_record) != evidence["hostRecordDigest"]
+                        or digest(selected_before) != evidence["selectedDriverDigest"]):
+                    raise JenkinsError("owned_recovery_upgrade_changed", "The exact stopped predecessor changed before archive")
+                self._archive_deployment(old, host_record, {
+                    "kind": "owned-native-terminal-proof", "operationId": old["operationId"],
+                    "hostObservation": host_observation, "ownedUpgradeDigest": owned_upgrade_start.upgrade_digest,
+                    "ownedStop": evidence["ownedStop"], "keeperRetirement": evidence["keeperRetirement"],
+                    "executionHoldsReleaseAllowed": False, "validationAcceptanceAllowed": False})
+            elif not terminal:
                 observed = self.reconcile()
                 host_proof = observed.get("hostIdentityProof") or {}
                 host_binding = all(host_proof.get(field) is True for field in (
@@ -245,7 +333,24 @@ class DeploymentManager:
         # bind failure must not create a new generation that cannot return a
         # trustworthy NativeJob termination receipt.
         check_port_available(self.spec.controller["listenAddress"], int(self.spec.controller["httpPort"]))
-        operation_id = f"start-{time.time_ns()}"
+        if recovery_keeper_start is not None:
+            if recovery_transaction is None:
+                from .start_transaction import RecoveryStartTransaction
+                recovery_transaction = RecoveryStartTransaction(self, recovery_keeper_start, operation_id)
+            target = recovery_keeper_start.target_driver(self)
+            if target is not None:
+                selector = self.paths.state / "deployment/driver.json"
+                previous = json.loads(selector.read_text(encoding="utf-8"))
+                history = self.paths.state / "deployment/history"
+                history.mkdir(parents=True, exist_ok=True)
+                archived = history / ("driver-before-recovery-" + digest(previous) + ".json")
+                if not archived.exists():
+                    with archived.open("x", encoding="utf-8") as stream:
+                        json.dump(previous, stream, sort_keys=True, indent=2)
+                pending = selector.with_name("driver.recovery-" + str(time.time_ns()) + ".json")
+                pending.write_text(json.dumps(target, sort_keys=True, indent=2), encoding="utf-8")
+                replace_file(pending, selector)
+                recovery_transaction.update("target-selected", target=target)
         driver_env = self._driver_env()
         launcher = driver_env["ZIRCON_DRIVER_LAUNCHER"]
         driver_digest = driver_env["ZIRCON_DRIVER_DIGEST"]
@@ -257,7 +362,7 @@ class DeploymentManager:
         selected.update(runtimeOperationId=operation_id, state="selected-for-runtime-start")
         pending_driver = driver_record_path.with_name("driver.pending-" + str(time.time_ns()) + ".json")
         pending_driver.write_text(json.dumps(selected, indent=2), encoding="utf-8")
-        pending_driver.replace(driver_record_path)
+        replace_file(pending_driver, driver_record_path)
         args = [python, launcher, "__lifecycle-host", "--spec", str(self.spec.path),
                 "--java", str(self.java), "--war", str(self.war), "--operation-id", operation_id]
         env = dict(os.environ, **driver_env, PYTHONPATH=str(self.paths.repo), JENKINS_HOME=str(self.paths.home))
@@ -267,23 +372,51 @@ class DeploymentManager:
             env.pop("ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY", None)
         host_log = (self.paths.logs / "lifecycle-host.log"); host_log.parent.mkdir(parents=True, exist_ok=True)
         log_handle = host_log.open("ab")
-        process = subprocess.Popen(args, cwd=str(self.paths.repo), env=env,
-                                   stdin=subprocess.DEVNULL, stdout=log_handle,
-                                   stderr=subprocess.STDOUT,
-                                   creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) |
-                                   getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        host_identity = current_identity(process.pid, executable=sys.executable, command_line=tuple(args))
-        _LIVE_JOBS[process.pid] = (process, log_handle)
-        operation = {"schemaVersion": 2, "operationId": operation_id, "state": "starting",
-                     "component": "lifecycle-host", "hostPid": process.pid, **host_identity.to_dict(), "generation": operation_id, "health": False}
-        # Bind every lifecycle operation to the exact Jenkins Home it owns.
-        # A stale journal must never be used to stop a controller from another
-        # deployment or a moved checkout.
-        operation["homePath"] = str(self.paths.home.absolute())
-        operation["controlPlaneOnly"] = control_plane_only
-        if start_directive is not None:
-            operation["executionActivationRecoveryReceipt"] = dict(start_directive["recoveryReceipt"])
-        self._write(operation)
+        process = None
+        try:
+            if recovery_transaction is not None:
+                recovery_transaction.before_spawn(args, selected)
+            process = subprocess.Popen(args, cwd=str(self.paths.repo), env=env,
+                                       stdin=subprocess.DEVNULL, stdout=log_handle,
+                                       stderr=subprocess.STDOUT,
+                                       creationflags=(_supervisor_creation_flags() if owned_keeper_start is None
+                                                      and recovery_keeper_start is None else
+                                                      (owned_keeper_start or recovery_keeper_start).creation_flags()))
+            # Retain the child immediately. Identity/Job validation can fail;
+            # that failure must not erase the original spawn or close its log.
+            _LIVE_JOBS[process.pid] = (process, log_handle)
+            if recovery_transaction is not None:
+                recovery_transaction.created(process.pid)
+            host_identity = current_identity(process.pid, executable=sys.executable, command_line=tuple(args))
+            operation = {"schemaVersion": 2, "operationId": operation_id, "state": "starting",
+                         "component": "lifecycle-host", "hostPid": process.pid, **host_identity.to_dict(),
+                         "generation": operation_id, "health": False, "homePath": str(self.paths.home.absolute()),
+                         "controlPlaneOnly": control_plane_only}
+            if lost_owner_recovery is not None:
+                operation["lostOwnerRecoveryDigest"] = lost_owner_recovery.recovery_digest
+            if owned_upgrade_start is not None:
+                operation["ownedUpgradeDigest"] = owned_upgrade_start.upgrade_digest
+                operation["previousOwnedStop"] = owned_upgrade_start.document["ownedStop"]
+            if start_directive is not None:
+                operation["executionActivationRecoveryReceipt"] = dict(start_directive["recoveryReceipt"])
+            self._write(operation)
+            if recovery_transaction is not None:
+                recovery_transaction.created(process.pid, host_identity.to_dict())
+            if owned_keeper_start is not None:
+                owned_keeper_start.record_spawn(process.pid)
+            if recovery_keeper_start is not None:
+                recovery_keeper_start.record_spawn(process.pid)
+        except Exception as error:
+            if recovery_transaction is not None:
+                recovery_transaction.unknown(error)
+            if process is None:
+                log_handle.close()
+            if isinstance(error, JenkinsError):
+                raise
+            if not isinstance(error, OSError):
+                raise
+            raise JenkinsError("supervisor_launch_failed", "Windows refused the lifecycle supervisor start",
+                               details={"osError": getattr(error, "winerror", None)}) from error
         operation["health"] = wait_for_health(self.base_url, 300, headers={"Authorization": "Basic " + __import__('base64').b64encode(f"{self._credentials()[0]}:{self._credentials()[1]}".encode()).decode()}, process=process)
         if not operation["health"]:
             operation.update({"state": "failed", "reasonCode": "controller_health_timeout"})
@@ -311,12 +444,25 @@ class DeploymentManager:
             else:
                 operation["terminationProofPending"] = True
             self._write(operation)
+            if recovery_transaction is not None:
+                recovery_transaction.update("failed", operation=operation)
             return operation
         try:
             deadline = time.monotonic() + 300
             ready = False
             while time.monotonic() < deadline:
                 proof = self.health()
+                if not control_plane_only and all(proof.get(key) is True for key in ("controller", "agent", "plugins")):
+                    # The inbound agent can become visible just before its
+                    # owner publishes the complete running host record.
+                    host_state = json.loads((self.paths.state / "deployment/host.json").read_text(encoding="utf-8"))
+                    if (host_state.get("status") == "starting" and host_state.get("operationId") == operation_id
+                            and host_state.get("generation") == operation_id and host_state.get("hostPid") == operation["pid"]):
+                        time.sleep(.5)
+                        continue
+                    from .drain_observations import ensure_accepting_requests
+                    ensure_accepting_requests(self, operation_id, expected_supervisor=operation)
+                    proof = self.health()
                 ready = (proof["controller"] and proof["plugins"]) if control_plane_only else proof.get("ready", False)
                 if ready and control_plane_only:
                     try:
@@ -332,36 +478,21 @@ class DeploymentManager:
             if not ready:
                 raise JenkinsError("deployment_not_ready", "controller or agent did not reach ready state")
             operation["healthProof"] = self.health()
+            if not control_plane_only and operation["healthProof"].get("ready") is not True:
+                raise JenkinsError("deployment_not_ready", "The owned runtime stopped accepting new tasks")
             operation["serviceReady"] = ready
             operation["state"] = "running"
         except JenkinsError as exc:
             operation.update({"state": "failed", "reasonCode": exc.code, "details": exc.details})
         self._write(operation)
+        if recovery_transaction is not None:
+            recovery_transaction.update("running-acceptance-pending" if operation["state"] == "running" else "unknown",
+                                        operation=operation)
         return operation
 
     def drain(self, timeout: float = 30.0) -> dict:
-        status, _ = self._request("quietDown", method="POST")
-        if status not in (200, 201, 302):
-            raise JenkinsError("drain_failed", "Jenkins refused quietDown")
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            _, computer_body = self._request("computer/api/json?tree=computer[displayName,busyExecutors]")
-            _, jobs_body = self._request("api/json?tree=jobs[name,builds[building]]")
-            computers = json.loads(computer_body or b"{}").get("computer", [])
-            jobs = json.loads(jobs_body or b"{}").get("jobs", [])
-            busy = sum(int(c.get("busyExecutors", 0) or 0) for c in computers)
-            building = [j.get("name") for j in jobs if any(b.get("building") for b in j.get("builds", []))]
-            payload = {"busyExecutors": busy, "buildingJobs": building}
-            # Durable execution records outlive Pipeline callers.  A Jenkins
-            # quietDown alone is insufficient while an owner host still has a
-            # queued or running execution; wait for its terminal state before
-            # allowing controller shutdown.
-            active_executions = self._active_execution_records()
-            payload["activeExecutions"] = [r["key"] for r in active_executions]
-            if busy == 0 and not building and not active_executions:
-                return {"status": "drained", "proof": payload}
-            time.sleep(.25)
-        raise JenkinsError("drain_timeout", "active Jenkins builds did not drain", retryable=True)
+        from .drain_observations import drain_owned
+        return drain_owned(self, timeout)
 
     def _control_plane_drain(self, operation: dict, host: dict, timeout: float = 30.0) -> dict:
         """Drain only the current controller generation in controller-only mode.
@@ -467,6 +598,17 @@ class DeploymentManager:
                                details={"expectedHomePath": expected_home, "recordedHomePath": recorded_home})
         host_state = self.paths.state / "deployment" / "host.json"
         host_record = None
+        if operation.get("state") == "stopped":
+            from .recovery import has_terminal_lifecycle_proofs
+            from .startup_observations import observe_departed_identity
+            try:
+                terminal_host = json.loads(host_state.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                raise JenkinsError("host_state_missing", "Stopped lifecycle evidence is unavailable") from exc
+            observation = observe_departed_identity(operation)
+            if not has_terminal_lifecycle_proofs(operation, terminal_host, expected_home, observation):
+                raise JenkinsError("stop_binding_unproven", "Stopped lifecycle evidence is incomplete")
+            return operation
         if operation.get("controlPlaneOnly") is True:
             try:
                 host_record = json.loads(host_state.read_text(encoding="utf-8"))
@@ -485,6 +627,8 @@ class DeploymentManager:
             raise JenkinsError("host_state_missing", "trusted lifecycle host state is unavailable") from exc
         if host_record.get("operationId") != operation.get("operationId") or host_record.get("generation") != operation.get("generation"):
             raise JenkinsError("host_generation_mismatch", "lifecycle host generation changed before stop")
+        from .stop_binding import capture_stop_owner, bind_owned_stop
+        captured_owner = capture_stop_owner(operation, host_record, expected_home)
         command.write_text(json.dumps({"action": "stop", "operationId": host_record.get("operationId"),
                                        "hostPid": host_record.get("hostPid"),
                                        "controllerIdentity": host_record.get("controllerIdentity", host_record.get("identity")),
@@ -498,8 +642,7 @@ class DeploymentManager:
         result = json.loads(result_path.read_text(encoding="utf-8"))
         if result.get("status") != "stopped":
             raise JenkinsError("host_stop_failed", "lifecycle host failed to stop controller")
-        operation.update({"state": "stopped", "nativeTerminationProof": result.get("nativeTerminationProof"),
-                          "agentTerminationProof": result.get("agentTerminationProof")})
+        operation = bind_owned_stop(self.paths.state, captured_owner, command, result_path)
         if host is not None:
             proc, handle = host; proc.wait(timeout=10); handle.close(); _LIVE_JOBS.pop(pid, None)
         self._write(operation)

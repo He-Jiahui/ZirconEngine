@@ -15,8 +15,9 @@ use crate::core::editor_message::DocumentId;
 use crate::core::extension::SaveReason;
 
 use super::editor_document_autosave::document_save_mutex_group;
-use super::runtime_services::EditorHostRuntimeServices;
 use super::{EditorError, EditorManager};
+use crate::core::jobs::JobError;
+use zircon_runtime::core::runtime::ServiceHandle;
 
 #[derive(Debug, Error)]
 pub enum EditorDirtySaveError {
@@ -40,6 +41,40 @@ pub enum EditorDirtySaveError {
     Admission(#[from] SaveDirtyViewsAdmissionError),
     #[error(transparent)]
     Apply(#[from] SaveDirtyViewsApplyError),
+    #[error("dirty save completed but document projection failed: {source}")]
+    CompletionProjection {
+        result: SaveDirtyViewsResult,
+        #[source]
+        source: Box<EditorError>,
+    },
+}
+
+impl EditorDirtySaveError {
+    pub fn completed_result(&self) -> Option<&SaveDirtyViewsResult> {
+        match self {
+            Self::CompletionProjection { result, .. } => Some(result),
+            _ => None,
+        }
+    }
+
+    pub fn committed_documents(&self) -> usize {
+        match self {
+            Self::CompletionProjection { result, .. } => result.committed_documents(),
+            Self::Apply(error) => error
+                .completions()
+                .iter()
+                .filter(|(_, completion)| {
+                    let report = match completion {
+                        SaveDirtyViewCompletion::SavedDocument { report } => Some(report),
+                        SaveDirtyViewCompletion::Failed(failure) => failure.save_report(),
+                        _ => None,
+                    };
+                    report.is_some_and(|report| report.cooperating_source_writes_are_serialized())
+                })
+                .count(),
+            _ => 0,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -195,7 +230,18 @@ impl EditorDirtySaveCoordinator {
 
 impl EditorManager {
     pub(crate) fn begin_dirty_document_save(
+        original: ServiceHandle<EditorManager>,
+        owner: DirtyDocumentSaveOwner,
+        documents: impl IntoIterator<Item = DocumentId>,
+        reason: SaveReason,
+    ) -> Result<DirtyDocumentSaveStart, EditorError> {
+        let manager = original.enter()?;
+        manager.begin_dirty_document_save_admitted(original.clone(), owner, documents, reason)
+    }
+
+    fn begin_dirty_document_save_admitted(
         &self,
+        original: ServiceHandle<EditorManager>,
         owner: DirtyDocumentSaveOwner,
         documents: impl IntoIterator<Item = DocumentId>,
         reason: SaveReason,
@@ -214,10 +260,7 @@ impl EditorManager {
             return Ok(DirtyDocumentSaveStart::NoDirtyDocuments);
         };
 
-        let executor = Arc::new(EditorDocumentBatchSaveExecutor {
-            runtime_services: self.host.runtime_services.clone(),
-            reason,
-        });
+        let executor = Arc::new(EditorDocumentBatchSaveExecutor { original, reason });
         let mut coordinator = self
             .dirty_save
             .lock()
@@ -242,17 +285,27 @@ impl EditorManager {
                 self.context().transactions(),
             )?
         };
-        if let Some(result) = result.as_ref() {
-            for document in result
-                .outcomes()
-                .iter()
-                .map(|outcome| outcome.document_id())
+        let Some(result) = result else {
+            return Ok(None);
+        };
+        let documents = result
+            .outcomes()
+            .iter()
+            .map(|outcome| outcome.document_id())
+            .collect::<Vec<_>>();
+        for document in documents {
+            if let Err(source) = self
+                .host
+                .sync_document_dirty_projection_for_document(document)
             {
-                self.host
-                    .sync_document_dirty_projection_for_document(document)?;
+                return Err(EditorDirtySaveError::CompletionProjection {
+                    result,
+                    source: Box::new(source),
+                }
+                .into());
             }
         }
-        Ok(result)
+        Ok(Some(result))
     }
 
     pub(crate) fn dirty_document_save_owner(&self) -> Option<DirtyDocumentSaveOwner> {
@@ -328,7 +381,7 @@ fn rejected_document_count(report: &SaveDirtyViewsPreflightReport) -> usize {
 }
 
 struct EditorDocumentBatchSaveExecutor {
-    runtime_services: EditorHostRuntimeServices,
+    original: ServiceHandle<EditorManager>,
     reason: SaveReason,
 }
 
@@ -341,18 +394,29 @@ impl SaveDirtyViewExecutor for EditorDocumentBatchSaveExecutor {
         if context.check_cancelled().is_err() {
             return SaveDirtyViewCompletion::Cancelled;
         }
-        let completion = self.runtime_services.editor_manager().and_then(|manager| {
-            manager
-                .host
-                .write_document_toolkit(intent.document_id(), self.reason)
-        });
+        let completion = self
+            .original
+            .enter()
+            .map_err(EditorError::from)
+            .and_then(|manager| {
+                manager
+                    .host
+                    .write_document_toolkit(intent.document_id(), self.reason)
+            });
         match completion {
-            Ok(report) => SaveDirtyViewCompletion::Saved {
-                written_bytes: report.written_bytes(),
-            },
-            Err(error) => SaveDirtyViewCompletion::Failed(SaveDirtyViewFailure::new(
+            Ok(report) => SaveDirtyViewCompletion::SavedDocument { report },
+            Err(EditorError::DocumentSaveCommitted { report, source }) => {
+                SaveDirtyViewCompletion::Failed(
+                    SaveDirtyViewFailure::from_job_error(
+                        SaveDirtyViewFailureKind::Write,
+                        JobError::failed(*source),
+                    )
+                    .with_report(report),
+                )
+            }
+            Err(error) => SaveDirtyViewCompletion::Failed(SaveDirtyViewFailure::from_job_error(
                 SaveDirtyViewFailureKind::Write,
-                error.to_string(),
+                JobError::failed(error),
             )),
         }
     }

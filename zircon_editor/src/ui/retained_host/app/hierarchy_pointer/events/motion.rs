@@ -11,7 +11,7 @@ impl RetainedEditorHost {
         let owner_move = self
             .hierarchy_input_owner
             .admits_move(&self.callback_source_window);
-        self.prepare_hierarchy_pointer_target(width, height, false);
+        (match self.prepare_hierarchy_pointer_target(width, height, false) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } });
         let dispatch = self
             .hierarchy_pointer_bridge
             .handle_move(UiPoint::new(x, y));

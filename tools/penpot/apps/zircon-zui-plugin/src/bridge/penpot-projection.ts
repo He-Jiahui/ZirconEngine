@@ -1,3 +1,4 @@
+import { prepareViewportToolbarProjection } from './zui-viewport-toolbar';
 import { projectTreeRowText } from './zui-tree-row-visual';
 import {
   ZuiDocumentError,
@@ -241,6 +242,8 @@ export function projectZuiDocument(document: ZuiDocument): ZuiAssetProjection {
     }
   }
 
+  prepareViewportToolbarProjection(document, shapes);
+
   const preservedCount = countMetadataOnlyFields(document);
   if (preservedCount > 0) {
     diagnostics.push({
@@ -426,7 +429,9 @@ function projectText(
   const props = node.props;
   if (prefabRole === 'icon-button' || props?.['icon_placement'] === 'icon_only')
     return null;
-  const property =
+  const localized = isTable(props?.['text']) && typeof props['text']['text_key'] === 'string'
+    ? props['text'] : undefined;
+  const property = localized ? 'text' :
     isSelectionControl(node) &&
     typeof props?.['label'] === 'string' &&
     props['label'].trim()
@@ -454,7 +459,9 @@ function projectText(
   // Tabs.value is the selection key. Runtime resolve_text only displays its text.
   if (node.component === 'Tabs' && property !== 'text') return null;
   const semanticText = property ? props?.[property] : undefined;
-  const rawCharacters = typeof semanticText === 'string' ? semanticText : '';
+  const rawCharacters = localized
+    ? localizedText(document, localized)
+    : typeof semanticText === 'string' ? semanticText : '';
   const parsedText = parseProjectionText(
     rawCharacters,
     props?.['rich_text_format'],
@@ -480,7 +487,7 @@ function projectText(
   );
   return {
     characters,
-    property,
+    property: localized ? null : property,
     color: color.color ?? defaults.textColor,
     colorOpacity: color.opacity,
     fontFamily: textStyle.family,
@@ -917,6 +924,18 @@ function projectedColor(
     path: `nodes.${nodeId}.props.${property}`,
   });
   return { color: null, opacity: 1 };
+}
+
+function localizedText(document: ZuiDocument, reference: ZuiTable): string {
+  const key = reference['text_key'];
+  const tableName = reference['table'] ?? 'editor';
+  const tables = document['penpot_i18n_tables'];
+  const table = isTable(tables) && typeof tableName === 'string' ? tables[tableName] : undefined;
+  const translations = isTable(table) ? table['translations'] : undefined;
+  const value = isTable(translations) && typeof key === 'string' ? translations[key] : undefined;
+  if (typeof value !== 'string')
+    throw new ZuiDocumentError('Unresolved localized text ' + String(tableName) + ':' + String(key));
+  return value;
 }
 
 function textProperty(props: ZuiTable | undefined): ProjectionText['property'] {

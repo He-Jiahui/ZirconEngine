@@ -36,6 +36,8 @@ class RecipePlanningTests(unittest.TestCase):
         })
         self.cargo = self.root / "cargo.exe"
         self.cargo.write_bytes(b"fixture")
+        self.rustc = self.root / "rustc.exe"
+        self.rustc.write_bytes(b"rustc-fixture")
         (self.root / "Cargo.lock").write_text("# fixture\n", encoding="utf-8")
         self.environment_file = self.root / "msvc-environment.json"
         self.environment = {"INCLUDE": "D:\\sealed\\include", "LIB": "D:\\sealed\\lib",
@@ -48,12 +50,14 @@ class RecipePlanningTests(unittest.TestCase):
                                  "LIBPATH": self.environment["LIBPATH"], "PATH": self.environment["Path"],
                                  "VCINSTALLDIR": self.environment["VCINSTALLDIR"],
                                  "VCToolsVersion": self.environment["VCToolsVersion"]}
-        self.state.put("environment_policy", "default", {
+        self.environment_policy = {
             "schemaVersion": 1, "kind": "jenkins.trusted.build-environment", "status": "verified",
             "environmentFile": str(self.environment_file), "fileDigest": file_digest(self.environment_file),
             "environment": canonical_environment, "environmentDigest": digest(canonical_environment),
             "cargoPath": str(self.cargo), "cargoSha256": file_digest(self.cargo),
-        })
+            "rustcPath": str(self.rustc), "rustcSha256": file_digest(self.rustc),
+        }
+        self.state.put("environment_policy", "default", self.environment_policy)
         self.state.put("resource_policy", "default", {
             "estimateAuthority": "state.policy/validated-profile",
             "recipeEstimates": {"default": {"cpu": 1, "memoryBytes": 1024, "diskBytes": 2048},
@@ -65,6 +69,7 @@ class RecipePlanningTests(unittest.TestCase):
             "toolchain": {"cargo": "cargo 1.80", "rustc": "rustc 1.80"},
             "toolchainDigest": "f" * 64, "lockDigest": "e" * 64,
             "compilerIdentity": "rustc-1", "workspaceRoot": self.workspace,
+            "environmentPolicyDigest": digest(self.environment_policy),
         })
 
     def tearDown(self):
@@ -131,17 +136,67 @@ class RecipePlanningTests(unittest.TestCase):
             self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
                                 changed_paths=["crates/demo/src/lib.rs"])
 
+    def test_cargo_evidence_policy_binding_uses_full_policy_digest(self):
+        evidence = self.state.get("sealed_cargo_evidence", self.source)
+        self.state.put("sealed_cargo_evidence", self.source,
+                       {**evidence["payload"], "environmentPolicyDigest": "f" * 64},
+                       expected_version=evidence["version"])
+        with self.assertRaisesRegex(JenkinsError, "different environment policy"):
+            self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
+                                changed_paths=["crates/demo/src/lib.rs"])
+
     def test_environment_policy_and_resource_profile_are_bound_to_recipe(self):
         self.state.put("validation_profile", self.source, {"profile": "tiny-fixture"})
         plan = self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
                                    changed_paths=["crates/demo/src/lib.rs"])
         self.assertEqual(plan.recipe["resourceProfile"], "tiny-fixture")
         self.assertEqual(plan.recipe["resource"], {"cpu": 1, "memoryBytes": 256, "diskBytes": 64})
+        self.assertEqual(plan.recipe["environmentPolicyDigest"], digest(self.environment_policy))
+        self.assertEqual(plan.recipe["environmentDigest"], digest(plan.recipe["environment"]))
+        self.assertEqual(plan.recipe["rustcPath"], str(self.rustc))
+        self.assertEqual(plan.recipe["rustcSha256"], file_digest(self.rustc))
         execution = plan.recipe["executionEnvironment"]
         self.assertEqual(execution["INCLUDE"], self.environment["INCLUDE"])
         self.assertEqual(execution["PATH"], self.environment["Path"])
+        self.assertEqual(execution["RUSTC"], str(self.rustc))
         self.assertEqual(execution["RUSTC_WRAPPER"], "")
         self.assertIn(str(self.build_root / 'zircon-local/zircon-jenkins/preparations') + '\\', plan.recipe["preparationRoot"])
+
+    def test_changed_rustc_is_rejected(self):
+        self.rustc.write_bytes(b"changed-rustc")
+        with self.assertRaisesRegex(JenkinsError, "rustc executable differs"):
+            self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
+                                changed_paths=["crates/demo/src/lib.rs"])
+
+    def test_missing_rustc_is_rejected(self):
+        self.rustc.unlink()
+        with self.assertRaisesRegex(JenkinsError, "rustcPath must identify"):
+            self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
+                                changed_paths=["crates/demo/src/lib.rs"])
+
+    def test_missing_rustc_policy_path_is_rejected(self):
+        policy = {key: value for key, value in self.environment_policy.items() if key != "rustcPath"}
+        record = self.state.get("environment_policy", "default")
+        self.state.put("environment_policy", "default", policy, expected_version=record["version"])
+        evidence = self.state.get("sealed_cargo_evidence", self.source)
+        self.state.put("sealed_cargo_evidence", self.source,
+                       {**evidence["payload"], "environmentPolicyDigest": digest(policy)},
+                       expected_version=evidence["version"])
+        with self.assertRaisesRegex(JenkinsError, "rustcPath must be absolute"):
+            self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
+                                changed_paths=["crates/demo/src/lib.rs"])
+
+    def test_relative_rustc_policy_path_is_rejected(self):
+        policy = {**self.environment_policy, "rustcPath": "rustc.exe"}
+        record = self.state.get("environment_policy", "default")
+        self.state.put("environment_policy", "default", policy, expected_version=record["version"])
+        evidence = self.state.get("sealed_cargo_evidence", self.source)
+        self.state.put("sealed_cargo_evidence", self.source,
+                       {**evidence["payload"], "environmentPolicyDigest": digest(policy)},
+                       expected_version=evidence["version"])
+        with self.assertRaisesRegex(JenkinsError, "rustcPath must be absolute"):
+            self.planner().plan(sealed_input_ref=self.source, driver=self.driver,
+                                changed_paths=["crates/demo/src/lib.rs"])
 
     def test_environment_file_change_is_rejected(self):
         self.environment_file.write_text(json.dumps({**self.environment, "LIB": "foreign"}, sort_keys=True),

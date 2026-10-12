@@ -51,4 +51,51 @@ pub(crate) struct TemplateV2PaneData {
 pub(crate) struct GeneratedBottomPaneData {
     pub nodes: ModelRc<TemplatePaneNodeData>,
     pub status: SharedString,
+    pub source_surface_frame: Option<Arc<UiSurfaceFrame>>,
+    pub accepts_text_input: bool,
+    pub source_width: f32,
+    pub source_height: f32,
+    pub input_result: Option<Arc<zircon_runtime_interface::ui::dispatch::UiInputDispatchResult>>,
+}
+
+impl GeneratedBottomPaneData {
+    pub(crate) fn input_transform(
+        &self,
+        content: &super::super::FrameRect,
+    ) -> Option<super::super::UiAssetPreviewCanvasTransform> {
+        self.source_surface_frame.as_ref()?;
+        if ![
+            content.x,
+            content.y,
+            content.width,
+            content.height,
+            self.source_width,
+            self.source_height,
+        ]
+        .iter()
+        .all(|value| value.is_finite())
+            || [
+                content.width,
+                content.height,
+                self.source_width,
+                self.source_height,
+            ]
+            .iter()
+            .any(|value| *value <= 0.0)
+        {
+            return None;
+        }
+        let clip = super::super::FrameRect {
+            x: content.x,
+            y: content.y,
+            width: content.width.min(self.source_width),
+            height: content.height.min(self.source_height),
+        };
+        Some(super::super::UiAssetPreviewCanvasTransform {
+            origin_x: content.x,
+            origin_y: content.y,
+            scale: 1.0,
+            clip,
+        })
+    }
 }

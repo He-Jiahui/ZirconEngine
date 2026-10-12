@@ -50,6 +50,9 @@ pub(crate) struct SceneViewportSnapSteps {
     pub(crate) translate_step: Real,
     pub(crate) rotate_step_deg: Real,
     pub(crate) scale_step: Real,
+    pub(crate) translate_enabled: bool,
+    pub(crate) rotate_enabled: bool,
+    pub(crate) scale_enabled: bool,
 }
 
 impl Default for SceneViewportSnapSteps {
@@ -58,6 +61,9 @@ impl Default for SceneViewportSnapSteps {
             translate_step: 1.0,
             rotate_step_deg: 15.0,
             scale_step: 0.1,
+            translate_enabled: true,
+            rotate_enabled: true,
+            scale_enabled: true,
         }
     }
 }
@@ -77,6 +83,12 @@ pub struct SceneViewportChromeSettings {
     pub translate_step: Real,
     pub rotate_step_deg: Real,
     pub scale_step: Real,
+    #[serde(default)]
+    pub translate_snap_enabled: bool,
+    #[serde(default)]
+    pub rotate_snap_enabled: bool,
+    #[serde(default)]
+    pub scale_snap_enabled: bool,
     pub preview_lighting: bool,
     pub preview_skybox: bool,
 }
@@ -100,6 +112,9 @@ impl SceneViewportChromeSettings {
             translate_step: snap_steps.translate_step,
             rotate_step_deg: snap_steps.rotate_step_deg,
             scale_step: snap_steps.scale_step,
+            translate_snap_enabled: snap_steps.translate_enabled,
+            rotate_snap_enabled: snap_steps.rotate_enabled,
+            scale_snap_enabled: snap_steps.scale_enabled,
             preview_lighting: settings.preview_lighting,
             preview_skybox: settings.preview_skybox,
         }

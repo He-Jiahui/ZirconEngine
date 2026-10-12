@@ -60,6 +60,8 @@ pub(crate) fn viewport_event_from_command(command: ViewportCommand) -> EditorVie
         ViewportCommand::AlignView(orientation) => EditorViewportEvent::AlignView { orientation },
         ViewportCommand::SetDisplayMode(mode) => EditorViewportEvent::SetDisplayMode { mode },
         ViewportCommand::SetGridMode(mode) => EditorViewportEvent::SetGridMode { mode },
+        ViewportCommand::SetGridVisibility(visible) => EditorViewportEvent::SetGridVisibility { visible },
+        ViewportCommand::ToggleSnap(kind) => EditorViewportEvent::ToggleSnap { kind },
         ViewportCommand::SetTranslateSnap(step) => EditorViewportEvent::SetTranslateSnap { step },
         ViewportCommand::SetRotateSnapDegrees(step) => {
             EditorViewportEvent::SetRotateSnapDegrees { step }

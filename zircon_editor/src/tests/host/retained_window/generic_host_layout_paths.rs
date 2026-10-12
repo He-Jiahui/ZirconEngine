@@ -60,10 +60,10 @@ fn active_editor_ui_tree_contains_no_retained_sources() {
 fn editor_ui_toml_assets_replace_former_workbench_source_roles() {
     let root = editor_root();
     for required in [
-        "assets/ui/editor/host/workbench_shell.zui",
+        "assets/ui/editor/unreal/editor_shell.zui",
         "assets/ui/editor/workbench_menu_chrome.zui",
         "assets/ui/editor/workbench_page_chrome.zui",
-        "assets/ui/editor/workbench_dock_header.zui",
+        "assets/ui/editor/unreal/components/dock_header.zui",
         "assets/ui/editor/workbench_activity_rail.zui",
         "assets/ui/editor/workbench_status_bar.zui",
         "assets/ui/editor/welcome.zui",

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use zircon_runtime::core::runtime::ServiceCallGuard;
 
 use zircon_runtime::asset::pipeline::manager::{project_asset_manager_handle, ProjectAssetManager};
 use zircon_runtime::asset::{asset_manager_handle, AssetManager};
@@ -37,28 +37,28 @@ impl RetainedHostAssetRuntimeAccess {
 
     pub(in crate::ui::retained_host::app) fn project_asset_manager(
         &self,
-    ) -> Result<Arc<ProjectAssetManager>, CoreError> {
+    ) -> Result<ServiceCallGuard<ProjectAssetManager>, CoreError> {
         let core = self.core()?;
         resolve_manager_service(&core, self.project_asset_manager.clone())
     }
 
     pub(in crate::ui::retained_host::app) fn asset_manager(
         &self,
-    ) -> Result<Arc<dyn AssetManager>, CoreError> {
+    ) -> Result<ServiceCallGuard<dyn AssetManager>, CoreError> {
         let core = self.core()?;
         resolve_manager_service(&core, self.asset_manager.clone())
     }
 
     pub(in crate::ui::retained_host::app) fn editor_asset_manager(
         &self,
-    ) -> Result<Arc<dyn EditorAssetManagerContract>, CoreError> {
+    ) -> Result<ServiceCallGuard<dyn EditorAssetManagerContract>, CoreError> {
         let core = self.core()?;
         resolve_manager_service(&core, self.editor_asset_manager.clone())
     }
 
     pub(in crate::ui::retained_host::app) fn resource_manager(
         &self,
-    ) -> Result<Arc<dyn ResourceManager>, CoreError> {
+    ) -> Result<ServiceCallGuard<dyn ResourceManager>, CoreError> {
         let core = self.core()?;
         resolve_manager_service(&core, self.resource_manager.clone())
     }

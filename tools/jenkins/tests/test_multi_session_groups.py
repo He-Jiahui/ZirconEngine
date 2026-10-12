@@ -74,10 +74,10 @@ class MultiSessionGroupsTests(unittest.TestCase):
         self.state.put("workflow", "joint-flow", {"status": "accepted", "sourceDigest": joint["sourceDigest"]})
         self.state.put("acceptance", "joint-receipt", {"status": "accepted", "flowId": "joint-flow",
                        "sourceDigest": joint["sourceDigest"], "coverageDigest": joint["coverageDigest"]})
-        ready = self.groups.prepare([first, second], mode="joint", joint_validation={"receiptRef": "joint-receipt"})
-        self.assertEqual(ready.status, "ready")
-        self.assertEqual(pending.group_id, ready.group_id)
-        self.assertIsNotNone(ready.joint_manifest_digest)
+        with self.assertRaises(JenkinsError) as error:
+            self.groups.prepare([first, second], mode="joint", joint_validation={"receiptRef": "joint-receipt"})
+        self.assertEqual("fabricated_acceptance", error.exception.code)
+        self.assertEqual("pending-joint-validation", self.groups.observe(pending.group_id).status)
 
     def test_path_conflict_and_foreign_edit_are_rejected(self):
         first = self.add("s1", ["src/a.rs"], source="source-a")

@@ -25,7 +25,7 @@ pub struct AssetWorkspaceSnapshot {
     pub mesh_import_path: String,
     pub kind_filter: Option<ResourceKind>,
     pub folder_tree: Vec<AssetFolderSnapshot>,
-    pub visible_folders: Vec<AssetFolderSnapshot>,
+    pub visible_folders: Arc<[AssetFolderSnapshot]>,
     /// 不可变共享行代次；行索引仅在该代次内有效，跨代次需按uuid/locator重新定位。
     pub visible_assets: AssetWorkspaceItemGeneration,
     pub creation_menu: Arc<AssetCreationMenuGeneration>,

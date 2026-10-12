@@ -28,6 +28,7 @@ fn zr_taa_reactive_mask_from_surface(surface: ZrSurfaceOutput) -> f32 {
     return max(alpha, authored_strength);
 }
 
+// 零响应片段会以替换写入覆盖已有遮罩，因此直接丢弃以保留前序结果。
 fn zr_discard_empty_taa_reactive_mask(reactive_mask: f32) {
     if (reactive_mask <= ZR_TAA_REACTIVE_MASK_EPSILON) {
         discard;
@@ -42,6 +43,7 @@ fn fs_taa_reactive_mask(input: ZrVertexOutput) -> @location(0) f32 {
     return reactive_mask;
 }
 
+// 此入口只读取材质的响应强度，避免把不透明表面的默认 alpha=1 变成全表面响应。
 @fragment
 fn fs_taa_reactive_material_mask(input: ZrVertexOutput) -> @location(0) f32 {
     let surface = zr_material_surface(input);

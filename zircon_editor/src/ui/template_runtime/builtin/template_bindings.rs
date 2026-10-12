@@ -6,7 +6,8 @@ use super::workbench_window_template_bindings::workbench_window_template_binding
 use crate::core::editor_event::InspectorFieldChange;
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformSpace, ViewOrientation,
+    DisplayMode, PivotMode, ProjectionMode, TransformHandleKind, TransformSpace,
+    ViewOrientation,
 };
 use crate::ui::binding::{
     AssetCommand, DockCommand, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
@@ -215,9 +216,7 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 "ViewportToolbar",
                 "SetGridMode",
                 EditorUiEventKind::Change,
-                EditorUiBindingPayload::viewport_command(ViewportCommand::SetGridMode(
-                    GridMode::Hidden,
-                )),
+                EditorUiBindingPayload::viewport_command(ViewportCommand::SetGridVisibility(true)),
             ),
         ),
         (
@@ -734,6 +733,30 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
     ]);
+    for (control_id, mode) in [
+        ("SelectMode", SceneModeActivation::Select),
+        ("TranslateMode", SceneModeActivation::Transform(TransformHandleKind::Move)),
+        ("RotateMode", SceneModeActivation::Transform(TransformHandleKind::Rotate)),
+        ("ScaleMode", SceneModeActivation::Transform(TransformHandleKind::Scale)),
+    ] {
+        bindings.insert(
+            format!("ViewportToolbar/{control_id}"),
+            EditorUiBinding::new(
+                "ViewportToolbar", control_id, EditorUiEventKind::Click,
+                EditorUiBindingPayload::viewport_command(ViewportCommand::ActivateSceneMode(mode)),
+            ),
+        );
+    }
+    for (control_id, kind) in [
+        ("ToggleTranslateSnap", TransformHandleKind::Move),
+        ("ToggleRotateSnap", TransformHandleKind::Rotate),
+        ("ToggleScaleSnap", TransformHandleKind::Scale),
+    ] {
+        bindings.insert(format!("ViewportToolbar/{control_id}"), EditorUiBinding::new(
+            "ViewportToolbar", control_id, EditorUiEventKind::Click,
+            EditorUiBindingPayload::viewport_command(ViewportCommand::ToggleSnap(kind)),
+        ));
+    }
     bindings.extend(workbench_window_template_bindings());
     bindings.extend(showcase_template_bindings());
     bindings.extend(material_lab_template_bindings());

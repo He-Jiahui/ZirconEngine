@@ -26,11 +26,13 @@ from tools.analysis.profiling.shader_pbr.zircon_validate_shader_pbr_viewer_evide
 
 _PROFILE_TOOL_PATHS = (
     "tools/analysis/profiling/shared/performance-machine-manifest.ps1",
+    "tools/analysis/profiling/shared/profile-capture-paths.ps1",
     "tools/analysis/profiling/shared/profile-capture-manifest.ps1",
     "tools/analysis/profiling/shader_pbr/shader-pbr-profile-contract.ps1",
     "tools/analysis/profiling/shader_pbr/shader-pbr-profile-evidence-identity.ps1",
     "tools/analysis/profiling/shader_pbr/shader-pbr-profile-publication.ps1",
     "tools/analysis/profiling/shader_pbr/shader-pbr-profile-runtime-evidence.ps1",
+    "tools/analysis/profiling/shader_pbr/shader-pbr-profile-source-closure.ps1",
     "tools/analysis/profiling/shader_pbr/shader-pbr-profile-toolchain.ps1",
     "tools/analysis/profiling/shader_pbr/write_zircon_shader_pbr_build_provenance.ps1",
     "tools/analysis/visual/zircon_pbr_visual_oracle.py",

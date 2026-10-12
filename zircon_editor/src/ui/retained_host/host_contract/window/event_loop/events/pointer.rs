@@ -44,6 +44,14 @@ impl UiHostWindowEventLoop {
                 eligible,
             );
         let pointer = pointer.filter(|_| eligible);
+        if let Some(pointer) = pointer.as_ref() {
+            if let Some(result) = self.host.dispatch_retained_pane_platform_input(
+                zircon_runtime_interface::ui::dispatch::UiInputEvent::Pointer(pointer.clone()),
+            ) {
+                self.dispatch_pointer_result(result);
+                return;
+            }
+        }
         let native_pointer_id = pointer
             .as_ref()
             .map(|pointer| pointer.metadata.pointer_id.unwrap_or_default());
@@ -92,6 +100,13 @@ impl UiHostWindowEventLoop {
         let pointer_id = pointer.metadata.pointer_id.unwrap_or_default();
         let modifiers = pointer.metadata.modifiers;
         self.last_pointer_position = Some((x, y));
+        if let Some(result) = self.host.dispatch_retained_pane_platform_input(
+            zircon_runtime_interface::ui::dispatch::UiInputEvent::Pointer(pointer.clone()),
+        ) {
+            self.dispatch_pointer_result(result);
+            self.sync_ime_allowed();
+            return;
+        }
         self.host
             .global::<UiHostContext>()
             .invoke_workbench_pointer_input(pointer, None);
@@ -121,6 +136,12 @@ impl UiHostWindowEventLoop {
             let scroll_delta = pointer.event.scroll_delta;
             pointer.event.point.x = x;
             pointer.event.point.y = y;
+            if let Some(result) = self.host.dispatch_retained_pane_platform_input(
+                zircon_runtime_interface::ui::dispatch::UiInputEvent::Pointer(pointer.clone()),
+            ) {
+                self.dispatch_pointer_result(result);
+                return;
+            }
             self.host
                 .global::<UiHostContext>()
                 .invoke_workbench_pointer_input(pointer, None);
@@ -141,5 +162,37 @@ fn pointer_button_state(kind: UiPointerEventKind) -> Option<NativePointerButtonS
         UiPointerEventKind::Down => Some(NativePointerButtonState::Pressed),
         UiPointerEventKind::Up => Some(NativePointerButtonState::Released),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+impl crate::ui::retained_host::host_contract::window::UiHostWindow {
+    pub(crate) fn dispatch_ui_asset_normalized_pointer_for_test(
+        &self,
+        mut pointer: zircon_runtime_interface::ui::dispatch::UiPointerInputEvent,
+    ) {
+        super::super::super::metadata::attach_native_window_id(self, &mut pointer.metadata);
+        let kind = pointer.event.kind;
+        let point = pointer.event.point;
+        let mut event_loop = UiHostWindowEventLoop::new(self.clone_strong());
+        let translated = PlatformInputTranslation {
+            sequence: pointer.metadata.sequence,
+            event: Some(
+                zircon_runtime_interface::ui::window::UiWindowInputPumpEvent::Input(
+                    zircon_runtime_interface::ui::dispatch::UiInputEvent::Pointer(pointer),
+                ),
+            ),
+        };
+        let fallback = PhysicalPosition::new(f64::from(point.x), f64::from(point.y));
+        match kind {
+            UiPointerEventKind::Move => event_loop.handle_pointer_moved(translated, fallback),
+            UiPointerEventKind::Down | UiPointerEventKind::Up => {
+                event_loop.handle_pointer_button(translated, fallback)
+            }
+            UiPointerEventKind::Scroll => {
+                event_loop.handle_mouse_wheel(translated, MouseScrollDelta::LineDelta(0.0, 0.0))
+            }
+            _ => panic!("this driver accepts normalized platform pointer input"),
+        }
     }
 }

@@ -382,9 +382,10 @@ fn queued_document_save_owner_blocks_explicit_discard_until_completion_is_polled
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
     let runtime = editor_runtime_with_config_path(&config_path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     create_project_with_default_world(&project_root);
     manager.open_project(&project_root).unwrap();
     let instance_id = manager
@@ -394,16 +395,18 @@ fn queued_document_save_owner_blocks_explicit_discard_until_completion_is_polled
         .mark_document_external_effect(&instance_id, DirtyExternalEffectId::ui_source_buffer())
         .unwrap();
     let dirty = manager.dirty_document_toolkits().unwrap().remove(0);
+    drop(manager);
     assert_eq!(
-        manager
-            .begin_dirty_document_save(
-                DirtyDocumentSaveOwner::ClosePrompt,
-                [dirty.document_id],
-                SaveReason::Close,
-            )
-            .unwrap(),
+        EditorManager::begin_dirty_document_save(
+            manager_handle.clone(),
+            DirtyDocumentSaveOwner::ClosePrompt,
+            [dirty.document_id],
+            SaveReason::Close,
+        )
+        .unwrap(),
         DirtyDocumentSaveStart::Scheduled
     );
+    let manager = manager_handle.enter().unwrap();
     let layout_before = manager.current_layout();
     let instances_before = manager.current_view_instances();
     let toolkit_before = manager.document_toolkit_snapshot();
@@ -459,9 +462,10 @@ fn source_edit_before_queued_save_completion_stays_dirty_in_registry_and_tab() {
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
     let runtime = editor_runtime_with_config_path(&config_path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     create_project_with_default_world(&project_root);
     manager.open_project(&project_root).unwrap();
     let instance_id = manager
@@ -474,16 +478,18 @@ fn source_edit_before_queued_save_completion_stays_dirty_in_registry_and_tab() {
         )
         .unwrap();
     let first = manager.dirty_document_toolkits().unwrap().remove(0);
+    drop(manager);
     assert_eq!(
-        manager
-            .begin_dirty_document_save(
-                DirtyDocumentSaveOwner::ClosePrompt,
-                [first.document_id],
-                SaveReason::Close,
-            )
-            .unwrap(),
+        EditorManager::begin_dirty_document_save(
+            manager_handle.clone(),
+            DirtyDocumentSaveOwner::ClosePrompt,
+            [first.document_id],
+            SaveReason::Close,
+        )
+        .unwrap(),
         DirtyDocumentSaveStart::Scheduled
     );
+    let manager = manager_handle.enter().unwrap();
     manager
         .update_ui_asset_editor_source(
             &instance_id,
@@ -539,9 +545,10 @@ fn failed_document_save_keeps_dirty_view_until_successful_retry() {
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
     let runtime = editor_runtime_with_config_path(&config_path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     create_project_with_default_world(&project_root);
     manager.open_project(&project_root).unwrap();
     let instance_id = manager
@@ -558,7 +565,9 @@ fn failed_document_save_keeps_dirty_view_until_successful_retry() {
         STYLE_UI_LAYOUT_ASSET.replace("Styled UI Asset", "External UI Asset"),
     )
     .unwrap();
-    assert!(manager.save_ui_asset_editor(&instance_id).is_err());
+    drop(manager);
+    assert!(EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id).is_err());
+    let manager = manager_handle.enter().unwrap();
     assert!(matches!(
         manager.close_view(&instance_id),
         Err(EditorError::DocumentCloseNeedsDecision { .. })
@@ -569,7 +578,9 @@ fn failed_document_save_keeps_dirty_view_until_successful_retry() {
         .any(|instance| instance.instance_id == instance_id));
     assert_eq!(manager.dirty_document_toolkits().unwrap().len(), 1);
     fs::write(&ui_asset_path, STYLE_UI_LAYOUT_ASSET).unwrap();
-    manager.save_ui_asset_editor(&instance_id).unwrap();
+    drop(manager);
+    EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id).unwrap();
+    let manager = manager_handle.enter().unwrap();
     assert!(manager.close_view(&instance_id).unwrap());
     assert!(manager.document_toolkit_snapshot().descriptors().is_empty());
 

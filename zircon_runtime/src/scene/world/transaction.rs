@@ -7,8 +7,9 @@ use crate::scene::ecs::{
     StorageError, StorageType, TransferredComponentDescriptor, TransferredComponentRow,
     TransferredResourceRow,
 };
-use crate::scene::EntityId;
+use crate::scene::{dynamic_scene::DynamicSceneError, EntityId};
 use zircon_runtime_interface::reflect::ReflectError;
+use zircon_runtime_interface::world_sync::LifecycleTargetChange;
 
 use super::{SceneError, SceneResult, World};
 
@@ -31,6 +32,13 @@ pub(in crate::scene) struct PreflightDynamicComponent {
 pub(in crate::scene) struct RetiredWorldTransactionState {
     _world: World,
     _replaced_resources: ResourceStore,
+    lifecycle_target_change: Option<LifecycleTargetChange>,
+}
+
+impl RetiredWorldTransactionState {
+    pub(in crate::scene) fn lifecycle_target_change(&self) -> Option<LifecycleTargetChange> {
+        self.lifecycle_target_change
+    }
 }
 
 pub(in crate::scene) struct PreflightedDynamicComponentType {
@@ -55,9 +63,10 @@ pub(in crate::scene) struct PreflightedDynamicScenePublication {
 }
 
 mod detached_entity_batch;
-pub(super) use detached_entity_batch::DetachPreparationOwner;
+pub(crate) use detached_entity_batch::DetachPreparationOwner;
 pub use detached_entity_batch::{
-    DetachedEntityBatch, DetachedEntityBatchRestoreError, PreparedEntitySubtrees,
+    DetachedEntityBatch, DetachedEntityBatchRemoveError, DetachedEntityBatchRestoreError,
+    PreparedEntitySubtrees,
 };
 
 impl World {
@@ -294,11 +303,12 @@ impl World {
     }
 
     /// Publishes an artifact whose descriptor, row, identity, and allocator
-    /// checks have all completed. No recoverable work remains in this half.
+    /// checks have all completed. Rows are published before callbacks; lifecycle
+    /// replay can still be canceled if callbacks replace the World or Schedule.
     pub(in crate::scene) fn publish_preflighted_dynamic_scene(
         &mut self,
         publication: PreflightedDynamicScenePublication,
-    ) {
+    ) -> Result<(), DynamicSceneError> {
         let PreflightedDynamicScenePublication {
             records,
             descriptor_imports,
@@ -428,10 +438,18 @@ impl World {
         self.advance_world_generation();
         self.record_staged_lifecycle_events = prior_lifecycle_staging;
         if !prior_lifecycle_staging {
+            let execution = self.begin_schedule_execution();
             for event in self.staged_lifecycle_events.split_off(lifecycle_start) {
+                if let Some(target) = execution.target_change(self) {
+                    return Err(DynamicSceneError::LifecycleTargetReplacedDuringCommit { target });
+                }
                 self.dispatch_component_lifecycle(event);
             }
+            if let Some(target) = execution.target_change(self) {
+                return Err(DynamicSceneError::LifecycleTargetReplacedDuringCommit { target });
+            }
         }
+        Ok(())
     }
 
     /// Creates an isolated World that can validate a dynamic-scene mutation.
@@ -530,10 +548,43 @@ impl World {
         self.component_types.is_empty()
     }
 
+    pub(in crate::scene) fn validate_staged_scene_runtime_bindings(
+        &self,
+        staged: &World,
+    ) -> Result<(), crate::scene::dynamic_scene::DynamicSceneError> {
+        if !staged
+            .component_registry
+            .preserves_ids_of(&self.component_registry)
+        {
+            return Err(
+                crate::scene::dynamic_scene::DynamicSceneError::IncompatibleRetainedComponentRegistry,
+            );
+        }
+        Ok(())
+    }
+
+    /// Publishes compatible scene storage while retaining the live runtime owner.
+    /// The returned owner keeps retired payloads until the caller can drop them
+    /// outside its World lock. A lifecycle callback can cancel remaining replay;
+    /// callers must inspect that status before publishing commit follow-up state.
     pub(in crate::scene) fn commit_staged_scene_state(
         &mut self,
         mut staged: World,
-    ) -> RetiredWorldTransactionState {
+    ) -> Result<RetiredWorldTransactionState, crate::scene::dynamic_scene::DynamicSceneError> {
+        self.validate_staged_scene_runtime_bindings(&staged)?;
+        let execution = self.begin_schedule_execution();
+        staged
+            .component_registry
+            .retain_missing_ids_from(&self.component_registry);
+        let mut live_resource_registry = std::mem::take(&mut self.resource_registry);
+        live_resource_registry.retain_staged_metadata(&staged.resource_registry);
+        staged.resource_registry = live_resource_registry;
+        // This commit changes scene storage inside one live runtime World.
+        // Whole World replacement uses a fresh owner and never takes this path.
+        staged.detach_preparation_owner = self.detach_preparation_owner.clone();
+        staged.change_tick = self.change_tick;
+        staged.last_change_tick = self.last_change_tick;
+        staged.active_change_tick = self.active_change_tick_slot();
         staged.advance_dynamic_component_generations_after(self);
         staged.advance_scene_binding_generations_after(self);
         staged.advance_world_generation_after(self.world_generation());
@@ -558,14 +609,19 @@ impl World {
         staged.ecs_frame_performance_diagnostics =
             std::mem::take(&mut self.ecs_frame_performance_diagnostics);
 
-        let retired = RetiredWorldTransactionState {
+        let mut retired = RetiredWorldTransactionState {
             _world: std::mem::replace(self, staged),
             _replaced_resources: replaced_resources,
+            lifecycle_target_change: None,
         };
         for event in staged_lifecycle_events {
+            if !execution.is_bound_to(self) {
+                break;
+            }
             self.dispatch_component_lifecycle(event);
         }
-        retired
+        retired.lifecycle_target_change = execution.target_change(self);
+        Ok(retired)
     }
 }
 

@@ -72,7 +72,7 @@ pub(crate) fn apply_presentation(
     workbench_window_projection: Option<&RetainedUiHostProjection>,
     componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
 ) {
     let template_v2_data = std::collections::BTreeMap::new();
     let mut chrome_projection_cache = HostChromeProjectionCache::default();
@@ -96,7 +96,7 @@ pub(crate) fn apply_presentation(
         workbench_window_projection,
         componentized_workbench_layout_frames,
         floating_window_projection_bundle,
-        component_showcase_runtime,
+        pane_runtimes,
         1.0,
         "",
         &mut chrome_projection_cache,
@@ -132,7 +132,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
     workbench_window_projection: Option<&RetainedUiHostProjection>,
     componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     template_scale_factor: f32,
     hierarchy_filter_query: &str,
     chrome_projection_cache: &mut HostChromeProjectionCache,
@@ -175,7 +175,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             &presentation,
             &host_layout,
             chrome,
-            component_showcase_runtime,
+            pane_runtimes,
             hierarchy_filter_query,
             console_projection_cache,
             module_plugins_projection_cache,
@@ -221,7 +221,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
         record_current_ui_perf_counter(UiPerfCounter::PaneProjectionBuildCount, 1.0);
         to_host_contract_host_scene_data_with_runtime(
             &host_scene_data,
-            component_showcase_runtime,
+            pane_runtimes,
             Some(&presentation.welcome),
             hierarchy_filter_query,
             console_projection_cache,
@@ -236,7 +236,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
         );
         to_host_contract_native_floating_surface_data_with_runtime(
             &native_floating_surface_data,
-            component_showcase_runtime,
+            pane_runtimes,
             Some(&presentation.welcome),
             hierarchy_filter_query,
             console_projection_cache,
@@ -406,7 +406,7 @@ fn to_host_contract_tabs(tabs: &ModelRc<host_window::TabData>) -> ModelRc<host_c
 fn to_host_contract_floating_window_data(
     window: host_window::FloatingWindowData,
     header_height_px: f32,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
@@ -437,7 +437,7 @@ fn to_host_contract_floating_window_data(
         active_pane: to_host_contract_pane(
             window.active_pane,
             pane_size,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -449,7 +449,7 @@ fn to_host_contract_floating_window_data(
 fn to_host_contract_floating_windows(
     windows: &ModelRc<host_window::FloatingWindowData>,
     header_height_px: f32,
-    component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
     console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
@@ -459,7 +459,7 @@ fn to_host_contract_floating_windows(
         to_host_contract_floating_window_data(
             window,
             header_height_px,
-            component_showcase_runtime,
+            pane_runtimes,
             welcome,
             hierarchy_filter_query,
             console_projection_cache,
@@ -780,8 +780,11 @@ fn to_host_contract_build_export_pane(
 fn to_host_contract_generated_bottom_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
 ) -> host_contract::GeneratedBottomPaneData {
-    pane_data_conversion::to_host_contract_generated_bottom_pane_from_host_pane(data, pane_size)
+    pane_data_conversion::to_host_contract_generated_bottom_pane_from_host_pane_with_runtime(
+        data, pane_size, runtime,
+    )
 }
 
 fn to_host_contract_runtime_diagnostics_pane(

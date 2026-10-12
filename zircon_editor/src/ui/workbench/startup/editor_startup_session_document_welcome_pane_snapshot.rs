@@ -43,8 +43,19 @@ impl EditorStartupSessionDocument {
                 template_label: "Renderable Empty".to_string(),
                 can_create: self.creation_validation.is_empty(),
                 can_open_existing: self.can_open_existing,
-                validation_message: self.creation_validation.clone(),
+                validation_message: if self.creation_validation.is_empty()
+                    && !self.can_open_existing
+                {
+                    "No existing project at this path. Create one or enter its parent folder and name."
+                        .to_string()
+                } else {
+                    self.creation_validation.clone()
+                },
             },
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/welcome_form_snapshot.rs"]
+mod tests;

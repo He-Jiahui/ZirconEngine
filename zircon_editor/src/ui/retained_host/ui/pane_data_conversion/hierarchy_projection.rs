@@ -115,7 +115,6 @@ fn apply_hierarchy_template_state(
             }
             "HierarchyListPanel" => {
                 node.selected = has_selection;
-                node.focused = has_selection;
                 node.surface_variant = if has_selection {
                     "panel".into()
                 } else {
@@ -130,7 +129,6 @@ fn apply_hierarchy_template_state(
             }
             "SelectRoot" => {
                 node.selected = has_selection;
-                node.focused = has_selection;
                 node.surface_variant = if has_selection {
                     "panel".into()
                 } else {

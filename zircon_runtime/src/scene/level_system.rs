@@ -418,23 +418,34 @@ impl LevelSystem {
         &self,
         expected_generation: u64,
         world: World,
-    ) -> Result<(), u64> {
+    ) -> Result<(), DynamicSceneError> {
         let retired = {
             let mut current = self.lock_world();
             let actual_generation = current.world_generation();
             if actual_generation != expected_generation {
-                return Err(actual_generation);
+                return Err(DynamicSceneError::TargetWorldChanged {
+                    expected_generation,
+                    actual_generation,
+                });
             }
+            current.validate_staged_scene_runtime_bindings(&world)?;
             let replacement_epoch = self.advance_world_replacement_epoch();
             current.clear_all_events();
-            let retired = current.commit_staged_scene_state(world);
-            current.attach_world_sync_subscriptions(Arc::clone(&self.world_subscriptions));
-            self.reset_runtime_state_after_world_replacement(&mut current);
-            current.record_world_fact(WorldFact::WorldReplaced { replacement_epoch });
+            let retired = current.commit_staged_scene_state(world)?;
+            if retired.lifecycle_target_change().is_none() {
+                current.attach_world_sync_subscriptions(Arc::clone(&self.world_subscriptions));
+                self.reset_runtime_state_after_world_replacement(&mut current);
+                current.record_world_fact(WorldFact::WorldReplaced { replacement_epoch });
+            }
             retired
         };
+        let target_change = retired.lifecycle_target_change();
         drop(retired);
-        Ok(())
+        if let Some(target) = target_change {
+            Err(DynamicSceneError::LifecycleTargetReplacedDuringCommit { target })
+        } else {
+            Ok(())
+        }
     }
 
     pub fn replace_world_and_reset_runtime_state(&self, world: World) {
@@ -507,6 +518,16 @@ impl LevelSystem {
         write(&mut world)
     }
 
+    /// Admits work only to the Schedule pinned by the original tick. A staged
+    /// scene commit retains that Arc; a whole World replacement does not.
+    pub(crate) fn with_world_mut_if_schedule_execution<R>(
+        &self,
+        execution: &crate::scene::ecs::ScheduleExecution,
+        write: impl FnOnce(&mut World) -> R,
+    ) -> Option<R> {
+        self.with_world_mut(|world| execution.is_bound_to(world).then(|| write(world)))
+    }
+
     pub(crate) fn with_world_mut_and_replacement_epoch<R>(
         &self,
         write: impl FnOnce(&mut World, u64) -> R,
@@ -535,27 +556,41 @@ impl LevelSystem {
         core: &CoreHandle,
         id: &str,
         tick: SystemTickContext,
+        execution: &crate::scene::ecs::ScheduleExecution,
     ) -> Result<bool, CoreError> {
-        let (system, replacement_epoch) =
-            self.with_world_mut_and_replacement_epoch(|world, replacement_epoch| {
-                (
-                    world.schedule_mut().take_runtime_system(id),
-                    replacement_epoch,
-                )
-            });
-        let Some(mut system) = system else {
+        let system = self
+            .with_world_mut_if_schedule_execution(execution, |world| {
+                let return_owner = world.schedule().executable_return_handle();
+                world
+                    .schedule_mut()
+                    .take_runtime_system(id)
+                    .map(|system| (system, return_owner))
+            })
+            .ok_or_else(crate::scene::ecs::schedule_owner_changed_error)?;
+        let Some((mut system, return_owner)) = system else {
             return Ok(false);
         };
 
         let result = catch_unwind(AssertUnwindSafe(|| {
             system.run(RuntimeSceneSystemContext::new(core, self, tick))
         }));
-        let _ = self.with_world_mut_if_replacement_epoch(replacement_epoch, move |world| {
-            world.schedule_mut().restore_runtime_system(system);
+        let mut system = Some(system);
+        let restored = self.with_world_mut_if_schedule_execution(execution, |world| {
+            world
+                .schedule_mut()
+                .restore_runtime_system(system.take().unwrap());
         });
+        if let Some(system) = system {
+            return_owner.runtime(system);
+        }
         match result {
-            Ok(result) => result.map(|_| true),
+            // Keep the callback's original error or panic even if it replaced
+            // World. Successful stale callbacks cancel the remaining old tick.
+            Ok(Err(error)) => Err(error),
             Err(payload) => resume_unwind(payload),
+            Ok(Ok(())) => restored
+                .map(|()| true)
+                .ok_or_else(crate::scene::ecs::schedule_owner_changed_error),
         }
     }
 

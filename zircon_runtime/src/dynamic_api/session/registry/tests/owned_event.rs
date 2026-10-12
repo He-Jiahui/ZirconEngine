@@ -15,6 +15,7 @@ use super::super::{
     RuntimeWakeRegistration,
 };
 use crate::core::framework::input::{FileDragDropEvent, InputEvent};
+use crate::core::manager::resolve_manager_service;
 use crate::dynamic_api::session::ffi;
 use crate::dynamic_api::session::profile::RuntimeDynamicSessionProfile;
 use crate::dynamic_api::session::state::RuntimeDynamicSession;
@@ -87,7 +88,8 @@ fn owned_event_rejects_oversized_and_invalid_payloads_before_dispatch() {
 #[test]
 fn astra_life_a4_blocked_owner_payload_event_survives_short_destroy_retries() {
     let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
-    let input_manager = session.resolve_input_manager().unwrap();
+    let input_manager = session.input_manager.clone();
+    let core = session.runtime.handle().downgrade();
     let handle = insert_session_with_wake(session, RuntimeWakeRegistration::disabled());
     let (owner_entered_tx, owner_entered_rx) = mpsc::sync_channel(1);
     let (release_owner_tx, release_owner_rx) = mpsc::sync_channel(1);
@@ -145,11 +147,17 @@ fn astra_life_a4_blocked_owner_payload_event_survives_short_destroy_retries() {
         path: "C:/tmp/asset.png".to_owned(),
     });
     assert_eq!(
-        input_manager
-            .drain_events()
-            .iter()
-            .filter(|event| *event == &expected)
-            .count(),
+        resolve_manager_service(
+            &core
+                .upgrade()
+                .expect("session still owns its runtime before final destroy"),
+            input_manager.clone(),
+        )
+        .expect("input observation must be admitted before final destroy")
+        .drain_events()
+        .iter()
+        .filter(|event| *event == &expected)
+        .count(),
         1
     );
     assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);

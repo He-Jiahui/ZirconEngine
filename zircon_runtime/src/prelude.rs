@@ -1,6 +1,8 @@
 //! Stable convenience imports for runtime-facing Zircon applications and modules.
 
+#[cfg(feature = "native-host")]
 pub use crate::asset::prelude::*;
+#[cfg(feature = "native-host")]
 pub use crate::builtin::{
     default_manifest_for_target, manifest_for_runtime_profile, manifest_with_mode_baseline,
     runtime_core_modules, runtime_modules_for_compiled_project_plugin_plan,
@@ -39,13 +41,14 @@ pub use crate::core::runtime::state_machine::{
     NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
 };
 pub use crate::core::runtime::tasks::{
-    parallel_for, EngineTaskGraph, EngineTaskGraphInitError, EngineTaskGraphOptions, JobHandle,
-    JobSchedulerReport, TaskCancellationPolicy, TaskCancellationToken, TaskDescriptor,
-    TaskGraphAdmissionError, TaskGraphScope, TaskGraphScopeCensus, TaskGraphScopeDescriptor,
-    TaskGraphShutdownError, TaskGraphShutdownReport, TaskGraphWorkerInventory, TaskHandle, TaskId,
-    TaskPool, TaskPoolBuildError, TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions,
-    TaskPoolReport, TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts,
-    TaskPools, TaskState, TaskStatus, TASKS_ACTIVE_DIAGNOSTIC, TASKS_CANCELLED_DIAGNOSTIC,
+    parallel_for, EngineTaskGraph, EngineTaskGraphInitError, EngineTaskGraphOptions,
+    EngineThreadBudget, JobHandle, JobSchedulerReport, TaskCancellationPolicy,
+    TaskCancellationToken, TaskDescriptor, TaskGraphAdmissionError, TaskGraphScope,
+    TaskGraphScopeCensus, TaskGraphScopeDescriptor, TaskGraphShutdownError,
+    TaskGraphShutdownReport, TaskGraphWorkerInventory, TaskHandle, TaskId, TaskPool,
+    TaskPoolBuildError, TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions, TaskPoolReport,
+    TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts, TaskPools,
+    TaskState, TaskStatus, TASKS_ACTIVE_DIAGNOSTIC, TASKS_CANCELLED_DIAGNOSTIC,
     TASKS_COMPLETED_DIAGNOSTIC, TASKS_DEPENDENCY_WAITING_DIAGNOSTIC,
     TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, TASKS_EXPLICIT_WAIT_MS_DIAGNOSTIC,
     TASKS_PANICKED_DIAGNOSTIC, TASKS_QUEUED_DIAGNOSTIC, TASKS_QUEUE_WAIT_MS_DIAGNOSTIC,
@@ -74,10 +77,13 @@ pub use crate::engine_module::{
     plugin_contract, plugin_factory, qualified_name, DriverContract, EngineDriver, EngineManager,
     EngineModule, EnginePlugin, EngineService, ManagerContract, PluginContract,
 };
+#[cfg(feature = "native-host")]
 pub use crate::foundation::{FoundationModule, FOUNDATION_MODULE_NAME};
 #[cfg(feature = "graphics")]
 pub use crate::graphics::prelude::*;
+#[cfg(feature = "native-host")]
 pub use crate::input::prelude::*;
+#[cfg(feature = "native-host")]
 pub use crate::platform::{
     CapabilityStatus, CursorBoundaryBackend, CursorOptionsBackend, EventLoopPolicy,
     FileDragDropBackend, GamepadBackend, GamepadEventBackend, GamepadRumbleBackend,
@@ -89,6 +95,7 @@ pub use crate::platform::{
     WindowMetricsBackend, PLATFORM_CONFIG_KEY, PLATFORM_DRIVER_NAME, PLATFORM_MANAGER_NAME,
     PLATFORM_MODULE_NAME,
 };
+#[cfg(feature = "native-host")]
 pub use crate::scene::prelude::*;
 #[cfg(feature = "ui")]
 pub use crate::ui::prelude::*;

@@ -47,18 +47,20 @@ impl WorldDriver {
     ) -> Result<(), LevelTickError> {
         let world_time = level.advance_world_time(snapshot)?;
         let fixed_step_plan = world_time.fixed_step_plan();
-        let world_generation = level.world_generation();
-        let schedule = level.with_world(|world| world.schedule().stage_plan());
-        level.with_world_mut(|world| {
+        let (world_generation, execution) = level.with_world_mut(|world| {
+            let world_generation = world.world_generation();
+            let execution = world.begin_schedule_execution();
             world.reclaim_dropped_runtime_event_mirrors();
             world.reset_ecs_frame_performance_diagnostics();
+            (world_generation, execution)
         });
+        let schedule = execution.plan();
         for stage in schedule.stages() {
             if *stage == SystemStage::FixedFirst {
                 for committed_steps in 0..fixed_step_plan.step_count {
                     let mut active_step = ActiveFixedStep::begin(level, world_generation)?;
                     let tick = active_step.step()?.id();
-                    let execution = (|| -> Result<(), FixedStageExecutionError> {
+                    let fixed_execution_result = (|| -> Result<(), FixedStageExecutionError> {
                         for fixed_stage in SystemStage::FIXED_LOOP {
                             ensure_fixed_step_world_generation(
                                 level,
@@ -81,10 +83,10 @@ impl WorldDriver {
                             .map_err(|source| {
                                 FixedStageExecutionError::unattributed(fixed_stage, source)
                             })?;
-                            run_stage(core, level, fixed_stage, tick_contexts, false, &schedule)
+                            run_stage(core, level, fixed_stage, tick_contexts, false, &execution)
                                 .map_err(|error| {
-                                    FixedStageExecutionError::from_stage(fixed_stage, error)
-                                })?;
+                                FixedStageExecutionError::from_stage(fixed_stage, error)
+                            })?;
                             ensure_fixed_step_world_generation(
                                 level,
                                 world_generation,
@@ -96,12 +98,16 @@ impl WorldDriver {
                         }
                         Ok(())
                     })();
-                    if let Err(error) = execution {
+                    if let Err(error) = fixed_execution_result {
                         if let Err(abort_error) = active_step.abort() {
-                            return Err(LevelTickError::from(CoreError::Initialization(
-                                "WorldDriver fixed-step execution rollback".to_string(),
-                                format!("{}; abort failed: {abort_error}", error.source),
-                            )));
+                            // Replacement settles the old time transaction. Keep
+                            // its callback error as the original failure source.
+                            if level.with_world(|world| execution.is_bound_to(world)) {
+                                return Err(LevelTickError::from(CoreError::Initialization(
+                                    "WorldDriver fixed-step execution rollback".to_string(),
+                                    format!("{}; abort failed: {abort_error}", error.source),
+                                )));
+                            }
                         }
                         return Err(fixed_step_failure(
                             level,
@@ -148,16 +154,18 @@ impl WorldDriver {
                     level.world_time().fixed_time().elapsed(),
                 )?,
                 world_time.virtual_time_paused(),
-                &schedule,
+                &execution,
             )
             .map_err(|error| LevelTickError::from(error.into_parts().1))?;
         }
 
-        level.with_world(|world| {
-            world
-                .ecs_frame_performance_diagnostics()
-                .publish(core, world_time.outer_frame_index());
-        });
+        level
+            .with_world_mut_if_schedule_execution(&execution, |world| {
+                world
+                    .ecs_frame_performance_diagnostics()
+                    .publish(core, world_time.outer_frame_index());
+            })
+            .ok_or_else(crate::scene::ecs::schedule_owner_changed_error)?;
 
         Ok(())
     }
@@ -318,7 +326,7 @@ fn run_stage(
     stage: SystemStage,
     tick_contexts: SceneStageTickContexts,
     virtual_time_paused: bool,
-    schedule: &crate::scene::ecs::SceneScheduleStagePlan,
+    execution: &crate::scene::ecs::ScheduleExecution,
 ) -> Result<(), SceneStageRunError> {
     SceneScheduleRunner::run_stage(
         core,
@@ -326,9 +334,7 @@ fn run_stage(
         stage,
         tick_contexts,
         virtual_time_paused,
-        schedule.internal_systems_for_stage(stage),
-        schedule.native_steps_for_stage(stage),
-        schedule.native_conflict_graph_for_stage(stage),
+        execution,
     )
 }
 

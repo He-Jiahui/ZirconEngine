@@ -1,7 +1,9 @@
 //! 记录型生命周期共享调用序列供核心模块回归消费；夹具只提供本测试需要的描述符和成功回调，不实现领域行为。
 use std::sync::{Arc, Mutex};
 
-use crate::core::{CoreResult, ModuleContext, ModuleDescriptor, ModuleLifecycle};
+use crate::core::{
+    CoreResult, ModuleCleanupContext, ModuleContext, ModuleDescriptor, ModuleLifecycle,
+};
 use crate::plugin::{RuntimePlugin, RuntimePluginDescriptor};
 use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
@@ -36,7 +38,7 @@ impl ModuleLifecycle for RecordingModuleLifecycle {
         Ok(())
     }
 
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         self.record("cleanup");
         Ok(())
     }

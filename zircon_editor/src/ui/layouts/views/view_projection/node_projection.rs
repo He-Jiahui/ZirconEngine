@@ -14,9 +14,14 @@ pub(crate) struct ViewTemplateNodeProjection {
     pub(super) base_rows: Rc<Vec<Rc<ViewTemplateNodeData>>>,
     pub(super) row_patches: Rc<BTreeMap<usize, Rc<ViewTemplateNodeData>>>,
     pub(super) source_frame: Option<Arc<UiSurfaceFrame>>,
+    pub(super) unreal_dock_header: Option<Arc<super::build::UnrealDockHeaderSource>>,
 }
 
 impl ViewTemplateNodeProjection {
+    pub(crate) fn unreal_dock_header_source(&self) -> Option<Arc<super::build::UnrealDockHeaderSource>> {
+        self.unreal_dock_header.as_ref().map(Arc::clone)
+    }
+
     pub(crate) fn source_frame(&self) -> Option<Arc<UiSurfaceFrame>> {
         self.source_frame.as_ref().map(Arc::clone)
     }

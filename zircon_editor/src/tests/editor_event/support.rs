@@ -29,13 +29,13 @@ pub(crate) fn env_lock() -> &'static crate::tests::support::TestEnvironmentLock 
     crate::tests::support::env_lock()
 }
 
-struct EnvironmentVariableRestoreGuard {
+pub(crate) struct EnvironmentVariableRestoreGuard {
     key: &'static str,
     previous_value: Option<std::ffi::OsString>,
 }
 
 impl EnvironmentVariableRestoreGuard {
-    fn capture(key: &'static str) -> Self {
+    pub(crate) fn capture(key: &'static str) -> Self {
         Self {
             key,
             previous_value: std::env::var_os(key),
@@ -104,6 +104,7 @@ pub(crate) struct EventRuntimeHarness {
     pub core: CoreRuntime,
     pub runtime: EditorHostEventController,
     config_path: PathBuf,
+    cleanup_config_path: bool,
     project_cleanup: TestProjectCleanup,
 }
 
@@ -121,7 +122,22 @@ impl EventRuntimeHarness {
     }
 
     pub(crate) fn with_enabled_subsystems(prefix: &str, enabled_subsystems: &[&str]) -> Self {
-        let config_path = unique_temp_path(prefix);
+        Self::build_with_config_path(unique_temp_path(prefix), enabled_subsystems, true)
+    }
+
+    /// The caller owns this explicit configuration path and its cleanup.
+    pub(crate) fn with_enabled_subsystems_at_config_path(
+        config_path: PathBuf,
+        enabled_subsystems: &[&str],
+    ) -> Self {
+        Self::build_with_config_path(config_path, enabled_subsystems, false)
+    }
+
+    fn build_with_config_path(
+        config_path: PathBuf,
+        enabled_subsystems: &[&str],
+        cleanup_config_path: bool,
+    ) -> Self {
         let restore_config_path = EnvironmentVariableRestoreGuard::capture("ZIRCON_CONFIG_PATH");
         std::env::set_var("ZIRCON_CONFIG_PATH", &config_path);
 
@@ -146,21 +162,26 @@ impl EventRuntimeHarness {
         drop(restore_config_path);
 
         let manager = core
-            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
             .unwrap();
         // Mirror production startup: the shell and controller share one stable edit gateway.
         let mut state = EditorState::with_default_selection_with_context(
             DefaultLevelManager::default().create_default_level(),
             UVec2::new(1280, 720),
-            manager.context().clone(),
+            {
+                let manager = manager.enter().expect("editor manager context admission");
+                manager.context().clone()
+            },
         );
         state.mark_project_open();
-        let runtime = EditorHostEventController::new(state, manager);
+        let runtime = EditorHostEventController::new(state, manager)
+            .expect("editor controller manager admission");
 
         Self {
             core,
             runtime,
             config_path,
+            cleanup_config_path,
             project_cleanup: TestProjectCleanup::default(),
         }
     }
@@ -217,7 +238,9 @@ impl EventRuntimeHarness {
 
 impl Drop for EventRuntimeHarness {
     fn drop(&mut self) {
-        let _ = fs::remove_file(&self.config_path);
+        if self.cleanup_config_path {
+            let _ = fs::remove_file(&self.config_path);
+        }
     }
 }
 

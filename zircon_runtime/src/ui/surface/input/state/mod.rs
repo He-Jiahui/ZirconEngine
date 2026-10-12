@@ -8,7 +8,7 @@ mod pointer_press;
 mod popup_tooltip;
 mod text_document_epoch;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::{
@@ -64,6 +64,25 @@ pub(crate) struct UiDeferredFocusInputLifecycle {
 }
 
 impl UiSurfaceInputState {
+    /// Retired widgets cannot deliver queued component actions to a reused node ID.
+    pub(crate) fn retire_node_input_records(&mut self, retired: &BTreeSet<UiNodeId>) {
+        self.popup_anchor_points
+            .retain(|id, _| !retired.contains(id));
+        if self
+            .tooltip
+            .as_ref()
+            .and_then(|tooltip| tooltip.owner)
+            .is_some_and(|owner| retired.contains(&owner))
+        {
+            self.tooltip = None;
+        }
+        self.deferred_focus_input_lifecycle
+            .component_events
+            .retain(|report| !retired.contains(&report.target));
+        // Keep focus-loss owners and IME shutdown requests so the input manager releases
+        // the retired text histories; no new widget has entered that manager yet.
+    }
+
     pub(crate) fn text_document_epoch(&self, owner: UiNodeId) -> Option<u64> {
         self.text_document_epochs.current(owner)
     }

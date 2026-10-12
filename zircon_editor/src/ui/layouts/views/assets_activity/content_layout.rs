@@ -3,24 +3,18 @@ use std::collections::HashMap;
 use zircon_runtime_interface::ui::design_tokens::{EditorDensityTokens, EditorTypographyTokens};
 
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
-use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::asset_content_layout::{
-    compact_file_like_display_name, AssetContentLayoutMetrics, AssetContentSurfaceProfile,
-    RuntimeFileNameCompaction, ACTIVITY_CONTENT_PANEL_CONTROL_ID,
+    activity_compact_name, activity_row_geometry, ActivityAssetVirtualization,
+    AssetContentLayoutMetrics, AssetContentRect, AssetContentSurfaceProfile,
+    ACTIVITY_CONTENT_PANEL_CONTROL_ID,
 };
 use crate::ui::workbench::snapshot::{AssetViewMode, AssetWorkspaceSnapshot};
 
 use super::content_nodes::{
-    folder_badge_control_id, folder_meta_control_id, folder_name_control_id, folder_row_control_id,
-    folder_type_control_id, item_badge_control_id, item_meta_control_id, item_name_control_id,
-    item_row_control_id, item_type_control_id, EMPTY_CONTROL_ID,
+    item_badge_control_id, item_meta_control_id, item_name_control_id, item_row_control_id,
+    item_type_control_id, EMPTY_CONTROL_ID,
 };
-
-const ACTIVITY_NAME_MIN_PREFIX_CHARS: usize = 4;
-const ACTIVITY_NAME_MIN_TAIL_STEM_CHARS: usize = 3;
-const ACTIVITY_NAME_PREFERRED_TAIL_STEM_CHARS: usize = 6;
-const META_MIN_WIDTH_ROW_FRACTION: f32 = 0.75;
 
 struct ActivityContentNodeIndex {
     by_control_id: HashMap<SharedString, usize>,
@@ -45,6 +39,7 @@ impl ActivityContentNodeIndex {
 pub(super) fn apply_assets_activity_content_layout(
     nodes: &mut [ViewTemplateNodeData],
     snapshot: &AssetWorkspaceSnapshot,
+    virtual_rows: &ActivityAssetVirtualization,
 ) {
     let node_index = ActivityContentNodeIndex::from_nodes(nodes);
     let Some(panel_index) = node_index.index_of(ACTIVITY_CONTENT_PANEL_CONTROL_ID) else {
@@ -64,42 +59,25 @@ pub(super) fn apply_assets_activity_content_layout(
         return;
     }
 
-    let mut y = panel.y + metrics.first_row_y();
-    for index in 0..snapshot.visible_folders.len() {
+    for index in 0..virtual_rows.slot_count {
+        let Some(binding) = virtual_rows.binding(0.0, index) else {
+            continue;
+        };
         layout_content_row(
             nodes,
             &node_index,
             &panel,
             metrics,
             snapshot.view_mode,
-            y,
-            metrics.folder_height,
-            &folder_row_control_id(index),
-            &folder_badge_control_id(index),
-            &folder_type_control_id(index),
-            &folder_name_control_id(index),
-            &folder_meta_control_id(index),
-        );
-        y += metrics.folder_height + metrics.row_gap;
-    }
-    for index in 0..snapshot.visible_assets.len() {
-        let name_control_id = item_name_control_id(index);
-        layout_content_row(
-            nodes,
-            &node_index,
-            &panel,
-            metrics,
-            snapshot.view_mode,
-            y,
-            metrics.item_height,
+            binding.top,
+            binding.height,
             &item_row_control_id(index),
             &item_badge_control_id(index),
             &item_type_control_id(index),
-            &name_control_id,
+            &item_name_control_id(index),
             &item_meta_control_id(index),
         );
-        compact_item_name(nodes, &node_index, &name_control_id);
-        y += metrics.item_height + metrics.row_gap;
+        compact_item_name(nodes, &node_index, &item_name_control_id(index));
     }
 }
 
@@ -137,67 +115,41 @@ fn layout_content_row(
         return;
     }
 
-    set_frame(nodes, index, row_control_id, row_x, y, row_width, height);
-    let density = EditorDensityTokens::workbench_dense();
-    let inner_gap = density.gap_small;
-    let badge_extent = match view_mode {
-        AssetViewMode::List => density.row_height,
-        AssetViewMode::Thumbnail => (height - density.gap_medium * 2.0).max(density.row_height),
-    };
-    let badge_x = row_x + inner_gap;
-    let badge_y = y + (height - badge_extent) * 0.5;
-    set_frame(
-        nodes,
-        index,
-        badge_control_id,
-        badge_x,
-        badge_y,
-        badge_extent,
-        badge_extent,
-    );
-    set_frame(
-        nodes,
-        index,
-        type_control_id,
-        badge_x,
-        badge_y,
-        badge_extent,
-        badge_extent,
-    );
-
-    let typography = EditorTypographyTokens::workbench_default();
-    let meta_width = index
+    let meta_text = index
         .index_of(meta_control_id)
         .and_then(|index| nodes.get(index))
-        .map(|node| {
-            measure_runtime_text_width(node.text.as_str(), typography.caption_size)
-                + density.gap_medium
-        })
-        .unwrap_or(density.row_height)
-        .max(density.row_height * META_MIN_WIDTH_ROW_FRACTION);
-    let meta_x = row_x + row_width - inner_gap - meta_width;
-    let name_x = badge_x + badge_extent + density.gap_medium;
-    let name_width = (meta_x - density.gap_small - name_x).max(0.0);
-    let label_height = typography.body_size * typography.line_height;
-    let label_y = y + (height - label_height) * 0.5;
-    set_frame(
-        nodes,
-        index,
-        name_control_id,
-        name_x,
-        label_y,
-        name_width,
-        label_height,
+        .map(|node| node.text.as_str())
+        .unwrap_or("");
+    let geometry = activity_row_geometry(
+        AssetContentRect {
+            x: panel.x,
+            y: panel.y,
+            width: panel.width,
+            height: panel.height,
+        },
+        metrics,
+        view_mode,
+        y,
+        height,
+        meta_text,
     );
-    set_frame(
-        nodes,
-        index,
-        meta_control_id,
-        meta_x,
-        label_y,
-        meta_width,
-        label_height,
-    );
+    for (control_id, frame) in [
+        (row_control_id, geometry.row),
+        (badge_control_id, geometry.badge),
+        (type_control_id, geometry.badge),
+        (name_control_id, geometry.name),
+        (meta_control_id, geometry.meta),
+    ] {
+        set_frame(
+            nodes,
+            index,
+            control_id,
+            frame.x,
+            frame.y,
+            frame.width,
+            frame.height,
+        );
+    }
 }
 
 fn compact_item_name(
@@ -205,7 +157,6 @@ fn compact_item_name(
     index: &ActivityContentNodeIndex,
     control_id: &str,
 ) {
-    let typography = EditorTypographyTokens::workbench_default();
     let Some(node) = index
         .index_of(control_id)
         .and_then(|index| nodes.get_mut(index))
@@ -215,16 +166,10 @@ fn compact_item_name(
     if node.frame.width <= 0.0 {
         return;
     }
-    node.text = compact_file_like_display_name(
+    node.text = activity_compact_name(
         node.text.as_str(),
         node.value_text.as_str(),
-        RuntimeFileNameCompaction {
-            max_width: node.frame.width,
-            font_size: typography.body_size,
-            min_prefix_chars: ACTIVITY_NAME_MIN_PREFIX_CHARS,
-            min_tail_stem_chars: ACTIVITY_NAME_MIN_TAIL_STEM_CHARS,
-            preferred_tail_stem_chars: ACTIVITY_NAME_PREFERRED_TAIL_STEM_CHARS,
-        },
+        node.frame.width,
     )
     .into();
 }

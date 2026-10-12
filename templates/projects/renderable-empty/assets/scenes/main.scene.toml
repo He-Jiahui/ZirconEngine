@@ -3,7 +3,7 @@ entity = 1
 name = "Camera"
 active = true
 render_layer_mask = 1
-transform = { translation = [21.0, 2.0, 14.5], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }
+transform = { translation = [0.0, 2.0, 26.0], rotation = [-0.03837652, 0.0, 0.0, 0.99926335], scale = [1.0, 1.0, 1.0] }
 camera = { fov_y_radians = 1.7453293, z_near = 0.1, z_far = 200.0 }
 
 [[entities]]

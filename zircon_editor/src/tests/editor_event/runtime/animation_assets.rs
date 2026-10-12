@@ -107,7 +107,7 @@ fn animation_binding_without_active_sequence_editor_reports_ignored_status_line(
         .effects
         .contains(&EditorEventEffect::ReflectionChanged));
     assert_eq!(
-        runtime.runtime.editor_snapshot().status_line,
+        runtime.runtime.editor_snapshot().unwrap().status_line,
         "Ignored animation command because focused view is not an animation sequence editor"
     );
 }
@@ -150,7 +150,7 @@ fn animation_graph_and_state_machine_bindings_without_open_editor_report_ignored
         .effects
         .contains(&EditorEventEffect::ReflectionChanged));
     assert_eq!(
-        runtime.runtime.editor_snapshot().status_line,
+        runtime.runtime.editor_snapshot().unwrap().status_line,
         "Ignored animation command because focused view is not an animation graph editor"
     );
 }
@@ -188,7 +188,7 @@ fn workbench_menu_open_ui_asset_opens_ui_asset_editor_for_shared_asset() {
     assert!(record.effects.contains(&EditorEventEffect::LayoutChanged));
     let ui_asset_view = runtime
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset"))
         .expect("indexed UI asset should open its toolkit view");
@@ -232,11 +232,11 @@ fn asset_open_event_rejects_canonical_unindexed_ui_asset_locator() {
     assert!(!record.effects.contains(&EditorEventEffect::LayoutChanged));
     assert!(!runtime
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset")));
     assert_eq!(
-        runtime.runtime.editor_snapshot().status_line,
+        runtime.runtime.editor_snapshot().unwrap().status_line,
         format!("Asset type is not indexed for {asset_locator}")
     );
 }
@@ -267,7 +267,7 @@ fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
         .effects
         .contains(&EditorEventEffect::LayoutChanged));
 
-    let instances = runtime.runtime.current_view_instances();
+    let instances = runtime.runtime.current_view_instances().unwrap();
     let sequence_view = instances
         .iter()
         .find(|instance| {
@@ -303,7 +303,7 @@ fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
 
     let graph_views = runtime
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .filter(|instance| {
             instance.descriptor_id == ViewDescriptorId::new("editor.animation_graph")
@@ -326,7 +326,7 @@ fn asset_open_event_routes_animation_assets_to_animation_editor_views() {
             && route.open_operation().as_str() == "animation_graph.authoring.open_state_machine"
     }));
     assert_eq!(
-        runtime.runtime.editor_snapshot().status_line,
+        runtime.runtime.editor_snapshot().unwrap().status_line,
         format!("Opened asset toolkit for {STATE_MACHINE_LOCATOR}")
     );
 }
@@ -353,11 +353,11 @@ fn asset_kind_filter_event_accepts_physics_and_animation_asset_kinds() {
             .expect("asset kind filter event");
 
         assert_eq!(
-            runtime.runtime.editor_snapshot().asset_activity.kind_filter,
+            runtime.runtime.editor_snapshot().unwrap().asset_activity.kind_filter,
             Some(expected)
         );
         assert_eq!(
-            runtime.runtime.editor_snapshot().asset_browser.kind_filter,
+            runtime.runtime.editor_snapshot().unwrap().asset_browser.kind_filter,
             Some(expected)
         );
         assert!(record

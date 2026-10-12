@@ -34,9 +34,10 @@ class PatchIntakeTests(unittest.TestCase):
         (self.root / 'src/lib.rs').write_bytes(b'fn value() -> u32 { 1 }\n')
         (self.root / 'Cargo.toml').write_bytes(b'[package]\nname="patch-fixture"\nversion="0.1.0"\n')
         self.state = State(self.root / '.jenkins/state/support.sqlite3')
-        self.identity = dict(repositoryId='repository', sessionId='session', requestId='request',
+        self.repo_id = repository_id(self.root)
+        self.identity = dict(repositoryId=self.repo_id, sessionId='session', requestId='request',
                              attemptId='attempt', generation=1, stageImplementationDigest='d' * 64)
-        self.state.authorize_session('repository', 'session', 'user', ['src', 'Cargo.toml'],
+        self.state.authorize_session(self.repo_id, 'session', 'user', ['src', 'Cargo.toml'],
                                      ['implementation', 'validation'], {'source': 'user', 'task': 'incremental patch'})
         self.before = 'fn value() -> u32 { 1 }\n'
         self.after = 'fn value() -> u32 { 2 }\n'
@@ -61,14 +62,14 @@ class PatchIntakeTests(unittest.TestCase):
         intake = self.register()
         ref = intake['patchRequestRef']
         self.assertEqual(self.before.encode(), (self.root / 'src/lib.rs').read_bytes())
-        self.assertIsNone(self.state.get_request('repository', 'session', 'request'))
+        self.assertIsNone(self.state.get_request(self.repo_id, 'session', 'request'))
         prepared = self.prepare(ref)
         self.assertEqual('prepared', prepared['status'])
         self.assertEqual(self.after.encode(), (self.root / 'src/lib.rs').read_bytes())
         operation = self.state.get_operation(prepared['patchOperationRef'])
         self.assertEqual('complete', operation['status'])
         self.assertEqual(checksum(self.after), operation['result']['afterHashes']['src/lib.rs'])
-        request = self.state.get_request('repository', 'session', 'request')
+        request = self.state.get_request(self.repo_id, 'session', 'request')
         self.assertEqual(prepared['sealedInputRef'], request['payload']['sourceInputDigest'])
         self.assertEqual(ref, request['payload']['patchRequestRef'])
         self.assertEqual(prepared, self.prepare(ref))
@@ -90,7 +91,7 @@ class PatchIntakeTests(unittest.TestCase):
             self.prepare(ref)
         self.assertEqual('patch_dependency_changed', caught.exception.code)
         self.assertEqual(self.before.encode(), (self.root / 'src/lib.rs').read_bytes())
-        self.assertIsNone(self.state.get_request('repository', 'session', 'request'))
+        self.assertIsNone(self.state.get_request(self.repo_id, 'session', 'request'))
 
     def test_shared_checkout_lock_excludes_second_writer(self):
         ref = self.register()['patchRequestRef']
@@ -141,7 +142,7 @@ class PatchIntakeTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 self.prepare(ref)
         self.assertEqual([], self.state.list('sealed_input'))
-        self.assertIsNone(self.state.get_request('repository', 'session', 'request'))
+        self.assertIsNone(self.state.get_request(self.repo_id, 'session', 'request'))
         recovered = reconcile_patch(self.state, self.root, {'identity': self.identity, 'patchRequestRef': ref})
         self.assertEqual('failed', recovered['status'])
         self.assertEqual('complete', recovered['recovery']['status'])
@@ -286,7 +287,7 @@ class PatchIntakeTests(unittest.TestCase):
 
     def test_revoked_authorization_blocks_registered_patch(self):
         ref = self.register()['patchRequestRef']
-        self.state.revoke_session('repository', 'session')
+        self.state.revoke_session(self.repo_id, 'session')
         with self.assertRaises(JenkinsError) as caught:
             self.prepare(ref)
         self.assertEqual('action_not_authorized', caught.exception.code)
@@ -303,6 +304,113 @@ class PatchIntakeTests(unittest.TestCase):
                  'sealedInputRef': prepared['sealedInputRef'], 'patchOperationRef': prepared['patchOperationRef'],
                  'buildRoot': prepared['buildRoot']}, self.state, self.root)
         self.assertEqual('pending', result['status'])
+
+    def test_public_unapplied_patch_pins_controller_runtime_through_fixture_and_request(self):
+        from tools.jenkins.patches import handle
+        from tools.jenkins.patch_context import register_acceptance_checkout
+        fixture = self.root / '.jenkins/tmp/acceptance/original'
+        (fixture / 'src').mkdir(parents=True)
+        (fixture / 'src/lib.rs').write_bytes(self.before.encode())
+        (fixture / 'Cargo.toml').write_bytes((self.root / 'Cargo.toml').read_bytes())
+        identity = {**self.identity, 'repositoryId': repository_id(fixture)}
+        self.state.authorize_session(identity['repositoryId'], identity['sessionId'], 'user',
+            ['src', 'Cargo.toml'], ['implementation', 'validation', 'deployment'],
+            {'source': 'user', 'task': 'Bound original patch runtime regression'})
+        marker = self.root / '.jenkins/state/deployment/driver.json'
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text('{}', encoding='utf-8')
+        binding = {'digest': 'd' * 64, 'runtimeOperationId': 'runtime-original'}
+        requests = []
+
+        class Result:
+            status = 201
+            headers = {'Location': 'http://127.0.0.1:18080/queue/item/runtime-original/'}
+
+        with patch('tools.jenkins.workflow.handler._trusted_driver', return_value='d' * 64), \
+             patch('tools.jenkins.deployment.driver.active_driver_binding', return_value=binding), \
+             patch('tools.jenkins.patch_context.active_driver_binding', return_value=binding), \
+             patch('tools.jenkins.patches._ensure_patch_metadata'):
+            checkout = register_acceptance_checkout(self.state, self.root, {
+                'identity': identity, 'checkoutRoot': str(fixture), 'ownedPaths': ['src', 'Cargo.toml']})
+            payload = {**self.payload, 'identity': identity, 'checkoutBindingRef': checkout['checkoutBindingRef']}
+            registered = handle('register', payload, self.state, self.root)
+            ref = registered['patchRequestRef']
+            original = self.state.get('patch_intent', ref)
+            self.assertEqual('runtime-original', original['payload']['runtimeOperationId'])
+            self.assertEqual(ref, digest(original['payload']))
+            self.assertEqual(str(fixture), original['payload']['repositoryRoot'])
+            self.assertEqual(self.before.encode(), (fixture / 'src/lib.rs').read_bytes())
+            control = {'identity': identity, 'patchRequestRef': ref}
+            prepared = prepare_patch(self.state, self.root, control, trusted_driver_digest='d' * 64)
+            request = self.state.get_request(identity['repositoryId'], identity['sessionId'], identity['requestId'])
+            self.assertEqual('runtime-original', request['payload']['runtimeOperationId'])
+            self.assertEqual(ref, request['payload']['patchRequestRef'])
+            self.assertEqual(prepared['sealedInputRef'], request['payload']['sourceInputDigest'])
+            self.assertEqual('d' * 64, request['payload']['driverDigest'])
+            self.assertEqual(self.after.encode(), (fixture / 'src/lib.rs').read_bytes())
+            self.assertEqual(self.before.encode(), (self.root / 'src/lib.rs').read_bytes())
+            self.assertEqual(prepared, prepare_patch(self.state, self.root, control, trusted_driver_digest='d' * 64))
+            self.assertEqual(ref, handle('register', payload, self.state, self.root)['patchRequestRef'])
+
+            def transport(request):
+                requests.append(request)
+                return Result()
+
+            submit_patch(self.state, self.root, control, transport=transport)
+            self.assertEqual(1, len(requests))
+            self.assertIn(b'RUNTIME_OPERATION_ID=runtime-original', requests[0].data)
+            self.assertEqual(original, self.state.get('patch_intent', ref))
+
+    def test_legacy_intent_stays_immutable_and_formal_runtime_replacement_cannot_prepare_or_submit(self):
+        from tools.jenkins.patches import handle
+        legacy = self.register()['patchRequestRef']
+        original = self.state.get('patch_intent', legacy)
+        self.assertNotIn('runtimeOperationId', original['payload'])
+        marker = self.root / '.jenkins/state/deployment/driver.json'
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text('{}', encoding='utf-8')
+        binding = {'digest': 'd' * 64, 'runtimeOperationId': 'runtime-original'}
+        with patch('tools.jenkins.workflow.handler._trusted_driver', return_value='d' * 64), \
+             patch('tools.jenkins.deployment.driver.active_driver_binding', return_value=binding):
+            reused = handle('register', self.payload, self.state, self.root)
+            self.assertTrue(reused['reused'])
+            self.assertEqual(legacy, reused['patchRequestRef'])
+            self.assertEqual(original, self.state.get('patch_intent', legacy))
+            control = {'identity': self.identity, 'patchRequestRef': legacy}
+            for action in ('prepare', 'submit'):
+                with self.subTest(legacy_action=action), self.assertRaises(JenkinsError) as caught:
+                    if action == 'prepare':
+                        prepare_patch(self.state, self.root, control, trusted_driver_digest='d' * 64)
+                    else:
+                        submit_patch(self.state, self.root, control,
+                                     transport=lambda _: self.fail('Unbound intent must not dispatch'))
+                self.assertEqual('patch_runtime_binding_missing', caught.exception.code)
+            pinned_identity = {**self.identity, 'requestId': 'pinned-request', 'attemptId': 'pinned-attempt'}
+            pinned_payload = {**self.payload, 'identity': pinned_identity}
+            pinned = handle('register', pinned_payload, self.state, self.root)['patchRequestRef']
+            pinned_original = self.state.get('patch_intent', pinned)
+            self.assertEqual('runtime-original', pinned_original['payload']['runtimeOperationId'])
+            pinned_control = {'identity': pinned_identity, 'patchRequestRef': pinned}
+            for replaced_context in (False, True):
+                binding['runtimeOperationId'] = 'runtime-replacement' if replaced_context else 'runtime-original'
+                attempted = pinned_control if replaced_context else {
+                    **pinned_control, 'runtimeOperationId': 'runtime-replacement'}
+                for action in ('prepare', 'submit'):
+                    with self.subTest(replaced_context=replaced_context, action=action), self.assertRaises(JenkinsError) as caught:
+                        if action == 'prepare':
+                            prepare_patch(self.state, self.root, attempted, trusted_driver_digest='d' * 64)
+                        else:
+                            submit_patch(self.state, self.root, attempted,
+                                         transport=lambda _: self.fail('Wrong runtime must not dispatch'))
+                    self.assertEqual('runtime_binding_mismatch', caught.exception.code)
+            with self.assertRaises(JenkinsError):
+                handle('register', pinned_payload, self.state, self.root)
+            self.assertEqual(pinned_original, self.state.get('patch_intent', pinned))
+            self.assertEqual(original, self.state.get('patch_intent', legacy))
+            self.assertEqual([], self.state.list('patch_preparation'))
+            self.assertEqual([], self.state.list('sealed_input'))
+            self.assertIsNone(self.state.get_request(*[pinned_identity[key] for key in ('repositoryId', 'sessionId', 'requestId')]))
+            self.assertEqual(self.before.encode(), (self.root / 'src/lib.rs').read_bytes())
 
 
 if __name__ == '__main__':

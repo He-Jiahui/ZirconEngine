@@ -1,3 +1,10 @@
+/// Borrowed pane conversion owners; no Surface or input state lives in this context.
+#[derive(Clone, Copy, Default)]
+pub(crate) struct PaneRuntimeContext<'a> {
+    pub(crate) template: Option<&'a crate::ui::template_runtime::EditorUiHostRuntime>,
+    pub(crate) generated: Option<&'a crate::ui::template_runtime::EditorUiHostRuntime>,
+}
+
 #[path = "ui/apply_presentation.rs"]
 mod apply_presentation_impl;
 #[cfg(test)]
@@ -8,6 +15,9 @@ mod component_contract_metadata;
 #[path = "ui/floating_pane_geometry.rs"]
 mod floating_pane_geometry;
 mod pane_data_conversion;
+pub(crate) use pane_data_conversion::zui_visual_acceptance::{
+    normal_workbench_business_snapshot, NormalWorkbenchBusinessSnapshot,
+};
 #[cfg(test)]
 #[path = "ui/tests/reference_component_tests.rs"]
 mod reference_component_tests;
@@ -99,7 +109,6 @@ pub(crate) use scoped_presentation::{
 pub(crate) use shell_content_presentation::{
     patch_shell_content_presentation_from_state, shell_content_target, ShellContentTarget,
 };
-#[cfg(test)]
 pub(crate) use workbench_window_projection::to_host_contract_workbench_window_nodes;
 pub(crate) use workbench_window_projection::to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale;
 pub(crate) use workbench_window_projection::{

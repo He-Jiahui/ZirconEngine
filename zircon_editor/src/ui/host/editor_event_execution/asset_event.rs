@@ -20,11 +20,12 @@ use super::error::AssetEventExecutionError;
 use super::execution_outcome::ExecutionOutcome;
 pub(super) fn execute_asset_event(
     controller: &EditorHostEventController,
-    shell: &mut WorkbenchShellStateData,
     event: &EditorAssetEvent,
 ) -> Result<ExecutionOutcome, AssetEventExecutionError> {
     match event {
         EditorAssetEvent::OpenAsset { asset_locator } => {
+            let manager = controller.enter_editor_manager()?;
+            let mut shell = controller.shell().lock();
             let asset_locator = match AssetUri::parse(asset_locator) {
                 Ok(asset_locator) => asset_locator,
                 Err(error) => {
@@ -40,7 +41,7 @@ pub(super) fn execute_asset_event(
                     .set_status_line(format!("Asset type is not indexed for {asset_locator}"));
                 return Ok(asset_effects(false, false, false));
             };
-            let registry = enabled_asset_types_for_shell(shell)?;
+            let registry = enabled_asset_types_for_shell(&mut shell, &manager)?;
             let Some(definition) = registry.get(&asset_type) else {
                 return Err(AssetEventExecutionError::UnregisteredAssetType {
                     asset_type: asset_type.clone(),
@@ -57,11 +58,13 @@ pub(super) fn execute_asset_event(
                 .ok_or_else(|| {
                     EditorCommandRegistryError::MissingCommand(toolkit.open_operation().clone())
                 })?;
-                let context =
-                    controller.command_eval_ctx_for_source(&EditorOperationSource::UiBinding);
+                let context = controller
+                    .command_eval_ctx_for_source(&EditorOperationSource::UiBinding)
+                    .map_err(crate::ui::host::EditorError::from)?;
                 EditorCommandRegistry::ensure_enabled(&operation, &context)?;
                 return open_asset_document_view(
-                    shell,
+                    &mut shell,
+                    &manager,
                     toolkit.view_id(),
                     AssetToolkitOpenRoute::new(asset_locator, toolkit.open_operation().clone()),
                     definition.presentation().display_name(),
@@ -74,28 +77,34 @@ pub(super) fn execute_asset_event(
             Ok(asset_effects(false, false, false))
         }
         EditorAssetEvent::SelectFolder { folder_id } => {
+            let mut shell = controller.shell().lock();
             let changed = shell.state.select_asset_folder(folder_id.clone());
             Ok(asset_mutation_effects(changed, false, true))
         }
         EditorAssetEvent::SelectItem { asset_uuid } => {
+            let mut shell = controller.shell().lock();
             let changed = shell.state.select_asset(Some(asset_uuid.clone()));
             Ok(asset_mutation_effects(changed, true, true))
         }
         EditorAssetEvent::ActivateReference { asset_uuid } => {
+            let mut shell = controller.shell().lock();
             let changed = shell.state.navigate_to_asset(asset_uuid);
             Ok(asset_mutation_effects(changed, true, true))
         }
         EditorAssetEvent::SetSearchQuery { query } => {
+            let mut shell = controller.shell().lock();
             let changed = shell.state.set_asset_search_query(query.clone());
             Ok(asset_mutation_effects(changed, false, true))
         }
         EditorAssetEvent::SetKindFilter { kind } => {
+            let mut shell = controller.shell().lock();
             let changed = shell
                 .state
                 .set_asset_kind_filter(parse_asset_kind_filter(kind.as_deref())?);
             Ok(asset_mutation_effects(changed, false, true))
         }
         EditorAssetEvent::SetViewMode { surface, view_mode } => {
+            let mut shell = controller.shell().lock();
             let changed = match (surface, view_mode) {
                 (EditorAssetSurface::Activity, EditorAssetViewMode::List) => shell
                     .state
@@ -113,6 +122,7 @@ pub(super) fn execute_asset_event(
             Ok(asset_mutation_effects(changed, false, true))
         }
         EditorAssetEvent::SetUtilityTab { surface, tab } => {
+            let mut shell = controller.shell().lock();
             let tab = match tab {
                 EditorAssetUtilityTab::Preview => SnapshotAssetUtilityTab::Preview,
                 EditorAssetUtilityTab::References => SnapshotAssetUtilityTab::References,
@@ -164,13 +174,22 @@ pub(super) fn execute_asset_event(
             })
         }
         EditorAssetEvent::OpenAssetBrowser => {
-            let mut outcome = open_view(shell, "editor.asset_browser", "Opened asset browser")?;
+            let manager = controller.enter_editor_manager()?;
+            let mut shell = controller.shell().lock();
+            let mut outcome = open_view(
+                &mut shell,
+                &manager,
+                "editor.asset_browser",
+                "Opened asset browser",
+            )?;
             outcome
                 .effects
                 .push(EditorEventEffect::AssetPreviewRefreshRequested);
             Ok(outcome)
         }
         EditorAssetEvent::LocateSelectedAsset => {
+            let manager = controller.enter_editor_manager()?;
+            let mut shell = controller.shell().lock();
             let Some(asset_uuid) = shell.state.selected_asset_uuid().map(str::to_owned) else {
                 let status = controller
                     .context()
@@ -185,7 +204,7 @@ pub(super) fn execute_asset_event(
                 .context()
                 .i18n()
                 .translate("asset.locate.success");
-            let mut outcome = open_view(shell, "editor.assets", status.as_ref())?;
+            let mut outcome = open_view(&mut shell, &manager, "editor.assets", status.as_ref())?;
             outcome
                 .effects
                 .push(EditorEventEffect::AssetPreviewRefreshRequested);
@@ -200,6 +219,7 @@ pub(super) fn execute_asset_event(
 
 fn open_asset_document_view(
     shell: &mut WorkbenchShellStateData,
+    manager: &crate::ui::host::EditorManager,
     descriptor_id: &str,
     route: AssetToolkitOpenRoute,
     fallback_title: &str,
@@ -208,16 +228,14 @@ fn open_asset_document_view(
     let asset_locator = route.asset_locator().to_string();
     let payload = serde_json::to_value(&route)
         .map_err(|source| AssetEventExecutionError::RouteSerialization { source })?;
-    let instance_id = shell
-        .manager
-        .open_view(ViewDescriptorId::new(descriptor_id), None)?;
-    shell.manager.update_view_instance_metadata(
+    let instance_id = manager.open_view(ViewDescriptorId::new(descriptor_id), None)?;
+    manager.update_view_instance_metadata(
         &instance_id,
         Some(asset_document_title(route.asset_locator(), fallback_title)),
         Some(false),
         Some(payload),
     )?;
-    let focused = shell.manager.focus_view(&instance_id)?;
+    let focused = manager.focus_view(&instance_id)?;
     shell
         .state
         .set_status_line(format!("{status_prefix} {asset_locator}"));

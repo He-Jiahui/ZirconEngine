@@ -89,6 +89,14 @@ impl DynamicSceneAssetReloadQueue {
             DynamicSceneError,
         >,
     ) {
+        if self.lifecycle_interruption.is_some() {
+            self.requeue_ready(ready.ready);
+            apply.stale.extend(ready.stale);
+            apply.lifecycle_interruption = self.lifecycle_interruption.clone();
+            apply.pending_count = self.pending_count();
+            apply.deferred_count = self.target_staging.len();
+            return;
+        }
         apply.stale.extend(ready.stale);
         let started = Instant::now();
         let mut synchronous_capture_elapsed = std::time::Duration::ZERO;
@@ -203,6 +211,9 @@ impl DynamicSceneAssetReloadQueue {
             StagedDynamicSceneSpawn,
         ) -> Result<crate::scene::EntityRemap, DynamicSceneError>,
     ) -> DynamicSceneAssetReloadApplyReport {
+        if self.lifecycle_interruption.is_some() {
+            return self.interrupted_apply_report();
+        }
         let started = Instant::now();
         let mut report = DynamicSceneAssetReloadApplyReport::default();
         let attempts = self.target_staging_order.len();
@@ -289,9 +300,19 @@ impl DynamicSceneAssetReloadQueue {
                         entity_count,
                         resource_count,
                     )),
-                Err(error) => report
-                    .failed
-                    .push(DynamicSceneAssetReloadApplyFailure::new(event, error)),
+                Err(error) => {
+                    let interrupted = error.lifecycle_target_change().is_some();
+                    if interrupted {
+                        self.lifecycle_interruption = Some(error.clone());
+                        report.lifecycle_interruption = self.lifecycle_interruption.clone();
+                    }
+                    report
+                        .failed
+                        .push(DynamicSceneAssetReloadApplyFailure::new(event, error));
+                    if interrupted {
+                        break;
+                    }
+                }
             }
         }
 

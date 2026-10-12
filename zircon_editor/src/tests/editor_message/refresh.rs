@@ -154,7 +154,7 @@ fn hierarchy_dirty_refresh_publishes_and_consumes_a_fragment_without_snapshot_fa
     let _lock = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("editor_message_hierarchy_fragment_refresh");
     let hierarchy = ViewInstanceId::new("scene.hierarchy");
-    let initial_chrome = harness.runtime.chrome_snapshot();
+    let initial_chrome = harness.runtime.chrome_snapshot().unwrap();
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
         .expect("workbench bridge should initialize");
     bridge
@@ -226,7 +226,7 @@ fn ten_thousand_node_name_refresh_applies_a_patch_without_materializing_sparse_r
             renamed
         })
     };
-    let initial_chrome = harness.runtime.chrome_snapshot();
+    let initial_chrome = harness.runtime.chrome_snapshot().unwrap();
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
         .expect("workbench bridge should initialize");
     bridge

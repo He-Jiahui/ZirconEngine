@@ -1,7 +1,7 @@
 //! 搜索字段识别、文本缩进和清除动作几何；识别来自组件声明或多个绑定/动作身份，实际图标由子模块输出。
 
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::metrics::workbench_field_metrics;
+use super::metrics::{workbench_field_metrics, workbench_field_metrics_for_node};
 use crate::ui::retained_host::host_contract::search_field_clear_action_frame;
 use zircon_runtime_interface::ui::layout::UiFrame;
 
@@ -27,7 +27,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_sear
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_field_text_left(
     node: &TemplatePaneNodeData,
 ) -> f32 {
-    let metrics = workbench_field_metrics();
+    let metrics = workbench_field_metrics_for_node(node);
     if is_search_field(node) {
         metrics.search_text_left
     } else {

@@ -70,6 +70,10 @@ impl WgpuRetainedSurfaceCache {
         *self = Self::new(device, format, size);
     }
 
+    pub(super) fn texture(&self) -> &wgpu::Texture {
+        &self.texture
+    }
+
     pub(super) fn view(&self) -> &wgpu::TextureView {
         &self.view
     }

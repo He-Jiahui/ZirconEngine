@@ -19,7 +19,7 @@ impl RetainedEditorHost {
         let surface_size = if width > f32::EPSILON && height > f32::EPSILON {
             UiSize::new(width, height)
         } else {
-            self.viewport_toolbar_surface_size(surface_key)
+            (match self.viewport_toolbar_surface_size(surface_key) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } })
         };
         self.viewport_toolbar_pointer_bridge
             .sync_single_surface(surface_key, surface_size);

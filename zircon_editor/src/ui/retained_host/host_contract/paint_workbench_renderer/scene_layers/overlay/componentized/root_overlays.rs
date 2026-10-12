@@ -1,12 +1,16 @@
 use super::*;
+use crate::ui::retained_host::host_contract::componentized_workbench_regions::{
+    module_tools_menu_spec, module_tools_popups, ModuleToolsPopup,
+};
 
 const WINDOW_ROOT: &str = "WorkbenchWindowRoot";
-const WINDOW_CONTENT: &str = "WorkbenchWindowContent";
+const WINDOW_CONTENT: &str = "UnrealLevelEditorContent";
 
 /// Direct Overlay siblings retain their authored frames and clips. Ordinary content
 /// belongs to its chrome/pane passes; opened root siblings belong to one foreground pass.
 pub(super) struct RootOverlayRows {
     rows: HashSet<usize>,
+    module_popups: Vec<ModuleToolsPopup>,
     exclude: bool,
 }
 
@@ -27,20 +31,31 @@ impl RootOverlayRows {
         else {
             return Self {
                 rows: HashSet::new(),
+                module_popups: Vec::new(),
                 exclude,
             };
         };
+        let nodes_by_id = node_index(nodes);
         let overlay_roots: Vec<&str> = nodes
             .iter()
             .filter(|node| {
                 node.parent_node_id == root.node_id
                     && node.control_id.as_str() != WINDOW_CONTENT
-                    && (!opened_only || node.popup_open)
+                    && (!opened_only
+                        || node.popup_open
+                        || node.control_id.as_str() == "UnrealContentDrawerRegion"
+                        || nodes.iter().any(|child| {
+                            child.popup_open
+                                && reaches_subtree_root(
+                                    child.node_id.as_str(),
+                                    node.node_id.as_str(),
+                                    &nodes_by_id,
+                                )
+                        }))
             })
             .map(|node| node.node_id.as_str())
             .collect();
-        let nodes_by_id = node_index(nodes);
-        let rows = nodes
+        let mut rows: HashSet<usize> = nodes
             .iter()
             .enumerate()
             .filter_map(|(row, node)| {
@@ -50,7 +65,27 @@ impl RootOverlayRows {
                     .then_some(row)
             })
             .collect();
-        Self { rows, exclude }
+        let bounds = FrameRect {
+            x: root.frame.x,
+            y: root.frame.y,
+            width: root.frame.width,
+            height: root.frame.height,
+        };
+        let module_popups = module_tools_popups(presentation, &bounds);
+        if exclude {
+            // Known menu sources never fall back to the chrome/pane painter,
+            // including closed or unproven incarnations.
+            rows.extend(nodes.iter().enumerate().filter_map(|(row, node)| {
+                module_tools_menu_spec(node.control_id.as_str()).map(|_| row)
+            }));
+        } else {
+            rows.extend(module_popups.iter().map(|popup| popup.row));
+        }
+        Self {
+            rows,
+            module_popups,
+            exclude,
+        }
     }
 }
 
@@ -75,10 +110,27 @@ impl TemplateNodePaintTransform for RootOverlayRows {
     fn transform_row(
         &self,
         row: usize,
-        node: TemplatePaneNodeData,
+        mut node: TemplatePaneNodeData,
         clip: FrameRect,
     ) -> Option<(TemplatePaneNodeData, FrameRect)> {
-        (self.rows.contains(&row) != self.exclude).then_some((node, clip))
+        if self.rows.contains(&row) == self.exclude {
+            return None;
+        }
+        if !self.exclude {
+            if let Some(popup) = self.module_popups.iter().find(|popup| popup.row == row) {
+                let clip = intersect_rect(&clip, &popup.clip)?;
+                node.has_clip_frame = true;
+                node.clip_frame =
+                    crate::ui::retained_host::host_contract::data::TemplateNodeFrameData {
+                        x: clip.x,
+                        y: clip.y,
+                        width: clip.width,
+                        height: clip.height,
+                    };
+                return Some((node, clip));
+            }
+        }
+        Some((node, clip))
     }
 }
 

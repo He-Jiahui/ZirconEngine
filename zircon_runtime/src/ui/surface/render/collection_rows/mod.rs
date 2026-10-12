@@ -36,6 +36,7 @@ pub(super) fn collection_row_render_commands(
     metadata: Option<&UiTemplateNodeMetadata>,
     state_flags: &UiStateFlags,
     component_state: Option<&UiComponentState>,
+    tree_owner_focused: Option<bool>,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     z_index: i32,
@@ -51,7 +52,10 @@ pub(super) fn collection_row_render_commands(
         return Vec::new();
     }
 
-    let state = RowRenderState::resolve(kind, metadata, state_flags, component_state);
+    let mut state = RowRenderState::resolve(kind, metadata, state_flags, component_state);
+    if kind == CollectionRowKind::Tree {
+        state.tree_owner_focused = tree_owner_focused;
+    }
     match kind {
         CollectionRowKind::List => list::list_row_commands(
             node_id, metadata, &state, frame, clip_frame, z_index, opacity,

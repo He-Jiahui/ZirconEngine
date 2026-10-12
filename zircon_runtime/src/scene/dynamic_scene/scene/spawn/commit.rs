@@ -4,7 +4,7 @@ use crate::scene::World;
 use super::preflight_mutation::PreflightedSceneMutation;
 use super::transaction::{ensure_compiled_spawn_target_is_current, PreparedSceneSpawnCommit};
 
-/// Performs the no-fail publication half of a completed scene preflight.
+/// Publishes preflighted rows, then reports lifecycle replay interruption.
 pub(super) fn commit_preflighted_scene_mutation(
     world: &mut World,
     mutation: PreflightedSceneMutation,
@@ -34,6 +34,6 @@ pub(super) fn commit_preflighted_scene_mutation(
         dynamic_components,
         resource_rows,
     )?;
-    world.publish_preflighted_dynamic_scene(publication);
+    world.publish_preflighted_dynamic_scene(publication)?;
     Ok(remap)
 }

@@ -515,6 +515,7 @@ fn rejected_detached_batch_returns_ownership_without_mutating_existing_entity() 
         crate::scene::SceneError::DuplicateEntity { entity: duplicate } if *duplicate == entity
     ));
     let (_, batch) = error.into_parts();
+    let batch = batch.expect("preflight rejection retains its intact batch");
     assert_eq!(world.get::<StoredHealth>(entity), Some(&StoredHealth(9)));
     let rejected = world
         .ecs_frame_performance_diagnostics()

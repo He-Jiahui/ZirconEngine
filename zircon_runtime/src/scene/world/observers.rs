@@ -58,8 +58,16 @@ impl World {
     where
         E: 'static + Send + Sync,
     {
+        let owner = self.owner_identity().clone();
+        let execution = self.begin_schedule_execution();
+        let plan_owner = execution.plan();
         if let Some(callbacks) = self.observers.event_callbacks::<E>() {
             callbacks.dispatch(self, &event);
+        }
+        if !owner.is_same_world(self.owner_identity())
+            || !self.schedule().owns_stage_plan(plan_owner)
+        {
+            return;
         }
         // 目标桶在全局回调执行后才取得快照；全局回调对目标注册表的修改会影响本次目标阶段。
         if let Some(callbacks) = self.observers.entity_event_callbacks::<E>(entity) {

@@ -45,6 +45,8 @@ pub(super) fn dispatch_pane_pointer_move_target(
         PanePointerTarget::Console
         | PanePointerTarget::Inspector
         | PanePointerTarget::BrowserAssetDetails
+        | PanePointerTarget::UiAssetPreview { .. }
+        | PanePointerTarget::GeneratedBottom { .. }
         | PanePointerTarget::UiAsset
         | PanePointerTarget::Other => clear_passive_pane_move_hover(ui),
     }

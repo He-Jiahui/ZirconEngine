@@ -3,14 +3,6 @@ use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_template_nodes::{draw_template_nodes, has_template_nodes};
 use super::super::super::root_frames::zero_origin;
 
-pub(in super::super) fn draw_profiled_root_template_overlay(
-    frame: &mut HostRgbaFrame,
-    presentation: &HostWindowPresentationData,
-) {
-    zircon_runtime::profile_scope!("editor", "host_painter", "painter_root_template_overlay");
-    draw_root_template_overlay(frame, presentation);
-}
-
 pub(super) fn draw_root_template_overlay(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,

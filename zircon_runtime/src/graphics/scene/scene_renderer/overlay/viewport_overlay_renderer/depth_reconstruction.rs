@@ -96,6 +96,7 @@ impl OverlayDepthReconstruction {
         if source_region.is_empty() || output_region.is_empty() {
             return;
         }
+        // 参数顺序对应 WGSL DepthRegion 的四个 vec2<u32>；源区域与输出区域都使用物理像素。
         let params = [
             source_origin.x,
             source_origin.y,

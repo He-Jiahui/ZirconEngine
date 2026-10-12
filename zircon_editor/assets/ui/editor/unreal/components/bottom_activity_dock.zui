@@ -1,0 +1,44 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/unreal/components/bottom_activity_dock.zui"
+version = 2
+display_name = "Unreal Bottom Activity Dock"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[components.UnrealBottomActivityDock]
+root = "shell"
+default_classes = ["unreal-dock", "unreal-bottom-activity-dock"]
+
+[nodes.shell]
+component = "VerticalGroup"
+control_id = "BottomDrawerShellRoot"
+classes = ["unreal-dock", "unreal-bottom-activity-dock"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+children = [
+  { node = "header", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "separator", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "content", slot = { layout = { linear_size = { rule = "Stretch", value = 1.0 } } } },
+]
+
+[nodes.header]
+component = "HorizontalGroup"
+control_id = "BottomDrawerHeaderRoot"
+classes = ["unreal-dock", "unreal-dock-tab"]
+props = { font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight" }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
+
+[nodes.separator]
+component = "Container"
+control_id = "BottomDrawerSeparator"
+props = { background_color = "$editor.border", border_width = 0.0, corner_radius = 0.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.content]
+component = "VerticalGroup"
+control_id = "BottomDrawerContentRoot"
+classes = ["unreal-dock"]
+props = { background_color = "$unreal_panel" }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 0.0, stretch = "Stretch" } }

@@ -17,7 +17,7 @@ impl RetainedEditorHost {
             self.set_status_line(format!("Unknown module plugin action {action_id}"));
             return;
         };
-        let project_path = self.runtime.editor_snapshot().project_path;
+        let project_path = (match self.runtime.editor_snapshot() { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }).project_path;
         let result = match action {
             ModulePluginAction::Unload { plugin_id } => {
                 let project_root = crate::ui::workbench::project::project_root_path(&project_path)

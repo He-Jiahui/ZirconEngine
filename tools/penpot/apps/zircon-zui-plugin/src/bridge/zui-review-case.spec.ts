@@ -8,6 +8,7 @@ import {
   normalizeZuiDocument,
   type ZuiDocument,
   type ZuiNode,
+  type ZuiTable,
 } from './zui-document';
 import {
   projectZuiDocument,
@@ -367,7 +368,7 @@ describe('review host state projection', () => {
 
   it('projects Workbench responsive tiers from logical viewport width', () => {
     const { document } = parseZuiDocument(fixtureSource);
-    const responsiveNode = (props: Record<string, unknown>): ZuiNode => ({
+    const responsiveNode = (props: ZuiTable): ZuiNode => ({
       component: 'Label',
       props,
       layout: {
@@ -825,7 +826,7 @@ describe('review host state projection', () => {
         ...reviewCase,
         state: 'closed',
       });
-      expect(reviewed.nodes?.root?.state).toMatchObject({
+      expect(reviewed.nodes?.['root']?.state).toMatchObject({
         open: false,
         popup_open: false,
       });
@@ -867,19 +868,19 @@ describe('review host state projection', () => {
       ...reviewCase,
       state: 'empty',
     });
-    expect(empty.nodes?.tree?.state).toMatchObject({ collection_items: [] });
-    expect(empty.nodes?.grid?.state).toMatchObject({ collection_items: [] });
+    expect(empty.nodes?.['tree']?.state).toMatchObject({ collection_items: [] });
+    expect(empty.nodes?.['grid']?.state).toMatchObject({ collection_items: [] });
     const open = reviewDocumentForCase(source, {
       ...reviewCase,
       state: 'open',
     });
-    expect(open.nodes?.tree?.state).toMatchObject({ expanded: true });
+    expect(open.nodes?.['tree']?.state).toMatchObject({ expanded: true });
     const selected = reviewDocumentForCase(source, {
       ...reviewCase,
       state: 'selected',
     });
-    expect(selected.nodes?.tree?.state).toMatchObject({ selected: true });
-    expect(selected.nodes?.grid?.state).toMatchObject({ selected: true });
+    expect(selected.nodes?.['tree']?.state).toMatchObject({ selected: true });
+    expect(selected.nodes?.['grid']?.state).toMatchObject({ selected: true });
     expect(normalizeZuiDocument(source)).toEqual(before);
   });
 
@@ -978,7 +979,7 @@ describe('review host state projection', () => {
       };
       const before = normalizeZuiDocument(source);
       const reviewed = reviewDocumentForCase(source, { ...reviewCase, state });
-      expect(reviewed.nodes?.popup?.state).toMatchObject({
+      expect(reviewed.nodes?.['popup']?.state).toMatchObject({
         open: true,
         popup_open: true,
       });
@@ -1057,12 +1058,12 @@ describe('authored Workbench button painter states', () => {
   };
 
   it.each([
-    ['default', '#242424', '#484848', '#e8e8e8'],
-    ['hover', '#454545', '#484848', '#e8e8e8'],
-    ['pressed', '#383838', '#66b2ff', '#e8e8e8'],
-    ['selected', '#243f5a', '#66b2ff', '#e8e8e8'],
-    ['focused', '#242424', '#66b2ff', '#e8e8e8'],
-    ['disabled', '#2b2b2b', '#363636', '#737373'],
+    ['default', '#242424', '#383838', '#C0C0C0'],
+    ['hover', '#575757', '#383838', '#C0C0C0'],
+    ['pressed', '#383838', '#0070E0', '#C0C0C0'],
+    ['selected', '#0070E0', '#0070E0', '#C0C0C0'],
+    ['focused', '#242424', '#0070E0', '#C0C0C0'],
+    ['disabled', '#242424', '#383838', '#808080'],
   ])(
     'paints %s from authored runtime properties without selector rules',
     (state, fill, stroke, text) => {
@@ -1086,21 +1087,21 @@ describe('authored Workbench button painter states', () => {
   );
 
   it.each([
-    [{ hovered: true, selected: true }, '#243f5a', '#66b2ff'],
-    [{ hovered: true, selected: true, pressed: true }, '#383838', '#66b2ff'],
+    [{ hovered: true, selected: true }, '#0070E0', '#0070E0'],
+    [{ hovered: true, selected: true, pressed: true }, '#383838', '#0070E0'],
     [
       { hovered: true, selected: true, pressed: true, disabled: true },
-      '#2b2b2b',
-      '#363636',
+      '#242424',
+      '#383838',
     ],
     [
       { selected: true, pressed: true, loading: true, focus_visible: true },
-      '#2b2b2b',
-      '#363636',
+      '#242424',
+      '#383838',
     ],
-    [{ focused: true, focus_visible: false }, '#242424', '#484848'],
-    [{ hovered: true, focus_visible: true }, '#454545', '#66b2ff'],
-    [{ checked: true }, '#243f5a', '#66b2ff'],
+    [{ focused: true, focus_visible: false }, '#242424', '#383838'],
+    [{ hovered: true, focus_visible: true }, '#575757', '#0070E0'],
+    [{ checked: true }, '#0070E0', '#0070E0'],
   ])(
     'resolves overlapping state %j using runtime precedence',
     (state, fill, stroke) => {
@@ -1115,7 +1116,7 @@ describe('authored Workbench button painter states', () => {
         ('loading' in state && state.loading) ||
         ('disabled' in state && state.disabled)
       )
-        expect(shape.text?.color).toBe('#737373');
+        expect(shape.text?.color).toBe('#808080');
     },
   );
 
@@ -1129,44 +1130,44 @@ describe('authored Workbench button painter states', () => {
     const selected = projectZuiDocument(
       reviewDocumentForCase(document, { ...reviewCase, state: 'selected' }),
     ).rootNodes[0];
-    expect(selected.paint.strokeColor).toBe('#66b2ff');
-    expect(selected.text?.color).toBe('#e8e8e8');
+    expect(selected.paint.strokeColor).toBe('#0070E0');
+    expect(selected.text?.color).toBe('#C0C0C0');
     const disabled = projectZuiDocument(
       reviewDocumentForCase(document, { ...reviewCase, state: 'disabled' }),
     ).rootNodes[0];
-    expect(disabled.text?.color).toBe('#737373');
+    expect(disabled.text?.color).toBe('#808080');
   });
 
   it.each([
     [
       { focused: true, focus_visible: false, focusVisible: true },
       '#242424',
-      '#484848',
+      '#383838',
     ],
-    [{ open: false, popup_open: true }, '#242424', '#484848'],
+    [{ open: false, popup_open: true }, '#242424', '#383838'],
     [
       { pressed: true, drop_hovered: false, active_drag_target: true },
       '#383838',
-      '#66b2ff',
+      '#0070E0',
     ],
     [
       { focused: true, focus_visible: 'false', focusVisible: true },
       '#242424',
-      '#66b2ff',
+      '#0070E0',
     ],
     [
       { focused: true, focus_visible: 0, focusVisible: 'false' },
       '#242424',
-      '#66b2ff',
+      '#0070E0',
     ],
-    [{ open: 'false', popup_open: true }, '#454545', '#484848'],
+    [{ open: 'false', popup_open: true }, '#575757', '#383838'],
     [
       { pressed: true, drop_hovered: 0, active_drag_target: true },
-      '#454545',
-      '#484848',
+      '#575757',
+      '#383838',
     ],
-    [{ enabled: false, hovered: true }, '#2b2b2b', '#363636'],
-    [{ enabled: 'false', hovered: true }, '#454545', '#484848'],
+    [{ enabled: false, hovered: true }, '#242424', '#383838'],
+    [{ enabled: 'false', hovered: true }, '#575757', '#383838'],
   ])('uses the first boolean metadata alias for %j', (state, fill, stroke) => {
     const document = authoredButton();
     Object.assign(document.nodes!['root'].props!, state);
@@ -1185,7 +1186,7 @@ describe('authored Workbench button painter states', () => {
       node.state = { [key]: false };
       expect(projectZuiDocument(document).rootNodes[0].paint).toMatchObject({
         fillColor: '#242424',
-        strokeColor: '#484848',
+        strokeColor: '#383838',
       });
     },
   );
@@ -1196,13 +1197,13 @@ describe('authored Workbench button painter states', () => {
     node.props!['enabled'] = false;
     node.state = { enabled: true, focused: true };
     expect(projectZuiDocument(document).rootNodes[0].paint.strokeColor).toBe(
-      '#66b2ff',
+      '#0070E0',
     );
     node.state['enabled'] = false;
     expect(
       projectZuiDocument(reviewDocumentForCase(document, reviewCase))
         .rootNodes[0].paint.fillColor,
-    ).toBe('#454545');
+    ).toBe('#575757');
   });
 
   it('applies stylesheet state palette overrides before the painter selects its color', () => {
@@ -1245,7 +1246,7 @@ describe('authored Workbench button painter states', () => {
     });
     expect(review.nodes!['root'].events).toEqual(node.events);
     expect(projectZuiDocument(review).rootNodes[0].paint.fillColor).toBe(
-      '#454545',
+      '#575757',
     );
     expect(normalizeZuiDocument(document)).toEqual(before);
   });

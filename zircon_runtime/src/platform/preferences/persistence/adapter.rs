@@ -781,3 +781,46 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
+
+// The Core alias borrows this original driver's adapter. Manual PlatformManager
+// construction remains a separate, explicitly owned API.
+impl crate::core::framework::platform::PreferenceStorage for PreferencePersistenceAdapter {
+    fn backend_kind(&self) -> PreferenceStorageBackendKind {
+        PreferencePersistenceAdapter::backend_kind(self)
+    }
+
+    fn snapshot(
+        &self,
+        key: &PreferenceKey,
+    ) -> Result<PreferenceReadSnapshot, PreferenceStorageError> {
+        PreferencePersistenceAdapter::snapshot(self, key)
+    }
+
+    fn submit_write(
+        &self,
+        key: PreferenceKey,
+        value: Arc<[u8]>,
+        deadline: PreferenceWorkDeadline,
+    ) -> Result<PreferenceMutationSubmission, PreferenceStorageError> {
+        PreferencePersistenceAdapter::submit_write(self, key, value, deadline)
+    }
+
+    fn submit_remove(
+        &self,
+        key: PreferenceKey,
+        deadline: PreferenceWorkDeadline,
+    ) -> Result<PreferenceMutationSubmission, PreferenceStorageError> {
+        PreferencePersistenceAdapter::submit_remove(self, key, deadline)
+    }
+
+    fn flush_fence(
+        &self,
+        deadline: PreferenceWorkDeadline,
+    ) -> Result<Arc<dyn PreferenceFlushTicket>, PreferenceStorageError> {
+        PreferencePersistenceAdapter::flush_fence(self, deadline)
+    }
+
+    fn evict(&self, key: &PreferenceKey) -> Option<PreferenceEviction> {
+        PreferencePersistenceAdapter::evict(self, key)
+    }
+}

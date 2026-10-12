@@ -50,7 +50,10 @@ use super::menu::{runtime_session_menu_action_at, write_runtime_menu_action};
 use super::status::{
     error_status, invalid_argument, invalid_or_limit_payload, limit_exceeded, not_found,
 };
-use super::{RuntimeDynamicSession, DEFAULT_VIEWPORT};
+use super::{
+    RuntimeDynamicSession, RuntimeDynamicSessionError, RuntimeDynamicSessionResult,
+    DEFAULT_VIEWPORT,
+};
 
 mod gamepad;
 pub(super) mod ime_preedit_adapter;
@@ -58,9 +61,30 @@ mod keyboard_ime;
 mod keyboard_ime_v2;
 
 impl RuntimeDynamicSession {
+    pub(super) fn ensure_scene_asset_reload_active(&self) -> RuntimeDynamicSessionResult<()> {
+        if let Some(source) = self.scene_asset_reload_interruption() {
+            return Err(RuntimeDynamicSessionError::SceneAssetReloadInterrupted {
+                source: source.clone(),
+            });
+        }
+        Ok(())
+    }
+
     pub(super) fn handle_event(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
         if event.viewport != DEFAULT_VIEWPORT {
             return not_found(b"runtime viewport not found");
+        }
+        // Freeze scene-bound dispatch after a live reload cancellation. Resize and
+        // input/window lifecycle cleanup only touch session, input, and clock state.
+        if !matches!(
+            event.kind,
+            ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1
+                | ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1
+                | ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1
+        ) {
+            if let Err(error) = self.ensure_scene_asset_reload_active() {
+                return error_status(error);
+            }
         }
         match event.kind {
             ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1 => {

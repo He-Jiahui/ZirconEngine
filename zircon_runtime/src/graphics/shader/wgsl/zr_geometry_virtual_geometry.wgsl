@@ -27,6 +27,7 @@ fn zr_virtual_geometry_has_vertex(instance_index: u32, vertex_ordinal: u32) -> b
         && word_index <= cluster_word_count - ZR_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX;
 }
 
+// 调用者须先通过 has_vertex 确认完整四 word 存在，再使用 0..3 的 word_offset；属性读取当前使用 0/1/2。
 fn zr_virtual_geometry_cluster_word(
     instance_index: u32,
     vertex_ordinal: u32,
@@ -36,6 +37,7 @@ fn zr_virtual_geometry_cluster_word(
     return zr_virtual_geometry_clusters[word_index + word_offset];
 }
 
+// joints.xy 承载 vertex ordinal 的低/高 16 位，与 CPU 编解码一致；CPU 不改写带蒙皮权重的原语通道。
 fn zr_virtual_geometry_vertex_ordinal(v: ZrVertexInput) -> u32 {
     return v.joints.x | (v.joints.y << ZR_VIRTUAL_GEOMETRY_VERTEX_ORDINAL_HIGH_SHIFT);
 }

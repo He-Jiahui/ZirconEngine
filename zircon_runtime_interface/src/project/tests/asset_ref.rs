@@ -65,8 +65,12 @@ fn asset_ref_bincode_roundtrip_is_deterministic() {
         b'i', b'v', b'e', b'1',
     ];
 
-    let encoded = bincode::serialize(&reference).unwrap();
-    let decoded: AssetRef = bincode::deserialize(HISTORICAL_V1).unwrap();
+    let encoded = crate::serialization::PositionalEncoding::FixedLittleEndian
+        .encode(&reference)
+        .unwrap();
+    let decoded: AssetRef = crate::serialization::PositionalEncoding::FixedLittleEndian
+        .decode(HISTORICAL_V1)
+        .unwrap();
 
     assert_eq!(encoded, HISTORICAL_V1);
     assert_eq!(decoded, reference);

@@ -7,7 +7,6 @@ use crate::ui::retained_host::callback_dispatch;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::retained_host::ui::apply_presentation;
 use crate::ui::retained_host::UiHostWindow;
-use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
@@ -33,7 +32,7 @@ pub(super) fn apply_native_window_presenter_presentation(
     runtime_diagnostics: &zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot,
     pane_payloads: &NativeWindowPanePayloads,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
-    pane_template_runtime: &EditorUiHostRuntime,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
     viewport_toolbar_bridge: &mut callback_dispatch::BuiltinViewportToolbarTemplateBridge,
 ) {
     apply_presentation(
@@ -52,7 +51,7 @@ pub(super) fn apply_native_window_presenter_presentation(
         None,
         callback_dispatch::BuiltinWorkbenchWindowLayoutFrames::default(),
         floating_window_projection_bundle,
-        Some(pane_template_runtime),
+        pane_runtimes,
     );
     attach_viewport_toolbar_surface_frames_to_ui(ui, viewport_toolbar_bridge, None);
     configure_native_floating_window_presentation(ui, target);

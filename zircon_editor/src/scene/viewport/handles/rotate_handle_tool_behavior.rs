@@ -55,7 +55,7 @@ impl HandleTool for RotateHandleTool {
         axis: GizmoAxis,
     ) -> Option<HandleDragSession> {
         Some(HandleDragSession::Rotate(begin_transform_session(
-            ctx, axis,
+            ctx, axis, crate::scene::viewport::TransformHandleKind::Rotate,
         )?))
     }
 

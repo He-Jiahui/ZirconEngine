@@ -1,0 +1,122 @@
+[asset]
+kind = "view"
+id = "res://ui/editor/unreal/components/dock_header.zui"
+version = 2
+display_name = "Unreal Dock Header"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[root]
+node = "dock_header_root"
+
+[nodes.dock_header_root]
+component = "Overlay"
+control_id = "DockHeaderRoot"
+pixel_snapping = "disabled"
+classes = ["unreal-editor-shell"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "dock_header_bar" }, { node = "dock_subtitle" }, { node = "dock_tab_strip" }]
+
+[nodes.dock_header_bar]
+component = "Container"
+control_id = "DockHeaderBar"
+classes = ["unreal-dock"]
+props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.document_header.height", preferred = "$editor.chrome.document_header.height", max = "$editor.chrome.document_header.height", stretch = "Fixed" } }
+
+[nodes.dock_subtitle]
+component = "Label"
+control_id = "DockSubtitle"
+classes = ["unreal-status-label"]
+props = { text = "", font_family = "$unreal_font_family", font_size = "$unreal_font_small_size", font_weight = 400, foreground_color = "$unreal_foreground_disabled", text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -12.0, y = 9.0 }, width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.dock_tab_strip]
+component = "HorizontalGroup"
+control_id = "DockTabStrip"
+layout = { container = { kind = "HorizontalGroup", gap = 4.0 }, position = { x = 8.0, y = 1.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
+children = [
+  { node = "dock_tab_group_0", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "dock_tab_group_1", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "dock_tab_group_2", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+]
+
+[nodes.dock_tab_group_0]
+component = "Overlay"
+control_id = "DockTabGroup0"
+classes = ["unreal-dock-tab"]
+props = { selected = false, input_interactive = false, border_width = 0.0 }
+layout = { container = { kind = "Overlay" }, width = { min = 124.0, max = 220.0 }, height = { stretch = "Stretch" } }
+children = [{ node = "dock_tab_0" }, { node = "dock_tab_close_0" }]
+
+[nodes.dock_tab_0]
+component = "Label"
+control_id = "DockTab0"
+classes = ["unreal-dock-tab-label"]
+props = { text = "Project", selected = false, font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = 400, text_align = "left", overflow = "elide", input_clickable = true, input_hoverable = true }
+layout = { padding = { left = 10.0, right = 32.0, top = 0.0, bottom = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.dock_tab_close_0]
+component = "IconButton"
+control_id = "DockTabClose0"
+classes = ["unreal-icon-control"]
+props = { surface_variant = "transparent", button_variant = "text", icon = "editor_pages/workbench/tabs/close-tab.svg", foreground_color = "$unreal_foreground_disabled", radius = 0.0, border_width = 0.0 }
+layout = { anchor = { x = 1.0, y = 0.5 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -8.0, y = 0.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.dock_tab_group_1]
+component = "Overlay"
+control_id = "DockTabGroup1"
+classes = ["unreal-dock-tab"]
+props = { selected = false, input_interactive = false, border_width = 0.0 }
+layout = { container = { kind = "Overlay" }, width = { min = 124.0, max = 220.0 }, height = { stretch = "Stretch" } }
+children = [{ node = "dock_tab_1" }, { node = "dock_tab_close_1" }]
+
+[nodes.dock_tab_1]
+component = "Label"
+control_id = "DockTab1"
+classes = ["unreal-dock-tab-label"]
+props = { text = "Assets", selected = false, font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = 400, text_align = "left", overflow = "elide", input_clickable = true, input_hoverable = true }
+layout = { padding = { left = 10.0, right = 32.0, top = 0.0, bottom = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.dock_tab_close_1]
+component = "IconButton"
+control_id = "DockTabClose1"
+classes = ["unreal-icon-control"]
+props = { surface_variant = "transparent", button_variant = "text", icon = "editor_pages/workbench/tabs/close-tab.svg", foreground_color = "$unreal_foreground_disabled", radius = 0.0, border_width = 0.0 }
+layout = { anchor = { x = 1.0, y = 0.5 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -8.0, y = 0.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
+[nodes.dock_tab_group_2]
+component = "Overlay"
+control_id = "DockTabGroup2"
+classes = ["unreal-dock-tab"]
+props = { selected = false, input_interactive = false, border_width = 0.0 }
+layout = { container = { kind = "Overlay" }, width = { min = 124.0, max = 220.0 }, height = { stretch = "Stretch" } }
+children = [{ node = "dock_tab_2" }]
+
+[nodes.dock_tab_2]
+component = "Label"
+control_id = "DockTab2"
+classes = ["unreal-dock-tab-label"]
+props = { text = "Hierarchy", selected = false, font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = 400, text_align = "left", overflow = "elide", input_clickable = true, input_hoverable = true }
+layout = { padding = { left = 10.0, right = 32.0, top = 0.0, bottom = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[[stylesheets]]
+id = "unreal_dock_header_states"
+
+[[stylesheets.rules]]
+selector = ".unreal-dock-tab:hovered"
+set = { self = { background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground_hover", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-dock-tab:selected"
+set = { self = { background_color = "$unreal_recessed", foreground_color = "$unreal_foreground_hover", font_weight = 400, border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-dock-tab-label"
+set = { self = { foreground_color = "$unreal_foreground_header", font_family = "$unreal_font_family", font_weight = 400 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-dock-tab-label:selected"
+set = { self = { foreground_color = "$unreal_foreground_hover", font_weight = 400 } }

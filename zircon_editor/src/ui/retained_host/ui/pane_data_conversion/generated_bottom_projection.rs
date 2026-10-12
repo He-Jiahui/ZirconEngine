@@ -27,5 +27,42 @@ pub(crate) fn to_host_contract_generated_bottom_pane_from_host_pane(
     host_contract::GeneratedBottomPaneData {
         nodes,
         status: data.native_body.generated_bottom.status.clone(),
+        ..host_contract::GeneratedBottomPaneData::default()
+    }
+}
+
+pub(crate) fn to_host_contract_generated_bottom_pane_from_host_pane_with_runtime(
+    data: &PaneData,
+    content_size: PaneContentSize,
+    runtime: Option<&crate::ui::template_runtime::EditorUiHostRuntime>,
+) -> host_contract::GeneratedBottomPaneData {
+    let Some(runtime) = runtime else {
+        return to_host_contract_generated_bottom_pane_from_host_pane(data, content_size);
+    };
+    let Some(presentation) = data.pane_presentation.as_ref() else {
+        return host_contract::GeneratedBottomPaneData::default();
+    };
+    let Ok(published) = runtime.project_generated_bottom_pane(
+        data.id.as_str(),
+        &presentation.body,
+        zircon_runtime_interface::ui::layout::UiSize::new(content_size.width, content_size.height),
+    ) else {
+        return host_contract::GeneratedBottomPaneData::default();
+    };
+    // The adapter carries this published holder's leased actions in routes. The shared
+    // converter preserves those actions, typed identity and strict Source frame binding.
+    let nodes =
+        super::super::workbench_window_projection::to_host_contract_workbench_window_nodes(
+            Some(&published.projection),
+        );
+    let source = published.projection.source_surface_frame;
+    host_contract::GeneratedBottomPaneData {
+        nodes,
+        status: data.native_body.generated_bottom.status.clone(),
+        source_surface_frame: source,
+        accepts_text_input: published.accepts_text_input,
+        source_width: content_size.width,
+        source_height: content_size.height,
+        input_result: published.input_result,
     }
 }

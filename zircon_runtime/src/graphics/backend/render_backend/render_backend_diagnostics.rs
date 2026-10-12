@@ -510,15 +510,10 @@ impl RenderBackend {
     }
 
     pub(super) fn dispatch_product_diagnostic_deliveries(&self) {
-        let dispatches = {
-            let mut router = self
-                .diagnostic_delivery_router
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            router.collect_query_results(self.render_device.as_ref());
-            router.collect_dispatches(self.render_device.as_ref())
-        };
-        self.run_product_diagnostic_dispatches(dispatches);
+        super::ui_surface_diagnostic_completion::dispatch_deliveries(
+            self.render_device.as_ref(),
+            self.diagnostic_delivery_router.as_ref(),
+        );
     }
 
     fn run_product_diagnostic_dispatches(

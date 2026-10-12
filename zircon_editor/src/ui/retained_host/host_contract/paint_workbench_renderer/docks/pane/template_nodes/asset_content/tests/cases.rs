@@ -1006,3 +1006,358 @@ fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
         height,
     }
 }
+
+#[test]
+fn activity_product_provider_bounds_physical_nodes_and_paints_the_100k_tail() {
+    use crate::ui::layouts::views::assets_activity_pane_data;
+    use crate::ui::workbench::asset_content_layout::AssetContentPaintMetadata;
+    use zircon_runtime_interface::ui::layout::UiSize;
+
+    let mut snapshot = activity_virtual_snapshot(3, 100_000);
+    snapshot.selected_asset_uuid = Some("asset-99999".to_owned());
+    let pane = assets_activity_pane_data(&snapshot, UiSize::new(900.0, 620.0));
+    let metadata = pane
+        .nodes
+        .metadata::<AssetContentPaintMetadata>()
+        .expect("product metadata");
+    let virtual_rows = metadata
+        .activity_virtualization()
+        .expect("bounded product rows");
+    let panel = metadata.content_panel().expect("content viewport");
+    assert_eq!(virtual_rows.logical_count(), 100_003);
+    assert_eq!(metadata.folder_row_count(), 3);
+    assert_eq!(metadata.content_extent(), virtual_rows.content_extent());
+    assert!(
+        pane.nodes.row_count() < 500,
+        "physical nodes must be bounded by the real viewport"
+    );
+    let content_scrollbar = metadata
+        .scrollbar_descriptors()
+        .iter()
+        .copied()
+        .find(|descriptor| {
+            descriptor.kind()
+                == crate::ui::workbench::asset_content_layout::AssetContentScrollbarKind::Content
+        })
+        .expect("logical scrollbar");
+    assert_eq!(
+        metadata.scrollbar_extent(content_scrollbar),
+        crate::ui::workbench::asset_content_layout::AssetContentScrollbarExtent::Pixels(
+            metadata.content_extent()
+        )
+    );
+
+    let scroll = (metadata.content_extent() - panel.height).max(0.0);
+    let slot = (0..virtual_rows.slot_count)
+        .find(|&slot| {
+            metadata
+                .activity_slot_binding(scroll, slot)
+                .is_some_and(|binding| binding.logical_index == 100_002)
+        })
+        .expect("tail binds to a physical slot");
+    let nodes = pane
+        .nodes
+        .map_preserving_metadata(|node| TemplatePaneNodeData {
+            control_id: node.control_id.clone(),
+            text: node.text.clone(),
+            value_text: node.value_text.clone(),
+            font_size: node.font_size,
+            frame: TemplateNodeFrameData {
+                x: node.frame.x,
+                y: node.frame.y,
+                width: node.frame.width,
+                height: node.frame.height,
+            },
+            ..TemplatePaneNodeData::default()
+        });
+    let interaction = HostPaneInteractionStateData {
+        activity_asset_content_scroll_px: scroll,
+        activity_asset_content_hovered_index: 100_002,
+        ..Default::default()
+    };
+    let projector =
+        ActivityAssetContentProjector::new(&nodes, &frame(0.0, 0.0, 900.0, 620.0), &interaction)
+            .expect("real Activity projector");
+    let clip = frame(0.0, 0.0, 900.0, 620.0);
+    let visited = projector
+        .row_visit_indices(nodes.row_count(), &clip)
+        .expect("visible row plan");
+    let row = (0..nodes.row_count()).find(|&row| matches!(metadata.row_descriptor(row), crate::ui::workbench::asset_content_layout::AssetContentRowDescriptor::ActivityContent(ActivityContentNodeIdentity::Item { index, role: ActivityContentNodeRole::Row }) if index == slot)).expect("tail row slot");
+    assert!(
+        visited.contains(&row),
+        "tail row is in the damage-visible plan"
+    );
+    let (painted, painted_clip) = projector
+        .transform_row(row, nodes.row_data(row).expect("row"), clip.clone())
+        .expect("tail is actually painted");
+    assert!(painted.selected);
+    assert!(
+        painted.hovered,
+        "hover compares the logical index, not the physical slot"
+    );
+    assert_eq!(
+        painted.border_width,
+        zircon_runtime_interface::ui::design_tokens::EditorControlTokens::workbench_dense()
+            .border_width
+    );
+    assert_eq!(
+        painted_clip,
+        frame(panel.x, panel.y, panel.width, panel.height)
+    );
+    let name = (0..nodes.row_count()).find(|&row| matches!(metadata.row_descriptor(row), crate::ui::workbench::asset_content_layout::AssetContentRowDescriptor::ActivityContent(ActivityContentNodeIdentity::Item { index, role: ActivityContentNodeRole::Name }) if index == slot)).expect("tail name slot");
+    let (painted_name, _) = projector
+        .transform_row(name, nodes.row_data(name).expect("name"), clip)
+        .expect("tail name is painted");
+    assert_eq!(painted_name.text.as_str(), "Asset 99999");
+    assert!(!painted_name.hovered);
+}
+
+#[test]
+fn activity_virtual_rows_share_generation_and_cross_mixed_height_folder_boundary() {
+    use crate::ui::workbench::asset_content_layout::{
+        ActivityAssetVirtualization, AssetContentRect,
+    };
+    use crate::ui::workbench::snapshot::AssetViewMode;
+    let mut snapshot = activity_virtual_snapshot(12, 40);
+    snapshot.view_mode = AssetViewMode::Thumbnail;
+    snapshot.selected_folder_id = Some("folder-11".to_owned());
+    snapshot.selected_asset_uuid = Some("asset-0".to_owned());
+    let panel = AssetContentRect {
+        x: 17.0,
+        y: 29.0,
+        width: 340.0,
+        height: 240.0,
+    };
+    let rows = ActivityAssetVirtualization::new(&snapshot, panel);
+    let next = ActivityAssetVirtualization::new(&snapshot, panel);
+    assert!(
+        rows.shares_generation_with(&next),
+        "publication must not clone logical rows"
+    );
+    let boundary =
+        rows.metrics.first_row_y() + 12.0 * (rows.metrics.folder_height + rows.metrics.row_gap);
+    let scroll = boundary - panel.height * 0.5;
+    let bindings = (0..rows.slot_count)
+        .filter_map(|slot| rows.binding(scroll, slot))
+        .collect::<Vec<_>>();
+    let folder = bindings
+        .iter()
+        .find(|binding| binding.logical_index == 11)
+        .expect("last folder remains in the window");
+    let item = bindings
+        .iter()
+        .find(|binding| binding.logical_index == 12)
+        .expect("first item enters same window");
+    assert_eq!(folder.name(), "Folder 11");
+    assert_eq!(folder.badge(), "DIR");
+    assert_eq!(folder.height, rows.metrics.folder_height);
+    assert_eq!(item.name(), "Asset 0");
+    assert_eq!(item.height, rows.metrics.item_height);
+    assert_eq!(item.top, folder.top + folder.height + rows.metrics.row_gap);
+    assert!(folder.selected && item.selected);
+    assert!(rows.slot_count < rows.logical_count());
+
+    let mut newer = snapshot.clone();
+    newer.catalog_revision += 1;
+    newer.visible_assets = activity_virtual_snapshot(0, 40).visible_assets;
+    let replacement = ActivityAssetVirtualization::new(&newer, panel);
+    assert!(!rows.shares_generation_with(&replacement));
+    assert_eq!(
+        rows.binding(scroll, 12 % rows.slot_count)
+            .expect("old immutable generation stays alive")
+            .name(),
+        "Asset 0"
+    );
+}
+
+fn activity_virtual_snapshot(
+    folder_count: usize,
+    item_count: usize,
+) -> crate::ui::workbench::snapshot::AssetWorkspaceSnapshot {
+    use crate::ui::workbench::snapshot::{
+        AssetFolderSnapshot, AssetItemSnapshot, AssetWorkspaceSnapshot,
+    };
+    use zircon_runtime_interface::resource::ResourceKind;
+    AssetWorkspaceSnapshot {
+        catalog_revision: 1,
+        visible_folders: (0..folder_count)
+            .map(|index| AssetFolderSnapshot {
+                folder_id: format!("folder-{index}"),
+                display_name: format!("Folder {index}"),
+                ..Default::default()
+            })
+            .collect(),
+        visible_assets: (0..item_count)
+            .map(|index| AssetItemSnapshot {
+                uuid: format!("asset-{index}"),
+                locator: format!("res://asset-{index}.zdata"),
+                display_name: format!("Asset {index}"),
+                file_name: format!("Asset {index}"),
+                extension: String::new(),
+                kind: ResourceKind::Mesh,
+                asset_type: Default::default(),
+                preview_artifact_path: String::new(),
+                dirty: false,
+                diagnostics: Vec::new(),
+                selected: false,
+                resource_state: None,
+                resource_revision: Some(index as u64),
+            })
+            .collect(),
+        ..Default::default()
+    }
+}
+
+#[test]
+fn activity_product_provider_resizes_same_generation_slots_and_pointer_geometry() {
+    use crate::ui::layouts::views::assets_activity_pane_data;
+    use crate::ui::retained_host::asset_pointer::{
+        AssetContentListPointerBridge, AssetContentListPointerLayout, AssetListPointerState,
+        AssetPointerContentRoute,
+    };
+    use crate::ui::workbench::asset_content_layout::{
+        ActivityAssetVirtualization, AssetContentPaintMetadata, AssetContentSurfaceProfile,
+    };
+    use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
+
+    let snapshot = activity_virtual_snapshot(3, 1_000);
+    let small_size = UiSize::new(420.0, 360.0);
+    let large_size = UiSize::new(900.0, 900.0);
+    let small = assets_activity_pane_data(&snapshot, small_size);
+    let small_metadata = small
+        .nodes
+        .metadata::<AssetContentPaintMetadata>()
+        .expect("small metadata");
+    let small_rows = small_metadata
+        .activity_virtualization()
+        .expect("small slots");
+    let grown = assets_activity_pane_data(&snapshot, large_size);
+    let metadata = grown
+        .nodes
+        .metadata::<AssetContentPaintMetadata>()
+        .expect("grown metadata");
+    let rows = metadata.activity_virtualization().expect("grown slots");
+    let panel_node = grown
+        .nodes
+        .iter()
+        .find(|node| {
+            node.control_id.as_str()
+                == crate::ui::workbench::asset_content_layout::ACTIVITY_CONTENT_PANEL_CONTROL_ID
+        })
+        .expect("actual grown panel");
+    let panel = metadata.content_panel().expect("grown viewport");
+    assert_eq!(
+        (panel.x, panel.y, panel.width, panel.height),
+        (
+            panel_node.frame.x,
+            panel_node.frame.y,
+            panel_node.frame.width,
+            panel_node.frame.height
+        )
+    );
+    assert_eq!(rows.panel, panel);
+    assert!(rows.panel.height > small_rows.panel.height);
+    assert!(
+        rows.slot_count > small_rows.slot_count,
+        "growth must recreate the physical slot budget"
+    );
+    assert_eq!(
+        rows.slot_count,
+        ActivityAssetVirtualization::new(&snapshot, panel).slot_count
+    );
+    assert!(
+        rows.shares_generation_with(small_rows),
+        "resize shares the logical catalog"
+    );
+    assert_eq!(metadata.content_extent(), small_rows.content_extent());
+    let stable = assets_activity_pane_data(&snapshot, large_size);
+    assert!(grown.nodes.shares_values_with(&stable.nodes));
+
+    // Reach the logical tail and compare real paint with original UUID pointer routing.
+    let scroll = (metadata.content_extent() - panel.height).max(0.0);
+    let (slot, binding) = (0..rows.slot_count)
+        .filter_map(|slot| rows.binding(scroll, slot).map(|binding| (slot, binding)))
+        .filter(|(_, binding)| {
+            let top = binding.top - scroll;
+            top < panel.y + panel.height && top + binding.height > panel.y
+        })
+        .max_by_key(|(_, binding)| binding.logical_index)
+        .expect("visible logical tail");
+    assert_eq!(binding.logical_index, 1_002);
+    let nodes = grown
+        .nodes
+        .map_preserving_metadata(|node| TemplatePaneNodeData {
+            control_id: node.control_id.clone(),
+            text: node.text.clone(),
+            value_text: node.value_text.clone(),
+            font_size: node.font_size,
+            frame: TemplateNodeFrameData {
+                x: node.frame.x,
+                y: node.frame.y,
+                width: node.frame.width,
+                height: node.frame.height,
+            },
+            ..TemplatePaneNodeData::default()
+        });
+    let origin = frame(0.0, 0.0, large_size.width, large_size.height);
+    let interaction = HostPaneInteractionStateData {
+        activity_asset_content_scroll_px: scroll,
+        ..Default::default()
+    };
+    let projector =
+        ActivityAssetContentProjector::new(&nodes, &origin, &interaction).expect("grown painter");
+    let row = (0..nodes.row_count())
+        .find(|&row| {
+            matches!(metadata.row_descriptor(row),
+        crate::ui::workbench::asset_content_layout::AssetContentRowDescriptor::ActivityContent(
+            ActivityContentNodeIdentity::Item { index, role: ActivityContentNodeRole::Row })
+            if index == slot)
+        })
+        .expect("tail physical row");
+    assert!(projector
+        .row_visit_indices(nodes.row_count(), &origin)
+        .expect("visible paint plan")
+        .contains(&row));
+    let (painted, painted_clip) = projector
+        .transform_row(row, nodes.row_data(row).expect("row"), origin)
+        .expect("paint tail in grown viewport");
+    assert_eq!(
+        painted_clip,
+        frame(panel.x, panel.y, panel.width, panel.height)
+    );
+    assert_eq!(painted.frame.y, binding.top - scroll);
+    let mut pointer = AssetContentListPointerBridge::new();
+    pointer.sync(
+        AssetContentListPointerLayout::from_snapshot(
+            &snapshot,
+            UiSize::new(panel.width, panel.height),
+            AssetContentSurfaceProfile::Activity,
+        ),
+        AssetListPointerState {
+            scroll_offset: scroll,
+            ..Default::default()
+        },
+    );
+    assert_eq!(pointer.surface_node_count_for_test(), 2);
+    let point = UiPoint::new(
+        painted.frame.x - panel.x + painted.frame.width * 0.5,
+        painted.frame.y - panel.y + painted.frame.height * 0.5,
+    );
+    assert!(
+        matches!(pointer.handle_click(point).expect("native pointer dispatch").route,
+        Some(AssetPointerContentRoute::Item { asset_uuid, row_index, .. })
+            if asset_uuid == "asset-999" && row_index == binding.logical_index)
+    );
+
+    let shrunk = assets_activity_pane_data(&snapshot, small_size);
+    let shrunk_metadata = shrunk
+        .nodes
+        .metadata::<AssetContentPaintMetadata>()
+        .expect("shrunk metadata");
+    let shrunk_rows = shrunk_metadata
+        .activity_virtualization()
+        .expect("shrunk slots");
+    assert_eq!(shrunk_rows.panel, small_rows.panel);
+    assert_eq!(shrunk_rows.slot_count, small_rows.slot_count);
+    assert!(shrunk_rows.shares_generation_with(rows));
+}

@@ -44,7 +44,7 @@ fn builtin_activity_windows_expose_window_template_documents() {
     for (descriptor_id, template_document_id) in [
         (
             "editor.workbench_window",
-            "res://ui/editor/windows/workbench_window.zui",
+            "res://ui/editor/unreal/level_editor_window.zui",
         ),
         (
             "editor.asset_browser",

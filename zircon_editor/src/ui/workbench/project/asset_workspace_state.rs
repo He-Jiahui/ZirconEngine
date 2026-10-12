@@ -1,7 +1,8 @@
 mod inspector_resource_labels;
+mod content_browser_sync;
 
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 
 use crate::core::asset::AssetTypeId;
@@ -61,6 +62,7 @@ pub(crate) struct AssetWorkspaceState {
     catalog: Option<Arc<EditorAssetCatalogGeneration>>,
     selected_folder_id: String,
     selected_asset_uuid: Option<String>,
+    synced_asset_uuids: BTreeSet<String>,
     selected_details: Option<Arc<EditorAssetDetailsGeneration>>,
     resources: Arc<ResourceManagementGeneration>,
     projection_input: Cell<Option<AssetWorkspaceProjectionInput>>,
@@ -81,6 +83,7 @@ impl Default for AssetWorkspaceState {
             catalog: None,
             selected_folder_id: "res://".to_string(),
             selected_asset_uuid: None,
+            synced_asset_uuids: BTreeSet::new(),
             selected_details: None,
             resources: Arc::new(ResourceManagementGeneration::default()),
             projection_input: Cell::new(None),
@@ -154,6 +157,12 @@ impl AssetWorkspaceState {
     }
 
     fn reconcile_catalog_selection(&mut self) {
+        let catalog = self.catalog.as_ref();
+        let previous_count = self.synced_asset_uuids.len();
+        self.synced_asset_uuids.retain(|uuid| catalog.is_some_and(|catalog| catalog.asset(uuid).is_some()));
+        if self.synced_asset_uuids.len() != previous_count {
+            self.item_generation_cache.borrow_mut().take();
+        }
         if !self.folder_exists(&self.selected_folder_id) {
             self.selected_folder_id = "res://".to_string();
         }
@@ -209,10 +218,14 @@ impl AssetWorkspaceState {
             .selected_asset_uuid
             .as_ref()
             .is_some_and(|uuid| !self.asset_belongs_to_folder(uuid, &folder_id));
-        if self.selected_folder_id == folder_id && !clears_selection {
+        if self.selected_folder_id == folder_id && !clears_selection && self.synced_asset_uuids.is_empty() {
             return false;
         }
         self.selected_folder_id = folder_id;
+        if !self.synced_asset_uuids.is_empty() {
+            self.synced_asset_uuids.clear();
+            self.item_generation_cache.borrow_mut().take();
+        }
         if clears_selection {
             self.selected_asset_uuid = None;
             self.selected_details = None;
@@ -222,10 +235,14 @@ impl AssetWorkspaceState {
 
     pub fn select_asset(&mut self, asset_uuid: Option<String>) -> bool {
         let selected_asset_uuid = asset_uuid.filter(|uuid| self.asset_record(uuid).is_some());
-        if self.selected_asset_uuid == selected_asset_uuid {
+        if self.selected_asset_uuid == selected_asset_uuid && self.synced_asset_uuids.is_empty() {
             return false;
         }
         self.selected_asset_uuid = selected_asset_uuid;
+        if !self.synced_asset_uuids.is_empty() {
+            self.synced_asset_uuids.clear();
+            self.item_generation_cache.borrow_mut().take();
+        }
         if self.selected_details.as_ref().is_some_and(|details| {
             Some(details.asset.uuid.as_str()) != self.selected_asset_uuid.as_deref()
         }) {
@@ -243,11 +260,16 @@ impl AssetWorkspaceState {
         };
         if self.selected_folder_id == selected_folder_id
             && self.selected_asset_uuid.as_deref() == Some(asset_uuid)
+            && self.synced_asset_uuids.is_empty()
         {
             return false;
         }
         self.selected_folder_id = selected_folder_id;
         self.selected_asset_uuid = Some(asset_uuid.to_string());
+        if !self.synced_asset_uuids.is_empty() {
+            self.synced_asset_uuids.clear();
+            self.item_generation_cache.borrow_mut().take();
+        }
         true
     }
 
@@ -370,7 +392,7 @@ impl AssetWorkspaceState {
             mesh_import_path: String::new(),
             kind_filter: self.kind_filter,
             folder_tree,
-            visible_folders,
+            visible_folders: visible_folders.into(),
             visible_assets,
             creation_menu: Default::default(),
             selected_folder_id: Some(self.selected_folder_id.clone()),
@@ -462,7 +484,7 @@ impl AssetWorkspaceState {
         let items = catalog
             .assets
             .iter()
-            .filter(|asset| asset_belongs_to_folder(asset, &self.selected_folder_id))
+            .filter(|asset| self.asset_is_visible_in_selected_scope(asset))
             .filter(|asset| asset_matches_filters(asset, normalized_search_query, self.kind_filter))
             .map(|asset| self.asset_item_snapshot(asset))
             .collect::<AssetWorkspaceItemGeneration>();
@@ -486,7 +508,7 @@ impl AssetWorkspaceState {
             let current_index = cached.items.selected_index(uuid);
             let updated = catalog.asset(uuid);
             let remains_visible = updated.is_some_and(|asset| {
-                asset_belongs_to_folder(asset, &self.selected_folder_id)
+                self.asset_is_visible_in_selected_scope(asset)
                     && asset_matches_filters(asset, normalized_search_query, self.kind_filter)
             });
             match (current_index, updated, remains_visible) {
@@ -636,7 +658,7 @@ impl AssetWorkspaceState {
             preview_artifact_path: asset.preview_artifact_path.clone(),
             dirty: asset.dirty,
             diagnostics: asset.diagnostics.clone(),
-            selected: false,
+            selected: self.synced_asset_uuids.contains(&asset.uuid),
             resource_state: resource_state(resource.as_deref()),
             resource_revision: resource.as_ref().map(|resource| resource.revision),
         }

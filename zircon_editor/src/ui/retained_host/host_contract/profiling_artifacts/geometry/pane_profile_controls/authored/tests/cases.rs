@@ -52,10 +52,11 @@ fn profile_uses_visible_authored_inspector_coordinates_and_clips_to_its_painted_
     old.component_role = "input-field".into();
     let mut presentation = HostWindowPresentationData {
         workbench_window_nodes: ModelRc::from(Rc::new(VecModel::from(vec![
+            node("root", "", "WorkbenchWindowRoot", 0.0, 0.0, 1280.0, 800.0),
             node(
                 "workspace",
                 "",
-                "WorkbenchSceneWorkspace",
+                "UnrealLevelEditorContent",
                 0.0,
                 135.0,
                 1280.0,
@@ -114,10 +115,11 @@ fn profile_uses_visible_authored_inspector_coordinates_and_clips_to_its_painted_
 fn hidden_authored_owner_never_falls_back_to_the_unpainted_old_side_controls() {
     let presentation = HostWindowPresentationData {
         workbench_window_nodes: ModelRc::from(Rc::new(VecModel::from(vec![
+            node("root", "", "WorkbenchWindowRoot", 0.0, 0.0, 1280.0, 800.0),
             node(
                 "workspace",
                 "",
-                "WorkbenchSceneWorkspace",
+                "UnrealLevelEditorContent",
                 0.0,
                 0.0,
                 0.0,

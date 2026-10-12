@@ -16,7 +16,10 @@ function Get-ZirconEditorVisualSourceBinding {
             'tools/analysis/visual/editor-ui-visual-interactions.ps1',
             'tools/analysis/visual/editor-ui-visual-matrix.ps1',
             'tools/analysis/visual/editor-ui-visual-source-binding.ps1',
-            'tools/analysis/visual/zircon_editor_ui_visual_oracle.py'
+            'tools/analysis/visual/zircon_editor_ui_visual_oracle.py',
+            'tools/analysis/visual/record-editor-normal-window-evidence.py',
+            'tools/analysis/visual/capture-editor-normal-frame.py',
+            'tools/analysis/visual/zircon_editor_normal_frame_evidence.py'
         )) {
         $relativePaths.Add($relativePath) | Out-Null
     }

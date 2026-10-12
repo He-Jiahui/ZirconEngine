@@ -785,3 +785,551 @@ fn message_reader_clear_advances_only_that_reader_cursor() {
     });
     assert_eq!(observed_by_other_reader, vec![1, 2]);
 }
+
+mod public_lifecycle_owner {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use zircon_runtime_interface::world_sync::LifecycleTargetChange;
+
+    use crate::scene::components::{Hierarchy, Mobility};
+    use crate::scene::ecs::{
+        DeferredCommandError, DeferredCommandOperation, DeferredCommandTarget,
+        RemovedComponentsParam, Resource, StorageType,
+    };
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct OwnerTable(u32);
+    impl Component for OwnerTable {}
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct OwnerSparse(u32);
+    impl Component for OwnerSparse {
+        const STORAGE_TYPE: StorageType = StorageType::SparseSet;
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct OwnerResource(u32);
+    impl Resource for OwnerResource {}
+
+    fn fixture(table: u32, sparse: u32) -> (World, crate::scene::EntityId) {
+        let mut world = World::empty();
+        world.component_id::<OwnerTable>();
+        world.component_id::<OwnerSparse>();
+        let entity = world
+            .spawn((OwnerTable(table), OwnerSparse(sparse)))
+            .unwrap();
+        (world, entity)
+    }
+
+    fn assert_replacement(
+        world: &mut World,
+        entity: crate::scene::EntityId,
+        generation: u64,
+        fresh_calls: &AtomicUsize,
+    ) {
+        assert!(world.contains_entity(entity));
+        assert_eq!(world.get::<OwnerTable>(entity), Some(&OwnerTable(71)));
+        assert_eq!(world.get::<OwnerSparse>(entity), Some(&OwnerSparse(72)));
+        assert_eq!(
+            world.get_resource::<OwnerResource>(),
+            Some(&OwnerResource(73))
+        );
+        assert_eq!(world.world_generation(), generation);
+        let errors = world.take_deferred_command_errors();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(
+            errors[0].error(),
+            &SceneError::Message("fresh diagnostics".into())
+        );
+        let mut removed = SystemState::<RemovedComponentsParam<OwnerTable>>::new(world).unwrap();
+        assert!(removed
+            .run(world, |mut removed| removed.read().collect::<Vec<_>>())
+            .is_empty());
+        assert!(world.has_deferred_commands());
+        assert_eq!(fresh_calls.load(Ordering::SeqCst), 0);
+        assert!(world.apply_deferred().is_success());
+        assert_eq!(fresh_calls.load(Ordering::SeqCst), 1);
+    }
+
+    fn replacement_fixture(
+        original: &World,
+        entity: crate::scene::EntityId,
+        fresh_calls: Arc<AtomicUsize>,
+        leaked: Arc<AtomicUsize>,
+    ) -> World {
+        let (mut replacement, fresh_entity) = fixture(71, 72);
+        assert_eq!(fresh_entity, entity);
+        assert_eq!(
+            original.registered_component_id::<OwnerTable>(),
+            replacement.registered_component_id::<OwnerTable>()
+        );
+        assert_eq!(
+            original.registered_component_id::<OwnerSparse>(),
+            replacement.registered_component_id::<OwnerSparse>()
+        );
+        assert!(!original
+            .owner_identity()
+            .is_same_world(replacement.owner_identity()));
+        replacement.insert_resource(OwnerResource(73));
+        replacement.record_deferred_command_error(DeferredCommandError::new(
+            DeferredCommandOperation::Remove,
+            DeferredCommandTarget::Resolved(entity),
+            SceneError::Message("fresh diagnostics".into()),
+        ));
+        for kind in [
+            LifecycleEventKind::Remove,
+            LifecycleEventKind::Despawn,
+            LifecycleEventKind::Insert,
+        ] {
+            let leaked_table = Arc::clone(&leaked);
+            replacement.observe_component_lifecycle::<OwnerTable>(kind, move |_, _| {
+                leaked_table.fetch_add(1, Ordering::SeqCst);
+            });
+            let leaked_sparse = Arc::clone(&leaked);
+            replacement.observe_component_lifecycle::<OwnerSparse>(kind, move |_, _| {
+                leaked_sparse.fetch_add(1, Ordering::SeqCst);
+            });
+        }
+        replacement.commands().queue_fn(move |_| {
+            fresh_calls.fetch_add(1, Ordering::SeqCst);
+        });
+        replacement
+    }
+
+    #[test]
+    fn public_remove_entity_cancels_world_replacement_at_remove_and_despawn_with_colliding_ids() {
+        for retain_schedule in [false, true] {
+            for boundary in [LifecycleEventKind::Remove, LifecycleEventKind::Despawn] {
+                let (mut world, entity) = fixture(1, 2);
+                let original_plan = world.schedule().stage_plan();
+                let fresh_calls = Arc::new(AtomicUsize::new(0));
+                let leaked = Arc::new(AtomicUsize::new(0));
+                let replacement = replacement_fixture(
+                    &world,
+                    entity,
+                    Arc::clone(&fresh_calls),
+                    Arc::clone(&leaked),
+                );
+                let generation = replacement.world_generation();
+                let replacement = Arc::new(Mutex::new(Some(replacement)));
+                let swap = Arc::clone(&replacement);
+                world.observe_component_lifecycle::<OwnerTable>(boundary, move |world, _| {
+                    let mut fresh = swap.lock().unwrap().take().unwrap();
+                    if retain_schedule {
+                        *fresh.schedule_mut() = std::mem::take(world.schedule_mut());
+                        assert!(Arc::ptr_eq(&original_plan, &fresh.schedule().stage_plan()));
+                    }
+                    *world = fresh;
+                });
+                assert!(matches!(
+                    world.remove_entity(entity),
+                    Err(SceneError::LifecycleTargetReplaced {
+                        operation: "remove entity",
+                        target: LifecycleTargetChange::World,
+                    })
+                ));
+                assert_eq!(leaked.load(Ordering::SeqCst), 0);
+                assert_replacement(&mut world, entity, generation, &fresh_calls);
+            }
+        }
+    }
+
+    #[test]
+    fn public_typed_remove_cancels_table_and_sparse_world_replacement_before_storage_mutation() {
+        for sparse in [false, true] {
+            for retain_schedule in [false, true] {
+                let (mut world, entity) = fixture(1, 2);
+                let plan = world.schedule().stage_plan();
+                let fresh_calls = Arc::new(AtomicUsize::new(0));
+                let leaked = Arc::new(AtomicUsize::new(0));
+                let replacement = replacement_fixture(
+                    &world,
+                    entity,
+                    Arc::clone(&fresh_calls),
+                    Arc::clone(&leaked),
+                );
+                let generation = replacement.world_generation();
+                let replacement = Arc::new(Mutex::new(Some(replacement)));
+                let swap =
+                    move |world: &mut World, _: &crate::scene::ecs::ComponentLifecycleEvent| {
+                        let mut fresh = replacement.lock().unwrap().take().unwrap();
+                        if retain_schedule {
+                            *fresh.schedule_mut() = std::mem::take(world.schedule_mut());
+                            assert!(Arc::ptr_eq(&plan, &fresh.schedule().stage_plan()));
+                        }
+                        *world = fresh;
+                    };
+                let result = if sparse {
+                    world.observe_component_lifecycle::<OwnerSparse>(
+                        LifecycleEventKind::Remove,
+                        swap,
+                    );
+                    world.remove::<OwnerSparse>(entity).map(|_| ())
+                } else {
+                    world.observe_component_lifecycle::<OwnerTable>(
+                        LifecycleEventKind::Remove,
+                        swap,
+                    );
+                    world.remove::<OwnerTable>(entity).map(|_| ())
+                };
+                assert!(matches!(
+                    result,
+                    Err(SceneError::LifecycleTargetReplaced {
+                        operation: "remove component",
+                        target: LifecycleTargetChange::World,
+                    })
+                ));
+                assert_eq!(leaked.load(Ordering::SeqCst), 0);
+                assert_replacement(&mut world, entity, generation, &fresh_calls);
+            }
+        }
+    }
+
+    #[test]
+    fn public_removal_cancels_schedule_only_replacement_and_preserves_rows_and_fresh_queue() {
+        for operation in 0..3 {
+            let (mut world, entity) = fixture(1, 2);
+            let owner = world.owner_identity().clone();
+            let fresh_calls = Arc::new(AtomicUsize::new(0));
+            let observed = Arc::clone(&fresh_calls);
+            world.observe_component_lifecycle::<OwnerTable>(
+                LifecycleEventKind::Remove,
+                move |world, _| {
+                    *world.schedule_mut() = Default::default();
+                    let observed = Arc::clone(&observed);
+                    world.commands().queue_fn(move |_| {
+                        observed.fetch_add(1, Ordering::SeqCst);
+                    });
+                },
+            );
+            if operation == 2 {
+                let observed = Arc::clone(&fresh_calls);
+                world.observe_component_lifecycle::<OwnerSparse>(
+                    LifecycleEventKind::Remove,
+                    move |world, _| {
+                        *world.schedule_mut() = Default::default();
+                        let observed = Arc::clone(&observed);
+                        world.commands().queue_fn(move |_| {
+                            observed.fetch_add(1, Ordering::SeqCst);
+                        });
+                    },
+                );
+            }
+            let result = match operation {
+                0 => world.remove_entity(entity),
+                1 => world.remove::<OwnerTable>(entity).map(|_| ()),
+                2 => world.remove::<OwnerSparse>(entity).map(|_| ()),
+                _ => unreachable!(),
+            };
+            assert!(matches!(
+                result,
+                Err(SceneError::LifecycleTargetReplaced {
+                    target: LifecycleTargetChange::Schedule,
+                    ..
+                })
+            ));
+            assert!(owner.is_same_world(world.owner_identity()));
+            assert_eq!(world.get::<OwnerTable>(entity), Some(&OwnerTable(1)));
+            assert_eq!(world.get::<OwnerSparse>(entity), Some(&OwnerSparse(2)));
+            assert!(world.has_deferred_commands());
+            assert!(world.apply_deferred().is_success());
+            assert_eq!(fresh_calls.load(Ordering::SeqCst), 1);
+        }
+    }
+
+    #[test]
+    fn orphan_hierarchy_replacement_cancels_helper_insert_and_parent_removal() {
+        let mut world = World::empty();
+        let parent = world.spawn(()).unwrap();
+        let first = world.spawn(()).unwrap();
+        let second = world.spawn(()).unwrap();
+        world.set_mobility(first, Mobility::Dynamic).unwrap();
+        world.set_mobility(second, Mobility::Dynamic).unwrap();
+        world.set_parent_checked(first, Some(parent)).unwrap();
+        world.set_parent_checked(second, Some(parent)).unwrap();
+        let mut fresh = World::empty();
+        assert_eq!(fresh.spawn(()).unwrap(), parent);
+        assert_eq!(fresh.spawn(()).unwrap(), first);
+        assert_eq!(fresh.spawn(()).unwrap(), second);
+        fresh.set_mobility(first, Mobility::Dynamic).unwrap();
+        fresh.set_mobility(second, Mobility::Dynamic).unwrap();
+        fresh.set_parent_checked(first, Some(parent)).unwrap();
+        fresh.set_parent_checked(second, Some(parent)).unwrap();
+        assert_eq!(
+            world.registered_component_id::<Hierarchy>(),
+            fresh.registered_component_id::<Hierarchy>()
+        );
+        let generation = fresh.world_generation();
+        let leaked = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&leaked);
+        fresh.observe_component_lifecycle::<Hierarchy>(LifecycleEventKind::Insert, move |_, _| {
+            observed.fetch_add(1, Ordering::SeqCst);
+        });
+        let fresh = Arc::new(Mutex::new(Some(fresh)));
+        world.observe_component_lifecycle::<Hierarchy>(
+            LifecycleEventKind::Replace,
+            move |world, _| {
+                *world = fresh.lock().unwrap().take().unwrap();
+            },
+        );
+        assert!(matches!(
+            world.remove_entity(parent),
+            Err(SceneError::LifecycleTargetReplaced {
+                operation: "insert component",
+                target: LifecycleTargetChange::World,
+            })
+        ));
+        assert_eq!(leaked.load(Ordering::SeqCst), 0);
+        assert!(world.contains_entity(parent));
+        assert_eq!(world.parent_of(first), Some(parent));
+        assert_eq!(world.parent_of(second), Some(parent));
+        assert_eq!(world.world_generation(), generation);
+    }
+
+    #[test]
+    fn public_insert_cancels_first_and_final_callback_replacement() {
+        for was_present in [false, true] {
+            for final_phase in [false, true] {
+                for schedule_only in [false, true] {
+                    let mut world = World::empty();
+                    world.component_id::<OwnerTable>();
+                    let entity = world.spawn(()).unwrap();
+                    if was_present {
+                        world.insert(entity, OwnerTable(1)).unwrap();
+                    }
+                    let leaked = Arc::new(AtomicUsize::new(0));
+                    let mut fresh = World::empty();
+                    fresh.component_id::<OwnerTable>();
+                    assert_eq!(fresh.spawn(()).unwrap(), entity);
+                    fresh.insert(entity, OwnerTable(71)).unwrap();
+                    let observed = Arc::clone(&leaked);
+                    fresh.observe_component_lifecycle::<OwnerTable>(
+                        LifecycleEventKind::Insert,
+                        move |_, _| {
+                            observed.fetch_add(1, Ordering::SeqCst);
+                        },
+                    );
+                    let fresh = Arc::new(Mutex::new(Some(fresh)));
+                    let boundary = if final_phase {
+                        LifecycleEventKind::Insert
+                    } else if was_present {
+                        LifecycleEventKind::Replace
+                    } else {
+                        LifecycleEventKind::Add
+                    };
+                    world.observe_component_lifecycle::<OwnerTable>(boundary, move |world, _| {
+                        if schedule_only {
+                            *world.schedule_mut() = Default::default();
+                        } else {
+                            *world = fresh.lock().unwrap().take().unwrap();
+                        }
+                    });
+                    assert!(matches!(
+                        world.insert(entity, OwnerTable(2)),
+                        Err(SceneError::LifecycleTargetReplaced {
+                            operation: "insert component",
+                            target,
+                        }) if target == (if schedule_only { LifecycleTargetChange::Schedule } else { LifecycleTargetChange::World })
+                    ));
+                    assert_eq!(leaked.load(Ordering::SeqCst), 0);
+                    assert_eq!(
+                        world.get::<OwnerTable>(entity),
+                        Some(&OwnerTable(if schedule_only { 2 } else { 71 }))
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn public_entity_removal_keeps_all_component_callbacks_on_one_plan_during_valid_registration() {
+        let (mut world, entity) = fixture(1, 2);
+        let original = world.schedule().stage_plan();
+        let callbacks = Arc::new(AtomicUsize::new(0));
+        let systems = Arc::new(AtomicUsize::new(0));
+        for kind in [LifecycleEventKind::Remove, LifecycleEventKind::Despawn] {
+            let callback = {
+                let callbacks = Arc::clone(&callbacks);
+                let systems = Arc::clone(&systems);
+                let original = Arc::clone(&original);
+                move |world: &mut World, _: &crate::scene::ecs::ComponentLifecycleEvent| {
+                    assert_eq!(world.get::<OwnerTable>(entity), Some(&OwnerTable(1)));
+                    assert_eq!(world.get::<OwnerSparse>(entity), Some(&OwnerSparse(2)));
+                    assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                    if callbacks.fetch_add(1, Ordering::SeqCst) == 0 {
+                        let systems = Arc::clone(&systems);
+                        world
+                            .register_native_system::<(), _>(
+                                "tests.public-remove.pending",
+                                SystemStage::Update,
+                                0,
+                                move |()| {
+                                    systems.fetch_add(1, Ordering::SeqCst);
+                                },
+                            )
+                            .unwrap();
+                    }
+                    assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                }
+            };
+            let callback_sparse = callback.clone();
+            world.observe_component_lifecycle::<OwnerTable>(kind, callback);
+            world.observe_component_lifecycle::<OwnerSparse>(kind, callback_sparse);
+        }
+        world.remove_entity(entity).unwrap();
+        assert_eq!(callbacks.load(Ordering::SeqCst), 4);
+        assert!(!world.contains_entity(entity));
+        assert!(!Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+        assert!(world.run_native_scene_system("tests.public-remove.pending"));
+        assert_eq!(systems.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn public_insert_and_typed_remove_keep_valid_registration_pending_through_all_callbacks() {
+        for sparse in [false, true] {
+            let (mut world, entity) = fixture(1, 2);
+            let original = world.schedule().stage_plan();
+            let callbacks = Arc::new(AtomicUsize::new(0));
+            let systems = Arc::new(AtomicUsize::new(0));
+            let callback = {
+                let callbacks = Arc::clone(&callbacks);
+                let systems = Arc::clone(&systems);
+                let original = Arc::clone(&original);
+                move |world: &mut World, _: &crate::scene::ecs::ComponentLifecycleEvent| {
+                    assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                    if callbacks.fetch_add(1, Ordering::SeqCst) == 0 {
+                        let systems = Arc::clone(&systems);
+                        world
+                            .register_native_system::<(), _>(
+                                "tests.public-typed.pending",
+                                SystemStage::Update,
+                                0,
+                                move |()| {
+                                    systems.fetch_add(1, Ordering::SeqCst);
+                                },
+                            )
+                            .unwrap();
+                    }
+                    assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                }
+            };
+            if sparse {
+                world.observe_component_lifecycle::<OwnerSparse>(
+                    LifecycleEventKind::Remove,
+                    callback.clone(),
+                );
+                world.observe_component_lifecycle::<OwnerSparse>(
+                    LifecycleEventKind::Remove,
+                    callback,
+                );
+                assert_eq!(
+                    world.remove::<OwnerSparse>(entity).unwrap(),
+                    Some(OwnerSparse(2))
+                );
+            } else {
+                world.observe_component_lifecycle::<OwnerTable>(
+                    LifecycleEventKind::Remove,
+                    callback.clone(),
+                );
+                world.observe_component_lifecycle::<OwnerTable>(
+                    LifecycleEventKind::Remove,
+                    callback,
+                );
+                assert_eq!(
+                    world.remove::<OwnerTable>(entity).unwrap(),
+                    Some(OwnerTable(1))
+                );
+            }
+            assert_eq!(callbacks.load(Ordering::SeqCst), 2);
+            assert!(!Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+            assert!(world.run_native_scene_system("tests.public-typed.pending"));
+            assert_eq!(systems.load(Ordering::SeqCst), 1);
+        }
+        for was_present in [false, true] {
+            let mut world = World::empty();
+            let entity = world.spawn(()).unwrap();
+            if was_present {
+                world.insert(entity, OwnerTable(1)).unwrap();
+            }
+            let original = world.schedule().stage_plan();
+            let callbacks = Arc::new(AtomicUsize::new(0));
+            let systems = Arc::new(AtomicUsize::new(0));
+            for kind in [
+                if was_present {
+                    LifecycleEventKind::Replace
+                } else {
+                    LifecycleEventKind::Add
+                },
+                LifecycleEventKind::Insert,
+            ] {
+                let original = Arc::clone(&original);
+                let callbacks = Arc::clone(&callbacks);
+                let systems = Arc::clone(&systems);
+                world.observe_component_lifecycle::<OwnerTable>(kind, move |world, _| {
+                    assert_eq!(world.get::<OwnerTable>(entity), Some(&OwnerTable(2)));
+                    assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                    if callbacks.fetch_add(1, Ordering::SeqCst) == 0 {
+                        let systems = Arc::clone(&systems);
+                        world
+                            .register_native_system::<(), _>(
+                                "tests.public-insert.pending",
+                                SystemStage::Update,
+                                0,
+                                move |()| {
+                                    systems.fetch_add(1, Ordering::SeqCst);
+                                },
+                            )
+                            .unwrap();
+                    }
+                    assert!(Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+                });
+            }
+            world.insert(entity, OwnerTable(2)).unwrap();
+            assert_eq!(callbacks.load(Ordering::SeqCst), 2);
+            assert!(!Arc::ptr_eq(&original, &world.schedule().stage_plan()));
+            assert!(world.run_native_scene_system("tests.public-insert.pending"));
+            assert_eq!(systems.load(Ordering::SeqCst), 1);
+        }
+    }
+
+    #[test]
+    fn public_remove_panic_releases_retained_original_execution_without_touching_replacement() {
+        let (mut world, entity) = fixture(1, 2);
+        let retained = Arc::new(Mutex::new(None));
+        let saved = Arc::clone(&retained);
+        let original = world.schedule().stage_plan();
+        let systems = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&systems);
+        world.observe_component_lifecycle::<OwnerTable>(
+            LifecycleEventKind::Remove,
+            move |world, _| {
+                let observed = Arc::clone(&observed);
+                world
+                    .register_native_system::<(), _>(
+                        "tests.public-remove.panic-pending",
+                        SystemStage::Update,
+                        0,
+                        move |()| {
+                            observed.fetch_add(1, Ordering::SeqCst);
+                        },
+                    )
+                    .unwrap();
+                *saved.lock().unwrap() = Some(std::mem::replace(world, World::empty()));
+                panic!("public remove original panic");
+            },
+        );
+        let panic =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| world.remove_entity(entity)))
+                .unwrap_err();
+        assert_eq!(
+            panic.downcast_ref::<&'static str>(),
+            Some(&"public remove original panic")
+        );
+        assert!(world.node_records().is_empty());
+        let mut old = retained.lock().unwrap().take().unwrap();
+        assert!(!Arc::ptr_eq(&original, &old.schedule().stage_plan()));
+        assert!(old.contains_entity(entity));
+        assert!(old.run_native_scene_system("tests.public-remove.panic-pending"));
+        assert_eq!(systems.load(Ordering::SeqCst), 1);
+    }
+}

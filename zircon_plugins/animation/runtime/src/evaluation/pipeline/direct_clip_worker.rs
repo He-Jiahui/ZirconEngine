@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use zircon_runtime::asset::ProjectAssetManager;
 use zircon_runtime::core::framework::animation::AnimationPoseOutput;
-use zircon_runtime::core::CoreHandle;
+use zircon_runtime::core::{CoreHandle, ServiceCallGuard};
 use zircon_runtime::scene::EntityId;
 
 use super::clip_sample::sample_pose_requests;
@@ -57,7 +57,7 @@ struct DirectClipWorkerTask {
 pub(super) fn sample_direct_clip_pose_requests(
     core: &CoreHandle,
     pipeline: &mut AnimationEvaluationPipeline,
-    asset_manager: Arc<ProjectAssetManager>,
+    asset_manager: Arc<ServiceCallGuard<ProjectAssetManager>>,
     pending_samples: Vec<PendingPoseSample>,
 ) -> BTreeMap<EntityId, AnimationPoseOutput> {
     if pending_samples.is_empty() {

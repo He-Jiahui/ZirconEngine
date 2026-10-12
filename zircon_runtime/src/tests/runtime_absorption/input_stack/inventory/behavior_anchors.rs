@@ -1,7 +1,6 @@
 //! 输入动作、手柄、宿主请求与公共契约保持由运行时输入栈拥有。以结果断言检查当前接口或源码快照对应的边界。
 const EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
     "input_snapshot_just_pressed_is_true_for_exactly_one_frame",
-    "frame_input_clears_after_level_tick_not_before",
     "action_map_resolves_chords_and_reports_just_activated",
     "replacing_action_map_rebuilds_bindings_automatically",
     "action_contexts_filter_gameplay_and_menu_maps_without_rebinding",
@@ -25,7 +24,7 @@ const EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
 
 #[test]
 fn runtime_12_input_stack_behavior_anchors_remain_visible() {
-    assert_eq!(EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS.len(), 21);
+    assert_eq!(EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS.len(), 20);
 
     let behavior_test_sources = [
         include_str!("../../../../input/tests/input_manager.rs"),

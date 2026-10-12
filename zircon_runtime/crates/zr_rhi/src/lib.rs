@@ -85,14 +85,19 @@ pub use texture_copy::{TextureCopyAspect, TextureCopyRegion};
 pub use texture_view::TextureViewDesc;
 pub use ui_surface::{
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDescriptor, UiSurfaceDrawList,
-    UiSurfaceImagePayload, UiSurfaceImageResource, UiSurfaceImageResourceTable,
-    UiSurfaceImageUvRect, UiSurfacePresentOutcome, UiSurfacePresentStats,
-    UiSurfacePresentStatsAccumulator, UiSurfacePresenter, UiSurfaceRect,
+    UiSurfaceFontSnapshot, UiSurfaceFontSource, UiSurfaceImagePayload, UiSurfaceImageResource,
+    UiSurfaceImageResourceTable, UiSurfaceImageUvRect, UiSurfacePresentOutcome,
+    UiSurfacePresentStats, UiSurfacePresentStatsAccumulator, UiSurfacePresenter, UiSurfaceRect,
     UiSurfaceResolvedCommandKind, UiSurfaceStyle, UiSurfaceStyleHandle, UiSurfaceStyledPayload,
     UiSurfaceTextFace, UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot, UiSurfaceTextLine,
+    UiSurfaceTextRequest,
     UiSurfaceTextStyle,
 };
 pub use upload::{BufferUpload, BufferUploadBatch, TextureUpload, TextureUploadBatch};
 
 #[cfg(test)]
 mod tests;
+
+pub use ui_surface::{
+    UiSurfaceFramePixelFormat, UiSurfaceFrameReadback, UiSurfaceFrameReadbackRequest,
+};

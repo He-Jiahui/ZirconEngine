@@ -7,6 +7,10 @@ mod builtin_contract;
 #[path = "jolt_contract.rs"]
 mod jolt_contract;
 
+#[cfg(feature = "backend-jolt")]
+#[path = "thread_budget.rs"]
+mod thread_budget;
+
 use zircon_runtime::core::framework::physics::{
     PhysicsBodySyncState, PhysicsBodyType, PhysicsColliderShape, PhysicsColliderSyncState,
 };

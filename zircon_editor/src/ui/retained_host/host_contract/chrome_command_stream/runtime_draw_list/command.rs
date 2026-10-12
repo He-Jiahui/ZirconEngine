@@ -2,9 +2,9 @@ use zircon_runtime::rhi::{UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceImage
 
 use super::super::{ChromeCommand, ChromeCommandKind};
 use super::geometry::{ui_image_uv_rect, ui_rect};
-use super::text_style::{ui_text_font_family, ui_text_font_weight, ui_text_style};
+use super::text_style::{ui_text_font_request, ui_text_style_for_request};
 use crate::ui::retained_host::host_contract::paint_text::{
-    capture_runtime_text_faces, HostRuntimeTextFaces,
+    HostRuntimeTextFaces,
 };
 
 pub(super) fn ui_surface_command_from_chrome(
@@ -39,16 +39,17 @@ pub(super) fn ui_surface_command_from_chrome(
                 size,
                 line_height,
                 style,
+                font_request,
             } => {
-                let text_faces = text_faces.get_or_insert_with(capture_runtime_text_faces);
+                let (font_family, font_weight) = ui_text_font_request(*style, font_request.as_ref(), text_faces);
                 UiSurfaceCommandKind::Text {
                     text: text.clone(),
                     color: *color,
-                    font_family: Some(ui_text_font_family(*style, text_faces)),
-                    font_weight: ui_text_font_weight(*style, text_faces),
+                    font_family: Some(font_family),
+                    font_weight,
                     font_size: *size,
                     line_height: *line_height,
-                    style: ui_text_style(*style),
+                    style: ui_text_style_for_request(*style, font_request.as_ref()),
                 }
             }
             ChromeCommandKind::Image { payload } => UiSurfaceCommandKind::Image {
@@ -100,16 +101,17 @@ pub(super) fn ui_surface_command_from_owned_chrome(
                 size,
                 line_height,
                 style,
+                font_request,
             } => {
-                let text_faces = text_faces.get_or_insert_with(capture_runtime_text_faces);
+                let (font_family, font_weight) = ui_text_font_request(style, font_request.as_ref(), text_faces);
                 UiSurfaceCommandKind::Text {
                     text,
                     color,
-                    font_family: Some(ui_text_font_family(style, text_faces)),
-                    font_weight: ui_text_font_weight(style, text_faces),
+                    font_family: Some(font_family),
+                    font_weight,
                     font_size: size,
                     line_height,
-                    style: ui_text_style(style),
+                    style: ui_text_style_for_request(style, font_request.as_ref()),
                 }
             }
             ChromeCommandKind::Image { payload } => UiSurfaceCommandKind::Image {

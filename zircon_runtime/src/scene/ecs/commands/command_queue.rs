@@ -90,6 +90,9 @@ impl CommandQueue {
     /// 连续结构命令按区间预检发布，普通闭包构成可观察屏障；报告计数含被拒绝条目，调用方仍须检查错误。
     pub fn apply(&mut self, world: &mut World) -> DeferredCommandReport {
         let started_at = Instant::now();
+        let world_owner = world.owner_identity().clone();
+        let execution = world.begin_schedule_execution();
+        let plan_owner = execution.plan();
         let applied_count = self.commands.len();
         world.clear_deferred_command_errors();
 
@@ -129,42 +132,91 @@ impl CommandQueue {
             &mut self.metrics,
         );
         let mut cursor = 0;
+        let mut window_errors = Vec::new();
         let result = catch_unwind(AssertUnwindSafe(|| {
             let mut structural_batch = None;
             while cursor < commands.len() {
+                if !(world_owner.is_same_world(world.owner_identity())
+                    && world.schedule().owns_stage_plan(plan_owner))
+                {
+                    break;
+                }
                 let command = std::mem::replace(&mut commands[cursor], QueuedCommand::Consumed);
                 cursor += 1;
                 let storage = command
                     .storage()
                     .expect("unconsumed queue entry must own storage");
-                metrics.dispatched(storage);
-
                 if command
                     .structural_metadata(inline_arena, worker_inline_arenas)
                     .is_some()
                 {
                     let batch = structural_batch
                         .get_or_insert_with(crate::scene::world::DeferredStructuralBatch::new);
+                    metrics.dispatched(storage);
                     command.stage_structural(inline_arena, worker_inline_arenas, batch, world);
                     continue;
                 }
 
                 if let Some(batch) = structural_batch.take() {
-                    for error in batch.finish(world) {
-                        world.record_deferred_command_error(error);
+                    let errors = batch.finish(world);
+                    if (world_owner.is_same_world(world.owner_identity())
+                        && world.schedule().owns_stage_plan(plan_owner))
+                    {
+                        for error in errors {
+                            world.record_deferred_command_error(error);
+                        }
                     }
                 }
+                if !(world_owner.is_same_world(world.owner_identity())
+                    && world.schedule().owns_stage_plan(plan_owner))
+                {
+                    metrics.discarded(storage);
+                    command.discard(inline_arena, worker_inline_arenas);
+                    break;
+                }
+                // Preserve earlier diagnostics before an opaque callback can
+                // move or replace their logical World owner.
+                window_errors.extend(world.take_deferred_command_errors());
+                metrics.dispatched(storage);
                 command.apply(inline_arena, worker_inline_arenas, world);
+                // A later structural observer may replace World before the
+                // next opaque barrier can preserve this command's diagnostics.
+                if world_owner.is_same_world(world.owner_identity()) {
+                    window_errors.extend(world.take_deferred_command_errors());
+                }
             }
 
-            if let Some(batch) = structural_batch.take() {
-                for error in batch.finish(world) {
-                    world.record_deferred_command_error(error);
+            if (world_owner.is_same_world(world.owner_identity())
+                && world.schedule().owns_stage_plan(plan_owner))
+            {
+                if let Some(batch) = structural_batch.take() {
+                    let errors = batch.finish(world);
+                    if (world_owner.is_same_world(world.owner_identity())
+                        && world.schedule().owns_stage_plan(plan_owner))
+                    {
+                        for error in errors {
+                            world.record_deferred_command_error(error);
+                        }
+                    }
                 }
             }
         }));
 
-        if let Err(payload) = result {
+        // A Schedule replacement leaves the original World's error hook valid.
+        // A replacement World owns a different bag and must never be drained.
+        if world_owner.is_same_world(world.owner_identity()) {
+            window_errors.extend(world.take_deferred_command_errors());
+            if result.is_err() {
+                for error in window_errors.drain(..) {
+                    world.record_deferred_command_error(error);
+                }
+            }
+        }
+
+        if result.is_err()
+            || !(world_owner.is_same_world(world.owner_identity())
+                && world.schedule().owns_stage_plan(plan_owner))
+        {
             for command in commands.iter_mut().skip(cursor) {
                 let command = std::mem::replace(command, QueuedCommand::Consumed);
                 if let Some(storage) = command.storage() {
@@ -177,9 +229,18 @@ impl CommandQueue {
             for worker_arena in worker_inline_arenas {
                 worker_arena.arena.reset();
             }
-            world.clear_deferred_spawn_resolutions();
+            if (world_owner.is_same_world(world.owner_identity())
+                && world.schedule().owns_stage_plan(plan_owner))
+            {
+                world.clear_deferred_spawn_resolutions();
+            }
             metrics.record_world_apply(started_at.elapsed());
-            resume_unwind(payload);
+            return match result {
+                Err(payload) => resume_unwind(payload),
+                Ok(()) => {
+                    DeferredCommandReport::canceled_by_world_replacement(cursor, window_errors)
+                }
+            };
         }
 
         commands.clear();
@@ -190,12 +251,7 @@ impl CommandQueue {
         let published_entities = world.take_published_deferred_spawn_resolutions();
         world.clear_deferred_spawn_resolutions();
         metrics.record_world_apply(started_at.elapsed());
-        DeferredCommandReport::new(
-            applied_count,
-            world.take_deferred_command_errors(),
-            None,
-            published_entities,
-        )
+        DeferredCommandReport::new(applied_count, window_errors, None, published_entities)
     }
 
     pub fn len(&self) -> usize {

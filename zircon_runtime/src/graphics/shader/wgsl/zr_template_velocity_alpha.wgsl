@@ -82,6 +82,7 @@ fn zr_velocity_material_input(input: ZrVelocityVertexOutput) -> ZrVertexOutput {
     return output;
 }
 
+// 无抖动投影使 TAA 采样偏移不计入速度；历史几何由 fetch_prev_position 提供，随后应用上一帧模型与相机矩阵。
 fn zr_vs_main_impl(v: ZrVelocityVertexInput, instance_index: u32) -> ZrVelocityVertexOutput {
     let current_input = zr_velocity_vertex_input(v, v.position);
     let previous_input = zr_velocity_vertex_input(v, v.previous_position);

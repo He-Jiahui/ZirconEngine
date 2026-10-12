@@ -1,12 +1,20 @@
 use crate::ui::template_runtime::EditorUiHostRuntimeError;
 
+#[derive(Debug, thiserror::Error)]
+pub(super) enum PluginTemplateSynchronizationError {
+    #[error(transparent)]
+    Editor(#[from] crate::ui::host::EditorError),
+    #[error(transparent)]
+    Template(#[from] EditorUiHostRuntimeError),
+}
+
 use super::RetainedEditorHost;
 
 impl RetainedEditorHost {
     pub(super) fn sync_plugin_template_documents_if_changed(
         &mut self,
-    ) -> Result<(), EditorUiHostRuntimeError> {
-        let (generation, enabled_capabilities) = self.runtime.extension_projection_revision();
+    ) -> Result<(), PluginTemplateSynchronizationError> {
+        let (generation, enabled_capabilities) = self.runtime.extension_projection_revision()?;
         if self.plugin_template_generation == generation
             && self.plugin_template_capabilities == enabled_capabilities
         {
@@ -14,7 +22,7 @@ impl RetainedEditorHost {
         }
 
         let (generation, enabled_capabilities, templates_by_owner) =
-            self.runtime.enabled_plugin_template_descriptors();
+            self.runtime.enabled_plugin_template_descriptors()?;
         self.builtin_template_runtime
             .sync_plugin_v2_template_descriptor_sets(&templates_by_owner)?;
 

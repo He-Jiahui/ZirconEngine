@@ -1,5 +1,8 @@
 pub(super) use super::super::super::bounded_extent as alert_bounded_extent;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
+use crate::ui::retained_host::host_contract::paint_theme::{
+    current_host_metrics, logical_font_size_to_physical,
+};
 
 pub(super) const ALERT_PADDING_X: f32 = 16.0;
 pub(super) const ALERT_ICON_EDGE: f32 = 22.0;
@@ -18,7 +21,7 @@ pub(super) const ALERT_MESSAGE_VERTICAL_INSET: f32 = 8.0;
 // 几何模块把节点字号投影到 Alert 正文；无效字号退回组件默认值，供文本框与命令共用。
 pub(super) fn alert_font_size(node: &TemplatePaneNodeData) -> f32 {
     if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
+        logical_font_size_to_physical(node.font_size, current_host_metrics().scale_factor)
     } else {
         ALERT_FONT_SIZE
     }

@@ -1,3 +1,5 @@
+//! 本文件的 includes/contains/split/order 断言检查生成源码及约定位置；调用验证器的用例另行检查 WGSL。
+//! 字符串断言不测 GPU 数值、实际纹理加载或性能，不能代替生产 shader admission 与设备验证。
 use std::num::NonZeroU32;
 
 use crate::core::framework::render::{
@@ -23,6 +25,8 @@ use super::material_surface::{
 use super::pass_specialization::pass_template_for;
 use super::validation::validate_material_shader_template_wgsl;
 
+// 此共享 surface 只返回顶点颜色，不声明或采样贴图；依赖它的模板夹具主要覆盖源码组装、入口与几何契约。
+// standard_material_descriptor 默认所有贴图引用为空；需要 normal、clearcoat 等特性的用例必须显式设置相应输入。
 const MATERIAL_SURFACE: &str = r#"
 fn user_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
     return zr_surface_from_base_color(vec4<f32>(input.color.rgb, 1.0));

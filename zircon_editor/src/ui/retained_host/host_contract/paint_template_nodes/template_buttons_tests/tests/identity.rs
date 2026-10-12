@@ -74,3 +74,31 @@ fn asset_browser_kind_filter_dropdown_is_not_a_legacy_toolbar_chip_button() {
     assert!(!is_asset_browser_toolbar_chip_button(&node));
     assert!(!is_workbench_button(&node));
 }
+
+#[test]
+fn authored_text_buttons_do_not_infer_icons_from_menu_ids_or_labels() {
+    for (id, label) in [
+        ("MenuSlot0", "File"),
+        ("MenuSlot1", "Edit"),
+        ("MenuSlot2", "Window"),
+        ("MenuSlot3", "Tools"),
+        ("MenuSlot4", "Build"),
+        ("MenuSlot5", "Help"),
+        ("PlainAddMenu", "Add"),
+        ("PlainDeleteMenu", "Delete"),
+    ] {
+        let node = button_node(id, label, "text");
+        assert!(is_workbench_button(&node));
+        assert_eq!(button_glyph(&node), ButtonGlyph::None, "{id}");
+    }
+}
+
+#[test]
+fn declared_dropdown_and_asset_icons_retain_their_content_roles() {
+    let dropdown = button_node("ExportDropdown", "Export", "secondary");
+    assert_eq!(button_glyph(&dropdown), ButtonGlyph::ChevronDown);
+    let mut icon = button_node("SaveMenuEntry", "Save", "text");
+    icon.icon_name = "save".into();
+    assert_eq!(button_glyph(&icon), ButtonGlyph::None);
+    assert_eq!(icon.icon_name.as_str(), "save");
+}

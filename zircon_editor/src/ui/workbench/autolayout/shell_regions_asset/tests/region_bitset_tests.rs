@@ -16,7 +16,7 @@ fn optimization_batch_20260826cl_editor_shell_region_bitset_preserves_duplicate_
     let asset = WorkbenchShellRegionsAsset::from_toml_str(asset_source).expect("valid asset");
     assert_eq!(asset.regions.len(), EditorRegion::ALL.len());
 
-    let mut duplicate = WorkbenchSkeleton::jetbrains_default().regions;
+    let mut duplicate = WorkbenchSkeleton::unreal_default().regions;
     let repeated = duplicate[0].clone();
     duplicate[1] = repeated;
     assert!(matches!(
@@ -26,7 +26,7 @@ fn optimization_batch_20260826cl_editor_shell_region_bitset_preserves_duplicate_
         })
     ));
 
-    let mut missing = WorkbenchSkeleton::jetbrains_default().regions;
+    let mut missing = WorkbenchSkeleton::unreal_default().regions;
     missing.retain(|binding| binding.region != EditorRegion::Center);
     assert!(matches!(
         validate_complete_region_set(&missing),

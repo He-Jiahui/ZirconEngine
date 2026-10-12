@@ -664,8 +664,8 @@ export function expectedWorkbenchRuntimeDocumentPaths(
 ): { sourcePaths: string[]; errors: string[] } {
   const errors: string[] = [];
   const sourcePaths = new Set([
-    'zircon_editor/assets/ui/editor/host/workbench_shell.zui',
-    'zircon_editor/assets/ui/editor/windows/workbench_window.zui',
+    'zircon_editor/assets/ui/editor/unreal/editor_shell.zui',
+    'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui',
   ]);
   if (!isRecord(presentationValue))
     return {

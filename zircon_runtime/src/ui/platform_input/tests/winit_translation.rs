@@ -420,3 +420,31 @@ fn input_metadata() -> UiInputEventMetadata {
     metadata.window_id = Some(UiWindowId::new("runtime.window"));
     metadata
 }
+
+#[test]
+fn translate_winit_window_wheel_uses_last_cursor_position_and_preserves_metadata() {
+    for position in [None, Some(UiPoint::new(24.0, 36.0))] {
+        let mut context = input_context();
+        context.last_cursor_position = position;
+        let input = super::translate_winit_window_event(
+            context,
+            &winit::event::WindowEvent::MouseWheel {
+                device_id: None,
+                delta: MouseScrollDelta::LineDelta(1.0, 2.0),
+                phase: winit::event::TouchPhase::Moved,
+            },
+        )
+        .expect("window wheel event should produce input");
+        let UiWindowInputPumpEvent::Input(UiInputEvent::Pointer(pointer)) = input else {
+            panic!("window wheel should produce pointer input");
+        };
+        assert_eq!(pointer.event.kind, UiPointerEventKind::Scroll);
+        assert_eq!(pointer.event.point, position.unwrap_or_default());
+        assert_eq!(pointer.event.scroll_delta, 2.0);
+        assert_eq!(
+            pointer.precise_scroll,
+            Some(UiPreciseScrollDelta::lines(1.0, 2.0))
+        );
+        assert_eq!(pointer.metadata, input_metadata());
+    }
+}

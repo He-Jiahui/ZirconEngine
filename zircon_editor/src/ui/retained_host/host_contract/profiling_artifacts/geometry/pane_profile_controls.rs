@@ -1,6 +1,8 @@
 mod authored;
 
-use super::super::super::componentized_workbench_regions::owns_ordinary_panes;
+use super::super::super::componentized_workbench_regions::{
+    owns_authored_level_viewport, owns_ordinary_panes,
+};
 use super::super::super::data::HostWindowPresentationData;
 use super::super::UiProfileNamedFrame;
 use super::frame_math::translated;
@@ -26,21 +28,35 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_controls
     let mut template_controls = Vec::new();
     let mut welcome_recent_frames = Vec::new();
     let mut asset_browser_content_frames = Vec::new();
-    collect_pane_profile_frames(
-        "document",
-        &scene.document_dock.pane,
-        &translated(
-            &scene.document_dock.content_frame,
-            scene.document_dock.region_frame.x,
-            scene.document_dock.region_frame.y,
-        ),
-        &mut viewport_toolbar_controls,
-        &mut template_controls,
-        &mut welcome_recent_frames,
-        &mut asset_browser_content_frames,
-    );
+    for document in scene.document_surfaces() {
+        if owns_authored_level_viewport(presentation, document) {
+            continue;
+        }
+        let surface = if scene.document_leaves.is_empty() {
+            "document"
+        } else {
+            document.surface_key.as_str()
+        };
+        collect_pane_profile_frames(
+            surface,
+            &document.pane,
+            &translated(
+                &document.content_frame,
+                document.region_frame.x,
+                document.region_frame.y,
+            ),
+            &mut viewport_toolbar_controls,
+            &mut template_controls,
+            &mut welcome_recent_frames,
+            &mut asset_browser_content_frames,
+        );
+    }
     if owns_ordinary_panes(presentation) {
-        authored::collect_authored_pane_controls(presentation, &mut template_controls);
+        authored::collect_authored_pane_controls(
+            presentation,
+            &mut template_controls,
+            &mut viewport_toolbar_controls,
+        );
     } else {
         collect_pane_profile_frames(
             "left",

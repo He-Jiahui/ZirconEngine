@@ -216,7 +216,9 @@ impl TransactionScope<'_> {
     /// Completes the transaction only after the applied selection has been accepted by the host.
     ///
     /// The callback runs after commands have applied but before history and lifecycle commit state
-    /// are published. An error cancels the active transaction through the normal rollback path.
+    /// are published. An ordinary error cancels the active transaction through normal rollback.
+    /// A lifecycle interruption retains the active commands and faults the engine without
+    /// compensation; effects already published by callbacks are not rolled back.
     pub fn commit_after_apply(
         mut self,
         mut after_apply: impl FnMut(&SelectionSnapshot) -> Result<(), EditCommandError>,

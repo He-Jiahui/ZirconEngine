@@ -187,12 +187,17 @@ fn text_font_ttc_nonzero_face_materializes_for_real_sdf_raster() {
     let parsed = ttf_parser::Face::parse(standalone.as_ref(), 0).unwrap();
     assert!(Arc::ptr_eq(&standalone, &repeated_standalone));
     assert_eq!(parsed.weight().to_number(), 700);
-    let sdf_font = fontsdf::Font::from_bytes(standalone.as_ref()).unwrap();
-    let (metrics, pixels) = sdf_font.rasterize_sdf('A', 32.0);
+    let glyph = crate::text::sdf::generate_distance_field_glyph(
+        standalone.as_ref(),
+        0,
+        parsed.glyph_index('A').unwrap().0,
+        crate::text::sdf::SdfBakeParams::default(),
+    )
+    .unwrap();
 
-    assert!(metrics.width > 0);
-    assert!(metrics.height > 0);
-    assert!(pixels.iter().any(|value| *value != 0));
+    assert!(glyph.size.x > 0);
+    assert!(glyph.size.y > 0);
+    assert!(glyph.pixels.iter().any(|value| *value != 0));
 
     let _ = std::fs::remove_file(collection_path);
 }

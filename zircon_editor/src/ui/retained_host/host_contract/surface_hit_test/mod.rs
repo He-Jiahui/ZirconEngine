@@ -6,8 +6,15 @@ pub(crate) use template_node::{
 };
 pub(in crate::ui::retained_host::host_contract) use template_node::{
     hit_test_pane_template_node, hit_test_pane_template_node_borrowed,
-    hit_test_workbench_window_template_node_for_pointer_move_with_index,
-    hit_test_workbench_window_template_node_with_index, HostPaneTemplateHitIndex,
-    HostWorkbenchHitIndex, TemplateNodePointerHit, TemplateNodePointerMoveHit,
-    TemplateNodePointerMoveKind, TemplateNodePointerRouteHit,
+    hit_test_workbench_window_template_node_for_pointer_move_with_index, HostPaneTemplateHitIndex,
+    TemplateNodePointerHit, TemplateNodePointerMoveHit, TemplateNodePointerMoveKind,
+    TemplateNodePointerRouteHit,
+};
+#[cfg(not(test))]
+pub(in crate::ui::retained_host::host_contract) use template_node::{
+    hit_test_workbench_window_template_node_with_index, HostWorkbenchHitIndex,
+};
+#[cfg(test)]
+pub(in crate::ui::retained_host) use template_node::{
+    hit_test_workbench_window_template_node_with_index, HostWorkbenchHitIndex,
 };

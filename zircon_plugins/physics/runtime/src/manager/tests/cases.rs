@@ -77,7 +77,9 @@ fn physics_manager_world_state_recovers_poisoned_state_locks() {
 #[test]
 fn physics_sync_to_scene_applies_synchronized_body_state() {
     let mut world = World::new();
-    let entity = world.spawn_node(NodeKind::Cube);
+    let entity = world
+        .spawn_node(NodeKind::Cube)
+        .expect("spawn physics fixture");
     world
         .set_rigid_body(entity, Some(RigidBodyComponent::default()))
         .unwrap();

@@ -176,6 +176,7 @@ impl DeferredCommandError {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DeferredCommandReport {
     applied_count: usize,
+    canceled_by_world_replacement: bool,
     errors: Vec<DeferredCommandError>,
     allocation_error: Option<SceneError>,
     resolved_entities: BTreeMap<DeferredSpawnToken, EntityId>,
@@ -190,12 +191,32 @@ impl DeferredCommandReport {
     ) -> Self {
         Self {
             applied_count,
+            canceled_by_world_replacement: false,
             errors,
             allocation_error,
             resolved_entities,
         }
     }
 
+    pub(crate) fn canceled_by_world_replacement(
+        applied_count: usize,
+        errors: Vec<DeferredCommandError>,
+    ) -> Self {
+        Self {
+            applied_count,
+            canceled_by_world_replacement: true,
+            errors,
+            ..Self::default()
+        }
+    }
+
+    /// Whether a callback invalidated the original World or Schedule.
+    pub fn was_canceled_by_world_replacement(&self) -> bool {
+        self.canceled_by_world_replacement
+    }
+
+    /// Number of entries consumed from the original command window.
+    /// Includes rejected entries and a preclaimed barrier discarded on cancellation.
     pub fn applied_count(&self) -> usize {
         self.applied_count
     }
@@ -205,7 +226,9 @@ impl DeferredCommandReport {
     }
 
     pub fn is_success(&self) -> bool {
-        self.errors.is_empty() && self.allocation_error.is_none()
+        !self.canceled_by_world_replacement
+            && self.errors.is_empty()
+            && self.allocation_error.is_none()
     }
 
     pub fn errors(&self) -> &[DeferredCommandError] {

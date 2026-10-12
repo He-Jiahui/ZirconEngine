@@ -32,11 +32,21 @@ impl RetainedEditorHost {
             return;
         }
 
-        let pane_payloads = self.prepare_native_window_pane_payloads(model, chrome);
+        let pane_payloads = match self.prepare_native_window_pane_payloads(model, chrome) {
+            Ok(payloads) => payloads,
+            Err(error) => {
+                self.set_status_line(format!("Native window sync failed: {error}"));
+                return;
+            }
+        };
         let pane_template_runtime = if pane_payloads.has_component_showcase_runtime {
             &self.component_showcase_runtime
         } else {
             self.builtin_template_runtime.as_ref()
+        };
+        let pane_runtimes = crate::ui::retained_host::ui::PaneRuntimeContext {
+            template: Some(pane_template_runtime),
+            generated: Some(self.builtin_template_runtime.as_ref()),
         };
         let active_preset_name = self.active_layout_preset.as_deref();
         let host_handle = self.self_handle.as_ref().and_then(Weak::upgrade);
@@ -62,7 +72,7 @@ impl RetainedEditorHost {
                     runtime_diagnostics,
                     &pane_payloads,
                     floating_window_projection_bundle,
-                    pane_template_runtime,
+                    pane_runtimes,
                     viewport_toolbar_bridge,
                 );
             },

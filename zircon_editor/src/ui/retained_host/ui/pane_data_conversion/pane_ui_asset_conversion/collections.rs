@@ -7,6 +7,7 @@ pub(super) fn to_host_contract_ui_asset_collections(
     data: &mut asset_editor::UiAssetEditorPanePresentation,
 ) -> host_contract::UiAssetCollectionPanelData {
     host_contract::UiAssetCollectionPanelData {
+        palette_visible_start: data.palette_visible_start,
         palette: to_host_contract_ui_asset_string_selection(
             std::mem::take(&mut data.palette_items),
             data.palette_selected_index,

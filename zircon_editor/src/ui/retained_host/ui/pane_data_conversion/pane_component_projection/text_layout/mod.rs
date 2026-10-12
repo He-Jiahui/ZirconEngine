@@ -48,6 +48,8 @@ pub(super) fn projected_text_layout(
         layout_padding_right: offsets.layout_padding_right,
         layout_padding_top: offsets.layout_padding_top,
         layout_padding_bottom: offsets.layout_padding_bottom,
+        authored_field_padding: offsets.authored_field_padding,
+        authored_field_label_width: offsets.authored_field_label_width,
         layout_spacing: offsets.layout_spacing,
         layout_first_cell_offset_x: offsets.layout_first_cell_offset_x,
         layout_second_cell_offset_x: offsets.layout_second_cell_offset_x,
@@ -59,6 +61,9 @@ pub(super) fn projected_text_layout(
         selected_segment_underline_color: selected_segment.underline_color,
         font_size: typography.font_size,
         font_weight: typography.font_weight,
+        line_height: typography.line_height,
+        line_height_ratio: typography.line_height_ratio,
+        font_family: typography.font_family,
         text_align: typography.text_align,
         overflow: typography.overflow,
     }

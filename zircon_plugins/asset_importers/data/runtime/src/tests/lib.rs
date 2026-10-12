@@ -88,9 +88,9 @@ fn data_asset_importer_package_manifest_declares_dist_contract() {
         zircon_runtime::plugin::PluginModuleKind::Native
     );
     assert_eq!(dist_module.crate_name, ASSET_IMPORTER_DATA_DIST_CRATE_NAME);
-    assert!(dist_module.target_modes.contains(
-        &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
-    ));
+    assert!(dist_module
+        .target_modes
+        .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime));
     assert!(dist_module
         .target_modes
         .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));
@@ -131,6 +131,59 @@ fn yaml_importer_decodes_data_asset() {
 }
 
 #[test]
+fn yaml_importer_preserves_aliases_yaml12_scalars_and_literal_merge_keys() {
+    let source = "base: &base {enabled: true, label: zircon}\nalias: *base\nlegacy_words: [yes, no, on, off]\nquoted: \"2\"\nmerged: {<<: *base, count: 2}\n";
+    let ImportedAsset::Data(data) = import_fixture("compatible.yaml", source) else {
+        panic!("expected YAML data asset");
+    };
+    assert_eq!(data.text, source);
+    assert_eq!(
+        data.canonical_json["alias"],
+        json!({"enabled": true, "label": "zircon"})
+    );
+    assert_eq!(
+        data.canonical_json["legacy_words"],
+        json!(["yes", "no", "on", "off"])
+    );
+    assert_eq!(data.canonical_json["quoted"], "2");
+    assert_eq!(
+        data.canonical_json["merged"],
+        json!({"<<": {"enabled": true, "label": "zircon"}, "count": 2})
+    );
+}
+
+#[test]
+fn yaml_importer_keeps_asset_dependencies_and_rejects_invalid_documents() {
+    let outcome = import_outcome(
+        "aliases.yaml",
+        "asset: &asset res://textures/albedo.png\nagain: *asset\n",
+    );
+    assert_eq!(
+        outcome.root_entry().unwrap().dependencies,
+        [AssetUri::parse("res://textures/albedo.png").unwrap()]
+    );
+    for source in [
+        "value: [",
+        "---\na: 1\n---\nb: 2\n",
+        "value: &recursive [*recursive]\n",
+    ] {
+        assert!(matches!(
+            import_yaml_data(&context_for("invalid.yaml", source)),
+            Err(AssetImportError::Parse(_))
+        ));
+    }
+}
+
+#[test]
+fn yaml_importer_preserves_the_last_value_of_duplicate_json_object_keys() {
+    let ImportedAsset::Data(data) = import_fixture("duplicate.yaml", "name: first\nname: last\n")
+    else {
+        panic!("expected YAML data asset");
+    };
+    assert_eq!(data.canonical_json, json!({"name": "last"}));
+}
+
+#[test]
 fn structured_data_importer_projects_canonical_asset_uri_dependencies() {
     let source = r#"[["res://textures/hero.png", "builtin://shader/pbr.wgsl"], "res://textures/hero.png", "res://data/references.json", "res://textures/../textures/noncanonical.png", "mem://preview/hero", "textures/local.png", {"nested": ["lib://shared/fonts/editor.font.toml"]}]"#;
     let outcome = import_outcome("references.json", source);
@@ -141,8 +194,7 @@ fn structured_data_importer_projects_canonical_asset_uri_dependencies() {
         &vec![
             zircon_runtime::asset::AssetUri::parse("res://textures/hero.png").unwrap(),
             zircon_runtime::asset::AssetUri::parse("builtin://shader/pbr.wgsl").unwrap(),
-            zircon_runtime::asset::AssetUri::parse("lib://shared/fonts/editor.font.toml")
-                .unwrap(),
+            zircon_runtime::asset::AssetUri::parse("lib://shared/fonts/editor.font.toml").unwrap(),
         ]
     );
 }

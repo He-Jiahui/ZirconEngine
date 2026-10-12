@@ -17,7 +17,7 @@ const WORKBENCH_AXIS_VALUE_FIELD_V2_TOML: &str = include_str!(concat!(
 ));
 const WORKBENCH_INSPECTOR_PANEL_V2_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui"
+    "/assets/ui/editor/unreal/components/details.zui"
 ));
 
 #[test]
@@ -136,7 +136,7 @@ fn workbench_axis_value_field_uses_runtime_density_width_tokens() {
 }
 
 #[test]
-fn inspector_axis_fields_inherit_runtime_density_width_tokens() {
+fn unreal_details_axis_fields_inherit_the_standard_responsive_primitive() {
     let source: toml::Value = toml::from_str(WORKBENCH_INSPECTOR_PANEL_V2_TOML)
         .expect("inspector panel source should stay valid TOML");
     let nodes = source
@@ -145,15 +145,15 @@ fn inspector_axis_fields_inherit_runtime_density_width_tokens() {
         .expect("inspector panel must retain node definitions");
 
     for node_id in [
-        "position_value_x",
-        "position_value_y",
-        "position_value_z",
-        "rotation_value_x",
-        "rotation_value_y",
-        "rotation_value_z",
-        "scale_value_x",
-        "scale_value_y",
-        "scale_value_z",
+        "position_x",
+        "position_y",
+        "position_z",
+        "rotation_x",
+        "rotation_y",
+        "rotation_z",
+        "scale_x",
+        "scale_y",
+        "scale_z",
     ] {
         let node = nodes
             .get(node_id)
@@ -164,22 +164,45 @@ fn inspector_axis_fields_inherit_runtime_density_width_tokens() {
             Some("WorkbenchAxisValueField"),
             "{node_id} must reuse the standard axis input primitive"
         );
-        let width = node
-            .get("layout")
-            .and_then(toml::Value::as_table)
-            .and_then(|layout| layout.get("width"))
-            .and_then(toml::Value::as_table)
-            .unwrap_or_else(|| panic!("{node_id} must declare a responsive width"));
-
-        for (field, expected_token) in ["min", "preferred", "max"].into_iter().zip([
-            "$editor.density.axis_value_field.min_width",
-            "$editor.density.axis_value_field.preferred_width",
-            "$editor.density.axis_value_field.max_width",
-        ]) {
-            assert_eq!(
-                width.get(field).and_then(toml::Value::as_str),
-                Some(expected_token),
-                "{node_id} must resolve its {field} width through the shared axis-field token"
+        assert!(
+            node.get("layout")
+                .and_then(toml::Value::as_table)
+                .is_none_or(|layout| !layout.contains_key("width")),
+            "{node_id} must inherit the standard primitive width without duplicating it"
+        );
+        let events = node.get("events").and_then(toml::Value::as_array);
+        if node_id.starts_with("rotation_") {
+            assert!(
+                events.is_none_or(|events| events.is_empty()),
+                "{node_id} must remain read-only without an edit or commit route"
+            );
+            let props = node
+                .get("props")
+                .and_then(toml::Value::as_table)
+                .expect("read-only rotation fields must retain their input contract");
+            for (property, expected) in [
+                ("disabled", true),
+                ("editable_text", false),
+                ("input_interactive", false),
+                ("input_clickable", false),
+                ("input_hoverable", false),
+                ("input_focusable", false),
+            ] {
+                assert_eq!(
+                    props.get(property).and_then(toml::Value::as_bool),
+                    Some(expected),
+                    "{node_id} must retain its {property} contract"
+                );
+            }
+            continue;
+        }
+        let events = events.expect("editable position and scale axes must retain actual bindings");
+        for expected in ["Change", "Submit"] {
+            assert!(
+                events.iter().any(|event| {
+                    event.get("event").and_then(toml::Value::as_str) == Some(expected)
+                }),
+                "{node_id} must retain its {expected} binding"
             );
         }
     }

@@ -1,5 +1,5 @@
 use super::*;
-use crate::scene::ecs::Added;
+use crate::scene::ecs::{Added, SystemState};
 
 #[test]
 fn query_state_cached_iteration_rebuilds_only_for_new_matching_archetypes() {
@@ -351,14 +351,62 @@ fn query_state_cached_direct_iteration_reads_compiled_archetype_slots() {
 
     assert_eq!(first, vec![(player, 10), (enemy, 4)]);
     assert_eq!(query.cached_entity_count(), 2);
-    assert_eq!(query.cached_archetype_count(), 1);
-    let bindings = query.cached_archetype_plans()[0].bindings();
-    assert_eq!(bindings.len(), 1);
-    assert_eq!(
-        bindings[0].component_id(),
-        world.registered_component_id::<Health>().unwrap()
+    let player_location = world.internal_entity_location(player).unwrap();
+    let enemy_location = world.internal_entity_location(enemy).unwrap();
+    assert_ne!(
+        player_location.location.archetype_id,
+        enemy_location.location.archetype_id
     );
-    assert!(format!("{:?}", bindings[0]).contains("column_slot"));
+    let mut expected_archetypes = vec![
+        player_location.location.archetype_id,
+        enemy_location.location.archetype_id,
+    ];
+    expected_archetypes.sort_unstable();
+    let plans = query.cached_archetype_plans();
+    assert_eq!(query.cached_archetype_count(), 2);
+    assert_eq!(
+        plans
+            .iter()
+            .map(|plan| plan.archetype_id())
+            .collect::<Vec<_>>(),
+        expected_archetypes
+    );
+    let health_id = world.registered_component_id::<Health>().unwrap();
+    for (stable_location, expected_health) in [(player_location, 10), (enemy_location, 4)] {
+        let plan = plans
+            .iter()
+            .find(|plan| plan.archetype_id() == stable_location.location.archetype_id)
+            .expect("each distinct fixture signature must have its own compiled plan");
+        let bindings = plan.bindings();
+        assert_eq!(bindings.len(), 1);
+        assert_eq!(bindings[0].component_id(), health_id);
+        let mut component_locations = Vec::new();
+        assert!(plan.write_component_locations(&world, stable_location, &mut component_locations));
+        assert_eq!(component_locations.len(), 1);
+        let location = component_locations[0];
+        assert_eq!(location.component_id, health_id);
+        assert_eq!(location.storage_type, StorageType::Table);
+        assert_eq!(location.entity, stable_location.internal);
+        assert_eq!(
+            location.table_archetype,
+            Some(stable_location.location.archetype_id)
+        );
+        assert_eq!(location.table_row, Some(stable_location.location.table_row));
+        assert_eq!(
+            location.table_column_slot,
+            world.query_archetype_column_slot(stable_location.location.archetype_id, health_id)
+        );
+        assert_eq!(
+            location.rust_type_id,
+            Some(std::any::TypeId::of::<Health>())
+        );
+        assert_eq!(
+            world
+                .component_ref_with_ticks_at_location::<Health>(location)
+                .map(|(health, _)| health.0),
+            Some(expected_health)
+        );
+    }
     assert_eq!(query.cache_rebuilds(), 1);
 
     world.remove::<Health>(player).unwrap();
@@ -450,23 +498,78 @@ fn cached_sparse_optional_rows_and_tick_filters_use_compiled_locations() {
         .collect::<Vec<_>>();
     assert_eq!(initial, vec![(present, Some(3)), (absent, None)]);
 
+    type AddedScores = QueryState<(EntityId, &'static SparseScore), Added<SparseScore>>;
+    type ChangedScores = QueryState<(EntityId, &'static SparseScore), Changed<SparseScore>>;
+    let mut manual_added = world.query_filtered::<(EntityId, &SparseScore), Added<SparseScore>>();
+    assert_eq!(
+        manual_added
+            .iter_cached(&world)
+            .map(|(entity, score)| (entity, score.0))
+            .collect::<Vec<_>>(),
+        vec![(present, 3)]
+    );
+    let mut added_system = SystemState::<AddedScores>::new(&mut world).unwrap();
+    let baseline = added_system.run(&mut world, |mut query| {
+        let iter = query.iter_cached();
+        assert!(iter.uses_compiled_archetype_plans());
+        iter.map(|(entity, score)| (entity, score.0))
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(baseline, vec![(present, 3)]);
+    let present_ticks = world
+        .component_change_ticks::<SparseScore>(present)
+        .unwrap();
     world.clear_trackers();
+    assert_eq!(world.last_change_tick(), world.read_change_tick());
+    assert_eq!(
+        world.component_change_ticks::<SparseScore>(present),
+        Some(present_ticks)
+    );
     world.insert(absent, SparseScore(8)).unwrap();
-    let mut added = world.query_filtered::<(EntityId, &SparseScore), Added<SparseScore>>();
-    let added_rows = added
-        .iter_cached(&world)
-        .map(|(entity, score)| (entity, score.0))
-        .collect::<Vec<_>>();
+    // Independent QueryState still observes ZERO -> current after clear_trackers.
+    assert_eq!(
+        manual_added
+            .iter_cached(&world)
+            .map(|(entity, score)| (entity, score.0))
+            .collect::<Vec<_>>(),
+        vec![(present, 3), (absent, 8)]
+    );
+    let added_rows = added_system.run(&mut world, |mut query| {
+        let iter = query.iter_cached();
+        assert!(iter.uses_compiled_archetype_plans());
+        iter.map(|(entity, score)| (entity, score.0))
+            .collect::<Vec<_>>()
+    });
     assert_eq!(added_rows, vec![(absent, 8)]);
+    assert!(added_system.run(&mut world, |mut query| query.iter_cached().next().is_none()));
 
+    let mut manual_changed =
+        world.query_filtered::<(EntityId, &SparseScore), Changed<SparseScore>>();
+    let mut changed_system = SystemState::<ChangedScores>::new(&mut world).unwrap();
+    let baseline = changed_system.run(&mut world, |mut query| {
+        query
+            .iter_cached()
+            .map(|(entity, score)| (entity, score.0))
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(baseline, vec![(present, 3), (absent, 8)]);
     world.clear_trackers();
     world.insert(present, SparseScore(4)).unwrap();
-    let mut changed = world.query_filtered::<(EntityId, &SparseScore), Changed<SparseScore>>();
-    let changed_rows = changed
-        .iter_cached(&world)
-        .map(|(entity, score)| (entity, score.0))
-        .collect::<Vec<_>>();
+    assert_eq!(
+        manual_changed
+            .iter_cached(&world)
+            .map(|(entity, score)| (entity, score.0))
+            .collect::<Vec<_>>(),
+        vec![(present, 4), (absent, 8)]
+    );
+    let changed_rows = changed_system.run(&mut world, |mut query| {
+        let iter = query.iter_cached();
+        assert!(iter.uses_compiled_archetype_plans());
+        iter.map(|(entity, score)| (entity, score.0))
+            .collect::<Vec<_>>()
+    });
     assert_eq!(changed_rows, vec![(present, 4)]);
+    assert!(changed_system.run(&mut world, |mut query| query.iter_cached().next().is_none()));
 }
 
 #[test]

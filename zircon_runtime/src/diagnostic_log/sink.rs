@@ -1,5 +1,6 @@
 use arc_swap::ArcSwapOption;
 use std::fs::{File, OpenOptions};
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::time::Duration;
@@ -35,6 +36,8 @@ struct ProcessLogController {
 #[derive(Default)]
 struct ProcessLogLifecycle {
     dynamic_session_count: usize,
+    // A timeout keeps the generation active; only a joined worker has a terminal output result.
+    completed_output_result: Option<bool>,
 }
 
 impl Default for ProcessLogController {
@@ -48,18 +51,17 @@ impl Default for ProcessLogController {
 
 impl ProcessLogController {
     fn initialize(&self, settings: DiagnosticLogSettings) -> Arc<DiagnosticLogState> {
-        let _lifecycle = self.lock_lifecycle();
-        self.active_state
-            .load_full()
-            .unwrap_or_else(|| self.publish_state(settings))
+        let mut lifecycle = self.lock_lifecycle();
+        self.active_state.load_full().unwrap_or_else(|| {
+            self.publish_state(DiagnosticLogState::from_settings(settings), &mut lifecycle)
+        })
     }
 
     fn acquire_dynamic_session(&self, settings: DiagnosticLogSettings) -> Arc<DiagnosticLogState> {
         let mut lifecycle = self.lock_lifecycle();
-        let state = self
-            .active_state
-            .load_full()
-            .unwrap_or_else(|| self.publish_state(settings));
+        let state = self.active_state.load_full().unwrap_or_else(|| {
+            self.publish_state(DiagnosticLogState::from_settings(settings), &mut lifecycle)
+        });
         lifecycle.dynamic_session_count = lifecycle.dynamic_session_count.saturating_add(1);
         state
     }
@@ -90,6 +92,7 @@ impl ProcessLogController {
         if self
             .shutdown_active_state_for_library_unload(
                 deadline.saturating_duration_since(std::time::Instant::now()),
+                &mut lifecycle,
             )
             .is_none()
         {
@@ -103,17 +106,18 @@ impl ProcessLogController {
         let Some(deadline) = std::time::Instant::now().checked_add(timeout) else {
             return false;
         };
-        let Some(lifecycle) = self.lock_lifecycle_until(deadline) else {
+        let Some(mut lifecycle) = self.lock_lifecycle_until(deadline) else {
             return false;
         };
         if lifecycle.dynamic_session_count != 0 {
             return false;
         }
         if self.active_state.load().is_none() {
-            return true;
+            return lifecycle.completed_output_result.unwrap_or(true);
         }
         self.shutdown_active_state_for_library_unload(
             deadline.saturating_duration_since(std::time::Instant::now()),
+            &mut lifecycle,
         )
         .is_some_and(|state| state.outputs_succeeded())
     }
@@ -121,11 +125,13 @@ impl ProcessLogController {
     fn shutdown_active_state_for_library_unload(
         &self,
         timeout: Duration,
+        lifecycle: &mut ProcessLogLifecycle,
     ) -> Option<Arc<DiagnosticLogState>> {
         let Some(state) = self.active_state.swap(None) else {
             return None;
         };
         if state.shutdown_for_library_unload(timeout) {
+            lifecycle.completed_output_result = Some(state.outputs_succeeded());
             return Some(state);
         }
         self.active_state.store(Some(state));
@@ -141,9 +147,14 @@ impl ProcessLogController {
         read(state.as_deref())
     }
 
-    fn publish_state(&self, settings: DiagnosticLogSettings) -> Arc<DiagnosticLogState> {
-        let state = Arc::new(DiagnosticLogState::from_settings(settings));
+    fn publish_state(
+        &self,
+        state: DiagnosticLogState,
+        lifecycle: &mut ProcessLogLifecycle,
+    ) -> Arc<DiagnosticLogState> {
+        let state = Arc::new(state);
         self.active_state.store(Some(Arc::clone(&state)));
+        lifecycle.completed_output_result = None;
         state
     }
 
@@ -184,11 +195,10 @@ impl ProcessLogController {
         state: impl FnOnce() -> DiagnosticLogState,
     ) -> Arc<DiagnosticLogState> {
         let mut lifecycle = self.lock_lifecycle();
-        let state = self.active_state.load_full().unwrap_or_else(|| {
-            let state = Arc::new(state());
-            self.active_state.store(Some(Arc::clone(&state)));
-            state
-        });
+        let state = self
+            .active_state
+            .load_full()
+            .unwrap_or_else(|| self.publish_state(state(), &mut lifecycle));
         lifecycle.dynamic_session_count = lifecycle.dynamic_session_count.saturating_add(1);
         state
     }
@@ -508,7 +518,8 @@ pub fn flush_process_log(timeout: Duration) -> bool {
 /// Stops the process sink after flushing console output and `sync_data`-ing file output.
 ///
 /// The return value is `false` on timeout or output failure; callers must not report durability
-/// from process exit alone.
+/// from process exit alone. Repeated calls preserve a joined generation's output result until a
+/// fresh generation is published.
 pub fn shutdown_process_log(timeout: Duration) -> bool {
     process_log_controller().shutdown_when_idle(timeout)
 }
@@ -670,16 +681,31 @@ impl DiagnosticLogNote {
     }
 }
 
-fn diagnostic_log_line(
-    timestamp: &str,
+/// 追加已经写入时间前缀的日志行其余字段。
+fn append_diagnostic_log_line(
+    buffer: &mut Vec<u8>,
     level: DiagnosticLogLevel,
     scope: &str,
     message: &str,
-) -> String {
-    format!(
-        "[{timestamp}] [{level}] [{scope}] {}\n",
-        message.replace('\n', "\\n")
-    )
+) {
+    write_diagnostic_log_line(buffer, level, scope, message)
+        .expect("writing a diagnostic log header to a byte buffer");
+}
+
+fn write_diagnostic_log_line<W: Write + ?Sized>(
+    output: &mut W,
+    level: DiagnosticLogLevel,
+    scope: &str,
+    message: &str,
+) -> std::io::Result<()> {
+    write!(output, "[{level}] [{scope}] ")?;
+    for (index, part) in message.split('\n').enumerate() {
+        if index != 0 {
+            output.write_all(b"\\n")?;
+        }
+        output.write_all(part.as_bytes())?;
+    }
+    output.write_all(b"\n")
 }
 
 fn open_first_available_log_file(

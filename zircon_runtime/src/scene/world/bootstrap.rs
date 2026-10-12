@@ -64,7 +64,7 @@ impl World {
             compiled_scene_property_access_diagnostics: Default::default(),
             change_tick: crate::scene::ecs::ChangeTick::INITIAL,
             last_change_tick: crate::scene::ecs::ChangeTick::ZERO,
-            active_change_tick: None,
+            active_change_tick: Default::default(),
             node_cache: Vec::new(),
             node_cache_rows: HashMap::new(),
             node_cache_topology_generation: 0,

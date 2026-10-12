@@ -1,6 +1,6 @@
 //! 真实模板投影与程序化参考壳的对照；局部语义、几何更新和指针事件分别有独立断言。
 use crate::ui::template_runtime::{
-    EditorUiHostRuntime, RetainedUiHostValue, WORKBENCH_WINDOW_DOCUMENT_ID,
+    EditorUiHostRuntime, RetainedUiHostValue, UNREAL_EDITOR_WINDOW_DOCUMENT_ID,
 };
 use crate::ui::workbench::reference::{
     build_editor_workbench_reference_surface, build_editor_workbench_template_surface,
@@ -348,10 +348,6 @@ fn reference_workbench_componentized_window_surface_matches_reference_chrome_met
         frame(&reference, reference.ids.upper_shell),
     );
     assert_frame(
-        template.frames.activity_rail,
-        frame(&reference, reference.ids.activity_rail),
-    );
-    assert_frame(
         template.frames.scene_tree,
         frame(&reference, reference.ids.hierarchy_panel),
     );
@@ -362,10 +358,6 @@ fn reference_workbench_componentized_window_surface_matches_reference_chrome_met
     assert_frame(
         template.frames.inspector,
         frame(&reference, reference.ids.inspector_panel),
-    );
-    assert_frame(
-        template.frames.component_drawer,
-        frame(&reference, reference.ids.component_gallery),
     );
     assert_frame(
         template.frames.status_bar,
@@ -396,7 +388,7 @@ fn reference_workbench_componentized_window_surface_matches_reference_chrome_met
 
     assert_eq!(
         template.host_projection.document_id,
-        WORKBENCH_WINDOW_DOCUMENT_ID
+        UNREAL_EDITOR_WINDOW_DOCUMENT_ID
     );
     assert_eq!(
         template

@@ -155,7 +155,7 @@ fn startup_state_consumes_the_project_world_without_clone_policy_loss() {
         .unwrap();
 
     let state = crate::ui::retained_host::build_startup_state(
-        manager.as_ref(),
+        &*manager,
         &mut session,
         zircon_runtime_interface::math::UVec2::new(1280, 720),
     )

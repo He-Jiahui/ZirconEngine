@@ -285,7 +285,7 @@ impl FontHandleRegistryService {
         }
     }
 
-    fn report(&self) -> FontHandleRegistryReport {
+    pub(crate) fn report(&self) -> FontHandleRegistryReport {
         self.metrics.report()
     }
 

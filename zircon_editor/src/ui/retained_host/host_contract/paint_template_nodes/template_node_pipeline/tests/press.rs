@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::retained_host::host_contract::data::TemplateNodeFrameData;
 
 #[test]
 fn held_button_paint_requires_the_exact_binding_and_physical_frame() {
@@ -12,7 +13,7 @@ fn held_button_paint_requires_the_exact_binding_and_physical_frame() {
         control_id: "Button".into(),
         action_id: "action".into(),
         dispatch_kind: "surface".into(),
-        frame: FrameRect {
+        frame: TemplateNodeFrameData {
             x: 5.0,
             y: 7.0,
             width: 80.0,

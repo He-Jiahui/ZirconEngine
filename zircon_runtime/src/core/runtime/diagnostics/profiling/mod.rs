@@ -139,7 +139,7 @@ pub fn export_report() -> ProfileExportResult<ProfileExportReport> {
             recorder.config().include_perfetto && cfg!(feature = "profiling-chrome"),
         )
     });
-    export::export_snapshot(&snapshot, include_perfetto)
+    export::export_owned_snapshot(snapshot, include_perfetto)
 }
 
 pub fn start_capture_from_env(default_session_id: &str) -> Option<ProfileRecorderStatus> {

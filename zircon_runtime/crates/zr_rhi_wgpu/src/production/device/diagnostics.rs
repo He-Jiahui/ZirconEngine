@@ -182,6 +182,21 @@ impl WgpuRenderDevice {
             .admit_native_texture(source.clone(), region, layout)?)
     }
 
+    /// Normal UI diagnostic only: exact four-byte source format and physical extent.
+    /// Copies stay in the caller's existing native frame and completion service.
+    pub(crate) fn enqueue_native_diagnostic_texture_color8_readback(
+        &self,
+        source: &wgpu::Texture,
+        width: u32,
+        height: u32,
+    ) -> Result<DiagnosticReadbackAdmission, RhiError> {
+        self.ensure_admission()?;
+        let (region, layout) = ensure_native_color8_texture_readback(source, width, height)?;
+        Ok(self
+            .lock_diagnostics()
+            .admit_native_texture(source.clone(), region, layout)?)
+    }
+
     /// Admits one transitional native RGBA16F mip/layer region.
     ///
     /// This is the product IBL artifact bridge while graph textures are still native WGPU
@@ -657,6 +672,68 @@ fn ensure_diagnostic_texture_readback_region(
             reason: "diagnostic texture readback staging layout overflowed".to_string(),
         }
     })
+}
+
+fn normal_color8_staging_layout(
+    width: u32,
+    height: u32,
+) -> Result<DiagnosticTextureReadbackLayout, RhiError> {
+    let layout = DiagnosticTextureReadbackLayout::new(
+        u64::from(width)
+            .checked_mul(4)
+            .ok_or_else(|| RhiError::InvalidCopy {
+                reason: "normal UI color row overflow".into(),
+            })?,
+        height,
+    )
+    .ok_or_else(|| RhiError::InvalidCopy {
+        reason: "normal UI color staging layout overflow".into(),
+    })?;
+    if layout.staging_byte_len() > 24 * 1024 * 1024 {
+        return Err(RhiError::InvalidCopy {
+            reason: "normal UI color padded staging exceeds 24 MiB".into(),
+        });
+    }
+    Ok(layout)
+}
+
+fn ensure_native_color8_texture_readback(
+    source: &wgpu::Texture,
+    width: u32,
+    height: u32,
+) -> Result<(TextureCopyRegion, DiagnosticTextureReadbackLayout), RhiError> {
+    let size = source.size();
+    if width == 0
+        || height == 0
+        || size.width != width
+        || size.height != height
+        || size.depth_or_array_layers != 1
+        || source.dimension() != wgpu::TextureDimension::D2
+        || source.sample_count() != 1
+    {
+        return Err(RhiError::InvalidCopy { reason: "normal UI color readback requires the exact single-layer single-sample 2D source extent".into() });
+    }
+    if !matches!(
+        source.format(),
+        wgpu::TextureFormat::Rgba8Unorm
+            | wgpu::TextureFormat::Rgba8UnormSrgb
+            | wgpu::TextureFormat::Bgra8Unorm
+            | wgpu::TextureFormat::Bgra8UnormSrgb
+    ) {
+        return Err(RhiError::InvalidCopy {
+            reason: "normal UI color readback requires an actual RGBA8 or BGRA8 source format"
+                .into(),
+        });
+    }
+    if !source.usage().contains(wgpu::TextureUsages::COPY_SRC) {
+        return Err(RhiError::InvalidCopy {
+            reason: "normal UI color source requires actual COPY_SRC usage".into(),
+        });
+    }
+    Ok((
+        TextureCopyRegion::new(width, height),
+        normal_color8_staging_layout(width, height)?,
+    ))
 }
 
 fn ensure_native_rgba8_texture_readback(

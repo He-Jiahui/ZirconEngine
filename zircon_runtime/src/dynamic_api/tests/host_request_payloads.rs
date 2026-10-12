@@ -1,6 +1,20 @@
+//! Runtime 宿主请求批次的已知有效 JSON 往返及 ABI 字段测试。
+//!
+//! 夹具拥有请求、编码字节和回读值；断言覆盖 IME、震动与光标转换，不分配原生输出缓冲或执行宿主设备操作。
+
 use super::support::*;
 
 #[test]
+/// 验证 IME 宿主请求批次经过有界 JSON 编码后保留 ABI 版本、变体、视口和组合区间。
+///
+/// # 使用时机
+/// 构造三种 [ZrRuntimeHostRequestV1] IME 请求，调 [encode_host_request_batch] 编码，再用 [host_request_batch_from_bytes] 解码。
+///
+/// # 返回与限制
+/// 测试返回 ()。通过证明请求可回读并保留视口、区域宽度、文本及组合范围；不覆盖超限、畸形 JSON 或释放失败。
+///
+/// # 参考
+/// [ZrRuntimeHostRequestBatchV1]、[ZrRuntimeHostRequestV1]、[ZrRuntimeImeHostRequestKindV1]、[encode_host_request_batch]、[host_request_batch_from_bytes]
 fn host_request_batch_encodes_runtime_ime_requests() {
     let viewport = default_viewport();
     let batch = ZrRuntimeHostRequestBatchV1::new(
@@ -53,6 +67,16 @@ fn host_request_batch_encodes_runtime_ime_requests() {
 }
 
 #[test]
+/// 验证手柄震动 Add/Stop 在 Runtime ABI 批次中的强弱马达归一化、持续时间和变体往返。
+///
+/// # 使用时机
+/// 构造同一手柄 Add/Stop，经 [runtime_gamepad_rumble_request] 放入 [ZrRuntimeHostRequestBatchV1]，再编码和回读。
+///
+/// # 返回与限制
+/// 测试返回 ()。Add 越界强弱值回读为 1.0/0.0，Stop 携带零强度和零时长；通过不证明宿主执行设备效果。
+///
+/// # 参考
+/// [ZrRuntimeHostRequestBatchV1]、[ZrRuntimeHostRequestV1]、[ZrRuntimeGamepadRumbleRequestV1]、[ZrRuntimeGamepadRumbleRequestKindV1]、[runtime_gamepad_rumble_request]、[encode_host_request_batch]、[host_request_batch_from_bytes]
 fn host_request_batch_encodes_gamepad_rumble_requests() {
     let batch = ZrRuntimeHostRequestBatchV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
@@ -98,6 +122,16 @@ fn host_request_batch_encodes_gamepad_rumble_requests() {
 }
 
 #[test]
+/// 验证光标可见性、抓取模式、命中测试和位置请求在 Runtime ABI 批次中的变体与字段。
+///
+/// # 使用时机
+/// 构造四个 [CursorHostRequest]，经 [runtime_cursor_host_request] 放入 [ZrRuntimeHostRequestBatchV1]，编码后回读。
+///
+/// # 返回与限制
+/// 测试返回 ()。通过证明顺序、版本、变体和位置/布尔字段保持；不覆盖未知枚举、超限输出或宿主应用。
+///
+/// # 参考
+/// [CursorHostRequest]、[ZrRuntimeHostRequestBatchV1]、[ZrRuntimeHostRequestV1]、[ZrRuntimeCursorHostRequestV1]、[ZrRuntimeCursorGrabModeV1]、[runtime_cursor_host_request]、[encode_host_request_batch]、[host_request_batch_from_bytes]
 fn host_request_batch_encodes_cursor_requests() {
     let batch = ZrRuntimeHostRequestBatchV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,

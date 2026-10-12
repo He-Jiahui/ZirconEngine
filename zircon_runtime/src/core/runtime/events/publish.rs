@@ -132,7 +132,15 @@ impl EventBusState {
         if ledger.closed {
             return Err(EngineEventPublishRejection::Closed);
         }
-        let mut removals = vec![Retained::default(); subscribers.len()];
+        // Bound common fanouts to stack storage; larger snapshots keep sized heap storage.
+        let mut inline_removals = [Retained::default(); 8];
+        let mut overflow_removals = Vec::new();
+        let removals = if subscribers.len() <= inline_removals.len() {
+            &mut inline_removals[..subscribers.len()]
+        } else {
+            overflow_removals.resize(subscribers.len(), Retained::default());
+            overflow_removals.as_mut_slice()
+        };
         for (index, subscriber) in subscribers.iter().enumerate() {
             if !queues[index].active {
                 return Err(EngineEventPublishRejection::Closed);
@@ -175,7 +183,7 @@ impl EventBusState {
             },
         )?;
         let mut removed = Retained::default();
-        for removal in &removals {
+        for removal in removals.iter() {
             removed = removed
                 .add(removal.events, removal.bytes)
                 .ok_or(EngineEventPublishRejection::Poisoned)?;
@@ -260,13 +268,17 @@ impl EventBusState {
         // Preflight above is the admission linearization point. Close may
         // close the gate now but waits on this topic's delivery lock to drain.
         // Already-admitted work finishes without any further failure path.
-        drop(ledger);
-        queues.clear();
-        drop(displaced);
-        for subscriber in subscribers.iter() {
-            queues.push(subscriber.lock_queue_state());
+        // Retiring a charged delivery takes the ledger lock in RetentionLease::drop.
+        // Empty retirement keeps the preflight guards through commit.
+        if !displaced.is_empty() {
+            drop(ledger);
+            queues.clear();
+            drop(displaced);
+            for subscriber in subscribers.iter() {
+                queues.push(subscriber.lock_queue_state());
+            }
+            ledger = self.admission.lock();
         }
-        let mut ledger = self.admission.lock();
         for ((subscriber, queue), delivery) in
             subscribers.iter().zip(queues.iter_mut()).zip(prepared)
         {

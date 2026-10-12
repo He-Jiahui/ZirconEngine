@@ -35,8 +35,13 @@ impl RetainedEditorHost {
             .global::<PaneSurfaceHostContext>()
             .scene_viewport_surface_key();
         if let Some(surface_key) = surface_key.as_deref() {
-            if !self.route_scene_viewport_surface(surface_key, event.kind) {
-                return;
+            match self.route_scene_viewport_surface(surface_key, event.kind) {
+                Ok(true) => {}
+                Ok(false) => return,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
             }
             if let Some(size) = scene_viewport_surface_size(&source_ui, surface_key) {
                 self.viewport_pointer_bridge
@@ -137,23 +142,23 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn focus_scene_viewport_surface(
         &self,
         surface_key: &str,
-    ) -> bool {
+    ) -> Result<bool, crate::ui::host::EditorError> {
         let source_ui = self.callback_source_ui();
         match scene_viewport_surface_target(&source_ui, surface_key) {
             Some(SceneViewportSurfaceTarget::Scene(view_id)) => {
                 if !self
                     .runtime
-                    .route_scene_viewport_pointer(view_id, UiPointerEventKind::Down)
+                    .route_scene_viewport_pointer(view_id, UiPointerEventKind::Down)?
                 {
-                    return false;
+                    return Ok(false);
                 }
                 source_ui
                     .global::<PaneSurfaceHostContext>()
                     .set_scene_viewport_surface_key(surface_key);
-                true
+                Ok(true)
             }
-            Some(SceneViewportSurfaceTarget::OtherPane) => true,
-            None => false,
+            Some(SceneViewportSurfaceTarget::OtherPane) => Ok(true),
+            None => Ok(false),
         }
     }
 
@@ -161,12 +166,12 @@ impl RetainedEditorHost {
         &self,
         surface_key: &str,
         event_kind: UiPointerEventKind,
-    ) -> bool {
+    ) -> Result<bool, crate::ui::host::EditorError> {
         let source_ui = self.callback_source_ui();
         let Some(SceneViewportSurfaceTarget::Scene(view_id)) =
             scene_viewport_surface_target(&source_ui, surface_key)
         else {
-            return false;
+            return Ok(false);
         };
         self.runtime
             .route_scene_viewport_pointer(view_id, event_kind)
@@ -258,7 +263,15 @@ pub(in crate::ui::retained_host::app) fn scene_viewport_surface_size(
         .document_surfaces()
         .iter()
         .find(|surface| surface.surface_key.as_str() == surface_key)
-        .map(|surface| (&surface.content_frame.width, &surface.content_frame.height))
+        .map(|surface| {
+            crate::ui::retained_host::host_contract::componentized_workbench_regions::authored_level_viewport(
+                presentation,
+                surface,
+            ).map_or(
+                (surface.content_frame.width, surface.content_frame.height),
+                |viewport| (viewport.frame.width, viewport.frame.height),
+            )
+        })
         .or_else(|| {
             [
                 (&scene.left_dock.surface_key, &scene.left_dock.content_frame),
@@ -273,9 +286,9 @@ pub(in crate::ui::retained_host::app) fn scene_viewport_surface_size(
             ]
             .into_iter()
             .find(|(key, _)| key.as_str() == surface_key)
-            .map(|(_, frame)| (&frame.width, &frame.height))
+            .map(|(_, frame)| (frame.width, frame.height))
         })
-        .map(|(width, height)| UiSize::new((*width).max(0.0), (*height).max(0.0)))
+        .map(|(width, height)| UiSize::new(width.max(0.0), height.max(0.0)))
         .or_else(|| {
             scene
                 .floating_layer

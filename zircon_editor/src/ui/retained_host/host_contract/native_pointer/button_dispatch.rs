@@ -17,3 +17,5 @@ mod workbench;
 
 pub(in crate::ui::retained_host::host_contract) use self::entry::dispatch_native_pointer_button;
 pub(in crate::ui::retained_host::host_contract) use asset_deletion_blocker::asset_deletion_blocker_action_at;
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract) use pane_callbacks::dispatch_pane_button;

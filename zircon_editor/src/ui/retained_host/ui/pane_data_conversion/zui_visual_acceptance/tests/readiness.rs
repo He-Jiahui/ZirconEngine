@@ -95,30 +95,30 @@ fn complete_status_requires_linked_text_style_and_font_receipts() {
         "entrySourceFingerprint": ["main.zui", font_sha.clone()],
         "sources": [
             ["main.zui", font_sha.clone()],
-            ["zircon_editor/assets/ui/editor/host/workbench_shell.zui", font_sha.clone()],
-            ["zircon_editor/assets/ui/editor/windows/workbench_window.zui", font_sha.clone()]
+            ["zircon_editor/assets/ui/editor/unreal/editor_shell.zui", font_sha.clone()],
+            ["zircon_editor/assets/ui/editor/unreal/level_editor_window.zui", font_sha.clone()]
         ],
         "runtimeLoadedSources": {
             "complete": true,
             "documentIds": [
-                "res://ui/editor/host/workbench_shell.zui",
-                "res://ui/editor/windows/workbench_window.zui"
+                "res://ui/editor/unreal/editor_shell.zui",
+                "res://ui/editor/unreal/level_editor_window.zui"
             ],
             "files": [
                 {
-                    "assetId": "res://ui/editor/host/workbench_shell.zui",
-                    "sourcePath": "zircon_editor/assets/ui/editor/host/workbench_shell.zui",
-                    "resourceUri": "res://ui/editor/host/workbench_shell.zui",
-                    "physicalPath": "C:/fixture/assets/ui/editor/host/workbench_shell.zui",
+                    "assetId": "res://ui/editor/unreal/editor_shell.zui",
+                    "sourcePath": "zircon_editor/assets/ui/editor/unreal/editor_shell.zui",
+                    "resourceUri": "res://ui/editor/unreal/editor_shell.zui",
+                    "physicalPath": "C:/fixture/assets/ui/editor/unreal/editor_shell.zui",
                     "sha256": font_sha.clone(),
                     "catalogMatches": true,
                     "currentFileMatches": true
                 },
                 {
-                    "assetId": "res://ui/editor/windows/workbench_window.zui",
-                    "sourcePath": "zircon_editor/assets/ui/editor/windows/workbench_window.zui",
-                    "resourceUri": "res://ui/editor/windows/workbench_window.zui",
-                    "physicalPath": "C:/fixture/assets/ui/editor/windows/workbench_window.zui",
+                    "assetId": "res://ui/editor/unreal/level_editor_window.zui",
+                    "sourcePath": "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui",
+                    "resourceUri": "res://ui/editor/unreal/level_editor_window.zui",
+                    "physicalPath": "C:/fixture/assets/ui/editor/unreal/level_editor_window.zui",
                     "sha256": font_sha.clone(),
                     "catalogMatches": true,
                     "currentFileMatches": true
@@ -128,8 +128,8 @@ fn complete_status_requires_linked_text_style_and_font_receipts() {
         }
     },
     "dependencyFingerprints": [
-        {"sourcePath": "zircon_editor/assets/ui/editor/host/workbench_shell.zui", "sha256": font_sha.clone()},
-        {"sourcePath": "zircon_editor/assets/ui/editor/windows/workbench_window.zui", "sha256": font_sha.clone()}
+        {"sourcePath": "zircon_editor/assets/ui/editor/unreal/editor_shell.zui", "sha256": font_sha.clone()},
+        {"sourcePath": "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui", "sha256": font_sha.clone()}
     ],
     "activeDesignTokens": {
         "complete": true,

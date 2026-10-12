@@ -32,29 +32,26 @@ pub(in crate::ui::retained_host::host_contract) fn option_popup_keyboard_target(
     let control_frame = frame_from_template_node(node);
     let rows: Vec<_> = (0..row_count)
         .filter_map(|row| {
-            let option = node.structured_options.row_data(row)?;
+            // Borrow presentation rows; keyboard routing does not use description or tone.
+            let option = node.structured_options.get(row)?;
             if option.disabled {
                 return None;
             }
+            let frame =
+                option_keyboard_row_frame_within(node, &control_frame, row_count, row, bounds)?;
             Some(PopupKeyboardRow {
                 action_id: action_id.clone(),
                 value_text: option.id.clone(),
                 identity: option.id.clone(),
                 search_text: if option.label.is_empty() {
-                    option.id
+                    option.id.clone()
                 } else {
-                    option.label
+                    option.label.clone()
                 },
                 focused: option.focused || option.hovered || option.pressed,
                 selected: option.selected || option.special,
                 source_index: None,
-                frame: option_keyboard_row_frame_within(
-                    node,
-                    &control_frame,
-                    row_count,
-                    row,
-                    bounds,
-                )?,
+                frame,
             })
         })
         .collect();

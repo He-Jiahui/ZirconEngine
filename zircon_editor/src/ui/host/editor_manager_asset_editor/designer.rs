@@ -4,6 +4,34 @@ use crate::ui::asset_editor::UiDesignerToolMode;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl EditorManager {
+    pub fn set_ui_asset_editor_palette_visible_start(
+        &self,
+        instance_id: &ViewInstanceId,
+        index: usize,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .set_ui_asset_editor_palette_visible_start(instance_id, index)
+    }
+
+    pub fn dispatch_ui_asset_editor_preview_input(
+        &self,
+        instance_id: &ViewInstanceId,
+        source_frame: &std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+        event: zircon_runtime_interface::ui::window::UiWindowInputPumpEvent,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .dispatch_ui_asset_editor_preview_input(instance_id, source_frame, event)
+    }
+
+    pub(crate) fn deactivate_ui_asset_editor_preview_input(
+        &self,
+        instance_id: &ViewInstanceId,
+        metadata: zircon_runtime_interface::ui::window::UiWindowEventMetadata,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .deactivate_ui_asset_editor_preview_input(instance_id, metadata)
+    }
+
     pub fn set_ui_asset_editor_selected_widget_control_id(
         &self,
         instance_id: &ViewInstanceId,

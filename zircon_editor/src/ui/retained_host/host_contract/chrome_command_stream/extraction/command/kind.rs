@@ -30,12 +30,14 @@ pub(super) fn chrome_command_kind_from_recorded(
             font_size,
             line_height,
             style,
+            font_request,
         } => ChromeCommandKind::Text {
             text,
             color,
             size: font_size,
             line_height,
             style,
+            font_request,
         },
         HostRecordedPaintKind::Image {
             resource_key,

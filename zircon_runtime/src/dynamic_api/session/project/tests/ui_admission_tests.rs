@@ -55,12 +55,12 @@ fn project_ui_disabled_skips_asset_admission_but_enabled_reaches_assets() {
     let project = project_with_roots(&["res://unavailable.zui"]);
     let disabled = runtime_with_ui(false);
     assert!(project
-        .load_runtime_ui_surfaces(&disabled.handle(), text_context())
+        .load_runtime_ui_surfaces(&disabled.handle(), &text_context())
         .unwrap()
         .is_empty());
     let enabled = runtime_with_ui(true);
     assert!(matches!(
-        project.load_runtime_ui_surfaces(&enabled.handle(), text_context()),
+        project.load_runtime_ui_surfaces(&enabled.handle(), &text_context()),
         Err(RuntimeProjectError::ResolveProjectAssetManager { .. })
     ));
 }
@@ -69,12 +69,12 @@ fn project_ui_disabled_skips_asset_admission_but_enabled_reaches_assets() {
 fn project_ui_requires_driver_for_declared_roots_and_no_driver_for_empty_roots() {
     let runtime = CoreRuntime::new();
     assert!(project_with_roots(&[])
-        .load_runtime_ui_surfaces(&runtime.handle(), text_context())
+        .load_runtime_ui_surfaces(&runtime.handle(), &text_context())
         .unwrap()
         .is_empty());
     assert!(matches!(
         project_with_roots(&["res://unavailable.zui"])
-            .load_runtime_ui_surfaces(&runtime.handle(), text_context()),
+            .load_runtime_ui_surfaces(&runtime.handle(), &text_context()),
         Err(RuntimeProjectError::AdmitRuntimeUi {
             source: CoreError::MissingService(name)
         }) if name == UI_RUNTIME_DRIVER_NAME
@@ -87,7 +87,7 @@ fn project_ui_rejects_admission_after_module_cleanup() {
     runtime.deactivate_module(UI_MODULE_NAME).unwrap();
     assert!(matches!(
         project_with_roots(&["res://unavailable.zui"])
-            .load_runtime_ui_surfaces(&runtime.handle(), text_context()),
+            .load_runtime_ui_surfaces(&runtime.handle(), &text_context()),
         Err(RuntimeProjectError::AdmitRuntimeUi { .. })
     ));
 }

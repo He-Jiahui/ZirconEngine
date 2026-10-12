@@ -203,16 +203,22 @@ fn system_query_iter_combinations_mut_fetch_next_mutates_unique_groups() {
 fn read_only_combination_candidates_use_single_scan() {
     let source = include_str!("../ecs/query/query_combinations_iter.rs");
     let constructor = source
-        .split("pub(crate) fn new(")
+        .split("pub(crate) unsafe fn new(")
         .nth(1)
-        .and_then(|text| text.split("fn empty").next())
+        .and_then(|text| text.split("unsafe fn empty").next())
         .expect("read read-only combination constructor");
 
     assert!(constructor.contains("let mut matched_entities = Vec::new();"));
-    // BUG: [CR-R02-runtime_ecs_query_change_windows-0003] 此普通测试执行到本断言必失败；构造器已遍历 World 的稳定实体迭代器，旧切片遍历文本不存在。证据：query_combinations_iter.rs 的 new 完整片段。
-    assert!(constructor.contains("for entity in entities.iter().copied()"));
+    // CR-R02-runtime_ecs_query_change_windows-0003: keep the single-scan guard on the raw owner path.
+    assert!(constructor.contains("for entity in World::query_entity_ids(world)"));
     assert!(constructor
-        .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)"));
+        .contains("read_only_combination_candidate_matches::<D, F>(&*world, entity, ticks)"));
+    assert_eq!(
+        constructor
+            .matches("World::query_entity_ids(world)")
+            .count(),
+        1
+    );
     assert!(constructor.contains("matched_entities.push(entity);"));
     assert!(constructor.contains("if matched_entities.len() < K"));
     assert!(!source.contains("fn read_only_combination_candidate_count"));
@@ -223,32 +229,32 @@ fn cached_combination_candidates_use_compiled_archetype_plans() {
     let read_only_source = include_str!("../ecs/query/query_combinations_iter.rs");
     let mutable_source = include_str!("../ecs/query/query_combinations_mut_iter.rs");
     let read_only_cached_body = read_only_source
-        .split("pub(crate) fn new_from_cached_plans")
+        .split("pub(crate) unsafe fn new_from_cached_plans")
         .nth(1)
         .and_then(|text| text.split("fn fetch_current").next())
         .expect("read cached read-only combination constructor");
     let mutable_cached_body = mutable_source
-        .split("pub(crate) fn new_from_cached_plans")
+        .split("pub(crate) unsafe fn new_from_cached_plans")
         .nth(1)
-        .and_then(|text| text.split("fn empty").next())
+        .and_then(|text| text.split("pub fn fetch_next").next())
         .expect("read cached mutable combination constructor");
 
-    assert!(read_only_cached_body.contains("world.stable_query_location_iter("));
+    assert!(read_only_cached_body.contains("World::query_stable_location_iter("));
     assert!(read_only_cached_body.contains("find_cached_archetype_plan(plans"));
     assert!(read_only_cached_body.contains("plan.write_component_locations("));
     let read_only_cached_compact = compact_source(read_only_cached_body);
     assert!(read_only_cached_compact.contains(
-        "F::matches_component_locations(world,stable_location.stable_id,&component_locations,ticks"
+        "F::matches_component_locations(&*world,stable_location.stable_id,&component_locations,ticks"
     ));
     assert!(read_only_cached_body.contains("stable_locations.push(stable_location);"));
     assert!(!read_only_cached_body.contains("cached_component_locations"));
 
-    assert!(mutable_cached_body.contains("world.stable_query_location_iter("));
+    assert!(mutable_cached_body.contains("World::query_stable_location_iter("));
     assert!(mutable_cached_body.contains("find_cached_archetype_plan(plans"));
     assert!(mutable_cached_body.contains("plan.write_component_locations("));
     let mutable_cached_compact = compact_source(mutable_cached_body);
     assert!(mutable_cached_compact.contains(
-        "F::matches_component_locations(world,stable_location.stable_id,&component_locations,ticks"
+        "F::matches_component_locations(&*world,stable_location.stable_id,&component_locations,ticks"
     ));
     assert!(mutable_cached_body.contains("candidates.push(stable_location);"));
     assert!(!mutable_cached_body.contains("cached_component_locations"));

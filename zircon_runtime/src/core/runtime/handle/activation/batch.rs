@@ -382,6 +382,7 @@ impl CoreHandle {
                 if let Some(entry) = services.get_mut(service_name) {
                     if entry.lifecycle == LifecycleState::Running
                         || entry.lifecycle == LifecycleState::Initializing
+                        || entry.lifecycle == LifecycleState::Stopping
                     {
                         if let Some(instance) = entry.reset_after_failed_activation() {
                             retired.push((

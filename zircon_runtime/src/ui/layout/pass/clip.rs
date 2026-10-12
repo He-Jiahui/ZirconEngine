@@ -15,10 +15,14 @@ pub(crate) fn resolve_clip_frame(
             // 无祖先裁剪：以自身矩形作为裁剪区。
             None => Some(frame),
             // 有祖先裁剪：取交集；无交集时返回零面积帧，保持完全不可见。
-            Some(clip) => Some(clip.intersection(frame).unwrap_or(UiFrame::ZERO)),
+            Some(clip) => Some(clip.intersection(frame).unwrap_or_default()),
         }
     } else {
         // 节点自身不裁剪，透传祖先裁剪。
-        inherited_clip.and_then(|clip| clip.intersection(frame))
+        inherited_clip
     }
 }
+
+#[cfg(test)]
+#[path = "clip/tests/inherited_clip.rs"]
+mod tests;

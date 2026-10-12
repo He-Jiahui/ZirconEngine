@@ -42,6 +42,47 @@ fn optimization_batch_20260830bm_runtime_material_metrics_preserves_results() {
 }
 
 #[test]
+fn dropdown_measurement_reserves_explicit_native_caret_and_insets() {
+    let mut metadata = UiTemplateNodeMetadata {
+        component: "Dropdown".to_string(),
+        ..UiTemplateNodeMetadata::default()
+    };
+    for (key, value) in [
+        ("horizontal_inset", 10.0),
+        ("caret_right_inset", 13.0),
+        ("caret_size", 14.0),
+        ("caret_gap", 3.0),
+    ] {
+        metadata.attributes.insert(key.to_string(), Value::Float(value));
+    }
+    let measured = measure_material_content(Some(&metadata), UiSize::new(80.0, 16.0))
+        .expect("native dropdown reserves its painted adornments without layout metrics");
+    assert_eq!(measured, UiSize::new(120.0, 16.0));
+    metadata
+        .style_overrides
+        .insert("caret_size".to_string(), Value::Float(20.0));
+    let inline_measured = measure_material_content(Some(&metadata), UiSize::new(80.0, 16.0))
+        .expect("inline caret metrics retain the painter's priority");
+    assert_eq!(inline_measured, UiSize::new(126.0, 16.0));
+}
+
+#[test]
+fn dropdown_measurement_reserves_default_native_caret_and_insets() {
+    let metadata = UiTemplateNodeMetadata {
+        component: "Dropdown".to_string(),
+        ..UiTemplateNodeMetadata::default()
+    };
+    let tokens = zircon_runtime_interface::ui::design_tokens::EditorDesignTokens::workbench_dark();
+    let measured = measure_material_content(Some(&metadata), UiSize::new(80.0, 16.0))
+        .expect("native dropdown reserves its default painted adornments");
+    let adornments = tokens.density.gap_medium
+        + tokens.density.gap_large
+        + tokens.typography.overlay_size
+        + tokens.density.gap_small;
+    assert_eq!(measured, UiSize::new(80.0 + adornments, 16.0));
+}
+
+#[test]
 fn optimization_batch_20260830bm_runtime_material_metrics_source_contract() {
     let source = include_str!("../../material.rs");
     assert!(source.contains("for (key, value) in &metadata.attributes"));

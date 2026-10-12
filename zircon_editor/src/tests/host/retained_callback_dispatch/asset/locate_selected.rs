@@ -30,7 +30,7 @@ fn locate_selected_asset_control_navigates_to_the_selected_asset_folder() {
     .expect("asset item control should resolve")
     .expect("asset item selection should dispatch");
 
-    let before = harness.runtime.editor_snapshot();
+    let before = harness.runtime.editor_snapshot().unwrap();
     assert_eq!(
         before.asset_browser.selected_folder_id.as_deref(),
         Some("res://")
@@ -39,8 +39,8 @@ fn locate_selected_asset_control_navigates_to_the_selected_asset_folder() {
         before.asset_browser.selected_asset_uuid.as_deref(),
         Some("22222222-2222-2222-2222-222222222222")
     );
-    let views_before = harness.runtime.current_view_instances();
-    let layout_before = harness.runtime.current_layout();
+    let views_before = harness.runtime.current_view_instances().unwrap();
+    let layout_before = harness.runtime.current_layout().unwrap();
 
     let effects = dispatch_builtin_asset_surface_control(
         &harness.runtime,
@@ -52,9 +52,9 @@ fn locate_selected_asset_control_navigates_to_the_selected_asset_folder() {
     .expect("locate control should resolve")
     .expect("locate action should dispatch");
 
-    let after = harness.runtime.editor_snapshot();
-    let views_after = harness.runtime.current_view_instances();
-    let layout_after = harness.runtime.current_layout();
+    let after = harness.runtime.editor_snapshot().unwrap();
+    let views_after = harness.runtime.current_view_instances().unwrap();
+    let layout_after = harness.runtime.current_layout().unwrap();
     assert_eq!(
         after.asset_browser.selected_folder_id.as_deref(),
         Some("res://scenes")
@@ -90,8 +90,8 @@ fn locate_selected_asset_without_selection_reports_failure_without_opening_asset
     let bridge = BuiltinAssetSurfaceTemplateBridge::new()
         .expect("builtin asset surface bridge should build");
 
-    let views_before = harness.runtime.current_view_instances();
-    let layout_before = harness.runtime.current_layout();
+    let views_before = harness.runtime.current_view_instances().unwrap();
+    let layout_before = harness.runtime.current_layout().unwrap();
     let effects = dispatch_builtin_asset_surface_control(
         &harness.runtime,
         &bridge,
@@ -102,9 +102,9 @@ fn locate_selected_asset_without_selection_reports_failure_without_opening_asset
     .expect("locate control should resolve")
     .expect("empty locate action should be handled");
 
-    let snapshot = harness.runtime.editor_snapshot();
-    let views_after = harness.runtime.current_view_instances();
-    let layout_after = harness.runtime.current_layout();
+    let snapshot = harness.runtime.editor_snapshot().unwrap();
+    let views_after = harness.runtime.current_view_instances().unwrap();
+    let layout_after = harness.runtime.current_layout().unwrap();
     let i18n = harness.runtime.context().i18n();
     assert_eq!(i18n.active_locale().as_str(), "en");
     assert_eq!(snapshot.status_line, "Select an asset before locating it");

@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use zircon_runtime::core::runtime::ServiceCallGuard;
 
 use thiserror::Error;
 use zircon_runtime::asset::project::{
@@ -241,15 +242,15 @@ impl EditorUiHost {
         self.runtime_services.prepare_authoring_world(scene)
     }
 
-    pub(super) fn config_manager(&self) -> Result<Arc<dyn ConfigManager>, EditorError> {
+    pub(super) fn config_manager(&self) -> Result<ServiceCallGuard<dyn ConfigManager>, EditorError> {
         self.runtime_services.config_manager()
     }
 
-    pub(super) fn asset_manager(&self) -> Result<Arc<dyn AssetManager>, EditorError> {
+    pub(super) fn asset_manager(&self) -> Result<ServiceCallGuard<dyn AssetManager>, EditorError> {
         self.runtime_services.asset_manager()
     }
 
-    pub(super) fn editor_asset_manager(&self) -> Result<Arc<dyn EditorAssetManager>, EditorError> {
+    pub(super) fn editor_asset_manager(&self) -> Result<ServiceCallGuard<dyn EditorAssetManager>, EditorError> {
         self.runtime_services.editor_asset_manager()
     }
 

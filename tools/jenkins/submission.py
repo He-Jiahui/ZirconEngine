@@ -23,34 +23,42 @@ _PARAMETER_NAMES = {
     "sourceRef": "SEALED_INPUT_REF", "sourceDigest": "SOURCE_INPUT_DIGEST",
     "sealedInputRef": "SEALED_INPUT_REF", "sourceInputDigest": "SOURCE_INPUT_DIGEST",
     "patchRef": "PATCH_REQUEST_REF", "patchRequestRef": "PATCH_REQUEST_REF",
+    "patchOperationRef": "PATCH_OPERATION_REF", "currentSourceRef": "CURRENT_SOURCE_REF",
+    "sourcePreparationRef": "SOURCE_PREPARATION_REF",
     "coverageRef": "COVERAGE_REF", "coverageDigest": "COVERAGE_DIGEST",
     "recipeRef": "RECIPE_REF", "generation": "GENERATION", "attemptId": "ATTEMPT_ID",
     "executionId": "EXECUTION_ID", "buildRoot": "BUILD_ROOT",
     "stageImplementationDigest": "STAGE_IMPLEMENTATION_DIGEST",
+    "driverDigest": "STAGE_IMPLEMENTATION_DIGEST", "rustEdition": "RUST_EDITION",
     "runtimeOperationId": "RUNTIME_OPERATION_ID",
 }
 
 
-def _submission_fields(payload: Mapping[str, object]) -> dict[str, str]:
-    identity_keys = ("repositoryId", "sessionId", "requestId", "sourceRef", "sourceDigest",
-                     "coverageRef", "coverageDigest", "runtimeOperationId", "stageImplementationDigest")
-    identity = {_PARAMETER_NAMES[key]: str(payload[key]) for key in identity_keys if key in payload}
-    for key in ("patchRef", "patchRequestRef"):
-        if key in payload:
-            identity["PATCH_REQUEST_REF"] = str(payload[key])
-    fields = dict(identity)
-    parameters = payload.get("parameters", {})
+def _parameter_fields(parameters: Mapping[str, object]) -> dict[str, str]:
+    """Normalize aliases without allowing their order to select an identity."""
     if not isinstance(parameters, Mapping):
         raise JenkinsError("submission_parameters_invalid", "Jenkins parameters must be an object")
+    fields = {}
     for key, value in parameters.items():
         name = _PARAMETER_NAMES.get(str(key), str(key))
-        if name in identity and str(value) != identity[name]:
-            raise JenkinsError("submission_identity_override", "Jenkins parameters cannot override request identity")
+        if name in fields and fields[name] != str(value):
+            raise JenkinsError("submission_parameter_conflict", "Jenkins parameter aliases have conflicting values")
         fields[name] = str(value)
     return fields
 
 
-def _require_registered_identity(recorded: Mapping[str, object], payload: Mapping[str, object]) -> None:
+def _submission_fields(payload: Mapping[str, object]) -> dict[str, str]:
+    identity = _parameter_fields({key: value for key, value in payload.items()
+                                  if key in _PARAMETER_NAMES and value not in (None, "")})
+    fields = dict(identity)
+    for name, value in _parameter_fields(payload.get("parameters", {})).items():
+        if name in identity and value != identity[name]:
+            raise JenkinsError("submission_identity_override", "Jenkins parameters cannot override request identity")
+        fields[name] = value
+    return fields
+
+
+def _require_registered_identity(recorded: Mapping[str, object], payload: Mapping[str, object], *, state: State) -> None:
     bound = recorded.get("payload", {})
     bindings = {
         "repositoryId": ("repositoryId",), "sessionId": ("sessionId",), "requestId": ("requestId",),
@@ -64,6 +72,23 @@ def _require_registered_identity(recorded: Mapping[str, object], payload: Mappin
     for key, aliases in bindings.items():
         value = next((bound.get(name) for name in aliases if bound.get(name) not in (None, "")), None)
         if value is None or str(value) != str(payload.get(key)):
+            raise JenkinsError("submission_identity_mismatch", "Submission identity differs from registered request")
+    expected_fields, actual_fields = _submission_fields(bound), _submission_fields(payload)
+    if "RUNTIME_OPERATION_ID" not in expected_fields:
+        from .contracts import digest
+        reference = expected_fields.get("SOURCE_PREPARATION_REF")
+        preparation = state.get_operation(reference) if reference else None
+        if (preparation and preparation["kind"] == "source_preparation" and preparation["status"] == "complete"
+                and preparation["payloadDigest"] == digest(preparation["payload"])
+                and preparation["payload"].get("runtimeOperationId")):
+            expected_fields["RUNTIME_OPERATION_ID"] = str(preparation["payload"]["runtimeOperationId"])
+        elif expected_fields.get("PATCH_REQUEST_REF"):
+            intent = state.get("patch_intent", expected_fields["PATCH_REQUEST_REF"])
+            if intent and digest(intent["payload"]) == expected_fields["PATCH_REQUEST_REF"] and intent["payload"].get("runtimeOperationId"):
+                expected_fields["RUNTIME_OPERATION_ID"] = str(intent["payload"]["runtimeOperationId"])
+    for name in ("CURRENT_SOURCE_REF", "SOURCE_PREPARATION_REF", "PATCH_REQUEST_REF", "PATCH_OPERATION_REF",
+                 "ATTEMPT_ID", "GENERATION", "STAGE_IMPLEMENTATION_DIGEST", "RUNTIME_OPERATION_ID", "BUILD_ROOT"):
+        if actual_fields.get(name) != expected_fields.get(name):
             raise JenkinsError("submission_identity_mismatch", "Submission identity differs from registered request")
 
 
@@ -141,7 +166,7 @@ def submit(state: State, payload: dict, *, base_url: str = DEFAULT_BASE_URL,
         recorded = state.get_request(payload["repositoryId"], payload["sessionId"], payload["requestId"])
         if recorded is None:
             raise
-        _require_registered_identity(recorded, payload)
+        _require_registered_identity(recorded, payload, state=state)
     return dispatch_registered(state, payload, fields, registered_request=recorded,
                                base_url=base_url, job=job, token=token,
                                transport=transport, manager=manager)
@@ -167,7 +192,7 @@ def dispatch_registered(state: State, payload: Mapping[str, object], fields: Map
         raise JenkinsError("identity_incomplete", "Registered submission identity is incomplete")
     if not isinstance(fields, Mapping):
         raise JenkinsError("submission_parameters_invalid", "Jenkins parameters must be an object")
-    fields = {str(key): str(value) for key, value in fields.items()}
+    fields = _parameter_fields(fields)
     expected_fields = _submission_fields(payload)
     for name, value in expected_fields.items():
         if name not in _PARAMETER_NAMES.values():
@@ -188,8 +213,15 @@ def dispatch_registered(state: State, payload: Mapping[str, object], fields: Map
     queue_url = None
     try:
         if manager is not None:
-            status, _ = manager._request(f"job/{job}/buildWithParameters", method="POST", data=body,
-                                         headers={"Content-Type": "application/x-www-form-urlencoded"})
+            with_headers = getattr(manager, "_request_with_headers", None)
+            arguments = {"method": "POST", "data": body,
+                         "headers": {"Content-Type": "application/x-www-form-urlencoded"}}
+            if callable(with_headers):
+                status, _, response_headers = with_headers(f"job/{job}/buildWithParameters", **arguments)
+                queue_url = next((value for key, value in response_headers.items()
+                                  if key.lower() == "location"), None)
+            else:
+                status, _ = manager._request(f"job/{job}/buildWithParameters", **arguments)
         else:
             request = Request(f"{base_url.rstrip('/')}/job/{job}/buildWithParameters", data=body, method="POST")
             if token:

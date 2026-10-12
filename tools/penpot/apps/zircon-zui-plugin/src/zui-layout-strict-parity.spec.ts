@@ -30,7 +30,7 @@ import { validateWorkbenchPresentation } from '../tools/zui-layout-workbench-pre
 import { deriveSourceRenderInventory } from '../tools/zui-layout-source-render-inventory';
 
 const workbenchSourcePath =
-  'zircon_editor/assets/ui/editor/components/workbench/modules/workbench_window.zui';
+  'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
 type WorkbenchPresentationFixture = Record<string, unknown> & {
   activeLocale: 'en' | 'zh-CN';
   pages: { items: unknown[] };
@@ -46,6 +46,11 @@ const workbenchPresentation = (
     sourceFingerprint: {
       sourcePath: workbenchSourcePath,
       sha256: 'c'.repeat(64),
+    },
+    viewportSnap: {
+      translationEnabled: false,
+      rotationEnabled: true,
+      scaleEnabled: false,
     },
     stateFingerprint: '',
     layout: {
@@ -434,9 +439,8 @@ const captureMountedStyle = async (
 };
 
 describe('renderer artifact storage roots', () => {
-  it.each(['D', 'E', 'F'])(
-    'accepts the exact %s drive cargo-targets root',
-    async (drive, context) => {
+  describe.each(['D', 'E', 'F'])('%s drive', (drive) => {
+    it('accepts the exact drive cargo-targets root', async (context) => {
       const artifactBase = `${drive}:\\cargo-targets\\zircon-local`;
       if (!existsSync(artifactBase)) {
         context.skip();
@@ -450,8 +454,8 @@ describe('renderer artifact storage roots', () => {
       } finally {
         await rm(root, { recursive: true, force: true });
       }
-    },
-  );
+    });
+  });
 
   it.each([
     'D:\\targets\\zui\\renderer.bin',
@@ -846,7 +850,7 @@ describe('main-workbench strict semantic parity', () => {
   it('rejects noncanonical authored instance step key order', () => {
     const geometry = workbenchGeometry();
     geometry.layout.semanticNodes[0].instancePath =
-      '[{"sourceNodeId":"caller","sourcePath":"zircon_editor/assets/ui/editor/components/workbench/modules/workbench_window.zui"}]';
+      '[{"sourceNodeId":"caller","sourcePath":"zircon_editor/assets/ui/editor/unreal/level_editor_window.zui"}]';
     expect(compareWorkbenchGeometry(geometry, workbenchGeometry()).errors.join(' ')).toContain(
       'invalid or duplicate semantic node',
     );

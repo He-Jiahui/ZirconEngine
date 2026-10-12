@@ -62,6 +62,9 @@ impl RetainedEditorHost {
         action_id: &str,
     ) {
         self.focus_callback_source_window();
+        if self.dispatch_generated_bottom_action_token(control_id, action_id, None) {
+            return;
+        }
         let template_action_result = {
             let runtime = &self.runtime;
             self.builtin_template_runtime

@@ -54,37 +54,33 @@ function ConvertTo-ZirconProfileSessionBasename {
 
 function Assert-ZirconProfilePathContainsNoReparsePoint {
     param(
-        [Parameter(Mandatory = $true)]
-        [string]$Root,
-        [Parameter(Mandatory = $true)]
-        [string]$Candidate
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Candidate
     )
 
-    $normalizedRoot = [System.IO.Path]::GetFullPath($Root).TrimEnd('\\')
+    $normalizedRoot = [System.IO.Path]::GetFullPath($Root).TrimEnd([char[]]"\/")
     $normalizedCandidate = [System.IO.Path]::GetFullPath($Candidate)
     $rootPrefix = $normalizedRoot + [System.IO.Path]::DirectorySeparatorChar
-    if (-not $normalizedCandidate.Equals($normalizedRoot, [System.StringComparison]::OrdinalIgnoreCase) -and
-        -not $normalizedCandidate.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    if (-not $normalizedCandidate.Equals($normalizedRoot, [StringComparison]::OrdinalIgnoreCase) -and
+        -not $normalizedCandidate.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Profile capture path must resolve beneath $normalizedRoot."
     }
 
-    $componentPath = $normalizedRoot
-    $relativePath = [System.IO.Path]::GetRelativePath($normalizedRoot, $normalizedCandidate)
-    $pathComponents = if ($relativePath -eq '.') {
-        @()
-    }
-    else {
-        @($relativePath -split '[\\/]' | Where-Object { -not [string]::IsNullOrEmpty($_) })
-    }
+    # Include ancestors above Root: an approved-looking root can itself sit below a junction.
+    $componentPath = [System.IO.Path]::GetPathRoot($normalizedCandidate)
+    $pathComponents = @($normalizedCandidate.Substring($componentPath.Length) -split '[\\/]' |
+        Where-Object { -not [string]::IsNullOrEmpty($_) })
     foreach ($component in @('.') + $pathComponents) {
         if ($component -ne '.') {
             $componentPath = Join-Path $componentPath $component
         }
-        if (-not (Test-Path -LiteralPath $componentPath)) {
+        try {
+            $item = Get-Item -LiteralPath $componentPath -Force -ErrorAction Stop
+        }
+        catch [System.Management.Automation.ItemNotFoundException] {
             break
         }
-        $attributes = (Get-Item -LiteralPath $componentPath -Force).Attributes
-        if (($attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
             throw "Profile capture path contains a reparse point: $componentPath"
         }
     }
@@ -105,6 +101,10 @@ function Assert-ZirconProfileChildName {
         throw "Profile path component must be a plain child name: '$PathSegment'."
     }
 
+    if ($PathSegment.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -ge 0 -or
+        $PathSegment.EndsWith('.') -or $PathSegment.EndsWith(' ')) {
+        throw "Profile path component must be a literal Windows child name: '$PathSegment'."
+    }
     $stem = $PathSegment.Split('.')[0]
     if ($stem -match '^(?i:(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]))$') {
         throw "Profile path component must not be a reserved Windows device name: '$PathSegment'."
@@ -136,35 +136,123 @@ function Resolve-ZirconProfileContainedPath {
     Assert-ZirconProfilePathContainsNoReparsePoint `
         -Root $resolvedRoot `
         -Candidate $resolvedCandidate
+    # Production profile roots also validate each derived directory/file, including hard links.
+    # The generic containment helper retains its existing non-writing test-root contract.
+    if ($resolvedRoot -match '^[D-Fd-f]:\\cargo-targets\\zircon-local(?:\\|$)') {
+        $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\..'))
+        return Resolve-ZirconProfileOutputRoot -RepoRoot $repoRoot -Path $resolvedCandidate
+    }
     return $resolvedCandidate
 }
 
 function Resolve-ZirconProfileOutputRoot {
     param(
-        [Parameter(Mandatory = $true)]
-        [string]$RepoRoot,
-        [Parameter(Mandatory = $true)]
-        [string]$Path
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [Parameter(Mandatory = $true)][string]$Path
     )
 
-    if ([string]::IsNullOrWhiteSpace($Path)) {
-        throw "Profile output root must not be empty."
+    $boundaryError = "Profile output root must be an absolute literal path beneath physical D/E/F:\cargo-targets\zircon-local."
+    if ([string]::IsNullOrWhiteSpace($Path) -or $Path -notmatch '^[D-Fd-f]:[\\/]') {
+        throw $boundaryError
     }
+    $pathComponents = @($Path.Substring(3) -split '[\\/]')
+    for ($index = 0; $index -lt $pathComponents.Count; $index++) {
+        if ($index -eq $pathComponents.Count - 1 -and $pathComponents[$index] -eq '') {
+            continue
+        }
+        Assert-ZirconProfileChildName -PathSegment $pathComponents[$index]
+    }
+    $resolvedPath = [System.IO.Path]::GetFullPath($Path).TrimEnd([char[]]"\/")
+    $profileRoot = $null
+    foreach ($drive in @('D', 'E', 'F')) {
+        $root = "${drive}:\cargo-targets\zircon-local"
+        if ($resolvedPath.Equals($root, [StringComparison]::OrdinalIgnoreCase) -or
+            $resolvedPath.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            $profileRoot = $root
+            break
+        }
+    }
+    if ($null -eq $profileRoot) {
+        throw $boundaryError
+    }
+    $profileDrive = Get-PSDrive -Name ($resolvedPath.Substring(0, 1)) -PSProvider FileSystem -ErrorAction Stop
+    $driveRoot = $resolvedPath.Substring(0, 3)
+    if (-not $driveRoot.Equals([string]$profileDrive.Root, [StringComparison]::OrdinalIgnoreCase) -or
+        -not [string]::IsNullOrEmpty([string]$profileDrive.DisplayRoot)) {
+        throw "Profile output provider drive aliases are not allowed."
+    }
+    Assert-ZirconProfilePathContainsNoReparsePoint -Root $profileRoot -Candidate $Path
 
-    $resolvedPath = if ([System.IO.Path]::IsPathRooted($Path)) {
-        [System.IO.Path]::GetFullPath($Path)
+    # The interpreter is anchored to this source file, never to caller-controlled output data.
+    $pythonPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\..\.jenkins\runtime\python\python.exe'))
+    if (-not (Test-Path -LiteralPath $pythonPath -PathType Leaf)) {
+        throw "Profile output validation requires the repository bundled Python: $pythonPath"
     }
-    else {
-        [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $Path))
-    }
-    $profileRoot = [System.IO.Path]::GetFullPath("E:\zircon-profiles").TrimEnd('\\')
-    $profileRootWithSeparator = $profileRoot + [System.IO.Path]::DirectorySeparatorChar
-    if (-not $resolvedPath.Equals($profileRoot, [System.StringComparison]::OrdinalIgnoreCase) -and
-        -not $resolvedPath.StartsWith($profileRootWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "Profile output root must resolve beneath E:\zircon-profiles."
-    }
+    $physicalPolicy = @'
+from pathlib import Path
+import json
+import stat
+import sys
 
-    Assert-ZirconProfilePathContainsNoReparsePoint -Root $profileRoot -Candidate $resolvedPath
+def inspect_ancestry(path):
+    current = Path(path.anchor)
+    for component in (None, *path.parts[1:]):
+        if component is not None:
+            current /= component
+        try:
+            identity = current.lstat()
+            attributes = identity.st_file_attributes
+        except FileNotFoundError:
+            break
+        if attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+            raise ValueError('Profile capture path contains a reparse point: ' + str(current))
+        if stat.S_ISREG(identity.st_mode) and identity.st_nlink > 1:
+            raise ValueError('Profile output file aliases are not allowed: ' + str(current))
 
+try:
+    requested = Path(sys.argv[1])
+    if not requested.is_absolute() or any(p in ('.', '..') for p in sys.argv[1].replace('/', '\\').split('\\')[1:]):
+        raise ValueError('Profile output path must be literal and absolute.')
+    if not Path(requested.anchor).is_dir():
+        raise ValueError('Profile output drive must exist physically.')
+    inspect_ancestry(requested)
+    physical = requested.resolve()
+    inspect_ancestry(physical)
+    if physical != requested:
+        raise ValueError('Profile output path aliases are not allowed: ' + str(requested))
+    roots = tuple(Path(d + ':\\cargo-targets\\zircon-local') for d in 'DEF')
+    root = next((r for r in roots if requested == r or requested.is_relative_to(r)), None)
+    if root is None:
+        raise ValueError('Profile output path is outside the approved physical roots.')
+    inspect_ancestry(root)
+    physical_root = root.resolve()
+    inspect_ancestry(physical_root)
+    if physical_root != root:
+        raise ValueError('Profile output root aliases are not allowed: ' + str(root))
+    print(json.dumps({'schema_version': 1, 'ok': True, 'requested': str(requested), 'resolved': str(physical)}, ensure_ascii=True))
+except (OSError, ValueError) as error:
+    print(json.dumps({'schema_version': 1, 'ok': False, 'error': str(error)}, ensure_ascii=True))
+    sys.exit(1)
+'@
+    $pythonOutput = @(& $pythonPath -B -X utf8 -c $physicalPolicy $Path)
+    $pythonExitCode = $LASTEXITCODE
+    if ($pythonOutput.Count -ne 1) {
+        throw "Profile output validation returned an invalid receipt; exit code $pythonExitCode."
+    }
+    try {
+        $receipt = [string]$pythonOutput[0] | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        throw "Profile output validation returned an unreadable receipt; exit code $pythonExitCode."
+    }
+    if ($pythonExitCode -ne 0 -or $receipt.schema_version -ne 1 -or
+        $receipt.ok -isnot [bool] -or -not $receipt.ok) {
+        throw "Profile output validation failed; exit code ${pythonExitCode}: $($receipt.error)"
+    }
+    if (-not $resolvedPath.Equals([string]$receipt.requested, [StringComparison]::OrdinalIgnoreCase) -or
+        -not $resolvedPath.Equals([string]$receipt.resolved, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Profile output validation returned a different physical path."
+    }
+    Assert-ZirconProfilePathContainsNoReparsePoint -Root $profileRoot -Candidate ([string]$receipt.resolved)
     return $resolvedPath
 }

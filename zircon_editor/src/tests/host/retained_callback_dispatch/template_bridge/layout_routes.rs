@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use super::super::support::*;
 use crate::ui::template_runtime::builtin::{
-    SCENE_VIEWPORT_TOOLBAR_DOCUMENT_ID, UI_HOST_WINDOW_DOCUMENT_ID,
+    SCENE_VIEWPORT_TOOLBAR_DOCUMENT_ID, UNREAL_EDITOR_SHELL_DOCUMENT_ID,
 };
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use zircon_runtime::ui::{
@@ -29,7 +29,7 @@ fn builtin_editor_host_templates_export_layout_engine_route_reports() {
 
     let mut workbench = shared_surface(
         &runtime,
-        UI_HOST_WINDOW_DOCUMENT_ID,
+        UNREAL_EDITOR_SHELL_DOCUMENT_ID,
         "editor.workbench.shell",
     );
     assert_native_route(&workbench, "WorkbenchScaffold", UiLayoutEngineFamily::Flex);

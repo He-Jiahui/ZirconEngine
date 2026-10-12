@@ -1,6 +1,7 @@
 use crate::ui::retained_host::console_output::{
     ConsoleOutputPaintMetadata, ConsoleOutputSlotBinding, ConsoleOutputSlotKind,
 };
+use crate::ui::retained_host::host_contract::componentized_workbench_regions::module_tools_menu_spec;
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
@@ -197,9 +198,17 @@ fn hit_test_workbench_template_target_with_index<'a>(
 ) -> Option<WorkbenchTemplateHitTarget<'a>> {
     record_current_ui_perf_counter(UiPerfCounter::WorkbenchHitIndexQueryCount, 1.0);
     index.begin_query();
+    if !index.indexes_nodes(nodes) {
+        return None;
+    }
     let origin = index.origin()?;
     for row in index.popup_rows().iter().rev().copied() {
         let node = nodes.get(row)?;
+        if module_tools_menu_spec(node.control_id.as_str()).is_some()
+            && !index.module_tools_popup_contains_point(row, x, y)
+        {
+            continue;
+        }
         if let Some(target) = hit_test_template_popup_target(node, origin, x, y) {
             return Some(WorkbenchTemplateHitTarget::Popup { node, target });
         }
@@ -210,7 +219,8 @@ fn hit_test_workbench_template_target_with_index<'a>(
             continue;
         };
         let frame = template_node_frame(node, origin);
-        if accepts_node(node)
+        if module_tools_menu_spec(node.control_id.as_str()).is_none()
+            && accepts_node(node)
             && index.row_is_painted_at(row, &frame, x, y)
             && template_node_accepts_point(node, origin, x, y)
         {

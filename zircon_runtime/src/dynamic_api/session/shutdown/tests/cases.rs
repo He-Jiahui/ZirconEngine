@@ -4,8 +4,8 @@ use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
 use crate::core::{
-    CoreError, CoreResult, CoreRuntime, CoreShutdownError, ModuleContext, ModuleDescriptor,
-    ModuleLifecycle, TaskCancellationPolicy, TaskDescriptor, TaskGraphScope,
+    CoreError, CoreResult, CoreRuntime, CoreShutdownError, CoreWeak, ModuleCleanupContext,
+    ModuleDescriptor, ModuleLifecycle, TaskCancellationPolicy, TaskDescriptor, TaskGraphScope,
     TaskGraphScopeDescriptor, TaskGraphShutdownReport, TaskId, TaskPoolKind,
 };
 
@@ -14,6 +14,7 @@ use super::shutdown_runtime_core_until;
 const WAIT_BUDGET: Duration = Duration::from_secs(2);
 
 struct ObservedCleanup {
+    core: CoreWeak,
     calls: Arc<AtomicUsize>,
     task_finished: Arc<AtomicBool>,
     scope: Option<TaskGraphScope>,
@@ -21,7 +22,7 @@ struct ObservedCleanup {
 }
 
 impl ModuleLifecycle for ObservedCleanup {
-    fn cleanup(&self, context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         let attempt = self.calls.fetch_add(1, Ordering::SeqCst);
         assert!(self.task_finished.load(Ordering::Acquire));
         if let Some(scope) = &self.scope {
@@ -31,7 +32,10 @@ impl ModuleLifecycle for ObservedCleanup {
         }
         if attempt == 0 {
             // A real graph admission proves graph shutdown has not preceded modules.
-            let core = context.core.upgrade().expect("cleanup retains its Core");
+            let core = self
+                .core
+                .upgrade()
+                .expect("fixture retains its original Core");
             let probe = core
                 .task_graph()
                 .create_scope(TaskGraphScopeDescriptor::new("cleanup-order-probe"))
@@ -80,6 +84,7 @@ fn dynamic_core_close_drains_scope_before_modules_and_joins_graph_after_cleanup(
     install_cleanup(
         &runtime,
         ObservedCleanup {
+            core: core.downgrade(),
             calls: Arc::clone(&calls),
             task_finished: Arc::clone(&task_finished),
             scope: Some(scope.clone()),
@@ -144,6 +149,7 @@ fn dynamic_core_error_preserves_combined_results_and_exact_retry() {
     install_cleanup(
         &runtime,
         ObservedCleanup {
+            core: core.downgrade(),
             calls: Arc::clone(&calls),
             task_finished: Arc::new(AtomicBool::new(true)),
             scope: None,

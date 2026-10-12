@@ -5,6 +5,7 @@ import {
 } from './bridge/zui-table-geometry';
 import type { TableProjection } from './bridge/zui-table-projection';
 import { applyPenpotTextStyle } from './penpot-text-style';
+import { fontResourcesForShape } from './bridge/penpot-font-selection';
 import { updateControlTextGeometryGuard } from './penpot-control-guard';
 import {
   ZUI_METADATA_NAMESPACE,
@@ -73,6 +74,7 @@ export function createTableMeasurements(
     if (!text) throw new Error('Unable to measure native table text');
     applyPenpotTextStyle(text, {
       family: table.fontFamily,
+      fontResources: fontResourcesForShape(owner),
       id: table.fontFamily,
       weight: '400',
       size: table.fontSize,

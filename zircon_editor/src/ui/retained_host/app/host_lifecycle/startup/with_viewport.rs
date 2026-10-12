@@ -37,19 +37,21 @@ impl RetainedEditorHost {
         let startup_access = runtime_lease.startup_access();
         let startup_managers =
             resolve_startup_managers(&startup_access, ui.background_event_wake_callback())?;
-        startup_managers
-            .editor_manager
-            .configure_hub_launch_session(hub_launch_session);
-        startup_managers
-            .editor_manager
-            .configure_project_runtime_build_set(project_runtime_build_set);
+        let editor_jobs = {
+            let manager = startup_managers.editor_manager.enter()?;
+            manager.configure_hub_launch_session(hub_launch_session);
+            manager.configure_project_runtime_build_set(project_runtime_build_set);
+            manager.context().jobs().clone()
+        };
         let native_plugin_authority_resolver: NativePluginArtifactAuthorityResolver = {
             let editor_manager = startup_managers.editor_manager.clone();
             Arc::new(move |project_root| {
-                editor_manager.native_plugin_artifact_authority_for_project(project_root)
+                editor_manager
+                    .enter()
+                    .map_err(|error| error.to_string())?
+                    .native_plugin_artifact_authority_for_project(project_root)
             })
         };
-        let editor_jobs = startup_managers.editor_manager.context().jobs().clone();
         ui.bind_profile_artifact_jobs(editor_jobs.clone());
         ui.bind_visual_asset_jobs(editor_jobs, ui.background_visual_asset_wake_callback());
         let viewport_size = UVec2::new(1280, 720);

@@ -1,8 +1,6 @@
 use std::any::Any;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::Arc;
 
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::asset::AssetUuid;
 use zircon_runtime::core::CoreError;
 
@@ -11,13 +9,14 @@ use crate::core::jobs::{
     EditorJob, EditorJobSpec, JobCategory, JobContext, JobError, JobPriority, MutexGroup,
 };
 use crate::ui::host::module::EDITOR_ASSET_MANAGER_NAME;
+use crate::ui::host::runtime_services::EditorProjectAssetRuntimeAccess;
 
 use super::DefaultEditorAssetManager;
 
 const PROJECT_ASSET_MUTATION_MUTEX: &str = "project_asset_mutation";
 
 struct ProjectSourceDeletionJob {
-    manager: Arc<ProjectAssetManager>,
+    access: EditorProjectAssetRuntimeAccess,
     target_uuid: AssetUuid,
 }
 
@@ -28,7 +27,8 @@ impl EditorJob for ProjectSourceDeletionJob {
         context.check_cancelled()?;
         context.report_progress(0, 1, format!("Deleting asset {}", self.target_uuid));
         let result = match catch_unwind(AssertUnwindSafe(|| {
-            self.manager.delete_project_source(self.target_uuid.clone())
+            let manager = self.access.project_asset_manager()?;
+            manager.delete_project_source(self.target_uuid.clone())
         })) {
             Ok(result) => result.map_err(JobError::failed),
             Err(payload) => Err(JobError::Panicked(panic_message(payload))),
@@ -49,7 +49,6 @@ impl DefaultEditorAssetManager {
                 "project source deletion requires the runtime asset manager".to_string(),
             )
         })?;
-        let asset_manager = access.project_asset_manager()?;
         let jobs = self
             .preview_jobs
             .as_ref()
@@ -67,7 +66,7 @@ impl DefaultEditorAssetManager {
                 .with_priority(JobPriority::Interactive)
                 .with_mutex_group(mutex),
                 ProjectSourceDeletionJob {
-                    manager: asset_manager,
+                    access: access.clone(),
                     target_uuid: target_uuid.clone(),
                 },
             )

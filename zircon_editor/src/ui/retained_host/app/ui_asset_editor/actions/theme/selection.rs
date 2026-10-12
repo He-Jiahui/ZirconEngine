@@ -1,4 +1,5 @@
 use super::{RetainedEditorHost, UiAssetActionDispatch};
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -17,7 +18,11 @@ impl RetainedEditorHost {
         match index {
             Ok(index) => UiAssetActionDispatch::handled(
                 self.editor_manager
-                    .select_ui_asset_editor_theme_source(instance_id, index),
+                    .enter()
+                    .map_err(EditorError::from)
+                    .and_then(|manager| {
+                        manager.select_ui_asset_editor_theme_source(instance_id, index)
+                    }),
             ),
             Err(_) => {
                 self.set_status_line(format!(

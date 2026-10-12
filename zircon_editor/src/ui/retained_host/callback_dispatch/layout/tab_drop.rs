@@ -19,6 +19,7 @@ pub(crate) fn dispatch_tab_drop(
             let reopen_drawer_slot = match &drop.host {
                 ViewHost::Drawer(slot) => runtime
                     .active_drawer_mode(*slot)
+                    .map_err(|error| error.to_string())?
                     .and_then(|mode| (mode == ActivityDrawerMode::Collapsed).then_some(*slot)),
                 _ => None,
             };

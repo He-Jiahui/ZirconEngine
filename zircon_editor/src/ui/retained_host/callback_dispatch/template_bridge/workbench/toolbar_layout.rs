@@ -34,7 +34,6 @@ const COMPACT_HIDDEN_MODULE_TABS: &[&str] = &[
 ];
 
 const ULTRA_HIDDEN_FILE_CONTROLS: &[&str] = &[
-    "WorkbenchToolbarAssets",
     "WorkbenchToolbarOpen",
     "WorkbenchToolbarSave",
 ];

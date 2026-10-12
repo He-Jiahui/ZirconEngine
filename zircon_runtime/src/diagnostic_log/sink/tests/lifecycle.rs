@@ -501,3 +501,273 @@ fn astra_life_a4_log_worker_retains_join_while_tls_destruction_is_blocked() {
     assert!(joined);
     assert!(runtime.shutdown_for_library_unload(Duration::ZERO));
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TerminalOutputOperation {
+    Write,
+    Flush,
+    Sync,
+}
+
+#[derive(Default)]
+struct TerminalOutputProbe {
+    calls: [std::sync::atomic::AtomicUsize; 3],
+    bytes: std::sync::Mutex<Vec<u8>>,
+    dropped: AtomicBool,
+}
+
+impl TerminalOutputProbe {
+    fn calls(&self) -> [usize; 3] {
+        self.calls
+            .each_ref()
+            .map(|calls| calls.load(Ordering::Acquire))
+    }
+
+    fn text(&self) -> String {
+        String::from_utf8(self.bytes.lock().unwrap().clone()).unwrap()
+    }
+}
+
+struct TerminalResultOutput {
+    probe: Arc<TerminalOutputProbe>,
+    failure: Option<TerminalOutputOperation>,
+}
+
+impl TerminalResultOutput {
+    fn operation(&self, operation: TerminalOutputOperation) -> std::io::Result<()> {
+        self.probe.calls[operation as usize].fetch_add(1, Ordering::Relaxed);
+        if self.failure == Some(operation) {
+            return Err(std::io::Error::other("injected terminal output failure"));
+        }
+        Ok(())
+    }
+}
+
+impl std::io::Write for TerminalResultOutput {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.operation(TerminalOutputOperation::Write)?;
+        self.probe.bytes.lock().unwrap().extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.operation(TerminalOutputOperation::Flush)
+    }
+}
+
+impl super::super::worker::DurableOutput for TerminalResultOutput {
+    fn sync_data(&mut self) -> std::io::Result<()> {
+        self.operation(TerminalOutputOperation::Sync)
+    }
+}
+
+impl Drop for TerminalResultOutput {
+    fn drop(&mut self) {
+        self.probe.dropped.store(true, Ordering::Release);
+    }
+}
+
+fn terminal_result_test_state(
+    probe: Arc<TerminalOutputProbe>,
+    failure: Option<TerminalOutputOperation>,
+) -> DiagnosticLogState {
+    DiagnosticLogState::with_test_sink(
+        SinkRuntime::start(
+            Some(Box::new(TerminalResultOutput { probe, failure })),
+            false,
+            DiagnosticLogSinkSettings::default()
+                .with_queue_capacity(8)
+                .with_max_batch_records(8)
+                .with_flush_interval(Duration::from_secs(60)),
+        )
+        .expect("terminal result sink worker"),
+    )
+}
+
+#[test]
+fn process_shutdown_repeats_completed_worker_output_failures() {
+    for (operation, written_records) in [
+        (TerminalOutputOperation::Write, 0),
+        (TerminalOutputOperation::Flush, 0),
+        (TerminalOutputOperation::Sync, 1),
+    ] {
+        let controller = ProcessLogController::default();
+        assert!(controller.shutdown_when_idle(Duration::ZERO));
+        let probe = Arc::new(TerminalOutputProbe::default());
+        let state = controller.publish_state(
+            terminal_result_test_state(Arc::clone(&probe), Some(operation)),
+            &mut controller.lock_lifecycle(),
+        );
+        state.write(DiagnosticLogLevel::Log, "terminal", "failed output");
+        let sink = state.sink.as_ref().unwrap();
+
+        assert!(!controller.shutdown_when_idle(Duration::from_secs(2)));
+        assert!(controller.active_state_for_test().is_none());
+        assert!(probe.dropped.load(Ordering::Acquire));
+        assert!(sink.shutdown_for_library_unload(Duration::ZERO));
+        assert!(!sink.shutdown(Duration::ZERO));
+        let snapshot = sink.snapshot();
+        assert!(snapshot.closed);
+        assert!(snapshot.output_errors > 0);
+        assert_eq!(snapshot.written_records, written_records);
+        assert_eq!(snapshot.queue_depth, 0);
+        let calls = probe.calls();
+        assert!(calls[operation as usize] > 0);
+
+        for _ in 0..3 {
+            assert!(!controller.shutdown_when_idle(Duration::ZERO));
+            assert!(!controller.shutdown_when_idle(Duration::from_millis(1)));
+            assert!(controller.active_state_for_test().is_none());
+            assert_eq!(probe.calls(), calls);
+            assert_eq!(sink.snapshot().output_errors, snapshot.output_errors);
+            assert_eq!(sink.snapshot().written_records, snapshot.written_records);
+        }
+    }
+}
+
+#[test]
+fn process_shutdown_repeats_completed_success_without_restarting_worker() {
+    let controller = ProcessLogController::default();
+    let probe = Arc::new(TerminalOutputProbe::default());
+    let state = controller.publish_state(
+        terminal_result_test_state(Arc::clone(&probe), None),
+        &mut controller.lock_lifecycle(),
+    );
+    state.write(DiagnosticLogLevel::Log, "terminal", "first record");
+    state.write(DiagnosticLogLevel::Log, "terminal", "second record");
+    let sink = state.sink.as_ref().unwrap();
+
+    assert!(controller.shutdown_when_idle(Duration::from_secs(2)));
+    assert!(controller.active_state_for_test().is_none());
+    assert!(probe.dropped.load(Ordering::Acquire));
+    let snapshot = sink.snapshot();
+    assert!(snapshot.closed);
+    assert_eq!(snapshot.output_errors, 0);
+    assert_eq!(snapshot.written_records, 2);
+    assert_eq!(snapshot.flush_batches, 1);
+    assert_eq!(snapshot.queue_depth, 0);
+    let text = probe.text();
+    assert!(text.find("first record").unwrap() < text.find("second record").unwrap());
+    let calls = probe.calls();
+    assert!(calls.iter().all(|calls| *calls > 0));
+
+    for _ in 0..3 {
+        assert!(controller.shutdown_when_idle(Duration::ZERO));
+        assert!(controller.shutdown_when_idle(Duration::from_millis(1)));
+        assert!(controller.active_state_for_test().is_none());
+        assert_eq!(probe.calls(), calls);
+        assert_eq!(sink.snapshot().written_records, 2);
+        assert_eq!(sink.snapshot().flush_batches, 1);
+    }
+    assert_eq!(probe.text(), text);
+}
+
+#[test]
+fn process_shutdown_terminal_result_resets_only_after_fresh_generation_publication() {
+    let controller = ProcessLogController::default();
+    let failed_probe = Arc::new(TerminalOutputProbe::default());
+    let failed = controller.acquire_dynamic_session_for_test(|| {
+        terminal_result_test_state(
+            Arc::clone(&failed_probe),
+            Some(TerminalOutputOperation::Sync),
+        )
+    });
+    failed.write(DiagnosticLogLevel::Log, "terminal", "old generation");
+    // Output failure must not prevent the final dynamic owner from joining and unloading.
+    assert!(controller.release_dynamic_session_with_timeout_for_test(Duration::from_secs(2)));
+    assert_eq!(controller.dynamic_session_count_for_test(), 0);
+    assert!(controller.active_state_for_test().is_none());
+    assert!(failed_probe.dropped.load(Ordering::Acquire));
+    assert!(failed.sink.as_ref().unwrap().snapshot().output_errors > 0);
+    assert!(!controller.shutdown_when_idle(Duration::ZERO));
+
+    let failed_construction = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        controller.acquire_dynamic_session_for_test(|| panic!("generation construction failed"));
+    }));
+    assert!(failed_construction.is_err());
+    assert_eq!(controller.dynamic_session_count_for_test(), 0);
+    assert!(controller.active_state_for_test().is_none());
+    assert!(!controller.shutdown_when_idle(Duration::ZERO));
+    assert_eq!(
+        controller.lock_lifecycle().completed_output_result,
+        Some(false)
+    );
+
+    let fresh_probe = Arc::new(TerminalOutputProbe::default());
+    let fresh = controller.acquire_dynamic_session_for_test(|| {
+        terminal_result_test_state(Arc::clone(&fresh_probe), None)
+    });
+    assert!(!Arc::ptr_eq(&failed, &fresh));
+    assert!(controller
+        .active_state_for_test()
+        .is_some_and(|active| Arc::ptr_eq(&active, &fresh)));
+    assert_eq!(controller.lock_lifecycle().completed_output_result, None);
+    let another = controller.acquire_dynamic_session_for_test(|| {
+        panic!("a live generation must not be constructed again")
+    });
+    assert!(Arc::ptr_eq(&fresh, &another));
+    assert_eq!(controller.dynamic_session_count_for_test(), 2);
+    fresh.write(DiagnosticLogLevel::Log, "terminal", "fresh generation");
+    assert!(controller.release_dynamic_session_with_timeout_for_test(Duration::from_secs(2)));
+    assert_eq!(controller.dynamic_session_count_for_test(), 1);
+    assert!(fresh.sink.as_ref().unwrap().is_open());
+    assert_eq!(controller.lock_lifecycle().completed_output_result, None);
+
+    assert!(controller.release_dynamic_session_with_timeout_for_test(Duration::from_secs(2)));
+    assert_eq!(controller.dynamic_session_count_for_test(), 0);
+    assert!(controller.active_state_for_test().is_none());
+    assert!(fresh_probe.dropped.load(Ordering::Acquire));
+    assert_eq!(fresh.sink.as_ref().unwrap().snapshot().output_errors, 0);
+    assert_eq!(fresh.sink.as_ref().unwrap().snapshot().written_records, 1);
+    assert!(fresh_probe.text().contains("fresh generation"));
+    assert_eq!(
+        controller.lock_lifecycle().completed_output_result,
+        Some(true)
+    );
+    assert!(controller.shutdown_when_idle(Duration::ZERO));
+    assert!(controller.shutdown_when_idle(Duration::from_millis(1)));
+}
+
+#[test]
+fn process_shutdown_timeout_retains_generation_until_worker_completion() {
+    let controller = ProcessLogController::default();
+    let output = BlockingOutput::default();
+    let state = controller.publish_state(
+        DiagnosticLogState::with_test_sink(
+            SinkRuntime::start(
+                Some(Box::new(output.clone())),
+                false,
+                DiagnosticLogSinkSettings::default().with_max_batch_records(1),
+            )
+            .expect("blocked terminal result worker"),
+        ),
+        &mut controller.lock_lifecycle(),
+    );
+    let sink = state.sink.as_ref().unwrap();
+    assert!(sink.enqueue(DiagnosticLogLevel::Log, "terminal", "timeout record"));
+    output.wait_until_blocked();
+
+    let stopped = controller.shutdown_when_idle(Duration::from_millis(20));
+    let retained = controller.active_state_for_test();
+    let unfinished_result = controller.lock_lifecycle().completed_output_result;
+    let closed_before_release = sink.snapshot().closed;
+    output.release();
+    let joined = controller.shutdown_when_idle(Duration::from_secs(2));
+
+    assert!(!stopped);
+    assert!(retained.is_some_and(|active| Arc::ptr_eq(&active, &state)));
+    assert_eq!(unfinished_result, None);
+    assert!(!closed_before_release);
+    assert!(joined);
+    assert!(controller.active_state_for_test().is_none());
+    assert!(sink.shutdown_for_library_unload(Duration::ZERO));
+    assert_eq!(sink.snapshot().written_records, 1);
+    assert_eq!(sink.snapshot().output_errors, 0);
+    assert_eq!(
+        controller.lock_lifecycle().completed_output_result,
+        Some(true)
+    );
+    assert!(output.text().contains("timeout record"));
+    assert!(controller.shutdown_when_idle(Duration::ZERO));
+    assert!(controller.shutdown_when_idle(Duration::from_millis(1)));
+}

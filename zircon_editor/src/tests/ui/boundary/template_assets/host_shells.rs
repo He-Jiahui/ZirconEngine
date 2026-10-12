@@ -14,33 +14,35 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
             ],
         ),
         (
-            "assets/ui/editor/host/workbench_shell.zui",
+            "assets/ui/editor/unreal/editor_shell.zui",
             &[
                 "UiHostWindow",
-                "activity_rail",
+                "UiHostWindowRoot",
                 "document_host",
-                "menu_bar",
-                "editor_workbench_strict.zui",
-                "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
-                "res://ui/editor/components/workbench/primitives/chrome/workbench_rail_button.zui#WorkbenchRailButton",
-                "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem",
-                "WorkbenchScaffold",
-                "StatusBarRoot",
+                "DocumentHostRoot",
+                "pane_surface",
+                "PaneSurfaceRoot",
+                "res://ui/editor/unreal/starship.zui",
             ],
         ),
         (
-            "assets/ui/editor/windows/workbench_window.zui",
+            "assets/ui/editor/unreal/level_editor_window.zui",
             &[
-                "editor_workbench_strict.zui",
-                "res://ui/editor/components/workbench/shell/workbench_component_drawer.zui#WorkbenchComponentDrawer",
-                "res://ui/editor/components/workbench/shell/workbench_main_band.zui#WorkbenchMainBand",
-                "res://ui/editor/components/workbench/shell/workbench_status_bar.zui#WorkbenchStatusBar",
-                "res://ui/editor/components/workbench/shell/workbench_top_toolbar.zui#WorkbenchTopToolbar",
+                "res://ui/editor/unreal/components/toolbar.zui#UnrealLevelEditorToolbar",
+                "res://ui/editor/unreal/components/menus.zui#UnrealLevelEditorMenus",
+                "res://ui/editor/unreal/components/menu_popups.zui#UnrealLevelEditorMenuPopups",
+                "res://ui/editor/unreal/components/viewport.zui#UnrealLevelViewport",
+                "res://ui/editor/unreal/components/outliner.zui#UnrealOutlinerPanel",
+                "res://ui/editor/unreal/components/details.zui#UnrealDetailsPanel",
+                "res://ui/editor/unreal/components/status_bar.zui#UnrealEditorStatusBar",
+                "res://ui/editor/unreal/components/content_drawer.zui#UnrealContentDrawer",
+                "res://ui/editor/unreal/starship.zui",
                 "WorkbenchWindowTopToolbarRegion",
                 "WorkbenchWindowMainBandRegion",
-                "WorkbenchWindowComponentDrawerRegion",
                 "WorkbenchWindowStatusBarRegion",
-                "BottomDrawerShellRoot",
+                "UnrealContentDrawerRegion",
+                "UnrealEditorMenuPopups",
+                "UnrealRightDock",
             ],
         ),
         (
@@ -75,7 +77,7 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
 
 #[test]
 fn workbench_drawer_frame_owners_live_in_real_component_assets() {
-    let workbench_window = source("assets/ui/editor/windows/workbench_window.zui");
+    let workbench_window = source("assets/ui/editor/unreal/level_editor_window.zui");
     for forbidden in [
         "drawer_projection",
         "WorkbenchDrawerSourceRoot",
@@ -91,29 +93,64 @@ fn workbench_drawer_frame_owners_live_in_real_component_assets() {
         );
     }
 
-    for (relative, required) in [
+    let window = zircon_runtime::ui::v2::UiZuiAssetLoader::load_zui_str(&workbench_window)
+        .expect("canonical Unreal window must parse");
+    assert_eq!(
+        window.asset.kind,
+        zircon_runtime_interface::ui::v2::UiV2AssetKind::View
+    );
+    assert_eq!(window.root_node_id(), Some("root"));
+    assert!(window.components.is_empty());
+    assert_eq!(window.nodes["main_band"].component, "HorizontalGroup");
+    assert_eq!(
+        window.nodes["right_dock"].control_id.as_deref(),
+        Some("UnrealRightDock")
+    );
+    for (relative, component, required) in [
         (
-            "assets/ui/editor/components/workbench/shell/workbench_main_band.zui",
-            &["LeftDrawerShellRoot", "RightDrawerShellRoot"][..],
-        ),
-        (
-            "assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui",
+            "assets/ui/editor/unreal/components/outliner.zui",
+            "UnrealOutlinerPanel",
             &["LeftDrawerHeaderRoot", "LeftDrawerContentRoot"][..],
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui",
+            "assets/ui/editor/unreal/components/details.zui",
+            "UnrealDetailsPanel",
             &["RightDrawerHeaderRoot", "RightDrawerContentRoot"][..],
         ),
         (
-            "assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui",
-            &["BottomDrawerHeaderRoot", "BottomDrawerContentRoot"][..],
+            "assets/ui/editor/unreal/components/content_drawer.zui",
+            "UnrealContentDrawer",
+            &["ContentDrawerHeader", "ContentDrawerAssetBrowser"][..],
         ),
     ] {
         let asset = source(relative);
+        let document = zircon_runtime::ui::v2::UiZuiAssetLoader::load_zui_str(&asset)
+            .unwrap_or_else(|error| panic!("parse frame owner {relative}: {error}"));
+        assert_eq!(
+            document.asset.kind,
+            zircon_runtime_interface::ui::v2::UiV2AssetKind::Component
+        );
+        assert_eq!(document.components.len(), 1);
+        let definition = document
+            .components
+            .get(component)
+            .expect("real native panel component");
+        assert!(document.nodes.contains_key(&definition.root));
+        let uri = format!(
+            "res://{}#{component}",
+            relative.strip_prefix("assets/").unwrap()
+        );
+        assert!(
+            window.imports.widgets.contains(&uri),
+            "canonical window must import real owner {uri}"
+        );
         for marker in required {
             assert!(
-                asset.contains(marker),
-                "drawer frame owner `{marker}` should live in real component asset `{relative}`"
+                document
+                    .nodes
+                    .values()
+                    .any(|node| node.control_id.as_deref() == Some(marker)),
+                "frame owner {marker} should live in real component {relative}"
             );
         }
     }
@@ -144,7 +181,7 @@ fn workbench_reference_visual_asset_remains_design_baseline_not_runtime_overlay(
     );
     assert_eq!(png_dimensions(&asset_bytes), (1672, 941));
 
-    let workbench = source("assets/ui/editor/windows/workbench_window.zui");
+    let workbench = source("assets/ui/editor/unreal/level_editor_window.zui");
     for forbidden in [
         "component = \"IconButton\"",
         "component = \"Button\"",
@@ -174,7 +211,7 @@ fn workbench_reference_visual_asset_remains_design_baseline_not_runtime_overlay(
         );
     }
 
-    let shell = source("assets/ui/editor/host/workbench_shell.zui");
+    let shell = source("assets/ui/editor/unreal/editor_shell.zui");
     for forbidden in [
         "WorkbenchShellReferenceImage",
         "ui/editor/reference/workbench.png",
@@ -190,12 +227,12 @@ fn workbench_reference_visual_asset_remains_design_baseline_not_runtime_overlay(
     let builtin_documents = crate::ui::template_runtime::builtin::builtin_template_documents();
     for (document_id, expected_suffix) in [
         (
-            "res://ui/editor/host/workbench_shell.zui",
-            "assets/ui/editor/host/workbench_shell.zui",
+            "res://ui/editor/unreal/editor_shell.zui",
+            "assets/ui/editor/unreal/editor_shell.zui",
         ),
         (
-            "res://ui/editor/windows/workbench_window.zui",
-            "assets/ui/editor/windows/workbench_window.zui",
+            "res://ui/editor/unreal/level_editor_window.zui",
+            "assets/ui/editor/unreal/level_editor_window.zui",
         ),
     ] {
         let route_path = builtin_documents
@@ -216,13 +253,13 @@ fn critical_editor_shells_are_hard_cut_to_zui_assets() {
     let runtime_host = source("src/ui/template_runtime/runtime/runtime_host.rs");
     for required in [
         "editor_main_frame.zui",
-        "workbench_window.zui",
+        "unreal/level_editor_window.zui",
         "asset_window.zui",
         "ui_layout_editor_window.zui",
         "component_showcase.zui",
         "material_demo_window.zui",
         "material_component_lab.zui",
-        "workbench_shell.zui",
+        "unreal/editor_shell.zui",
         "floating_window_source.zui",
         "scene_viewport_toolbar.zui",
         "console_body.zui",

@@ -87,7 +87,10 @@ fn rejected_restore_preserves_world(
     let watched = subscriptions.lock().unwrap();
     assert_eq!(watched.pending_fact_count(), 0);
     assert_eq!(watched.diagnostics(), Default::default());
-    rejected.into_parts().1
+    rejected
+        .into_parts()
+        .1
+        .expect("preflight rejection retains its intact batch")
 }
 
 #[test]

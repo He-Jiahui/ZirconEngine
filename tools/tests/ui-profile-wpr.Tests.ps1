@@ -1,14 +1,37 @@
 # 用记录器夹具验证采样跟踪的会话目录、进程寿命过滤及失败关闭。
-$script:WprScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-wpr.ps1"
-$script:CaptureScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-capture.ps1"
+$script:WprScript = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-wpr.ps1"
+$script:CaptureScript = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-capture.ps1"
 if (Test-Path -LiteralPath $script:WprScript) {
     . $script:WprScript
 }
 
-function New-ZirconUiWprTestRoot {
-    $root = "E:\zircon-profiles\pester-ui-profile-wpr-$([guid]::NewGuid().ToString('N'))"
-    New-Item -ItemType Directory -Force -Path $root | Out-Null
+
+function New-ZirconUiWprOwnedRoot {
+    $parent = Resolve-ZirconProfileOutputRoot -RepoRoot $PSScriptRoot -Path 'D:\cargo-targets\zircon-local\evidence\profile-output-contract-fixtures'
+    [IO.Directory]::CreateDirectory($parent) | Out-Null
+    $root = Resolve-ZirconProfileContainedPath -Root $parent `
+        -PathSegments @('wpr-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $root -ErrorAction Stop | Out-Null
     return $root
+}
+
+function Remove-ZirconUiWprOwnedRoot {
+    param([Parameter(Mandatory = $true)][string]$Root)
+
+    $parent = Resolve-ZirconProfileOutputRoot -RepoRoot $PSScriptRoot -Path 'D:\cargo-targets\zircon-local\evidence\profile-output-contract-fixtures'
+    $resolvedRoot = [IO.Path]::GetFullPath($Root).TrimEnd([char[]]"\/")
+    if (-not [IO.Path]::GetDirectoryName($resolvedRoot).Equals($parent, [StringComparison]::OrdinalIgnoreCase) -or
+        -not [IO.Path]::GetFileName($resolvedRoot).StartsWith('wpr-', [StringComparison]::Ordinal)) {
+        throw "Refusing fixture cleanup outside its owned direct child: $Root"
+    }
+    Assert-ZirconProfilePathContainsNoReparsePoint -Root $parent -Candidate $resolvedRoot
+    if (Test-Path -LiteralPath $resolvedRoot) {
+        Remove-Item -LiteralPath $resolvedRoot -Recurse -Force
+    }
+}
+
+function New-ZirconUiWprTestRoot {
+    return New-ZirconUiWprOwnedRoot
 }
 
 Describe "UI profile WPR capture" {
@@ -27,7 +50,7 @@ Describe "UI profile WPR capture" {
         {
             Start-ZirconUiProfileWprCapture `
                 -ProfileDir "C:\zircon-profiles\forbidden-wpr-session"
-        } | Should Throw "D:, E:, or F:"
+        } | Should Throw "physical D/E/F:"
     }
 
     It "starts file-mode CPU sampling with a session-owned recording directory" {
@@ -60,7 +83,7 @@ Describe "UI profile WPR capture" {
         }
         finally {
             if (Test-Path -LiteralPath $root) {
-                Remove-Item -LiteralPath $root -Recurse -Force
+                Remove-ZirconUiWprOwnedRoot -Root $root
             }
         }
     }
@@ -127,7 +150,7 @@ Describe "UI profile WPR capture" {
         }
         finally {
             if (Test-Path -LiteralPath $root) {
-                Remove-Item -LiteralPath $root -Recurse -Force
+                Remove-ZirconUiWprOwnedRoot -Root $root
             }
         }
     }
@@ -198,7 +221,7 @@ Describe "UI profile WPR capture" {
         }
         finally {
             if (Test-Path -LiteralPath $root) {
-                Remove-Item -LiteralPath $root -Recurse -Force
+                Remove-ZirconUiWprOwnedRoot -Root $root
             }
         }
     }
@@ -242,7 +265,7 @@ Describe "UI profile WPR capture" {
         }
         finally {
             if (Test-Path -LiteralPath $root) {
-                Remove-Item -LiteralPath $root -Recurse -Force
+                Remove-ZirconUiWprOwnedRoot -Root $root
             }
         }
     }
@@ -266,7 +289,7 @@ Describe "UI profile WPR capture" {
         }
         finally {
             if (Test-Path -LiteralPath $root) {
-                Remove-Item -LiteralPath $root -Recurse -Force
+                Remove-ZirconUiWprOwnedRoot -Root $root
             }
         }
     }
@@ -285,5 +308,36 @@ Describe "UI profile WPR capture" {
         $wprSource | Should Match '"-recordtempto"'
         $wprSource | Should Match '"profile"'
         $wprSource | Should Match '"-detail"'
+    }
+}
+
+Describe 'UI profile WPR output boundaries' {
+    It 'rejects forbidden roots before calling a recorder or creating a session' {
+        Mock Invoke-ZirconUiProfileNativeTool { throw 'must not invoke native sampling' }
+        foreach ($candidate in @('E:\zircon-profiles\forbidden',
+                'D:\targets\forbidden', 'E:\ZirconBuilds\forbidden',
+                'F:\nested\cargo-targets\zircon-local\forbidden')) {
+            { Start-ZirconUiProfileWprCapture -ProfileDir $candidate } |
+                Should Throw 'Profile output root must be an absolute literal path beneath physical D/E/F:\cargo-targets\zircon-local.'
+        }
+        Assert-MockCalled Invoke-ZirconUiProfileNativeTool -Times 0 -Exactly
+    }
+
+    It 'rejects an aliased ETL leaf before the stop command' {
+        $root = New-ZirconUiWprTestRoot
+        try {
+            Mock Invoke-ZirconUiProfileNativeTool { throw 'must not invoke native sampling' }
+            $capture = [pscustomobject]@{
+                profile_dir = $root
+                trace_path = Join-Path $root 'trace.etl:other-stream'
+                wpr_path = 'D:\tools\wpr.exe'
+            }
+            { Stop-ZirconUiProfileWprCapture -Capture $capture } |
+                Should Throw "Profile path component must be a literal Windows child name: 'trace.etl:other-stream'."
+            Assert-MockCalled Invoke-ZirconUiProfileNativeTool -Times 0 -Exactly
+        }
+        finally {
+            Remove-ZirconUiWprOwnedRoot -Root $root
+        }
     }
 }

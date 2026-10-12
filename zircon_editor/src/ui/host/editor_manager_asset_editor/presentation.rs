@@ -165,10 +165,34 @@ impl EditorManager {
             .clear_ui_asset_editor_selected_preview_mock_value(instance_id)
     }
 
+    /// Admit the original registration only for preflight/submission, then release it before wait.
     pub fn save_ui_asset_editor(
-        &self,
+        original: zircon_runtime::core::runtime::ServiceHandle<Self>,
         instance_id: &ViewInstanceId,
     ) -> Result<String, EditorError> {
-        self.host.save_ui_asset_editor(instance_id)
+        let ticket = {
+            let manager = original.enter()?;
+            manager.host.ensure_ui_asset_editor_session(instance_id)?;
+            manager.host.submit_document_toolkit_save(
+                original.clone(),
+                instance_id,
+                crate::core::extension::SaveReason::Explicit,
+            )?
+        };
+        let report = ticket.wait().map_err(EditorError::from)?;
+        let readback = original
+            .enter()
+            .map_err(EditorError::from)
+            .and_then(|manager| manager.host.saved_ui_asset_editor_source(instance_id));
+        match readback {
+            Ok(source) => Ok(source),
+            Err(source) if report.cooperating_source_writes_are_serialized() => {
+                Err(EditorError::DocumentSaveCommitted {
+                    report,
+                    source: Box::new(source),
+                })
+            }
+            Err(source) => Err(source),
+        }
     }
 }

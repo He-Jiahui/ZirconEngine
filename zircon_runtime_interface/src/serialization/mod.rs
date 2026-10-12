@@ -6,6 +6,7 @@ mod load;
 mod loaded;
 mod migration;
 mod payload_header;
+mod positional;
 mod schema_id;
 mod text;
 mod versioned_schema;
@@ -19,6 +20,7 @@ pub use load::{load_versioned, load_versioned_envelope, load_versioned_legacy_sc
 pub use loaded::Loaded;
 pub use migration::{MigrateError, MigrationChain, MigrationStep};
 pub use payload_header::PayloadHeader;
+pub use positional::{PositionalDecodeError, PositionalEncodeError, PositionalEncoding};
 pub use schema_id::{SchemaId, SchemaIdError, MAX_SCHEMA_ID_BYTES};
 pub use versioned_schema::VersionedSchema;
 pub use write::{

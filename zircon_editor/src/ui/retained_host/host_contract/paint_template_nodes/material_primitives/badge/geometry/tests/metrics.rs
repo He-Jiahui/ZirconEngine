@@ -72,3 +72,28 @@ fn badge_text_width_clamps_to_available_bounds() {
     assert!((badge_text_width(80.0, 20.0) - 20.0).abs() <= 0.01);
     assert!((badge_text_width(0.0, 20.0) - 0.0).abs() <= 0.01);
 }
+
+#[test]
+fn authored_badge_font_scales_once_and_host_fallback_stays_physical() {
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        current_host_metrics, enter_host_paint_theme_scope,
+        host_paint_theme_snapshot_at_scale_for_test,
+    };
+    for scale in [1.0, 1.5] {
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(scale));
+
+        let rect = FrameRect {
+            width: 160.0,
+            height: 48.0,
+            ..Default::default()
+        };
+        let metrics = current_host_metrics();
+        assert_eq!(badge_root_font_size(&node(12.0), &rect), 12.0 * scale);
+        assert_eq!(badge_root_font_size(&node(0.0), &rect), metrics.font_body);
+        assert_eq!(
+            badge_root_font_size(&node(f32::NAN), &rect),
+            metrics.font_body
+        );
+    }
+}

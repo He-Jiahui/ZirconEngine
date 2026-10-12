@@ -10,6 +10,7 @@ use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::watch::AssetChange;
 use zircon_runtime::core::framework::channel::ChannelReceiver;
 use zircon_runtime::core::resource::ResourceEventReceiver;
+use zircon_runtime::core::runtime::ServiceHandle;
 use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::{NodeId, Scene, WorldInspectionHierarchyRow};
 use zircon_runtime_interface::hub_protocol::{
@@ -126,6 +127,7 @@ mod committed_shell_state;
 mod component_showcase_runtime;
 mod detail_scroll_pointer;
 mod document_save;
+mod generated_bottom_pane;
 mod helpers;
 mod hierarchy_filter;
 mod hierarchy_pointer;
@@ -299,7 +301,7 @@ pub fn run_editor_with_config(
     if let Some(play_backend) = play_backend {
         retained_host.runtime.set_play_backend(play_backend);
     }
-    let settings_snapshot = retained_host.editor_manager.context().settings().snapshot();
+    let settings_snapshot = retained_host.runtime.context().settings().snapshot();
     apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
     apply_host_paint_scale_factor(
         ResolutionContext::from_physical_size_with_scale_mode(
@@ -330,7 +332,9 @@ pub fn run_editor_with_config(
         // Project presets and plugin-provided views must be visible before the stored layout is applied.
         retained_host
             .editor_manager
-            .apply_layout_command(LayoutCommand::LoadPreset { name })
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.apply_layout_command(LayoutCommand::LoadPreset { name }))
             .map_err(|error| hub_startup_reporter.report_failure(error))?;
     }
     let host = Rc::new(RefCell::new(retained_host));
@@ -372,6 +376,7 @@ pub fn run_editor_with_config(
     let hub_focus_target = host
         .borrow()
         .editor_manager
+        .enter()?
         .active_project_session_focus_target();
     let hub_ready_receipt = if hub_startup_reporter.is_pending() {
         hub_focus_target
@@ -409,7 +414,7 @@ pub fn run_editor_with_config(
     if product_frame_evidence_requested {
         let retained_host = host.borrow();
         let diagnostic =
-            editor_product_frame_diagnostics(&retained_host.runtime.editor_snapshot())?;
+            editor_product_frame_diagnostics(&retained_host.runtime.editor_snapshot()?)?;
         emit_product_frame_log(retained_host.runtime.context().logs(), diagnostic);
     }
     let run_result = ui.run();
@@ -432,7 +437,7 @@ pub fn run_editor_with_config(
     let autosave_shutdown = {
         let retained_host = host.borrow();
         retained_host
-            .editor_manager
+            .runtime
             .context()
             .autosave()
             .shutdown_with_final_autosave(
@@ -442,7 +447,7 @@ pub fn run_editor_with_config(
     };
     let settings_mutations = {
         let retained_host = host.borrow();
-        Arc::clone(retained_host.editor_manager.context().settings_mutations())
+        Arc::clone(retained_host.runtime.context().settings_mutations())
     };
     let settings_shutdown = match settings_mutations.flush_then_shutdown() {
         Ok(closeout) => closeout,
@@ -628,7 +633,7 @@ struct RetainedEditorHost {
     runtime_lease: RetainedHostRuntimeLease,
     runtime: EditorHostEventController,
     runtime_shutdown_receipt: Option<EditorRuntimeSessionShutdownReceipt>,
-    editor_manager: Arc<EditorManager>,
+    editor_manager: ServiceHandle<EditorManager>,
     hub_focus_binding: HubFocusBinding,
     hub_focus_request_attention: Arc<dyn Fn() + Send + Sync>,
     module_plugin_projection_cache:
@@ -746,7 +751,7 @@ struct RetainedEditorHost {
 
 impl Drop for RetainedEditorHost {
     fn drop(&mut self) {
-        self.editor_manager.context().autosave().begin_shutdown();
+        self.runtime.context().autosave().begin_shutdown();
         // Drop only retires local UI ownership. The explicit session coordinator owns remote
         // unwatch and preserves its `WorldSyncShutdownReceipt` for diagnostics.
         self.hierarchy_world_watch.take();

@@ -389,3 +389,51 @@ fn workbench_module_panel_field_action(action_id: &str) -> bool {
             | "workbench.module.hud.locale.commit"
     )
 }
+
+pub(super) fn workbench_module_workspace_document(
+    action_id: &str,
+) -> Option<(&'static str, &'static str)> {
+    Some(match action_id {
+        "workbench.module.effect.select" => (
+            "res://ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui",
+            "WorkbenchEffectWorkspace",
+        ),
+        "workbench.module.ability.select" => (
+            "res://ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui",
+            "WorkbenchAbilityWorkspace",
+        ),
+        "workbench.module.tags.select" => (
+            "res://ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui",
+            "WorkbenchTagsWorkspace",
+        ),
+        "workbench.module.perception.select" => (
+            "res://ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui",
+            "WorkbenchPerceptionWorkspace",
+        ),
+        "workbench.module.material.select" => (
+            "res://ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui",
+            "WorkbenchMaterialWorkspace",
+        ),
+        "workbench.module.behavior.select" => (
+            "res://ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui",
+            "WorkbenchBehaviorWorkspace",
+        ),
+        "workbench.module.render.select" => (
+            "res://ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui",
+            "WorkbenchRenderWorkspace",
+        ),
+        "workbench.module.assets.select" => (
+            "res://ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui",
+            "WorkbenchAssetsWorkspace",
+        ),
+        "workbench.module.vfx.select" => (
+            "res://ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui",
+            "WorkbenchVfxWorkspace",
+        ),
+        "workbench.module.hud.select" => (
+            "res://ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui",
+            "WorkbenchHudWorkspace",
+        ),
+        _ => return None,
+    })
+}

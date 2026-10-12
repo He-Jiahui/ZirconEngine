@@ -64,7 +64,15 @@ impl LifecycleCallbackBucket {
     }
 
     pub(crate) fn dispatch(&self, world: &mut World, event: ComponentLifecycleEvent) {
+        let owner = world.owner_identity().clone();
+        let execution = world.begin_schedule_execution();
+        let plan_owner = execution.plan();
         for observer in self.observers.iter() {
+            if !owner.is_same_world(world.owner_identity())
+                || !world.schedule().owns_stage_plan(plan_owner)
+            {
+                break;
+            }
             (observer.callback)(world, &event);
         }
     }
@@ -83,7 +91,15 @@ impl EventCallbackBucket {
     where
         E: 'static,
     {
+        let owner = world.owner_identity().clone();
+        let execution = world.begin_schedule_execution();
+        let plan_owner = execution.plan();
         for observer in self.observers.iter() {
+            if !owner.is_same_world(world.owner_identity())
+                || !world.schedule().owns_stage_plan(plan_owner)
+            {
+                break;
+            }
             (observer.callback)(world, event);
         }
     }
@@ -102,7 +118,15 @@ impl EntityEventCallbackBucket {
     where
         E: 'static,
     {
+        let owner = world.owner_identity().clone();
+        let execution = world.begin_schedule_execution();
+        let plan_owner = execution.plan();
         for observer in self.observers.iter() {
+            if !owner.is_same_world(world.owner_identity())
+                || !world.schedule().owns_stage_plan(plan_owner)
+            {
+                break;
+            }
             (observer.callback)(world, entity, event);
         }
     }

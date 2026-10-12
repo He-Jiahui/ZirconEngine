@@ -40,7 +40,10 @@ pub(crate) use self::console_projection::{
     to_host_contract_console_pane_from_host_pane_with_runtime_and_cache,
     ConsolePaneProjectionCache,
 };
-pub(crate) use self::generated_bottom_projection::to_host_contract_generated_bottom_pane_from_host_pane;
+pub(crate) use self::generated_bottom_projection::{
+    to_host_contract_generated_bottom_pane_from_host_pane,
+    to_host_contract_generated_bottom_pane_from_host_pane_with_runtime,
+};
 pub(crate) use self::hierarchy_projection::to_host_contract_hierarchy_pane_from_host_pane_with_query;
 pub(crate) use self::hierarchy_projection::{
     to_host_contract_hierarchy_pane_from_host_pane,

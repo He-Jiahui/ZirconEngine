@@ -6,8 +6,8 @@ use zircon_runtime::asset::pipeline::manager::{
     ProjectAssetGenerationToken, ProjectAssetManager, ProjectGenerationCommitOutcome,
 };
 use zircon_runtime::asset::project::{
-    ProjectCatalogInputDelta, ProjectCatalogInputGeneration, ProjectCatalogInputRecord,
-    ProjectManager,
+    ProjectActivationIdentity, ProjectCatalogInputDelta, ProjectCatalogInputGeneration,
+    ProjectCatalogInputRecord, ProjectManager,
 };
 use zircon_runtime::core::framework::render::ShaderIdePreviewVariant;
 use zircon_runtime::core::resource::{ResourceKind, ResourceState};
@@ -65,17 +65,30 @@ impl DefaultEditorAssetManager {
             "asset_catalog.runtime_catalog_input_generation_sequence",
             pending_source_generation.sequence()
         );
-        let (mut expected_generation, expected_source_generation, current_asset_index) = {
+        let (
+            mut expected_generation,
+            expected_source_generation,
+            expected_activation,
+            current_asset_index,
+        ) = {
             let state = self.read_state_recovering_poison();
+            let (source, activation) = state
+                .asset_index
+                .as_ref()
+                .map(|index| {
+                    let index = index
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
+                    (
+                        index.catalog_input_generation().cloned(),
+                        index.project_activation_identity().cloned(),
+                    )
+                })
+                .unwrap_or((None, None));
             (
                 Arc::clone(&state.catalog_generation),
-                state.asset_index.as_ref().and_then(|index| {
-                    index
-                        .lock()
-                        .unwrap_or_else(|poisoned| poisoned.into_inner())
-                        .catalog_input_generation()
-                        .cloned()
-                }),
+                source,
+                activation,
                 state.asset_index.clone(),
             )
         };
@@ -120,9 +133,10 @@ impl DefaultEditorAssetManager {
                 .as_ref()
                 .map_or(0, |delta| delta.renamed.len())
         );
-        if runtime_delta
-            .as_ref()
-            .is_some_and(|delta| delta.is_unchanged())
+        if expected_activation.as_ref() == Some(project.activation_identity())
+            && runtime_delta
+                .as_ref()
+                .is_some_and(|delta| delta.is_unchanged())
         {
             zircon_runtime::profile_counter!(
                 "editor",
@@ -236,6 +250,7 @@ impl DefaultEditorAssetManager {
                 if !same_catalog_input_generation(
                     state.asset_index.as_ref(),
                     &expected_source_generation,
+                    &expected_activation,
                 ) {
                     zircon_runtime::profile_counter!(
                         "editor",
@@ -334,17 +349,24 @@ impl DefaultEditorAssetManager {
 fn same_catalog_input_generation(
     current: Option<&Arc<std::sync::Mutex<EditorAssetIndex>>>,
     expected: &Option<Arc<ProjectCatalogInputGeneration>>,
+    expected_activation: &Option<ProjectActivationIdentity>,
 ) -> bool {
-    match (
-        current.and_then(|index| {
-            index
+    // Both observations belong to the same authoritative index projection.
+    let (current_source, current_activation) = current
+        .map(|index| {
+            let index = index
                 .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .catalog_input_generation()
-                .cloned()
-        }),
-        expected,
-    ) {
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            (
+                index.catalog_input_generation().cloned(),
+                index.project_activation_identity().cloned(),
+            )
+        })
+        .unwrap_or((None, None));
+    if &current_activation != expected_activation {
+        return false;
+    }
+    match (current_source, expected) {
         (Some(current), Some(expected)) => Arc::ptr_eq(&current, expected),
         (None, None) => true,
         _ => false,
@@ -470,3 +492,7 @@ fn refresh_shader_ide_env_after_import(
 #[cfg(test)]
 #[path = "sync_from_project/tests/preview_scheduler_tests.rs"]
 mod preview_scheduler_tests;
+
+#[cfg(test)]
+#[path = "tests/import_project_scope.rs"]
+mod import_project_scope;

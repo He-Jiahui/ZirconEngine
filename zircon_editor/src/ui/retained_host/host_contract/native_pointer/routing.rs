@@ -7,7 +7,9 @@ mod workbench;
 
 pub(in crate::ui::retained_host::host_contract) use chrome::route_top_level_chrome;
 pub(in crate::ui::retained_host::host_contract) use chrome_route::ChromePointerRoute;
-pub(in crate::ui::retained_host::host_contract) use geometry::contains;
+pub(in crate::ui::retained_host::host_contract) use geometry::{
+    contains, floating_window_content_frame, side_dock_content_frame, translated,
+};
 pub(in crate::ui::retained_host::host_contract) use pane_route::{
     PaneAssetReferenceList, PaneAssetSurface, PanePointerRoute, PanePointerTarget,
 };

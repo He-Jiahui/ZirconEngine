@@ -70,6 +70,14 @@ fn actual_scaled_toolbar_routes_source_hover_identity_and_preserves_command_id()
                 true,
             );
             let state = ui.get_pane_interaction_state();
+            assert!(state.template_focus_observed);
+            let published = crate::ui::retained_host::host_contract::profiling_artifacts::normal_present::focus_publication(&ui.get_host_presentation()).unwrap();
+            assert_eq!(
+                published["focusedNativeControlId"].as_str(),
+                source_control_id.as_deref()
+            );
+            // This standalone window has no admitted toolbar DTO mapping.
+            assert_eq!(published["sourceOwnerMappingComplete"], false);
             assert_eq!(
                 state.hovered_template_control_id,
                 state.focused_template_control_id
@@ -87,6 +95,11 @@ fn actual_scaled_toolbar_routes_source_hover_identity_and_preserves_command_id()
                 .get_pane_interaction_state()
                 .pressed_template_control_id
                 .is_empty());
+            ui.clear_template_focus_owner();
+            let lost = crate::ui::retained_host::host_contract::profiling_artifacts::normal_present::focus_publication(&ui.get_host_presentation()).unwrap();
+            assert!(lost["focusedNativeControlId"].is_null());
+            assert!(lost["sourceOwner"].is_null());
+            assert_eq!(lost["sourceOwnerMappingComplete"], true);
         }
         _ => panic!("actual source toolbar control must keep its native route"),
     }

@@ -238,7 +238,26 @@ pub(in crate::asset) fn deserialize_scene_artifact(
 ) -> Result<SceneAsset, ProjectDocumentError> {
     let document = document.into_document::<SceneAuthoringDocument<PersistedAssetReference>>()?;
     let document = map_scene_references(document, |reference| resolver(&reference))?;
-    decode_document(document)
+    let mut scene: SceneAsset = decode_document(document)?;
+    // The authoring DTO stores opaque JSON as a TOML string. Undo that
+    // representation at the runtime bridge, before exposing component rows.
+    for entity in &mut scene.entities {
+        for component in &mut entity.components {
+            let encoded =
+                component
+                    .payload
+                    .as_str()
+                    .ok_or_else(|| ProjectDocumentError::Schema {
+                        message: "scene component document payload must be an encoded JSON string"
+                            .into(),
+                    })?;
+            component.payload =
+                serde_json::from_str(encoded).map_err(|error| ProjectDocumentError::Schema {
+                    message: format!("decode scene component document payload: {error}"),
+                })?;
+        }
+    }
+    Ok(scene)
 }
 
 pub(in crate::asset::assets) fn serialize_scene(
@@ -247,7 +266,20 @@ pub(in crate::asset::assets) fn serialize_scene(
         &AssetReference,
     ) -> Result<PersistedAssetReference, ReferenceResolutionError>,
 ) -> Result<String, ProjectDocumentError> {
-    let document = encode_document::<_, SceneAuthoringDocument<AssetReference>>(value)?;
+    // The runtime row owns a JSON value; encode it before the TOML bridge so
+    // nulls, arrays and scalar strings survive the authoring representation.
+    let mut value = value.clone();
+    for entity in &mut value.entities {
+        for component in &mut entity.components {
+            component.payload =
+                serde_json::Value::String(serde_json::to_string(&component.payload).map_err(
+                    |error| ProjectDocumentError::Schema {
+                        message: format!("encode scene component document payload: {error}"),
+                    },
+                )?);
+        }
+    }
+    let document = encode_document::<_, SceneAuthoringDocument<AssetReference>>(&value)?;
     let document = map_scene_references(document, |reference| resolver(&reference))?;
     Ok(toml::to_string_pretty(&document)?)
 }

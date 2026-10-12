@@ -13,6 +13,8 @@ struct OitSettings {
 @group(4) @binding(1) var<storage, read_write> oit_counts: array<atomic<u32>>;
 @group(4) @binding(2) var<uniform> oit_settings: OitSettings;
 
+// count 记录收集尝试数，超过容量仍会累加；resolve 按 fragments_per_pixel 裁剪读取数。
+// 收集开始前须清零 count，保留的旧 layer 才不会被计入本次有效片元。
 fn oit_draw(position: vec4<f32>, color: vec4<f32>) {
     if (color.a <= oit_settings.alpha_threshold) {
         return;

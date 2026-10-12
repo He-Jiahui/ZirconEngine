@@ -169,6 +169,9 @@ fn viewport_overlay_provider_registration_routes_toggle_and_capability_lifecycle
         .runtime
         .register_editor_extension(duplicate.into_contribution_batch().unwrap())
         .expect_err("the host must preflight duplicate provider ids before installation");
+    let crate::ui::host::EditorError::ExtensionRegistry { source: error } = error else {
+        panic!("expected original typed extension validation error");
+    };
     assert!(matches!(
         error,
         EditorExtensionRegistryError::ViewportOverlayProvider(message)
@@ -268,6 +271,9 @@ fn editor_runtime_rejects_invalid_scene_mode_factory_without_partial_host_commit
         .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect_err("invalid scene mode factory must reject the whole extension batch");
 
+    let crate::ui::host::EditorError::ExtensionRegistry { source: error } = error else {
+        panic!("expected original typed extension validation error");
+    };
     assert!(matches!(error, EditorExtensionRegistryError::SceneMode(_)));
     assert_eq!(
         runtime.runtime.shell().lock().contributions.len(),
@@ -276,6 +282,7 @@ fn editor_runtime_rejects_invalid_scene_mode_factory_without_partial_host_commit
     assert!(runtime
         .runtime
         .descriptors()
+        .unwrap()
         .iter()
         .all(|descriptor| descriptor.descriptor_id.0 != VIEW_ID));
     assert!(runtime
@@ -375,6 +382,9 @@ fn rejected_plugin_extension_does_not_publish_runtime_event_consumers() {
             diagnostics: Vec::new(),
         })
         .expect_err("invalid extension must reject the complete plugin registration");
+    let crate::ui::host::EditorError::ExtensionRegistry { source: error } = error else {
+        panic!("expected original typed extension validation error");
+    };
     assert!(matches!(
         error,
         crate::core::editor_extension::EditorExtensionRegistryError::SceneMode(_)
@@ -419,6 +429,9 @@ fn editor_runtime_contains_overlay_provider_factory_panic_without_partial_host_c
         .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect_err("provider panic must reject the whole extension batch");
 
+    let crate::ui::host::EditorError::ExtensionRegistry { source: error } = error else {
+        panic!("expected original typed extension validation error");
+    };
     assert!(matches!(
         error,
         EditorExtensionRegistryError::ViewportOverlayProvider(message)
@@ -431,6 +444,7 @@ fn editor_runtime_contains_overlay_provider_factory_panic_without_partial_host_c
     assert!(runtime
         .runtime
         .descriptors()
+        .unwrap()
         .iter()
         .all(|descriptor| descriptor.descriptor_id.0 != VIEW_ID));
     assert!(runtime
@@ -578,6 +592,9 @@ fn editor_runtime_rejects_scene_mode_with_an_unregistered_overlay_provider() {
         .runtime
         .register_editor_extension(extension.into_contribution_batch().unwrap())
         .expect_err("the host must reject a descriptor without its registered provider");
+    let crate::ui::host::EditorError::ExtensionRegistry { source: error } = error else {
+        panic!("expected original typed extension validation error");
+    };
     assert!(matches!(
         error,
         EditorExtensionRegistryError::MissingViewportOverlayProvider { provider_id }

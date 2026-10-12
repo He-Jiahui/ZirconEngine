@@ -15,6 +15,7 @@ fn assembled_forward_source() -> String {
     .wgsl_source
 }
 
+/// 用于有限端点断言的 Rust 数值参考；WGSL 公式另由源码断言检查，这里未执行 shader 或 GPU 读回。
 fn specular_occlusion_reference(no_v: f32, roughness: f32, occlusion: f32) -> f32 {
     let clamped_no_v = no_v.clamp(0.0, 1.0);
     let clamped_roughness = roughness.clamp(0.0, 1.0);

@@ -694,12 +694,14 @@ def _directory_entries(handle: int) -> list[tuple[str, int]]:
 
 
 class WindowsStorage:
-    """A pinned Windows directory hierarchy with handle-relative file I/O."""
+    """A pinned Windows hierarchy; read-only roots deny every mutable API."""
 
     def __init__(self, root: os.PathLike[str] | str, *, expected_device: str,
-                 create: bool = False) -> None:
+                 create: bool = False, readonly_root: bool = False) -> None:
         if not is_available():
             raise NotImplementedError("WindowsStorage is available only on Windows")
+        if type(readonly_root) is not bool or (readonly_root and create):
+            raise ValueError("A read-only storage root cannot create directory components")
         raw = os.fspath(root)
         upper = raw.replace("/", "\\").upper()
         if raw.startswith(("\\\\", "//")) or upper.startswith(("\\\\?\\", "\\\\.\\")):
@@ -718,6 +720,7 @@ class WindowsStorage:
         self.root_path = ntpath.normpath(drive + "\\" + "\\".join(components))
         self._lock = threading.RLock()
         self._closed = False
+        self._readonly_root = readonly_root
         self._ancestor_handles: list[tuple[str, int, WindowsFileIdentity]] = []
         volume_handle: int | None = None
         parent = volume_handle
@@ -734,7 +737,7 @@ class WindowsStorage:
                 raise WindowsIdentityMismatch("pinned volume differs from its approved physical mapping")
             parent = volume_handle
             for index, component in enumerate(components):
-                access = (_DIRECTORY_MUTATE_ACCESS if create or index == len(components) - 1
+                access = (_DIRECTORY_MUTATE_ACCESS if create or (index == len(components) - 1 and not readonly_root)
                           else _DIRECTORY_READ_ACCESS)
                 options = (_FILE_DIRECTORY_FILE | _FILE_OPEN_REPARSE_POINT
                            | _FILE_SYNCHRONOUS_IO_NONALERT)
@@ -832,6 +835,11 @@ class WindowsStorage:
         if self._closed:
             raise WindowsStorageError(6, "WindowsStorage has been closed")
 
+    def _assert_writable(self) -> None:
+        self._assert_open()
+        if self._readonly_root:
+            raise WindowsStorageError(5, "Read-only root storage does not permit mutation")
+
     @contextmanager
     def _pinned_parent(self, parts: tuple[str, ...]) -> Iterator[int]:
         self._assert_open()
@@ -865,7 +873,7 @@ class WindowsStorage:
     @contextmanager
     def _mutable_parent(self, parts: tuple[str, ...]) -> Iterator[int]:
         """Open a mutable destination parent through the pinned root handle."""
-        self._assert_open()
+        self._assert_writable()
         parent = self._root_handle
         owned: list[int] = []
         parent_parts = parts[:-1]
@@ -927,6 +935,8 @@ class WindowsStorage:
                 _close_handle(handle)
 
     def _open_leaf(self, parent: int, name: str, mode: str = "rb", *, create: bool = False) -> int:
+        if create or mode != "rb":
+            self._assert_writable()
         if create:
             access = _FILE_READ_DATA | _FILE_WRITE_DATA | _FILE_READ_ATTRIBUTES | _DELETE | _SYNCHRONIZE
             share = _FILE_SHARE_READ
@@ -1285,6 +1295,7 @@ class WindowsStorage:
                     _close_handle(handle)
 
     def ensure_directory(self, relative: os.PathLike[str] | str) -> None:
+        self._assert_writable()
         parts = _relative_parts(relative)
         with self._lock:
             self.verify_root()
@@ -1553,6 +1564,7 @@ class WindowsStorage:
         *,
         expected_identity: WindowsFileIdentity,
     ) -> WindowsFileIdentity:
+        self._assert_writable()
         if isinstance(mtime_ns, bool) or not isinstance(mtime_ns, int) or mtime_ns < 0:
             raise ValueError("mtime_ns must be a non-negative integer")
         parts = _relative_parts(relative)

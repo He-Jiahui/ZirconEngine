@@ -69,10 +69,10 @@ fn runtime_module_registration_reports_install_asset_importers_before_project_op
     .expect("project asset manager should activate with plugin importers");
 
     let (root, paths) = write_weather_project("runtime_module_importer_install");
-    AssetManager::open_project(manager.as_ref(), root.to_string_lossy().as_ref())
+    AssetManager::open_project(&*manager, root.to_string_lossy().as_ref())
         .expect("project should scan with importer from runtime module report");
 
-    assert_weather_asset_imported(manager.as_ref(), &paths);
+    assert_weather_asset_imported(&*manager, &paths);
 
     let _ = fs::remove_dir_all(root);
 }

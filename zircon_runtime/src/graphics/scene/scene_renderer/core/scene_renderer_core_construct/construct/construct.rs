@@ -173,7 +173,7 @@ impl SceneRendererCore {
         let deferred_started = Instant::now();
         let (deferred, deferred_startup_report) = DeferredSceneResources::new(
             device,
-            resolved_asset_manager.as_ref(),
+            &*resolved_asset_manager,
             &scene_bind_group_bundle.layout,
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),

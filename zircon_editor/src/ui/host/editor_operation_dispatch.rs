@@ -24,6 +24,10 @@ use zircon_runtime_interface::resource::ResourceLocatorError;
 #[derive(Debug, Error)]
 pub enum EditorOperationDispatchError {
     #[error(transparent)]
+    Editor(#[from] crate::ui::host::EditorError),
+    #[error(transparent)]
+    CoreService(#[from] zircon_runtime::core::CoreError),
+    #[error(transparent)]
     ExecutorRegistry(#[from] EditorCommandExecutorRegistryError),
     #[error(transparent)]
     ExtensionRegistry(#[from] EditorExtensionRegistryError),
@@ -153,7 +157,19 @@ impl EditorHostEventController {
                 binding_path,
             );
         }
-        let mut context = self.command_eval_ctx_for_source(&source);
+        let mut context = match self.command_eval_ctx_for_source(&source) {
+            Ok(context) => context,
+            Err(error) => {
+                return self.record_operation_control_failure(
+                    event_source,
+                    invocation.operation_id,
+                    error.into(),
+                    invocation.arguments,
+                    invocation.operation_group,
+                    binding_path,
+                );
+            }
+        };
         if let Some(target) = descriptor.asset_write_target() {
             let (authority, locator) = match self.resolve_asset_write_target(
                 &invocation.operation_id,
@@ -538,7 +554,15 @@ impl EditorHostEventController {
                 let i18n = self.context().i18n();
                 let locale = i18n.active_locale();
                 let operations = {
-                    let context = self.command_eval_ctx_for_source(&source);
+                    let context = match self.command_eval_ctx_for_source(&source) {
+                        Ok(context) => context,
+                        Err(error) => {
+                            return EditorOperationControlResponse::failure(
+                                "editor.operation.list",
+                                error.to_string(),
+                            )
+                        }
+                    };
                     let operation_state = self.commands().lock();
                     operation_state
                         .commands()

@@ -37,6 +37,9 @@ export function isComponentPropertyRow(node: ZuiNode): boolean {
 }
 
 export function isPropertyRow(node: ZuiNode): boolean {
+  // Native InputField paint takes precedence over historical property-row IDs.
+  if (['InputField', 'NumberField', 'SearchField', 'TextField'].includes(node.component))
+    return false;
   return node.component === 'PropertyRow' || isComponentPropertyRow(node);
 }
 

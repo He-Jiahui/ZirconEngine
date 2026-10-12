@@ -1,0 +1,272 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/unreal/components/viewport.zui"
+version = 2
+display_name = "Unreal level viewport"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui#WorkbenchDropdown",
+]
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[components.UnrealLevelViewport]
+root = "root"
+default_classes = ["unreal-level-viewport"]
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "UnrealLevelViewport"
+classes = ["unreal-level-viewport"]
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true }
+children = [{ node = "viewport" }]
+
+[nodes.viewport]
+component = "Overlay"
+control_id = "UnrealSceneViewViewport"
+classes = ["unreal-scene-view-viewport"]
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, clip = true }
+children = [{ node = "scene_media" }, { node = "toolbar_layer" }]
+
+[nodes.scene_media]
+component = "SceneViewViewport"
+control_id = "WorkbenchViewportSurface"
+classes = ["unreal-scene-media", "unreal-control"]
+props = { input_interactive = true, input_hoverable = true, input_focusable = true, background_color = "$editor.surface.recessed" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.toolbar_layer]
+component = "Overlay"
+control_id = "UnrealViewportToolbarLayer"
+props = { layout_padding_left = 8.0, layout_padding_right = 8.0, layout_padding_top = 8.0 }
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "toolbar" }]
+
+[nodes.toolbar]
+component = "Overlay"
+control_id = "UnrealViewportToolbar"
+classes = ["unreal-viewport-toolbar", "unreal-viewport-overlay-toolbar"]
+props = { background_color = "$editor.surface.1", layout_padding_left = 4.0, layout_padding_right = 4.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, toolbar_overflow_row_control = "UnrealViewportToolbarRow", toolbar_overflow_group_controls = ["UnrealViewportProjectionGroup", "UnrealViewportDisplayGroup", "UnrealViewportShowGroup", "UnrealViewportTransformModeGroup", "UnrealViewportTransformSpaceGroup", "UnrealViewportPivotGroup", "ToggleTranslateSnapGroup", "ToggleRotateSnapGroup", "ToggleScaleSnapGroup", "UnrealViewportFrameSelectionGroup", "UnrealViewportAlignViewGroup"] }
+layout = { container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [{ node = "toolbar_row" }, { node = "toolbar_overflow" }]
+
+[nodes.toolbar_row]
+component = "HorizontalGroup"
+control_id = "UnrealViewportToolbarRow"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [ { node = "projection_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "display_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "show_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "toolbar_fill", slot = { layout = { linear_size = { rule = "Stretch", value = 1.0, shrink_value = 0.0 } } } }, { node = "transform_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "space_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "pivot_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "move_snap_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "rotate_snap_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "scale_snap_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "frame_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "align_group", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "toolbar_more", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } } ]
+
+[nodes.toolbar_more]
+component = "IconButton"
+control_id = "UnrealViewportToolbarMore"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { label = "More viewport controls", icon = "zircon_editor_shell/toolbar/more-horizontal.svg", icon_placement = "icon_only", selected = false, checked = false, visibility = "Collapsed", visible = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "UnrealViewportToolbarOverflow/Toggle", event = "Click", route = "workbench.unreal.viewport.overflow.open" }]
+
+[nodes.toolbar_overflow]
+component = "ScrollableBox"
+control_id = "UnrealViewportToolbarOverflow"
+classes = ["unreal-viewport-overflow", "unreal-control"]
+props = { toolbar_overflow_role = "toolbar-overflow", popup_open = false, selected = false, visibility = "Collapsed", visible = false, background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", border_width = 1.0, corner_radius = 4.0, layout_padding_left = 4.0, layout_padding_right = 4.0, layout_padding_top = 4.0, layout_padding_bottom = 4.0, input_interactive = true, input_hoverable = true, input_focusable = true }
+layout = { container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small" }, anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = 0.0, y = "$editor.density.gap.small" }, width = { stretch = "Fixed" }, height = { stretch = "Fixed" }, clip = true }
+children = []
+
+[nodes.toolbar_fill]
+component = "Space"
+control_id = "UnrealViewportToolbarFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.projection]
+component = "WorkbenchDropdown"
+control_id = "SetProjectionMode"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_dropdown", hover_background_color = "#575757", pressed_background_color = "$unreal_input_outline", open_background_color = "$unreal_primary_press", disabled_background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", focus_border_color = "$unreal_primary", disabled_border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground", label_color = "$unreal_foreground", icon_color = "$unreal_foreground", disabled_foreground_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, value = "Perspective", value_text = "Perspective", options = ["Perspective|label=Perspective", "Orthographic|label=Orthographic"], input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetProjectionMode", event = "Change", route = "workbench.viewport.set_projection_mode" }]
+[nodes.display]
+component = "WorkbenchDropdown"
+control_id = "SetDisplayMode"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_dropdown", hover_background_color = "#575757", pressed_background_color = "$unreal_input_outline", open_background_color = "$unreal_primary_press", disabled_background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", focus_border_color = "$unreal_primary", disabled_border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground", label_color = "$unreal_foreground", icon_color = "$unreal_foreground", disabled_foreground_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, value = "Shaded", value_text = "Lit", options = ["Shaded|label=Lit", "WireOverlay|label=Wireframe Overlay", "WireOnly|label=Wireframe"], input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetDisplayMode", event = "Change", route = "workbench.viewport.set_display_mode" }]
+[nodes.show]
+component = "WorkbenchDropdown"
+control_id = "SetGridMode"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_dropdown", hover_background_color = "#575757", pressed_background_color = "$unreal_input_outline", open_background_color = "$unreal_primary_press", disabled_background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", focus_border_color = "$unreal_primary", disabled_border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground", label_color = "$unreal_foreground", icon_color = "$unreal_foreground", disabled_foreground_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, value = "VisibleNoSnap", value_text = "Show", options = ["Hidden|label=Grid off", "VisibleNoSnap|label=Grid"], input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetGridMode", event = "Change", route = "workbench.viewport.set_grid_mode" }]
+[nodes.select_mode]
+component = "IconButton"
+control_id = "SelectMode"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { label = "Select", icon = "editor_pages/scene_viewport/tools/select.svg", icon_placement = "icon_only", selected = false, checked = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SelectMode", event = "Click", route = "workbench.viewport.activate_scene_mode" }]
+
+[nodes.translate_mode]
+component = "IconButton"
+control_id = "TranslateMode"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { label = "Translate", icon = "editor_pages/scene_viewport/tools/translate.svg", icon_placement = "icon_only", selected = true, checked = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/TranslateMode", event = "Click", route = "workbench.viewport.activate_scene_mode" }]
+
+[nodes.rotate_mode]
+component = "IconButton"
+control_id = "RotateMode"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { label = "Rotate", icon = "editor_pages/scene_viewport/tools/rotate.svg", icon_placement = "icon_only", selected = false, checked = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/RotateMode", event = "Click", route = "workbench.viewport.activate_scene_mode" }]
+
+[nodes.scale_mode]
+component = "IconButton"
+control_id = "ScaleMode"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { label = "Scale", icon = "editor_pages/scene_viewport/tools/scale.svg", icon_placement = "icon_only", selected = false, checked = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/ScaleMode", event = "Click", route = "workbench.viewport.activate_scene_mode" }]
+
+[nodes.space]
+component = "WorkbenchDropdown"
+control_id = "SetTransformSpace"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_dropdown", hover_background_color = "#575757", pressed_background_color = "$unreal_input_outline", open_background_color = "$unreal_primary_press", disabled_background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", focus_border_color = "$unreal_primary", disabled_border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground", label_color = "$unreal_foreground", icon_color = "$unreal_foreground", disabled_foreground_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, value = "Local", value_text = "Local", options = ["Local|label=Local", "Global|label=World"], input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetTransformSpace", event = "Change", route = "workbench.viewport.set_transform_space" }]
+[nodes.pivot]
+component = "WorkbenchDropdown"
+control_id = "SetPivotMode"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_dropdown", hover_background_color = "#575757", pressed_background_color = "$unreal_input_outline", open_background_color = "$unreal_primary_press", disabled_background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", focus_border_color = "$unreal_primary", disabled_border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground", label_color = "$unreal_foreground", icon_color = "$unreal_foreground", disabled_foreground_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, value = "Primary", value_text = "Pivot", options = ["Primary|label=Pivot", "Centroid|label=Centroid"], input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetPivotMode", event = "Change", route = "workbench.viewport.set_pivot_mode" }]
+[nodes.move_snap_group]
+component = "HorizontalGroup"
+control_id = "ToggleTranslateSnapGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [{ node = "move_snap_toggle" }, { node = "move_snap" }]
+
+[nodes.move_snap_toggle]
+component = "IconButton"
+control_id = "ToggleTranslateSnap"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { label = "Translation snapping", icon = "editor_pages/scene_viewport/snapping/grid-snap.svg", icon_placement = "icon_only", selected = true, checked = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/ToggleTranslateSnap", event = "Click", route = "workbench.viewport.snap.translate.toggle" }]
+
+[nodes.move_snap]
+component = "WorkbenchDropdown"
+control_id = "SetTranslateSnap"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_dropdown", hover_background_color = "#575757", pressed_background_color = "$unreal_input_outline", open_background_color = "$unreal_primary_press", disabled_background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", focus_border_color = "$unreal_primary", disabled_border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground", label_color = "$unreal_foreground", icon_color = "$unreal_foreground", disabled_foreground_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, value = "1.0", value_text = "1", options = ["0.1|label=0.1", "0.25|label=0.25", "0.5|label=0.5", "1.0|label=1.0", "2.0|label=2.0"], input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetTranslateSnap", event = "Change", route = "workbench.viewport.set_translate_snap" }]
+[nodes.rotate_snap_group]
+component = "HorizontalGroup"
+control_id = "ToggleRotateSnapGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [{ node = "rotate_snap_toggle" }, { node = "rotate_snap" }]
+
+[nodes.rotate_snap_toggle]
+component = "IconButton"
+control_id = "ToggleRotateSnap"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { label = "Rotation snapping", icon = "editor_pages/scene_viewport/snapping/angle-snap.svg", icon_placement = "icon_only", selected = true, checked = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/ToggleRotateSnap", event = "Click", route = "workbench.viewport.snap.rotate.toggle" }]
+
+[nodes.rotate_snap]
+component = "WorkbenchDropdown"
+control_id = "SetRotateSnapDegrees"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_dropdown", hover_background_color = "#575757", pressed_background_color = "$unreal_input_outline", open_background_color = "$unreal_primary_press", disabled_background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", focus_border_color = "$unreal_primary", disabled_border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground", label_color = "$unreal_foreground", icon_color = "$unreal_foreground", disabled_foreground_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, value = "15.0", value_text = "15", options = ["5.0|label=5", "15.0|label=15", "30.0|label=30", "45.0|label=45", "90.0|label=90"], input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetRotateSnapDegrees", event = "Change", route = "workbench.viewport.set_rotate_snap_degrees" }]
+[nodes.scale_snap_group]
+component = "HorizontalGroup"
+control_id = "ToggleScaleSnapGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [{ node = "scale_snap_toggle" }, { node = "scale_snap" }]
+
+[nodes.scale_snap_toggle]
+component = "IconButton"
+control_id = "ToggleScaleSnap"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { label = "Scale snapping", icon = "editor_pages/scene_viewport/snapping/scale-snap.svg", icon_placement = "icon_only", selected = true, checked = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/ToggleScaleSnap", event = "Click", route = "workbench.viewport.snap.scale.toggle" }]
+
+[nodes.scale_snap]
+component = "WorkbenchDropdown"
+control_id = "SetScaleSnap"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_dropdown", hover_background_color = "#575757", pressed_background_color = "$unreal_input_outline", open_background_color = "$unreal_primary_press", disabled_background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", focus_border_color = "$unreal_primary", disabled_border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground", label_color = "$unreal_foreground", icon_color = "$unreal_foreground", disabled_foreground_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, value = "0.1", value_text = "0.1", options = ["0.05|label=0.05", "0.1|label=0.1", "0.25|label=0.25", "0.5|label=0.5", "1.0|label=1.0"], input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetScaleSnap", event = "Change", route = "workbench.viewport.set_scale_snap" }]
+[nodes.frame]
+component = "IconButton"
+control_id = "FrameSelection"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { label = "Frame selection", icon = "editor_pages/scene_viewport/camera/frame-selection.svg", icon_placement = "icon_only", selected = false, checked = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/FrameSelection", event = "Click", route = "workbench.viewport.frame_selection" }]
+
+[nodes.align]
+component = "WorkbenchDropdown"
+control_id = "AlignView"
+classes = ["unreal-viewport-tool", "unreal-control"]
+props = { font = "res://fonts/editor-ui.font.toml", background_color = "$unreal_dropdown", hover_background_color = "#575757", pressed_background_color = "$unreal_input_outline", open_background_color = "$unreal_primary_press", disabled_background_color = "$unreal_panel", border_color = "$unreal_dropdown_outline", focus_border_color = "$unreal_primary", disabled_border_color = "$unreal_input_outline", foreground_color = "$unreal_foreground", label_color = "$unreal_foreground", icon_color = "$unreal_foreground", disabled_foreground_color = "$unreal_foreground_disabled", border_width = 1.0, corner_radius = 4.0, value = "User", value_text = "Align", options = ["User|label=User", "PosX|label=+X", "NegX|label=-X", "PosY|label=+Y", "NegY|label=-Y", "PosZ|label=+Z", "NegZ|label=-Z"], input_focusable = true, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2 }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/AlignView", event = "Change", route = "workbench.viewport.align_view" }]
+
+[nodes.projection_group]
+component = "HorizontalGroup"
+control_id = "UnrealViewportProjectionGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [ { node = "projection", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } } ]
+
+[nodes.display_group]
+component = "HorizontalGroup"
+control_id = "UnrealViewportDisplayGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [ { node = "display", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } } ]
+
+[nodes.show_group]
+component = "HorizontalGroup"
+control_id = "UnrealViewportShowGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [ { node = "show", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } } ]
+
+[nodes.transform_group]
+component = "HorizontalGroup"
+control_id = "UnrealViewportTransformModeGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [ { node = "select_mode", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "translate_mode", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "rotate_mode", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } }, { node = "scale_mode", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } } ]
+
+[nodes.space_group]
+component = "HorizontalGroup"
+control_id = "UnrealViewportTransformSpaceGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [ { node = "space", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } } ]
+
+[nodes.pivot_group]
+component = "HorizontalGroup"
+control_id = "UnrealViewportPivotGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [ { node = "pivot", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } } ]
+
+[nodes.frame_group]
+component = "HorizontalGroup"
+control_id = "UnrealViewportFrameSelectionGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [ { node = "frame", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } } ]
+
+[nodes.align_group]
+component = "HorizontalGroup"
+control_id = "UnrealViewportAlignViewGroup"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Fixed" }, height = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" } }
+children = [ { node = "align", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } } ]

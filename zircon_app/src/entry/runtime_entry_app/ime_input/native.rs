@@ -315,7 +315,7 @@ unsafe extern "system" {
 }
 
 #[cfg(windows)]
-pub(super) const fn native_ime_provider_available() -> bool {
+pub(in crate::entry::runtime_entry_app) const fn native_ime_provider_available() -> bool {
     // The Winit Windows backend's normal WM_IME callback and this IMM reader are compiled as one
     // adapter.  No TSF capability is advertised; a host that requests V2 on another platform is
     // rejected before window/session mutation.
@@ -323,7 +323,7 @@ pub(super) const fn native_ime_provider_available() -> bool {
 }
 
 #[cfg(not(windows))]
-pub(super) const fn native_ime_provider_available() -> bool {
+pub(in crate::entry::runtime_entry_app) const fn native_ime_provider_available() -> bool {
     false
 }
 

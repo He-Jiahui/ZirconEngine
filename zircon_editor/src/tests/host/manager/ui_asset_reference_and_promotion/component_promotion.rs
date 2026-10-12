@@ -6,9 +6,10 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
     let path = unique_temp_path("zircon_editor_asset_promote_widget");
     let project_root = unique_temp_dir("zircon_editor_asset_promote_widget_project");
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     create_project_with_default_world(&project_root);
 
     let layout_path = project_root
@@ -67,9 +68,10 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
         "savebutton_root"
     );
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     let button = document.node("button").expect("button node");
@@ -190,9 +192,10 @@ fn editor_manager_uses_custom_promote_widget_draft_values() {
     let path = unique_temp_path("zircon_editor_asset_promote_widget_custom");
     let project_root = unique_temp_dir("zircon_editor_asset_promote_widget_custom_project");
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     create_project_with_default_world(&project_root);
 
     let layout_path = project_root
@@ -248,9 +251,10 @@ fn editor_manager_uses_custom_promote_widget_draft_values() {
     assert_eq!(widget_asset.asset.id, "ui.widgets.custom.editor_save");
     assert!(widget_asset.components.contains_key("EditorSaveButton"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     let button = document.node("button").expect("button node");

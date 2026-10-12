@@ -1,3 +1,4 @@
+//! 对照各 PBR 消费者的公共 view/normal owner 和真实 normalized 入口；Forward 的材质 F0、Deferred 的分量 AO、各向异性 specular normal 分别由各自 caller 传递。
 use crate::core::framework::render::{ShaderFeatureBits, ShaderPassType};
 
 use super::environment::{wgsl_function_source, wgsl_without_comments};

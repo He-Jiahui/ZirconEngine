@@ -21,7 +21,7 @@ trait DesktopExportExecutor: Send + Sync {
     ) -> Result<EditorExportBuildReport, EditorExportBuildError>;
 }
 
-impl DesktopExportExecutor for EditorManager {
+impl DesktopExportExecutor for zircon_runtime::core::runtime::ServiceHandle<EditorManager> {
     fn execute(
         &self,
         project_root: &std::path::Path,
@@ -31,14 +31,16 @@ impl DesktopExportExecutor for EditorManager {
         cancel: &crate::core::jobs::CancellationToken,
         progress: &mut dyn FnMut(EditorExportBuildProgress),
     ) -> Result<EditorExportBuildReport, EditorExportBuildError> {
-        self.execute_native_aware_export_build_with_cancellation_and_progress(
-            project_root,
-            output_root,
-            manifest,
-            profile_name,
-            cancel,
-            progress,
-        )
+        self.enter()
+            .map_err(EditorExportBuildError::from)
+            .and_then(|manager| manager.execute_native_aware_export_build_with_cancellation_and_progress(
+                project_root,
+                output_root,
+                manifest,
+                profile_name,
+                cancel,
+                progress,
+            ))
     }
 }
 
@@ -65,12 +67,12 @@ pub(super) struct DesktopExportEditorJob {
 impl DesktopExportEditorJob {
     pub(super) fn new(
         job: DesktopExportQueuedJob,
-        editor_manager: Arc<crate::ui::host::EditorManager>,
+        editor_manager: zircon_runtime::core::runtime::ServiceHandle<crate::ui::host::EditorManager>,
         progress_sender: Sender<DesktopExportJobProgress>,
     ) -> Self {
         Self {
             job,
-            executor: editor_manager,
+            executor: Arc::new(editor_manager),
             progress_sender,
         }
     }

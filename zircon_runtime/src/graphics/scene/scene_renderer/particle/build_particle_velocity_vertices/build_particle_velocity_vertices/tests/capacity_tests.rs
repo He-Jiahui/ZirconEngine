@@ -70,6 +70,7 @@ optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
 #[derive(Clone, Copy)]
 struct VelocityVertexFixture([usize; 4]);
 
+// 该计时仅比较相同夹具顶点的预分配开销；真实粒子筛选、历史配对和角点计算不在样本内。
 fn measure(reserve: bool) -> u128 {
     let started = Instant::now();
     let mut checksum = 0usize;

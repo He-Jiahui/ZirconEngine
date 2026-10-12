@@ -1,4 +1,5 @@
 import type { LayoutRenderEvidence } from '../../tools/zui-layout-review-contract';
+import { selectedBrowserExecutablePath } from '../../tools/zui-layout-evidence';
 import {
   caseSha256,
   type LayoutReviewCase,
@@ -293,6 +294,12 @@ describe('Penpot case evidence retention', () => {
         rendererSha256: 'renderer',
         caseSha256: caseSha256(cases.find((item) => item.id === id)!),
         captureProgramFingerprints: program,
+        browserRuntime: {
+          product: 'Chromium/120.0',
+          userAgent: 'Mozilla/5.0 Chrome/120.0',
+          executablePath: selectedBrowserExecutablePath(),
+          executableSha256: 'a'.repeat(64),
+        },
       });
     const entry = {
       category: 'runtime-fixtures',

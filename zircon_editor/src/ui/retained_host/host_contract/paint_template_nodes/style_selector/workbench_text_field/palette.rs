@@ -9,10 +9,10 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_SURFACE: [u8; 4] =
-    PALETTE.surface_inset;
+    PALETTE.surface_input;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_FOCUSED_SURFACE: [u8; 4] =
-    PALETTE.surface_inset;
+    PALETTE.surface_input;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_DISABLED_SURFACE: [u8; 4] =
     PALETTE.surface;
@@ -61,13 +61,13 @@ pub(super) fn workbench_text_field_palette_from_host(
     palette: HostMaterialPalette,
 ) -> WorkbenchTextFieldPalette {
     WorkbenchTextFieldPalette {
-        surface: palette.surface_inset,
+        surface: palette.surface_input,
         // FStarshipCoreStyle keeps editable text boxes on the recessed Input
         // fill for normal, hover and focus. Interaction changes the outline,
         // not the input's elevation.
-        toolbar_surface: palette.surface_inset,
-        hover_surface: palette.surface_inset,
-        focused_surface: palette.surface_inset,
+        toolbar_surface: palette.surface_input,
+        hover_surface: palette.surface_input,
+        focused_surface: palette.surface_input,
         disabled_surface: palette.surface,
         border: palette.separator_soft,
         hover_border: palette.surface_hover,

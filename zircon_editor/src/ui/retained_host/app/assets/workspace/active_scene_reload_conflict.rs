@@ -95,10 +95,21 @@ impl RetainedEditorHost {
         let Some(mut conflict) = self.active_scene_reload_conflict.take() else {
             return;
         };
-        if self
-            .editor_manager
-            .active_scene_identity_for_session()
-            .as_ref()
+        if {
+            match self
+                .editor_manager
+                .enter()
+                .map(|manager| manager.active_scene_identity_for_session())
+            {
+                Ok(identity) => identity,
+                Err(error) => {
+                    self.active_scene_reload_conflict = Some(conflict);
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            }
+        }
+        .as_ref()
             != Some(&conflict.identity)
         {
             self.dismiss_active_scene_reload_conflict_decision(&conflict);
@@ -186,10 +197,20 @@ impl RetainedEditorHost {
         identity: ActiveSceneDocumentIdentity,
         generation: ProjectAssetGenerationToken,
     ) {
-        if self
-            .editor_manager
-            .active_scene_identity_for_session()
-            .as_ref()
+        if {
+            match self
+                .editor_manager
+                .enter()
+                .map(|manager| manager.active_scene_identity_for_session())
+            {
+                Ok(identity) => identity,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            }
+        }
+        .as_ref()
             == Some(&identity)
         {
             self.install_active_scene_reload_conflict(identity, generation);
@@ -374,10 +395,21 @@ impl RetainedEditorHost {
         match self.save_project_scene() {
             Ok(()) => match self.dirty_project_scene_token() {
                 Ok(None)
-                    if self
-                        .editor_manager
-                        .active_scene_identity_for_session()
-                        .as_ref()
+                    if {
+                        match self
+                            .editor_manager
+                            .enter()
+                            .map(|manager| manager.active_scene_identity_for_session())
+                        {
+                            Ok(identity) => identity,
+                            Err(error) => {
+                                self.active_scene_reload_conflict = Some(conflict);
+                                self.set_status_line(error.to_string());
+                                return;
+                            }
+                        }
+                    }
+                    .as_ref()
                         == Some(&conflict.identity) =>
                 {
                     self.queue_active_scene_reload_retry();

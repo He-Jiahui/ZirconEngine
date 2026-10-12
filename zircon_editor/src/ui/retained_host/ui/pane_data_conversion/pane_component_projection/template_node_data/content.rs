@@ -22,6 +22,8 @@ pub(super) fn assign_content_fields(
     node.layout_padding_right = text_layout.layout_padding_right;
     node.layout_padding_top = text_layout.layout_padding_top;
     node.layout_padding_bottom = text_layout.layout_padding_bottom;
+    node.authored_field_padding = text_layout.authored_field_padding;
+    node.authored_field_label_width = text_layout.authored_field_label_width;
     node.layout_spacing = text_layout.layout_spacing;
     node.layout_first_cell_offset_x = text_layout.layout_first_cell_offset_x;
     node.layout_second_cell_offset_x = text_layout.layout_second_cell_offset_x;
@@ -35,6 +37,9 @@ pub(super) fn assign_content_fields(
     node.selected_segment_underline_color = text_layout.selected_segment_underline_color;
     node.font_size = text_layout.font_size;
     node.font_weight = text_layout.font_weight;
+    node.line_height = text_layout.line_height;
+    node.line_height_ratio = text_layout.line_height_ratio;
+    node.font_family = text_layout.font_family.into();
     node.text_align = text_layout.text_align.into();
     node.overflow = text_layout.overflow.into();
 

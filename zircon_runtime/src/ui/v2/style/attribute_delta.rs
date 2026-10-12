@@ -23,7 +23,14 @@ pub(super) struct RuntimeStyleLayers<'a> {
 impl<'a> RuntimeStyleLayers<'a> {
     fn attribute(&self, key: &str) -> Option<&'a Value> {
         if let Some(value) = retained_runtime_state_attribute(key, self.active_states) {
-            return value;
+            // Only a canonical state with a captured boolean baseline is known
+            // when inactive. Unknown states and aliases remain absent.
+            static INACTIVE_STATE: Value = Value::Boolean(false);
+            return value.or_else(|| {
+                (RETAINED_RUNTIME_STATE_CANONICAL_KEYS.contains(&key)
+                    && self.base_attributes.get(key).and_then(Value::as_bool).is_some())
+                .then_some(&INACTIVE_STATE)
+            });
         }
         self.rule_values
             .get(key)

@@ -57,11 +57,11 @@ impl RenderBackend {
         Ok(Self {
             system_textures,
             render_device,
-            diagnostic_delivery_router: std::sync::Mutex::new(
+            diagnostic_delivery_router: std::sync::Arc::new(std::sync::Mutex::new(
                 super::product_diagnostic_delivery_router::ProductDiagnosticDeliveryRouter::new(
                     diagnostic_router_limit,
                 ),
-            ),
+            )),
             device: requested_device.device,
             #[cfg(test)]
             queue: test_queue,

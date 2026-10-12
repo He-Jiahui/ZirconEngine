@@ -1,3 +1,4 @@
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -110,6 +111,9 @@ impl ApplicationHandler for UiHostWindowEventLoop {
     fn proxy_wake_up(&mut self, _event_loop: &dyn ActiveEventLoop) {
         self.flush_pending_idle_pointer_move();
         if self.host.take_background_event_wake() {
+            capture_trace::record("proxy_background_wake_consumed", || {
+                format!("owner={:#x}", self.host.state.as_ptr() as usize)
+            });
             self.host.request_maintenance_frame_update();
             self.drain_external_redraw_request();
         }

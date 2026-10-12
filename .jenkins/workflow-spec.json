@@ -458,7 +458,21 @@
     "placementSelection": "lowest estimated acceptance time among fair and admissible candidates; not a fixed drive or strict cleanup order",
     "sealedJobsCapEnforced": true,
     "resourceReservationRequiresAvailableAgent": true,
-    "diskReservationAccounting": "physical free bytes minus outstanding incremental reservations and safety margin; avoid counting existing bytes twice"
+    "diskReservationAccounting": "one shared CPU-memory-global-disk budget plus each selected physical volume free bytes minus only that volume's outstanding growth and safety margin; unknown-volume reservations remain protected",
+    "singleHostAgent": {
+      "name": "zircon-windows-agent",
+      "uniquePersistentNode": true,
+      "executors": 2,
+      "newHeavyWriters": 2,
+      "protectedHistoricalReservationsCountAgainstAllBudgets": true
+    },
+    "afterEveryTerminalTask": {
+      "assessFreeCapacityAndManagedCache": true,
+      "cleanupOnlyNecessaryBoundedOwnedTerminalScratch": true,
+      "preserveWarmPoolsAcceptedReferencesAndUnknownObjects": true,
+      "recordActualReclaimedBytes": true,
+      "cleanupFailureKeepsAcceptedSourceAndOriginalReceipt": true
+    }
   },
   "failurePolicy": {
     "syntaxFormatBuildOrTestFailure": "block dependent acceptance and commit; terminate attempt and invoke owned compensation policy",

@@ -117,6 +117,7 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
         text_measure_cache,
         None,
         None,
+        None,
     )
 }
 
@@ -129,6 +130,8 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
     text_measure_cache: &mut UiTextMeasureCache,
     control_index: Option<&UiSurfaceControlIndex>,
     popup_anchor_points: Option<&BTreeMap<UiNodeId, UiPoint>>,
+    // Outer None means a static extraction without a live surface focus owner.
+    focused_node: Option<Option<UiNodeId>>,
 ) -> UiRenderExtract {
     let fallback_arranged_visibility;
     let arranged_visibility = if let Some(index) = arranged_visibility {
@@ -389,6 +392,9 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
                 node.template_metadata.as_ref(),
                 &node.state_flags,
                 component_state,
+                focused_node.and_then(|focused| {
+                    crate::ui::surface::focus::tree_owner_focused(tree, node_id, focused)
+                }),
                 arranged_node.frame,
                 Some(arranged_node.clip_frame),
                 arranged_node.z_index,
@@ -610,6 +616,8 @@ pub(crate) fn extract_ui_render_commands_for_nodes_with_component_states_and_tex
     text_measure_cache: &mut UiTextMeasureCache,
     control_index: Option<&UiSurfaceControlIndex>,
     popup_anchor_points: Option<&BTreeMap<UiNodeId, UiPoint>>,
+    // Outer None means a static extraction without a live surface focus owner.
+    focused_node: Option<Option<UiNodeId>>,
 ) -> Result<UiRenderExtract, ()> {
     let mut partial_nodes = Vec::new();
     let mut included = BTreeSet::new();
@@ -648,5 +656,6 @@ pub(crate) fn extract_ui_render_commands_for_nodes_with_component_states_and_tex
         text_measure_cache,
         control_index,
         popup_anchor_points,
+        focused_node,
     ))
 }

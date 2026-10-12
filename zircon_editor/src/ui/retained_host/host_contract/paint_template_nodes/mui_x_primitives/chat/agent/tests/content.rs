@@ -56,3 +56,42 @@ fn plain_node_text_is_used_when_no_message_model_is_present() {
     assert_eq!(commands.len(), 1);
     assert_eq!(commands[0].text.as_deref(), Some("Fallback response"));
 }
+
+#[test]
+fn authored_agent_chat_paint_scales_once_and_fallback_stays_physical() {
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        current_host_metrics, enter_host_paint_theme_scope,
+        host_paint_theme_snapshot_at_scale_for_test,
+    };
+    for scale in [1.0, 1.5] {
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(scale));
+
+        let rect = FrameRect {
+            width: 360.0,
+            height: 240.0,
+            ..Default::default()
+        };
+        for (font_size, expected) in [
+            (12.0, 12.0 * scale),
+            (0.0, current_host_metrics().font_small),
+        ] {
+            let node = TemplatePaneNodeData {
+                text: "DPI chat".into(),
+                font_size,
+                ..Default::default()
+            };
+            let mut commands = Vec::new();
+            push_agent_chat_content(&mut commands, &node, &rect, &rect, 0, 1.0);
+            let message = commands
+                .iter()
+                .find(|command| command.text.as_deref() == Some("DPI chat"))
+                .expect("message paint command");
+            assert_eq!(message.font_size, expected);
+            assert_eq!(
+                message.line_height,
+                current_host_metrics().line_height(expected).max(expected)
+            );
+        }
+    }
+}

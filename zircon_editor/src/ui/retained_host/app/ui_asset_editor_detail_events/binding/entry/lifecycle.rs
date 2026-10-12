@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -8,13 +9,15 @@ impl RetainedEditorHost {
         action_id: &str,
     ) -> bool {
         let result = match action_id {
-            "binding.add" => self
-                .editor_manager
-                .add_ui_asset_editor_binding(instance_id)
+            "binding.add" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| manager.add_ui_asset_editor_binding(instance_id))
                 .map(|_| ()),
-            "binding.delete" => self
-                .editor_manager
-                .delete_ui_asset_editor_selected_binding(instance_id)
+            "binding.delete" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| manager.delete_ui_asset_editor_selected_binding(instance_id))
                 .map(|_| ()),
             _ => return false,
         };

@@ -25,6 +25,14 @@ impl RepeatingWorldCallbackGateway {
             world: Mutex::new(Scene::default()),
         }
     }
+
+    fn current_node_count(&self) -> usize {
+        self.world
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .nodes()
+            .len()
+    }
 }
 
 impl EditorRuntimeGateway for RepeatingWorldCallbackGateway {
@@ -130,8 +138,10 @@ fn repeated_borrowed_world_callbacks_fail_closed() {
         DefaultLevelManager::default().create_level(Scene::default(), LevelMetadata::default());
     let mut facade = EditorAuthoringWorld::loaded(&handle, AuthoringWorldSeed::from(level))
         .expect("initial authoring world");
+    let gateway = Arc::new(RepeatingWorldCallbackGateway::new());
+    let expected_node_count = gateway.current_node_count();
     facade
-        .replace_gateway_for_test(Arc::new(RepeatingWorldCallbackGateway::new()))
+        .replace_gateway_for_test(gateway)
         .expect("install repeating callback gateway");
 
     assert_eq!(
@@ -147,7 +157,7 @@ fn repeated_borrowed_world_callbacks_fail_closed() {
         .expect("the first mutable callback should produce an outcome")
         .expect("the authoring world should remain loaded");
     let (node_count, post_callback_error) = outcome.into_parts();
-    assert_eq!(node_count, 0);
+    assert_eq!(node_count, expected_node_count);
     assert_eq!(
         post_callback_error,
         Some(AuthoringWorldAccessError::ProtocolViolation {
@@ -166,10 +176,18 @@ fn repeated_borrowed_world_callbacks_fail_closed() {
     let outcome = context
         .with_scene_mut(|scene| scene.nodes().len())
         .expect("first mutable callback must expose its execution outcome");
-    let (node_count, protocol_error) = outcome.into_parts();
-    assert_eq!(node_count, 0);
+    let (node_count, protocol_errors) = outcome.into_parts();
+    assert_eq!(node_count, expected_node_count);
+    assert_eq!(
+        protocol_errors.len(),
+        1,
+        "duplicate mutable callback must report exactly one post-callback error",
+    );
     assert_repeated_callback_protocol(
-        protocol_error.expect("duplicate mutable callback must be reported after execution"),
+        protocol_errors
+            .into_iter()
+            .next()
+            .expect("duplicate mutable callback must be reported after execution"),
     );
 }
 

@@ -57,3 +57,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
 #[cfg(test)]
 #[path = "template_popup_rows_tests/tests/mod.rs"]
 mod tests;
+
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract) fn record_popup_menu_rows_for_test(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    width: u32,
+    height: u32,
+) -> super::super::paint_frame::HostRecordedFrame {
+    // Eligibility uses the production text columns, metrics, row styles and recording path.
+    // This is a reference for exact command counts, never a replacement source or surface.
+    let mut commands = Vec::new();
+    push_menu_row_commands(&mut commands, node, rect, clip, 0, 1.0);
+    let mut frame = super::super::paint_frame::HostRgbaFrame::recording_only(width, height);
+    super::render_commands::draw_host_paint_commands(&mut frame, &commands);
+    frame.into_recorded_frame()
+}

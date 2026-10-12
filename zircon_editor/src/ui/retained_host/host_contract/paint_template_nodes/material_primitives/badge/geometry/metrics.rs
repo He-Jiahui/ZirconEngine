@@ -1,7 +1,7 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 pub(super) use super::super::super::bounded_extent as badge_bounded_extent;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, HostControlMetrics,
+    current_host_metrics, logical_font_size_to_physical, HostControlMetrics,
 };
 
 // 根文字跟随宿主字体且受根框约束，计数层使用独立的固定组件度量。
@@ -29,7 +29,7 @@ fn badge_root_font_size_from_host(
 ) -> f32 {
     let available_edge = badge_bounded_extent(rect.width).min(badge_bounded_extent(rect.height));
     if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size.min(available_edge)
+        logical_font_size_to_physical(node.font_size, metrics.scale_factor).min(available_edge)
     } else {
         badge_bounded_extent(metrics.font_body).min(available_edge)
     }

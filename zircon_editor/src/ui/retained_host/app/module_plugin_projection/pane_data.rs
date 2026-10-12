@@ -14,11 +14,11 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn module_plugins_pane_data(
         &self,
         chrome: &EditorChromeSnapshot,
-    ) -> ModulePluginsPaneViewData {
-        let status_report = load_module_plugin_status_report(self, chrome);
-        self.module_plugin_projection_cache
+    ) -> Result<ModulePluginsPaneViewData, crate::ui::host::EditorError> {
+        let status_report = load_module_plugin_status_report(self, chrome)?;
+        Ok(self.module_plugin_projection_cache
             .borrow_mut()
-            .get_or_build(&status_report, module_plugins_pane_from_status_report)
+            .get_or_build(&status_report, module_plugins_pane_from_status_report))
     }
 }
 

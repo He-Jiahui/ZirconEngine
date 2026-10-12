@@ -31,6 +31,10 @@ fn focused_workbench_field_uses_declared_focus_border() {
     node.button_style.element.border_color =
         Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(27, 152, 160, 255)));
 
+    node.authored_field_colors.insert(
+        "focus_border_color".into(),
+        UiStyleColor::Rgba(UiRgbaColor::from_u8(27, 152, 160, 255)),
+    );
     assert_eq!(field_border(&node), [27, 152, 160, 255]);
 }
 

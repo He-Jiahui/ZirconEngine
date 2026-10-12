@@ -46,6 +46,10 @@ pub(in crate::ui::retained_host::host_contract) struct UiProfileGeometry {
     pub(in crate::ui::retained_host::host_contract) text_runs: Vec<UiProfileTextRun>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(in crate::ui::retained_host::host_contract) submitted_gpu_text: Option<serde_json::Value>,
+    /// Present-only observations; absent for static/legacy materialization.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(in crate::ui::retained_host::host_contract) normal_window_evidence:
+        Option<serde_json::Value>,
     /// Optional source-bound semantic rows for the native hierarchy presenter.
     /// This remains additive under the existing schema version.
     #[serde(skip_serializing_if = "Vec::is_empty")]

@@ -143,7 +143,7 @@ fn close_view_layout_event_removes_the_view_instance_from_runtime_registry_state
 
     let opened_instance = runtime
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .into_iter()
         .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.asset_browser"))
         .expect("asset browser view should open");
@@ -161,7 +161,7 @@ fn close_view_layout_event_removes_the_view_instance_from_runtime_registry_state
     assert!(
         runtime
             .runtime
-            .current_view_instances()
+            .current_view_instances().unwrap()
             .into_iter()
             .all(|instance| instance.instance_id != opened_instance.instance_id),
         "closed view instance should be removed from runtime session registry"
@@ -186,7 +186,7 @@ fn draft_inspector_binding_normalizes_and_updates_live_snapshot() {
     assert_eq!(
         runtime
             .runtime
-            .editor_snapshot()
+            .editor_snapshot().unwrap()
             .inspector
             .as_ref()
             .map(|inspector| inspector.name.as_str()),
@@ -215,7 +215,7 @@ fn draft_mesh_import_path_binding_normalizes_and_updates_live_snapshot() {
         .expect("mesh import path draft binding should dispatch through runtime");
 
     assert_eq!(
-        runtime.runtime.editor_snapshot().mesh_import_path,
+        runtime.runtime.editor_snapshot().unwrap().mesh_import_path,
         "E:/Models/cube.glb"
     );
     assert!(record

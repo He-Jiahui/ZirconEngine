@@ -289,8 +289,12 @@ fn side_dock_tab_preferred_width_from_measured(
 ) -> f32 {
     side_dock_tab_preferred_width_from_paint(
         &TabData {
+            id: "".into(),
+            slot: "".into(),
             title: title.into(),
-            ..Default::default()
+            icon_key: "".into(),
+            active: false,
+            closeable: false
         },
         title_width,
         chrome_dimensions::effective_scale(),

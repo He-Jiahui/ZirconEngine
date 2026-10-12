@@ -43,6 +43,11 @@ pub enum RuntimeDynamicSessionError {
         #[source]
         source: CoreError,
     },
+    #[error("scene asset reload interrupted by lifecycle target replacement: {source}")]
+    SceneAssetReloadInterrupted {
+        #[source]
+        source: DynamicSceneError,
+    },
     #[error("tick loaded level: {source}")]
     LevelTick {
         #[source]

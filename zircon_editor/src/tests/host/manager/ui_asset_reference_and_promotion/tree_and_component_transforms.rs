@@ -10,9 +10,10 @@ fn editor_manager_runs_ui_asset_reparent_actions() {
     write_ui_asset(&ui_asset_path, TREE_REPARENT_UI_LAYOUT_ASSET);
 
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     let instance_id = manager
         .open_ui_asset_editor(&ui_asset_path, None)
@@ -42,9 +43,10 @@ fn editor_manager_runs_ui_asset_reparent_actions() {
     assert!(manager
         .reparent_ui_asset_editor_selected_node_into_next(&instance_id)
         .expect("reparent into next sibling"));
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     assert_eq!(
@@ -67,9 +69,10 @@ fn editor_manager_converts_selected_ui_asset_node_to_reference_from_palette_sele
     let path = unique_temp_path("zircon_editor_asset_convert_reference");
     let project_root = unique_temp_dir("zircon_editor_asset_convert_reference_project");
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
     create_project_with_default_world(&project_root);
 
     let widget_path = project_root
@@ -177,9 +180,10 @@ style_overrides = { self = { text = { color = "#ffffff" } }, slot = { padding = 
     assert!(converted.can_open_reference);
     assert!(!converted.can_convert_to_reference);
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     let button = document.node("button").expect("button node");
@@ -220,9 +224,10 @@ fn editor_manager_extracts_selected_ui_asset_node_to_local_component() {
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
     let runtime = editor_runtime_with_config_path(&path);
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     let instance_id = manager
         .open_ui_asset_editor(&ui_asset_path, None)
@@ -252,9 +257,10 @@ fn editor_manager_extracts_selected_ui_asset_node_to_local_component() {
         .iter()
         .any(|item| item == "Component / SaveButton"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     let component = document

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use zircon_runtime::scene::{NodeId, Scene};
+use zircon_runtime::scene::{NodeId, Scene, SceneError};
 
 use super::{
-    applied, execute_scene_write, external_error, journal_payload, unchanged,
+    applied, execute_scene_write, external_error, journal_payload, scene_error, unchanged,
     CommandExecutionError, CommandJournalPayload, CommandJournalUnavailable, EditCommandError,
     NodeEditState, SceneWriteCompletion,
 };
@@ -184,14 +184,31 @@ fn write_targets(
             target.after.transform
         };
         if let Err(error) = scene.update_transform(target.node_id, transform) {
+            if error.lifecycle_target_change().is_some() {
+                return Err(scene_error("write batch transform target", error));
+            }
             let rollback = rollback_prefix(scene, &targets[..applied_count], reverse);
-            return Err(external_error(match rollback {
-                Ok(()) => format!("batch transform target {} failed: {error}", target.node_id),
-                Err(rollback) => format!(
-                    "batch transform target {} failed: {error}; rollback failed: {rollback}",
+            return Err(match rollback {
+                Err((_, rollback_error))
+                    if rollback_error.lifecycle_target_change().is_some() =>
+                {
+                    EditCommandError::RollbackFailed {
+                        command_error: Box::new(scene_error("write batch transform target", error)),
+                        rollback_error: Box::new(scene_error(
+                            "roll back batch transform prefix",
+                            rollback_error,
+                        )),
+                    }
+                }
+                Ok(()) => external_error(format!(
+                    "batch transform target {} failed: {error}",
                     target.node_id
-                ),
-            }));
+                )),
+                Err((entity, rollback_error)) => external_error(format!(
+                    "batch transform target {} failed: {error}; rollback failed: entity {entity}: {rollback_error}",
+                    target.node_id
+                )),
+            });
         }
         applied_count += 1;
     }
@@ -202,7 +219,7 @@ fn rollback_prefix(
     scene: &mut Scene,
     applied: &[BatchTransformTarget],
     reverse: bool,
-) -> Result<(), String> {
+) -> Result<(), (NodeId, SceneError)> {
     for target in applied.iter().rev() {
         let transform = if reverse {
             target.after.transform
@@ -211,7 +228,7 @@ fn rollback_prefix(
         };
         scene
             .update_transform(target.node_id, transform)
-            .map_err(|error| format!("entity {}: {error}", target.node_id))?;
+            .map_err(|error| (target.node_id, error))?;
     }
     Ok(())
 }

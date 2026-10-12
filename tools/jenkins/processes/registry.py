@@ -6,7 +6,7 @@ the state layer, so this is the canonical payload adapter used by it.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from threading import RLock
 from uuid import uuid4
 
@@ -81,10 +81,16 @@ class ProcessRegistry:
             current = NativeJobRecord(match, str(current_payload["executionId"]), str(current_payload["owner"]), current_payload)
             observed = job.proof(requested=True)
             payload = dict(current.payload)
-            payload["status"] = "terminal" if observed.complete else "termination_unproven"
-            payload["terminalProof"] = observed.to_dict()
-            payload["completeProof"] = observed.to_dict() if observed.complete else None
             with self.state.transaction() as connection:
+                if payload.get("role") == "execution_host_guard":
+                    from .guards import guard_phases_complete
+                    if not guard_phases_complete(self.state, current_state, connection=connection):
+                        # Windows may remove a terminating nested process from
+                        # outer accounting before its process object signals.
+                        observed = replace(observed, children_gone=False)
+                payload["status"] = "terminal" if observed.complete else "termination_unproven"
+                payload["terminalProof"] = observed.to_dict()
+                payload["completeProof"] = observed.to_dict() if observed.complete else None
                 self.state.put("native_job", match, payload, expected_version=current_state["version"], connection=connection)
                 self.state.event("native_job_terminal", {"nativeJobId": match, "complete": bool(observed.complete)}, connection=connection)
             updated = NativeJobRecord(current.native_job_id, current.execution_id, current.owner, payload)

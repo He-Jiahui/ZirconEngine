@@ -10,6 +10,12 @@ pub(super) fn route_document_dock_tabs(
 ) -> Option<ChromePointerRoute> {
     let scene = &presentation.host_scene_data;
     for dock in scene.document_surfaces() {
+        if crate::ui::retained_host::host_contract::componentized_workbench_regions::owns_authored_level_viewport(
+            presentation,
+            dock,
+        ) {
+            continue;
+        }
         if let Some(route) = route_dock_overflow(
             dock.surface_key.as_str(),
             &dock.region_frame,

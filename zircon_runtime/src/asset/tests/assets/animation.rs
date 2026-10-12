@@ -348,13 +348,18 @@ fn legacy_stream_bytes<T>(kind: LegacyAnimationAssetKind, payload: &T) -> Vec<u8
 where
     T: serde::Serialize,
 {
-    let mut bytes = bincode::serialize(&LegacyAnimationBinaryHeader {
-        magic: *b"ZRANIM01",
-        version: 1,
-        kind,
-    })
-    .unwrap();
-    bytes.extend(bincode::serialize(payload).unwrap());
+    let mut bytes = zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+        .encode(&LegacyAnimationBinaryHeader {
+            magic: *b"ZRANIM01",
+            version: 1,
+            kind,
+        })
+        .unwrap();
+    bytes.extend(
+        zircon_runtime_interface::serialization::PositionalEncoding::FixedLittleEndian
+            .encode(payload)
+            .unwrap(),
+    );
     bytes
 }
 

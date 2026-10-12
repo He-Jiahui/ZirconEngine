@@ -144,10 +144,18 @@ impl TransactionRecord {
         for index in (0..self.commands.len()).rev() {
             let result = self.commands[index].revert(context);
             if let Err(command_error) = result {
+                if command_error.effect == CommandEffect::Interrupted
+                    || command_error.source.is_interrupted()
+                {
+                    return Err(command_error.into_source());
+                }
                 return self.recover_failed_undo(context, index, original_selection, command_error);
             }
         }
         if let Err(selection_error) = context.restore_selection(&self.selection_before) {
+            if selection_error.is_interrupted() {
+                return Err(selection_error);
+            }
             return self.recover_all_applied(context, original_selection, selection_error);
         }
         Ok(())
@@ -158,10 +166,18 @@ impl TransactionRecord {
         for index in 0..self.commands.len() {
             let result = self.commands[index].apply(context);
             if let Err(command_error) = result {
+                if command_error.effect == CommandEffect::Interrupted
+                    || command_error.source.is_interrupted()
+                {
+                    return Err(command_error.into_source());
+                }
                 return self.recover_failed_redo(context, index, original_selection, command_error);
             }
         }
         if let Err(selection_error) = context.restore_selection(&self.selection_after) {
+            if selection_error.is_interrupted() {
+                return Err(selection_error);
+            }
             return self.recover_all_reverted(context, original_selection, selection_error);
         }
         Ok(())
@@ -177,13 +193,14 @@ impl TransactionRecord {
         let rollback_start = match command_error.effect {
             CommandEffect::Unchanged => failed_index + 1,
             CommandEffect::Applied => failed_index,
+            CommandEffect::Interrupted => return Err(command_error.into_source()),
         };
-        let command_error = command_error.source;
+        let command_error = command_error.into_source();
         for rollback_index in rollback_start..self.commands.len() {
             if let Err(rollback_error) = self.commands[rollback_index].apply(context) {
                 return Err(EditCommandError::RollbackFailed {
                     command_error: Box::new(command_error),
-                    rollback_error: Box::new(rollback_error.source),
+                    rollback_error: Box::new(rollback_error.into_source()),
                 });
             }
         }
@@ -206,13 +223,14 @@ impl TransactionRecord {
         let rollback_end = match command_error.effect {
             CommandEffect::Unchanged => failed_index,
             CommandEffect::Applied => failed_index + 1,
+            CommandEffect::Interrupted => return Err(command_error.into_source()),
         };
-        let command_error = command_error.source;
+        let command_error = command_error.into_source();
         for rollback_index in (0..rollback_end).rev() {
             if let Err(rollback_error) = self.commands[rollback_index].revert(context) {
                 return Err(EditCommandError::RollbackFailed {
                     command_error: Box::new(command_error),
-                    rollback_error: Box::new(rollback_error.source),
+                    rollback_error: Box::new(rollback_error.into_source()),
                 });
             }
         }
@@ -235,7 +253,7 @@ impl TransactionRecord {
             if let Err(rollback_error) = command.apply(context) {
                 return Err(EditCommandError::RollbackFailed {
                     command_error: Box::new(command_error),
-                    rollback_error: Box::new(rollback_error.source),
+                    rollback_error: Box::new(rollback_error.into_source()),
                 });
             }
         }
@@ -258,7 +276,7 @@ impl TransactionRecord {
             if let Err(rollback_error) = command.revert(context) {
                 return Err(EditCommandError::RollbackFailed {
                     command_error: Box::new(command_error),
-                    rollback_error: Box::new(rollback_error.source),
+                    rollback_error: Box::new(rollback_error.into_source()),
                 });
             }
         }

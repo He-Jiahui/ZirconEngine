@@ -11,7 +11,7 @@ use crate::core::editor_operation::EditorOperationInvocation;
 use crate::core::play::{PlayKind, PlayStartRequest};
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::TransformHandleKind;
-use crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
+use crate::ui::template_runtime::builtin::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 use std::sync::Arc;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
@@ -36,9 +36,9 @@ fn root_componentized_workbench_surface_tool_click_updates_bridge_and_runtime() 
         harness
             .host
             .borrow()
-            .active_activity_window_template_document_id()
+            .active_activity_window_template_document_id().expect("activity window projection")
             .as_deref(),
-        Some(WORKBENCH_WINDOW_DOCUMENT_ID)
+        Some(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
     );
     let baseline = harness.journal_len();
 
@@ -438,7 +438,7 @@ fn componentized_workbench_surface_control_requires_active_workbench_window_temp
     {
         let host = harness.host.borrow();
         assert_eq!(
-            host.active_activity_window_template_document_id()
+            host.active_activity_window_template_document_id().expect("activity window projection")
                 .as_deref(),
             Some(ASSET_WINDOW_DOCUMENT_ID)
         );

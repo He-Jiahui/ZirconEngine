@@ -224,8 +224,7 @@ impl ResourceStreamer {
             .prepared_material_dependency_snapshot(loaded_material_id, loaded_material_revision)?;
         let (material, parent_validation_errors) =
             asset_manager.resolve_effective_material_asset(loaded_material_id, material);
-        let shader_contract =
-            Self::load_shader_contract(asset_manager.as_ref(), material.shader.clone());
+        let shader_contract = Self::load_shader_contract(&*asset_manager, material.shader.clone());
         let descriptor = shader_contract
             .as_ref()
             .map(|shader| material.standard_material_descriptor_for_shader(shader.asset()))
@@ -262,37 +261,13 @@ impl ResourceStreamer {
                 MaterialDisabledPasses::from_shader_pass_names(&shader.asset().disabled_passes)
             })
             .unwrap_or_default();
-        let shader_resolver = Arc::clone(&asset_manager);
-        let texture_resolver = Arc::clone(&asset_manager);
+        let resolves = |reference: &AssetReference| {
+            asset_manager.resolve_asset_id(&reference.locator).is_some()
+        };
         let mut readiness = if let Some(shader) = shader_contract.as_ref() {
-            material.readiness_report_with_shader_contract(
-                shader.asset(),
-                move |reference| {
-                    shader_resolver
-                        .resolve_asset_id(&reference.locator)
-                        .is_some()
-                },
-                move |reference| {
-                    texture_resolver
-                        .resolve_asset_id(&reference.locator)
-                        .is_some()
-                },
-            )
+            material.readiness_report_with_shader_contract(shader.asset(), resolves, resolves)
         } else {
-            let shader_resolver = Arc::clone(&asset_manager);
-            let texture_resolver = Arc::clone(&asset_manager);
-            material.readiness_report_with_resolution(
-                move |reference| {
-                    shader_resolver
-                        .resolve_asset_id(&reference.locator)
-                        .is_some()
-                },
-                move |reference| {
-                    texture_resolver
-                        .resolve_asset_id(&reference.locator)
-                        .is_some()
-                },
-            )
+            material.readiness_report_with_resolution(resolves, resolves)
         };
         if let Some((validation_error, fallback_usage)) = missing_material_fallback {
             readiness.push_validation_error_once(validation_error);

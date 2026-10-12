@@ -1,7 +1,6 @@
 use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex, RwLock};
 
-use zircon_runtime::asset::AssetManager;
 use zircon_runtime::core::CoreError;
 
 use super::super::EditorAssetChangeHub;
@@ -92,7 +91,7 @@ impl DefaultEditorAssetManager {
         };
         let (project, generation) = snapshot.into_parts();
         self.sync_from_runtime_project_generation(
-            project_asset_manager.as_ref(),
+            &*project_asset_manager,
             project,
             &generation,
         )
@@ -118,14 +117,22 @@ impl DefaultEditorAssetManager {
             .import_flow
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some(flow) = flow.as_ref() {
-            return Ok(flow.clone());
-        }
         let asset_index = self
             .read_state_recovering_poison()
             .asset_index
             .clone()
             .ok_or_else(|| CoreError::ServiceUnavailable("EditorAssetIndex".to_owned()))?;
+        let activation_identity = asset_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .project_activation_identity()
+            .cloned()
+            .ok_or_else(|| CoreError::ServiceUnavailable("active Editor project".to_owned()))?;
+        if let Some(current) = flow.as_ref() {
+            if current.project_activation_identity() == Some(&activation_identity) {
+                return Ok(current.clone());
+            }
+        }
         let access = self
             .project_asset_manager
             .as_ref()
@@ -140,9 +147,17 @@ impl DefaultEditorAssetManager {
             .as_ref()
             .cloned()
             .ok_or_else(|| CoreError::ServiceUnavailable("EditorLogService".to_owned()))?;
-        let project_manager = access.project_asset_manager()?;
-        let asset_manager: Arc<dyn AssetManager> = project_manager;
-        let created = EditorAssetImportFlow::new(jobs, asset_manager, asset_index, logs);
+        let created = access.create_import_flow(jobs, Arc::clone(&asset_index), logs)?;
+        if asset_index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .project_activation_identity()
+            != Some(&activation_identity)
+        {
+            return Err(CoreError::ServiceUnavailable(
+                "superseded Editor project".to_owned(),
+            ));
+        }
         *flow = Some(created.clone());
         Ok(created)
     }

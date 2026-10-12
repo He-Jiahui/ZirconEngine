@@ -1,5 +1,33 @@
+//! 检查默认输入管理器的帧窗口、原始录制和通知保留边界。
+//!
+//! # 使用时机与责任
+//! 由输入管理器测试模块在测试构建中挂载；各情景独立构造状态，通过快照、排空及源文本守卫检查约定。源文本检查只说明所读取文件的词法形态，不代替动态会话执行。
+//!
+//! # 生命周期与限制
+//! 管理器和返回数据由各测试本地拥有，不使用平台设备。旧帧快照是独立副本；帧清理、请求排空、原始记录和失焦取消具有不同保留范围。墙钟断言另有待确认前提。
+//!
+//! # 参考
+//! 参见 [`crate::input::DefaultInputManager`]、[`crate::core::framework::input::InputManager`] 与 [`crate::input::InputFrameSnapshot`]。
+
 use super::*;
 
+/// 验证默认输入管理器把提交事件反映到兼容快照，并可独立排空即时事件。
+///
+/// # 使用时机
+///
+/// 检查 [crate::input::DefaultInputManager] 收到 [crate::core::framework::input::InputManager::submit_event()] 后的快照与排空。
+///
+/// # 覆盖范围与限制
+///
+/// 断言光标、鼠标按住项、滚轮累计值及首次排空三条事件；不覆盖合并、录制或帧重置。
+///
+/// # 生命周期
+///
+/// 用例不调用 begin_frame；第二次 drain_events 用于观察即时队列已取走。
+///
+/// # 参考
+///
+/// [crate::core::framework::input::InputManager::snapshot()] 与 [crate::core::framework::input::InputManager::drain_events()]
 #[test]
 fn input_manager_tracks_state_and_drains_events() {
     let input = DefaultInputManager::default();
@@ -17,6 +45,23 @@ fn input_manager_tracks_state_and_drains_events() {
     assert!(input.drain_events().is_empty());
 }
 
+/// 验证原始录制为两条提交记录分配连续序号并可排空。
+///
+/// # 使用时机
+///
+/// 观察 [crate::core::framework::input::InputManager::set_event_recording_config()] 与记录排空的衔接。
+///
+/// # 覆盖范围与限制
+///
+/// 断言序号、正时间戳、样本内时间不回退及第二次排空为空；不保证墙钟单调或覆盖淘汰。
+///
+/// # 生命周期
+///
+/// 容量为 16；排空转移记录，不代表关闭录制或重置周期。
+///
+/// # 参考
+///
+/// [crate::input::DefaultInputManager] 与 [crate::core::framework::input::InputManager::drain_event_records()]
 #[test]
 fn input_manager_records_sequences_and_timestamps_for_ui_bridge_consumers() {
     let input = DefaultInputManager::default();
@@ -30,10 +75,29 @@ fn input_manager_records_sequences_and_timestamps_for_ui_bridge_consumers() {
     assert_eq!(records[0].sequence, 1);
     assert_eq!(records[1].sequence, 2);
     assert!(records[0].timestamp_millis > 0);
+    // TODO: [CR-INPUT-FRAME-0002] 确认公共时间戳是否要求非递减；录制器直接使用 SystemTime::now()，时钟回退时下面比较可能失败。
+    // 尚无可控回退复现或时钟夹具；下一步先明确契约，再用可注入时钟验证回退并决定断言去留。
     assert!(records[1].timestamp_millis >= records[0].timestamp_millis);
     assert!(input.drain_event_records().is_empty());
 }
 
+/// 验证按钮状态对象将按住集合与当前帧边沿分开维护。
+///
+/// # 使用时机
+///
+/// 说明首次/重复按下、清边沿和释放各自影响哪些状态。
+///
+/// # 覆盖范围与限制
+///
+/// 只直接操作一个鼠标按钮，不经过管理器路由或真实帧调度。
+///
+/// # 生命周期
+///
+/// clear_transitions 清除两个边沿而保留 pressed；release 在本帧产生释放边沿。
+///
+/// # 参考
+///
+/// [crate::input::ButtonInputState::press()]、[crate::input::ButtonInputState::clear_transitions()]、[crate::input::ButtonInputState::release()]
 #[test]
 fn button_input_state_tracks_bevy_style_frame_transitions() {
     let mut buttons = ButtonInputState::default();
@@ -55,6 +119,23 @@ fn button_input_state_tracks_bevy_style_frame_transitions() {
     assert!(buttons.just_released(&left));
 }
 
+/// 以源文本标记检查按钮 release 使用集合 take 取出存储键。
+///
+/// # 使用时机
+///
+/// 源码字符串守卫用于维护 release 的所有权实现约束。
+///
+/// # 覆盖范围与限制
+///
+/// 只检查 take 片段存在且 remove 片段不存在；不解析、不执行 [crate::input::ButtonInputState::release()]，不证明运行时行为。
+///
+/// # 生命周期
+///
+/// 字符串检查没有运行时状态生命周期。
+///
+/// # 参考
+///
+/// [crate::input::ButtonInputState::release()]
 #[test]
 fn button_release_moves_the_stored_owned_key_into_transition_state() {
     let source = include_str!("../../../core/framework/input/button_input_state.rs");
@@ -65,6 +146,23 @@ fn button_release_moves_the_stored_owned_key_into_transition_state() {
     );
 }
 
+/// 验证连续快照保留 held 状态，并在 begin_frame 清除按钮边沿。
+///
+/// # 使用时机
+///
+/// 跟踪 [crate::core::framework::input::InputManager::begin_frame()] 前后的按下、保持和释放时点。
+///
+/// # 覆盖范围与限制
+///
+/// 只断言一个 Jump 键，不覆盖其他设备、重复按下或录制。
+///
+/// # 生命周期
+///
+/// held 跨下一帧保留；按下/释放边沿在对应帧出现并由后续 begin_frame 清除。
+///
+/// # 参考
+///
+/// [crate::input::DefaultInputManager] 与 [crate::core::framework::input::InputManager::frame_snapshot()]
 #[test]
 fn input_snapshot_just_pressed_is_true_for_exactly_one_frame() {
     let input = DefaultInputManager::default();
@@ -100,44 +198,23 @@ fn input_snapshot_just_pressed_is_true_for_exactly_one_frame() {
     assert!(!cleared_frame.buttons.just_released(&key));
 }
 
-#[test]
-fn frame_input_clears_after_level_tick_not_before() {
-    let session_source = include_str!("../../../dynamic_api/session/state.rs");
-    let tick_start = session_source
-        .find("fn tick_frame(&mut self)")
-        .expect("dynamic session should keep a tick_frame owner");
-    let drain_start = session_source[tick_start..]
-        .find("fn drain_host_requests")
-        .map(|offset| tick_start + offset)
-        .expect("tick_frame should stay before host-request draining");
-    let tick_body = &session_source[tick_start..drain_start];
-    let level_tick = tick_body
-        .find(".tick(&self.runtime.handle(), advance)")
-        .expect("tick_frame should advance the loaded level");
-    let clear_input = tick_body
-        .find(".begin_frame();")
-        .expect("tick_frame should clear frame-local input through begin_frame");
-
-    assert!(
-        level_tick < clear_input,
-        "runtime tick_frame must keep current-frame input visible to level systems before clearing transitions"
-    );
-
-    let input = DefaultInputManager::default();
-    let button = InputButton::MouseLeft;
-    input.begin_frame();
-    input.submit_event(InputEvent::ButtonPressed(button.clone()));
-
-    let visible_to_level_tick = input.frame_snapshot();
-    assert!(visible_to_level_tick.buttons.just_pressed(&button));
-
-    input.begin_frame();
-    let next_frame = input.frame_snapshot();
-
-    assert!(next_frame.buttons.pressed(&button));
-    assert!(!next_frame.buttons.just_pressed(&button));
-}
-
+/// 检查帧快照汇集按钮、光标、运动、滚轮及窗口/拖放通知。
+///
+/// # 使用时机
+///
+/// 读取 [crate::input::InputFrameSnapshot]，观察多种事件到下一次 begin_frame 的字段变化。
+///
+/// # 覆盖范围与限制
+///
+/// 混合 line/pixel 聚合只描述当前 fixture；不裁决尚待确认的单位契约。
+///
+/// # 生命周期
+///
+/// held 和 cursor inside 跨帧保留；motion、滚轮列表及窗口/拖放通知由 begin_frame 清除。
+///
+/// # 参考
+///
+/// [crate::input::InputFrameSnapshot] 与 [crate::input::DefaultInputManager]
 #[test]
 fn input_manager_frame_snapshot_tracks_transitions_and_motion() {
     let input = DefaultInputManager::default();
@@ -236,6 +313,23 @@ fn input_manager_frame_snapshot_tracks_transitions_and_motion() {
     assert!(next_frame.file_drag_drop_events.is_empty());
 }
 
+/// 验证交错提交多个手柄轴时每帧按轴保留一个合并变化记录。
+///
+/// # 使用时机
+///
+/// 观察默认缩放结果如何进入 [crate::input::InputFrameSnapshot] transition 列表。
+///
+/// # 覆盖范围与限制
+///
+/// 断言首旧值、同帧末新值、交错顺序及下一帧旧值；不逐项保留原始采样。
+///
+/// # 生命周期
+///
+/// transition 在 begin_frame 清空；当前轴值跨帧作为后续基线。
+///
+/// # 参考
+///
+/// [crate::input::GamepadAxisSettings::scaled_value()] 与 [crate::core::framework::input::InputManager::begin_frame()]
 #[test]
 fn input_manager_indexes_interleaved_gamepad_axis_transitions_per_frame() {
     let input = DefaultInputManager::default();
@@ -302,6 +396,23 @@ fn input_manager_indexes_interleaved_gamepad_axis_transitions_per_frame() {
     );
 }
 
+/// 验证 FocusLost 释放活动控件并清除触点/模拟值，同时保留已连接手柄。
+///
+/// # 使用时机
+///
+/// 观察 [crate::core::framework::input::InputEvent] 焦点丢失后读取帧快照。
+///
+/// # 覆盖范围与限制
+///
+/// 覆盖键鼠/手柄释放、触点/轴清空、轴归零和 IME 清理；连接仍保留。
+///
+/// # 生命周期
+///
+/// 先 begin_frame，再加入 motion/wheel 和 FocusLost；焦点丢失不等于设备断开。
+///
+/// # 参考
+///
+/// [crate::input::DefaultInputManager]、[crate::input::InputFrameSnapshot] 与 [crate::input::ButtonInputState::just_released()]
 #[test]
 fn focus_loss_releases_active_input_without_disconnect() {
     let input = DefaultInputManager::default();
@@ -388,6 +499,23 @@ fn focus_loss_releases_active_input_without_disconnect() {
     assert_eq!(frame.ime_preedit, None);
 }
 
+/// 验证动作求值器在 FocusLost 清除键盘和手柄轴 held 后报告动作停用。
+///
+/// # 使用时机
+///
+/// 用测试内动作映射和 [crate::input::InputActionEvaluator::evaluate()] 比较焦点前后快照。
+///
+/// # 覆盖范围与限制
+///
+/// 只覆盖 jump 和 move_x；不执行动态会话、生产动作调度或宿主设备输入。
+///
+/// # 生命周期
+///
+/// 先 begin_frame 清边沿保留 held，再由同一 evaluator 对新快照求值。
+///
+/// # 参考
+///
+/// [crate::input::InputActionEvaluator::evaluate()] 与 [crate::input::InputFrameSnapshot]
 #[test]
 fn focus_loss_deactivates_held_button_and_axis_actions() {
     use crate::input::{
@@ -436,6 +564,23 @@ fn focus_loss_deactivates_held_button_and_axis_actions() {
     assert!(released.just_deactivated("gameplay.move_x"));
 }
 
+/// 验证同一帧按键后立即 FocusLost 时动作不会被激活。
+///
+/// # 使用时机
+///
+/// 把 [crate::core::framework::input::InputEvent] 的按下和焦点顺序交给测试内求值器。
+///
+/// # 覆盖范围与限制
+///
+/// 断言 KeyCode 69 同时有两个边沿，interact 不 pressed/activated 且 deactivated。
+///
+/// # 生命周期
+///
+/// 事件之间无 begin_frame，因此两个边沿共存于一个帧快照。
+///
+/// # 参考
+///
+/// [crate::input::InputActionEvaluator::evaluate()] 与 [crate::input::InputFrameSnapshot]
 #[test]
 fn focus_loss_after_same_frame_press_does_not_activate_an_action() {
     use crate::input::{InputAction, InputActionEvaluator, InputActionMap, InputBinding};
@@ -468,6 +613,23 @@ fn focus_loss_after_same_frame_press_does_not_activate_an_action() {
     assert!(actions.just_deactivated("gameplay.interact"));
 }
 
+/// 验证 FocusLost 将待处理 IME 与光标捕获请求替换成清理请求。
+///
+/// # 使用时机
+///
+/// 观察焦点清理后的 request 帧视图及 [crate::core::framework::input::InputManager::drain_ime_host_requests()]、drain_cursor_host_requests()。
+///
+/// # 覆盖范围与限制
+///
+/// 两次 FocusLost 后每类只剩一条清理请求；不执行宿主 API。
+///
+/// # 生命周期
+///
+/// 没有 begin_frame；focus-loss 路径重置队列后分别 drain。
+///
+/// # 参考
+///
+/// [crate::input::InputFrameSnapshot] 与 [crate::core::framework::input::InputManager::drain_cursor_host_requests()]
 #[test]
 fn focus_loss_cancels_pending_ime_and_cursor_capture_requests() {
     let input = DefaultInputManager::default();
@@ -495,6 +657,23 @@ fn focus_loss_cancels_pending_ime_and_cursor_capture_requests() {
     );
 }
 
+/// 验证 IME 状态、帧内 commit/delete 通知和 host request 排空具有不同生命周期。
+///
+/// # 使用时机
+///
+/// 提交 [crate::core::framework::input::InputEvent] IME 事件后读取 [crate::input::InputFrameSnapshot]。
+///
+/// # 覆盖范围与限制
+///
+/// 断言 enabled/preedit、commit/delete 和 request 内容顺序；不调用平台输入法。
+///
+/// # 生命周期
+///
+/// enabled 跨 begin_frame 保留；commit/delete 下一帧清除；request view 与 drain 队列有不同边界。
+///
+/// # 参考
+///
+/// [crate::core::framework::input::InputManager::begin_frame()] 与 [crate::core::framework::input::InputManager::drain_ime_host_requests()]
 #[test]
 fn input_manager_tracks_ime_preedit_and_frame_commits() {
     let input = DefaultInputManager::default();

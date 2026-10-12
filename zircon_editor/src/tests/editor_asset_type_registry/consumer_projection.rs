@@ -19,7 +19,7 @@ use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
     EditorAssetFolderRecord,
 };
-use crate::ui::host::{EditorAssetOperationInvokeError, EditorOperationDispatchError};
+use crate::ui::host::{EditorAssetOperationInvokeError, EditorError, EditorOperationDispatchError};
 use zircon_runtime::asset::project::PreviewState;
 use zircon_runtime_interface::resource::ResourceKind;
 
@@ -270,7 +270,7 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
             .len(),
         1
     );
-    let snapshot = runtime.runtime.editor_snapshot().asset_browser;
+    let snapshot = runtime.runtime.editor_snapshot().unwrap().asset_browser;
     let item = snapshot
         .visible_assets
         .iter()
@@ -313,6 +313,7 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
     assert!(runtime
         .runtime
         .current_view_instances()
+        .unwrap()
         .iter()
         .any(|instance| instance.descriptor_id
             == crate::ui::workbench::view::ViewDescriptorId::new("editor.ui_asset.test")));
@@ -490,21 +491,23 @@ fn asset_registry_materialization_failure_remains_visible_at_every_host_boundary
         )
     ));
 
-    let snapshot = runtime.runtime.editor_snapshot();
+    let snapshot = runtime.runtime.editor_snapshot().unwrap();
     assert!(snapshot
         .status_line
         .contains("Asset type registry unavailable:"));
     assert!(snapshot.status_line.contains("source_write_policy"));
 }
 
-fn assert_registry_materialization_error(error: EditorExtensionRegistryError) {
+fn assert_registry_materialization_error(error: EditorError) {
     assert!(matches!(
         error,
-        EditorExtensionRegistryError::AssetTypeRegistry(
-            AssetTypeRegistryError::DuplicateFieldOwner {
-                field: "source_write_policy",
-                ..
-            }
-        )
+        EditorError::ExtensionRegistry {
+            source: EditorExtensionRegistryError::AssetTypeRegistry(
+                AssetTypeRegistryError::DuplicateFieldOwner {
+                    field: "source_write_policy",
+                    ..
+                }
+            ),
+        }
     ));
 }

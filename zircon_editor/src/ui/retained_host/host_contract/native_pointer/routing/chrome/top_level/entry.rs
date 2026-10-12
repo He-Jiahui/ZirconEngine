@@ -27,8 +27,10 @@ pub(in crate::ui::retained_host::host_contract) fn route_top_level_chrome(
     if let Some(route) = route_drawer_headers(scene, x, y, crate::ui::retained_host::host_contract::componentized_workbench_regions::owns_ordinary_panes(presentation)) {
         return Some(route);
     }
-    if let Some(route) = route_host_page_tabs(&scene.page_chrome, x, y) {
-        return Some(route);
+    if !crate::ui::retained_host::host_contract::componentized_workbench_regions::owns_ordinary_panes(presentation) {
+        if let Some(route) = route_host_page_tabs(&scene.page_chrome, x, y) {
+            return Some(route);
+        }
     }
     if let Some(route) = route_floating_window_header(&scene.floating_layer, x, y) {
         return Some(route);

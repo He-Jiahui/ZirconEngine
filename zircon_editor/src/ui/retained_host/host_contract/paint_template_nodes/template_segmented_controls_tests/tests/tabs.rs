@@ -8,11 +8,14 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::host_contract::data::FrameRect;
 
 #[test]
-fn selected_tab_paints_accent_underline_without_filling_right_edge() {
+fn selected_tab_paints_accent_underline_over_panel_surface() {
     let bytes = paint_template_nodes_for_test(180, 48, model_rc(vec![tab_node()]));
 
     assert!(changed_pixel_count(&bytes, 180, 0, 40, 150, 4) > 0);
-    assert_eq!(pixel_at(&bytes, 180, 148, 8), [0, 0, 0, 255]);
+    assert_eq!(
+        pixel_at(&bytes, 180, 148, 8),
+        crate::ui::retained_host::host_contract::paint_theme::PALETTE.surface_panel
+    );
 }
 
 #[test]
@@ -109,4 +112,55 @@ fn partially_clipped_workbench_tab_keeps_runtime_text_commands() {
     assert!(commands
         .iter()
         .all(|command| command.clip_frame.as_ref() == Some(&clip)));
+}
+
+#[test]
+fn visible_tab_focus_paints_one_pixel_inside_bounds_and_keeps_underline() {
+    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+    let mut node = tab_node();
+    node.text = "".into();
+    node.focused = true;
+    node.focus_visible_known = true;
+    node.focus_visible = true;
+    node.layout_offset_x = 3.0;
+    node.layout_offset_y = 2.0;
+    let bytes = paint_template_nodes_for_test(180, 52, model_rc(vec![node.clone()]));
+    // Full original bounds (3, 6, 150, 40), inner 1px stroke.
+    for (x, y) in [(3, 12), (152, 12), (30, 6)] {
+        assert_eq!(pixel_at(&bytes, 180, x, y), PALETTE.focus_ring);
+    }
+    for (x, y) in [(4, 12), (151, 12), (30, 7)] {
+        assert_eq!(pixel_at(&bytes, 180, x, y), PALETTE.surface_panel);
+    }
+    for (x, y) in [(2, 12), (153, 12), (30, 5), (30, 46)] {
+        assert_eq!(pixel_at(&bytes, 180, x, y), [0, 0, 0, 255]);
+    }
+    let mut commands = Vec::new();
+    let rect = frame_rect(&node.frame);
+    let clip = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 180.0,
+        height: 52.0,
+    };
+    push_segmented_control_commands(&mut commands, &node, &rect, &clip, 10, 1.0);
+    let ring = commands.iter().find(|c| c.border_color.is_some()).unwrap();
+    assert_eq!(ring.background_color, None);
+    assert_eq!(ring.border_width, 1.0);
+    assert_eq!(ring.frame, tab_paint_rect(&node, &rect));
+    let underline = commands.iter().find(|c| c.z_index == 12).unwrap();
+    assert!(ring.z_index < underline.z_index);
+    let x = (underline.frame.x + underline.frame.width * 0.5) as u32;
+    let y = (underline.frame.y + underline.frame.height * 0.5) as u32;
+    assert_eq!(
+        pixel_at(&bytes, 180, x, y),
+        underline.background_color.unwrap()
+    );
+    node.focus_visible = false;
+    let pointer = paint_template_nodes_for_test(180, 52, model_rc(vec![node.clone()]));
+    assert_eq!(pixel_at(&pointer, 180, 30, 6), PALETTE.surface_panel);
+    node.focus_visible = true;
+    node.disabled = true;
+    let disabled = paint_template_nodes_for_test(180, 52, model_rc(vec![node]));
+    assert_eq!(pixel_at(&disabled, 180, 30, 6), PALETTE.surface_disabled);
 }

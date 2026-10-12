@@ -1,3 +1,5 @@
+//! 提供各 pass 共用的场景 uniform 镜像；字段顺序与 CPU SceneUniform 的 496 字节布局一致。
+//! camera_world_position.w 为材质 mip bias，camera_view_direction.w 为正交标记，sky_sun_params.w 控制环境捕获表面策略。
 struct SceneUniform {
     view_proj: mat4x4<f32>,
     view_proj_unjittered: mat4x4<f32>,

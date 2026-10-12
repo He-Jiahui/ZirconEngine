@@ -213,3 +213,6 @@ fn cached_name_query_keeps_stable_world_order_across_moves_clone_and_serde() {
         assert_eq!(actual, expected);
     }
 }
+
+#[path = "ecs_system_query_cache/world_binding.rs"]
+mod world_binding;

@@ -5,7 +5,7 @@ use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 fn workbench_window_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/ui/editor/windows/workbench_window.zui");
+        .join("assets/ui/editor/unreal/level_editor_window.zui");
     fs::read_to_string(path).expect("workbench_window.zui should be readable")
 }
 
@@ -17,7 +17,7 @@ fn workbench_window_uses_componentized_workbench_layout() {
 
     assert_eq!(
         document.asset.id,
-        "res://ui/editor/windows/workbench_window.zui"
+        "res://ui/editor/unreal/level_editor_window.zui"
     );
 
     for marker in [

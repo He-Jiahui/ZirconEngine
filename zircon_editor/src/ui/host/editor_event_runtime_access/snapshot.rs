@@ -28,43 +28,54 @@ fn core_view_instance_id(
 }
 
 impl EditorHostEventController {
-    pub fn editor_snapshot(&self) -> EditorDataSnapshot {
-        let play_inspector = match self.active_hierarchy_world_domain() {
-            WorldDomain::Play(_) => Some(self.play_inspector_snapshot()),
-            WorldDomain::Edit => None,
-        };
-        let mut inner = self.shell().lock();
-        let inspector_customizations = Self::active_inspector_customizations_for_shell(&inner);
-        let field_editors = Self::active_field_editors_for_shell(&inner);
-        let mut snapshot = inner
-            .state
-            .snapshot_with_inspector_customizations(&inspector_customizations, &field_editors);
-        if let Err(error) = Self::project_asset_type_registry_for_shell(&mut inner, &mut snapshot) {
-            Self::present_asset_type_registry_projection_error(&mut snapshot, error);
-        }
-        snapshot.console_output = activity_log_console_output_for_shell(&mut inner);
-        if let Some(play_inspector) = play_inspector {
-            snapshot.inspector = play_inspector;
-        }
-        snapshot
+    pub fn editor_snapshot(&self) -> Result<EditorDataSnapshot, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let play_inspector = match self.active_hierarchy_world_domain() {
+                WorldDomain::Play(_) => Some(self.play_inspector_snapshot()),
+                WorldDomain::Edit => None,
+            };
+            let mut inner = self.shell().lock();
+            let inspector_customizations =
+                Self::active_inspector_customizations_for_shell(&inner, &manager)?;
+            let field_editors = Self::active_field_editors_for_shell(&inner, &manager)?;
+            let mut snapshot = inner
+                .state
+                .snapshot_with_inspector_customizations(&inspector_customizations, &field_editors);
+            if let Err(error) =
+                Self::project_asset_type_registry_for_shell(&mut inner, &manager, &mut snapshot)
+            {
+                Self::present_asset_type_registry_projection_error(&mut snapshot, error);
+            }
+            snapshot.console_output = activity_log_console_output_for_shell(&mut inner, &manager)?;
+            if let Some(play_inspector) = play_inspector {
+                snapshot.inspector = play_inspector;
+            }
+            snapshot
+        })
     }
 
-    pub fn current_layout(&self) -> WorkbenchLayout {
-        self.shell().lock().manager.current_layout()
+    pub fn current_layout(&self) -> Result<WorkbenchLayout, crate::ui::host::EditorError> {
+        Ok({ self.enter_editor_manager()?.current_layout() })
     }
 
-    pub fn descriptors(&self) -> Vec<ViewDescriptor> {
-        self.shell().lock().manager.descriptors()
+    pub fn descriptors(&self) -> Result<Vec<ViewDescriptor>, crate::ui::host::EditorError> {
+        Ok({ self.enter_editor_manager()?.descriptors() })
     }
 
-    pub fn current_view_instances(&self) -> Vec<ViewInstance> {
-        self.shell().lock().manager.current_view_instances()
+    pub fn current_view_instances(
+        &self,
+    ) -> Result<Vec<ViewInstance>, crate::ui::host::EditorError> {
+        Ok({ self.enter_editor_manager()?.current_view_instances() })
     }
 
-    pub fn chrome_snapshot(&self) -> EditorChromeSnapshot {
-        let mut inner = self.shell().lock();
-        let descriptors = inner.manager.descriptors();
-        Self::build_chrome_for_shell(&mut inner, descriptors)
+    pub fn chrome_snapshot(&self) -> Result<EditorChromeSnapshot, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let mut inner = self.shell().lock();
+            let descriptors = manager.descriptors();
+            Self::build_chrome_for_shell(&mut inner, &manager, descriptors)?
+        })
     }
 
     pub fn active_scene_transaction_history_snapshot(
@@ -91,12 +102,8 @@ impl EditorHostEventController {
             .chrome_settings_for_view(view_id)
     }
 
-    pub fn preset_names(&self) -> Vec<String> {
-        self.shell()
-            .lock()
-            .manager
-            .preset_names()
-            .unwrap_or_default()
+    pub fn preset_names(&self) -> Result<Vec<String>, crate::ui::host::EditorError> {
+        Ok({ self.enter_editor_manager()?.preset_names()? })
     }
 
     pub fn render_snapshot(&self) -> Option<RenderSceneSnapshot> {
@@ -137,51 +144,55 @@ impl EditorHostEventController {
         &self,
         view_id: crate::core::editor_event::ViewInstanceId,
         event_kind: zircon_runtime_interface::ui::surface::UiPointerEventKind,
-    ) -> bool {
-        use zircon_runtime_interface::ui::surface::UiPointerEventKind;
+    ) -> Result<bool, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            use zircon_runtime_interface::ui::surface::UiPointerEventKind;
 
-        if matches!(
-            event_kind,
-            UiPointerEventKind::Down | UiPointerEventKind::Scroll
-        ) {
-            self.focus_scene_viewport(view_id)
-        } else {
-            // Hover and terminal events select a live routing session without changing saved focus.
-            let mut shell = self.shell().lock();
-            let manager_view_id = manager_view_instance_id(&view_id);
-            if !shell
-                .manager
-                .view_instance_ids_for_descriptor_key("editor.scene")
-                .contains(&manager_view_id)
-            {
-                return false;
+            if matches!(
+                event_kind,
+                UiPointerEventKind::Down | UiPointerEventKind::Scroll
+            ) {
+                self.focus_scene_viewport(view_id)?
+            } else {
+                // Hover and terminal events select a live routing session without changing saved focus.
+                let mut shell = self.shell().lock();
+                let manager_view_id = manager_view_instance_id(&view_id);
+                if !manager
+                    .view_instance_ids_for_descriptor_key("editor.scene")
+                    .contains(&manager_view_id)
+                {
+                    return Ok(false);
+                }
+                shell.state.focus_scene_viewport(view_id);
+                true
             }
-            shell.state.focus_scene_viewport(view_id);
-            true
-        }
+        })
     }
 
     pub(crate) fn focus_scene_viewport(
         &self,
         view_id: crate::core::editor_event::ViewInstanceId,
-    ) -> bool {
-        let mut shell = self.shell().lock();
-        let manager_view_id = manager_view_instance_id(&view_id);
-        if !shell
-            .manager
-            .view_instance_ids_for_descriptor_key("editor.scene")
-            .contains(&manager_view_id)
-        {
-            return false;
-        }
-        if shell.manager.focus_view(&manager_view_id).is_err() {
-            return false;
-        }
-        if shell.manager.current_focused_view().as_ref() != Some(&manager_view_id) {
-            return false;
-        }
-        shell.state.focus_scene_viewport(view_id);
-        true
+    ) -> Result<bool, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let mut shell = self.shell().lock();
+            let manager_view_id = manager_view_instance_id(&view_id);
+            if !manager
+                .view_instance_ids_for_descriptor_key("editor.scene")
+                .contains(&manager_view_id)
+            {
+                return Ok(false);
+            }
+            if manager.focus_view(&manager_view_id).is_err() {
+                return Ok(false);
+            }
+            if manager.current_focused_view().as_ref() != Some(&manager_view_id) {
+                return Ok(false);
+            }
+            shell.state.focus_scene_viewport(view_id);
+            true
+        })
     }
 
     pub(crate) fn retain_scene_viewports(
@@ -194,11 +205,20 @@ impl EditorHostEventController {
     /// Seeds every manager-live Scene leaf at the owning Workbench commit boundary. Retained
     /// presentation may later retire sessions, but opening or restoring a leaf must establish its
     /// session before a callback can target that committed view.
-    pub(crate) fn ensure_live_scene_viewport_sessions(&self) {
+    pub(crate) fn ensure_live_scene_viewport_sessions(
+        &self,
+    ) -> Result<(), crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        self.ensure_live_scene_viewport_sessions_admitted(&manager);
+        Ok(())
+    }
+
+    pub(crate) fn ensure_live_scene_viewport_sessions_admitted(
+        &self,
+        manager: &crate::ui::host::EditorManager,
+    ) {
+        let live_views = manager.view_instance_ids_for_descriptor_key("editor.scene");
         let mut shell = self.shell().lock();
-        let live_views = shell
-            .manager
-            .view_instance_ids_for_descriptor_key("editor.scene");
         for view_id in live_views {
             shell
                 .state
@@ -208,19 +228,23 @@ impl EditorHostEventController {
 
     pub(crate) fn scene_viewport_workspace_sessions(
         &self,
-    ) -> BTreeMap<crate::core::editor_event::ViewInstanceId, SceneViewportWorkspaceSessionSnapshot>
-    {
-        let shell = self.shell().lock();
-        let live_views = shell
-            .manager
-            .view_instance_ids_for_descriptor_key("editor.scene")
-            .into_iter()
-            .map(|view_id| core_view_instance_id(&view_id))
-            .collect::<std::collections::BTreeSet<_>>();
-        shell
-            .state
-            .viewport_controller
-            .snapshot_workspace_sessions(&live_views)
+    ) -> Result<
+        BTreeMap<crate::core::editor_event::ViewInstanceId, SceneViewportWorkspaceSessionSnapshot>,
+        crate::ui::host::EditorError,
+    > {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let shell = self.shell().lock();
+            let live_views = manager
+                .view_instance_ids_for_descriptor_key("editor.scene")
+                .into_iter()
+                .map(|view_id| core_view_instance_id(&view_id))
+                .collect::<std::collections::BTreeSet<_>>();
+            shell
+                .state
+                .viewport_controller
+                .snapshot_workspace_sessions(&live_views)
+        })
     }
 
     pub(crate) fn restore_scene_viewport_workspace_sessions(
@@ -230,19 +254,21 @@ impl EditorHostEventController {
             SceneViewportWorkspaceSessionSnapshot,
         >,
         focused_view: Option<&crate::core::editor_event::ViewInstanceId>,
-    ) {
-        let mut shell = self.shell().lock();
-        let live_views = shell
-            .manager
-            .view_instance_ids_for_descriptor_key("editor.scene")
-            .into_iter()
-            .map(|view_id| core_view_instance_id(&view_id))
-            .collect::<std::collections::BTreeSet<_>>();
-        shell.state.viewport_controller.restore_workspace_sessions(
-            &live_views,
-            snapshots,
-            focused_view,
-        );
+    ) -> Result<(), crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        Ok({
+            let mut shell = self.shell().lock();
+            let live_views = manager
+                .view_instance_ids_for_descriptor_key("editor.scene")
+                .into_iter()
+                .map(|view_id| core_view_instance_id(&view_id))
+                .collect::<std::collections::BTreeSet<_>>();
+            shell.state.viewport_controller.restore_workspace_sessions(
+                &live_views,
+                snapshots,
+                focused_view,
+            );
+        })
     }
 
     pub fn viewport_state(&self) -> crate::scene::viewport::ViewportState {

@@ -172,26 +172,24 @@ impl AdmissionLedger {
         }
     }
     pub(super) fn charge(&mut self, id: u64, events: usize, bytes: usize) -> bool {
-        let Some(account) = self.subscribers.get(&id) else {
+        let Some(account) = self.subscribers.get_mut(&id) else {
             self.closed = true;
             self.poisoned = true;
             return false;
         };
-        let topic_name = account.topic.clone();
         let next_account = account.retained.add(events, bytes);
-        let next_topic = self
-            .topics
-            .get(topic_name.as_ref())
-            .and_then(|a| a.retained.add(events, bytes));
+        let topic = self.topics.get_mut(account.topic.as_ref());
+        let next_topic = topic.as_ref().and_then(|a| a.retained.add(events, bytes));
         let next_global = self.retained.add(events, bytes);
-        let (Some(account), Some(topic), Some(global)) = (next_account, next_topic, next_global)
+        let (Some(next_account), Some(next_topic), Some(global)) =
+            (next_account, next_topic, next_global)
         else {
             self.closed = true;
             self.poisoned = true;
             return false;
         };
-        self.subscribers.get_mut(&id).unwrap().retained = account;
-        self.topics.get_mut(topic_name.as_ref()).unwrap().retained = topic;
+        account.retained = next_account;
+        topic.unwrap().retained = next_topic;
         self.retained = global;
         self.peak.events = self.peak.events.max(global.events);
         self.peak.bytes = self.peak.bytes.max(global.bytes);

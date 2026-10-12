@@ -1,5 +1,6 @@
 //! Shared visual and pointer geometry for editor asset content surfaces.
 
+mod activity_virtualization;
 mod browser_virtualization;
 mod controls;
 mod identity;
@@ -11,13 +12,12 @@ mod thumbnail_geometry;
 mod thumbnail_grid;
 
 pub(crate) use identity::{
-    describe_asset_content_row, ActivityContentNodeIdentity, AssetContentRowDescriptor,
-    AssetContentSurface, BrowserContentNodeIdentity, BrowserThumbnailNodeRole,
+    describe_asset_content_row, ActivityContentNodeIdentity, ActivityContentNodeRole,
+    AssetContentRowDescriptor, AssetContentSurface, BrowserContentNodeIdentity,
+    BrowserThumbnailNodeRole,
 };
 #[cfg(test)]
-pub(crate) use identity::{
-    parse_activity_content_identity, parse_browser_content_identity, ActivityContentNodeRole,
-};
+pub(crate) use identity::{parse_activity_content_identity, parse_browser_content_identity};
 pub(crate) use metrics::AssetContentLayoutMetrics;
 pub(crate) use paint_metadata::{
     asset_content_paint_metadata, AssetContentPaintMetadata, AssetContentPaintNodeInput,
@@ -47,4 +47,8 @@ pub(crate) use controls::{
     BROWSER_CONTENT_LIST_ROW_HEIGHT, BROWSER_CONTENT_PREVIEW_CONTROL_ID,
     BROWSER_CONTENT_TABLE_CONTROL_ID, BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
     BROWSER_CONTENT_TABLE_HEADER_HEIGHT, BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
+};
+
+pub(crate) use activity_virtualization::{
+    activity_compact_name, activity_row_geometry, ActivityAssetVirtualization,
 };

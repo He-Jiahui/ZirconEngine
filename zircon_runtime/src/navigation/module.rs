@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
 use crate::core::framework::navigation::NavigationManager;
-use crate::core::manager::{RegisteredManagerService, NAVIGATION_MANAGER_NAME};
+use crate::core::manager::NAVIGATION_MANAGER_NAME;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
+    CoreError, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind,
+    StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, EngineModule};
-use crate::scene::{SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME};
+use crate::scene::{SceneNavigationRuntime, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME};
 
 use super::BuiltinNavigationManager;
 
@@ -54,10 +55,14 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "BuiltinNavigationRuntime",
         )],
         factory(|core| {
-            let runtime = core.resolve_driver::<BuiltinNavigationManager>(
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            core.register_service_alias::<BuiltinNavigationManager, dyn SceneNavigationRuntime>(
                 BUILTIN_NAVIGATION_RUNTIME_DRIVER_NAME,
-            )?;
-            Ok(Arc::new(SceneNavigationRuntimeHandle::new(runtime)) as ServiceObject)
+                ServiceKind::Driver,
+                SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+                ServiceKind::Driver,
+                |runtime| runtime,
+            )
         }),
     ))
     .with_manager(ManagerDescriptor::new(
@@ -70,13 +75,13 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "BuiltinNavigationRuntime",
         )],
         factory(|core| {
-            let runtime = core.resolve_driver::<BuiltinNavigationManager>(
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            core.register_service_alias::<BuiltinNavigationManager, dyn NavigationManager>(
                 BUILTIN_NAVIGATION_RUNTIME_DRIVER_NAME,
-            )?;
-            Ok(
-                Arc::new(RegisteredManagerService::<dyn NavigationManager>::new(
-                    runtime,
-                )) as ServiceObject,
+                ServiceKind::Driver,
+                NAVIGATION_MANAGER_NAME,
+                ServiceKind::Manager,
+                |runtime| runtime,
             )
         }),
     ))

@@ -31,14 +31,21 @@ impl RetainedEditorHost {
             })
             .and_then(|intent| {
                 self.editor_manager
-                    .execute_project_launch_intent(intent)
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .and_then(|manager| manager.execute_project_launch_intent(intent))
                     .map_err(|error| error.to_string())
             })
             .map_err(|error| error.to_string())
             .and_then(|session| self.apply_startup_session(session));
         if let Err(error) = result {
             self.startup_session.status_message = error.clone();
-            if let Ok(recent_projects) = self.editor_manager.recent_projects_snapshot() {
+            if let Ok(recent_projects) = self
+                .editor_manager
+                .enter()
+                .map_err(crate::ui::host::EditorError::from)
+                .and_then(|manager| manager.recent_projects_snapshot())
+            {
                 self.startup_session.recent_projects = recent_projects;
             }
             self.refresh_welcome_snapshot();
@@ -49,11 +56,15 @@ impl RetainedEditorHost {
     pub(super) fn remove_recent_project(&mut self, path: &str) {
         match self
             .editor_manager
-            .forget_recent_project(path)
+            .enter()
+            .map_err(crate::ui::host::EditorError::from)
+            .and_then(|manager| manager.forget_recent_project(path))
             .map_err(|error| error.to_string())
             .and_then(|_| {
                 self.editor_manager
-                    .recent_projects_snapshot()
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .and_then(|manager| manager.recent_projects_snapshot())
                     .map_err(|error| error.to_string())
             }) {
             Ok(recent_projects) => {

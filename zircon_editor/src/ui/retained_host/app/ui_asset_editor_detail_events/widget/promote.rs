@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -11,17 +12,26 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "promote.asset_id.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_promote_widget_asset_id(&instance_id, value)
+            "promote.asset_id.set" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.set_ui_asset_editor_selected_promote_widget_asset_id(&instance_id, value)
+                })
                 .map(|_| ()),
-            "promote.component_name.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_promote_widget_component_name(&instance_id, value)
+            "promote.component_name.set" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.set_ui_asset_editor_selected_promote_widget_component_name(&instance_id, value)
+                })
                 .map(|_| ()),
-            "promote.document_id.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_promote_widget_document_id(&instance_id, value)
+            "promote.document_id.set" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.set_ui_asset_editor_selected_promote_widget_document_id(&instance_id, value)
+                })
                 .map(|_| ()),
             other => {
                 self.set_status_line(format!("Unknown UI asset widget promote action {other}"));

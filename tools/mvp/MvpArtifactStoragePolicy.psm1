@@ -546,10 +546,26 @@ function Resolve-MvpArtifactStoragePath {
         -Path $Path `
         -CapabilityClass $namespace.capability_class `
         -PolicySnapshot $snapshot
+    # Preserve dot segments until after physical resolution so junction/.. and
+    # other aliases cannot disguise a different approved namespace location.
+    $requestedPath = $Path.Replace('/', '\')
+    if ($requestedPath -match '^\\\\\?\\[A-Za-z]:\\') {
+        $requestedPath = $requestedPath.Substring(4)
+    }
+    if (-not [IO.Path]::IsPathRooted($requestedPath)) {
+        $requestedPath = [IO.Path]::Combine([Environment]::CurrentDirectory, $requestedPath)
+    }
+    if (-not $requestedPath.TrimEnd('\').Equals($rootResolution.display_path.TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Artifact path '$Path' must use its physical path without aliases or escape segments."
+    }
     $matchedRoot = @($snapshot.roots | Where-Object { $_.root_id -ceq $rootResolution.root_id })[0]
     $displayPath = $rootResolution.display_path
     $rootPrefix = $matchedRoot.display_path.TrimEnd('\') + '\'
     $relativePath = $displayPath.Substring($rootPrefix.Length)
+    $localPrefix = 'zircon-local\'
+    if ($relativePath.StartsWith($localPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        $relativePath = $relativePath.Substring($localPrefix.Length)
+    }
     $leaf = @($relativePath.Split([char]92, 2))[0]
     if (-not $leaf.StartsWith($namespace.leaf_prefix, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Artifact path '$displayPath' is outside the registered '$NamespaceId' namespace."

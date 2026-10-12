@@ -17,7 +17,16 @@ impl RetainedEditorHost {
     ) -> Result<String, String> {
         let report = self
             .editor_manager
-            .set_native_aware_project_plugin_enabled(project_root, manifest, plugin_id, enabled)?;
+            .enter()
+            .map_err(|error| error.to_string())
+            .and_then(|manager| {
+                manager.set_native_aware_project_plugin_enabled(
+                    project_root,
+                    manifest,
+                    plugin_id,
+                    enabled,
+                )
+            })?;
         let state = if report.enabled {
             "enabled"
         } else {
@@ -32,21 +41,26 @@ impl RetainedEditorHost {
         manifest: &mut ProjectManifest,
         plugin_id: &str,
     ) -> Result<String, String> {
-        let selection = current_native_aware_project_selection(
-            &self.editor_manager,
-            project_root,
-            manifest,
-            plugin_id,
-        )?;
+        let selection = {
+            let manager = self
+                .editor_manager
+                .enter()
+                .map_err(|error| error.to_string())?;
+            current_native_aware_project_selection(&manager, project_root, manifest, plugin_id)?
+        };
         let packaging = next_packaging(selection.packaging);
         let report = self
             .editor_manager
-            .set_native_aware_project_plugin_packaging(
-                project_root,
-                manifest,
-                plugin_id,
-                packaging,
-            )?;
+            .enter()
+            .map_err(|error| error.to_string())
+            .and_then(|manager| {
+                manager.set_native_aware_project_plugin_packaging(
+                    project_root,
+                    manifest,
+                    plugin_id,
+                    packaging,
+                )
+            })?;
         Ok(format!(
             "Plugin {} packaging set to {}",
             report.plugin_id,
@@ -60,21 +74,26 @@ impl RetainedEditorHost {
         manifest: &mut ProjectManifest,
         plugin_id: &str,
     ) -> Result<String, String> {
-        let selection = current_native_aware_project_selection(
-            &self.editor_manager,
-            project_root,
-            manifest,
-            plugin_id,
-        )?;
+        let selection = {
+            let manager = self
+                .editor_manager
+                .enter()
+                .map_err(|error| error.to_string())?;
+            current_native_aware_project_selection(&manager, project_root, manifest, plugin_id)?
+        };
         let target_modes = next_target_modes(&selection.target_modes);
         let report = self
             .editor_manager
-            .set_native_aware_project_plugin_target_modes(
-                project_root,
-                manifest,
-                plugin_id,
-                target_modes,
-            )?;
+            .enter()
+            .map_err(|error| error.to_string())
+            .and_then(|manager| {
+                manager.set_native_aware_project_plugin_target_modes(
+                    project_root,
+                    manifest,
+                    plugin_id,
+                    target_modes,
+                )
+            })?;
         Ok(format!(
             "Plugin {} target modes set to {}",
             report.plugin_id,

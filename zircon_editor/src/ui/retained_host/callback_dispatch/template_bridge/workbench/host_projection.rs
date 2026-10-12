@@ -1,7 +1,7 @@
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use crate::ui::retained_host::callback_dispatch::constants::BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID;
+use crate::ui::retained_host::callback_dispatch::constants::UNREAL_EDITOR_SHELL_DOCUMENT_ID;
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostProjection, RetainedUiProjection,
 };
@@ -12,7 +12,7 @@ pub(super) fn build_builtin_host_window_surface(
     runtime: &EditorUiHostRuntime,
     shell_size: UiSize,
 ) -> Result<UiSurface, BuiltinHostWindowTemplateBridgeError> {
-    let mut surface = runtime.build_shared_surface(BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID)?;
+    let mut surface = runtime.build_shared_surface(UNREAL_EDITOR_SHELL_DOCUMENT_ID)?;
     surface.compute_layout(shell_size)?;
     Ok(surface)
 }

@@ -95,6 +95,113 @@ Describe 'MVP artifact storage policy' {
         }
     }
 
+    It 'resolves acceptance and project namespaces inside one zircon-local container' {
+        Import-Module $policyModule -Force -ErrorAction Stop
+        foreach ($drive in @('D', 'E', 'F')) {
+            foreach ($case in @(
+                    @{ Leaf = 'mvp-f0-fixture'; Namespace = 'mvp-staging-runs' },
+                    @{ Leaf = 'mvp-f5-evidence-fixture'; Namespace = 'mvp-acceptance-evidence' },
+                    @{ Leaf = 'mvp-render-extract-scale-project-fixture'; Namespace = 'render-extract-scale-projects' }
+                )) {
+                foreach ($suffix in @('', '\artifacts\literal.txt')) {
+                    $path = "${drive}:\cargo-targets\zircon-local\$($case.Leaf)$suffix"
+                    $resolution = Resolve-MvpArtifactStoragePath -Path $path -NamespaceId $case.Namespace
+                    $resolution.display_path | Should Be $path
+                    $resolution.root_id | Should Be "windows-local-$($drive.ToLowerInvariant())"
+                    $resolution.namespace_id | Should Be $case.Namespace
+                    $resolution.capability_class | Should Be 'windows-local-artifact'
+                }
+            }
+        }
+        (Resolve-MvpArtifactStoragePath `
+                -Path '\\?\D:\cargo-targets\zircon-local\mvp-f0-fixture' `
+                -NamespaceId 'mvp-staging-runs').display_path |
+            Should Be 'D:\cargo-targets\zircon-local\mvp-f0-fixture'
+    }
+
+    It 'rejects arbitrary containers lookalikes bare prefixes and different namespaces' {
+        Import-Module $policyModule -Force -ErrorAction Stop
+        $failures = [Collections.Generic.List[string]]::new()
+        foreach ($candidatePath in @(
+                'D:\cargo-targets\zircon-local',
+                'D:\cargo-targets\zircon-local\mvp-f0-',
+                'D:\cargo-targets\zircon-local\mvp-f5-evidence-fixture',
+                'D:\cargo-targets\zircon-local\zircon-local\mvp-f0-fixture',
+                'D:\cargo-targets\scratch\mvp-f0-fixture',
+                'D:\cargo-targets\scratch\zircon-local\mvp-f0-fixture',
+                'D:\cargo-targets\zircon-local-lookalike\mvp-f0-fixture',
+                'D:\cargo-targets-lookalike\zircon-local\mvp-f0-fixture',
+                'D:\nested\cargo-targets\zircon-local\mvp-f0-fixture',
+                'D:\targets\zircon-local\mvp-f0-fixture',
+                'C:\cargo-targets\zircon-local\mvp-f0-fixture',
+                (Join-Path $repoRoot 'target\zircon-local\mvp-f0-fixture')
+            )) {
+            try {
+                Resolve-MvpArtifactStoragePath -Path $candidatePath -NamespaceId 'mvp-staging-runs' | Out-Null
+            }
+            catch {
+                $failures.Add($candidatePath) | Out-Null
+            }
+        }
+        $failures.Count | Should Be 12
+    }
+
+    It 'rejects escape segments even when the resolved target stays in an approved namespace' {
+        Import-Module $policyModule -Force -ErrorAction Stop
+        foreach ($path in @(
+                'D:\cargo-targets\zircon-local\mvp-f0-fixture\..\mvp-f0-other',
+                'D:\cargo-targets\zircon-local\..\mvp-f0-fixture',
+                'D:\cargo-targets\mvp-f0-fixture\..\mvp-f0-other'
+            )) {
+            { Resolve-MvpArtifactStoragePath -Path $path -NamespaceId 'mvp-staging-runs' } |
+                Should Throw 'physical path'
+        }
+    }
+
+    It 'rejects a junction alias to an otherwise approved physical namespace' {
+        Import-Module $policyModule -Force -ErrorAction Stop
+        Import-Module (Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+        $fixtureRoot = Join-Path $TestDrive 'junction-policy-root'
+        $localRoot = Join-Path $fixtureRoot 'zircon-local'
+        [IO.Directory]::CreateDirectory($localRoot) | Out-Null
+        (Resolve-ZirconWindowsPath -Path $localRoot).DisplayPath | Should Be $localRoot
+        $fixtureSnapshot = Get-MvpArtifactStoragePolicySnapshot
+        $fixtureSnapshot.default_root_id = 'fixture-root'
+        $fixtureSnapshot.roots = @([pscustomobject][ordered]@{
+                root_id = 'fixture-root'
+                display_path = $fixtureRoot
+                capability_class = 'windows-local-artifact'
+            })
+        $fixtureId = [guid]::NewGuid().ToString('N')
+        $targetPath = Join-Path $localRoot "mvp-f0-policy-target-$fixtureId"
+        $aliasPath = Join-Path $localRoot "mvp-f0-policy-alias-$fixtureId"
+        [IO.Directory]::CreateDirectory($targetPath) | Out-Null
+        try {
+            New-Item -ItemType Junction -Path $aliasPath -Target $targetPath | Out-Null
+            { Resolve-MvpArtifactStoragePath -Path $aliasPath -NamespaceId 'mvp-staging-runs' -PolicySnapshot $fixtureSnapshot } |
+                Should Throw 'physical path'
+            { Resolve-MvpArtifactStoragePath -Path (Join-Path $aliasPath 'unresolved.txt') -NamespaceId 'mvp-staging-runs' -PolicySnapshot $fixtureSnapshot } |
+                Should Throw 'physical path'
+            (Resolve-MvpArtifactStoragePath -Path $targetPath -NamespaceId 'mvp-staging-runs' -PolicySnapshot $fixtureSnapshot).display_path |
+                Should Be $targetPath
+        }
+        finally {
+            foreach ($fixturePath in @($aliasPath, $targetPath)) {
+                $absolutePath = [IO.Path]::GetFullPath($fixturePath)
+                if (-not $absolutePath.StartsWith($localRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+                    throw 'Refusing cleanup outside the synthetic fixture root.'
+                }
+                if ([IO.Directory]::Exists($absolutePath)) {
+                    $physicalPath = (Resolve-ZirconWindowsPath -Path $absolutePath).DisplayPath
+                    if (-not $physicalPath.StartsWith($localRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+                        throw 'Refusing cleanup of a synthetic fixture alias outside its physical root.'
+                    }
+                    [IO.Directory]::Delete($absolutePath, $false)
+                }
+            }
+        }
+    }
+
     It 'probes real filesystem free-space durable-flush and same-volume move capabilities' {
         Import-Module $policyModule -Force -ErrorAction Stop
         $fixtureRoot = Join-Path $TestDrive 'capability-root'

@@ -114,7 +114,7 @@ describe('theme product consumer host', () => {
         const button = projection.shapes.find(
           (shape) => shape.nodeId === 'review_theme_component_0',
         )!;
-        expect(button.text?.fontSize).toBe(14);
+        expect(button.text?.fontSize).toBe(13.333333);
         expect(button.paint.borderRadius).toBe(4);
         const original = { ...theme, penpot_review_host: result.projection };
         expect(

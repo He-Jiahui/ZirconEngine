@@ -39,7 +39,7 @@ pub(super) fn present_redraw(
         invalidation,
     );
     match present_result {
-        Ok(diagnostics) => {
+        Ok(_) => {
             event_loop_state.reset_surface_present_retry_backoff();
             if let Some(backend) = event_loop_state.presenter_backend.filter(|backend| {
                 profile_capture_enabled()
@@ -94,9 +94,6 @@ pub(super) fn present_redraw(
             } else {
                 event_loop_state.complete_profile_warmup_present();
             }
-            event_loop_state
-                .host
-                .set_host_refresh_diagnostics_overlay(diagnostics);
             if let Err(error) = event_loop_state.host.notify_first_presented() {
                 event_loop_state.host.report_fatal_failure(
                     "editor_host_window",

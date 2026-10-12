@@ -41,15 +41,16 @@ pub(crate) struct CoreEditContext {
 ///
 /// A gateway may report a transport or protocol failure only after it has invoked the callback.
 /// The transaction command must therefore distinguish an unexecuted callback from a completed
-/// scene mutation that needs compensation.
+/// scene mutation that needs compensation. Callback protocol diagnostics precede
+/// the gateway dispatch diagnostic when both occur.
 pub(crate) struct SceneMutationOutcome<R> {
     result: R,
-    post_callback_error: Option<EditCommandError>,
+    post_callback_errors: Vec<EditCommandError>,
 }
 
 impl<R> SceneMutationOutcome<R> {
-    pub(crate) fn into_parts(self) -> (R, Option<EditCommandError>) {
-        (self.result, self.post_callback_error)
+    pub(crate) fn into_parts(self) -> (R, Vec<EditCommandError>) {
+        (self.result, self.post_callback_errors)
     }
 }
 
@@ -174,14 +175,16 @@ impl CoreEditContext {
                 Err(error) => gateway_failure(error),
             });
         };
-        let post_callback_error = if duplicate_callback {
-            Some(gateway_callback_protocol_failure())
-        } else {
-            dispatch.err().map(gateway_failure)
-        };
+        let mut post_callback_errors = Vec::new();
+        if duplicate_callback {
+            post_callback_errors.push(gateway_callback_protocol_failure());
+        }
+        if let Err(error) = dispatch {
+            post_callback_errors.push(gateway_failure(error));
+        }
         Ok(SceneMutationOutcome {
             result,
-            post_callback_error,
+            post_callback_errors,
         })
     }
 

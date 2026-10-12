@@ -107,7 +107,7 @@ impl RuntimeUiSurfaceSet {
         project: &ProjectManager,
         asset_manager: &ProjectAssetManager,
         roots: &[AssetUri],
-        text_context: Arc<TextRuntimeContext>,
+        text_context: &TextRuntimeContext,
     ) -> RuntimeProjectResult<Self> {
         if roots.is_empty() {
             return Ok(Self::default());
@@ -137,7 +137,7 @@ impl RuntimeUiSurfaceSet {
                 tree_id,
                 document.as_ref(),
                 &prototype_store,
-                &text_context,
+                text_context,
             )
             .map_err(|source| RuntimeProjectError::BuildRuntimeUiRoot {
                 root: root.to_string(),

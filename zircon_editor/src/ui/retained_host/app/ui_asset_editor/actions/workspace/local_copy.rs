@@ -1,4 +1,5 @@
 use super::{RetainedEditorHost, UiAssetActionDispatch};
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -11,9 +12,10 @@ impl RetainedEditorHost {
             return UiAssetActionDispatch::Unhandled;
         }
 
-        match self
-            .editor_manager
-            .save_ui_asset_editor_local_copy_next_to_source(instance_id)
+        match self.editor_manager
+            .enter()
+            .map_err(EditorError::from)
+            .and_then(|manager| manager.save_ui_asset_editor_local_copy_next_to_source(instance_id))
         {
             Ok(path) => {
                 self.set_status_line(format!("Saved UI asset local copy {}", path.display()));

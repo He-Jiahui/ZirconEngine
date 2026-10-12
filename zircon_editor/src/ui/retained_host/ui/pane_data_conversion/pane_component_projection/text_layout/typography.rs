@@ -7,6 +7,9 @@ use super::attributes::f32_attribute;
 pub(super) struct ProjectedTypography {
     pub(super) font_size: f32,
     pub(super) font_weight: i32,
+    pub(super) line_height: f32,
+    pub(super) line_height_ratio: f32,
+    pub(super) font_family: String,
     pub(super) text_align: String,
     pub(super) overflow: String,
 }
@@ -21,6 +24,12 @@ pub(super) fn projected_typography(
             .get("font_weight")
             .and_then(value_as_i32)
             .unwrap_or(0),
+        line_height: f32_attribute(attributes, "line_height", 0.0),
+        line_height_ratio: f32_attribute(attributes, "line_height_ratio", 0.0),
+        font_family: attributes
+            .get("font_family")
+            .and_then(value_as_string)
+            .unwrap_or_default(),
         text_align: attributes
             .get("text_align")
             .or_else(|| attributes.get("textAlign"))

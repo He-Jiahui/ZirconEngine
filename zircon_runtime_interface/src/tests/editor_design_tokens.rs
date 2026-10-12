@@ -103,6 +103,7 @@ fn editor_design_tokens_encode_workbench_style_notes_palette_and_density() {
 #[test]
 fn editor_design_tokens_default_new_chrome_tokens_for_older_payloads() {
     let defaults = EditorDesignTokens::workbench_dark();
+    let expected_palette = defaults.palette.clone();
     let expected_chrome = defaults.chrome;
     let expected_density = defaults.density;
     let expected_pill_radius = defaults.controls.pill_radius;
@@ -126,6 +127,15 @@ fn editor_design_tokens_default_new_chrome_tokens_for_older_payloads() {
     // 移除后来加入的 token 字段，模拟旧配置载荷并检查缺省值回填。
     let mut serialized = serde_json::to_value(defaults).unwrap();
     serialized.as_object_mut().unwrap().remove("chrome");
+    for field in [
+        "surface_input",
+        "surface_tab_hover",
+        "text_tab_active",
+        "surface_selected_inactive",
+        "text_selected",
+    ] {
+        serialized["palette"].as_object_mut().unwrap().remove(field);
+    }
     serialized["controls"]
         .as_object_mut()
         .unwrap()
@@ -198,6 +208,7 @@ fn editor_design_tokens_default_new_chrome_tokens_for_older_payloads() {
 
     let decoded: EditorDesignTokens = serde_json::from_value(serialized).unwrap();
 
+    assert_eq!(decoded.palette, expected_palette);
     assert_eq!(decoded.chrome, expected_chrome);
     assert_eq!(decoded.controls.pill_radius, expected_pill_radius);
     assert_eq!(decoded.density.gap_tight, expected_gap_tight);
@@ -615,7 +626,7 @@ fn editor_design_tokens_register_canonical_and_css_custom_property_values() {
         .filter(|name| !name.starts_with("--"))
         .count();
     // Input fill, tab hover and active tab text each have their own authored theme token.
-    assert_eq!(canonical_token_count, 164);
+    assert_eq!(canonical_token_count, 166);
     assert_eq!(registry.len(), canonical_token_count * 2 + 26);
 
     for token_name in registry.keys().filter(|name| !name.starts_with("--")) {

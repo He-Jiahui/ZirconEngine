@@ -4,8 +4,8 @@ use std::sync::{mpsc, Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 
 use zircon_runtime::core::{
-    CoreError, CoreResult, CoreWeak, ModuleContext, ModuleDescriptor, ModuleLifecycle,
-    TaskGraphShutdownReport,
+    CoreError, CoreResult, CoreWeak, ModuleCleanupContext, ModuleContext, ModuleDescriptor,
+    ModuleLifecycle, TaskGraphShutdownReport,
 };
 use zircon_runtime::plugin::{
     PluginPackageRole, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
@@ -85,7 +85,7 @@ impl ModuleLifecycle for RetryLifecycle {
         Ok(())
     }
 
-    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+    fn cleanup(&self, _context: &ModuleCleanupContext<'_>) -> CoreResult<()> {
         self.control.cleanup_calls.fetch_add(1, Ordering::SeqCst);
         let gate = self.control.gate.lock().unwrap().take();
         if let Some((entered, continue_cleanup)) = gate {

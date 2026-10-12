@@ -1,5 +1,5 @@
 use super::*;
-use crate::ui::template_runtime::WORKBENCH_WINDOW_DOCUMENT_ID;
+use crate::ui::template_runtime::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
     pub(super) fn dispatch_workbench_context_menu_requested(
@@ -7,7 +7,7 @@ impl RetainedEditorHost {
         mut request: WorkbenchContextMenuRequestData,
     ) {
         self.focus_callback_source_window();
-        if !self.active_activity_window_template_document_is(WORKBENCH_WINDOW_DOCUMENT_ID) {
+        if !(match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) { Ok(value) => value, Err(error) => { self.set_status_line(error.to_string()); return; } }) {
             return;
         }
 

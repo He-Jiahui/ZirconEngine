@@ -27,6 +27,7 @@ impl ChromeCommandStream {
                 size,
                 line_height: current_host_metrics().line_height(size.max(1.0)),
                 style: UiTextRunPaintStyle::default(),
+                font_request: None,
             },
         );
     }

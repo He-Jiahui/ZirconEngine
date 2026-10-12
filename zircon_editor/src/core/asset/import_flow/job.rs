@@ -6,7 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::core::asset::EditorAssetIndex;
 use crate::core::jobs::{EditorJob, JobContext, JobError};
-use zircon_runtime::asset::{AssetManager, ProjectImportReceipt};
+use zircon_runtime::asset::project::ProjectActivationIdentity;
+use zircon_runtime::asset::ProjectImportReceipt;
 
 use super::diagnostics::{EditorAssetImportFlightDiagnostics, EditorModelImportDiagnostics};
 use super::flight::ImportFlight;
@@ -16,13 +17,14 @@ use super::state::{
 };
 use super::{
     AssetImportBackend, EditorAssetImportAdmissionLimits, EditorAssetImportExecutionError,
-    EditorAssetImportRequest, EditorAssetImportResult,
+    EditorAssetImportRequest, EditorAssetImportResult, RegisteredImportSource,
 };
 
 // 租约随工作一起转移；准入拒绝、恐慌或提前丢弃也必须释放导入标记并完成共享票据。
 pub(super) struct ImportLease {
     state: Arc<ImportFlowSharedState>,
     index: Arc<Mutex<EditorAssetIndex>>,
+    project_scope: Option<ProjectActivationIdentity>,
     key: ImportGenerationKey,
     flight_identity: FlightIdentity,
     flight: Arc<ImportFlight>,
@@ -35,6 +37,7 @@ impl ImportLease {
     pub(super) fn new(
         state: Arc<ImportFlowSharedState>,
         index: Arc<Mutex<EditorAssetIndex>>,
+        project_scope: Option<ProjectActivationIdentity>,
         key: ImportGenerationKey,
         flight_identity: FlightIdentity,
         flight: Arc<ImportFlight>,
@@ -44,6 +47,7 @@ impl ImportLease {
         Self {
             state,
             index,
+            project_scope,
             key,
             flight_identity,
             flight,
@@ -71,8 +75,12 @@ impl ImportLease {
             self.limits,
         );
         if let ImportFinishAction::ClearUuid(token) = action {
-            lock_editor_asset_index_recovering_poison(self.index.as_ref())
-                .clear_import(token.uuid());
+            let mut index = lock_editor_asset_index_recovering_poison(self.index.as_ref());
+            match self.project_scope.as_ref() {
+                Some(expected) => index.clear_import_for_project(token.uuid(), expected),
+                None => index.clear_import(token.uuid()),
+            }
+            drop(index);
             self.state.complete_uuid_clear(token);
         }
         self.diagnostics.project_result(result.clone());
@@ -95,7 +103,7 @@ pub(super) struct AssetImportJob {
 }
 
 pub(super) struct AssetImportModelJob {
-    manager: Arc<dyn AssetManager>,
+    source: RegisteredImportSource,
     source_path: PathBuf,
     diagnostics: Arc<EditorModelImportDiagnostics>,
     terminal_projected: bool,
@@ -103,12 +111,12 @@ pub(super) struct AssetImportModelJob {
 
 impl AssetImportModelJob {
     pub(super) fn new(
-        manager: Arc<dyn AssetManager>,
+        source: RegisteredImportSource,
         source_path: PathBuf,
         diagnostics: Arc<EditorModelImportDiagnostics>,
     ) -> Self {
         Self {
-            manager,
+            source,
             source_path,
             diagnostics,
             terminal_projected: false,
@@ -131,7 +139,7 @@ impl EditorJob for AssetImportModelJob {
         context.check_cancelled()?;
         context.report_progress(0, 1, format!("Importing {}", self.source_path.display()));
         let result = match catch_unwind(AssertUnwindSafe(|| {
-            self.manager.import_model_source(&self.source_path)
+            self.source.import_model_source(&self.source_path)
         })) {
             Ok(result) => result.map_err(JobError::failed),
             Err(payload) => Err(JobError::Panicked(panic_message(payload))),
@@ -173,8 +181,7 @@ impl AssetImportJob {
                     uri: self.request.uri().clone(),
                 })
             })?;
-        // BUG: [CR-EDITOR-PROJECT-0001] 后端已持久提交后到达的取消会在此把成功导入报告为已取消；证据：运行时导入先发布代际并确认持久化再返回，模型导入已避免该时序。
-        context.check_cancelled()?;
+        // The Runtime status follows a durable commit; late cancellation cannot undo it.
         context.report_progress(1, 1, format!("Imported {}", self.request.uri()));
         Ok(EditorAssetImportResult::new(
             Arc::clone(self.request.shared_uri()),

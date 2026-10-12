@@ -61,32 +61,6 @@ fn page_chrome_paint_clip(top_bar: &FrameRect, page: &HostPageChromeData) -> Opt
     }
 }
 
-pub(super) fn draw_status_bar_template_nodes(
-    frame: &mut HostRgbaFrame,
-    root: &RootFrames,
-    presentation: &HostWindowPresentationData,
-) {
-    if frame
-        .paint_clip()
-        .is_some_and(|damage| intersect(&root.status_bar, damage).is_none())
-    {
-        return;
-    }
-    let scene = &presentation.host_scene_data;
-    zircon_runtime::profile_scope!(
-        "editor",
-        "host_painter",
-        "painter_status_bar_template_nodes"
-    );
-    draw_template_nodes(
-        frame,
-        &scene.status_bar.template_nodes,
-        &scene.status_bar.status_bar_frame,
-        &root.status_bar,
-        None,
-    );
-}
-
 #[cfg(test)]
 #[path = "tests/chrome_page_paint_clip_tests.rs"]
 mod page_paint_clip_tests;

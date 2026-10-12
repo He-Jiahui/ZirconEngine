@@ -6,8 +6,8 @@ use zircon_runtime_interface::ui::binding::UiEventKind;
 
 use super::support::{collect_zui_document_files, editor_asset_root, load_zui_document};
 
-const FROZEN_NON_COMMAND_ROUTE_BINDING_COUNT: usize = 1_464;
-const FROZEN_NON_COMMAND_ROUTE_BINDING_HASH: u64 = 0xff00_9acf_d490_db55;
+const FROZEN_NON_COMMAND_ROUTE_BINDING_COUNT: usize = 1_145;
+const FROZEN_NON_COMMAND_ROUTE_BINDING_HASH: u64 = 0xd539_915f_34ba_636b;
 const FNV_1A_64_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_1A_64_PRIME: u64 = 0x0000_0100_0000_01b3;
 
@@ -20,13 +20,73 @@ struct CanonicalCommandActionBinding {
 const CANONICAL_COMMAND_ACTION_BINDINGS: &[CanonicalCommandActionBinding] = &[
     CanonicalCommandActionBinding {
         path: "assets_activity.zui",
-        binding_id: "AssetSurface/OpenAssetBrowser",
+        binding_id: "Workbench/AssetsActivityOpenBrowser",
         command: "view.asset_browser.open",
     },
     CanonicalCommandActionBinding {
         path: "host/asset_surface_controls.zui",
         binding_id: "AssetSurface/OpenAssetBrowser",
         command: "view.asset_browser.open",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/FilterAll",
+        command: "view.console.filter.all",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/FilterError",
+        command: "view.console.filter.error",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/FilterWarning",
+        command: "view.console.filter.warning",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/FilterInfo",
+        command: "view.console.filter.info",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/SourceAll",
+        command: "view.console.source.all",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/SourceEditor",
+        command: "view.console.source.editor",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/SourceRuntime",
+        command: "view.console.source.runtime",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/SourcePlay",
+        command: "view.console.source.play",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/SourcePlugin",
+        command: "view.console.source.plugin",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/SourceImport",
+        command: "view.console.source.import",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/SourceScriptBuild",
+        command: "view.console.source.script_build",
+    },
+    CanonicalCommandActionBinding {
+        path: "host/console_body.zui",
+        binding_id: "ConsolePaneBody/ClearConsole",
+        command: "view.console.clear",
     },
     CanonicalCommandActionBinding {
         path: "host/inspector_surface_controls.zui",
@@ -44,39 +104,24 @@ const CANONICAL_COMMAND_ACTION_BINDINGS: &[CanonicalCommandActionBinding] = &[
         command: "runtime.play_mode.exit",
     },
     CanonicalCommandActionBinding {
-        path: "components/workbench/shell/workbench_top_toolbar.zui",
-        binding_id: "AssetSurface/OpenAssetBrowser",
-        command: "view.asset_browser.open",
-    },
-    CanonicalCommandActionBinding {
-        path: "components/workbench/shell/workbench_top_toolbar.zui",
-        binding_id: "MenuAction/OpenProject",
-        command: "file.project.open",
-    },
-    CanonicalCommandActionBinding {
-        path: "components/workbench/shell/workbench_top_toolbar.zui",
+        path: "unreal/components/toolbar.zui",
         binding_id: "MenuAction/SaveProject",
         command: "file.project.save",
     },
     CanonicalCommandActionBinding {
-        path: "components/workbench/shell/workbench_top_toolbar.zui",
+        path: "unreal/components/toolbar.zui",
+        binding_id: "Workbench/OpenAssetBrowserFromToolbar",
+        command: "view.asset_browser.open",
+    },
+    CanonicalCommandActionBinding {
+        path: "unreal/components/toolbar.zui",
         binding_id: "Run/Play",
         command: "runtime.play_mode.enter",
     },
     CanonicalCommandActionBinding {
-        path: "components/workbench/shell/workbench_top_toolbar.zui",
-        binding_id: "ViewportToolbar/ExitPlayMode",
+        path: "unreal/components/toolbar.zui",
+        binding_id: "Run/Stop",
         command: "runtime.play_mode.exit",
-    },
-    CanonicalCommandActionBinding {
-        path: "host/workbench_shell.zui",
-        binding_id: "WorkbenchMenuBar/OpenProject",
-        command: "file.project.open",
-    },
-    CanonicalCommandActionBinding {
-        path: "host/workbench_shell.zui",
-        binding_id: "WorkbenchMenuBar/SaveProject",
-        command: "file.project.save",
     },
 ];
 

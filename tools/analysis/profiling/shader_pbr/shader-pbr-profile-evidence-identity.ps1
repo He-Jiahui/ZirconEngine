@@ -53,7 +53,7 @@ function New-ZirconShaderPbrReadyFrameEvidenceIdentity {
     $identity = [ordered]@{
         schema = "zircon_shader_pbr_viewer_evidence_identity_v1"
         run_id = $runId
-        validation_policy = "zircon_shader_pbr_viewer_ready_frame_v15"
+        validation_policy = "zircon_shader_pbr_viewer_ready_frame_v18"
         source_manifest_sha256 = $sourceManifestHash
         viewer_binary = $viewer
         hdri = $hdri

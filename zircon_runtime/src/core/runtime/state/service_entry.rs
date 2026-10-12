@@ -50,6 +50,7 @@ impl ServiceEntry {
     pub(crate) fn invalidate_for_unload(&mut self) -> Option<ServiceObject> {
         debug_assert!(!self.admission_open);
         debug_assert_eq!(self.in_flight_calls, 0);
+        debug_assert!(self.initialization_owner.is_none());
         let retired = self.instance.take();
         self.initialization_owner = None;
         self.admission_open = false;
@@ -66,18 +67,25 @@ impl ServiceEntry {
 
     pub(crate) fn close_admission(&mut self) {
         self.admission_open = false;
+        if self.lifecycle != LifecycleState::Unloaded {
+            self.lifecycle = LifecycleState::Stopping;
+        }
     }
 
     // 为持有旧句柄的调用请求申请许可；停止阶段拒绝新调用。
     pub(crate) fn enter_call(&mut self, service_name: &str) -> Result<(), CoreError> {
+        self.in_flight_calls = self.next_call_count(service_name)?;
+        Ok(())
+    }
+
+    // Check both capacities before changing either paired admission count.
+    pub(crate) fn next_call_count(&self, service_name: &str) -> Result<usize, CoreError> {
         if !self.admission_open || self.lifecycle != LifecycleState::Running {
             return Err(CoreError::ServiceUnavailable(service_name.to_owned()));
         }
-        self.in_flight_calls = self
-            .in_flight_calls
+        self.in_flight_calls
             .checked_add(1)
-            .ok_or_else(|| CoreError::ServiceUnavailable(service_name.to_owned()))?;
-        Ok(())
+            .ok_or_else(|| CoreError::ServiceUnavailable(service_name.to_owned()))
     }
 
     pub(crate) fn leave_call(&mut self) -> bool {
@@ -100,6 +108,12 @@ impl ServiceEntry {
     }
 
     pub(crate) fn reset_after_failed_reactivation(&mut self) -> Option<ServiceObject> {
+        assert!(
+            !self.admission_open
+                && self.in_flight_calls == 0
+                && self.initialization_owner.is_none(),
+            "an activation generation must settle before reset"
+        );
         let retired = self.instance.take();
         if retired.is_some() {
             self.generation = next_service_generation(self.generation);
@@ -111,6 +125,12 @@ impl ServiceEntry {
     }
 
     pub(crate) fn reset_after_failed_activation(&mut self) -> Option<ServiceObject> {
+        assert!(
+            !self.admission_open
+                && self.in_flight_calls == 0
+                && self.initialization_owner.is_none(),
+            "an activation generation must settle before reset"
+        );
         let retired = self.instance.take();
         if retired.is_some() {
             self.generation = next_service_generation(self.generation);

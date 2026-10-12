@@ -18,22 +18,25 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let item_index = item_index.max(0) as usize;
-        let result = editor::dispatch_editor_collection_event(
-            &self.editor_manager,
-            &instance_id,
-            collection_id,
-            event_kind,
-            item_index,
-        )
-        .or_else(|| {
-            binding::dispatch_binding_collection_event(
-                &self.editor_manager,
+        let result = match self.editor_manager.enter().map_err(EditorError::from) {
+            Ok(manager) => editor::dispatch_editor_collection_event(
+                &manager,
                 &instance_id,
                 collection_id,
                 event_kind,
                 item_index,
             )
-        });
+            .or_else(|| {
+                binding::dispatch_binding_collection_event(
+                    &manager,
+                    &instance_id,
+                    collection_id,
+                    event_kind,
+                    item_index,
+                )
+            }),
+            Err(error) => Some(Err(error)),
+        };
 
         let Some(result) = result else {
             self.set_status_line(format!(

@@ -9,6 +9,35 @@ pub(super) fn wire_ui_asset_callbacks(
 ) {
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
+    pane_surface_host.on_retained_pane_input(
+        move |instance_id: SharedString, source_frame, event| {
+            // Public callbacks must still refer to a genuinely visible native canvas.
+            if !source_ui.retained_pane_input_source_visible(instance_id.as_str()) {
+                return;
+            }
+            dispatch_with_callback_source(&weak, &source_ui, |host| {
+                if host
+                    .builtin_template_runtime
+                    .owns_generated_bottom_pane(instance_id.as_str())
+                {
+                    host.dispatch_generated_bottom_pane_input(
+                        instance_id.as_str(),
+                        &source_frame,
+                        event,
+                    );
+                } else {
+                    host.dispatch_ui_asset_preview_input(
+                        instance_id.as_str(),
+                        &source_frame,
+                        event,
+                    );
+                }
+            });
+        },
+    );
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
     pane_surface_host.on_ui_asset_action(
         move |instance_id: SharedString, action_id: SharedString| {
             dispatch_with_callback_source(&weak, &source_ui, |host| {

@@ -111,12 +111,21 @@ class ExecutionHost:
         if str(recipe.get("kind", "")).startswith("cargo"):
             build_root = recipe.get("buildRoot") or sealed.get("buildRoot")
             approved = canonical_build_root(build_root)
+            if recipe.get("tempRoot"):
+                from ..workflow.post_task_cache import require_execution_scratch
+                scratch = require_execution_scratch(self.state, self.execution_id)
+                expected = {"scratchGeneration": scratch["scratchGeneration"],
+                            "effectiveEnvironmentDigest": digest(scratch["effectiveEnvironment"])}
+                if payload.get("taskScratch") != expected:
+                    raise JenkinsError("task_scratch_contract_invalid", "The execution lacks its recorded effective TEMP contract")
+                recipe["_taskScratch"] = scratch
             for field in ("preparationRoot", "materializedRoot", "outputRoot", "targetDir", "tempRoot", "cargoHome"):
                 value = recipe.get(field) or sealed.get(field)
                 if value:
                     physical_path_under(approved, value)
             for key in ("CARGO_TARGET_DIR", "CARGO_HOME", "CARGO_BUILD_BUILD_DIR", "SCCACHE_DIR", "TEMP", "TMP", "TMPDIR"):
-                value = (recipe.get("executionEnvironment") or {}).get(key)
+                value = ((recipe.get("_taskScratch") or {}).get("effectiveEnvironment") or {}).get(key)
+                value = value or (recipe.get("executionEnvironment") or {}).get(key)
                 if value:
                     physical_path_under(approved, value).mkdir(parents=True, exist_ok=True)
             phase_outputs = payload.get("phaseOutputRoot")
@@ -143,6 +152,8 @@ class ExecutionHost:
         command = tuple(recipe["_selectedCommand"])
         env = dict(os.environ)
         env.update({str(k): str(v) for k, v in (recipe.get("environment") or recipe.get("env") or {}).items()})
+        if recipe.get("_taskScratch"):
+            env.update(recipe["_taskScratch"]["effectiveEnvironment"])
         cwd = str(recipe.get("preparationRoot") or recipe.get("materializedRoot") or
                    sealed.get("preparationRoot") or sealed.get("materializedRoot"))
         self.job = NativeJob.launch(command, cwd=cwd, env=env, text=True)
@@ -152,6 +163,9 @@ class ExecutionHost:
                         "nativeJobId": record.native_job_id, "phase": recipe.get("_phase"), "commandDigest": digest(command),
                         "executable": self.job.identity.executable, "pid": self.job.identity.pid,
                         "processBirthToken": self.job.identity.creation_time, "cancelEpoch": 0}
+        if recipe.get("_taskScratch"):
+            host_payload["taskScratch"] = {"scratchGeneration": recipe["_taskScratch"]["scratchGeneration"],
+                                           "effectiveEnvironment": recipe["_taskScratch"]["effectiveEnvironment"]}
         self._persist(host_payload)
         # The execution engine owns execution.status and final acceptance. The
         # host publishes only its native identity; this avoids CAS races between
@@ -240,10 +254,14 @@ class ExecutionHost:
             requested = phases
         if isinstance(requested, str):
             requested = [requested]
-        allowed = ("compile", "list", "test")
+        if recipe.get("kind") == "cargo-editor-product":
+            from ..editor_product import PHASES
+            allowed = PHASES
+        else:
+            allowed = ("compile", "list", "test")
         result = [str(value) for value in requested]
         if not result or any(value not in allowed for value in result):
-            raise JenkinsError("recipe_phase_invalid", "phase must be compile, list, or test")
+            raise JenkinsError("recipe_phase_invalid", "phase must belong to the trusted recipe phase contract")
         if len(set(result)) != len(result):
             raise JenkinsError("recipe_phase_duplicate", "recipe phases must be unique")
         return result
@@ -278,6 +296,9 @@ class ExecutionHost:
         log_root.mkdir(parents=True, exist_ok=True)
         host_payload: dict[str, Any] = {**self.host.to_dict(), "status": "running",
                                         "executionId": self.execution_id, "phaseRecords": []}
+        if recipe.get("_taskScratch"):
+            host_payload["taskScratch"] = {"scratchGeneration": recipe["_taskScratch"]["scratchGeneration"],
+                                           "effectiveEnvironment": recipe["_taskScratch"]["effectiveEnvironment"]}
         host_row = self._persist(host_payload)
         for phase in names:
             command = commands_by_phase[phase]
@@ -288,6 +309,26 @@ class ExecutionHost:
                                recipe.get("environment"), recipe.get("executionEnvironment"), recipe.get("env")):
                     if isinstance(source, Mapping):
                         phase_env.update({str(k): str(v) for k, v in source.items()})
+                if recipe.get("_taskScratch"):
+                    phase_env.update(recipe["_taskScratch"]["effectiveEnvironment"])
+                product = recipe.get("kind") == "cargo-editor-product"
+                if product:
+                    from ..editor_product import _verify_source
+                    _verify_source(recipe, sealed, Path(recipe["preparationRoot"]))
+                    for path_field, hash_field in (("cargoPath", "cargoSha256"), ("rustcPath", "rustcSha256"),
+                                                  ("productPython", "productPythonSha256"), ("productRunner", "productRunnerSha256")):
+                        if file_digest(recipe[path_field]) != recipe[hash_field]:
+                            raise JenkinsError("editor_tool_changed", "Product tool differs from its immutable recipe")
+                    # Validate fresh evidence storage before the child can write.
+                    product_output = physical_path_under(canonical_build_root(recipe["buildRoot"]),
+                        Path(execution["payload"]["phaseOutputRoot"]) / phase)
+                    if product_output.exists() and any(product_output.iterdir()):
+                        raise JenkinsError("phase_outputs_existing", "A product phase cannot replace existing output evidence")
+                    product_output.mkdir(parents=True, exist_ok=True)
+                    phase_env.update({"ZIRCON_PRODUCT_STATE": str(self.state.path),
+                                      "ZIRCON_PRODUCT_EXECUTION": self.execution_id,
+                                      "ZIRCON_PRODUCT_OUTPUT_ROOT": str(product_output),
+                                      "PYTHONDONTWRITEBYTECODE": "1"})
                 self.job = NativeJob.launch(tuple(command), cwd=str(recipe.get("preparationRoot") or
                                                       recipe.get("materializedRoot") or sealed.get("preparationRoot") or
                                                       sealed.get("materializedRoot")),
@@ -311,6 +352,8 @@ class ExecutionHost:
                         raise JenkinsError("test_stage_contract_missing", "test phase requires requiredTestStages")
                 elif phase == "compile":
                     test_stages = ["build"]
+                elif product and phase_stage in recipe.get("requiredNativeStages", ()):
+                    test_stages = [phase_stage]
                 else:
                     test_stages = []
                 phase_execution_id = f"{self.execution_id}:{phase}"
@@ -337,7 +380,7 @@ class ExecutionHost:
                 output_root = str(output_root)
                 if str(recipe.get("kind", "")).startswith("cargo"):
                     physical_path_under(canonical_build_root(recipe["buildRoot"]), output_root)
-                    if Path(output_root).exists() and any(Path(output_root).iterdir()):
+                    if not product and Path(output_root).exists() and any(Path(output_root).iterdir()):
                         raise JenkinsError("phase_outputs_existing", "A new phase cannot replace existing output evidence")
                 Path(output_root).mkdir(parents=True, exist_ok=True)
                 required_outputs = ["stdout.log", "stderr.log"] if phase in {"compile", "test"} else []
@@ -346,14 +389,14 @@ class ExecutionHost:
                     required_outputs = (recipe.get("requiredOutputsByStage", {}) or {}).get(phase_stage, recipe.get("requiredOutputs", []))
                 if not isinstance(required_outputs, list):
                     required_outputs = list(required_outputs or [])
-                required_globs = recipe.get("requiredOutputGlobs") or {}
+                required_globs = recipe.get("requiredOutputGlobsByPhase", {}).get(phase, recipe.get("requiredOutputGlobs")) or []
                 if test_stages and required_globs and not required_outputs:
                     raise JenkinsError("required_outputs_contract_missing", "requiredOutputGlobs must resolve to non-empty required outputs")
                 authority = TrustedReceiptAuthority(self.state)
                 attempt_ids: list[tuple[str, str]] = []
                 for stage in test_stages:
                     attempt_id = f"{self.execution_id}:{phase}" if stage == phase_stage and phase != "test" else f"{self.execution_id}:{phase}:{stage}"
-                    authority.register_attempt({
+                    attempt = {
                         "executionId": attempt_id, "stage": stage,
                         "sourceDigest": source_digest, "recipeDigest": recipe_digest,
                         "coverageDigest": coverage_digest, "driverDigest": driver_digest,
@@ -362,7 +405,11 @@ class ExecutionHost:
                         "requiredOutputs": required_outputs,
                         "requiredOutputGlobs": list(required_globs),
                         "phase": phase,
-                    })
+                    }
+                    if recipe.get("_taskScratch"):
+                        attempt["taskScratch"] = host_payload["taskScratch"]
+                        attempt["effectiveEnvironmentDigest"] = digest(phase_env)
+                    authority.register_attempt(attempt)
                     attempt_ids.append((stage, attempt_id))
                 host_payload = {**host_payload, "currentPhase": phase,
                                 "nativeJobId": record.native_job_id,
@@ -390,6 +437,9 @@ class ExecutionHost:
                                 "stdoutPath": str(phase_dir / "stdout.log"),
                                 "stderrPath": str(phase_dir / "stderr.log"),
                                 "validationExecutionId": phase_execution_id}
+                if recipe.get("_taskScratch"):
+                    phase_record["taskScratch"] = host_payload["taskScratch"]
+                    phase_record["effectiveEnvironmentDigest"] = digest(phase_env)
                 phase_record["descendantCleanup"] = getattr(self.job, "descendant_cleanup", None)
                 # Convert the collector proof to the authority's flat proof
                 # shape and publish a content-addressed closure only after
@@ -411,6 +461,8 @@ class ExecutionHost:
                                           "error": {"type": "JenkinsError", "message": f"phase {phase} did not complete successfully"}}
                         self._persist(failed_payload)
                         raise JenkinsError("phase_failed", f"phase {phase} did not complete successfully")
+                    if product:
+                        _verify_source(recipe, sealed, Path(recipe["preparationRoot"]))
                     phase_root = Path(output_root)
                     phase_root.mkdir(parents=True, exist_ok=True)
                     for stream_name in ("stdout", "stderr"):
@@ -448,6 +500,11 @@ class ExecutionHost:
                                     raise JenkinsError("binary_name_collision", "Different build outputs share a binary name")
                                 if not destination.exists():
                                     shutil.copy2(candidate, destination)
+                    if product and phase == "test":
+                        from ..editor_product import verify_test_run
+                        text = "\n".join((phase_root / name).read_text(encoding="utf-8", errors="replace")
+                                         for name in ("stdout.log", "stderr.log"))
+                        phase_record["testRun"] = verify_test_run(text, list(recipe.get("requiredTests", ())))
                     closure = closure_manifest(output_root)
                     receipts = {}
                     for stage, attempt_id in attempt_ids:
@@ -457,7 +514,7 @@ class ExecutionHost:
                         phase_record["receipts"] = receipts
                         phase_record["receipt"] = next(iter(receipts.values()))
                         phase_record["stageReceipts"] = {stage: receipt["executionId"] for stage, receipt in receipts.items()}
-                if recipe.get("kind") in {"cargo", "cargo-test"} and phase == "list":
+                if recipe.get("kind") in {"cargo", "cargo-test", "cargo-editor-product"} and phase == "list":
                     output = Path(phase_record["stdoutPath"]).read_text(encoding="utf-8", errors="replace") if Path(phase_record["stdoutPath"]).is_file() else ""
                     discovered = [line for line in output.splitlines() if ": test" in line]
                     if not discovered:
@@ -466,7 +523,8 @@ class ExecutionHost:
                     required_tests = list(recipe.get("requiredTests") or ())
                     if recipe.get("originalFailure"):
                         required_tests.append(recipe["originalFailure"])
-                    missing_tests = [test for test in required_tests if not any(name == test or name.endswith("::" + test) for name in names)]
+                    missing_tests = [test for test in required_tests if not any(name == test or
+                                     (not product and name.endswith("::" + test)) for name in names)]
                     if missing_tests:
                         raise JenkinsError("required_test_missing", "Managed discovery did not cover required regression tests",
                                            details={"missing": missing_tests})

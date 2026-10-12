@@ -235,6 +235,10 @@ impl PlatformDriver {
         Arc::clone(&self.preference_storage)
     }
 
+    pub(crate) fn borrowed_preference_persistence_adapter(&self) -> &PreferencePersistenceAdapter {
+        self.preference_storage.as_ref()
+    }
+
     #[cfg(test)]
     pub(crate) fn preference_persistence_uses_task_pool(&self, pool: &TaskPool) -> bool {
         self.preference_storage.shares_execution_owner_with(pool)

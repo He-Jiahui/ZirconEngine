@@ -84,10 +84,15 @@ impl NetContentDownloadRuntimeManager {
         &self,
         attempt: &NetDownloadAttemptDescriptor,
     ) -> Result<FetchAttemptResponse, String> {
+        #[cfg(test)]
+        if let Some(net) = self.test_net.as_deref() {
+            return fetch_attempt_via_net(net, attempt);
+        }
+
         let Some(net) = self.net().map_err(|error| error.to_string())? else {
             return Err("content download HTTP fetch requires NetManager".to_string());
         };
-        fetch_attempt_via_net(net.as_ref(), attempt)
+        fetch_attempt_via_net(&*net, attempt)
     }
 }
 

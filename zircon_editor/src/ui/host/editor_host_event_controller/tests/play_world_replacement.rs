@@ -22,7 +22,11 @@ fn active_simulate_controller() -> (EditorHostEventController, PlayInstanceId, L
         UVec2::new(1280, 720),
         Arc::clone(manager.context()),
     );
-    let controller = EditorHostEventController::new(state, manager);
+    let controller = EditorHostEventController::new(
+        state,
+        crate::tests::support::register_test_editor_manager(&core, manager),
+    )
+    .expect("editor controller manager admission");
     let play_level = DefaultLevelManager::default().create_default_level();
     let instance = controller
         .start_test_play_gateway(

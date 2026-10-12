@@ -4,7 +4,7 @@ use std::time::Instant;
 use super::super::support::*;
 use crate::ui::control::EditorUiControlService;
 use crate::ui::retained_host::callback_dispatch::load_startup_builtin_template_runtime;
-use crate::ui::template_runtime::{RetainedUiNodeProjection, WORKBENCH_WINDOW_DOCUMENT_ID};
+use crate::ui::template_runtime::{RetainedUiNodeProjection, UNREAL_EDITOR_WINDOW_DOCUMENT_ID};
 use crate::ui::workbench::reference::EditorWorkbenchReferenceMetrics;
 
 fn retained_node_count(node: &RetainedUiNodeProjection) -> usize {
@@ -27,7 +27,7 @@ fn profiles_startup_workbench_v2_surface_boundaries() {
     );
 
     let mut projection = runtime
-        .project_document(WORKBENCH_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
         .expect("workbench document projection should be available");
     let mut route_service = EditorUiControlService::default();
     runtime
@@ -41,7 +41,7 @@ fn profiles_startup_workbench_v2_surface_boundaries() {
     );
 
     let mut surface = runtime
-        .build_shared_surface(WORKBENCH_WINDOW_DOCUMENT_ID)
+        .build_shared_surface(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
         .expect("workbench V2 surface should build");
     eprintln!(
         "workbench-v2-profile stage=surface-build elapsed_ms={} nodes={}",

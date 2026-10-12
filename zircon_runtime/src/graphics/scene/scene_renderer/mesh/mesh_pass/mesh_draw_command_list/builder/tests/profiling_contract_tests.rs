@@ -3,7 +3,7 @@ const MATERIALIZATION_PROFILE_SOURCE: &str = include_str!("../../materialization
 const PARALLEL_ADMISSION_SOURCE: &str = include_str!("../parallel_admission.rs");
 const PARALLEL_PREPARATION_SOURCE: &str = include_str!("../parallel_preparation.rs");
 const FINAL_SUBMISSION_SOURCE: &str = include_str!(
-    "../../../../core/scene_renderer_core_render_compiled_scene/render/prepare_compiled_scene_mesh_submission.rs",
+    "../../../../../core/scene_renderer_core_render_compiled_scene/render/prepare_compiled_scene_mesh_submission.rs",
 );
 
 use super::parallel_admission::ParallelPreparationMode;

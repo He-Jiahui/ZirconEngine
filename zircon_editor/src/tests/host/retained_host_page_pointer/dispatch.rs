@@ -25,7 +25,7 @@ fn shared_host_page_pointer_click_dispatches_activate_main_page_through_runtime_
     let harness = EventRuntimeHarness::new("zircon_retained_host_page_pointer_activate");
     let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
@@ -73,7 +73,7 @@ fn shared_host_page_close_receipt_dispatches_close_view_through_runtime_dispatch
     let opened_instance = manager
         .open_view(ViewDescriptorId::new("editor.asset_browser"), None)
         .expect("asset browser should open as a real exclusive page");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
@@ -113,11 +113,11 @@ fn shared_host_page_close_receipt_dispatches_close_view_through_runtime_dispatch
     );
     assert!(harness
         .runtime
-        .current_view_instances()
+        .current_view_instances().unwrap()
         .iter()
         .all(|instance| instance.instance_id != opened_instance));
     assert_eq!(
-        harness.runtime.current_layout().active_main_page,
+        harness.runtime.current_layout().unwrap().active_main_page,
         crate::ui::workbench::layout::MainPageId::workbench()
     );
     let reopened_instance = manager

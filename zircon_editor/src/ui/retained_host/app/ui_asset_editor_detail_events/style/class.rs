@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -11,13 +12,19 @@ impl RetainedEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "style.class.add" => self
-                .editor_manager
-                .add_ui_asset_editor_class_to_selection(&instance_id, class_name)
+            "style.class.add" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.add_ui_asset_editor_class_to_selection(&instance_id, class_name)
+                })
                 .map(|_| ()),
-            "style.class.remove" => self
-                .editor_manager
-                .remove_ui_asset_editor_class_from_selection(&instance_id, class_name)
+            "style.class.remove" => self.editor_manager
+                .enter()
+                .map_err(EditorError::from)
+                .and_then(|manager| {
+                    manager.remove_ui_asset_editor_class_from_selection(&instance_id, class_name)
+                })
                 .map(|_| ()),
             other => {
                 self.set_status_line(format!("Unknown UI asset style class action {other}"));

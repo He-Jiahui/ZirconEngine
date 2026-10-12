@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 use joltc_sys::{
     JPC_BroadPhaseLayerInterface, JPC_BroadPhaseLayerInterface_delete,
     JPC_BroadPhaseLayerInterface_new, JPC_FactoryInit, JPC_JobSystemThreadPool,
-    JPC_JobSystemThreadPool_delete, JPC_JobSystemThreadPool_new2, JPC_ObjectLayerPairFilter,
+    JPC_JobSystemThreadPool_delete, JPC_JobSystemThreadPool_new3, JPC_ObjectLayerPairFilter,
     JPC_ObjectLayerPairFilter_delete, JPC_ObjectLayerPairFilter_new,
     JPC_ObjectVsBroadPhaseLayerFilter, JPC_ObjectVsBroadPhaseLayerFilter_delete,
     JPC_ObjectVsBroadPhaseLayerFilter_new, JPC_PhysicsSystem, JPC_PhysicsSystem_Init,
@@ -40,15 +40,16 @@ pub(super) struct NativeWorld {
 unsafe impl Send for NativeWorld {}
 
 impl NativeWorld {
-    pub(super) fn new() -> Result<Self, PhysicsBackendError> {
+    pub(super) fn new(worker_threads: usize) -> Result<Self, PhysicsBackendError> {
         initialize_jolt();
         let mut world = Self::empty();
         unsafe {
             world.temp_allocator = JPC_TempAllocatorImpl_new(TEMP_ALLOCATOR_BYTES as _);
             world.require(world.temp_allocator, "temporary allocator")?;
-            world.job_system = JPC_JobSystemThreadPool_new2(
+            world.job_system = JPC_JobSystemThreadPool_new3(
                 JPC_MAX_PHYSICS_JOBS as _,
                 JPC_MAX_PHYSICS_BARRIERS as _,
+                worker_threads as _,
             );
             world.require(world.job_system, "job system")?;
             world.broad_phase_layer_interface =

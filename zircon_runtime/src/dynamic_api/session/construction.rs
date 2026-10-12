@@ -177,13 +177,6 @@ pub(super) fn build(
         "runtime_session",
         "runtime_dynamic_session_modules_activated",
     );
-    let text_context =
-        construction_cleanup.check(text_runtime_context_for_core(&core).map_err(|source| {
-            RuntimeDynamicSessionError::CoreStep {
-                step: "resolve runtime text context",
-                source,
-            }
-        }))?;
     let input_manager = {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_resolve_input");
         let handle = construction_cleanup.check(input_manager_handle(&core).map_err(|source| {
@@ -317,17 +310,6 @@ pub(super) fn build(
     if scene_asset_reload_queue.is_some() {
         write_log("runtime_session", "runtime_scene_asset_reload_queue_ready");
     }
-    let runtime_ui = match &prepared_project {
-        Some(project) => construction_cleanup.check(
-            project
-                .load_runtime_ui_surfaces(&core, text_context.clone())
-                .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
-                    step: "load declared project UI roots",
-                    source,
-                }),
-        )?,
-        None => Default::default(),
-    };
     let (orbit_target, selected_model_resource_id, selected_material_resource_id) = {
         crate::profile_scope!(
             "runtime",
@@ -374,15 +356,49 @@ pub(super) fn build(
         crate::navigation::register_navigation_operation_handlers(&mut operations)
             .map_err(|source| RuntimeDynamicSessionError::RuntimeOperationRegistry { source }),
     )?;
-    let frame_clock_activation_rebase = rebase_frame_clock_after_session_activation(&runtime);
-    let ui_extract_cache = construction_cleanup.check(
-        RuntimeUiExtractCache::new_with_text_context(&text_context).map_err(|source| {
-            RuntimeDynamicSessionError::CoreStep {
-                step: "create runtime UI text extract cache",
-                source: CoreError::Initialization(TEXT_MODULE_NAME.to_owned(), source.to_string()),
+    // Preserve the scoped service lookups. On an error, partially constructed
+    // layout families also leave this closure before the original Core closes.
+    let ui_resources = (|| {
+        let runtime_ui_result = (|| {
+            let text_context = text_runtime_context_for_core(&core).map_err(|source| {
+                RuntimeDynamicSessionError::CoreStep {
+                    step: "resolve runtime text context",
+                    source,
+                }
+            })?;
+            match &prepared_project {
+                Some(project) => project
+                    .load_runtime_ui_surfaces(&core, &text_context)
+                    .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+                        step: "load declared project UI roots",
+                        source,
+                    }),
+                None => Ok(Default::default()),
             }
-        }),
-    )?;
+        })();
+        let runtime_ui = runtime_ui_result?;
+        let ui_extract_cache_result = (|| {
+            let text_context = text_runtime_context_for_core(&core).map_err(|source| {
+                RuntimeDynamicSessionError::CoreStep {
+                    step: "resolve runtime text context",
+                    source,
+                }
+            })?;
+            RuntimeUiExtractCache::new_with_text_context(&text_context).map_err(|source| {
+                RuntimeDynamicSessionError::CoreStep {
+                    step: "create runtime UI text extract cache",
+                    source: CoreError::Initialization(
+                        TEXT_MODULE_NAME.to_owned(),
+                        source.to_string(),
+                    ),
+                }
+            })
+        })();
+        let ui_extract_cache = ui_extract_cache_result?;
+        Ok((runtime_ui, ui_extract_cache))
+    })();
+    let (runtime_ui, ui_extract_cache) = construction_cleanup.check(ui_resources)?;
+    let frame_clock_activation_rebase = rebase_frame_clock_after_session_activation(&runtime);
     write_log(
         "runtime_session",
         "runtime_dynamic_session_post_create_ready",
@@ -407,7 +423,7 @@ pub(super) fn build(
         selected_material_resource_id,
         camera_controller,
         extract_cache: Default::default(),
-        ui_extract_cache,
+        ui_extract_cache: Some(ui_extract_cache),
         cursor: Vec2::ZERO,
         input_manager,
         input_diagnostics: Default::default(),

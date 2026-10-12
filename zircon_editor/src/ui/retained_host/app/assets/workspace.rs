@@ -83,6 +83,8 @@ impl RetainedEditorHost {
         if let Some(admission) = self.active_scene_reload_admission.as_ref() {
             let same_identity = self
                 .editor_manager
+                .enter()
+                .map_err(|error| error.to_string())?
                 .active_scene_identity_for_session()
                 .as_ref()
                 == Some(&admission.identity);
@@ -120,8 +122,14 @@ impl RetainedEditorHost {
         let Some(snapshot) = project_asset_manager.current_project_generation_snapshot() else {
             return Ok(());
         };
+        drop(project_asset_manager);
         let (project, generation) = snapshot.into_parts();
-        let Some(identity) = self.editor_manager.active_scene_identity_for_session() else {
+        let Some(identity) = self
+            .editor_manager
+            .enter()
+            .map_err(|error| error.to_string())?
+            .active_scene_identity_for_session()
+        else {
             return Ok(());
         };
         if identity.project_root() != project.paths().root() {
@@ -140,7 +148,7 @@ impl RetainedEditorHost {
         let scene_uri = ResourceLocator::parse(identity.scene_uri())
             .map_err(|error| format!("active scene source URI is invalid: {error}"))?;
         let ticket = match ProjectAuthority::default().submit_scene_open(
-            self.editor_manager.context().jobs(),
+            self.runtime.context().jobs(),
             project,
             SceneOpenRequest::new(scene_uri),
         ) {
@@ -255,7 +263,17 @@ impl RetainedEditorHost {
         let admission_identity = admission.identity.clone();
         let admission_generation = admission.generation.clone();
         let retry_not_before = admission.retry_not_before;
-        let active_identity = self.editor_manager.active_scene_identity_for_session();
+        let active_identity = match self
+            .editor_manager
+            .enter()
+            .map(|manager| manager.active_scene_identity_for_session())
+        {
+            Ok(identity) => identity,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
         if active_identity.as_ref() != Some(&admission_identity) {
             self.active_scene_reload_admission = None;
             return;
@@ -267,7 +285,10 @@ impl RetainedEditorHost {
                 return;
             }
         };
-        match project_asset_manager.check_project_generation(&admission_generation) {
+        let generation_match =
+            project_asset_manager.check_project_generation(&admission_generation);
+        drop(project_asset_manager);
+        match generation_match {
             ProjectGenerationMatch::Current => {}
             ProjectGenerationMatch::Superseded {
                 newer_same_project_generation: true,
@@ -382,12 +403,14 @@ impl RetainedEditorHost {
             );
             pending.prepared = Some(
                 self.editor_manager
-                    .prepare_authoring_world(document.into_world())
+                    .enter()
+                    .map_err(crate::ui::host::EditorError::from)
+                    .and_then(|manager| manager.prepare_authoring_world(document.into_world()))
                     .map_err(|error| error.to_string())?,
             );
         }
         match self.runtime.commit_prepared_active_scene_reload(
-            project_asset_manager.as_ref(),
+            &*project_asset_manager,
             &pending.generation,
             pending.identity.clone(),
             &mut pending.prepared,
@@ -418,11 +441,7 @@ impl RetainedEditorHost {
 
     pub(in crate::ui::retained_host::app) fn cancel_pending_active_scene_reload(&mut self) {
         if let Some(pending) = self.pending_active_scene_reload.take() {
-            let _ = self
-                .editor_manager
-                .context()
-                .jobs()
-                .cancel(pending.ticket.id());
+            let _ = self.runtime.context().jobs().cancel(pending.ticket.id());
         }
         self.active_scene_reload_admission = None;
         self.dismiss_active_scene_reload_conflict();
@@ -440,7 +459,7 @@ impl RetainedEditorHost {
         if self.pending_model_import.is_some() {
             return Err("a model import is already running".to_owned());
         }
-        let chrome = self.build_chrome();
+        let chrome = self.build_chrome().map_err(|error| error.to_string())?;
         let source = canonical_model_source_path(&chrome.mesh_import_path)
             .map_err(|error| error.to_string())?;
         let ticket = self
@@ -497,11 +516,7 @@ impl RetainedEditorHost {
         let Some(mut pending) = self.pending_model_import.take() else {
             return true;
         };
-        let _ = self
-            .editor_manager
-            .context()
-            .jobs()
-            .cancel(pending.ticket.id());
+        let _ = self.runtime.context().jobs().cancel(pending.ticket.id());
         if pending.ticket.try_take().is_some() {
             return true;
         }
@@ -526,11 +541,12 @@ impl RetainedEditorHost {
         let resource_manager = self
             .resolve_resource_manager()
             .map_err(|error| error.to_string())?;
-        let model_id = resolve_ready_handle::<ModelMarker>(resource_manager.as_ref(), &model_uri)?;
+        let model_id = resolve_ready_handle::<ModelMarker>(&*resource_manager, &model_uri)?;
         let material_uri = ResourceLocator::parse("res://materials/default.zmaterial")
             .map_err(|error| error.to_string())?;
         let material_id =
-            resolve_ready_handle::<MaterialMarker>(resource_manager.as_ref(), &material_uri)?;
+            resolve_ready_handle::<MaterialMarker>(&*resource_manager, &material_uri)?;
+        drop(resource_manager);
         if self
             .runtime
             .import_mesh_asset(model_id, material_id, display_path)

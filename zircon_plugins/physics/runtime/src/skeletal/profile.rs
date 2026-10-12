@@ -13,8 +13,8 @@ use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::scene::components::{
     ColliderComponent, ColliderShape, JointComponent, JointKind, NodeKind, RigidBodyComponent,
 };
-use zircon_runtime::scene::world::World;
-use zircon_runtime::scene::EntityId;
+use zircon_runtime::scene::world::{DetachedEntityBatchRemoveError, SceneError, World};
+use zircon_runtime::scene::{EntityId, LifecycleTargetChange};
 
 use super::runtime::{RagdollMode, RagdollRuntime};
 
@@ -81,7 +81,95 @@ pub enum RagdollProfileError {
     MissingBoneTarget {
         bone_path: String,
     },
-    SceneMutation(String),
+}
+
+/// A spawn failure keeps the primary scene error and any cancelled cleanup payload.
+/// Profile validation remains available separately as a cloneable error.
+pub enum RagdollSpawnError {
+    Profile(RagdollProfileError),
+    SceneMutation {
+        source: SceneError,
+        /// The exact cancelled removal owns any rows already detached by cleanup.
+        /// Callers may retain it or consume its `into_parts` to dispose of the batch.
+        cleanup_cancellation: Option<DetachedEntityBatchRemoveError>,
+    },
+}
+
+impl RagdollSpawnError {
+    pub fn lifecycle_target_change(&self) -> Option<LifecycleTargetChange> {
+        match self {
+            Self::Profile(_) => None,
+            Self::SceneMutation {
+                source,
+                cleanup_cancellation,
+            } => source.lifecycle_target_change().or_else(|| {
+                cleanup_cancellation
+                    .as_ref()
+                    .and_then(|cleanup| cleanup.error().lifecycle_target_change())
+            }),
+        }
+    }
+}
+
+impl fmt::Debug for RagdollSpawnError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Profile(error) => formatter.debug_tuple("Profile").field(error).finish(),
+            Self::SceneMutation {
+                source,
+                cleanup_cancellation,
+            } => formatter
+                .debug_struct("SceneMutation")
+                .field("source", source)
+                .field(
+                    "cleanup_cancellation",
+                    &cleanup_cancellation.as_ref().map(|cleanup| cleanup.error()),
+                )
+                .finish(),
+        }
+    }
+}
+
+impl fmt::Display for RagdollSpawnError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Profile(error) => fmt::Display::fmt(error, formatter),
+            Self::SceneMutation {
+                source,
+                cleanup_cancellation,
+            } => {
+                write!(formatter, "ragdoll spawn failed: {source}")?;
+                if let Some(cleanup) = cleanup_cancellation {
+                    write!(formatter, "; cleanup cancelled: {}", cleanup.error())?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+impl Error for RagdollSpawnError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Profile(error) => Some(error),
+            Self::SceneMutation { source, .. } => Some(source),
+        }
+    }
+}
+
+impl From<RagdollProfileError> for RagdollSpawnError {
+    fn from(error: RagdollProfileError) -> Self {
+        Self::Profile(error)
+    }
+}
+
+impl From<SceneError> for RagdollSpawnError {
+    fn from(source: SceneError) -> Self {
+        Self::SceneMutation {
+            source,
+            cleanup_cancellation: None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -170,7 +258,7 @@ impl RagdollProfile {
         &self,
         world: &mut World,
         skeleton: EntityId,
-    ) -> Result<RagdollSpawn, RagdollProfileError> {
+    ) -> Result<RagdollSpawn, RagdollSpawnError> {
         self.validate()?;
         let targets = world
             .get_resource::<SkeletalPoseTargets>()
@@ -203,7 +291,8 @@ impl RagdollProfile {
             if !transform_is_finite(body_world) {
                 return Err(RagdollProfileError::InvalidTransform {
                     bone_path: bone.bone_path.clone(),
-                });
+                }
+                .into());
             }
             prepared.push((bone, body_world));
             bone_world_by_path.insert(bone.bone_path.clone(), bone_world);
@@ -214,13 +303,19 @@ impl RagdollProfile {
             ..RagdollSpawn::default()
         };
         for (bone, body_world) in prepared {
-            let body = world
-                .spawn_node(NodeKind::Empty)
-                .map_err(|error| RagdollProfileError::SceneMutation(error.to_string()))?;
-            if let Err(error) = configure_body(world, body, skeleton, bone, &spawn, body_world) {
-                rollback_spawn(world, &spawn);
-                let _ = world.remove_entity_recursive(body);
-                return Err(error);
+            let body = world.spawn_node(NodeKind::Empty)?;
+            if let Err(source) = configure_body(world, body, skeleton, bone, &spawn, body_world) {
+                if source.lifecycle_target_change().is_some() {
+                    return Err(source.into());
+                }
+                let cleanup_cancellation = match rollback_spawn(world, &spawn) {
+                    Ok(()) => remove_spawn_body(world, body).err(),
+                    Err(cleanup) => Some(cleanup),
+                };
+                return Err(RagdollSpawnError::SceneMutation {
+                    source,
+                    cleanup_cancellation,
+                });
             }
             spawn.bodies_by_bone.insert(bone.bone_path.clone(), body);
         }
@@ -232,7 +327,7 @@ impl RagdollProfile {
         world: &mut World,
         skeleton: EntityId,
         mode: RagdollMode,
-    ) -> Result<RagdollSpawn, RagdollProfileError> {
+    ) -> Result<RagdollSpawn, RagdollSpawnError> {
         let spawn = self.spawn(world, skeleton)?;
         if world.get_resource::<RagdollRuntime>().is_none() {
             world.insert_resource(RagdollRuntime::default());
@@ -291,7 +386,6 @@ impl fmt::Display for RagdollProfileError {
                     "ragdoll bone {bone_path} has no animation target"
                 )
             }
-            Self::SceneMutation(error) => write!(formatter, "ragdoll spawn failed: {error}"),
         }
     }
 }
@@ -305,7 +399,7 @@ fn configure_body(
     bone: &RagdollBoneProfile,
     spawn: &RagdollSpawn,
     body_world: Transform,
-) -> Result<(), RagdollProfileError> {
+) -> Result<(), SceneError> {
     world
         .update_transform(body, body_world)
         .and_then(|_| {
@@ -348,13 +442,26 @@ fn configure_body(
             )
         })
         .map(|_| ())
-        .map_err(|error| RagdollProfileError::SceneMutation(error.to_string()))
 }
 
-fn rollback_spawn(world: &mut World, spawn: &RagdollSpawn) {
-    for body in spawn.bodies_by_bone.values().rev() {
-        let _ = world.remove_entity_recursive(*body);
+fn remove_spawn_body(
+    world: &mut World,
+    body: EntityId,
+) -> Result<(), DetachedEntityBatchRemoveError> {
+    match world.remove_entity_recursive(body) {
+        Ok(_) | Err(DetachedEntityBatchRemoveError::Rejected(_)) => Ok(()),
+        Err(error @ DetachedEntityBatchRemoveError::Cancelled { .. }) => Err(error),
     }
+}
+
+fn rollback_spawn(
+    world: &mut World,
+    spawn: &RagdollSpawn,
+) -> Result<(), DetachedEntityBatchRemoveError> {
+    for body in spawn.bodies_by_bone.values().rev() {
+        remove_spawn_body(world, *body)?;
+    }
+    Ok(())
 }
 
 struct SkeletalTargetLookup<'a> {

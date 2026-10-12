@@ -1,7 +1,8 @@
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::selection::SelectionMutation;
 use crate::scene::viewport::{
-    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformSpace, ViewOrientation,
+    DisplayMode, GridMode, PivotMode, ProjectionMode, TransformHandleKind, TransformSpace,
+    ViewOrientation,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -335,6 +336,8 @@ pub enum EditorViewportEvent {
         provider_id: String,
     },
     FrameSelection,
+    SetGridVisibility { visible: bool },
+    ToggleSnap { kind: TransformHandleKind },
 }
 
 impl EditorViewportEvent {
@@ -352,6 +355,8 @@ impl EditorViewportEvent {
                 | Self::AlignView { .. }
                 | Self::SetDisplayMode { .. }
                 | Self::SetGridMode { .. }
+                | Self::SetGridVisibility { .. }
+                | Self::ToggleSnap { .. }
                 | Self::SetTranslateSnap { .. }
                 | Self::SetRotateSnapDegrees { .. }
                 | Self::SetScaleSnap { .. }

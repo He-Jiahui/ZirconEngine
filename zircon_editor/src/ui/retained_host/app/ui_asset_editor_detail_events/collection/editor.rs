@@ -8,6 +8,11 @@ pub(super) fn dispatch_editor_collection_event(
     item_index: usize,
 ) -> CollectionEventDispatch {
     match (collection_id, event_kind) {
+        ("palette", "page") => Some(
+            editor_manager
+                .set_ui_asset_editor_palette_visible_start(instance_id, item_index)
+                .map(|_| ()),
+        ),
         ("matched_style_rule", "selected") => Some(
             editor_manager
                 .select_ui_asset_editor_matched_style_rule(instance_id, item_index)

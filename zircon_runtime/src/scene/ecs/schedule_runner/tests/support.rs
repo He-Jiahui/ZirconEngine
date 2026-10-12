@@ -48,7 +48,14 @@ pub(super) fn test_level(mut registry: RuntimeExtensionRegistry) -> LevelSystem 
 }
 
 pub(super) fn run_test_stage(core: &CoreHandle, level: &LevelSystem) {
-    let schedule = level.with_world(|world| world.schedule().stage_plan());
+    try_run_test_stage(core, level).unwrap();
+}
+
+pub(super) fn try_run_test_stage(
+    core: &CoreHandle,
+    level: &LevelSystem,
+) -> Result<(), SceneStageRunError> {
+    let execution = level.with_world_mut(|world| world.begin_schedule_execution());
     let world_generation = level.world_generation();
     let tick_contexts = SceneStageTickContexts::new(
         test_tick_context(
@@ -70,11 +77,8 @@ pub(super) fn run_test_stage(core: &CoreHandle, level: &LevelSystem) {
         SystemStage::Update,
         tick_contexts,
         false,
-        schedule.internal_systems_for_stage(SystemStage::Update),
-        schedule.native_steps_for_stage(SystemStage::Update),
-        schedule.native_conflict_graph_for_stage(SystemStage::Update),
+        &execution,
     )
-    .unwrap();
 }
 
 fn test_tick_context(

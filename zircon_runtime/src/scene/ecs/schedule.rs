@@ -1,4 +1,7 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+
+use super::schedule_execution::ScheduleExecution;
 
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
@@ -19,7 +22,9 @@ pub struct Schedule {
     #[serde(skip)]
     executor_plan: Arc<SceneScheduleStagePlan>,
     #[serde(skip)]
-    executor_plan_dirty: bool,
+    pending_executor_plan: Option<Arc<SceneScheduleStagePlan>>,
+    #[serde(skip)]
+    active_execution_count: Arc<AtomicUsize>,
     #[serde(skip)]
     taken_native_system_ids: Vec<String>,
     #[serde(skip)]
@@ -36,7 +41,6 @@ impl Schedule {
         self.systems.register_system(descriptor)?;
         if let Err(error) = self.refresh_or_defer_executor_plan() {
             self.systems.remove_system(&system_id);
-            self.refresh_or_defer_executor_plan()?;
             return Err(error);
         }
         Ok(())
@@ -51,7 +55,6 @@ impl Schedule {
         self.systems.register_boxed_runtime_system(system)?;
         if let Err(error) = self.refresh_or_defer_executor_plan() {
             self.systems.remove_runtime_system(&id);
-            self.refresh_or_defer_executor_plan()?;
             return Err(error);
         }
         Ok(())
@@ -78,7 +81,6 @@ impl Schedule {
             if let Some(mut system) = self.systems.remove_native_system(&id) {
                 system.retire(world);
             }
-            self.refresh_or_defer_executor_plan()?;
             return Err(error);
         }
         Ok(())
@@ -110,7 +112,6 @@ impl Schedule {
             if let Some(mut system) = self.systems.remove_native_system(&id) {
                 system.retire(world);
             }
-            self.refresh_or_defer_executor_plan()?;
             return Err(error);
         }
         Ok(())
@@ -128,7 +129,6 @@ impl Schedule {
             if let Some(mut system) = self.systems.remove_native_system(&id) {
                 system.retire(world);
             }
-            self.refresh_or_defer_executor_plan()?;
             return Err(error);
         }
         Ok(())
@@ -139,14 +139,18 @@ impl Schedule {
         world: &mut crate::scene::World,
         id: &str,
     ) -> Result<bool, ScheduleError> {
-        if taken_system_id_exists(&self.taken_native_system_ids, id) {
+        self.drain_returned_executables();
+        if taken_system_id_exists(&self.taken_native_system_ids, id)
+            || (self.active_execution_count.load(Ordering::Acquire) != 0
+                && self.executor_plan.contains_native_system(id))
+        {
             return Err(ScheduleError::SystemInFlight(id.to_string()));
         }
         let Some(mut system) = self.systems.remove_native_system(id) else {
             return Ok(false);
         };
         if let Err(error) = self.refresh_or_defer_executor_plan() {
-            self.systems.restore_native_system(system);
+            self.systems.restore_removed_native_system(system);
             return Err(error);
         }
         system.retire(world);
@@ -183,7 +187,9 @@ impl Schedule {
         &self,
         stage: SystemStage,
     ) -> ScheduleConflictGraph {
-        self.systems.native_system_conflict_graph_for_stage(stage)
+        self.stage_plan()
+            .native_conflict_graph_for_stage(stage)
+            .clone()
     }
 
     #[cfg(test)]
@@ -191,29 +197,60 @@ impl Schedule {
         &self,
         stage: SystemStage,
     ) -> Vec<ScheduledSceneStep> {
-        self.executor_plan.native_steps_for_stage(stage).to_vec()
+        self.stage_plan().native_steps_for_stage(stage).to_vec()
     }
 
     pub(crate) fn stage_plan(&self) -> Arc<SceneScheduleStagePlan> {
+        // Completion may release this Schedule after it has moved out of the
+        // installed World. Expose its validated pending plan at that boundary;
+        // the next mutable operation materializes the same Arc as current.
+        if self.is_quiescent() {
+            if let Some(plan) = &self.pending_executor_plan {
+                return Arc::clone(plan);
+            }
+        }
         Arc::clone(&self.executor_plan)
+    }
+
+    pub(crate) fn owns_stage_plan(&self, plan: &Arc<SceneScheduleStagePlan>) -> bool {
+        Arc::ptr_eq(&self.stage_plan(), plan)
+    }
+
+    /// Pins one original graph through dispatch, restoration and tick cleanup.
+    pub(crate) fn begin_execution(
+        &mut self,
+        world_owner: crate::scene::world::DetachPreparationOwner,
+    ) -> ScheduleExecution {
+        self.drain_returned_executables();
+        self.publish_pending_executor_plan_if_quiescent();
+        self.active_execution_count.fetch_add(1, Ordering::AcqRel);
+        ScheduleExecution::new(
+            Arc::clone(&self.executor_plan),
+            Arc::clone(&self.active_execution_count),
+            world_owner,
+        )
     }
 
     /// Returns the immutable receipt for the currently compiled execution graph.
     pub fn build_receipt(&self) -> ScheduleBuildReceipt {
-        self.executor_plan.build_receipt()
+        self.stage_plan().build_receipt()
     }
 
     pub(crate) fn take_native_system(&mut self, id: &str) -> Option<BoxedSceneSystem> {
+        self.drain_returned_executables();
+        self.publish_pending_executor_plan_if_quiescent();
         let system = self.systems.take_native_system(id)?;
         self.taken_native_system_ids.push(system.id().to_string());
         Some(system)
     }
 
     pub(crate) fn native_system_deferred_key(&self, id: &str) -> Option<super::DeferredSystemKey> {
-        self.executor_plan.native_system_deferred_key(id)
+        self.stage_plan().native_system_deferred_key(id)
     }
 
     pub(crate) fn take_runtime_system(&mut self, id: &str) -> Option<BoxedRuntimeSceneSystem> {
+        self.drain_returned_executables();
+        self.publish_pending_executor_plan_if_quiescent();
         let system = self.systems.take_runtime_system(id)?;
         self.taken_runtime_system_count += 1;
         Some(system)
@@ -223,20 +260,14 @@ impl Schedule {
         let system_id = system.id();
         remove_taken_system_id(&mut self.taken_native_system_ids, system_id);
         self.systems.restore_native_system(system);
-        if self.no_taken_systems() && self.executor_plan_dirty {
-            self.refresh_executor_plan()
-                .expect("deferred scene schedule refresh must stay valid");
-        }
+        self.publish_pending_executor_plan_if_quiescent();
     }
 
     pub(crate) fn restore_runtime_system(&mut self, system: BoxedRuntimeSceneSystem) {
         debug_assert!(self.taken_runtime_system_count > 0);
         self.taken_runtime_system_count -= 1;
         self.systems.restore_runtime_system(system);
-        if self.no_taken_systems() && self.executor_plan_dirty {
-            self.refresh_executor_plan()
-                .expect("deferred scene schedule refresh must stay valid");
-        }
+        self.publish_pending_executor_plan_if_quiescent();
     }
 
     fn from_parts(stages: Vec<SystemStage>, systems: SceneSystemRegistry) -> Self {
@@ -248,32 +279,41 @@ impl Schedule {
             stages,
             systems,
             executor_plan,
-            executor_plan_dirty: false,
+            pending_executor_plan: None,
+            active_execution_count: Arc::new(AtomicUsize::new(0)),
             taken_native_system_ids: Vec::new(),
             taken_runtime_system_count: 0,
         }
     }
 
     fn refresh_or_defer_executor_plan(&mut self) -> Result<(), ScheduleError> {
-        if self.no_taken_systems() {
-            self.refresh_executor_plan()?;
+        // Registry definitions include taken boxes, so every mutation receives
+        // the same topology, access and execution-policy checks at admission.
+        let plan = Arc::new(SceneScheduleStagePlan::from_registry(
+            &self.stages,
+            &self.systems,
+        )?);
+        if self.is_quiescent() {
+            self.executor_plan = plan;
+            self.pending_executor_plan = None;
         } else {
-            // BUG: [CR-R02-runtime_ecs_schedule_systems-0004] 系统在途时连续注册成环约束均返回成功，最后 restore 才在刷新计划的 expect 处 panic，无法走注册失败回滚。证据：此处跳过拓扑校验、注册只回滚 Err、restore 强制刷新。
-            self.executor_plan_dirty = true;
+            // Keep active ordering and deferred keys fixed for running systems.
+            // On failure above, a previously validated pending plan is retained.
+            self.pending_executor_plan = Some(plan);
         }
         Ok(())
     }
 
-    fn refresh_executor_plan(&mut self) -> Result<(), ScheduleError> {
-        self.executor_plan = Arc::new(SceneScheduleStagePlan::from_registry(
-            &self.stages,
-            &self.systems,
-        )?);
-        self.executor_plan_dirty = false;
-        Ok(())
+    fn publish_pending_executor_plan_if_quiescent(&mut self) {
+        if self.is_quiescent() {
+            if let Some(plan) = self.pending_executor_plan.take() {
+                self.executor_plan = plan;
+            }
+        }
     }
 
-    fn ensure_id_not_taken(&self, id: &str) -> Result<(), ScheduleError> {
+    fn ensure_id_not_taken(&mut self, id: &str) -> Result<(), ScheduleError> {
+        self.drain_returned_executables();
         if taken_system_id_exists(&self.taken_native_system_ids, id)
             || self.systems.runtime_system_id_exists(id)
         {
@@ -282,8 +322,36 @@ impl Schedule {
         Ok(())
     }
 
+    fn is_quiescent(&self) -> bool {
+        self.active_execution_count.load(Ordering::Acquire) == 0 && self.no_taken_systems()
+    }
+
     fn no_taken_systems(&self) -> bool {
-        self.taken_native_system_ids.is_empty() && self.taken_runtime_system_count == 0
+        (self.taken_native_system_ids.is_empty() && self.taken_runtime_system_count == 0)
+            || self.systems.returned_executables_cover(
+                &self.taken_native_system_ids,
+                self.taken_runtime_system_count,
+            )
+    }
+
+    pub(crate) fn executable_return_handle(
+        &self,
+    ) -> super::scene_system_registry::ExecutableReturnHandle {
+        self.systems.executable_return_handle()
+    }
+
+    fn drain_returned_executables(&mut self) {
+        let returned = self.systems.take_returned_executables();
+        for system in returned.native {
+            remove_taken_system_id(&mut self.taken_native_system_ids, &system.id);
+            self.systems.restore_native_system(system.system);
+        }
+        for system in returned.runtime {
+            debug_assert!(self.taken_runtime_system_count > 0);
+            self.taken_runtime_system_count -= 1;
+            self.systems.restore_runtime_system(system);
+        }
+        self.publish_pending_executor_plan_if_quiescent();
     }
 }
 
@@ -356,7 +424,8 @@ impl Schedule {
             stages,
             systems,
             executor_plan,
-            executor_plan_dirty: false,
+            pending_executor_plan: None,
+            active_execution_count: Arc::new(AtomicUsize::new(0)),
             taken_native_system_ids: Vec::new(),
             taken_runtime_system_count: 0,
         })

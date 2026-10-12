@@ -1,4 +1,5 @@
 $script:ZirconUiProfileWprScriptPath = $PSCommandPath
+. (Join-Path $PSScriptRoot '..\shared\profile-capture-paths.ps1')
 
 function Resolve-ZirconUiProfileNativeTool {
     param([Parameter(Mandatory = $true)][string]$Name)
@@ -37,15 +38,8 @@ function Test-ZirconUiSystemProfilePrivilege {
 function Resolve-ZirconUiProfileEvidenceDirectory {
     param([Parameter(Mandatory = $true)][string]$Path)
 
-    if (-not [IO.Path]::IsPathRooted($Path)) {
-        throw "UI profile evidence directory must be absolute."
-    }
-    $resolved = [IO.Path]::GetFullPath($Path).TrimEnd("\")
-    $drive = [IO.Path]::GetPathRoot($resolved).TrimEnd("\")
-    if ($drive -notin @("D:", "E:", "F:")) {
-        throw "UI profile WPR artifacts must be written below D:, E:, or F:."
-    }
-    return $resolved
+    $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\..'))
+    return Resolve-ZirconProfileOutputRoot -RepoRoot $repoRoot -Path $Path
 }
 
 function Get-ZirconUiProfileEvidenceFingerprint {
@@ -183,9 +177,9 @@ function Start-ZirconUiProfileWprCapture {
 
     $resolvedProfileDir = Resolve-ZirconUiProfileEvidenceDirectory -Path $ProfileDir
     New-Item -ItemType Directory -Force -Path $resolvedProfileDir | Out-Null
-    $temporaryDirectory = Join-Path $resolvedProfileDir "wpr-recording"
+    $temporaryDirectory = Resolve-ZirconProfileContainedPath -Root $resolvedProfileDir -PathSegments @('wpr-recording')
     New-Item -ItemType Directory -Force -Path $temporaryDirectory | Out-Null
-    $tracePath = Join-Path $resolvedProfileDir "system.etl"
+    $tracePath = Resolve-ZirconProfileContainedPath -Root $resolvedProfileDir -PathSegments @('system.etl')
     $wprPath = Resolve-ZirconUiProfileNativeTool -Name "wpr.exe"
     $arguments = @("-start", "CPU", "-filemode", "-recordtempto", $temporaryDirectory)
     $startedUtc = [datetime]::UtcNow
@@ -209,7 +203,7 @@ function Stop-ZirconUiProfileWprCapture {
     param([Parameter(Mandatory = $true)][psobject]$Capture)
 
     $profileDir = Resolve-ZirconUiProfileEvidenceDirectory -Path ([string]$Capture.profile_dir)
-    $tracePath = [IO.Path]::GetFullPath([string]$Capture.trace_path)
+    $tracePath = Resolve-ZirconUiProfileEvidenceDirectory -Path ([string]$Capture.trace_path)
     $profilePrefix = $profileDir + [IO.Path]::DirectorySeparatorChar
     if (-not $tracePath.StartsWith($profilePrefix, [StringComparison]::OrdinalIgnoreCase)) {
         throw "WPR ETL path must remain inside its UI profile session directory."
@@ -227,7 +221,7 @@ function Stop-ZirconUiProfileWprCapture {
         throw "UI profile capture did not produce a nonempty WPR ETL at '$tracePath'."
     }
 
-    $sampledProfilePath = Join-Path $profileDir "cpu-sampled-profile.txt"
+    $sampledProfilePath = Resolve-ZirconProfileContainedPath -Root $profileDir -PathSegments @('cpu-sampled-profile.txt')
     $xperfPath = Resolve-ZirconUiProfileNativeTool -Name "xperf.exe"
     $analysisArguments = @(
         "-i", $tracePath,
@@ -262,7 +256,7 @@ function Stop-ZirconUiProfileWprCapture {
     $productSampledStacks = $null
     $productAnalysisCommand = $null
     if ($null -ne $productRange) {
-        $productSampledStacksPath = Join-Path $profileDir "cpu-product-sampled-stacks.txt"
+        $productSampledStacksPath = Resolve-ZirconProfileContainedPath -Root $profileDir -PathSegments @('cpu-product-sampled-stacks.txt')
         $productAnalysisArguments = @(
             "-i", $tracePath,
             "-symbols",
@@ -296,7 +290,7 @@ function Stop-ZirconUiProfileWprCapture {
     else {
         $null
     }
-    $receiptPath = Join-Path $profileDir "wpr-capture.json"
+    $receiptPath = Resolve-ZirconProfileContainedPath -Root $profileDir -PathSegments @('wpr-capture.json')
     $receipt = [ordered]@{
         schema_version = 2
         evidence_kind = "windows_sampled_cpu_profile"

@@ -2,16 +2,25 @@ use crate::core::editor_event::{EditorEventEffect, EditorViewportEvent};
 use crate::scene::viewport::ViewportFeedback;
 use crate::ui::binding::ViewportCommand;
 use crate::ui::host::EditorHostEventController;
-use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 use crate::ui::workbench::state::EditorViewportStateError;
 
 use super::execution_outcome::ExecutionOutcome;
 
 pub(super) fn execute_viewport_event(
-    _controller: &EditorHostEventController,
-    shell: &mut WorkbenchShellStateData,
+    controller: &EditorHostEventController,
     event: &EditorViewportEvent,
 ) -> Result<ExecutionOutcome, EditorViewportStateError> {
+    let manager = if matches!(event, EditorViewportEvent::ForView { .. }) {
+        Some(
+            controller
+                .editor_manager_handle()
+                .enter()
+                .map_err(EditorViewportStateError::from)?,
+        )
+    } else {
+        None
+    };
+    let mut shell = controller.shell().lock();
     let (target_view, event) = match event {
         EditorViewportEvent::ForView { view_id, event } => {
             // The event wire carries the core nominal ID while the Workbench manager retains its
@@ -20,16 +29,16 @@ pub(super) fn execute_viewport_event(
             // ownership error.
             let manager_view_id =
                 crate::ui::workbench::view::ViewInstanceId::new(view_id.0.clone());
-            if !shell
-                .manager
-                .view_instance_ids_for_descriptor_key("editor.scene")
-                .iter()
-                .any(|candidate| candidate == &manager_view_id)
-                || shell
-                    .state
-                    .viewport_controller
-                    .session_if_live(view_id)
-                    .is_none()
+            if !manager.as_ref().is_some_and(|manager| {
+                manager
+                    .view_instance_ids_for_descriptor_key("editor.scene")
+                    .iter()
+                    .any(|candidate| candidate == &manager_view_id)
+            }) || shell
+                .state
+                .viewport_controller
+                .session_if_live(view_id)
+                .is_none()
             {
                 return Err(EditorViewportStateError::StaleViewportView {
                     view_id: view_id.clone(),
@@ -80,6 +89,8 @@ pub(super) fn execute_viewport_event(
         EditorViewportEvent::AlignView { orientation } => ViewportCommand::AlignView(*orientation),
         EditorViewportEvent::SetDisplayMode { mode } => ViewportCommand::SetDisplayMode(*mode),
         EditorViewportEvent::SetGridMode { mode } => ViewportCommand::SetGridMode(*mode),
+        EditorViewportEvent::SetGridVisibility { visible } => ViewportCommand::SetGridVisibility(*visible),
+        EditorViewportEvent::ToggleSnap { kind } => ViewportCommand::ToggleSnap(*kind),
         EditorViewportEvent::SetTranslateSnap { step } => ViewportCommand::SetTranslateSnap(*step),
         EditorViewportEvent::SetRotateSnapDegrees { step } => {
             ViewportCommand::SetRotateSnapDegrees(*step)

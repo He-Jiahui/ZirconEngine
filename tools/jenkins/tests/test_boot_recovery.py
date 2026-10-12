@@ -57,17 +57,20 @@ class BootRecoveryTests(unittest.TestCase):
         self.assertFalse(has_terminal_lifecycle_proofs(operation,
             {**host, "nativeTerminationProof": {**proof, "stderrEof": False}}, "home", absent))
 
-    def test_boot_query_treats_localized_failure_as_unavailable_and_accepts_only_decimal_evidence(self):
+    def test_boot_query_rejects_legacy_wmi_text_and_never_uses_it_as_evidence(self):
         import subprocess
-        failed = subprocess.CompletedProcess([], 1, b'', b'\xbe\xdc\xbe\xf8')
-        with patch('tools.jenkins.processes.boot.os.name', 'nt'), patch('tools.jenkins.processes.boot.subprocess.run', return_value=failed) as query:
+        failed = subprocess.CompletedProcess([], 1, b'', b'localized failure')
+        from tools.jenkins.processes import boot
+        sample = {"status": -1073741822, "returnedLength": 48, "bootFileTime": 100, "currentFileTime": 200}
+        with patch.object(boot, "_query_time_of_day", return_value=sample), patch.object(boot.subprocess, "run", return_value=failed) as query:
             with self.assertRaises(JenkinsError) as caught:
                 windows_boot_filetime()
-            self.assertEqual('boot_evidence_unavailable', caught.exception.code)
-            self.assertNotIn('text', query.call_args.kwargs)
+            self.assertEqual("boot_evidence_unavailable", caught.exception.code)
+            query.assert_not_called()
         good = subprocess.CompletedProcess([], 0, b'134355592655000000\r\n', b'')
-        with patch('tools.jenkins.processes.boot.os.name', 'nt'), patch('tools.jenkins.processes.boot.subprocess.run', return_value=good):
-            self.assertEqual(134355592655000000, windows_boot_filetime())
+        with patch.object(boot, "_query_time_of_day", side_effect=JenkinsError("boot_evidence_unavailable", "native unavailable")), patch.object(boot.subprocess, "run", return_value=good) as query:
+            with self.assertRaises(JenkinsError): windows_boot_filetime()
+            query.assert_not_called()
 
     def test_real_terminal_proofs_allow_retry_but_incomplete_or_unbound_proofs_do_not(self):
         import sys

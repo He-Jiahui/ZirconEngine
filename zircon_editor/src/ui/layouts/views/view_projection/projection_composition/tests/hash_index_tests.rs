@@ -24,6 +24,7 @@ fn projection(nodes: impl IntoIterator<Item = ViewTemplateNodeData>) -> ViewTemp
         base_rows: Rc::new(nodes.into_iter().map(Rc::new).collect()),
         row_patches: Rc::new(BTreeMap::new()),
         source_frame: None,
+        unreal_dock_header: None,
     }
 }
 

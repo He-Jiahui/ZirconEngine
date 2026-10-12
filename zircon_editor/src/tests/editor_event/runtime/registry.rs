@@ -205,7 +205,7 @@ fn operation_invocation_dispatches_to_the_same_event_and_marks_the_journal_recor
 
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_invoke");
-    let before = runtime.runtime.editor_snapshot().scene_entries.len();
+    let before = runtime.runtime.editor_snapshot().unwrap().scene_entries.len();
 
     let record = runtime
         .runtime
@@ -236,7 +236,7 @@ fn operation_invocation_dispatches_to_the_same_event_and_marks_the_journal_recor
         Some("scene.node.create_cube")
     );
     assert_eq!(
-        runtime.runtime.editor_snapshot().scene_entries.len(),
+        runtime.runtime.editor_snapshot().unwrap().scene_entries.len(),
         before + 1
     );
 }
@@ -245,7 +245,7 @@ fn operation_invocation_dispatches_to_the_same_event_and_marks_the_journal_recor
 fn editor_command_binding_invokes_the_shared_command_registry() {
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_command_operation_dispatch");
-    let before = runtime.runtime.editor_snapshot().scene_entries.len();
+    let before = runtime.runtime.editor_snapshot().unwrap().scene_entries.len();
     let binding = EditorUiBinding::new(
         "CommandPalette",
         "CreateCube",
@@ -267,7 +267,7 @@ fn editor_command_binding_invokes_the_shared_command_registry() {
         Some("scene.node.create_cube")
     );
     assert_eq!(
-        runtime.runtime.editor_snapshot().scene_entries.len(),
+        runtime.runtime.editor_snapshot().unwrap().scene_entries.len(),
         before + 1
     );
 }
@@ -329,7 +329,7 @@ fn operation_invocation_dispatches_rect_light_creation() {
 
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_rect_light");
-    let before = runtime.runtime.editor_snapshot().scene_entries.len();
+    let before = runtime.runtime.editor_snapshot().unwrap().scene_entries.len();
 
     let record = runtime
         .runtime
@@ -354,7 +354,7 @@ fn operation_invocation_dispatches_rect_light_creation() {
         Some("Create Rect Light")
     );
     assert_eq!(
-        runtime.runtime.editor_snapshot().scene_entries.len(),
+        runtime.runtime.editor_snapshot().unwrap().scene_entries.len(),
         before + 1
     );
 }

@@ -93,7 +93,7 @@ fn retained_host_presents_reopened_serialized_startup_workspace_before_first_ret
         .host
         .borrow()
         .runtime
-        .scene_viewport_workspace_sessions();
+        .scene_viewport_workspace_sessions().unwrap();
     assert!(
         restored_scene_ids
             .iter()
@@ -204,7 +204,7 @@ fn retained_host_rolls_back_after_admitted_scene_activation_failure_and_allows_r
         "failed retained projection must close the admitted Ready session guard"
     );
     assert!(
-        !harness.host.borrow().runtime.editor_snapshot().project_open,
+        !harness.host.borrow().runtime.editor_snapshot().unwrap().project_open,
         "failed retained projection must restore the previous Welcome runtime"
     );
     assert!(

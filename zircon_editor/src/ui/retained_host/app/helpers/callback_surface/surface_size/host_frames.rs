@@ -12,8 +12,10 @@ impl RetainedEditorHost {
     pub(super) fn resolve_host_frame_backed_size_for_kind(
         &self,
         kind: ViewContentKind,
-    ) -> Option<UiSize> {
-        self.resolve_callback_source_window_host_frame_backed_size()
-            .or_else(|| resolve_workbench_host_frame_backed_size_for_kind(self, kind))
+    ) -> Result<Option<UiSize>, crate::ui::host::EditorError> {
+        if let Some(size) = self.resolve_callback_source_window_host_frame_backed_size() {
+            return Ok(Some(size));
+        }
+        resolve_workbench_host_frame_backed_size_for_kind(self, kind)
     }
 }

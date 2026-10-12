@@ -42,6 +42,47 @@ pub(in super::super) fn pane_route_from_pane<'a>(
     if let Some(route) = route_asset_content_hit(pane, &body_route.body, x, y) {
         return Some(route);
     }
+    if pane.kind.as_str() == "UiAssetEditor" && pane.ui_asset.preview.canvas.input_enabled {
+        let canvas = &pane.ui_asset.preview.canvas;
+        if let (Some(source_frame), Some(transform)) = (
+            canvas.source_surface_frame.as_ref(),
+            canvas.transform(&pane.ui_asset.designer_canvas_panel_node, &body_route.body),
+        ) {
+            if transform.source_point(x, y).is_some() {
+                let canvas_clip = transform.clip.clone();
+                return Some(PanePointerRoute::new(
+                    PanePointerTarget::UiAssetPreview {
+                        pane_id: pane.id.as_str(),
+                        source_frame,
+                        transform,
+                    },
+                    &canvas_clip,
+                    x,
+                    y,
+                ));
+            }
+        }
+    }
+    if pane.kind.as_str() == "GeneratedBottom" {
+        if let (Some(source_frame), Some(transform)) = (
+            pane.generated_bottom.source_surface_frame.as_ref(),
+            pane.generated_bottom.input_transform(&body_route.body),
+        ) {
+            if transform.source_point(x, y).is_some() {
+                let clip = transform.clip.clone();
+                return Some(PanePointerRoute::new(
+                    PanePointerTarget::GeneratedBottom {
+                        pane_id: pane.id.as_str(),
+                        source_frame,
+                        transform,
+                    },
+                    &clip,
+                    x,
+                    y,
+                ));
+            }
+        }
+    }
     if let Some(route) =
         route_template_node_hit(pane, &body_route.body, x, y, mode, console_scroll_px)
     {

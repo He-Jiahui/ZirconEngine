@@ -5,10 +5,10 @@ use zircon_runtime::diagnostic_log::{
     diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
 };
 
-pub(crate) const UI_HOST_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/host/workbench_shell.zui";
+pub(crate) const UNREAL_EDITOR_SHELL_DOCUMENT_ID: &str = "res://ui/editor/unreal/editor_shell.zui";
 pub(crate) const EDITOR_MAIN_FRAME_DOCUMENT_ID: &str = "res://ui/editor/host/editor_main_frame.zui";
-pub(crate) const WORKBENCH_WINDOW_DOCUMENT_ID: &str =
-    "res://ui/editor/windows/workbench_window.zui";
+pub(crate) const UNREAL_EDITOR_WINDOW_DOCUMENT_ID: &str =
+    "res://ui/editor/unreal/level_editor_window.zui";
 pub(crate) const ASSET_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/windows/asset_window.zui";
 pub(crate) const UI_COMPONENT_SHOWCASE_WINDOW_DOCUMENT_ID: &str =
     "res://ui/editor/component_showcase.zui";
@@ -77,8 +77,8 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 24] {
             builtin_host_template_path("editor_main_frame.zui"),
         ),
         (
-            WORKBENCH_WINDOW_DOCUMENT_ID,
-            builtin_window_template_path("workbench_window.zui"),
+            UNREAL_EDITOR_WINDOW_DOCUMENT_ID,
+            builtin_editor_template_path("unreal/level_editor_window.zui"),
         ),
         (
             ASSET_WINDOW_DOCUMENT_ID,
@@ -101,8 +101,8 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 24] {
             builtin_editor_template_path("material_component_lab.zui"),
         ),
         (
-            UI_HOST_WINDOW_DOCUMENT_ID,
-            builtin_host_template_path("workbench_shell.zui"),
+            UNREAL_EDITOR_SHELL_DOCUMENT_ID,
+            builtin_editor_template_path("unreal/editor_shell.zui"),
         ),
         (
             FLOATING_WINDOW_SOURCE_DOCUMENT_ID,

@@ -2,7 +2,7 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, SceneNodeData};
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::host_contract::paint_primitives::draw_text_bars_clipped;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    current_host_metrics, HostControlMetrics,
+    current_host_metrics, current_host_palette, HostControlMetrics,
 };
 
 use super::super::super::super::{ACCENT, MUTED_TEXT};
@@ -14,8 +14,19 @@ pub(super) fn draw_hierarchy_row_text(
     row_clip: &FrameRect,
     inline_rename_value: Option<&str>,
 ) {
-    let (text, color) = inline_rename_value
-        .map_or_else(|| (node.name.as_str(), MUTED_TEXT), |value| (value, ACCENT));
+    let (text, color) = inline_rename_value.map_or_else(
+        || {
+            (
+                node.name.as_str(),
+                if node.selected {
+                    current_host_palette().text_selected
+                } else {
+                    MUTED_TEXT
+                },
+            )
+        },
+        |value| (value, ACCENT),
+    );
     let metrics = current_host_metrics();
     draw_text_bars_clipped(
         frame,

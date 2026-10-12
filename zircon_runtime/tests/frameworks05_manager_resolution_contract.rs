@@ -49,5 +49,5 @@ fn direct_immediate_service_resolution_reuses_module_activation_instance() {
     let resolved_again = runtime
         .resolve_driver::<ImmediateDriver>(service_name.as_str())
         .unwrap();
-    assert!(Arc::ptr_eq(&driver, &resolved_again));
+    assert!(std::ptr::eq(&*driver, &*resolved_again));
 }

@@ -62,6 +62,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
             style.glyph = text;
         }
     }
+    if node.button_variant.eq_ignore_ascii_case("text")
+        && interaction == ButtonInteractionState::Normal
+        && node.button_style.element.border_width.is_finite()
+        && node.button_style.element.border_width >= 0.0
+        && node.button_style.element.border_color.is_some()
+    {
+        style.border_width = node.button_style.element.border_width;
+    }
     if is_add_component_button {
         style.text = add_component_text_color();
         style.glyph = add_component_glyph_color();
@@ -84,7 +92,7 @@ fn should_apply_declared_button_surface(
     kind: WorkbenchButtonKind,
     interaction: ButtonInteractionState,
 ) -> bool {
-    uses_workbench_visual_language(node)
+    (uses_workbench_visual_language(node) || node.button_variant.eq_ignore_ascii_case("text"))
         && !matches!(
             kind,
             WorkbenchButtonKind::Primary | WorkbenchButtonKind::Danger
@@ -96,7 +104,8 @@ fn should_apply_declared_button_foreground(
     node: &TemplatePaneNodeData,
     kind: WorkbenchButtonKind,
 ) -> bool {
-    uses_workbench_visual_language(node) && kind != WorkbenchButtonKind::Primary
+    (uses_workbench_visual_language(node) || node.button_variant.eq_ignore_ascii_case("text"))
+        && kind != WorkbenchButtonKind::Primary
 }
 
 fn tab_like_button_style(

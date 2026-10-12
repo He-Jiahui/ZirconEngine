@@ -85,14 +85,14 @@ fn morph_shape_revision(morph_weights: &[f32]) -> u64 {
 }
 
 impl ResourceStreamer {
-    pub(crate) fn asset_manager(&self) -> Result<Arc<ProjectAssetManager>, GraphicsError> {
+    pub(crate) fn asset_manager(&self) -> Result<crate::core::runtime::ServiceCallGuard<ProjectAssetManager>, GraphicsError> {
         self.asset_manager_access
             .resolve()
             .map_err(|error| GraphicsError::Asset(error.to_string()))
     }
 
     #[cfg(test)]
-    fn test_asset_manager(&self) -> Arc<ProjectAssetManager> {
+    fn test_asset_manager(&self) -> crate::core::runtime::ServiceCallGuard<ProjectAssetManager> {
         self.asset_manager()
             .expect("test ProjectAssetManager runtime must remain available")
     }
@@ -590,7 +590,7 @@ impl ResourceStreamer {
         let mut project_modules = Vec::new();
         let mut visited = HashSet::new();
         self.collect_shader_module_include_sources(
-            asset_manager.as_ref(),
+            &*asset_manager,
             shader_id,
             &mut visited,
             &mut project_modules,

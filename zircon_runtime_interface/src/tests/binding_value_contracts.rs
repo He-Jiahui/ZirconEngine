@@ -93,9 +93,13 @@ fn binding_value_rich_contract_round_trips_serde_and_native_binding() {
         value
     );
 
-    let binary = bincode::serialize(&value).unwrap();
+    let binary = crate::serialization::PositionalEncoding::FixedLittleEndian
+        .encode(&value)
+        .unwrap();
     assert_eq!(
-        bincode::deserialize::<UiBindingValue>(&binary).unwrap(),
+        crate::serialization::PositionalEncoding::FixedLittleEndian
+            .decode::<UiBindingValue>(&binary)
+            .unwrap(),
         value
     );
 

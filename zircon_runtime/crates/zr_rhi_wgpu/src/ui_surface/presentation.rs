@@ -23,6 +23,9 @@ impl WgpuUiSurfaceRenderer {
         draw_list: &UiSurfaceDrawList,
     ) -> Result<WgpuUiSurfacePresentation, RhiError> {
         // Clear published observations before a new attempt; failed acquire cannot expose stale metrics.
+        if self.has_submitted_frame_readback() {
+            self.cancel_frame_readback("a subsequent normal present superseded the captured frame");
+        }
         let previous_text_layout = self.text.layout_snapshot.take();
         self.poll_local_completion_timeline()?;
         self.resize_if_needed(draw_list.surface_size)?;
@@ -381,12 +384,31 @@ impl WgpuUiSurfaceRenderer {
                 }
             }
         }
+        let diagnostic_frame = self.prepare_frame_readback(draw_list, &mut encoder);
         encoder.pop_debug_group();
         let image_allocation_pins = (mode != SurfaceRenderMode::RetainedProjectionCopy)
             .then(|| self.image_cache.pin_prepared_allocations_for_submission())
             .flatten();
-        let submission =
-            Some(self.submit_present_command_buffer(encoder.finish(), image_allocation_pins)?);
+        let submission = if let Some(frame) = diagnostic_frame {
+            match self.submit_present_command_buffer_with_diagnostics(
+                encoder.finish(),
+                image_allocation_pins,
+                frame,
+            ) {
+                Ok(ticket) => {
+                    self.bind_frame_readback_submission(ticket);
+                    Some(ticket)
+                }
+                Err(error) => {
+                    self.cancel_frame_readback(&format!(
+                        "normal surface submission failed: {error}"
+                    ));
+                    return Err(error);
+                }
+            }
+        } else {
+            Some(self.submit_present_command_buffer(encoder.finish(), image_allocation_pins)?)
+        };
         // 缓存状态在呈现命令成功提交后才生效，失败帧不能成为下次损伤更新的基线。
         if let (Some(retained_cache), Some(commit)) =
             (&mut self.retained_cache, retained_cache_commit)

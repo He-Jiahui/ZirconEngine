@@ -6,7 +6,7 @@ fn editor_ui_host_runtime_registers_projection_bindings_as_route_stubs() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
-        .project_document(UI_HOST_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_SHELL_DOCUMENT_ID)
         .unwrap();
     let mut service = EditorUiControlService::default();
 

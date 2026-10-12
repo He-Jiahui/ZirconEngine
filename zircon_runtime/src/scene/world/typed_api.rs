@@ -274,12 +274,15 @@ impl World {
         if !was_present {
             self.bump_lifecycle_visibility_revision();
         }
+        let execution = self.begin_schedule_execution();
         if was_present {
             self.trigger_component_lifecycle(LifecycleEventKind::Replace, entity, component_id);
         } else {
             self.trigger_component_lifecycle(LifecycleEventKind::Add, entity, component_id);
         }
+        execution.ensure_bound_to(self, "insert component")?;
         self.trigger_component_lifecycle(LifecycleEventKind::Insert, entity, component_id);
+        execution.ensure_bound_to(self, "insert component")?;
         Ok(old)
     }
 
@@ -395,9 +398,11 @@ impl World {
         let Some(component_id) = component_id else {
             return Ok(None);
         };
+        let execution = self.begin_schedule_execution();
         if self.contains_component_id(entity, component_id) {
             self.trigger_component_lifecycle(LifecycleEventKind::Remove, entity, component_id);
         }
+        execution.ensure_bound_to(self, "remove component")?;
         let removed = match T::STORAGE_TYPE {
             StorageType::Table => {
                 let signature = self

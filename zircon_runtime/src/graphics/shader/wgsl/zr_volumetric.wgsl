@@ -1,4 +1,6 @@
 struct ZrVolumetricApplyParams {
+    // 与 GpuVolumetricApplyParams 的字段顺序保持一致：depth 为近/远深度、切片指数、积分纹理可用位；
+    // viewport 为应用区域的物理原点和尺寸倒数，片元坐标必须使用同一坐标空间。
     depth: vec4<f32>,
     viewport: vec4<f32>,
 };
@@ -29,6 +31,7 @@ fn zr_volumetric_uv(fragment_position: vec2<f32>) -> vec2<f32> {
     );
 }
 
+// 求 zr_froxel_slice_depth 的逆映射；近/远深度与指数必须和生成积分纹理的 froxel 网格一致。
 fn zr_volumetric_slice_coordinate(uv: vec2<f32>, device_depth: f32) -> f32 {
     let world_position = zr_volumetric_unproject(uv, clamp(device_depth, 0.0, 1.0));
     let camera_forward = normalize(-scene.camera_view_direction.xyz);
@@ -56,6 +59,7 @@ fn zr_volumetric_integrated_sample(
     fragment_position: vec2<f32>,
     device_depth: f32,
 ) -> vec4<f32> {
+    // 缺少积分结果时用中性值 S=0、T=1 保持场景颜色，并在采样前跳过仅用于维持绑定的占位纹理。
     if (zr_volumetric_apply_params.depth.w < 0.5) {
         return vec4<f32>(0.0, 0.0, 0.0, 1.0);
     }
@@ -68,6 +72,8 @@ fn zr_volumetric_integrated_sample(
     );
 }
 
+// 积分 RGB 为累计散射辐射，A 为透射率。SSS MRT 分别衰减 diffuse/retained，且只给 retained 叠加散射，
+// 因此保留独立的透射率和散射入口，普通输出再由 zr_volumetric_apply 合成。
 fn zr_volumetric_transmittance(fragment_position: vec2<f32>, device_depth: f32) -> f32 {
     return clamp(zr_volumetric_integrated_sample(fragment_position, device_depth).a, 0.0, 1.0);
 }

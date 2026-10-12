@@ -8,18 +8,18 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn viewport_toolbar_surface_size(
         &self,
         surface_key: &str,
-    ) -> UiSize {
+    ) -> Result<UiSize, crate::ui::host::EditorError> {
         let toolbar_height =
             VIEWPORT_TOOLBAR_HEIGHT * self.callback_source_ui().window().scale_factor();
-        let current_host = self.runtime.view_host_for_instance_key(surface_key);
+        let current_host = self.runtime.view_host_for_instance_key(surface_key)?;
         if let Some(ViewHost::FloatingWindow(window_id, _)) = current_host.as_ref() {
-            return UiSize::new(
+            return Ok(UiSize::new(
                 self.resolve_floating_window_content_frame_for_window(window_id)
                     .unwrap_or_default()
                     .width
                     .max(1.0),
                 toolbar_height,
-            );
+            ));
         }
 
         let workbench_layout_frames = self.workbench_window_bridge.layout_frames();
@@ -55,7 +55,7 @@ impl RetainedEditorHost {
                     .unwrap_or_default()
             });
 
-        UiSize::new(width.max(1.0), toolbar_height)
+        Ok(UiSize::new(width.max(1.0), toolbar_height))
     }
 
     fn componentized_document_viewport_toolbar_width(&self) -> Option<f32> {

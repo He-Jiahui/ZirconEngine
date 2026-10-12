@@ -1,4 +1,5 @@
 use super::{RetainedEditorHost, UiAssetActionDispatch};
+use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl RetainedEditorHost {
@@ -9,14 +10,24 @@ impl RetainedEditorHost {
     ) -> UiAssetActionDispatch {
         match action_id {
             "undo" => UiAssetActionDispatch::handled(
-                self.editor_manager.undo_ui_asset_editor(instance_id),
+                self.editor_manager
+                    .enter()
+                    .map_err(EditorError::from)
+                    .and_then(|manager| manager.undo_ui_asset_editor(instance_id)),
             ),
             "redo" => UiAssetActionDispatch::handled(
-                self.editor_manager.redo_ui_asset_editor(instance_id),
+                self.editor_manager
+                    .enter()
+                    .map_err(EditorError::from)
+                    .and_then(|manager| manager.redo_ui_asset_editor(instance_id)),
             ),
             "reference.open" => UiAssetActionDispatch::handled(
                 self.editor_manager
-                    .open_ui_asset_editor_selected_reference(instance_id),
+                    .enter()
+                    .map_err(EditorError::from)
+                    .and_then(|manager| {
+                        manager.open_ui_asset_editor_selected_reference(instance_id)
+                    }),
             ),
             _ => UiAssetActionDispatch::Unhandled,
         }

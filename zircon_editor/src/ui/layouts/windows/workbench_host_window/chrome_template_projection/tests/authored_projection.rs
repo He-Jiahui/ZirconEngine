@@ -14,7 +14,7 @@ fn authored_chrome_assets_use_workbench_typography_baseline() {
     ));
     let dock = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/assets/ui/editor/workbench_dock_header.zui"
+        "/assets/ui/editor/unreal/components/dock_header.zui"
     ));
     let status = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -24,8 +24,8 @@ fn authored_chrome_assets_use_workbench_typography_baseline() {
     assert_eq!(menu.matches(BODY).count(), 7);
     assert_eq!(page.matches(BODY).count(), 3);
     assert_eq!(page.matches(CAPTION).count(), 1);
-    assert_eq!(dock.matches(BODY).count(), 3);
-    assert_eq!(dock.matches(CAPTION).count(), 1);
+    assert_eq!(dock.matches("font_size = \"$unreal_font_size\"").count(), 3);
+    assert_eq!(dock.matches("font_size = \"$unreal_font_small_size\"").count(), 1);
     assert_eq!(status.matches(BODY).count(), 3);
     assert!(status.contains("height = { min = 16.0, preferred = 16.0, max = 16.0"));
 }
@@ -780,4 +780,112 @@ fn status_bar_nodes_project_text_overrides_from_flat_asset() {
         "generic host status projection should preserve the authored responsive root instead of taking the procedural pixel fallback"
     );
     assert!(node(&nodes, "StatusBarPanel").frame.width > 0.0);
+}
+
+#[test]
+fn authored_unreal_dock_header_measures_captions_and_restores_source_slots() {
+    use crate::ui::layouts::views::build_view_template_node_projection_with_patches;
+    use zircon_runtime_interface::ui::layout::UiSize;
+
+    let project = |tabs: &ModelRc<TabData>| {
+        let mut text = tab_text_overrides(DOCK_TAB_PREFIX, tabs);
+        text.insert(DOCK_SUBTITLE_CONTROL_ID.into(), String::new());
+        let patches = super::super::dock_header::dock_header_visual_state_patches(tabs);
+        build_view_template_node_projection_with_patches(
+            "host.bottom.dock.header",
+            DOCK_HEADER_ASSET,
+            &[],
+            UiSize::new(1000.0, 31.0),
+            &text,
+            &patches,
+        )
+        .expect("actual Unreal view must build a V2 Surface")
+    };
+    let three = model_rc(vec![
+        test_tab("Console", false, false),
+        test_tab("Runtime diagnostics history", true, false),
+        test_tab("Desktop preview controls", false, false),
+    ]);
+    let first = project(&three);
+    let one = model_rc(vec![test_tab("Console", true, false)]);
+    let single = project(&one);
+    let restored = project(&three);
+
+    for projection in [&first, &single, &restored] {
+        let source = projection.source_frame().expect("real source frame");
+        for node in projection.iter() {
+            let id = node.surface_node_id.expect("authored native node ID");
+            assert!(source.arranged_tree.get(id).is_some(), "source node must exist");
+            let reference = node
+                .surface_render_command_ref
+                .expect("real render command ref");
+            assert_eq!(reference.node_id, id);
+            let command = source
+                .render_extract
+                .command_by_ref(reference)
+                .expect("reference must resolve against this Surface");
+            if node.control_id.as_str().starts_with("DockTabGroup") {
+                assert_eq!(node.frame.x, command.frame.x);
+                assert_eq!(node.frame.y, command.frame.y);
+                assert_eq!(node.frame.width, command.frame.width);
+                assert_eq!(node.frame.height, command.frame.height);
+            }
+        }
+    }
+    let rows = first.iter().cloned().collect::<Vec<_>>();
+    for row in 0..3 {
+        let group_id = format!("DockTabGroup{row}");
+        let group = rows
+            .iter()
+            .find(|node| node.control_id.as_str() == group_id)
+            .expect("authored group background remains in projection");
+        let caption = three.get(row).unwrap();
+        let title_width =
+            measure_runtime_text_width(caption.title.as_str(), DOCUMENT_TAB_TITLE_FONT_SIZE);
+        assert!(
+            group.frame.width + 0.5 >= title_width + 42.0,
+            "caption and authored padding must fit",
+        );
+        assert!(group.frame.width <= 220.0);
+        let label_id = format!("DockTab{row}");
+        let label = rows
+            .iter()
+            .find(|node| node.control_id.as_str() == label_id)
+            .expect("authored caption");
+        assert_eq!(label.font_weight, 400);
+    }
+    assert!(!single.iter().any(|node| {
+        matches!(
+            node.control_id.as_str(),
+            "DockTabGroup1" | "DockTabGroup2" | "DockTab1" | "DockTab2"
+        )
+    }));
+    for expected in [
+        "DockTab0",
+        "DockTab1",
+        "DockTab2",
+        "DockTabGroup1",
+        "DockTabGroup2",
+    ] {
+        assert!(restored.iter().any(|node| node.control_id.as_str() == expected));
+    }
+    for row in 0..3 {
+        let id = format!("DockTabGroup{row}");
+        let before = rows.iter().find(|node| node.control_id.as_str() == id).unwrap();
+        let after = restored.iter().find(|node| node.control_id.as_str() == id).unwrap();
+        assert_eq!(before.frame, after.frame);
+    }
+    let native = bottom_dock_header_nodes(&three, &"fyrox_panel".into(), 1000.0, 31.0);
+    assert!(native
+        .iter()
+        .all(|node| !node.node_id.as_str().starts_with("Fallback")));
+    assert!(native
+        .iter()
+        .filter(|node| node
+            .control_id
+            .as_str()
+            .strip_prefix(DOCK_TAB_PREFIX)
+            .and_then(|suffix| suffix.parse::<usize>().ok())
+            .is_some())
+        .all(|node| node.font_weight == 400));
 }

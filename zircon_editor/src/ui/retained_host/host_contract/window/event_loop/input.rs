@@ -5,7 +5,8 @@ use super::UiHostWindowEventLoop;
 
 impl UiHostWindowEventLoop {
     pub(in crate::ui::retained_host::host_contract) fn sync_ime_allowed(&mut self) {
-        let allowed = self.host.text_input_focus_accepts_text();
+        let allowed = self.host.retained_pane_accepts_text_input()
+            || self.host.text_input_focus_accepts_text();
         if self.ime_allowed == allowed {
             return;
         }

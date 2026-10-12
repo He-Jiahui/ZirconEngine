@@ -1,6 +1,7 @@
 """Failure recovery for historical anonymous jobs across a real OS restart."""
 from __future__ import annotations
 
+import ctypes
 import json
 import os
 from pathlib import Path
@@ -10,28 +11,48 @@ import time
 from ..contracts import JenkinsError, digest
 
 
-def windows_boot_filetime() -> int:
-    if os.name != "nt":
-        raise JenkinsError("boot_evidence_unavailable", "Windows boot evidence requires Windows")
-    system = Path(os.environ["SystemRoot"])
-    executable = system / "System32/WindowsPowerShell/v1.0/powershell.exe"
-    script = "(Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime.ToUniversalTime().ToFileTimeUtc()"
+class _TimeOfDay(ctypes.Structure):
+    _fields_ = [("BootTime", ctypes.c_int64), ("CurrentTime", ctypes.c_int64), ("TimeZoneBias", ctypes.c_int64),
+                ("TimeZoneId", ctypes.c_uint32), ("Reserved", ctypes.c_uint32),
+                ("BootTimeBias", ctypes.c_uint64), ("SleepTimeBias", ctypes.c_uint64)]
+
+
+def _native_boot_require(value, message):
+    if not value:
+        raise JenkinsError("boot_evidence_unavailable", message)
+
+
+def _query_time_of_day() -> dict:
+    _native_boot_require(os.name == "nt", "Native Windows boot evidence requires Windows")
+    _native_boot_require(ctypes.sizeof(_TimeOfDay) == 48 and tuple(getattr(_TimeOfDay, name).offset for name, _ in _TimeOfDay._fields_)
+          == (0, 8, 16, 24, 28, 32, 40), "Native Windows time-of-day layout is unknown")
     try:
-        result = subprocess.run([str(executable), "-NoProfile", "-NonInteractive", "-Command", script],
-            env=dict(os.environ, PSModulePath=str(system / "System32/WindowsPowerShell/v1.0/Modules")),
-            capture_output=True, timeout=30, creationflags=subprocess.CREATE_NO_WINDOW)
-    except (OSError, subprocess.TimeoutExpired) as error:
-        raise JenkinsError("boot_evidence_unavailable", "Windows boot evidence could not be queried") from error
-    # Windows PowerShell diagnostics use the active console code page.  Only
-    # ASCII decimal stdout is evidence; error text must never be UTF-8 decoded
-    # by a subprocess reader thread or interpreted as a boot identity.
-    output = result.stdout.strip()
-    if result.returncode or not output.isdigit():
-        raise JenkinsError("boot_evidence_unavailable", "Windows did not report a verifiable boot time")
-    value = int(output)
-    if value <= 0:
-        raise JenkinsError("boot_evidence_unavailable", "Windows boot time is invalid")
-    return value
+        # ntdll is a Windows KnownDLL already loaded in this native process.
+        query = ctypes.WinDLL("ntdll.dll").NtQuerySystemInformation
+        query.argtypes = [ctypes.c_int32, ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32)]
+        query.restype = ctypes.c_int32
+        value, returned = _TimeOfDay(), ctypes.c_uint32()
+        status = query(3, ctypes.byref(value), ctypes.sizeof(value), ctypes.byref(returned))
+    except (OSError, AttributeError, ctypes.ArgumentError) as error:
+        raise JenkinsError("boot_evidence_unavailable", "Native Windows boot query could not be completed") from error
+    return {"status": status, "returnedLength": returned.value, "bootFileTime": value.BootTime, "currentFileTime": value.CurrentTime}
+
+
+def windows_native_boot_observation() -> dict:
+    samples = [_query_time_of_day(), _query_time_of_day()]
+    fields = {"status", "returnedLength", "bootFileTime", "currentFileTime"}
+    _native_boot_require(all(isinstance(s, dict) and set(s) == fields and all(type(s[k]) is int for k in fields)
+              and s["status"] == 0 and s["returnedLength"] == 48 and 0 < s["bootFileTime"] <= s["currentFileTime"] < 2 ** 63
+              for s in samples), "Native Windows boot status, byte length or FILETIME is invalid")
+    _native_boot_require(samples[0]["bootFileTime"] == samples[1]["bootFileTime"], "Native Windows boot changed during observation")
+    return {"schemaVersion": 1, "kind": "windows-native-boot-observation", "provider": "ntdll.NtQuerySystemInformation",
+        "informationClass": 3, "queryCount": 2, "bufferBytes": 48, "returnedBytes": 48, "ntStatus": 0,
+        "bootFileTime": str(samples[0]["bootFileTime"]), "observedAt": time.time()}
+
+
+def windows_boot_filetime() -> int:
+    """Real repeated native observation; no WMI or inferred boot fallback."""
+    return int(windows_native_boot_observation()["bootFileTime"])
 
 
 def recover_previous_boot(state, execution_id: str):

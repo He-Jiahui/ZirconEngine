@@ -34,6 +34,12 @@ use super::{
 #[derive(Debug, Error)]
 pub enum UiAssetEditorSessionError {
     #[error(transparent)]
+    BuiltinCatalog(#[from] crate::ui::template::EditorComponentCatalogManifestError),
+    #[error("builtin preview source is unavailable: {reason}")]
+    BuiltinPreview { reason: String },
+    #[error("UI asset preview input belongs to a retired source frame")]
+    RetiredPreviewInput,
+    #[error(transparent)]
     Asset(#[from] UiAssetError),
     #[error(transparent)]
     V2Asset(#[from] UiV2AssetError),

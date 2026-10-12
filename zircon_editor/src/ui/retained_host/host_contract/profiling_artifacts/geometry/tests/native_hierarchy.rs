@@ -32,7 +32,7 @@ fn hidden_authored_panes_do_not_report_retired_native_dock_frames() {
     // The authored workspace owns these panes, but responsive layout has hidden them.
     presentation.workbench_window_nodes = ModelRc::from(Rc::new(VecModel::from(vec![
         crate::ui::retained_host::host_contract::data::TemplatePaneNodeData {
-            control_id: "WorkbenchSceneWorkspace".into(),
+            control_id: "UnrealLevelEditorContent".into(),
             ..Default::default()
         },
     ])));

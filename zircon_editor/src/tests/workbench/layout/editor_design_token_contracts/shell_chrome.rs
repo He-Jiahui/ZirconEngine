@@ -13,55 +13,22 @@ macro_rules! workbench_asset {
     };
 }
 
+macro_rules! unreal_asset {
+    ($path:literal) => {
+        include_str!(concat!("../../../../../assets/ui/editor/unreal/", $path))
+    };
+}
+
 #[test]
-/// 工具栏与状态栏共同依赖壳层主题，不允许各自私有颜色和文字度量。
-fn shell_chrome_roots_share_tokenized_surface_typography_and_density_inputs() {
-    assert_tokenized_assets(&[
-        (
-            "workbench_top_toolbar.zui",
-            workbench_asset!("shell/workbench_top_toolbar.zui"),
-            &[
-                "$editor.surface.2",
-                "$editor.surface.hover",
-                "$editor.surface.3",
-                "$editor.surface.selected",
-                "$editor.surface.disabled",
-                "$editor.separator.soft",
-                "$editor.border",
-                "$editor.accent",
-                "$editor.text.primary",
-                "$editor.text.secondary",
-                "$editor.text.disabled",
-                "$editor.control.border_width",
-                "$editor.density.gap.medium",
-                "$editor.density.gap.small",
-                "$editor.typography.body.size",
-                "$editor.typography.line_height",
-            ],
-        ),
-        (
-            "workbench_status_bar.zui",
-            workbench_asset!("shell/workbench_status_bar.zui"),
-            &[
-                "$editor.surface.0",
-                "$editor.surface.hover",
-                "$editor.surface.3",
-                "$editor.surface.selected",
-                "$editor.surface.disabled",
-                "$editor.separator.soft",
-                "$editor.border",
-                "$editor.accent",
-                "$editor.text.primary",
-                "$editor.text.secondary",
-                "$editor.text.disabled",
-                "$editor.control.border_width",
-                "$editor.density.gap.medium",
-                "$editor.density.gap.small",
-                "$editor.typography.body.size",
-                "$editor.typography.line_height",
-            ],
-        ),
-    ]);
+fn unreal_shell_chrome_uses_real_toolbar_and_status_assets() {
+    let toolbar = unreal_asset!("components/toolbar.zui");
+    let status = unreal_asset!("components/status_bar.zui");
+    assert!(toolbar.contains("control_id = \"WorkbenchWindowTopToolbar\""));
+    assert!(toolbar.contains("separator_edge = \"bottom\""));
+    assert!(toolbar.contains("height = { min = 48.0, preferred = 48.0, max = 48.0"));
+    assert!(status.contains("control_id = \"UnrealEditorStatusBar\""));
+    assert!(status.contains("separator_edge = \"top\""));
+    assert!(status.contains("control_id = \"UnrealContentDrawerToggle\""));
 }
 
 #[test]
@@ -142,28 +109,12 @@ fn activity_drawer_window_uses_relative_shell_constraints() {
 }
 
 #[test]
-/// 活动栏自身宽度、间距和按钮高度应从统一密度来源获得。
-fn activity_rail_uses_shared_component_spacing() {
-    let asset = workbench_asset!("shell/workbench_activity_rail.zui");
-    assert_tokenized_assets(&[(
-        "workbench_activity_rail.zui",
-        asset,
-        &[
-            "$editor.density.gap.medium",
-            "$editor.chrome.activity_rail.width",
-            "$editor.control.height.compact",
-        ],
-    )]);
-    assert!(
-        !asset.contains("gap = 10.0")
-            && !asset.contains("min = 72.0")
-            && !asset.contains("preferred = 72.0")
-            && !asset.contains("max = 72.0")
-            && !asset.contains("min = 48.0")
-            && !asset.contains("preferred = 48.0")
-            && !asset.contains("max = 48.0"),
-        "activity rail must not keep local gap, shell-width, or item-size geometry"
-    );
+fn unreal_viewport_uses_native_viewport_identity_and_shared_toolbar_height() {
+    let asset = unreal_asset!("components/viewport.zui");
+    assert!(asset.contains("control_id = \"UnrealLevelViewport\""));
+    assert!(asset.contains("control_id = \"WorkbenchViewportSurface\""));
+    assert!(asset.contains("$editor.chrome.viewport_toolbar.height"));
+    assert!(!asset.contains("activity_rail"));
 }
 
 #[test]
@@ -197,65 +148,11 @@ fn panel_header_uses_shared_container_surface_and_density() {
 }
 
 #[test]
-/// 样本容器继承共用类规则；局部圆角或边宽不能掩盖主题容器行为。
-fn component_drawer_sample_cards_share_container_chrome() {
-    let asset = workbench_asset!("shell/workbench_component_drawer.zui");
-    let document = asset
-        .parse::<Value>()
-        .expect("component drawer must remain valid ZUI TOML");
-    let nodes = document
-        .get("nodes")
-        .and_then(Value::as_table)
-        .expect("component drawer must expose nodes");
-    let card_nodes = [
-        "component_buttons",
-        "component_icon_buttons",
-        "component_inputs",
-        "component_sliders",
-        "component_selection",
-        "component_labs",
-        "component_feedback",
-        "component_list",
-        "component_table",
-    ];
-
-    for node_id in card_nodes {
-        let node = nodes
-            .get(node_id)
-            .unwrap_or_else(|| panic!("component drawer must retain `{node_id}`"));
-        let classes = node
-            .get("classes")
-            .and_then(Value::as_array)
-            .unwrap_or_else(|| panic!("component drawer card `{node_id}` must expose classes"));
-        assert!(
-            classes
-                .iter()
-                .filter_map(Value::as_str)
-                .any(|class| class == "workbench-component-sample-card"),
-            "component drawer card `{node_id}` must use the shared sample-card class"
-        );
-        let props = node
-            .get("props")
-            .and_then(Value::as_table)
-            .unwrap_or_else(|| panic!("component drawer card `{node_id}` must expose props"));
-        for property in ["corner_radius", "border_width"] {
-            assert!(
-                !props.contains_key(property),
-                "component drawer card `{node_id}` must inherit `{property}` from its class"
-            );
-        }
-    }
-
-    let rule = strict_theme_rule(".workbench-component-sample-card");
-    for declaration in [
-        "background_color = \"$workbench_panel\"",
-        "border_color = \"$workbench_border\"",
-        "border_width = \"$editor.control.border_width\"",
-        "radius = \"$editor.control.radius.control\"",
-    ] {
-        assert!(
-            rule.contains(declaration),
-            "shared component drawer card chrome must declare {declaration}"
-        );
-    }
+fn unreal_content_drawer_has_semantic_focus_and_dismiss_contract() {
+    let asset = unreal_asset!("components/content_drawer.zui");
+    assert!(asset.contains("control_id = \"UnrealContentDrawer\""));
+    assert!(asset.contains("dismiss_on_focus_loss = true"));
+    assert!(asset.contains("open_focus_control_id = \"SearchEdited\""));
+    assert!(asset.contains("workbench.asset.set_search_query"));
+    assert!(asset.contains("workbench.content_drawer.dismiss"));
 }

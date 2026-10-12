@@ -2,6 +2,8 @@
 
 use std::collections::HashMap;
 
+use thiserror::Error;
+
 use crate::asset::UiIconAsset;
 use crate::ui::icon_atlas::{parse_ui_svg_icon_cached, UiSvgIconDocument, UiSvgIconParseError};
 
@@ -15,6 +17,26 @@ pub struct UiIconRasterRequest {
     pub icon_id: String,
     pub asset: UiIconAsset,
     pub dpi_scale: f32,
+}
+
+/// 图集规划失败时保留 SVG 原因，并明确报告尺寸或容量限制。
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum UiIconAtlasBuildError {
+    #[error(transparent)]
+    Svg(#[from] UiSvgIconParseError),
+    #[error("icon {icon_id} requests {pixel_size}px with {padding_px}px padding, exceeding the {max_side_px}px atlas limit")]
+    IconTooLarge {
+        icon_id: String,
+        pixel_size: u32,
+        padding_px: u32,
+        max_side_px: u32,
+    },
+    #[error("atlas cannot hold {slot_count} slots of {cell_size}px within the {max_side_px}px side limit")]
+    CapacityExceeded {
+        slot_count: usize,
+        cell_size: u32,
+        max_side_px: u32,
+    },
 }
 
 /// 图集分配结果；外部 URI 可能只有槽位而没有 SVG 文档，像素加载由后续消费者负责。
@@ -88,7 +110,7 @@ impl UiIconAtlasBuilder {
     pub fn build_plan(
         &self,
         requests: impl IntoIterator<Item = UiIconRasterRequest>,
-    ) -> Result<UiIconAtlasPlan, UiSvgIconParseError> {
+    ) -> Result<UiIconAtlasPlan, UiIconAtlasBuildError> {
         let requests = deduplicate_requests(requests);
         if requests.is_empty() {
             return Ok(UiIconAtlasPlan::default());
@@ -121,27 +143,39 @@ impl UiIconAtlasBuilder {
             })
         });
 
-        // Clamp cell_size to the atlas maximum before computing layout.
-        // Without this, a single oversized icon (e.g. 5000px requested) would
-        // produce planned rects whose x/y exceed atlas_width/atlas_height, making
-        // UV coordinates greater than 1.0 and corrupting every sampled texel.
-        let cell_size = pending
-            .iter()
-            .map(|slot| {
-                slot.pixel_size
-                    .saturating_add(self.padding_px.saturating_mul(2))
-            })
-            .max()
-            .unwrap_or(1)
-            .max(1)
-            .min(self.max_side_px);
-        let atlas_width = (cell_size * columns as u32)
-            .max(self.min_side_px)
-            .min(self.max_side_px);
+        // Each complete cell must fit before placing any slot; truncating the
+        // texture dimensions would leave rects and UVs outside the allocation.
+        let mut cell_size = 1;
+        for slot in &pending {
+            let requested_cell_size = self
+                .padding_px
+                .checked_mul(2)
+                .and_then(|padding| slot.pixel_size.checked_add(padding));
+            let Some(requested_cell_size) =
+                requested_cell_size.filter(|size| *size <= self.max_side_px)
+            else {
+                return Err(UiIconAtlasBuildError::IconTooLarge {
+                    icon_id: slot.request.icon_id.clone(),
+                    pixel_size: slot.pixel_size,
+                    padding_px: self.padding_px,
+                    max_side_px: self.max_side_px,
+                });
+            };
+            cell_size = cell_size.max(requested_cell_size);
+        }
+        let columns = square_grid_columns(pending.len());
         let rows = pending.len().div_ceil(columns);
-        let atlas_height = (cell_size * rows as u32)
-            .max(self.min_side_px)
-            .min(self.max_side_px);
+        let max_cells_per_side = (self.max_side_px / cell_size) as usize;
+        if columns > max_cells_per_side || rows > max_cells_per_side {
+            return Err(UiIconAtlasBuildError::CapacityExceeded {
+                slot_count: pending.len(),
+                cell_size,
+                max_side_px: self.max_side_px,
+            });
+        }
+        let min_side = self.min_side_px.min(self.max_side_px);
+        let atlas_width = (cell_size * columns as u32).max(min_side);
+        let atlas_height = (cell_size * rows as u32).max(min_side);
 
         let slots = pending
             .into_iter()
@@ -204,7 +238,8 @@ fn icon_pixel_size(asset: &UiIconAsset, dpi_scale: f32) -> u32 {
 }
 
 fn square_grid_columns(slot_count: usize) -> usize {
-    (slot_count as f32).sqrt().ceil().max(1.0) as usize
+    let root = slot_count.isqrt();
+    (root + usize::from(root * root < slot_count)).max(1)
 }
 
 fn uv_rect(rect: UiIconAtlasRect, atlas_width: u32, atlas_height: u32) -> UiIconAtlasUvRect {

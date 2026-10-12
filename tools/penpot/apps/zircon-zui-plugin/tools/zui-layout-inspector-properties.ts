@@ -2,7 +2,7 @@ import { sourceNodeByControl } from './zui-layout-source-control';
 import type { ZuiDocument, ZuiNode } from '../src/bridge/zui-document';
 
 const SOURCE =
-  'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui';
+  'zircon_editor/assets/ui/editor/unreal/components/details.zui';
 type JsonObject = Record<string, unknown>;
 
 function sourceControl(document: ZuiDocument, control: string): ZuiNode {

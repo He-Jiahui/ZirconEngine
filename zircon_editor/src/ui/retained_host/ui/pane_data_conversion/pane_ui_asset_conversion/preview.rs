@@ -38,6 +38,11 @@ pub(super) fn to_host_contract_ui_asset_preview_panel(
         summary: std::mem::take(&mut data.preview_summary).into(),
         available: data.preview_available,
         canvas: host_contract::UiAssetPreviewCanvasData {
+            input_result: data.preview_input_result.take(),
+            input_enabled: data.preview_input_enabled,
+            accepts_text_input: data.preview_accepts_text_input,
+            source_surface_frame: data.preview_surface_frame.take(),
+            source_receipts: std::mem::take(&mut data.preview_source_receipts).into(),
             width: data.preview_surface_width,
             height: data.preview_surface_height,
             items: to_host_contract_ui_asset_canvas_nodes(std::mem::take(

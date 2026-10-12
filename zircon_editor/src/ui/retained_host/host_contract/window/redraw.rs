@@ -1,3 +1,4 @@
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use std::time::{Duration, Instant};
 
 use crate::core::gateway::EditorRuntimeFrameDemand;
@@ -20,10 +21,13 @@ fn runtime_frame_failure_retry_delay(attempt: u32) -> Duration {
 }
 
 impl UiHostWindow {
+    #[track_caller]
     pub(crate) fn background_event_wake_callback(
         &self,
     ) -> zircon_runtime::core::framework::channel::ChannelWakeCallback {
-        self.event_wake.callback()
+        capture_trace::wake_callback(
+            "editor_background_subscription", self.event_wake.callback(),
+        )
     }
 
     pub(crate) fn background_visual_asset_wake_callback(
@@ -281,6 +285,7 @@ impl UiHostWindow {
         }
     }
 
+    #[track_caller]
     pub(in crate::ui::retained_host::host_contract) fn queue_external_redraw(
         &self,
         redraw: HostRedrawRequest,
@@ -289,6 +294,10 @@ impl UiHostWindow {
             return;
         }
         let mut state = self.state.borrow_mut();
+        capture_trace::record("external_redraw", || {
+            format!("owner={:#x} cursor={:?} existing={:?} next={redraw:?}",
+                &*state as *const _ as usize, state.presentation_generation().cursor(), state.external_redraw_request)
+        });
         let existing = std::mem::replace(
             &mut state.external_redraw_request,
             HostRedrawRequest::none(),

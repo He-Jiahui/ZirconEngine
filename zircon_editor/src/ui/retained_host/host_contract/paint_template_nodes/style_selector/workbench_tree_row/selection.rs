@@ -15,11 +15,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
 ) -> WorkbenchTreeRowStyle {
     let state = resolved_state_for_node(node).resolved_state_for_family(UiPainterFamily::TreeRow);
     let marked = node.selected || node.checked;
+    let focus_visible = super::super::state::focus_visible_for_node(node);
 
     WorkbenchTreeRowStyle {
         background: tree_row_background(node, state, marked),
-        border: tree_row_border(state, marked),
-        border_width: tree_row_border_width(state, marked),
+        border: tree_row_border(state, focus_visible),
+        border_width: tree_row_border_width(state, focus_visible),
         text: tree_row_primary_color(state, marked),
         icon: tree_row_icon_color(state, marked),
         secondary: tree_row_secondary_color(state, marked),

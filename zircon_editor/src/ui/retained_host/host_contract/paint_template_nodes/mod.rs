@@ -82,7 +82,10 @@ mod template_weight_heatmap;
 mod visual_assets;
 
 pub(crate) use evidence::PaintEvidenceScope;
-pub(in crate::ui::retained_host::host_contract) use evidence::{active_owner, owner_json};
+pub(in crate::ui::retained_host::host_contract) use evidence::{
+    active_owner, owner_json, record_native_hierarchy_row,
+};
+pub(in crate::ui::retained_host::host_contract) use render_commands::draw_runtime_surface_frame;
 pub(crate) use sprite_atlas::{
     copy_editor_sprite_atlas_rgba, invalidate_editor_sprite_atlas_cache,
 };
@@ -109,3 +112,6 @@ pub(crate) use template_node_pipeline::{
 };
 #[cfg(test)]
 pub(crate) use template_nodes::template_node_command_summary_for_test;
+
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract) use template_popup_rows::record_popup_menu_rows_for_test;

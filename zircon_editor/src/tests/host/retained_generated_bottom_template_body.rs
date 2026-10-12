@@ -124,8 +124,12 @@ fn generated_bottom_template_body_projects_panel_nodes_for_retained_conversion()
     assert!(
         nodes
             .iter()
-            .any(|node| node.control_id.as_str() == "WorkbenchGeneratedBottomPanel"),
-        "generated bottom body should project the retained generated panel root"
+            .any(|node| node.control_id.as_str() == "WorkbenchGeneratedBottomPanelHost"),
+        "generated bottom body should project the actual overridden Panel root"
+    );
+    assert!(
+        nodes.iter().any(|node| node.control_id.as_str() == "WorkbenchGeneratedBottomDrawer"),
+        "the pure conversion includes the actual authored wrapper; visible input is owned by the pane Surface"
     );
     assert!(
         nodes

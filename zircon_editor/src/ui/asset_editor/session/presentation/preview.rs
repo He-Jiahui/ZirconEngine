@@ -146,10 +146,19 @@ fn preview_summary(preview_host: Option<&UiAssetPreviewHost>) -> String {
         return "preview unavailable".to_string();
     };
     format!(
-        "{} rendered nodes @ {:.0}x{:.0}",
+        "{}{} rendered nodes @ {:.0}x{:.0}{}",
+        preview_host
+            .builtin_reference()
+            .map(|reference| format!("{reference} • "))
+            .unwrap_or_default(),
         preview_host.surface().render_extract.list.commands.len(),
         preview_host.preview_size().width,
-        preview_host.preview_size().height
+        preview_host.preview_size().height,
+        if preview_host.input_feedback().is_empty() {
+            String::new()
+        } else {
+            format!(" • {}", preview_host.input_feedback())
+        },
     )
 }
 

@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 import ntpath
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Iterable
@@ -79,6 +80,19 @@ def _environment_key(value: str) -> str:
     # used both ``Path`` and ``PATH``; canonicalising it here keeps the recipe
     # identity stable without allowing the caller's process environment in.
     return "PATH" if value.casefold() == "path" else value
+
+
+def _rustc_path(value: str | Path | None) -> Path:
+    # The compiler must be an explicit absolute path from the trusted policy;
+    # falling back to the planner process PATH would permit toolchain drift.
+    if not isinstance(value, (str, Path)) or not str(value):
+        raise JenkinsError("rustc_path_invalid", "rustcPath must be absolute")
+    path = Path(value)
+    if not path.is_absolute():
+        raise JenkinsError("rustc_path_invalid", "rustcPath must be absolute")
+    if not path.is_file() or path.name.casefold() not in {"rustc", "rustc.exe"}:
+        raise JenkinsError("rustc_path_invalid", "rustcPath must identify a rustc executable")
+    return path.resolve()
 
 
 def _environment_policy(state, repo_root: Path) -> tuple[dict[str, str], dict[str, Any], Path]:
@@ -148,12 +162,20 @@ def _cargo_evidence(state, source_ref: str) -> dict[str, Any]:
         raise JenkinsError("cargo_workspace_missing", "Cargo evidence has no sealed workspace root")
     workspace_canonical = workspace.replace("/", "\\")
     build_root_containing(workspace_canonical)
-    evidence["cargoMetadata"] = _normalize_metadata(metadata, workspace)
+    sealed = state.get("sealed_input", source_ref)
+    manifest = sealed["payload"].get("sourceManifest") or sealed["payload"].get("manifest") if sealed else None
+    from ..source.external_inputs import sources as external_sources
+    external = external_sources(manifest or {})
+    if external:
+        expected_external = {value["name"]: value["sourceDigest"] for value in external}
+        if evidence.get("externalSourceDigests") != expected_external:
+            raise JenkinsError("external_evidence_mismatch", "Cargo evidence differs from its sealed sibling dependency")
+    evidence["cargoMetadata"] = _normalize_metadata(metadata, workspace, external_names=[value["name"] for value in external])
     evidence["workspaceRoot"] = workspace_canonical
     return evidence
 
 
-def _normalize_metadata(metadata: Mapping[str, Any], workspace_root: str) -> dict[str, Any]:
+def _normalize_metadata(metadata: Mapping[str, Any], workspace_root: str, *, external_names: Iterable[str] = ()) -> dict[str, Any]:
     """Make sealed-run absolute Cargo paths repository/materialization relative.
 
     Cargo metadata is collected from a materialized workspace under an approved
@@ -163,6 +185,7 @@ def _normalize_metadata(metadata: Mapping[str, Any], workspace_root: str) -> dic
     remains byte-for-byte representable for diagnostics.
     """
     root = str(workspace_root).replace("\\", "/").rstrip("/").casefold()
+    siblings = {name: root.rsplit("/", 1)[0] + "/" + name for name in external_names}
 
     def relative(value: Any) -> Any:
         if not isinstance(value, str):
@@ -174,6 +197,11 @@ def _normalize_metadata(metadata: Mapping[str, Any], workspace_root: str) -> dic
             return "."
         if lowered.startswith(prefix):
             return normalized[len(prefix):]
+        for name, sibling in siblings.items():
+            if lowered == sibling:
+                return "../" + name
+            if lowered.startswith(sibling + "/"):
+                return "../" + name + "/" + normalized[len(sibling) + 1:]
         if ntpath.isabs(normalized) or (len(normalized) >= 2 and normalized[1] == ":"):
             raise JenkinsError("cargo_metadata_path_outside_workspace",
                                "Cargo metadata path is outside the sealed workspace")
@@ -218,7 +246,7 @@ def _normalize_metadata(metadata: Mapping[str, Any], workspace_root: str) -> dic
     return copied
 
 
-def _trusted_resource_estimate(state, source_ref: str) -> tuple[str, dict[str, int]]:
+def _trusted_resource_estimate(state, source_ref: str, *, fixed_profile: str | None = None) -> tuple[str, dict[str, int]]:
     policy_record = state.get("resource_policy", "default")
     if not policy_record or not isinstance(policy_record.get("payload"), Mapping):
         raise JenkinsError("resource_policy_missing", "trusted resource policy is unavailable")
@@ -227,8 +255,8 @@ def _trusted_resource_estimate(state, source_ref: str) -> tuple[str, dict[str, i
     if not isinstance(estimates, Mapping):
         raise JenkinsError("resource_estimate_missing", "trusted recipe estimates are unavailable")
     selected = state.get("validation_profile", source_ref)
-    profile = "default"
-    if selected and isinstance(selected.get("payload"), Mapping):
+    profile = fixed_profile or "default"
+    if not fixed_profile and selected and isinstance(selected.get("payload"), Mapping):
         profile_payload = selected["payload"]
         if profile_payload.get("sourceDigest", source_ref) != source_ref:
             raise JenkinsError("validation_profile_mismatch", "trusted validation profile is bound to another source")
@@ -293,6 +321,20 @@ class RecipePlanner:
              profile: str | None = None, template: str = "module_unit",
              cargo_path: str | Path | None = None) -> RecipePlan:
         sealed = self._sealed(sealed_input_ref)
+        from ..editor_product import TEMPLATES as PRODUCT_TEMPLATES, PACKAGES, product_recipe
+        product = template in PRODUCT_TEMPLATES
+        if product:
+            from ..current_source import validate_coverage
+            product_coverage = {key: value for key, value in sealed["coverage"].items()
+                                if key not in {"sourceDigest", "coverageDigest"}}
+            validate_coverage(product_coverage)
+            if product_coverage["template"] != template or features or profile is not None:
+                raise JenkinsError("editor_recipe_override", "Product profile and features come only from the sealed fixed coverage")
+            if (sealed.get("sourceManifest") or sealed.get("manifest", {})).get("preparationKind") != "current-source":
+                raise JenkinsError("editor_source_preparation_missing", "Product planning requires coordinator current-source preparation")
+            feature = "shipping-editor" if template == "editor_product_shipping" else "target-editor-host"
+            profile = "shipping" if template == "editor_product_shipping" else "dev"
+            features = [f"zircon_app/{feature}", f"zircon_runtime/{feature}"]
         if not isinstance(driver, Mapping) or not isinstance(driver.get("digest"), str):
             raise JenkinsError("driver_binding_missing", "trusted driver digest is required")
         driver_digest = require_digest(driver["digest"], "driverDigest")
@@ -300,13 +342,22 @@ class RecipePlanner:
         if not isinstance(generation, (str, int)) or not str(generation):
             raise JenkinsError("driver_generation_missing", "trusted active driver generation is required")
         source_manifest = sealed.get("sourceManifest") or sealed.get("manifest") or {}
+        from ..source.external_inputs import verify_objects
+        if product:
+            verify_objects(source_manifest, Path(sealed["objectRoot"]))
         entries = source_manifest.get("entries", ()) if isinstance(source_manifest, Mapping) else ()
         all_paths = [str(item.get("path")) for item in entries if isinstance(item, Mapping) and item.get("path")]
         selected_paths = list(changed_paths) if changed_paths else all_paths
         evidence = _cargo_evidence(self.state, sealed_input_ref)
         metadata = parse_metadata(evidence["cargoMetadata"])
         package_ids = set()
-        for path in selected_paths:
+        if product:
+            for name in PACKAGES:
+                matches = [item for item in metadata.get("packages", ()) if item.get("name") == name]
+                if len(matches) != 1:
+                    raise JenkinsError("editor_package_missing", "Fixed product package is absent or ambiguous", details={"package": name})
+                package_ids.add(matches[0]["id"])
+        for path in (() if product else selected_paths):
             normalized = str(path).replace("\\", "/").casefold()
             for package in metadata.get("packages", ()):
                 if not isinstance(package, Mapping) or not package.get("id"):
@@ -329,7 +380,9 @@ class RecipePlanner:
                         package_ids.add(str(package["id"])); break
         if selected_paths and not package_ids and template not in {"comments_only", "cache_maintenance"}:
             raise JenkinsError("unknown_impact", "unknown impact: changed paths do not map to Cargo packages")
-        adapter = build_adapter_payload(metadata, package_ids, profile=profile, features=features)
+        selection_metadata = ({**metadata, "packages": [item for item in metadata.get("packages", ()) if item.get("id") in package_ids]}
+                              if product else metadata)
+        adapter = build_adapter_payload(selection_metadata, package_ids, profile=profile, features=features)
         coverage = _plain(sealed.get("coverage") or {})
         # A sealed coverage receipt may carry a positive discovery count from
         # an earlier managed ``cargo test -- --list`` step.  Target metadata
@@ -345,11 +398,19 @@ class RecipePlanner:
             if not package_names:
                 raise JenkinsError("cargo_packages_missing", "Cargo validation requires affected package selection")
         env, environment_policy, environment_file = _environment_policy(self.state, self.repo_root)
+        environment_policy_digest = digest(environment_policy)
+        if evidence.get("environmentPolicyDigest") != environment_policy_digest:
+            raise JenkinsError("cargo_evidence_policy_mismatch", "sealed Cargo evidence is bound to a different environment policy")
         cargo_value = environment_policy.get("cargoPath")
         cargo = _cargo_path(cargo_value)
         expected_cargo = environment_policy.get("cargoSha256")
         if not isinstance(expected_cargo, str) or file_digest(cargo) != expected_cargo:
             raise JenkinsError("cargo_policy_mismatch", "Cargo executable differs from trusted environment policy")
+        rustc_value = environment_policy.get("rustcPath")
+        rustc = _rustc_path(rustc_value)
+        expected_rustc = environment_policy.get("rustcSha256")
+        if not isinstance(expected_rustc, str) or file_digest(rustc) != expected_rustc:
+            raise JenkinsError("rustc_policy_mismatch", "rustc executable differs from trusted environment policy")
         toolchain = evidence.get("toolchain")
         toolchain_digest = evidence.get("toolchainDigest")
         compiler_identity = evidence.get("compilerIdentity")
@@ -357,7 +418,8 @@ class RecipePlanner:
         if not isinstance(toolchain, (str, Mapping)) or not isinstance(toolchain_digest, str) or not isinstance(lock_digest, str):
             raise JenkinsError("toolchain_evidence_missing", "sealed Cargo evidence lacks toolchain and lock identity")
         wrapper = env.get("CARGO_BUILD_RUSTC_WRAPPER") or env.get("RUSTC_WRAPPER", "")
-        profile_name, resource_estimate = _trusted_resource_estimate(self.state, sealed_input_ref)
+        profile_name, resource_estimate = _trusted_resource_estimate(self.state, sealed_input_ref,
+                                                                   fixed_profile="editor-product" if product else None)
         coverage_semantics = {str(k): _plain(v) for k, v in coverage.items()
                               if str(k).casefold() not in {"sourcedigest", "sourcemanifestref", "manifestdigest", "coveragedigest"}}
         recipe: dict[str, Any] = {
@@ -373,11 +435,11 @@ class RecipePlanner:
             "cargoPath": str(cargo), "wrapper": wrapper, "environment": env,
             "environmentFile": str(environment_file),
             "environmentFileDigest": str(environment_policy.get("fileDigest")),
-            "environmentPolicyDigest": str(environment_policy.get("environmentDigest") or digest(env)),
+            "environmentPolicyDigest": environment_policy_digest,
             "environmentDigest": digest(env), "buildRoot": str(self.build_root.path),
             "cargoSha256": str(environment_policy.get("cargoSha256")),
-            "rustcPath": environment_policy.get("rustcPath"),
-            "rustcSha256": environment_policy.get("rustcSha256"),
+            "rustcPath": str(rustc),
+            "rustcSha256": str(environment_policy.get("rustcSha256")),
             "host": environment_policy.get("host"),
             "msvcVersion": environment_policy.get("msvcVersion"),
             "driverGeneration": str(generation), "driverDigest": driver_digest,
@@ -394,7 +456,9 @@ class RecipePlanner:
         if recipe["kind"] == "cargo":
             test_stages = {"module_unit": ["unit_test"],
                            "cross_module": ["unit_test", "integration_test"],
-                           "failure_repair": ["unit_test", "regression_test"]}.get(template)
+                           "failure_repair": ["unit_test", "regression_test"],
+                           "editor_product_development": ["unit_test"],
+                           "editor_product_shipping": ["unit_test"]}.get(template)
             if not test_stages:
                 raise JenkinsError("cargo_template_invalid", "Cargo requires a registered validation template")
             recipe["requiredTestStages"] = test_stages
@@ -413,6 +477,10 @@ class RecipePlanner:
             run_command = [*base, "--", "--test-threads", str(resource_estimate["cpu"])]
             recipe["commands"] = {"compile": compile_command, "list": discovery_command, "test": run_command}
             recipe["command"] = compile_command
+            if product:
+                recipe = product_recipe(recipe, template=template, manifest=source_manifest,
+                                        objects=Path(sealed["objectRoot"]), python=Path(sys.executable).resolve(),
+                                        runner=Path(__file__).resolve().parents[1] / "editor_product.py")
             command_semantics = {phase: ["<cargo>" if index == 0 else value for index, value in enumerate(command)]
                                  for phase, command in recipe["commands"].items()}
             recipe["preparationKey"] = digest({"schemaVersion": 1, "toolchain": toolchain,
@@ -421,7 +489,8 @@ class RecipePlanner:
                                                 "coverage": coverage_semantics,
                                                 "command": command_semantics,
                                                 "profile": adapter["profile"], "features": adapter["features"],
-                                                "environment": recipe["environmentPolicyDigest"]})
+                                                "environment": environment_policy_digest,
+                                                **({"inputLayout": "source+zr_vm"} if product and source_manifest.get("external") else {})})
             namespace = self.build_root.namespace() / "preparations" / recipe["preparationKey"]
             materialized = evidence.get("materializedRoot") or evidence.get("runRoot") or evidence.get("workspaceRoot")
             if not isinstance(materialized, str):
@@ -440,7 +509,7 @@ class RecipePlanner:
                               "TEMP": str(namespace / "tmp"), "TMP": str(namespace / "tmp"),
                               "TMPDIR": str(namespace / "tmp"), "RUSTC_WRAPPER": "",
                               "RUSTC_WORKSPACE_WRAPPER": "",
-                              "RUSTC": str(environment_policy.get("rustcPath") or ""),
+                              "RUSTC": str(rustc),
                               "CARGO_ENCODED_RUSTFLAGS": "", "RUSTFLAGS": "", "RUSTDOCFLAGS": ""})
             recipe["executionEnvironment"] = dict(sorted(execution.items()))
             recipe["outputRoot"] = str(namespace / "target")
@@ -454,7 +523,8 @@ class RecipePlanner:
             # ExecutionHost consumes deterministic phase names and resolves
             # each sealed command from ``commands``.  The materialized source
             # root is carried separately so host cwd validation remains strict.
-            recipe["phases"] = list(_CARGO_PHASES)
+            if not product:
+                recipe["phases"] = list(_CARGO_PHASES)
         recipe_digest = digest(recipe)
         coverage_ref = str(sealed.get("coverageDigest") or digest(coverage))
         payload = {"recipe": recipe, "recipeDigest": recipe_digest, "sourceRef": sealed_input_ref,

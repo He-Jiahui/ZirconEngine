@@ -36,8 +36,14 @@ def _config(source: str, driver_env: dict[str, str]) -> str:
     required_runtime = ("ZIRCON_AGENT_LABEL", "ZIRCON_RUNTIME_OPERATION_ID", "ZIRCON_DRIVER_DIGEST")
     if any(not isinstance(driver_env.get(key), str) or not driver_env[key] for key in required_runtime):
         raise JenkinsError("runtime_binding_missing", "job configuration requires runtime label, operation and driver digest")
-    params = "".join(f"<hudson.model.StringParameterDefinition><name>{name}</name><description>Jenkins request identity</description><defaultValue></defaultValue><trim>true</trim></hudson.model.StringParameterDefinition>" for name in (
-        "REPOSITORY_ID", "SESSION_ID", "REQUEST_ID", "ATTEMPT_ID", "GENERATION", "SOURCE_INPUT_DIGEST", "COVERAGE_DIGEST", "STAGE_IMPLEMENTATION_DIGEST", "RUNTIME_OPERATION_ID", "EXECUTION_ID", "RECIPE_REF", "SEALED_INPUT_REF", "PATCH_OPERATION_REF", "PATCH_REQUEST_REF", "CHANGE_SET_JSON", "TEMPLATE", "RUST_EDITION", "SEALED_RUST_SOURCE", "COMMIT_AUTHORIZATION", "CLEANUP_SCOPE_JSON", "OPERATION_ID", "ALLOW_COMMIT", "BUILD_ROOT"))
+    # The selected deployment supplies defaults only when a dispatch omits
+    # its runtime fences. Explicit values still reach the pipeline guard.
+    runtime_defaults = {
+        "STAGE_IMPLEMENTATION_DIGEST": driver_env["ZIRCON_DRIVER_DIGEST"],
+        "RUNTIME_OPERATION_ID": driver_env["ZIRCON_RUNTIME_OPERATION_ID"],
+    }
+    params = "".join(f"<hudson.model.StringParameterDefinition><name>{name}</name><description>Jenkins request identity</description><defaultValue>{escape(runtime_defaults.get(name, ''))}</defaultValue><trim>true</trim></hudson.model.StringParameterDefinition>" for name in (
+        "REPOSITORY_ID", "SESSION_ID", "REQUEST_ID", "ATTEMPT_ID", "GENERATION", "SOURCE_INPUT_DIGEST", "COVERAGE_DIGEST", "STAGE_IMPLEMENTATION_DIGEST", "RUNTIME_OPERATION_ID", "EXECUTION_ID", "RECIPE_REF", "SEALED_INPUT_REF", "PATCH_OPERATION_REF", "PATCH_REQUEST_REF", "CURRENT_SOURCE_REF", "SOURCE_PREPARATION_REF", "CHANGE_SET_JSON", "TEMPLATE", "RUST_EDITION", "SEALED_RUST_SOURCE", "COMMIT_AUTHORIZATION", "CLEANUP_SCOPE_JSON", "PROTECTION_REVIEW_JSON", "CACHE_KIND", "OPERATION_ID", "ALLOW_COMMIT", "ALLOW_NOTIFY", "NOTIFY_DESTINATION", "BUILD_ROOT"))
     prelude = "; ".join("env.%s=%s" % (key, json.dumps(value, ensure_ascii=False)) for key, value in {
         "ZIRCON_REPO_ROOT": driver_env["ZIRCON_REPO_ROOT"], "JENKINS_PYTHON": driver_env["JENKINS_PYTHON"],
         "ZIRCON_SEALED_DRIVER": driver_env["ZIRCON_SEALED_DRIVER"], "ZIRCON_DRIVER_LAUNCHER": driver_env["ZIRCON_DRIVER_LAUNCHER"],
@@ -63,7 +69,7 @@ def provision_jobs(spec, paths, manager) -> dict:
     if not runtime_operation_id:
         raise JenkinsError("runtime_binding_missing", "job provisioning requires selected runtime operation")
     driver_env["ZIRCON_RUNTIME_OPERATION_ID"] = runtime_operation_id
-    driver_env["ZIRCON_AGENT_LABEL"] = runtime_agent_label(str(spec.agent.get("label", spec.agent["name"])), runtime_operation_id)
+    driver_env["ZIRCON_AGENT_LABEL"] = runtime_agent_label(str(spec.agent["name"]), runtime_operation_id)
     created = []
     for name in jobs:
         source = _pipeline_source(paths, name, snapshot)

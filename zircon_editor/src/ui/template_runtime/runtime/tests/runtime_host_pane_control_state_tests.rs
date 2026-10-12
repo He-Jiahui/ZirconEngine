@@ -26,7 +26,7 @@ fn collect_projection_nodes<'a>(
 #[test]
 fn builtin_workbench_projection_keeps_authored_owner_and_component_callsite() {
     let mut runtime = EditorUiHostRuntime::default();
-    let document_id = crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
+    let document_id = crate::ui::template_runtime::builtin::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
     runtime
         .load_builtin_host_templates_for_document_ids(&[document_id])
         .expect("builtin workbench documents should register through the V2 file cache");
@@ -36,7 +36,7 @@ fn builtin_workbench_projection_keeps_authored_owner_and_component_callsite() {
 
     assert_eq!(
         projection.root.source_path.as_deref(),
-        Some("zircon_editor/assets/ui/editor/windows/workbench_window.zui")
+        Some("zircon_editor/assets/ui/editor/unreal/level_editor_window.zui")
     );
     assert_eq!(projection.root.source_node_id.as_deref(), Some("root"));
     assert!(projection
@@ -68,7 +68,7 @@ fn builtin_workbench_projection_keeps_authored_owner_and_component_callsite() {
             .instance_path
             .as_ref()
             .map(|steps| { steps[0].source_path.as_str() }),
-        Some("zircon_editor/assets/ui/editor/windows/workbench_window.zui")
+        Some("zircon_editor/assets/ui/editor/unreal/level_editor_window.zui")
     );
 }
 
@@ -176,7 +176,7 @@ fn pane_control_state_projects_rows_selection_and_disabled_to_native_and_retaine
 fn plugin_document_replacement_evicts_same_id_action_slots_before_pane_rebuild() {
     let runtime = EditorUiHostRuntime::default();
     let source_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/ui/host/workbench_shell.zui");
+        .join("assets/ui/editor/unreal/editor_shell.zui");
     let source = |document_id| {
         super::super::plugin_documents::EditorPluginV2DocumentSource::new(
             document_id,

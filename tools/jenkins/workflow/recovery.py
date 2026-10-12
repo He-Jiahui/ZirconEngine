@@ -132,6 +132,30 @@ def _compensate_patch(state, operation, flow, proof):
         raise
 
 
+def _preserve_prepared_source(state, flow, proof, error):
+    """Close a failed read-only preparation without undoing checkout edits."""
+    kind = (flow.get('sourceManifest') or {}).get('preparationKind')
+    reference = flow.get('sourcePreparationRef')
+    operation = state.get_operation(reference) if isinstance(reference, str) else None
+    if kind not in {'current-source', 'already-applied-patch'} or operation is None:
+        raise JenkinsError('source_preparation_untrusted', 'Failure recovery requires its typed source preparation')
+    intent, result = operation['payload'], operation.get('result') or {}
+    bound_kind = intent.get('preparationKind', intent.get('kind'))
+    bound_identity = intent.get('identity') or {}
+    if (operation['kind'] != 'source_preparation' or operation['status'] != 'complete'
+            or bound_kind != kind or not bound_identity
+            or any(flow['identity'].get(key) != value for key, value in bound_identity.items())
+            or intent.get('repositoryRoot', '').casefold() != str(flow['repoRoot']).casefold()
+            or result.get('sourceDigest') != flow.get('sourceDigest')
+            or result.get('canonicalSourceModified') is not False
+            or sorted(result.get('ownedPaths', [])) != sorted(flow.get('ownedPaths', []))):
+        raise JenkinsError('source_preparation_mismatch', 'Recovery differs from the completed read-only preparation')
+    return {'status': 'complete', 'kind': 'coordinator-preparation-preserved',
+            'preparationOperationId': reference, 'operations': [],
+            'canonicalSourceModified': False, 'sourcePreserved': True,
+            'terminationEvidence': proof, 'origin': error}
+
+
 def recover_flow(state, repo_root, key, *, error=None):
     record = state.get("workflow", key)
     if record is None:
@@ -154,38 +178,54 @@ def recover_flow(state, repo_root, key, *, error=None):
                 if failure.code not in {"previous_boot_unproven", "boot_recovery_identity_missing", "boot_evidence_unavailable"}:
                     raise
         consumer = state.get("execution_consumer", f"{eid}:{key}")
-        if consumer and consumer["payload"].get("status") == "active":
-            engine.cancel(eid, key)
-        engine.observe(eid)
+        try:
+            if consumer and consumer["payload"].get("status") == "active":
+                engine.cancel(eid, key)
+            engine.observe(eid)
+        except JenkinsError as failure:
+            if failure.code != "execution_identity_corrupt":
+                raise
+            # Native boot evidence cannot supply a missing execution key.
+            # Quarantine the workflow without compensating source or holds.
+            recovery = {"status": "blocked", "reasonCode": failure.code, "origin": error}
+            current = state.get("workflow", key)
+            state.put("workflow", key, {**current["payload"], "recovery": recovery},
+                      expected_version=current["version"])
+            return {"status": "blocked", "workflowStatus": current["payload"]["status"],
+                    "recovery": recovery}
     references = flow.get("patchOperationRefs") or []
     if not references:
         sealed = state.get("sealed_input", flow.get("sourceDigest"))
         references = sealed["payload"].get("patchOperationRefs", []) if sealed else []
     owns_patch = any((state.get_operation(ref) or {}).get("payload", {}).get("owner") == flow["identity"]["attemptId"] for ref in references)
     if flow.get("consumerCancelled") and not owns_patch:
-        recovery = {"status": "complete", "kind": "consumer-reference-released", "sourcePreserved": True}
+        recovery = {"status": "complete", "kind": "consumer-reference-released", "sourcePreserved": True,
+                    "canonicalSourceModified": False, "nativeTerminationAccepted": False}
         current = state.get("workflow", key)
         state.put("workflow", key, {**current["payload"], "status": "cancelled", "recovery": recovery}, expected_version=current["version"])
         return {"status": "complete", "workflowStatus": "cancelled", "recovery": recovery}
     try:
         proof = _termination(state, flow)
-        if not references:
+        if not references and flow.get('sourcePreparationRef'):
+            recovery = _preserve_prepared_source(state, flow, proof, error)
+        elif not references:
             raise JenkinsError("patch_journal_missing", "failure recovery has no owned patch journal")
-        for other in state.list("workflow"):
-            if other["key"] != key and other["payload"].get("status") == "accepted" and set(references) & set(other["payload"].get("patchOperationRefs", [])):
-                raise JenkinsError("shared_source_accepted", "an accepted consumer still owns the shared source")
-        base = (flow.get("sourceManifest") or {}).get("baseHead")
-        if base:
-            head = subprocess.run(["git", "-C", flow["repoRoot"], "rev-parse", "HEAD"], capture_output=True, text=True)
-            if head.returncode or head.stdout.strip() != base:
-                raise JenkinsError("foreign_head_change", "Git HEAD changed before failure compensation")
-        results = []
-        for ref in reversed(references):
-            operation = state.get_operation(ref)
-            if operation is None or operation["kind"] != "source_patch":
-                raise JenkinsError("patch_journal_missing", "failure recovery patch journal is unavailable")
-            results.append(_compensate_patch(state, operation, flow, proof)["operationId"])
-        recovery = {"status": "complete", "operations": results, "terminationEvidence": proof, "origin": error}
+        else:
+            for other in state.list("workflow"):
+                if other["key"] != key and other["payload"].get("status") == "accepted" and set(references) & set(other["payload"].get("patchOperationRefs", [])):
+                    raise JenkinsError("shared_source_accepted", "an accepted consumer still owns the shared source")
+            base = (flow.get("sourceManifest") or {}).get("baseHead")
+            if base:
+                head = subprocess.run(["git", "-C", flow["repoRoot"], "rev-parse", "HEAD"], capture_output=True, text=True)
+                if head.returncode or head.stdout.strip() != base:
+                    raise JenkinsError("foreign_head_change", "Git HEAD changed before failure compensation")
+            results = []
+            for ref in reversed(references):
+                operation = state.get_operation(ref)
+                if operation is None or operation["kind"] != "source_patch":
+                    raise JenkinsError("patch_journal_missing", "failure recovery patch journal is unavailable")
+                results.append(_compensate_patch(state, operation, flow, proof)["operationId"])
+            recovery = {"status": "complete", "operations": results, "terminationEvidence": proof, "origin": error}
     except JenkinsError as failure:
         recovery = {"status": "waiting" if failure.retryable else "blocked", "reasonCode": failure.code, "origin": error}
     current = state.get("workflow", key)

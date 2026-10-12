@@ -1,0 +1,177 @@
+[asset]
+kind = "style"
+id = "res://ui/editor/unreal/starship.zui"
+version = 2
+display_name = "Unreal Starship Editor"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[tokens]
+unreal_background = "#151515"
+unreal_panel = "#242424"
+unreal_header = "#2F2F2F"
+unreal_recessed = "#1A1A1A"
+unreal_input = "#0F0F0F"
+unreal_input_outline = "#383838"
+unreal_dropdown = "#383838"
+unreal_dropdown_outline = "#4C4C4C"
+unreal_primary = "#0070E0"
+unreal_primary_hover = "#0E86FF"
+unreal_primary_press = "#0050A0"
+unreal_foreground = "#C0C0C0"
+unreal_foreground_header = "#C8C8C8"
+unreal_foreground_hover = "#FFFFFF"
+unreal_foreground_disabled = "#808080"
+unreal_font_family = "Roboto"
+unreal_font_size = 13.333333
+unreal_font_small_size = 10.666667
+unreal_font_weight = 400
+unreal_heading_weight = 700
+unreal_status_bar_height = 32.0
+unreal_splitter_width = 4.0
+
+[[stylesheets]]
+id = "unreal_starship_editor"
+
+[[stylesheets.rules]]
+selector = ".unreal-editor-window"
+set = { self = { background_color = "$unreal_background", foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight", line_height_ratio = 1.2 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-editor-shell"
+set = { self = { background_color = "$unreal_background", foreground_color = "$unreal_foreground", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-editor-toolbar"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-level-editor-toolbar"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight", line_height_ratio = 1.2, border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-menu-bar"
+set = { self = { background_color = "$unreal_background", foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight", line_height_ratio = 1.2, border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-control"
+set = { self = { foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight", line_height_ratio = 1.2, border_color = "$unreal_input_outline", border_width = 0.0, corner_radius = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-toolbar-control"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground", border_color = "$unreal_input_outline", border_width = 0.0, corner_radius = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-icon-control"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground", border_color = "$unreal_input_outline", border_width = 0.0, corner_radius = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-menu-control"
+# StarshipCoreStyle: WindowMenuBar.MenuBar.Padding = FMargin(12, 4).
+set = { self = { background_color = "$unreal_background", foreground_color = "$unreal_foreground", border_color = "$unreal_background", border_width = 0.0, corner_radius = 0.0, layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 4.0, layout_padding_bottom = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-status-control"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground", border_color = "$unreal_panel", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-control:hovered"
+set = { self = { background_color = "#575757", foreground_color = "$unreal_foreground_hover", border_color = "$unreal_input_outline", border_width = 1.0, corner_radius = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-control:pressed"
+set = { self = { background_color = "$unreal_primary_press", foreground_color = "$unreal_foreground_hover", border_color = "$unreal_primary", border_width = 1.0, corner_radius = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-control:selected"
+set = { self = { background_color = "$unreal_primary", foreground_color = "$unreal_foreground_hover", border_color = "$unreal_primary", border_width = 1.0, corner_radius = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-control:checked"
+set = { self = { background_color = "$unreal_primary", foreground_color = "$unreal_foreground_hover", border_color = "$unreal_primary", border_width = 1.0, corner_radius = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-control:popup_open"
+set = { self = { background_color = "$unreal_primary", foreground_color = "$unreal_foreground_hover", border_color = "$unreal_primary", border_width = 1.0, corner_radius = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-control:disabled"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground_disabled", border_color = "$unreal_panel", border_width = 0.0, corner_radius = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-control:focus-visible"
+set = { self = { border_color = "$unreal_primary", border_width = 1.0, corner_radius = 4.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-menu-control:hovered"
+set = { self = { background_color = "#575757", foreground_color = "$unreal_foreground_hover", border_color = "#575757", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-menu-control:pressed"
+set = { self = { background_color = "$unreal_primary_press", foreground_color = "$unreal_foreground_hover", border_color = "$unreal_primary_press", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-menu-control:disabled"
+set = { self = { background_color = "$unreal_background", foreground_color = "$unreal_foreground_disabled", border_color = "$unreal_background", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-status-control:hovered"
+set = { self = { background_color = "#575757", foreground_color = "$unreal_foreground_hover", border_color = "#575757", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-status-control:pressed"
+set = { self = { background_color = "$unreal_primary_press", foreground_color = "$unreal_foreground_hover", border_color = "$unreal_primary_press", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-status-control:disabled"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground_disabled", border_color = "$unreal_panel", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-status-label"
+set = { self = { foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_small_size", font_weight = "$unreal_font_weight", line_height_ratio = 1.2 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-editor-main"
+set = { self = { background_color = "$unreal_background", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-dock"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-dock-tab"
+set = { self = { background_color = "$unreal_header", foreground_color = "$unreal_foreground_header", font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-property-row"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight" } }
+
+[[stylesheets.rules]]
+selector = ".unreal-field"
+set = { self = { background_color = "$unreal_input", foreground_color = "$unreal_foreground", border_color = "$unreal_input_outline", border_width = 1.0, corner_radius = 4.0, font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight" } }
+
+[[stylesheets.rules]]
+selector = ".unreal-viewport"
+set = { self = { background_color = "$unreal_recessed", foreground_color = "$unreal_foreground", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-viewport-toolbar"
+set = { self = { background_color = "$unreal_background", foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_size", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-viewport-overlay-toolbar"
+set = { self = { background_color = "$unreal_background", foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight", line_height_ratio = 1.2, border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-status-bar"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_small_size", font_weight = "$unreal_font_weight", line_height_ratio = 1.2, border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-content-drawer"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground", border_color = "$unreal_input_outline", border_width = 1.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-popup-menu"
+set = { self = { background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", border_color = "$unreal_dropdown_outline", border_width = 1.0, corner_radius = 4.0, font_family = "$unreal_font_family", font_size = "$unreal_font_size" } }

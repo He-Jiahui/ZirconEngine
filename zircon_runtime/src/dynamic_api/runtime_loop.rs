@@ -14,7 +14,7 @@ use crate::core::manager::{
     render_framework_handle, resolve_manager_service, ManagerServiceHandle,
 };
 use crate::core::math::UVec2;
-use crate::core::{CoreError, CoreHandle};
+use crate::core::{CoreError, CoreHandle, ServiceCallGuard};
 use zircon_runtime_interface::{ZrRuntimeViewportPickPurposeV1, ZrRuntimeViewportPickRequestV1};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -99,7 +99,7 @@ impl RuntimeRenderBridge {
         if first_submit {
             crate::diagnostic_log::write_log("runtime_session", "render_bridge_framework_resolved");
         }
-        let viewport = self.ensure_viewport(size, render_framework.as_ref())?;
+        let viewport = self.ensure_viewport(size, &*render_framework)?;
         if first_submit {
             crate::diagnostic_log::write_log("runtime_session", "render_bridge_viewport_ready");
         }
@@ -109,7 +109,7 @@ impl RuntimeRenderBridge {
         let completed_frame = if pipelined_before_submit {
             // Read frame N before queueing N+1 so capture does not collapse the
             // intentional one-frame render/simulation overlap.
-            self.capture_frame_if_newer(render_framework.as_ref(), viewport)?
+            self.capture_frame_if_newer(&*render_framework, viewport)?
         } else {
             None
         };
@@ -146,7 +146,7 @@ impl RuntimeRenderBridge {
         if pipelined_before_submit && render_framework.submission_config().pipelined_render {
             return Ok(completed_frame);
         }
-        self.capture_frame_if_newer(render_framework.as_ref(), viewport)
+        self.capture_frame_if_newer(&*render_framework, viewport)
     }
 
     fn capture_frame_if_newer(
@@ -171,7 +171,7 @@ impl RuntimeRenderBridge {
         let render_framework = self.resolve_render_framework()?;
         let size = UVec2::new(descriptor.size.x.max(1), descriptor.size.y.max(1));
         let descriptor = RenderViewportSurfaceDescriptor::new(size, descriptor.target);
-        let viewport = self.ensure_viewport_for_surface_rebind(size, render_framework.as_ref())?;
+        let viewport = self.ensure_viewport_for_surface_rebind(size, &*render_framework)?;
         render_framework.bind_viewport_surface(viewport, descriptor)?;
         self.viewport = Some(ActiveViewport {
             handle: viewport,
@@ -207,7 +207,7 @@ impl RuntimeRenderBridge {
         crate::profile_scope!("runtime", "frame", "runtime_frame_submit");
         crate::profile_scope!("runtime", "render_bridge", "present_extract");
         let render_framework = self.resolve_render_framework()?;
-        let viewport = self.ensure_viewport(size, render_framework.as_ref())?;
+        let viewport = self.ensure_viewport(size, &*render_framework)?;
         extract.apply_viewport_size(size);
         render_framework.present_frame_extract_with_ui(viewport, extract, ui)
     }
@@ -324,7 +324,22 @@ impl RuntimeRenderBridge {
         Ok(handle)
     }
 
-    fn resolve_render_framework(&self) -> Result<Arc<dyn RenderFramework>, RenderFrameworkError> {
+    /// Release the viewport while ordinary Core admission is still open.
+    /// A failed backend release keeps the same handle for the next close attempt.
+    pub(super) fn release_viewport(&mut self) -> Result<(), RenderFrameworkError> {
+        let Some(viewport) = self.viewport else {
+            return Ok(());
+        };
+        self.resolve_render_framework()?
+            .destroy_viewport(viewport.handle)?;
+        self.viewport = None;
+        self.last_generation = None;
+        Ok(())
+    }
+
+    fn resolve_render_framework(
+        &self,
+    ) -> Result<ServiceCallGuard<dyn RenderFramework>, RenderFrameworkError> {
         resolve_manager_service(&self.core, self.render_framework.clone())
             .map_err(|error| RenderFrameworkError::Backend(error.to_string()))
     }
@@ -340,10 +355,10 @@ fn play_stop_trace_enabled() -> bool {
 
 impl Drop for RuntimeRenderBridge {
     fn drop(&mut self) {
-        if let Some(viewport) = self.viewport {
-            if let Ok(render_framework) = self.resolve_render_framework() {
-                let _ = render_framework.destroy_viewport(viewport.handle);
-            }
+        if let Err(error) = self.release_viewport() {
+            crate::diagnostic_log::write_log_lazy("runtime_session", || {
+                format!("runtime_viewport_release_incomplete error={error}")
+            });
         }
     }
 }

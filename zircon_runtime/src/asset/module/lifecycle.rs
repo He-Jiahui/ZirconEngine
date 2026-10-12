@@ -1,4 +1,4 @@
-use crate::asset::pipeline::manager::{project_asset_manager_handle, ProjectAssetManager};
+use crate::asset::pipeline::manager::project_asset_manager_handle;
 use crate::core::manager::resolve_manager_service;
 use crate::core::{CoreError, CoreResult, ModuleContext, ModuleLifecycle};
 
@@ -14,8 +14,7 @@ impl ModuleLifecycle for AssetModuleLifecycle {
             .core
             .upgrade()
             .ok_or_else(|| CoreError::ServiceUnavailable(PROJECT_ASSET_MANAGER_NAME.to_owned()))?;
-        let manager: std::sync::Arc<ProjectAssetManager> =
-            resolve_manager_service(&core, project_asset_manager_handle(&core)?)?;
+        let manager = resolve_manager_service(&core, project_asset_manager_handle(&core)?)?;
         Ok(manager.catalog_generation_is_ready())
     }
 }

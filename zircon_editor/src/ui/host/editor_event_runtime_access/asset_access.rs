@@ -27,6 +27,8 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum EditorAssetOperationInvokeError {
     #[error(transparent)]
+    Editor(#[from] crate::ui::host::EditorError),
+    #[error(transparent)]
     ExtensionRegistry(#[from] EditorExtensionRegistryError),
     #[error("asset creation template `{template_id}` is not registered for `{asset_type}")]
     CreationTemplateNotRegistered {
@@ -43,6 +45,34 @@ pub enum EditorAssetOperationInvokeError {
 }
 
 impl EditorHostEventController {
+    pub(crate) fn content_browser_assets_to_sync(&self) -> Result<Vec<String>, String> {
+        let current = self.enter_editor_manager().map_err(|error| error.to_string())?
+            .active_scene_identity_for_session();
+        let shell = self.shell().lock();
+        let uri = current.as_ref()
+            .filter(|identity| Some(identity.document()) == shell.state.active_scene_document)
+            .map(|identity| identity.scene_uri());
+        shell.state.content_browser_assets_to_sync(uri)
+    }
+
+    pub(crate) fn sync_selection_to_content_browser(&self) -> Result<Vec<String>, String> {
+        let current = self.enter_editor_manager().map_err(|error| error.to_string())?
+            .active_scene_identity_for_session();
+        let targets = {
+            let mut shell = self.shell().lock();
+            let uri = current.as_ref()
+                .filter(|identity| Some(identity.document()) == shell.state.active_scene_document)
+                .map(|identity| identity.scene_uri());
+            let targets = shell.state.content_browser_assets_to_sync(uri)?;
+            shell.state.asset_workspace.sync_content_browser_assets(&targets);
+            targets
+        };
+        if !targets.is_empty() {
+            self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
+        }
+        Ok(targets)
+    }
+
     /// Binds a scene document after the lifecycle authority has committed its activation.
     pub(crate) fn bind_scene_document(&self, document: DocumentId) {
         self.shell().lock().state.bind_scene_document(document);
@@ -172,18 +202,20 @@ impl EditorHostEventController {
     pub fn asset_type_definition(
         &self,
         asset_type: &AssetTypeId,
-    ) -> Result<Option<AssetTypeDefinition>, EditorExtensionRegistryError> {
+    ) -> Result<Option<AssetTypeDefinition>, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
         let mut inner = self.shell().lock();
-        Ok(enabled_asset_types_for_shell(&mut inner)?
+        Ok(enabled_asset_types_for_shell(&mut inner, &manager)?
             .get(asset_type)
             .cloned())
     }
 
     pub(crate) fn project_asset_type_registry_for_shell(
         shell: &mut crate::ui::workbench::shell_state::WorkbenchShellStateData,
+        manager: &crate::ui::host::EditorManager,
         snapshot: &mut EditorDataSnapshot,
     ) -> Result<(), EditorExtensionRegistryError> {
-        let registry = enabled_asset_types_for_shell(shell)?;
+        let registry = enabled_asset_types_for_shell(shell, manager)?;
         let activity_source = snapshot.asset_activity.visible_assets.clone();
         let projected = projected_asset_items(shell, &activity_source, &registry);
         snapshot.asset_activity.visible_assets = projected.clone();
@@ -217,7 +249,7 @@ impl EditorHostEventController {
     pub fn asset_creation_templates(
         &self,
         asset_type: &AssetTypeId,
-    ) -> Result<Vec<AssetCreationTemplateDescriptor>, EditorExtensionRegistryError> {
+    ) -> Result<Vec<AssetCreationTemplateDescriptor>, crate::ui::host::EditorError> {
         Ok(self
             .asset_type_definition(asset_type)?
             .map(|definition| definition.creation_templates().to_vec())
@@ -227,7 +259,7 @@ impl EditorHostEventController {
     pub fn asset_context_commands(
         &self,
         asset_type: &AssetTypeId,
-    ) -> Result<Vec<AssetContextCommandDescriptor>, EditorExtensionRegistryError> {
+    ) -> Result<Vec<AssetContextCommandDescriptor>, crate::ui::host::EditorError> {
         Ok(self
             .asset_type_definition(asset_type)?
             .map(|definition| definition.context_commands().to_vec())

@@ -1,7 +1,15 @@
+mod module_tools_popups;
 mod panes;
 
+pub(in crate::ui::retained_host) use module_tools_popups::{
+    module_tools_menu_admission_is_live, module_tools_menu_spec,
+    module_tools_menu_spec_for_trigger, module_tools_popups,
+    module_tools_source_chain_is_available, ModuleToolsPopup,
+};
+
 pub(in crate::ui::retained_host) use panes::{
-    authored_hierarchy, authored_panes, is_authored_tree_row, owns_ordinary_panes, point_in_frame,
+    authored_hierarchy, authored_level_viewport, authored_panes, is_authored_tree_row,
+    owns_authored_level_viewport, owns_ordinary_panes, point_in_frame,
 };
 
 use super::data::{FrameRect, HostWindowLayoutData};
@@ -56,3 +64,9 @@ fn intersect_rect(rect: &FrameRect, bounds: &FrameRect) -> Option<FrameRect> {
 #[cfg(test)]
 #[path = "tests/componentized_workbench_regions.rs"]
 mod tests;
+
+#[cfg(test)]
+pub(in crate::ui::retained_host) use module_tools_popups::{
+    assert_control_source_paint_and_hit, assert_module_tools_menu_paint_once,
+    assert_retired_source_has_no_paint,
+};

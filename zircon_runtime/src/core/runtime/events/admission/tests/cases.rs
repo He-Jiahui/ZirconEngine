@@ -420,3 +420,82 @@ fn global_and_topic_byte_pressure_reject_all_peers_without_eviction() {
         bus.try_publish(rejected.event).unwrap();
     }
 }
+
+#[test]
+fn mixed_fanout_preserves_retention_across_empty_and_nonempty_displacement() {
+    let bus = EventBus::default();
+    let reliable = bus.subscribe("admission.test", reliable(4, 4096)).unwrap();
+    let lossy = bus
+        .subscribe(
+            "admission.test",
+            EngineEventDeliveryPolicy::DropOldest {
+                limits: budget(1, 4096),
+            },
+        )
+        .unwrap();
+    let bytes = "admission.test".len() + 7;
+
+    let first = bus.try_publish(event(1)).unwrap();
+    assert_eq!(first.subscribers, 2);
+    assert_eq!(first.replaced_events, 0);
+    assert_eq!(first.replaced_bytes, 0);
+    assert_eq!(first.admitted_bytes, bytes * 2);
+    assert_eq!(bus.retention_snapshot().retained_events, 2);
+    assert_eq!(bus.retention_snapshot().retained_bytes, bytes * 2);
+
+    let second = bus.try_publish(event(2)).unwrap();
+    assert_eq!(second.subscribers, 2);
+    assert_eq!(second.replaced_events, 1);
+    assert_eq!(second.replaced_bytes, bytes);
+    assert_eq!(second.admitted_bytes, bytes * 2);
+    let after_replacement = bus.retention_snapshot();
+    assert_eq!(after_replacement.retained_events, 3);
+    assert_eq!(after_replacement.retained_bytes, bytes * 3);
+    assert_eq!(after_replacement.peak_retained_events, 3);
+
+    let held = lossy.recv().unwrap();
+    assert_eq!(held.decode_payload().unwrap()["n"], 2);
+    let clone = held.clone();
+    let expected = event(3);
+    let rejected = bus.try_publish(expected.clone()).unwrap_err();
+    assert_eq!(rejected.event, expected);
+    assert_eq!(
+        rejected.reason,
+        EngineEventPublishRejection::Backpressured {
+            scope: EventBudgetScope::Subscriber,
+        }
+    );
+    assert_eq!(bus.retention_snapshot(), after_replacement);
+    assert_eq!(reliable.recv().unwrap().decode_payload().unwrap()["n"], 1);
+    assert_eq!(reliable.recv().unwrap().decode_payload().unwrap()["n"], 2);
+    assert!(matches!(
+        reliable.try_recv(),
+        Err(EngineEventTryReceiveError::Empty)
+    ));
+    drop(held);
+    assert_eq!(bus.retention_snapshot().retained_events, 1);
+    assert_eq!(bus.retention_snapshot().retained_bytes, bytes);
+    drop(clone);
+    assert_eq!(bus.retention_snapshot().retained_events, 0);
+    assert_eq!(bus.retention_snapshot().retained_bytes, 0);
+
+    let retry = bus.try_publish(rejected.event).unwrap();
+    assert_eq!(retry.subscribers, 2);
+    assert_eq!(retry.replaced_events, 0);
+    assert_eq!(retry.replaced_bytes, 0);
+    assert_eq!(retry.admitted_bytes, bytes * 2);
+    assert_eq!(bus.retention_snapshot().retained_events, 2);
+    assert_eq!(bus.retention_snapshot().retained_bytes, bytes * 2);
+    let reliable_delivery = reliable.recv().unwrap();
+    let lossy_delivery = lossy.recv().unwrap();
+    assert_eq!(reliable_delivery.decode_payload().unwrap()["n"], 3);
+    assert_eq!(lossy_delivery.decode_payload().unwrap()["n"], 3);
+    assert!(reliable_delivery.shares_payload_with(&lossy_delivery));
+    drop(reliable_delivery);
+    drop(lossy_delivery);
+    let drained = bus.retention_snapshot();
+    assert_eq!(drained.retained_events, 0);
+    assert_eq!(drained.retained_bytes, 0);
+    assert!(!drained.poisoned);
+    assert!(!drained.closed);
+}

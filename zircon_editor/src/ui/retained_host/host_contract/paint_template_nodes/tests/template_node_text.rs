@@ -15,7 +15,7 @@ fn code_component_variant_selects_runtime_code_text_style() {
 fn welcome_project_form_labels_emit_their_authored_nonempty_text() {
     for (control_id, expected_text) in [
         ("WelcomeProjectNameLabel", "Project name"),
-        ("WelcomeLocationLabel", "Location"),
+        ("WelcomeLocationLabel", "Parent folder"),
     ] {
         let node = TemplatePaneNodeData {
             control_id: control_id.into(),

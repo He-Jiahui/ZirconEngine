@@ -1,3 +1,4 @@
+//! 将材质 surface 与 GBuffer 编码模块组装为 Runtime WGSL；返回源码、来源段和内容标识，供后续入口、资源与设备契约检查使用。
 use crate::core::framework::render::{
     strip_wgsl_include_directives, GeometrySourceDescriptor, RenderShaderDefinitionValue,
     ShaderFeatureBits, ShadingModelDescriptor,
@@ -126,6 +127,7 @@ impl DeferredGBufferShaderTemplateRequest {
     }
 }
 
+/// 先解析几何及 GBuffer include，再展开材质依赖；未知来源在组装阶段返回错误，WGSL 验证由后续 shader admission 完成。
 pub(crate) fn assemble_deferred_gbuffer_shader_template(
     request: DeferredGBufferShaderTemplateRequest,
 ) -> Result<MaterialShaderTemplateAssembly, ShaderTemplateAssemblyError> {

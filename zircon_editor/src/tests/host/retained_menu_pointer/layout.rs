@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale_legacy_frames() {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_root_projection");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
@@ -38,7 +38,7 @@ fn shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale
 fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_bar_frame_is_missing(
 ) {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_shell_projection");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
@@ -85,7 +85,7 @@ fn shared_menu_pointer_layout_keeps_editor_operation_actions_for_extension_leave
         }],
     };
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_editor_operation_layout");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let layout = build_host_menu_pointer_layout(
         &menu_bar,
         &chrome,
@@ -115,7 +115,7 @@ fn shared_menu_pointer_layout_extends_menu_button_frames_for_extension_menus() {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_extension_menu_slots");
     let layout = build_host_menu_pointer_layout(
         &menu_bar,
-        &harness.runtime.chrome_snapshot(),
+        &harness.runtime.chrome_snapshot().unwrap(),
         UiSize::new(360.0, 240.0),
         &[],
         None,
@@ -136,7 +136,7 @@ fn shared_menu_pointer_layout_extends_menu_button_frames_for_extension_menus() {
 #[test]
 fn shared_menu_pointer_layout_uses_chrome_menu_overflow_preference() {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_overflow_preference");
-    let mut chrome = harness.runtime.chrome_snapshot();
+    let mut chrome = harness.runtime.chrome_snapshot().unwrap();
     chrome.menu_overflow_mode = MenuOverflowMode::MultiColumn;
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
@@ -179,7 +179,7 @@ fn shared_menu_pointer_layout_measures_menu_labels_with_runtime_font_width() {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_runtime_text_width");
     let layout = build_host_menu_pointer_layout(
         &menu_bar,
-        &harness.runtime.chrome_snapshot(),
+        &harness.runtime.chrome_snapshot().unwrap(),
         UiSize::new(720.0, 240.0),
         &[],
         None,
@@ -222,7 +222,7 @@ fn shared_menu_pointer_layout_content_measures_root_popup_widths() {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_popup_runtime_text_width");
     let layout = build_host_menu_pointer_layout(
         &menu_bar,
-        &harness.runtime.chrome_snapshot(),
+        &harness.runtime.chrome_snapshot().unwrap(),
         UiSize::new(720.0, 240.0),
         &[],
         None,
@@ -236,7 +236,7 @@ fn shared_menu_pointer_layout_content_measures_root_popup_widths() {
 #[test]
 fn window_metrics_menu_geometry_retains_shared_semantic_products() {
     let harness = EventRuntimeHarness::new("zircon_retained_menu_geometry_product");
-    let chrome = harness.runtime.chrome_snapshot();
+    let chrome = harness.runtime.chrome_snapshot().unwrap();
     let model = WorkbenchViewModel::build(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,

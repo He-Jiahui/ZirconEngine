@@ -213,22 +213,18 @@ impl EditorTransactionEngine {
                     .collect::<Vec<_>>(),
             ),
         };
-        // Pending changes have no committed generation yet. Compare the previous
-        // observation as well, so cancelling the first interaction emits clean.
-        if kind == HistoryDirtyBatchKind::Reset {
-            changed.extend(pending_history);
-            if let Some(cursor) = cursor {
-                changed.extend(cursor.pending_history);
-            }
-        } else if let Some(cursor) = cursor {
-            if cursor.pending_history != pending_history {
-                changed.extend(cursor.pending_history);
-                changed.extend(pending_history);
+        // Journal deltas and generation-map resets are already sorted and unique.
+        // Merge at most the previous/current pending identity without growing for duplicates.
+        // Pending changes have no committed generation; the previous identity emits clean on cancel.
+        let previous_pending = cursor.and_then(|cursor| cursor.pending_history);
+        if kind == HistoryDirtyBatchKind::Reset || previous_pending != pending_history {
+            for history in previous_pending.into_iter().chain(pending_history) {
+                if let Err(index) = changed.binary_search(&history) {
+                    changed.insert(index, history);
+                }
             }
         }
         changed.retain(|history| !history.is_volatile());
-        changed.sort_unstable();
-        changed.dedup();
         if kind == HistoryDirtyBatchKind::Delta && changed.is_empty() {
             kind = HistoryDirtyBatchKind::Unchanged;
         }

@@ -10,8 +10,8 @@ use zircon_runtime::core::resource::io::atomic_write_new;
 use super::super::project_access::normalize_ui_asset_asset_id;
 use super::{ui_asset_source_digest, UiAssetExternalConflict};
 use crate::core::extension::{
-    DocumentAutosavePayload, DocumentSourceWritePublication, DocumentSourceWriteReceipt, SaveCtx,
-    SaveReason, ToolkitSaveFailure,
+    DocumentAutosavePayload, DocumentSourceWritePublication, SaveCtx, SaveReason,
+    ToolkitSaveFailure,
 };
 
 pub(super) fn save_ui_asset_document(
@@ -19,8 +19,7 @@ pub(super) fn save_ui_asset_document(
     instance_id: &ViewInstanceId,
     context: &mut SaveCtx,
 ) -> Result<(), ToolkitSaveFailure> {
-    let (written_bytes, receipt) = host.save_ui_asset_editor_canonical(instance_id)?;
-    context.record_serialized_project_source_write(written_bytes, receipt)?;
+    host.save_ui_asset_editor_canonical(instance_id, context)?;
     Ok(())
 }
 
@@ -82,12 +81,10 @@ pub(super) fn ui_asset_document_autosave_source_path(
 }
 
 impl EditorUiHost {
-    pub fn save_ui_asset_editor(
+    pub(in crate::ui::host) fn saved_ui_asset_editor_source(
         &self,
         instance_id: &ViewInstanceId,
     ) -> Result<String, EditorError> {
-        self.ensure_ui_asset_editor_session(instance_id)?;
-        self.save_document_toolkit(instance_id, SaveReason::Explicit)?;
         let sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
@@ -98,7 +95,8 @@ impl EditorUiHost {
     fn save_ui_asset_editor_canonical(
         &self,
         instance_id: &ViewInstanceId,
-    ) -> Result<(u64, DocumentSourceWriteReceipt), EditorError> {
+        context: &mut SaveCtx,
+    ) -> Result<(), ToolkitSaveFailure> {
         let (saved, asset_id, source_path, expected_source, expected_digest, source_revision) = {
             let sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {
@@ -117,72 +115,89 @@ impl EditorUiHost {
                 entry.session.source_revision(),
             )
         };
+        let written_bytes = u64::try_from(saved.len())
+            .map_err(|_| EditorError::UiAsset("saved ui asset size exceeds u64".to_string()))?;
         let project = self.current_project_snapshot()?.ok_or_else(|| {
             EditorError::UiAsset(
                 "cannot save a canonical UI asset without an active project".to_string(),
             )
         })?;
-        let publication = self
-            .document_toolkits
-            .with_source_write(project.paths().root(), &source_path, |source_write| {
-                let write_outcome =
-                    source_write.commit_if_matches(expected_source.as_bytes(), saved.as_bytes());
-                if write_outcome.source_changed() {
-                    return Err(self.record_ui_asset_save_conflict(
-                        instance_id,
-                        asset_id.clone(),
-                        source_path.clone(),
-                        expected_digest,
-                    ));
-                }
-                let publication = write_outcome.into_publication().map_err(|source| {
-                    EditorError::UiAssetSaveIo {
-                        stage: UiAssetSaveStage::AtomicCommit,
-                        source_path: source_path.clone(),
-                        source,
+        self.document_toolkits
+            .with_source_write(
+                project.paths().root(),
+                &source_path,
+                |source_write| -> Result<(), ToolkitSaveFailure> {
+                    let write_outcome = source_write
+                        .commit_if_matches(expected_source.as_bytes(), saved.as_bytes());
+                    if write_outcome.source_changed() {
+                        return Err(Box::new(self.record_ui_asset_save_conflict(
+                            instance_id,
+                            asset_id.clone(),
+                            source_path.clone(),
+                            expected_digest,
+                        )));
                     }
-                })?;
-                {
-                    let mut sessions = self.lock_ui_asset_sessions();
-                    let entry = sessions.get_mut(instance_id).ok_or_else(|| {
-                        EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+                    let publication = write_outcome.into_publication().map_err(|source| {
+                        EditorError::UiAssetSaveIo {
+                            stage: UiAssetSaveStage::AtomicCommit,
+                            source_path: source_path.clone(),
+                            source,
+                        }
                     })?;
-                    entry.update_disk_baseline(saved.clone());
-                    entry.conflict = None;
-                    entry.diff_snapshot = None;
-                    if matches!(&publication, DocumentSourceWritePublication::Durable(_)) {
-                        let _ = entry
-                            .session
-                            .mark_canonical_source_persisted(source_revision, saved.clone());
+                    // Record the actual durable receipt before any fallible completion step.
+                    let durable =
+                        matches!(&publication, DocumentSourceWritePublication::Durable(_));
+                    let committed: Result<(), ToolkitSaveFailure> = match publication {
+                        DocumentSourceWritePublication::Durable(receipt) => context
+                            .record_serialized_project_source_write(written_bytes, receipt)
+                            .map_err(|source| Box::new(source) as ToolkitSaveFailure),
+                        DocumentSourceWritePublication::PublishedNotDurable(source) => {
+                            Err(Box::new(EditorError::UiAssetSaveIo {
+                                stage: UiAssetSaveStage::DurabilityBarrier,
+                                source_path: source_path.clone(),
+                                source,
+                            }))
+                        }
+                    };
+                    {
+                        let mut sessions = self.lock_ui_asset_sessions();
+                        let Some(entry) = sessions.get_mut(instance_id) else {
+                            // Publication failure remains the primary source even if teardown
+                            // removed the session before its disk baseline could be updated.
+                            return match committed {
+                                Err(source) => Err(source),
+                                Ok(()) => Err(Box::new(EditorError::UiAsset(format!(
+                                    "missing ui asset session {}",
+                                    instance_id.0
+                                )))
+                                    as ToolkitSaveFailure),
+                            };
+                        };
+                        entry.update_disk_baseline(saved.clone());
+                        entry.conflict = None;
+                        entry.diff_snapshot = None;
+                        if durable {
+                            let _ = entry
+                                .session
+                                .mark_canonical_source_persisted(source_revision, saved.clone());
+                        }
                     }
-                }
-                Ok(publication)
-            })
+                    committed
+                },
+            )
             .map_err(|source| EditorError::UiAssetSaveIo {
                 stage: UiAssetSaveStage::AtomicCommit,
                 source_path: source_path.clone(),
                 source,
             })??;
-        let receipt = match publication {
-            DocumentSourceWritePublication::Durable(receipt) => receipt,
-            DocumentSourceWritePublication::PublishedNotDurable(source) => {
-                return Err(EditorError::UiAssetSaveIo {
-                    stage: UiAssetSaveStage::DurabilityBarrier,
-                    source_path,
-                    source,
-                });
-            }
-        };
         if asset_id.starts_with("res://") {
             let normalized = normalize_ui_asset_asset_id(&asset_id).to_string();
-            let _ = self.asset_manager()?.import_asset(&normalized);
+            self.asset_manager()?.import_asset(&normalized)?;
             self.refresh_ui_asset_workspace_for_changes(vec![normalized])?;
         }
         self.hydrate_ui_asset_editor_imports(instance_id)?;
         self.sync_ui_asset_editor_instance(instance_id)?;
-        let written_bytes = u64::try_from(saved.len())
-            .map_err(|_| EditorError::UiAsset("saved ui asset size exceeds u64".to_string()))?;
-        Ok((written_bytes, receipt))
+        Ok(())
     }
 
     pub fn save_ui_asset_editor_local_copy(

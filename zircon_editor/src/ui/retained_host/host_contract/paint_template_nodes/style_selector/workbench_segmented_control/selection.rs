@@ -17,17 +17,48 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     kind: WorkbenchSegmentedControlKind,
 ) -> WorkbenchSegmentedControlStyle {
     let state = resolved_state_for_node(node).resolved_state_for_family(UiPainterFamily::Tab);
+    let tab_text = if kind == WorkbenchSegmentedControlKind::Tab
+        && !matches!(
+            state,
+            zircon_runtime_interface::ui::style::UiPainterResolvedState::Disabled
+                | zircon_runtime_interface::ui::style::UiPainterResolvedState::Loading
+        ) {
+        Some(
+            crate::ui::retained_host::host_contract::paint_theme::current_host_palette()
+                .text_tab_active,
+        )
+    } else {
+        None
+    };
+    let mut border = control_border(node, kind, state);
+    let border_width = if kind == WorkbenchSegmentedControlKind::Tab && border.is_some() {
+        node.authored_focus_border_width
+            .filter(|value| value.is_finite() && *value >= 0.0)
+            .unwrap_or_else(|| {
+                crate::ui::retained_host::host_contract::paint_theme::current_host_metrics()
+                    .border_width
+            })
+    } else {
+        control_border_width(kind)
+    };
+    if kind == WorkbenchSegmentedControlKind::Tab && border_width <= 0.0 {
+        border = None;
+    }
     WorkbenchSegmentedControlStyle {
         background: control_background(node, kind, state),
-        border: control_border(kind, state),
-        border_width: control_border_width(kind),
+        border,
+        border_width,
         selected_surface: selected_segment_surface_color(state),
         selected_border: selected_segment_border_color(state),
         selected_border_width: selected_segment_border_width(node),
         selected_underline: selected_segment_underline_color(node, state),
         selected_underline_height: selected_segment_underline_height(node),
-        selected_text: selected_text_color(state),
-        idle_text: idle_text_color(state),
+        selected_text: tab_text.unwrap_or_else(|| selected_text_color(state)),
+        idle_text: if kind == WorkbenchSegmentedControlKind::Tab && node.hovered {
+            tab_text.unwrap_or_else(|| idle_text_color(state))
+        } else {
+            idle_text_color(state)
+        },
         group_label: group_label_color(node, state),
         state,
     }

@@ -110,8 +110,12 @@ impl UiHostWindowEventLoop {
         let response = self.host.close_requested_response();
         if matches!(response, CloseRequestResponse::HideWindow) {
             // The close callback has returned, so app Cancel callbacks cannot reenter it.
+            self.host.finish_retained_pane_input(
+                zircon_runtime_interface::ui::window::UiWindowEventKind::Closed,
+            );
             self.cancel_native_pointer_capture();
             self.host.state.borrow_mut().window_visible = false;
+            self.sync_ime_allowed();
         }
         response
     }
@@ -126,6 +130,21 @@ impl UiHostWindowEventLoop {
             platform_event.event,
             UiPoint::new(x, y),
         ) {
+            let metadata = &pointer.metadata;
+            if self.host.dispatch_retained_pane_window_event(
+                zircon_runtime_interface::ui::window::UiWindowEvent::new(
+                    zircon_runtime_interface::ui::window::UiWindowEventMetadata::for_window(
+                        metadata.window_id.clone().unwrap_or_default(),
+                        metadata.timestamp,
+                        metadata.sequence,
+                    )
+                    .synthetic(metadata.synthetic),
+                    zircon_runtime_interface::ui::window::UiWindowEventKind::CursorLeft,
+                ),
+            ) {
+                self.host.request_frame_update();
+                return;
+            }
             self.host
                 .global::<UiHostContext>()
                 .invoke_workbench_pointer_input(pointer, None);
@@ -208,3 +227,33 @@ impl UiHostWindow {
 #[cfg(test)]
 #[path = "tests/events.rs"]
 mod tests;
+
+#[cfg(test)]
+impl crate::ui::retained_host::host_contract::UiHostWindow {
+    pub(crate) fn dispatch_ui_asset_native_close_for_test(&self) -> bool {
+        let mut event_loop = UiHostWindowEventLoop::new(self.clone_strong());
+        matches!(
+            event_loop.handle_native_close_requested(),
+            CloseRequestResponse::HideWindow
+        )
+    }
+
+    pub(crate) fn dispatch_ui_asset_native_pointer_left_for_test(&self) {
+        let mut event_loop = UiHostWindowEventLoop::new(self.clone_strong());
+        let metadata = super::super::metadata::native_input_metadata(self, 0);
+        let event = zircon_runtime_interface::ui::window::UiWindowInputPumpEvent::Window(
+            zircon_runtime_interface::ui::window::UiWindowEvent::new(
+                zircon_runtime_interface::ui::window::UiWindowEventMetadata::for_window(
+                    metadata.window_id.unwrap_or_default(),
+                    metadata.timestamp,
+                    metadata.sequence,
+                ),
+                zircon_runtime_interface::ui::window::UiWindowEventKind::CursorLeft,
+            ),
+        );
+        event_loop.handle_pointer_left(PlatformInputTranslation {
+            event: Some(event),
+            sequence: metadata.sequence,
+        });
+    }
+}

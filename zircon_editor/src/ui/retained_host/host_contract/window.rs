@@ -23,6 +23,7 @@ mod lifecycle;
 mod metadata;
 mod presentation;
 mod redraw;
+mod retained_pane_input;
 #[cfg(test)]
 #[path = "window/tests/test_support.rs"]
 mod test_support;

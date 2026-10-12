@@ -13,11 +13,11 @@ doc_type: deployment-specification
 
 # Jenkins 工程内部署配置
 
-当前控制器为 `controller-running-quiet`，管理页面与认证 API 已直接启动，地址为 `http://127.0.0.1:18080/`，本次没有重启 Windows。Home、专用 JDK／WAR／Python、79 个插件和托盘位于工程 `.jenkins`；实际插件版本及启用状态已再次核对。当前 `serviceReady=true`、`ready=false`：agent 与执行 broker 暂停，遗留任务的预约及 writer 保护保留。旧端口 53748 落在本机 Windows 排除区间，启动器已有端口预检。三类 job 已创建，纯注释、模块修改、跨模块修改和失败修复已有历史 Jenkins／Cargo 回执。同输入共享、后续消费者重新测试及有界 GC 也已实测；源码变化后的增量、独立并行、联合输入和最终入口切换仍待验收。旧协调器持续退役。
+当前 Jenkins 已启动并接受任务，地址为 `http://127.0.0.1:18080/`。运行组件、Home、日志和 Windows 托盘位于工程 `.jenkins`。controller 为零执行槽；本机只使用固定节点 `zircon-windows-agent`，目前两个执行槽在线。79 个插件的版本及实际启用状态已核对。重复启动会检查并复用健康服务；固定节点配置未变化时不再执行迁移。
 
-工作树的部署规格与路径准入已同步为真实驱动器根级 `D/E/F:\cargo-targets`，默认 `D:\cargo-targets`；明确指定构建根后不得自动换盘。构建命名空间为 `<buildRoot>\zircon-local\zircon-jenkins`，与当前文件写入授权一致。在线控制器仍使用前次封存驱动，尚未加载本次变更；agent 与执行 broker 保持暂停。历史工程内 `.jenkins\builds` 只保留为证据，不接收新构建。Jenkins 运行组件及 Home 继续位于工程 `.jenkins`。
+普通管理入口为 `tools/dev/submit-jenkins-management.ps1`，通过 `zircon-management` 提交分支、工作树、补丁、合并准备、文件生成和 Cargo 验证。请求必须携带原会话授权、路径范围和唯一请求身份；提交、推送及消息仍分别需要动作授权。任务完成后检查本任务临时缓存，`zircon-scheduled-cleanup` 每半小时执行受管清理；活跃产物、可复用热缓存和归属不明对象保留。
 
-最新并行验收暴露生命周期 broker 的完成路径错误，导致宿主及 Jenkins 退出。错误已修复；完整回归与封存驱动的状态见 `.jenkins/state/migration-baseline/acceptance-index.json`。前次启动尚未尝试启动 agent；核验该驱动的进程包含机制、旧宿主及 controller 身份已经离开、Home 可用、无其他运行组件 owner 和端口可用后，本次直接恢复控制器。遗留构建执行仍缺少可信的全树终止证明，writer 和预约保护继续保留；控制器上线没有解除这些保护。历史通过回执保留其原 driver 身份，不代表最新驱动已经完成运行验收。
+构建产物使用真实驱动器根级 `D/E/F:\cargo-targets`，默认 `D:\cargo-targets`；显式指定后不自动换盘。构建命名空间为 `<buildRoot>\zircon-local\zircon-jenkins`。历史执行仍缺少可信终止证据的保护继续保留，历史回执保持原驱动身份。以下架构与阶段说明保留其原验收范围；服务在线不等于全部 M0–M8 门槛通过。旧协调器持续退役。
 
 正式实施顺序、测试阶段与回退门槛以[单机多 Session 实施计划](../docs/plans/jenkins-session-coordination/01-single-host-jenkins-coordination.md)为准；模块、状态、共享执行与资源协议见[详细架构方案](../docs/tooling/jenkins-session-coordination-architecture.md)。新支持模块已接入归属、准入、进程和验收协议；旧 owner 仅保存在历史参考字段中，不能恢复或绕过旧 runtime。
 
@@ -35,9 +35,9 @@ doc_type: deployment-specification
 
 首版选用 Scripted Pipeline，通过固定版本的 `load` 组合步骤；flow、execution 和 maintenance 三类 job 分别承担任务、共享执行和维护。已启用的插件包含 Shared Library、Declarative 和 pipeline-build-step，首版流程继续采用 Scripted Pipeline；共享执行通过受控 CLI 与 Jenkins 参数化 API 提交。Pipeline 等待资源时退出 node、释放 executor。[Jenkins 的 load 步骤](https://www.jenkins.io/doc/pipeline/steps/workflow-cps/)提供加载依据。三个 job 已创建并读取内容寻址的封存步骤库；实际流程接受仍须通过 M3–M8。
 
-保持一个共享开发 checkout，补丁以新状态库路径归属及修改前 hash 排他应用，Git 集成保留外来编辑和暂存区内容。编译读取稳定池中的封存输入；不新增 Git worktree，也不按 Session 创建 target。相同完整输入共享独立执行任务；不同输入仅在作者、覆盖及联合验证视图核对后合批。独立模块并行消耗同一 CPU／内存预算。
+共享开发 checkout 保留外来编辑和暂存区内容。分支和额外工作树由 Jenkins 管理并登记归属；编译可读取实际 checkout 或登记工作树，按配置复用稳定构建池。相同完整输入共享独立执行任务；不同输入仅在作者、覆盖及联合验证视图核对后合批。独立模块并行消耗同一 CPU／内存预算。
 
-增量入口 `patch register` 接收 UTF-8 Git unified diff、每个改动文件的 `beforeHashes`、声明依赖、覆盖范围及已有会话授权，登记时不修改 checkout。`patch submit` 通过认证 API 向 `zircon-flow` 发送 `PATCH_REQUEST_REF`；Pipeline 的首阶段核对驱动、Git HEAD、依赖及前后 hash，排他应用补丁后自行封存输入，再登记完整构建身份。冲突时阻断，结果不明时对账原请求，禁止模糊套用补丁或换编号重试。部分应用或封存失败不进入编译；恢复按原 journal 和 hash 保护外来编辑及活跃 execution／native 引用。对应接口及测试已实现，真实 Jenkins 增量入口仍待恢复后运行验收。合并补丁不授予 Git 提交、推送或通知权限。
+增量入口 `patch register` 接收 UTF-8 Git unified diff、每个改动文件的 `beforeHashes`、声明依赖、覆盖范围及已有会话授权，登记时不修改 checkout。`patch submit` 通过认证 API 向 `zircon-flow` 发送 `PATCH_REQUEST_REF`；Pipeline 的首阶段核对驱动、Git HEAD、依赖及前后 hash，排他应用补丁后自行封存输入，再登记完整构建身份。冲突时阻断，结果不明时对账原请求，禁止模糊套用补丁或换编号重试。部分应用或封存失败不进入编译；恢复按原 journal 和 hash 保护外来编辑及活跃 execution／native 引用。对应接口及测试已实现，真实 Jenkins 增量请求仍须保留自己的运行验收回执。合并补丁不授予 Git 提交、推送或通知权限。
 
 历史 `validation_reuse.py` 区分终态结果和 preparation：终态复用匹配完整源码及覆盖；源码改变可继续使用兼容的增量池。历史 `validation_groups.py` 和 `validation_priority.py` 分别提供合批与持久化公平队列的设计和回归参考。新支持库只提取必要策略与受控操作；Jenkins 流程接管步骤调度，源码归属、租约、准入和验收保持单一权威。
 
@@ -57,15 +57,15 @@ Git 提交和消息步骤使用会话已有的明确动作授权。纯注释模�
 | 控制器日志、进程状态 | `E:\Git\ZirconEngine\.jenkins\logs`、`state` |
 | agent 控制工作目录与 remoting 缓存 | `E:\Git\ZirconEngine\.jenkins\agent`、`cache\remoting` |
 | Jenkins 解包缓存与 JVM 临时文件 | `E:\Git\ZirconEngine\.jenkins\cache`、`tmp` |
-| 封存输入、编译工作区、Cargo target、编译器缓存与二进制产物 | `<buildRoot>\zircon-local\zircon-jenkins`；默认 `D:\cargo-targets`；在线驱动尚未加载新配置 |
+| 封存输入、编译工作区、Cargo target、编译器缓存与二进制产物 | `<buildRoot>\zircon-local\zircon-jenkins`；默认 `D:\cargo-targets` |
 
 `.gitignore` 仅放行本目录的规格、版本清单与说明；Home、密钥、日志和状态排除在 Git 之外。运行目录迁移时保留原用户与加密密钥，不把密码或 token 放入这些配置文件。
 
 `plugins.lock` 锁定 79 个目标包的版本；`plugin-checksums.json` 记录 SHA-256、最低 Core 和依赖闭包。包校验和及本次启动后的逐项版本、启用状态已核对。控制器版本为 2.580.1，Java 为 Microsoft 21.0.12.1。
 
-部署应用将 `JENKINS_HOME` 设置为表中工程路径，保持 controller 零执行槽；agent 的控制工作目录留在工程 `.jenkins\agent`，本次没有启动 agent。再次启用编译时使用符合当前工作约定的外部构建根。启动时显式配置 `java.io.tmpdir`、`hudson.PluginManager.workDir` 和 WAR 的 `--webroot` 到 `.jenkins` 批准目录内，并将 agent 的临时目录、工作目录及 remoting 缓存放在批准目录内。Controller 的 `jenkins.model.Jenkins.workspacesDir` 只控制 controller workspace，不能代替 agent 的目录设置。[Jenkins 系统属性](https://www.jenkins.io/doc/book/managing/system-properties/)与[WAR 启动说明](https://www.jenkins.io/doc/book/installing/war-file/)提供配置依据。
+部署应用将 `JENKINS_HOME` 设置为表中工程路径，保持 controller 零执行槽；agent 的控制工作目录留在工程 `.jenkins\agent`，固定节点目前提供两个执行槽。编译使用符合当前工作约定的外部构建根。启动时显式配置 `java.io.tmpdir`、`hudson.PluginManager.workDir` 和 WAR 的 `--webroot` 到 `.jenkins` 批准目录内，并将 agent 的临时目录、工作目录及 remoting 缓存放在批准目录内。Controller 的 `jenkins.model.Jenkins.workspacesDir` 只控制 controller workspace，不能代替 agent 的目录设置。[Jenkins 系统属性](https://www.jenkins.io/doc/book/managing/system-properties/)与[WAR 启动说明](https://www.jenkins.io/doc/book/installing/war-file/)提供配置依据。
 
-所有构建目录须先登记 managed 存储所有权、租约及索引。每次 Cargo 准入均须核验当前工作约定允许的真实物理根；拒绝 C 盘、工程内 `target`、嵌套仿冒根、junction/symlink 或其他别名。工作树检查器已改为真实驱动器根准入，拒绝路径别名；在线驱动尚未加载该版本，运行准入仍待验收。规格布尔值不能代替真实路径证据。
+所有构建目录须先登记 managed 存储所有权、租约及索引。每次 Cargo 准入均须核验当前工作约定允许的真实物理根；拒绝 C 盘、工程内 `target`、嵌套仿冒根、junction/symlink 或其他别名。运行检查器使用真实驱动器根准入并拒绝路径别名；具体 Cargo 请求仍须取得自己的准入和执行回执。规格布尔值不能代替真实路径证据。
 
 ## 唯一入口与产物复用要求
 

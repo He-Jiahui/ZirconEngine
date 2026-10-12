@@ -3,6 +3,19 @@ use std::{collections::HashSet, sync::LazyLock};
 mod extensions;
 
 pub(crate) const WORKBENCH_PREVIEW_ACTION_IDS: &[&str] = &[
+    "workbench.unreal.menu.file.open",
+    "workbench.unreal.menu.edit.open",
+    "workbench.unreal.menu.window.open",
+    "workbench.unreal.menu.tools.open",
+    "workbench.unreal.menu.build.open",
+    "workbench.unreal.menu.help.open",
+    "workbench.unreal.modes.open",
+    "workbench.unreal.add.open",
+    "workbench.unreal.blueprints.open",
+    "workbench.unreal.cinematics.open",
+    "workbench.unreal.settings.open",
+    "workbench.content_drawer.toggle",
+    "workbench.content_drawer.dismiss",
     "workbench.menu.main.open",
     "workbench.run_mode.menu.open",
     "workbench.layout.menu.open",

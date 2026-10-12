@@ -42,8 +42,8 @@ fn identity(source_path: &str, source_node_id: &str) -> AuthoredNodeIdentity {
 
 #[test]
 fn staged_resource_uri_joins_only_one_catalog_source_path() {
-    let catalog_source = "zircon_editor/assets/ui/editor/windows/workbench_window.zui";
-    let uri = "res://ui/editor/windows/workbench_window.zui";
+    let catalog_source = "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui";
+    let uri = "res://ui/editor/unreal/level_editor_window.zui";
     let mut index = SourceIdentityIndex::default();
     index.source_paths.insert(catalog_source.into());
     index

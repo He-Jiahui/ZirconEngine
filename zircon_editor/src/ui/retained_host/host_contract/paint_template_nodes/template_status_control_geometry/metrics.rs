@@ -73,3 +73,29 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
 #[cfg(test)]
 #[path = "tests/metrics.rs"]
 mod tests;
+
+/// Source typography affects status text only; icon density remains host-owned.
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_text_metrics_for_node(
+    node: &crate::ui::retained_host::host_contract::data::TemplatePaneNodeData,
+) -> (f32, f32) {
+    status_text_metrics_for_node_from_host(node, current_host_metrics())
+}
+
+fn status_text_metrics_for_node_from_host(
+    node: &crate::ui::retained_host::host_contract::data::TemplatePaneNodeData,
+    host: HostControlMetrics,
+) -> (f32, f32) {
+    let font_size = if node.font_size.is_finite() && node.font_size > 0.0 {
+        node.font_size * host.scale_factor
+    } else {
+        host.font_body
+    };
+    let line_height = if node.line_height.is_finite() && node.line_height > 0.0 {
+        node.line_height * host.scale_factor
+    } else if node.line_height_ratio.is_finite() && node.line_height_ratio > 0.0 {
+        font_size * node.line_height_ratio
+    } else {
+        host.line_height(font_size)
+    };
+    (font_size, line_height)
+}

@@ -1,4 +1,5 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use zircon_runtime::scene::{LevelSystem, World};
 use zircon_runtime_interface::{
@@ -11,6 +12,9 @@ use crate::core::gateway::{EditorRuntimeGateway, GatewayError};
 pub(super) struct CallbackThenErrorGateway {
     level: LevelSystem,
     fail_next_world_write: AtomicBool,
+    duplicate_first_write_callback: bool,
+    dispatch_calls: Option<Arc<AtomicUsize>>,
+    callback_attempts: Option<Arc<AtomicUsize>>,
 }
 
 impl CallbackThenErrorGateway {
@@ -18,6 +22,35 @@ impl CallbackThenErrorGateway {
         Self {
             level,
             fail_next_world_write: AtomicBool::new(true),
+            duplicate_first_write_callback: false,
+            dispatch_calls: None,
+            callback_attempts: None,
+        }
+    }
+
+    pub(super) fn duplicate_first_write_then_error(
+        level: LevelSystem,
+        dispatch_calls: Arc<AtomicUsize>,
+        callback_attempts: Arc<AtomicUsize>,
+    ) -> Self {
+        Self {
+            level,
+            fail_next_world_write: AtomicBool::new(true),
+            duplicate_first_write_callback: true,
+            dispatch_calls: Some(dispatch_calls),
+            callback_attempts: Some(callback_attempts),
+        }
+    }
+
+    fn record_dispatch(&self) {
+        if let Some(dispatch_calls) = self.dispatch_calls.as_ref() {
+            dispatch_calls.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    fn record_callback_attempt(&self) {
+        if let Some(callback_attempts) = self.callback_attempts.as_ref() {
+            callback_attempts.fetch_add(1, Ordering::SeqCst);
         }
     }
 }
@@ -32,12 +65,23 @@ impl EditorRuntimeGateway for CallbackThenErrorGateway {
     }
 
     fn with_world(&self, read: &mut dyn FnMut(&World)) -> Result<(), GatewayError> {
+        self.record_dispatch();
         self.level.with_world(read);
         Ok(())
     }
 
     fn with_world_mut(&self, write: &mut dyn FnMut(&mut World)) -> Result<(), GatewayError> {
-        self.level.with_world_mut(write);
+        self.record_dispatch();
+        self.level.with_world_mut(|world| {
+            self.record_callback_attempt();
+            write(world);
+            if self.duplicate_first_write_callback
+                && self.fail_next_world_write.load(Ordering::Acquire)
+            {
+                self.record_callback_attempt();
+                write(world);
+            }
+        });
         if self.fail_next_world_write.swap(false, Ordering::AcqRel) {
             Err(GatewayError::Protocol {
                 message: "gateway reported after executing a world write".to_owned(),

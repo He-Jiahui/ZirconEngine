@@ -1,0 +1,34 @@
+[asset]
+kind = "view"
+id = "res://ui/editor/unreal/editor_shell.zui"
+version = 2
+display_name = "Unreal Editor Shell"
+
+[root]
+node = "host"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[nodes.host]
+component = "UiHostWindow"
+control_id = "UiHostWindowRoot"
+pixel_snapping = "disabled"
+classes = ["unreal-editor-shell"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "UiHostWindow/ActivateMainPage", event = "Change", route = "workbench.dock.activate_main_page" }]
+children = [{ node = "document_host" }]
+
+[nodes.document_host]
+component = "DocumentHost"
+control_id = "DocumentHostRoot"
+classes = ["unreal-editor-shell"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "pane_surface" }]
+
+[nodes.pane_surface]
+component = "PaneSurface"
+control_id = "PaneSurfaceRoot"
+classes = ["unreal-editor-shell"]
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

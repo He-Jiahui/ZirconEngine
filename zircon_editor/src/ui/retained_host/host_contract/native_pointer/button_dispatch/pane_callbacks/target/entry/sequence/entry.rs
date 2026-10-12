@@ -4,8 +4,8 @@ use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use zircon_runtime_interface::ui::dispatch::UiInputModifiers;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
-use super::super::super::super::super::super::routing::PanePointerRoute;
 use super::super::super::super::super::super::NativePointerButtonState;
+use super::super::super::super::super::super::routing::PanePointerRoute;
 use super::super::input::PaneButtonDispatchInput;
 use super::run::dispatch_pane_button_sequence;
 
@@ -22,6 +22,19 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_pane_button(
     let interaction_damage = if button == UiPointerButton::Primary {
         let (source_id, frame) = match &pointer.target {
             super::super::super::super::super::super::routing::PanePointerTarget::ViewportToolbar { source_control_id, control_frame, .. } => (source_control_id.as_deref(), Some(control_frame)),
+            super::super::super::super::super::super::routing::PanePointerTarget::Hierarchy => (Some("HierarchyListPanel"), Some(&pointer.frame)),
+            super::super::super::super::super::super::routing::PanePointerTarget::TemplateNode(hit)
+                if !hit.disabled
+                    && matches!(
+                        hit.component_family,
+                        Some(
+                            crate::ui::retained_host::host_contract::template_component_family::TemplateComponentFamily::Button
+                                | crate::ui::retained_host::host_contract::template_component_family::TemplateComponentFamily::IconButton
+                        )
+                    ) =>
+            {
+                (Some(hit.control_id), Some(&hit.frame))
+            }
             _ => (None, None),
         };
         ui.set_template_button_pointer_state(

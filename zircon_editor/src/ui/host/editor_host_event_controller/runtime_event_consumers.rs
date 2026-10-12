@@ -29,9 +29,12 @@ impl EditorHostEventController {
             });
         }
         let enabled_capabilities = self
-            .shell
-            .lock()
-            .manager
+            .editor_manager_handle()
+            .enter()
+            .map_err(|error| EditorRuntimeEventConsumerError::Gateway {
+                consumer_id: "editor.manager".to_string(),
+                message: error.to_string(),
+            })?
             .capability_snapshot()
             .enabled_capabilities()
             .to_vec();
@@ -95,13 +98,19 @@ impl EditorHostEventController {
             };
             let pending_edit_decision_error =
                 self.reconcile_pending_play_decision_from_controller().err();
+            let preview_manager = self.enter_editor_manager();
             let editor_state_exit_error = {
                 let mut shell = self.shell.lock();
                 match shell.state.exit_play_mode() {
                     Ok(_) => {
-                        let preview_restore_suffix = shell
-                            .restore_pre_play_view()
-                            .err()
+                        let preview_restore_error = match preview_manager.as_ref() {
+                            Ok(manager) => shell
+                                .restore_pre_play_view(manager)
+                                .err()
+                                .map(|error| error.to_string()),
+                            Err(error) => Some(error.to_string()),
+                        };
+                        let preview_restore_suffix = preview_restore_error
                             .map(|error| {
                                 format!("; previous editor view could not be restored: {error}")
                             })
@@ -158,9 +167,12 @@ impl EditorHostEventController {
             return Ok(EditorRuntimeFrameDemand::OnDemand);
         }
         let enabled_capabilities = self
-            .shell
-            .lock()
-            .manager
+            .editor_manager_handle()
+            .enter()
+            .map_err(|error| EditorRuntimeEventConsumerError::Gateway {
+                consumer_id: "editor.manager".to_string(),
+                message: error.to_string(),
+            })?
             .capability_snapshot()
             .enabled_capabilities()
             .to_vec();

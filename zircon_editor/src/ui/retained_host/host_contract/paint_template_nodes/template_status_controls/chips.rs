@@ -2,7 +2,7 @@
 
 mod text;
 
-use self::text::push_status_chip_text;
+use self::text::push_status_chip_text_for_node;
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::select_workbench_status_chip_style;
@@ -40,8 +40,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
 
     let label = template_node_label(node, None);
     if !label.trim().is_empty() {
-        push_status_chip_text(
+        push_status_chip_text_for_node(
             commands,
+            node,
             &control_rect,
             clip,
             order + 2,

@@ -1,5 +1,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "..\shared\profile-capture-paths.ps1")
+$script:ShaderPbrPublicationRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..\..")).Path
 
 function Assert-ZirconShaderPbrStableProfileId {
     param([Parameter(Mandatory = $true)][string]$ProfileId)
@@ -9,24 +11,20 @@ function Assert-ZirconShaderPbrStableProfileId {
     }
 }
 
+function Resolve-ZirconShaderPbrPublicationOutputPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    return Resolve-ZirconProfileOutputRoot -RepoRoot $script:ShaderPbrPublicationRepoRoot -Path $Path
+}
+
 function Resolve-ZirconShaderPbrPublicationChildPath {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
         [Parameter(Mandatory = $true)][string]$Child
     )
 
-    $resolvedRoot = [System.IO.Path]::GetFullPath($Root).TrimEnd(
-        [char[]]@(
-            [System.IO.Path]::DirectorySeparatorChar,
-            [System.IO.Path]::AltDirectorySeparatorChar
-        )
-    )
-    $candidate = [System.IO.Path]::GetFullPath((Join-Path $resolvedRoot $Child))
-    $rootPrefix = $resolvedRoot + [System.IO.Path]::DirectorySeparatorChar
-    if (-not $candidate.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "Shader PBR profile publication path escapes its root: $Child"
-    }
-    return $candidate
+    $resolvedRoot = Resolve-ZirconShaderPbrPublicationOutputPath -Path $Root
+    return Resolve-ZirconProfileContainedPath -Root $resolvedRoot -PathSegments @($Child)
 }
 
 function Get-ZirconShaderPbrPublicationRelativePath {
@@ -35,13 +33,8 @@ function Get-ZirconShaderPbrPublicationRelativePath {
         [Parameter(Mandatory = $true)][string]$Path
     )
 
-    $resolvedRoot = [System.IO.Path]::GetFullPath($Root).TrimEnd(
-        [char[]]@(
-            [System.IO.Path]::DirectorySeparatorChar,
-            [System.IO.Path]::AltDirectorySeparatorChar
-        )
-    )
-    $resolvedPath = [System.IO.Path]::GetFullPath($Path)
+    $resolvedRoot = Resolve-ZirconShaderPbrPublicationOutputPath -Path $Root
+    $resolvedPath = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $Path)
     $rootPrefix = $resolvedRoot + [System.IO.Path]::DirectorySeparatorChar
     if (-not $resolvedPath.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "Shader PBR profile staged artifact escapes its root: $resolvedPath"
@@ -56,6 +49,7 @@ function Write-ZirconShaderPbrCreateNewJson {
         [Parameter(Mandatory = $true)][string]$Description
     )
 
+    $Path = Resolve-ZirconShaderPbrPublicationOutputPath -Path $Path
     if (Test-Path -LiteralPath $Path) {
         throw "Shader PBR profile $Description must not overwrite an existing receipt: $Path"
     }
@@ -95,7 +89,7 @@ function Write-ZirconShaderPbrCreateNewJson {
             $stream.Dispose()
         }
     }
-    return [System.IO.Path]::GetFullPath($Path)
+    return (Resolve-ZirconShaderPbrPublicationOutputPath -Path $Path)
 }
 
 function Write-ZirconShaderPbrReplaceJson {
@@ -105,11 +99,14 @@ function Write-ZirconShaderPbrReplaceJson {
         [Parameter(Mandatory = $true)][string]$Description
     )
 
+    $Path = Resolve-ZirconShaderPbrPublicationOutputPath -Path $Path
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         throw "Shader PBR profile $Description cannot replace a missing receipt: $Path"
     }
     $temporaryPath = "$Path.$([guid]::NewGuid().ToString("N")).tmp"
     $backupPath = "$Path.$([guid]::NewGuid().ToString("N")).backup"
+    $temporaryPath = Resolve-ZirconShaderPbrPublicationOutputPath -Path $temporaryPath
+    $backupPath = Resolve-ZirconShaderPbrPublicationOutputPath -Path $backupPath
     try {
         Write-ZirconShaderPbrCreateNewJson `
             -Path $temporaryPath `
@@ -121,13 +118,15 @@ function Write-ZirconShaderPbrReplaceJson {
     }
     finally {
         if (Test-Path -LiteralPath $temporaryPath) {
+            $temporaryPath = Resolve-ZirconShaderPbrPublicationOutputPath -Path $temporaryPath
             Remove-Item -LiteralPath $temporaryPath -Force
         }
         if (Test-Path -LiteralPath $backupPath) {
+            $backupPath = Resolve-ZirconShaderPbrPublicationOutputPath -Path $backupPath
             Remove-Item -LiteralPath $backupPath -Force
         }
     }
-    return [System.IO.Path]::GetFullPath($Path)
+    return (Resolve-ZirconShaderPbrPublicationOutputPath -Path $Path)
 }
 
 function Resolve-ZirconShaderPbrProfileLeasePaths {
@@ -137,7 +136,7 @@ function Resolve-ZirconShaderPbrProfileLeasePaths {
     )
 
     Assert-ZirconShaderPbrStableProfileId -ProfileId $ProfileId
-    $capturesRoot = [System.IO.Path]::GetFullPath($ProfileCapturesRoot)
+    $capturesRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ProfileCapturesRoot)
     $leasesRoot = Resolve-ZirconShaderPbrPublicationChildPath -Root $capturesRoot -Child ".leases"
     $locksRoot = Resolve-ZirconShaderPbrPublicationChildPath -Root $capturesRoot -Child ".lease-locks"
     return [pscustomobject]@{
@@ -307,7 +306,7 @@ function New-ZirconShaderPbrProfileRunLease {
     $paths = Resolve-ZirconShaderPbrProfileLeasePaths `
         -ProfileCapturesRoot $ProfileCapturesRoot `
         -ProfileId $ProfileId
-    $resolvedProfileRoot = [System.IO.Path]::GetFullPath($ProfileRoot)
+    $resolvedProfileRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ProfileRoot)
     if (-not $resolvedProfileRoot.Equals($paths.staging_root, [System.StringComparison]::OrdinalIgnoreCase) -or
         -not (Test-Path -LiteralPath $resolvedProfileRoot -PathType Container)) {
         throw "Shader PBR profile lease requires its allocated staging root."
@@ -410,7 +409,7 @@ function Complete-ZirconShaderPbrProfileRunLease {
     $owner.state.status = "committed"
     $owner.state.heartbeat_utc = (Get-Date).ToUniversalTime().ToString("o")
     $owner.state.terminal_utc = $owner.state.heartbeat_utc
-    $owner.state.receipt_path = [System.IO.Path]::GetFullPath($ReceiptPath)
+    $owner.state.receipt_path = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ReceiptPath)
     return Set-ZirconShaderPbrProfileRunLeaseState `
         -State $owner.state `
         -Paths $owner.paths `
@@ -453,7 +452,7 @@ function Move-ZirconShaderPbrQuarantinedProfileRoot {
     if ($State.status -ne "quarantined") {
         throw "Shader PBR profile quarantine requires a quarantined terminal state."
     }
-    $quarantineRoot = [System.IO.Path]::GetFullPath([string]$State.quarantine_root)
+    $quarantineRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path ([string]$State.quarantine_root))
     if (Test-Path -LiteralPath $paths.staging_root -PathType Container) {
         if (Test-Path -LiteralPath $quarantineRoot) {
             throw "Shader PBR profile quarantine root already exists: $quarantineRoot"
@@ -473,7 +472,7 @@ function Invoke-ZirconShaderPbrProfileStaleRunScavenger {
         [ValidateRange(60, 604800)][int]$StaleAfterSeconds = 600
     )
 
-    $capturesRoot = [System.IO.Path]::GetFullPath($ProfileCapturesRoot)
+    $capturesRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ProfileCapturesRoot)
     $leasesRoot = Resolve-ZirconShaderPbrPublicationChildPath -Root $capturesRoot -Child ".leases"
     $results = [System.Collections.Generic.List[object]]::new()
     if (Test-Path -LiteralPath $leasesRoot -PathType Container) {
@@ -602,14 +601,13 @@ function New-ZirconShaderPbrProfileStagingRoot {
     )
 
     Assert-ZirconShaderPbrStableProfileId -ProfileId $ProfileId
-    $capturesRoot = [System.IO.Path]::GetFullPath($ProfileCapturesRoot)
-    New-Item -ItemType Directory -Force -Path $capturesRoot | Out-Null
+    $capturesRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ProfileCapturesRoot)
     $stagingParent = Resolve-ZirconShaderPbrPublicationChildPath -Root $capturesRoot -Child ".staging"
-    New-Item -ItemType Directory -Force -Path $stagingParent | Out-Null
     $stagingRoot = Resolve-ZirconShaderPbrPublicationChildPath -Root $stagingParent -Child $ProfileId
     if (Test-Path -LiteralPath $stagingRoot) {
         throw "Shader PBR profile staging root already exists: $stagingRoot"
     }
+    New-Item -ItemType Directory -Force -Path $capturesRoot, $stagingParent | Out-Null
     New-Item -ItemType Directory -Path $stagingRoot -ErrorAction Stop | Out-Null
     return $stagingRoot
 }
@@ -617,7 +615,7 @@ function New-ZirconShaderPbrProfileStagingRoot {
 function Get-ZirconShaderPbrProfileStagedArtifacts {
     param([Parameter(Mandatory = $true)][string]$ProfileRoot)
 
-    $resolvedProfileRoot = [System.IO.Path]::GetFullPath($ProfileRoot)
+    $resolvedProfileRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ProfileRoot)
     if (-not (Test-Path -LiteralPath $resolvedProfileRoot -PathType Container)) {
         throw "Shader PBR profile staging root is unavailable: $resolvedProfileRoot"
     }
@@ -667,11 +665,11 @@ function Publish-ZirconShaderPbrProfileCompletion {
     )
 
     Assert-ZirconShaderPbrStableProfileId -ProfileId $ProfileId
-    $capturesRoot = [System.IO.Path]::GetFullPath($ProfileCapturesRoot)
+    $capturesRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ProfileCapturesRoot)
     $expectedProfileRoot = Resolve-ZirconShaderPbrPublicationChildPath `
         -Root (Resolve-ZirconShaderPbrPublicationChildPath -Root $capturesRoot -Child ".staging") `
         -Child $ProfileId
-    $resolvedProfileRoot = [System.IO.Path]::GetFullPath($ProfileRoot)
+    $resolvedProfileRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ProfileRoot)
     if (-not $resolvedProfileRoot.Equals($expectedProfileRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "Shader PBR profile completion can only publish its allocated staging root."
     }
@@ -701,18 +699,18 @@ function Assert-ZirconShaderPbrProfileCompletion {
     )
 
     Assert-ZirconShaderPbrStableProfileId -ProfileId $ProfileId
-    $capturesRoot = [System.IO.Path]::GetFullPath($ProfileCapturesRoot)
+    $capturesRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ProfileCapturesRoot)
     $expectedProfileRoot = Resolve-ZirconShaderPbrPublicationChildPath `
         -Root (Resolve-ZirconShaderPbrPublicationChildPath -Root $capturesRoot -Child ".staging") `
         -Child $ProfileId
-    $resolvedProfileRoot = [System.IO.Path]::GetFullPath($ProfileRoot)
+    $resolvedProfileRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ProfileRoot)
     if (-not $resolvedProfileRoot.Equals($expectedProfileRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "Shader PBR profile completion verification requires its allocated staging root."
     }
     $expectedReceiptPath = Resolve-ZirconShaderPbrPublicationChildPath `
         -Root (Resolve-ZirconShaderPbrPublicationChildPath -Root $capturesRoot -Child ".completed") `
         -Child "$ProfileId.json"
-    $resolvedReceiptPath = [System.IO.Path]::GetFullPath($ReceiptPath)
+    $resolvedReceiptPath = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ReceiptPath)
     if (-not $resolvedReceiptPath.Equals($expectedReceiptPath, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "Shader PBR profile completion receipt is outside its allocated receipt root."
     }
@@ -814,13 +812,13 @@ function Write-ZirconShaderPbrProfileIncompleteReceipt {
     )
 
     Assert-ZirconShaderPbrStableProfileId -ProfileId $ProfileId
-    $resolvedProfileRoot = [System.IO.Path]::GetFullPath($ProfileRoot)
+    $resolvedProfileRoot = (Resolve-ZirconShaderPbrPublicationOutputPath -Path $ProfileRoot)
     if (-not (Test-Path -LiteralPath $resolvedProfileRoot -PathType Container)) {
         throw "Shader PBR profile staging root is unavailable: $resolvedProfileRoot"
     }
-    $receiptPath = Join-Path $resolvedProfileRoot "profile_incomplete.json"
+    $receiptPath = Resolve-ZirconShaderPbrPublicationChildPath -Root $resolvedProfileRoot -Child "profile_incomplete.json"
     if (Test-Path -LiteralPath $receiptPath) {
-        return [System.IO.Path]::GetFullPath($receiptPath)
+        return (Resolve-ZirconShaderPbrPublicationOutputPath -Path $receiptPath)
     }
     $receipt = [ordered]@{
         schema_version = 1

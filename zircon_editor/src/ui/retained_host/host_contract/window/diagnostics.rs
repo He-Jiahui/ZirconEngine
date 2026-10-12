@@ -1,8 +1,5 @@
-use crate::ui::retained_host::primitives::SharedString;
-
 use super::super::diagnostics::{
-    HostInvalidationDiagnostics, HostRefreshDiagnostics, HostWindowDiagnostic,
-    HostWindowDiagnosticSeverity,
+    HostInvalidationDiagnostics, HostWindowDiagnostic, HostWindowDiagnosticSeverity,
 };
 use super::UiHostWindow;
 
@@ -20,13 +17,6 @@ impl UiHostWindow {
         self.state.borrow().refresh_invalidation_diagnostics
     }
 
-    pub(in crate::ui::retained_host::host_contract) fn set_host_refresh_diagnostics_overlay(
-        &self,
-        diagnostics: HostRefreshDiagnostics,
-    ) {
-        self.set_host_refresh_diagnostics_overlay_text(diagnostics.overlay_text().into());
-    }
-
     pub(in crate::ui::retained_host::host_contract) fn record_host_diagnostic(
         &self,
         severity: HostWindowDiagnosticSeverity,
@@ -40,11 +30,5 @@ impl UiHostWindow {
 
     pub(in crate::ui::retained_host) fn take_host_diagnostics(&self) -> Vec<HostWindowDiagnostic> {
         self.state.borrow_mut().host_window_diagnostics.drain()
-    }
-
-    fn set_host_refresh_diagnostics_overlay_text(&self, overlay_text: SharedString) {
-        self.state
-            .borrow_mut()
-            .replace_diagnostics_overlay_text(overlay_text);
     }
 }

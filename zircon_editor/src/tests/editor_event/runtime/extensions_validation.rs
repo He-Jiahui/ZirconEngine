@@ -25,6 +25,9 @@ fn editor_runtime_rejects_menu_capabilities_without_an_extension_owned_command()
         .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap_err();
 
+    let crate::ui::host::EditorError::ExtensionRegistry { source: error } = error else {
+        panic!("expected original typed extension validation error");
+    };
     assert_eq!(
         error,
         EditorExtensionRegistryError::MenuCapabilitiesRequireContributedCommand {
@@ -72,6 +75,7 @@ fn editor_runtime_rejects_serde_retained_command_ids_as_menu_capability_owners_a
     let descriptor_ids_before = runtime
         .runtime
         .descriptors()
+        .unwrap()
         .into_iter()
         .map(|descriptor| descriptor.descriptor_id)
         .collect::<Vec<_>>();
@@ -81,6 +85,9 @@ fn editor_runtime_rejects_serde_retained_command_ids_as_menu_capability_owners_a
         .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap_err();
 
+    let crate::ui::host::EditorError::ExtensionRegistry { source: error } = error else {
+        panic!("expected original typed extension validation error");
+    };
     assert_eq!(
         error,
         EditorExtensionRegistryError::MenuCapabilitiesRequireContributedCommand {
@@ -111,6 +118,7 @@ fn editor_runtime_rejects_serde_retained_command_ids_as_menu_capability_owners_a
         runtime
             .runtime
             .descriptors()
+            .unwrap()
             .into_iter()
             .map(|descriptor| descriptor.descriptor_id)
             .collect::<Vec<_>>(),
@@ -265,6 +273,7 @@ fn editor_runtime_rejects_generated_view_command_collision_atomically() {
     assert!(runtime
         .runtime
         .descriptors()
+        .unwrap()
         .iter()
         .all(|descriptor| descriptor.descriptor_id.0 != "project"));
 }
@@ -312,6 +321,7 @@ fn editor_runtime_rejects_explicit_view_command_with_the_wrong_target_atomically
     assert!(runtime
         .runtime
         .descriptors()
+        .unwrap()
         .iter()
         .all(|descriptor| descriptor.descriptor_id.0 != "weather.cloud_layers"));
 }

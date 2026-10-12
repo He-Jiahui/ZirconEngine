@@ -139,3 +139,190 @@ fn filter_config_env_precedence_prefers_zircon_filter_alias_before_rust_log() {
     );
     assert_eq!(selected_filter_env_override(None, None, None), None);
 }
+
+fn assert_public_compiled_prefix_levels(
+    config: &DiagnosticLogFilterConfig,
+    expectations: &[(&str, DiagnosticLogFilter, [bool; 5])],
+) {
+    let compiled = super::CompiledDiagnosticLogFilter::new(config);
+    for (scope, expected_filter, expected_levels) in expectations {
+        assert_eq!(
+            config.filter_for_scope(scope),
+            *expected_filter,
+            "scope={scope}"
+        );
+        for (level, expected) in [
+            DiagnosticLogLevel::Verbose,
+            DiagnosticLogLevel::Debug,
+            DiagnosticLogLevel::Log,
+            DiagnosticLogLevel::Warn,
+            DiagnosticLogLevel::Error,
+        ]
+        .into_iter()
+        .zip(expected_levels)
+        {
+            assert_eq!(
+                config.allows(level, scope),
+                *expected,
+                "public scope={scope} level={level}"
+            );
+            assert_eq!(
+                compiled.allows(level, scope),
+                *expected,
+                "compiled scope={scope} level={level}"
+            );
+        }
+    }
+}
+
+#[test]
+fn compiled_empty_prefix_overrides_global_for_all_scopes_and_levels() {
+    use super::{DiagnosticLogFilter::*, DiagnosticLogLevel::*, DiagnosticLogModuleFilter};
+
+    for (minimum, root_filter, expected_levels) in [
+        (Minimum(Log), Off, [false, false, false, false, false]),
+        (Off, Minimum(Debug), [false, true, true, true, true]),
+        (
+            Minimum(Warn),
+            Minimum(Verbose),
+            [true, true, true, true, true],
+        ),
+    ] {
+        let config = DiagnosticLogFilterConfig {
+            minimum,
+            module_filters: vec![DiagnosticLogModuleFilter {
+                scope_prefix: String::new(),
+                filter: root_filter,
+            }],
+        };
+        assert_public_compiled_prefix_levels(
+            &config,
+            &[
+                ("", root_filter, expected_levels),
+                ("asset", root_filter, expected_levels),
+                ("unrelated::scope", root_filter, expected_levels),
+                ("界🙂", root_filter, expected_levels),
+            ],
+        );
+    }
+}
+
+#[test]
+fn compiled_empty_prefix_is_overridden_only_by_longer_literal_byte_prefixes() {
+    use super::{DiagnosticLogFilter::*, DiagnosticLogLevel::*, DiagnosticLogModuleFilter};
+
+    let config = DiagnosticLogFilterConfig {
+        minimum: Minimum(Verbose),
+        module_filters: [
+            ("asset", Minimum(Debug)),
+            ("asset::ui", Minimum(Warn)),
+            ("界", Minimum(Debug)),
+            ("界面", Minimum(Error)),
+            ("", Off),
+        ]
+        .into_iter()
+        .map(|(scope_prefix, filter)| DiagnosticLogModuleFilter {
+            scope_prefix: scope_prefix.to_string(),
+            filter,
+        })
+        .collect(),
+    };
+    assert_public_compiled_prefix_levels(
+        &config,
+        &[
+            ("", Off, [false, false, false, false, false]),
+            ("unrelated", Off, [false, false, false, false, false]),
+            ("xasset", Off, [false, false, false, false, false]),
+            ("asset", Minimum(Debug), [false, true, true, true, true]),
+            ("assets", Minimum(Debug), [false, true, true, true, true]),
+            (
+                "asset::ui",
+                Minimum(Warn),
+                [false, false, false, true, true],
+            ),
+            (
+                "asset::uix",
+                Minimum(Warn),
+                [false, false, false, true, true],
+            ),
+            ("畀", Off, [false, false, false, false, false]),
+            ("界", Minimum(Debug), [false, true, true, true, true]),
+            ("界🙂", Minimum(Debug), [false, true, true, true, true]),
+            ("界面", Minimum(Error), [false, false, false, false, true]),
+            ("界面板", Minimum(Error), [false, false, false, false, true]),
+        ],
+    );
+}
+
+#[test]
+fn compiled_duplicate_empty_prefix_rules_preserve_last_wins() {
+    use super::{DiagnosticLogFilter::*, DiagnosticLogLevel::*, DiagnosticLogModuleFilter};
+
+    for (first_root, last_root, expected_levels) in [
+        (Off, Minimum(Debug), [false, true, true, true, true]),
+        (Minimum(Verbose), Off, [false, false, false, false, false]),
+    ] {
+        let config = DiagnosticLogFilterConfig {
+            minimum: Minimum(Log),
+            module_filters: [
+                ("", first_root),
+                ("asset", Minimum(Verbose)),
+                ("", last_root),
+                ("asset", Minimum(Error)),
+            ]
+            .into_iter()
+            .map(|(scope_prefix, filter)| DiagnosticLogModuleFilter {
+                scope_prefix: scope_prefix.to_string(),
+                filter,
+            })
+            .collect(),
+        };
+        assert_public_compiled_prefix_levels(
+            &config,
+            &[
+                ("", last_root, expected_levels),
+                ("unrelated", last_root, expected_levels),
+                ("asset", Minimum(Error), [false, false, false, false, true]),
+                ("assets", Minimum(Error), [false, false, false, false, true]),
+            ],
+        );
+    }
+}
+
+#[test]
+fn filter_parser_rejects_empty_prefix_and_preserves_literal_wildcards() {
+    use super::{DiagnosticLogFilter::*, DiagnosticLogLevel::*};
+
+    for (input, rejected_rule) in [
+        ("=off", "=off"),
+        ("  =debug", "=debug"),
+        ("verbose, =warn", "=warn"),
+    ] {
+        let error = DiagnosticLogFilterConfig::parse(input, Minimum(Log)).unwrap_err();
+        assert_eq!(error.value(), rejected_rule);
+    }
+
+    let config =
+        DiagnosticLogFilterConfig::parse("off,asset*=debug,asset::*=warn", Minimum(Log)).unwrap();
+    assert_public_compiled_prefix_levels(
+        &config,
+        &[
+            ("", Off, [false, false, false, false, false]),
+            ("asset", Off, [false, false, false, false, false]),
+            ("assets", Off, [false, false, false, false, false]),
+            ("asset::loader", Off, [false, false, false, false, false]),
+            ("asset*", Minimum(Debug), [false, true, true, true, true]),
+            (
+                "asset*more",
+                Minimum(Debug),
+                [false, true, true, true, true],
+            ),
+            ("asset::*", Minimum(Warn), [false, false, false, true, true]),
+            (
+                "asset::*loader",
+                Minimum(Warn),
+                [false, false, false, true, true],
+            ),
+        ],
+    );
+}

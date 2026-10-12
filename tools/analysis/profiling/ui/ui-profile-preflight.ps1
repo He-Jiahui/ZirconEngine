@@ -2,11 +2,12 @@
 param(
     [string]$RepoRoot,
     [string]$ProfilingTargetDir,
-    [string]$OutputPath = "E:\zircon-profiles\ui-profile-preflight.json",
+    [string]$OutputPath = "D:\cargo-targets\zircon-local\profiles\ui-profile-preflight.json",
     [switch]$RequireWpr
 )
 
 $script:ZirconUiProfilePreflightPath = $PSCommandPath
+. (Join-Path $PSScriptRoot '..\shared\profile-capture-paths.ps1')
 $manifestScript = Join-Path $PSScriptRoot "..\shared\profile-capture-manifest.ps1"
 $script:ZirconUiProfileManifestPath = $manifestScript
 if (Test-Path -LiteralPath $manifestScript -PathType Leaf) {
@@ -290,11 +291,7 @@ function Export-ZirconUiProfilePreflight {
         [switch]$RequireWpr
     )
 
-    $resolvedOutputPath = [System.IO.Path]::GetFullPath($OutputPath)
-    $outputDrive = [System.IO.Path]::GetPathRoot($resolvedOutputPath).TrimEnd("\")
-    if ($outputDrive -notin @("D:", "E:", "F:")) {
-        throw "UI profile preflight artifacts must be written below D:, E:, or F:."
-    }
+    $resolvedOutputPath = Resolve-ZirconProfileOutputRoot -RepoRoot $RepoRoot -Path $OutputPath
     $result = Get-ZirconUiProfilePreflight `
         -RepoRoot $RepoRoot `
         -ProfilingTargetDir $ProfilingTargetDir `

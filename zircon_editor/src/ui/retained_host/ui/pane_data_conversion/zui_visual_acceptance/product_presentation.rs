@@ -16,7 +16,9 @@ use crate::ui::retained_host::floating_window_projection::FloatingWindowProjecti
 use crate::ui::retained_host::primitives::PhysicalSize;
 use crate::ui::retained_host::ui::apply_presentation_with_template_v2_data;
 use crate::ui::retained_host::{HostWindowPresentationData, UiHostWindow};
-use crate::ui::template_runtime::{EditorUiHostRuntime, WORKBENCH_WINDOW_DOCUMENT_ID};
+use crate::ui::template_runtime::{
+    EditorUiHostRuntime, UNREAL_EDITOR_SHELL_DOCUMENT_ID, UNREAL_EDITOR_WINDOW_DOCUMENT_ID,
+};
 use crate::ui::v2_design_tokens::active_editor_v2_design_tokens_snapshot;
 use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry_with_region_defaults_and_scale_mode, ResolutionContext,
@@ -41,6 +43,7 @@ use super::contract::ReviewCase;
 mod inspector_components;
 mod managed_inputs;
 mod product_state;
+mod unreal_dock_headers;
 pub(crate) use product_state::{
     build_product_workbench_snapshot, build_product_workbench_snapshot_with_context,
     export_product_workbench_case_snapshots, export_product_workbench_case_snapshots_with_context,
@@ -54,8 +57,8 @@ use product_state::{
 const PRESENTATION_SCHEMA: &str = "dev.zircon.editor.workbench-presentation";
 const CASE_SNAPSHOTS_SCHEMA: &str = "dev.zircon.editor.workbench-case-snapshots";
 const PRESENTATION_VERSION: u32 = 1;
-const WORKBENCH_SOURCE_PATH: &str = "zircon_editor/assets/ui/editor/windows/workbench_window.zui";
-const WORKBENCH_SHELL_DOCUMENT_ID: &str = "res://ui/editor/host/workbench_shell.zui";
+const UNREAL_EDITOR_SOURCE_PATH: &str =
+    "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui";
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -80,6 +83,17 @@ pub(crate) struct WorkbenchPresentationSnapshot {
     hierarchy: HierarchySnapshot,
     inspector: Option<InspectorSnapshot>,
     status: StatusSnapshot,
+    viewport_snap: ViewportSnapSnapshot,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    dock_headers: Vec<Value>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ViewportSnapSnapshot {
+    translation_enabled: bool,
+    rotation_enabled: bool,
+    scale_enabled: bool,
 }
 
 impl WorkbenchPresentationSnapshot {
@@ -223,6 +237,7 @@ pub(crate) struct ProductWorkbenchPresentation {
     pub(crate) source_document_ids: Vec<String>,
     pub(crate) source_receipts: Vec<UiV2SourceFileReceipt>,
     pub(crate) source_unresolved_imports: Vec<UiV2UnresolvedSourceImport>,
+    pub(crate) dock_headers: Vec<Value>,
     _materialization: ProductWorkbenchMaterialization,
 }
 
@@ -386,7 +401,7 @@ pub(crate) fn build_product_workbench_presentation_with_context(
     // Clone the model-synchronized production surface so review-only input is
     // applied before the retained runtime projection and cannot mutate the app.
     let workbench_template = builtin_runtime
-        .project_document(WORKBENCH_WINDOW_DOCUMENT_ID)
+        .project_document(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
         .map_err(|error| error.to_string())?;
     let mut workbench_surface = workbench_bridge.surface().clone();
     super::state::apply_case(&mut workbench_surface, case)?;
@@ -469,7 +484,10 @@ pub(crate) fn build_product_workbench_presentation_with_context(
         Some(&workbench_projection),
         workbench_bridge.layout_frames(),
         &FloatingWindowProjectionBundle::default(),
-        Some(builtin_runtime.as_ref()),
+        crate::ui::retained_host::ui::PaneRuntimeContext {
+            template: Some(builtin_runtime.as_ref()),
+            generated: Some(builtin_runtime.as_ref()),
+        },
         root_bridge.presentation_scale_factor(),
         "",
         &mut chrome_projection_cache,
@@ -479,8 +497,9 @@ pub(crate) fn build_product_workbench_presentation_with_context(
     )
     .ok_or("full editor presentation unexpectedly declined the host shell update")?;
     let host_presentation = ui.get_host_presentation();
-    let source_document_ids = mounted_template_document_ids(&materialization);
-    let source_receipts = builtin_runtime
+    let headers = unreal_dock_headers::capture(&host_presentation)?;
+    let mut source_document_ids = mounted_template_document_ids(&materialization);
+    let mut source_receipts = builtin_runtime
         .loaded_v2_source_receipts_for_documents(
             &source_document_ids
                 .iter()
@@ -488,7 +507,7 @@ pub(crate) fn build_product_workbench_presentation_with_context(
                 .collect::<Vec<_>>(),
         )
         .map_err(|error| format!("mounted product template source receipt failed: {error}"))?;
-    let source_unresolved_imports = builtin_runtime
+    let mut source_unresolved_imports = builtin_runtime
         .loaded_v2_unresolved_imports_for_documents(
             &source_document_ids
                 .iter()
@@ -496,8 +515,26 @@ pub(crate) fn build_product_workbench_presentation_with_context(
                 .collect::<Vec<_>>(),
         )
         .map_err(|error| format!("mounted product template import audit failed: {error}"))?;
-    // The DTO contains model facts checked against the normal project model plus the exact
-    // case-owned query/disclosure state synchronized into the same production bridge above.
+    // Model-only checks above precede Source projection. Validate the observed
+    // Header contract here against the actual consuming models and their refs.
+    if !expected.dock_headers.is_empty() && expected.dock_headers != headers.snapshots {
+        return Err("product Header Source input/rows differ from the successful normal case publication".into());
+    }
+    source_document_ids.extend(headers.document_ids);
+    source_document_ids.sort();
+    source_document_ids.dedup();
+    source_receipts.extend(headers.receipts);
+    source_receipts.sort_by(|left, right| {
+        (&left.asset_id, &left.source_path, &left.resource_uri, &left.physical_path, &left.sha256)
+            .cmp(&(&right.asset_id, &right.source_path, &right.resource_uri, &right.physical_path, &right.sha256))
+    });
+    source_receipts.dedup();
+    source_unresolved_imports.extend(headers.unresolved_imports);
+    source_unresolved_imports.sort();
+    source_unresolved_imports.dedup();
+    // Old static cases retain unknown observed Header business authority. The
+    // capture still reports factual Header observations and real source receipts.
+    let dock_headers = headers.snapshots;
     let snapshot = expected;
     Ok(ProductWorkbenchPresentation {
         snapshot,
@@ -505,6 +542,7 @@ pub(crate) fn build_product_workbench_presentation_with_context(
         source_document_ids,
         source_receipts,
         source_unresolved_imports,
+        dock_headers,
         _materialization: materialization,
     })
 }
@@ -546,6 +584,9 @@ fn same_product_snapshot_state(
     let mut expected = expected.clone();
     actual.state_fingerprint.clear();
     expected.state_fingerprint.clear();
+    // Header evidence is independently matched after actual Source projection.
+    actual.dock_headers.clear();
+    expected.dock_headers.clear();
     actual.hierarchy.filter_query.clear();
     expected.hierarchy.filter_query.clear();
     actual.hierarchy.expanded_ids.clear();
@@ -591,6 +632,71 @@ fn entity_ids_from_snapshot(
     Ok(entity_ids)
 }
 
+/// Capture-only typed business state. It never participates in painting or layout.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct NormalWorkbenchBusinessSnapshot {
+    workbench_presentation: WorkbenchPresentationSnapshot,
+    managed_scene_fingerprint: managed_inputs::ManagedSceneFingerprint,
+}
+
+impl NormalWorkbenchBusinessSnapshot {
+    pub(crate) fn with_consumed_unreal_dock_headers(
+        mut self,
+        presentation: &HostWindowPresentationData,
+    ) -> Result<Self, String> {
+        self.workbench_presentation.dock_headers =
+            unreal_dock_headers::capture(presentation)?.snapshots;
+        self.workbench_presentation = with_state_fingerprint(self.workbench_presentation)?;
+        Ok(self)
+    }
+}
+
+pub(crate) fn normal_workbench_business_snapshot(
+    repo_root: &Path,
+    chrome: &EditorChromeSnapshot,
+    model: &WorkbenchViewModel,
+    layout: &WorkbenchLayout,
+    descriptors: &[ViewDescriptor],
+    active_locale: &str,
+    filter_query: &str,
+    expanded_ids: Vec<EntityId>,
+) -> Result<NormalWorkbenchBusinessSnapshot, String> {
+    let project_root = review_project_root()?;
+    let managed_scene_fingerprint = managed_inputs::capture(&project_root)?;
+    let mut workbench_presentation = workbench_snapshot_from_model(
+        repo_root,
+        chrome,
+        model,
+        layout,
+        descriptors,
+        active_locale,
+    )?;
+    if workbench_presentation.status.project_path != canonical_project_path(&project_root)? {
+        return Err("normal workbench project does not match the managed project authority".into());
+    }
+    workbench_presentation.hierarchy.filter_query = filter_query.to_owned();
+    workbench_presentation.hierarchy.expanded_ids =
+        expanded_ids.into_iter().map(|id| id.to_string()).collect();
+    workbench_presentation = with_state_fingerprint(workbench_presentation)?;
+    Ok(NormalWorkbenchBusinessSnapshot {
+        workbench_presentation,
+        managed_scene_fingerprint,
+    })
+}
+
+// This consumes the same captured Chrome passed to the product DTO factory.
+// The three project-owned snap flags are independent of grid visibility/steps.
+fn viewport_snap_snapshot(
+    settings: &crate::scene::viewport::SceneViewportChromeSettings,
+) -> ViewportSnapSnapshot {
+    ViewportSnapSnapshot {
+        translation_enabled: settings.translate_snap_enabled,
+        rotation_enabled: settings.rotate_snap_enabled,
+        scale_enabled: settings.scale_snap_enabled,
+    }
+}
+
 fn workbench_snapshot_from_model(
     repo_root: &Path,
     chrome: &EditorChromeSnapshot,
@@ -599,9 +705,9 @@ fn workbench_snapshot_from_model(
     descriptors: &[ViewDescriptor],
     active_locale: &str,
 ) -> Result<WorkbenchPresentationSnapshot, String> {
-    let source_path = repo_root.join(WORKBENCH_SOURCE_PATH);
+    let source_path = repo_root.join(UNREAL_EDITOR_SOURCE_PATH);
     let source_fingerprint = SourceFingerprint {
-        source_path: WORKBENCH_SOURCE_PATH.to_owned(),
+        source_path: UNREAL_EDITOR_SOURCE_PATH.to_owned(),
         sha256: super::contract::hash_file(&source_path)?,
     };
     with_state_fingerprint(WorkbenchPresentationSnapshot {
@@ -618,6 +724,8 @@ fn workbench_snapshot_from_model(
         hierarchy: hierarchy_snapshot(chrome)?,
         inspector: inspector_snapshot(chrome),
         status: status_snapshot(model, chrome),
+        viewport_snap: viewport_snap_snapshot(&chrome.scene_viewport_settings),
+        dock_headers: Vec::new(),
     })
 }
 
@@ -630,10 +738,10 @@ pub(crate) fn validate_workbench_presentation_snapshot(
     if snapshot.schema != PRESENTATION_SCHEMA || snapshot.version != PRESENTATION_VERSION {
         return Err("unsupported workbench presentation schema or version".into());
     }
-    if snapshot.source_fingerprint.source_path != WORKBENCH_SOURCE_PATH {
+    if snapshot.source_fingerprint.source_path != UNREAL_EDITOR_SOURCE_PATH {
         return Err("workbench presentation points at an unsupported source asset".into());
     }
-    let source_path = repo_root.join(WORKBENCH_SOURCE_PATH);
+    let source_path = repo_root.join(UNREAL_EDITOR_SOURCE_PATH);
     if super::contract::hash_file(&source_path)? != snapshot.source_fingerprint.sha256 {
         return Err("workbench presentation source fingerprint is stale".into());
     }
@@ -856,8 +964,8 @@ fn descriptor_source_path(
 
 fn mounted_template_document_ids(materialization: &ProductWorkbenchMaterialization) -> Vec<String> {
     let mut document_ids = BTreeSet::from([
-        WORKBENCH_SHELL_DOCUMENT_ID.to_owned(),
-        WORKBENCH_WINDOW_DOCUMENT_ID.to_owned(),
+        UNREAL_EDITOR_SHELL_DOCUMENT_ID.to_owned(),
+        UNREAL_EDITOR_WINDOW_DOCUMENT_ID.to_owned(),
     ]);
     for tab in materialization
         .model
@@ -966,3 +1074,7 @@ fn with_state_fingerprint(
     snapshot.state_fingerprint = canonical_hash(&value)?;
     Ok(snapshot)
 }
+
+#[cfg(test)]
+#[path = "tests/viewport_snap_snapshot.rs"]
+mod viewport_snap_tests;

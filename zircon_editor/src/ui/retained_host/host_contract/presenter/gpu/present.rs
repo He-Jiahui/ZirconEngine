@@ -26,7 +26,22 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         damage: Option<FrameRect>,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
-        let _ = presentation_cursor;
+        if self
+            .normal_capture_controller
+            .before_present(presentation_cursor, self.size)
+        {
+            return Ok(self.diagnostics.clone());
+        }
+        if let Some(request) = self
+            .normal_capture_controller
+            .prepare_frame_readback(presentation_cursor, self.size)
+        {
+            if let Err(error) = self.surface.request_frame_readback(request) {
+                self.normal_capture_controller.fail_frame_readback(&format!(
+                    "normal GPU readback unsupported or refused: {error}"
+                ));
+            }
+        }
         self.submitted_text_profile = None;
         self.surface.set_text_layout_observation(
             super::super::super::profiling_artifacts::profile_capture_enabled(),
@@ -39,6 +54,9 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
             self.surface_cache_initialized,
             super::super::super::profiling_artifacts::profile_capture_enabled(),
         );
+        let capture_paint = super::super::super::profiling_artifacts::profile_capture_enabled()
+            .then(|| super::super::super::paint_template_nodes::PaintEvidenceScope::begin_for_normal_present(
+                &std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..")));
         let stream = build_chrome_command_stream_with_residency(
             presentation,
             self.size,
@@ -49,8 +67,21 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
                     .is_image_resource_resident(resource_key, generation)
             },
         );
-        let sources = super::super::super::profiling_artifacts::profile_capture_enabled()
+        let mut sources = super::super::super::profiling_artifacts::profile_capture_enabled()
             .then(|| super::super::super::profiling_artifacts::source_rows(&stream, presentation));
+        let mut paint = capture_paint.map(|scope| scope.and_then(|scope| scope.finish()));
+        if let (Some(sources), Some(Ok(paint))) = (sources.as_mut(), paint.as_mut()) {
+            super::super::super::profiling_artifacts::native_hierarchy_draws::bind_native_hierarchy_draws(
+                &stream,presentation,sources,paint);
+        }
+        let mut normal_evidence = sources.as_ref().zip(paint).map(|(sources, paint)| {
+            super::super::super::profiling_artifacts::stream_observations(
+                &stream,
+                presentation,
+                sources,
+                paint,
+            )
+        });
         let command_stream_full_rebuild = stream.is_full_rebuild();
         let submitted_damage = stream.damage().cloned();
         let region_present = submitted_damage.is_some();
@@ -72,6 +103,12 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
             invalidation,
         );
         if result.is_ok() {
+            if let Some(evidence) = normal_evidence.as_mut() {
+                super::super::super::profiling_artifacts::certify_image_residency(
+                    evidence,
+                    |key, generation| self.surface.is_image_resource_resident(key, generation),
+                );
+            }
             if let (Some(snapshot), Some(sources)) =
                 (self.surface.last_submitted_text_layout(), sources)
             {
@@ -81,6 +118,36 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
                         &sources,
                         command_stream_full_rebuild,
                     ));
+                if let (Some(profile), Some(mut evidence)) =
+                    (self.submitted_text_profile.as_mut(), normal_evidence)
+                {
+                    evidence["presentedFrameCount"] = profile["presentedFrameCount"].clone();
+                    evidence["presentationCursor"] = serde_json::json!(presentation_cursor);
+                    if let Some((stamp, business)) = presentation.normal_workbench_business.as_ref() {
+                        if stamp.same_business_generation(presentation_cursor) {
+                            if let Ok(mut publication) = serde_json::to_value(business.as_ref()) {
+                                publication["authority"] = "normal-retained-workbench-projection".into();
+                                publication["observed"] = true.into();
+                                publication["presentationCursor"] = serde_json::json!(presentation_cursor);
+                                publication["presentedFrameCount"] = profile["presentedFrameCount"].clone();
+                                evidence["workbenchStatePublication"] = publication;
+                            }
+                        }
+                    }
+                    finalize_viewport_toolbar_success(
+                        &mut evidence,
+                        presentation.normal_viewport_toolbar.as_ref().map(|(stamp, _, _)| *stamp),
+                        result.is_ok(),
+                        presentation_cursor,
+                        &profile["presentedFrameCount"],
+                    );
+                    profile["normalWindowEvidence"] = evidence;
+                    self.normal_capture_controller.after_successful_present(
+                        presentation_cursor,
+                        self.size,
+                        profile,
+                    );
+                }
             }
         }
         result
@@ -92,6 +159,8 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         presentation_cursor: HostPresentationGenerationCursor,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        self.normal_capture_controller
+            .invalidate("native-resize-present");
         let _ = presentation_cursor;
         self.submitted_text_profile = None;
         let reused_snapshot = self.native_resize_draw_list.is_some();
@@ -258,3 +327,54 @@ fn observed_stream_damage<'a>(
 #[cfg(test)]
 #[path = "tests/present_text_observation_tests.rs"]
 mod text_observation_tests;
+
+fn finalize_viewport_toolbar_success(
+    evidence: &mut serde_json::Value,
+    toolbar_cursor: Option<HostPresentationGenerationCursor>,
+    successful: bool,
+    cursor: HostPresentationGenerationCursor,
+    presented_frame_count: &serde_json::Value,
+) {
+    if successful && toolbar_cursor == Some(cursor) {
+        if let Some(toolbar)=evidence.get_mut("viewportToolbarPublication") {
+            toolbar["presentationCursor"]=serde_json::json!(cursor);
+            toolbar["presentedFrameCount"]=presented_frame_count.clone();
+        }
+    } else if let Some(evidence)=evidence.as_object_mut() {
+        evidence.remove("viewportToolbarPublication");
+    }
+}
+#[cfg(test)]
+mod viewport_toolbar_success_tests {
+    use super::*;
+    use serde_json::json;
+    #[test]
+    fn toolbar_success_requires_each_of_the_seven_actual_cursor_fields() {
+        let toolbar_cursor = Some(HostPresentationGenerationCursor::default());
+        let mut exact=json!({"viewportToolbarPublication":{"observed":true}});
+        finalize_viewport_toolbar_success(&mut exact,toolbar_cursor,true,Default::default(),&json!(7));
+        assert_eq!(exact["viewportToolbarPublication"]["presentedFrameCount"],7);
+        assert_eq!(exact["viewportToolbarPublication"]["presentationCursor"],json!(HostPresentationGenerationCursor::default()));
+        for cursor in [
+            HostPresentationGenerationCursor::new_with_geometry(1,0,0,0,0,0,0),
+            HostPresentationGenerationCursor::new_with_geometry(0,1,0,0,0,0,0),
+            HostPresentationGenerationCursor::new_with_geometry(0,0,1,0,0,0,0),
+            HostPresentationGenerationCursor::new_with_geometry(0,0,0,1,0,0,0),
+            HostPresentationGenerationCursor::new_with_geometry(0,0,0,0,1,0,0),
+            HostPresentationGenerationCursor::new_with_geometry(0,0,0,0,0,1,0),
+            HostPresentationGenerationCursor::new_with_geometry(0,0,0,0,0,0,1),
+        ] {
+            let mut stale=json!({"viewportToolbarPublication":{"observed":true}});
+            finalize_viewport_toolbar_success(&mut stale,toolbar_cursor,true,cursor,&json!(8));
+            assert!(stale.get("viewportToolbarPublication").is_none());
+        }
+    }
+    #[test]
+    fn failed_present_and_missing_prepared_metadata_cannot_publish_toolbar_evidence() {
+        for (successful,toolbar_cursor) in [(false,Some(HostPresentationGenerationCursor::default())),(true,None)] {
+            let mut evidence=json!({"viewportToolbarPublication":{"observed":true}});
+            finalize_viewport_toolbar_success(&mut evidence,toolbar_cursor,successful,Default::default(),&json!(8));
+            assert!(evidence.get("viewportToolbarPublication").is_none());
+        }
+    }
+}

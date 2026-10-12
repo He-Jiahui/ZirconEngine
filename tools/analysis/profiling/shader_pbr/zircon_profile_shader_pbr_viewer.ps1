@@ -34,6 +34,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..\..")).Path
+. (Join-Path $PSScriptRoot "..\shared\profile-capture-paths.ps1")
 . (Join-Path $PSScriptRoot "..\shared\profile-capture-manifest.ps1")
 . (Join-Path $PSScriptRoot "shader-pbr-profile-runtime-evidence.ps1")
 . (Join-Path $PSScriptRoot "shader-pbr-profile-contract.ps1")
@@ -97,6 +98,20 @@ function Resolve-ZirconShaderPbrProfileEvidenceRoot {
     param(
         [Parameter(Mandatory = $true)]
         [string]$RepoRoot,
+        [AllowEmptyString()]
+        [string]$Path = ""
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        $Path = 'D:\cargo-targets\zircon-local\profiles\shader-pbr'
+    }
+    return Resolve-ZirconProfileOutputRoot -RepoRoot $RepoRoot -Path $Path
+}
+
+function Resolve-ZirconShaderPbrDisplayVisualOraclePath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RepoRoot,
         [Parameter(Mandatory = $true)]
         [string]$Path
     )
@@ -112,8 +127,8 @@ function Resolve-ZirconShaderPbrProfileEvidenceRoot {
     if ($candidate.StartsWith("C:\", [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "Shader PBR profile evidence must not be written beneath C:."
     }
-    # GetFullPath does not resolve Windows junctions. Reject every existing
-    # component before a profile writer can traverse out of the E: evidence tree.
+    # Keep approved visual-oracle inputs beneath their original read-only tree.
+    # GetFullPath does not resolve Windows junctions; reject existing reparse components.
     $componentPath = $evidenceRoot
     $relativePath = Get-ZirconShaderPbrRelativePath -Root $evidenceRoot -Path $candidate
     $pathComponents = if ($relativePath -eq ".") { @() } else {
@@ -1020,11 +1035,11 @@ function Invoke-ZirconShaderPbrProfileMode {
 function Invoke-ZirconShaderPbrProfileCapture {
     Assert-ZirconShaderPbrOptionalFaceSize -Value $FaceSize -Name "-FaceSize"
     Assert-ZirconShaderPbrOptionalFaceSize -Value $PmremFaceSize -Name "-PmremFaceSize"
-    $captureToolchain = Resolve-ZirconShaderPbrCaptureToolchain -ManifestPath $CaptureToolchainManifest
     $resolvedEvidenceRoot = Resolve-ZirconShaderPbrProfileEvidenceRoot -RepoRoot $RepoRoot -Path $EvidenceRoot
+    $captureToolchain = Resolve-ZirconShaderPbrCaptureToolchain -ManifestPath $CaptureToolchainManifest
     $displayVisualOracleFingerprint = $null
     if (-not [string]::IsNullOrWhiteSpace($DisplayVisualOracle)) {
-        $DisplayVisualOracle = Resolve-ZirconShaderPbrProfileEvidenceRoot `
+        $DisplayVisualOracle = Resolve-ZirconShaderPbrDisplayVisualOraclePath `
             -RepoRoot $RepoRoot `
             -Path $DisplayVisualOracle
         if (-not (Test-Path -LiteralPath $DisplayVisualOracle -PathType Leaf)) {

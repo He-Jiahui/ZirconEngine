@@ -95,7 +95,8 @@ fn insert_arena_node(
         .and_then(|parent_id| tree.node(parent_id))
         .map(|parent| parent.container);
     let attributes = arena_node_attributes(node, document, resolved_styles, theme);
-    let style_overrides = arena_node_style_overrides(node, resolved_styles);
+    let style_overrides =
+        arena_node_style_overrides(node, document, resolved_styles, theme);
     let style_tokens = arena_node_style_tokens(node, resolved_styles);
     let layout = infer_layout_contract(
         asset_id,
@@ -204,13 +205,16 @@ fn arena_node_attributes(
 
 fn arena_node_style_overrides(
     node: &UiV2ArenaNode,
+    document: &UiV2AssetDocument,
     resolved_styles: &UiV2ResolvedStyleSheet,
+    theme: Option<&UiThemeRegistry>,
 ) -> BTreeMap<String, Value> {
     let mut style_overrides = BTreeMap::new();
     if let Some(resolved) = resolved_styles.nodes.get(&node.source_id) {
         style_overrides.extend(resolved.self_values.clone());
     }
     style_overrides.extend(node.style.self_values.clone());
+    resolve_document_value_map(&mut style_overrides, document, theme);
     style_overrides
 }
 

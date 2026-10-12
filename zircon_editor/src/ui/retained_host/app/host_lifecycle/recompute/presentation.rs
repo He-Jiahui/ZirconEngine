@@ -1,3 +1,4 @@
+use crate::ui::retained_host::host_contract::normal_capture_redraw_trace as capture_trace;
 use std::collections::BTreeSet;
 
 use super::super::super::RetainedEditorHost;
@@ -26,7 +27,7 @@ impl RetainedEditorHost {
     pub(super) fn apply_committed_shell_content_presentation(
         &mut self,
         scope: &HostShellContentScope,
-    ) -> bool {
+    ) -> Result<bool, crate::ui::host::EditorError> {
         zircon_runtime::profile_scope!(
             "editor",
             "retained_host",
@@ -34,32 +35,45 @@ impl RetainedEditorHost {
         );
         let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::ShellContent);
         let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::ShellContent);
+        let normal_business_snapshot_eligible = self.normal_workbench_business_snapshot_current();
         let Some(mut committed) = self.committed_shell_state.take() else {
             zircon_runtime::profile_counter!(
                 "editor",
                 "ui.shell_content.committed_state_miss_count",
                 1
             );
-            return false;
+            return Ok(false);
         };
-        let next_layout = self.runtime.current_layout();
+        let next_layout = match self.runtime.current_layout() {
+            Ok(layout) => layout,
+            Err(error) => {
+                self.committed_shell_state = Some(committed);
+                return Err(error);
+            }
+        };
         if !committed.patch_shell_content(scope, next_layout) {
             zircon_runtime::profile_counter!(
                 "editor",
                 "ui.shell_content.committed_state_validation_fallback_count",
                 1
             );
-            return false;
+            return Ok(false);
         }
-        let applied = self.apply_shell_content_presentation(
+        let applied = match self.apply_shell_content_presentation(
             scope,
             &committed.model,
             &committed.chrome,
             &committed.geometry,
             committed.layout_frames,
-        );
+        ) {
+            Ok(applied) => applied,
+            Err(error) => {
+                self.committed_shell_state = Some(committed);
+                return Err(error);
+            }
+        };
         if !applied {
-            return false;
+            return Ok(false);
         }
         self.runtime_diagnostics_refresh_target = crate::ui::retained_host::app::runtime_diagnostics_visibility::runtime_diagnostics_refresh_target(
             &committed.model,
@@ -68,8 +82,9 @@ impl RetainedEditorHost {
         committed.retained_shell_presentation = None;
         self.shell_geometry = Some(committed.geometry.clone());
         self.committed_shell_state = Some(committed);
+        self.refresh_normal_workbench_business_snapshot(normal_business_snapshot_eligible);
         zircon_runtime::profile_counter!("editor", "ui.shell_content.committed_state_hit_count", 1);
-        true
+        Ok(true)
     }
 
     pub(super) fn apply_shell_content_presentation(
@@ -79,20 +94,20 @@ impl RetainedEditorHost {
         chrome: &EditorChromeSnapshot,
         geometry: &WorkbenchShellGeometry,
         componentized_workbench_layout_frames: callback_dispatch::BuiltinWorkbenchWindowLayoutFrames,
-    ) -> bool {
+    ) -> Result<bool, crate::ui::host::EditorError> {
         zircon_runtime::profile_scope!(
             "editor",
             "retained_host",
             "apply_early_shell_content_presentation"
         );
         let Some(target) = shell_content_target(scope, model) else {
-            return false;
+            return Ok(false);
         };
         let pane_payloads = self.collect_shell_content_pane_payloads(
             chrome,
             target.content_kind,
             target.instance_id.as_deref(),
-        );
+        )?;
         let editor_payload_complete = match target.content_kind {
             crate::ui::workbench::snapshot::ViewContentKind::UiAssetEditor => target
                 .instance_id
@@ -111,7 +126,7 @@ impl RetainedEditorHost {
                 "ui.shell_content.target_payload_missing_count",
                 1
             );
-            return false;
+            return Ok(false);
         }
         let filtered_hierarchy_entries =
             shell_content_requires_hierarchy_filter(target.content_kind)
@@ -132,7 +147,7 @@ impl RetainedEditorHost {
             self.builtin_template_runtime.as_ref()
         };
         let hierarchy_filter_query = self.hierarchy_filter_query.clone();
-        patch_shell_content_presentation_from_state(
+        Ok(patch_shell_content_presentation_from_state(
             &self.ui,
             target,
             model,
@@ -147,15 +162,20 @@ impl RetainedEditorHost {
             &pane_payloads.build_export,
             &pane_payloads.template_v2_data,
             componentized_workbench_layout_frames,
-            Some(pane_template_runtime),
+            crate::ui::retained_host::ui::PaneRuntimeContext {
+                template: Some(pane_template_runtime),
+                generated: Some(self.builtin_template_runtime.as_ref()),
+            },
             &hierarchy_filter_query,
             &mut self.host_chrome_projection_cache,
             &mut self.console_pane_projection_cache,
             &mut self.module_plugins_pane_projection_cache,
-        )
+        ))
     }
 
-    pub(super) fn apply_workbench_projection_presentation(&mut self) -> bool {
+    pub(super) fn apply_workbench_projection_presentation(
+        &mut self,
+    ) -> Result<bool, crate::ui::host::EditorError> {
         zircon_runtime::profile_scope!(
             "editor",
             "retained_host",
@@ -166,18 +186,19 @@ impl RetainedEditorHost {
             .pending_host_projection_patch_nodes()
         else {
             record_workbench_projection_fallback(WorkbenchProjectionFallback::FullProjection);
-            return false;
+            return Ok(false);
         };
         if projection_nodes.is_empty() {
             self.workbench_window_bridge
                 .mark_host_projection_committed();
+            self.sync_content_drawer_native_focus();
             zircon_runtime::profile_counter!(
                 "editor",
                 "ui.workbench_projection.presentation_patch_noop_count",
                 1
             );
             self.publish_refresh_invalidation_diagnostics();
-            return true;
+            return Ok(true);
         }
 
         let current_generation = self.ui.get_host_presentation_generation();
@@ -190,7 +211,7 @@ impl RetainedEditorHost {
             self.workbench_window_bridge.presentation_scale_factor(),
         ) else {
             record_workbench_projection_fallback(WorkbenchProjectionFallback::Projection);
-            return false;
+            return Ok(false);
         };
         let damage = workbench_projection_damage(current_nodes, &patch.nodes, &patch.changed_rows);
         drop(current_generation);
@@ -200,11 +221,12 @@ impl RetainedEditorHost {
             .patch_workbench_window_nodes(patch.nodes, &patch.changed_rows)
         {
             record_workbench_projection_fallback(WorkbenchProjectionFallback::HitIndex);
-            return false;
+            return Ok(false);
         }
         self.invalidate_committed_shell_presentation();
         self.workbench_window_bridge
             .mark_host_projection_committed();
+        self.sync_content_drawer_native_focus();
         for frame in &damage {
             self.ui.request_frame_update_region(frame.clone());
         }
@@ -224,24 +246,21 @@ impl RetainedEditorHost {
             damage.len()
         );
         self.publish_refresh_invalidation_diagnostics();
-        true
+        Ok(true)
     }
 
-    pub(super) fn apply_scoped_ui_asset_presentation(
+    pub(in crate::ui::retained_host::app) fn apply_scoped_ui_asset_presentation(
         &mut self,
         view_ids: &[ViewInstanceId],
-    ) -> bool {
+    ) -> Result<bool, crate::ui::host::EditorError> {
         let mut damage = Vec::new();
         let mut work = ScopedPresentationWork::default();
         for view_id in view_ids {
-            let Ok(pane_presentation) = self
+            let pane_presentation = self
                 .editor_manager
-                .ui_asset_editor_pane_presentation(view_id)
-            else {
-                work.projection_missing_count += 1;
-                record_scoped_presentation_work(&work);
-                return false;
-            };
+                .enter()
+                .map_err(crate::ui::host::EditorError::from)
+                .and_then(|manager| manager.ui_asset_editor_pane_presentation(view_id))?;
             let ui_asset = build_ui_asset_presentation_patch(pane_presentation, &view_id.0);
             let root_patch = patch_ui_asset_presentation(&self.ui, &view_id.0, &ui_asset);
             work.floating_window_rows_visited += root_patch.floating_window_rows_visited;
@@ -249,7 +268,7 @@ impl RetainedEditorHost {
             if !root_patch.matched_presentation {
                 work.projection_missing_count += 1;
                 record_scoped_presentation_work(&work);
-                return false;
+                return Ok(false);
             }
             let patched_native_presenter_ids =
                 self.native_window_presenters.patch_ui_asset_presentation(
@@ -271,7 +290,7 @@ impl RetainedEditorHost {
             ) {
                 work.presenter_coverage_fallback_count += 1;
                 record_scoped_presentation_work(&work);
-                return false;
+                return Ok(false);
             }
             damage.extend(root_patch.damage);
         }
@@ -285,7 +304,7 @@ impl RetainedEditorHost {
         record_scoped_presentation_work(&work);
         self.invalidate_committed_pane_payloads();
         self.publish_refresh_invalidation_diagnostics();
-        true
+        Ok(true)
     }
 
     fn invalidate_committed_pane_payloads(&mut self) {
@@ -345,7 +364,10 @@ impl RetainedEditorHost {
             Some(self.workbench_window_bridge.host_projection()),
             componentized_workbench_layout_frames,
             floating_window_projection_bundle,
-            Some(pane_template_runtime),
+            crate::ui::retained_host::ui::PaneRuntimeContext {
+                template: Some(pane_template_runtime),
+                generated: Some(self.builtin_template_runtime.as_ref()),
+            },
             self.template_bridge.presentation_scale_factor(),
             &hierarchy_filter_query,
             &mut self.host_chrome_projection_cache,
@@ -412,6 +434,9 @@ fn record_workbench_projection_fallback(reason: WorkbenchProjectionFallback) {
             "ui.workbench_projection.presentation_patch_fallback_hit_index_count"
         }
     };
+    capture_trace::record("workbench_projection_fallback", || {
+        format!("reason={counter}")
+    });
     zircon_runtime::profile_counter!("editor", counter, 1);
 }
 

@@ -183,7 +183,7 @@ impl EditorUiHost {
         let _ = self.unregister_document_toolkit(instance_id);
     }
 
-    pub(super) fn ensure_animation_editor_session(
+    pub(in crate::ui::host) fn ensure_animation_editor_session(
         &self,
         instance_id: &ViewInstanceId,
     ) -> Result<(), EditorError> {

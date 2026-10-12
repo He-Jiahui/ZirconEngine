@@ -23,7 +23,7 @@ use crate::core::framework::time::{
 };
 use crate::core::{CoreError, RuntimeModuleLifecycleObserver};
 
-use super::handle::{CoreHandle, ServiceHandle};
+use super::handle::{CoreHandle, ServiceCallGuard, ServiceHandle};
 use super::random::{RandomService, RandomServiceError};
 use super::state::CoreRuntimeInner;
 use super::state_machine::{
@@ -334,11 +334,17 @@ impl CoreRuntime {
             .deactivate_module_with_drain_timeout(module_name, drain_timeout)
     }
 
-    pub fn resolve_driver<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
+    pub fn resolve_driver<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
         self.handle.resolve_driver(name)
     }
 
-    pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
+    pub fn resolve_manager<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceCallGuard<T>, CoreError> {
         self.handle.resolve_manager(name)
     }
 

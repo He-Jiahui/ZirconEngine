@@ -12,6 +12,7 @@ use crate::core::{LifecycleState, ServiceKind, StartupMode};
 // 解析测试跨公共入口、注册身份与模块卸载，验证懒初始化只提交当前代数的实例。
 // 线程同步用例固定工厂竞争、调用准入和卸载之间的先后关系。
 
+mod aliases;
 mod dependency_cycles;
 mod exact_dependency_resolution;
 mod factory_panics;
@@ -250,7 +251,7 @@ fn concurrent_lazy_manager_resolve_executes_factory_once() {
 
     let first = first.join().unwrap().unwrap();
     let second = second.join().unwrap().unwrap();
-    assert!(Arc::ptr_eq(&first, &second));
+    assert!(std::ptr::eq(&*first, &*second));
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
 

@@ -18,9 +18,10 @@ fn editor_manager_applies_theme_rule_helper_items_for_imported_sources() {
         DUPLICATE_THEME_UI_LAYOUT_ASSET,
         DUPLICATE_IMPORTED_THEME_ASSET,
     );
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     manager.open_project(&project_root).unwrap();
 
@@ -34,9 +35,10 @@ fn editor_manager_applies_theme_rule_helper_items_for_imported_sources() {
         .apply_ui_asset_editor_theme_rule_helper_item(&instance_id, 0)
         .expect("apply detach helper"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save helper-applied ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved helper ui asset");
     assert!(document.imports.styles.is_empty());
@@ -54,9 +56,10 @@ fn editor_manager_applies_compare_diff_theme_helper_for_imported_sources() {
         THEME_SUMMARY_LAYOUT_ASSET,
         IMPORTED_THEME_COLLISION_ASSET,
     );
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     manager.open_project(&project_root).unwrap();
 
@@ -78,9 +81,10 @@ fn editor_manager_applies_compare_diff_theme_helper_for_imported_sources() {
         .apply_ui_asset_editor_theme_rule_helper_item(&instance_id, helper_index)
         .expect("apply compare diff theme helper"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save compare diff helper-applied ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document = crate::tests::support::load_test_ui_asset(&saved)
         .expect("saved compare diff helper ui asset");
     assert_eq!(
@@ -114,9 +118,10 @@ fn editor_manager_applies_theme_rule_body_helper_items_for_imported_sources() {
         THEME_SUMMARY_LAYOUT_ASSET,
         IMPORTED_THEME_COLLISION_ASSET,
     );
-    let manager = runtime
-        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+    let manager_handle = runtime
+        .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    let manager = manager_handle.enter().unwrap();
 
     manager.open_project(&project_root).unwrap();
 
@@ -149,9 +154,10 @@ fn editor_manager_applies_theme_rule_body_helper_items_for_imported_sources() {
         .apply_ui_asset_editor_theme_rule_helper_item(&instance_id, rule_helper_index)
         .expect("apply imported rule helper"));
 
-    let saved = manager
-        .save_ui_asset_editor(&instance_id)
+    drop(manager);
+    let saved = EditorManager::save_ui_asset_editor(manager_handle.clone(), &instance_id)
         .expect("save helper-applied ui asset editor");
+    let manager = manager_handle.enter().unwrap();
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved helper ui asset");
     assert_eq!(

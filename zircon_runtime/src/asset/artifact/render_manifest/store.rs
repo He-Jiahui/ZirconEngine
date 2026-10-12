@@ -3,8 +3,10 @@ use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use bincode::Options;
 use thiserror::Error;
+use zircon_runtime_interface::serialization::{
+    PositionalDecodeError, PositionalEncodeError, PositionalEncoding,
+};
 
 use crate::core::resource::io::atomic_write_new;
 use crate::core::resource::UntypedResourceHandle;
@@ -87,9 +89,9 @@ pub enum RenderArtifactStoreError {
     #[error("a different render artifact manifest already owns this resource revision and target")]
     ManifestConflict,
     #[error("render artifact manifest serialization failed")]
-    ManifestSerialize(#[source] Box<bincode::ErrorKind>),
+    ManifestSerialize(#[source] PositionalEncodeError),
     #[error("render artifact manifest deserialization failed")]
-    ManifestDeserialize(#[source] Box<bincode::ErrorKind>),
+    ManifestDeserialize(#[source] PositionalDecodeError),
     #[error(transparent)]
     ManifestValidation(#[from] RenderArtifactManifestError),
     #[error("render artifact store I/O failed")]
@@ -243,11 +245,8 @@ impl RenderArtifactStore {
         let Some(bytes) = payload.strip_prefix(RENDER_ARTIFACT_MANIFEST_MAGIC) else {
             return Err(RenderArtifactStoreError::ManifestMagicMismatch);
         };
-        let manifest: RenderArtifactManifest = bincode::DefaultOptions::new()
-            .with_fixint_encoding()
-            .with_limit(limits.max_manifest_bytes())
-            .reject_trailing_bytes()
-            .deserialize(bytes)
+        let manifest: RenderArtifactManifest = PositionalEncoding::FixedLittleEndian
+            .decode_bounded(bytes, limits.max_manifest_bytes())
             .map_err(RenderArtifactStoreError::ManifestDeserialize)?;
         manifest.validate()?;
         if manifest.resource() != resource
@@ -295,10 +294,8 @@ fn serialize_manifest(
     limits: RenderArtifactStoreLimits,
 ) -> Result<Vec<u8>, RenderArtifactStoreError> {
     validate_limit("manifest", 1, limits.max_manifest_bytes())?;
-    let encoded = bincode::DefaultOptions::new()
-        .with_fixint_encoding()
-        .with_limit(limits.max_manifest_bytes())
-        .serialize(manifest)
+    let encoded = PositionalEncoding::FixedLittleEndian
+        .encode_bounded(manifest, limits.max_manifest_bytes())
         .map_err(RenderArtifactStoreError::ManifestSerialize)?;
     let Some(capacity) = RENDER_ARTIFACT_MANIFEST_MAGIC
         .len()

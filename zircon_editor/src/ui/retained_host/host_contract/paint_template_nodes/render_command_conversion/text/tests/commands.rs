@@ -398,3 +398,160 @@ const fn frame_rect() -> FrameRect {
 const fn text_range(start: usize, end: usize) -> UiTextRange {
     UiTextRange { start, end }
 }
+
+#[test]
+fn native_typed_short_line_height_preserves_source_family_and_exact_weight() {
+    use crate::ui::retained_host::host_contract::paint_text::active_authored_font_request;
+    let mut command = text_command("Native input");
+    command.style.font_family = Some("Fira Sans".into());
+    command.style.font_weight = 650;
+    command.style.font_size = 17.0;
+    command.style.line_height = 8.0;
+    let host_commands = runtime_render_commands_to_host(&[command], None);
+    let text = only_text_command(&host_commands);
+    assert_eq!((text.font_size, text.line_height), (17.0, 8.0));
+    let request = text
+        .text_font_request
+        .as_ref()
+        .expect("typed source request");
+    assert_eq!(request.family, "Fira Sans");
+    assert_eq!(request.weight, 650);
+    assert!(active_authored_font_request().is_none());
+}
+
+#[test]
+fn rich_run_requests_survive_gpu_record_and_cpu_replay() {
+    use crate::ui::retained_host::host_contract::chrome_command_stream::{
+        chrome_command_from_recorded_for_test, paint_chrome_command_stream_to_frame,
+        ui_surface_draw_list_from_stream, ChromeCommandStream,
+    };
+    use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
+    use crate::ui::retained_host::host_contract::paint_text::{
+        draw_text_with_size_and_style, font_request_for_face, HostTextFontFace,
+        HostTextFontRequestScope, TextPaintEvidenceScope,
+    };
+    use zircon_runtime::rhi::UiSurfaceCommandKind;
+    use zircon_runtime_interface::ui::surface::UiTextPaintRun;
+    let mut command = text_command("Plain Strong Code Explicit");
+    command.style.font_family = Some("Fira Sans".into());
+    command.style.font_weight = 400;
+    let mut text = runless_shaped_text_paint();
+    text.font_family = command.style.font_family.clone();
+    text.font_weight = 400;
+    text.font_size = 17.0;
+    text.line_height = 8.0;
+    text.runs = [
+        UiTextRunKind::Plain,
+        UiTextRunKind::Strong,
+        UiTextRunKind::Code,
+        UiTextRunKind::Strong,
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(i, kind)| UiTextPaintRun {
+        kind,
+        text: ["Plain", "Strong", "Code", "Explicit"][i].into(),
+        source_range: text_range(i, i + 1),
+        visual_range: text_range(i, i + 1),
+        frame: UiFrame {
+            x: 8.0,
+            y: 16.0 + i as f32 * 24.0,
+            width: 160.0,
+            height: 8.0,
+        },
+        color: Some("#ffffffff".into()),
+        font: None,
+        font_family: Some(
+            if i == 3 {
+                "Explicit family"
+            } else {
+                "Fira Sans"
+            }
+            .into(),
+        ),
+        font_weight: if i == 3 { 650 } else { 400 },
+        font_size: 17.0,
+        line_height: 8.0,
+        style: UiTextRunPaintStyle::from_run_kind(kind),
+    })
+    .collect();
+    let mut output = Vec::new();
+    let clip = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 180.0,
+        height: 120.0,
+    };
+    push_text_paint_commands(
+        &mut output,
+        &command,
+        &text,
+        frame_rect(),
+        Some(clip.clone()),
+        1,
+    );
+    let output = output
+        .iter()
+        .filter(|command| command.text.is_some())
+        .collect::<Vec<_>>();
+    assert_eq!(output.len(), 4);
+    let strong = font_request_for_face(HostTextFontFace::UiStrong);
+    let mono = font_request_for_face(HostTextFontFace::Mono);
+    let expected = [
+        ("Fira Sans".to_owned(), 400),
+        ("Fira Sans".to_owned(), 400.max(strong.weight)),
+        (mono.family, mono.weight),
+        ("Explicit family".to_owned(), 650),
+    ];
+    let mut recording = HostRgbaFrame::recording_only(180, 120);
+    for (command, (family, weight)) in output.iter().zip(&expected) {
+        let request = command.text_font_request.as_ref().unwrap();
+        assert_eq!((&request.family, request.weight), (family, *weight));
+        assert_eq!((command.font_size, command.line_height), (17.0, 8.0));
+        let _request = HostTextFontRequestScope::enter(Some(request));
+        draw_text_with_size_and_style(
+            &mut recording,
+            command.frame.clone(),
+            command.text.as_deref().unwrap(),
+            Some(&clip),
+            [255; 4],
+            command.font_size,
+            command.line_height,
+            command.text_style,
+        );
+    }
+    let mut stream = ChromeCommandStream::full_rebuild((180, 120));
+    for command in recording.into_recorded_commands() {
+        stream.push_command_for_test(
+            chrome_command_from_recorded_for_test(command, true, true).unwrap(),
+        );
+    }
+    let gpu = ui_surface_draw_list_from_stream(&stream);
+    assert_eq!(gpu.commands.len(), 4);
+    for (command, (family, weight)) in gpu.commands.iter().zip(&expected) {
+        let UiSurfaceCommandKind::Text {
+            font_family,
+            font_weight,
+            ..
+        } = &command.kind
+        else {
+            panic!("GPU text");
+        };
+        assert_eq!(
+            (font_family.as_ref().unwrap(), *font_weight),
+            (family, *weight)
+        );
+    }
+    let evidence = TextPaintEvidenceScope::begin().unwrap();
+    let pixels = paint_chrome_command_stream_to_frame(180, 120, &stream);
+    let evidence = evidence.finish().unwrap();
+    assert!(pixels
+        .as_bytes()
+        .chunks_exact(4)
+        .any(|pixel| pixel != [0, 0, 0, 255]));
+    assert_eq!(evidence["runs"].as_array().unwrap().len(), 4);
+    for (run, (family, weight)) in evidence["runs"].as_array().unwrap().iter().zip(&expected) {
+        assert_eq!(run["fontFamily"], family.as_str());
+        assert_eq!(run["fontWeight"], *weight);
+    }
+}

@@ -6,7 +6,7 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
     frame_from_ui, parse_style_color,
 };
 
-use super::metrics::{resolved_font_size, resolved_line_height};
+use super::metrics::{resolved_font_size, resolved_line_height, rich_font_request};
 
 pub(super) fn push_text_run_commands(
     output: &mut Vec<HostPaintCommand>,
@@ -22,17 +22,22 @@ pub(super) fn push_text_run_commands(
 
     for run in &text.runs {
         let run_color = parse_style_color(run.color.as_deref()).unwrap_or(fallback_color);
-        output.push(HostPaintCommand::text(
-            frame_from_ui(run.frame),
-            clip_frame.clone(),
-            z_index,
-            run.text.clone(),
-            run_color,
-            resolved_font_size(run.font_size),
-            resolved_line_height(run.font_size, run.line_height),
-            run.style,
-            opacity,
-        ));
+        let request =
+            rich_font_request(run.font_family.as_deref(), run.font_weight, run.kind, true);
+        output.push(
+            HostPaintCommand::text(
+                frame_from_ui(run.frame),
+                clip_frame.clone(),
+                z_index,
+                run.text.clone(),
+                run_color,
+                resolved_font_size(run.font_size),
+                resolved_line_height(run.font_size, run.line_height),
+                run.style,
+                opacity,
+            )
+            .with_text_font_request(Some(request)),
+        );
     }
     true
 }

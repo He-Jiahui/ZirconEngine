@@ -9,7 +9,7 @@ use super::{
     style::{selected_underline, tab_background, tab_text_color, SegmentedVisual},
 };
 
-const TAB_COMMAND_CAPACITY: usize = 3;
+const TAB_COMMAND_CAPACITY: usize = 4;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn tab_commands(
@@ -32,6 +32,22 @@ pub(super) fn tab_commands(
             background,
             None,
             0.0,
+            0.0,
+            state,
+            opacity,
+        ));
+    }
+    if state.focus_visible() && visual.focus_border_width > 0.0 {
+        // Shared painter focus visibility retains the true input modality even
+        // when selected/pressed outranks Focused in the resolved visual state.
+        commands.push(quad_command(
+            node_id,
+            frame,
+            clip,
+            z.saturating_add(2),
+            zircon_runtime_interface::ui::style::UiRgbaColor::from_u8(0, 0, 0, 0),
+            Some(visual.focus_border),
+            visual.focus_border_width,
             0.0,
             state,
             opacity,

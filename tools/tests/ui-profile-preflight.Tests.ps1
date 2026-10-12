@@ -1,37 +1,68 @@
 # 用临时产品与工具夹具验证界面画像预检的类型化阻断和输出根约束。
-$script:PreflightScript = Join-Path $PSScriptRoot "..\profiling\ui\ui-profile-preflight.ps1"
+$script:PreflightScript = Join-Path $PSScriptRoot "..\analysis\profiling\ui\ui-profile-preflight.ps1"
 if (Test-Path -LiteralPath $script:PreflightScript) {
     . $script:PreflightScript
 }
 
-function New-ZirconUiProfilePreflightFixture {
-    $fixtureRoot = "E:\zircon-profiles\pester-ui-profile-preflight-$([guid]::NewGuid().ToString('N'))"
-    $repoRoot = Join-Path $fixtureRoot "repo"
-    $managedRoot = Join-Path $fixtureRoot "managed-targets"
-    $targetDir = Join-Path $managedRoot "profiling"
-    $sourcePath = Join-Path $repoRoot "src\ui.rs"
-    New-Item -ItemType Directory -Path (Split-Path $sourcePath), $targetDir -Force | Out-Null
-    "fn ui() {}" | Set-Content -LiteralPath $sourcePath -Encoding UTF8
-    foreach ($binaryName in @("zircon_editor.exe", "zircon_runtime.dll")) {
-        $peBytes = [byte[]]::new(128)
-        $peBytes[0] = 0x4d
-        $peBytes[1] = 0x5a
-        $peBytes[0x3c] = 0x40
-        $peBytes[0x40] = 0x50
-        $peBytes[0x41] = 0x45
-        [System.IO.File]::WriteAllBytes((Join-Path $targetDir $binaryName), $peBytes)
+
+function New-ZirconUiPreflightOwnedRoot {
+    $parent = Resolve-ZirconProfileOutputRoot -RepoRoot $PSScriptRoot -Path 'D:\cargo-targets\zircon-local\evidence\profile-output-contract-fixtures'
+    [IO.Directory]::CreateDirectory($parent) | Out-Null
+    $root = Resolve-ZirconProfileContainedPath -Root $parent `
+        -PathSegments @('preflight-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $root -ErrorAction Stop | Out-Null
+    return $root
+}
+
+function Remove-ZirconUiPreflightOwnedRoot {
+    param([Parameter(Mandatory = $true)][string]$Root)
+
+    $parent = Resolve-ZirconProfileOutputRoot -RepoRoot $PSScriptRoot -Path 'D:\cargo-targets\zircon-local\evidence\profile-output-contract-fixtures'
+    $resolvedRoot = [IO.Path]::GetFullPath($Root).TrimEnd([char[]]"\/")
+    if (-not [IO.Path]::GetDirectoryName($resolvedRoot).Equals($parent, [StringComparison]::OrdinalIgnoreCase) -or
+        -not [IO.Path]::GetFileName($resolvedRoot).StartsWith('preflight-', [StringComparison]::Ordinal)) {
+        throw "Refusing fixture cleanup outside its owned direct child: $Root"
     }
-    $sourceTime = [datetime]::UtcNow.AddMinutes(-2)
-    $binaryTime = [datetime]::UtcNow.AddMinutes(-1)
-    (Get-Item -LiteralPath $sourcePath).LastWriteTimeUtc = $sourceTime
-    (Get-Item -LiteralPath (Join-Path $targetDir "zircon_editor.exe")).LastWriteTimeUtc = $binaryTime
-    (Get-Item -LiteralPath (Join-Path $targetDir "zircon_runtime.dll")).LastWriteTimeUtc = $binaryTime
-    return [pscustomobject]@{
-        root = $fixtureRoot
-        repo_root = $repoRoot
-        managed_root = $managedRoot
-        target_dir = $targetDir
-        source_path = $sourcePath
+    Assert-ZirconProfilePathContainsNoReparsePoint -Root $parent -Candidate $resolvedRoot
+    if (Test-Path -LiteralPath $resolvedRoot) {
+        Remove-Item -LiteralPath $resolvedRoot -Recurse -Force
+    }
+}
+
+function New-ZirconUiProfilePreflightFixture {
+    $fixtureRoot = New-ZirconUiPreflightOwnedRoot
+    try {
+        $repoRoot = Join-Path $fixtureRoot "repo"
+        $managedRoot = Join-Path $fixtureRoot "managed-targets"
+        $targetDir = Join-Path $managedRoot "profiling"
+        $sourcePath = Join-Path $repoRoot "src\ui.rs"
+        New-Item -ItemType Directory -Path (Split-Path $sourcePath), $targetDir -Force | Out-Null
+        "fn ui() {}" | Set-Content -LiteralPath $sourcePath -Encoding UTF8
+        foreach ($binaryName in @("zircon_editor.exe", "zircon_runtime.dll")) {
+            $peBytes = [byte[]]::new(128)
+            $peBytes[0] = 0x4d
+            $peBytes[1] = 0x5a
+            $peBytes[0x3c] = 0x40
+            $peBytes[0x40] = 0x50
+            $peBytes[0x41] = 0x45
+            [System.IO.File]::WriteAllBytes((Join-Path $targetDir $binaryName), $peBytes)
+        }
+        $sourceTime = [datetime]::UtcNow.AddMinutes(-2)
+        $binaryTime = [datetime]::UtcNow.AddMinutes(-1)
+        (Get-Item -LiteralPath $sourcePath).LastWriteTimeUtc = $sourceTime
+        (Get-Item -LiteralPath (Join-Path $targetDir "zircon_editor.exe")).LastWriteTimeUtc = $binaryTime
+        (Get-Item -LiteralPath (Join-Path $targetDir "zircon_runtime.dll")).LastWriteTimeUtc = $binaryTime
+        return [pscustomobject]@{
+            root = $fixtureRoot
+            repo_root = $repoRoot
+            managed_root = $managedRoot
+            target_dir = $targetDir
+            source_path = $sourcePath
+        }
+    }
+    catch {
+        Remove-ZirconUiPreflightOwnedRoot -Root $fixtureRoot
+        throw
     }
 }
 
@@ -59,7 +90,7 @@ Describe "UI profile preflight" {
         }
         finally {
             if (Test-Path -LiteralPath $fixture.root) {
-                Remove-Item -LiteralPath $fixture.root -Recurse -Force
+                Remove-ZirconUiPreflightOwnedRoot -Root $fixture.root
             }
         }
     }
@@ -82,7 +113,7 @@ Describe "UI profile preflight" {
         }
         finally {
             if (Test-Path -LiteralPath $fixture.root) {
-                Remove-Item -LiteralPath $fixture.root -Recurse -Force
+                Remove-ZirconUiPreflightOwnedRoot -Root $fixture.root
             }
         }
     }
@@ -103,7 +134,7 @@ Describe "UI profile preflight" {
         }
         finally {
             if (Test-Path -LiteralPath $fixture.root) {
-                Remove-Item -LiteralPath $fixture.root -Recurse -Force
+                Remove-ZirconUiPreflightOwnedRoot -Root $fixture.root
             }
         }
     }
@@ -122,7 +153,7 @@ Describe "UI profile preflight" {
         }
         finally {
             if (Test-Path -LiteralPath $fixture.root) {
-                Remove-Item -LiteralPath $fixture.root -Recurse -Force
+                Remove-ZirconUiPreflightOwnedRoot -Root $fixture.root
             }
         }
     }
@@ -155,7 +186,7 @@ Describe "UI profile preflight" {
         }
         finally {
             if (Test-Path -LiteralPath $fixture.root) {
-                Remove-Item -LiteralPath $fixture.root -Recurse -Force
+                Remove-ZirconUiPreflightOwnedRoot -Root $fixture.root
             }
         }
     }
@@ -184,12 +215,12 @@ Describe "UI profile preflight" {
         }
         finally {
             if (Test-Path -LiteralPath $fixture.root) {
-                Remove-Item -LiteralPath $fixture.root -Recurse -Force
+                Remove-ZirconUiPreflightOwnedRoot -Root $fixture.root
             }
         }
     }
 
-    It "exports evidence only to D E or F" {
+    It "exports evidence only to physical local cargo roots" {
         Get-Command Export-ZirconUiProfilePreflight -ErrorAction SilentlyContinue |
             Should Not BeNullOrEmpty
 
@@ -219,11 +250,11 @@ Describe "UI profile preflight" {
                 $errorRecord = $_
             }
             $errorRecord | Should Not BeNullOrEmpty
-            $errorRecord.Exception.Message | Should Match "D:, E:, or F:"
+            $errorRecord.Exception.Message | Should Match "physical D/E/F:"
         }
         finally {
             if (Test-Path -LiteralPath $fixture.root) {
-                Remove-Item -LiteralPath $fixture.root -Recurse -Force
+                Remove-ZirconUiPreflightOwnedRoot -Root $fixture.root
             }
         }
     }

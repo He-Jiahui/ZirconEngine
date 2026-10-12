@@ -537,7 +537,8 @@ def seal_candidate(repository_root: str | Path, claims: Iterable[PathClaim], *,
     # bounded to the declared candidate/dependency closure; unrelated base
     # blobs are never copied into the sealed input store.
     entries.sort(key=lambda item: item["path"])
-    payload = {"schemaVersion": 1, "baseHead": base_head, "entries": entries,
+    payload = {"schemaVersion": 1, "repositoryId": repository_id(root),
+               "baseHead": base_head, "entries": entries,
                "external": list(external_inputs),
                "declaredDependencies": dependency_paths}
     source_digest = compute_source_digest(payload)
@@ -554,6 +555,8 @@ def materialize_manifest(manifest: SealedManifest | Mapping[str, Any], object_ro
     _check_object_store_domain(object_root)
     destination = Path(destination).absolute()
     destination.mkdir(parents=True, exist_ok=True)
+    from .external_inputs import materialize as materialize_external
+    materialize_external(payload, Path(object_root).absolute(), destination)
     objects = Path(object_root).absolute() / "inputs" / "objects"
     # Reuse is allowed only after every expected object and materialized file
     # is verified. A stale or foreign file is never silently accepted.
@@ -608,6 +611,10 @@ def collect_cargo_evidence(manifest: SealedManifest | Mapping[str, Any], object_
     if objects != approved:
         raise JenkinsError("object_root_mismatch", "Cargo evidence must use this buildRoot's input store")
     run_root = physical_path_under(physical_root, approved / "inputs" / "runs" / compute_source_digest(payload))
+    from .external_inputs import sources as external_sources
+    external = external_sources(payload)
+    if external:
+        run_root = physical_path_under(physical_root, run_root / "source")
     # Recheck every object and existing byte on reuse, rather than trusting an
     # already populated directory left by an interrupted or foreign command.
     materialize_manifest(payload, objects, run_root)
@@ -647,6 +654,7 @@ def collect_cargo_evidence(manifest: SealedManifest | Mapping[str, Any], object_
     toolchain = {"cargo": cargo_version.stdout.strip(), "rustc": rustc_version.stdout.strip()}
     return {"cargoMetadata": metadata_value, "metadata": metadata_value,
             "metadataDigest": digest(metadata_value), "toolchain": toolchain,
+            "externalSourceDigests": {value["name"]: value["sourceDigest"] for value in external},
             "toolchainDigest": digest(toolchain), "lockDigest": lock_digest,
             "compilerIdentity": rustc_version.stdout.strip(),
             "commandDigests": {"metadata": digest([cargo, "metadata", "--no-deps", "--format-version", "1", "--locked", "--offline"]),
@@ -715,6 +723,11 @@ def get_sealed_manifest(state: State, *, repository_id_value: str, session_id: s
     manifest = payload.get("sourceManifest") or payload.get("manifest")
     if not isinstance(manifest, Mapping) or compute_source_digest(manifest) != source_digest:
         raise JenkinsError("sealed_input_corrupt", "sealed source manifest digest does not match identity")
+    if "repositoryId" in manifest and (
+        manifest["repositoryId"] != repository_id_value
+        or payload.get("repositoryId") != repository_id_value
+    ):
+        raise JenkinsError("sealed_input_repository_mismatch", "sealed source belongs to a different repository")
     return SealedManifest(dict(manifest), source_digest)
 
 
@@ -750,6 +763,9 @@ def get_patch_operation(state: State, operation_id: str) -> dict[str, Any]:
 
 def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain: str = "candidate") -> dict:
     """CLI handler for candidate claim/apply/seal/materialize operations."""
+    if action == "register-consumer":
+        from .consumer_intake import register_consumer
+        return register_consumer(state, repo_root, payload)
     if action == "claim":
         paths = payload.get("ownedPaths", [])
         _auth_for_source(state, payload, canonical_paths(repo_root, paths), "implementation")
@@ -762,6 +778,8 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
                                  authorization=payload,
                                  build_root=payload.get("buildRoot"))
     if action == "seal":
+        if payload.get("repositoryId") != repository_id(repo_root):
+            raise JenkinsError("source_repository_mismatch", "sealed source must use its physical checkout identity")
         claims = [PathClaim(**value) for value in payload["claims"]]
         paths = [claim.path for claim in claims]
         _auth_for_source(state, payload, paths, "validation")

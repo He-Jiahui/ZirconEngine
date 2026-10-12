@@ -84,6 +84,7 @@ impl UiSurface {
                 &mut self.text_measure_cache,
                 Some(&self.control_index),
                 Some(&self.input.popup_anchor_points),
+                Some(self.focus.focused),
             );
         extract.raster_scale = self.current_raster_scale();
         let update = self.render_cache.update_for_arranged(
@@ -113,6 +114,7 @@ impl UiSurface {
                 &mut self.text_measure_cache,
                 Some(&self.control_index),
                 Some(&self.input.popup_anchor_points),
+                Some(self.focus.focused),
             )?;
         self.render_cache.patch_nodes(
             &mut self.render_extract,

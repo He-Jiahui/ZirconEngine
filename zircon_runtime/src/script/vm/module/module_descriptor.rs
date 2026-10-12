@@ -47,8 +47,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
                     )
                 })?;
                 let host = core_handle
-                    .resolve_driver::<PluginHostDriver>(PLUGIN_HOST_DRIVER_NAME)?
-                    .clone();
+                    .resolve_driver::<PluginHostDriver>(PLUGIN_HOST_DRIVER_NAME)?;
                 let manager = VmPluginManager::with_plugin_context_and_host_exports(
                     plugin_context(VM_PLUGIN_RUNTIME_NAME, core.clone()),
                     host.registry(),
@@ -71,10 +70,17 @@ pub fn module_descriptor() -> ModuleDescriptor {
                 "VmPluginManager",
             )],
             plugin_factory(|context| {
-                let manager = context
+                let core = context
                     .core
-                    .resolve_manager::<VmPluginManager>(VM_PLUGIN_MANAGER_NAME)?;
-                Ok(manager as ServiceObject)
+                    .upgrade()
+                    .ok_or(crate::core::CoreError::RuntimeUnavailable)?;
+                core.register_service_alias::<VmPluginManager, VmPluginManager>(
+                    VM_PLUGIN_MANAGER_NAME,
+                    crate::core::ServiceKind::Manager,
+                    VM_PLUGIN_RUNTIME_NAME,
+                    crate::core::ServiceKind::Plugin,
+                    |manager| manager,
+                )
             }),
         ))
 }

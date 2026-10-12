@@ -5,6 +5,7 @@ use crate::core::{CoreError, CoreResult, ModuleContext, ModuleLifecycle};
 
 mod activation;
 mod batch_transaction;
+mod cleanup_owner;
 mod deactivation;
 mod module_lifecycle;
 mod reactivation;

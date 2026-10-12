@@ -75,6 +75,7 @@ pub(super) fn validate_reactivation_services(
         if entry.lifecycle != LifecycleState::Unloaded
             || entry.instance.is_some()
             || entry.initialization_owner.is_some()
+            || entry.in_flight_calls != 0
         {
             return Err(CoreError::ServiceUnavailable(service_name.to_string()));
         }

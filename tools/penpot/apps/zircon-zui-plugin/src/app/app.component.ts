@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter, fromEvent, map, merge, of } from 'rxjs';
 import type { ZuiDiagnostic } from '../bridge/zui-document';
 import { deferDownloadUrlRevocation } from './download-lifecycle';
+import { parseFontResourceManifest, type PenpotFontResourceManifest } from '../bridge/penpot-font-selection';
 import type {
   LayoutReviewCaseMessage,
   PluginHostMessage,
@@ -51,9 +52,31 @@ interface StatusState {
         >
           Export selected
         </button>
+        <button
+          type="button"
+          data-appearance="secondary"
+          [disabled]="busy() || !canExport() || !selectedBoardId()"
+          (click)="exportCanvasPng()"
+        >
+          Export Canvas PNG
+        </button>
       </section>
 
-      <section class="selection-band" [class.ready]="canExport()">
+      <section class="command-row" aria-label="Optional font resources">
+        <input #fontResourceInput class="visually-hidden" type="file" accept=".json,application/json" data-font-resource-manifest (change)="loadFontResources($event)" />
+        <button type="button" data-appearance="secondary" [disabled]="busy()" (click)="fontResourceInput.click()">字体资源清单（可选）</button>
+        @if (fontResourceName()) {
+          <span class="body-s">{{ fontResourceName() }}</span>
+          <button type="button" [disabled]="busy()" (click)="clearFontResources()">清除</button>
+        }
+      </section>
+
+      <section
+        class="selection-band"
+        [class.ready]="canExport()"
+        [attr.data-selected-board-id]="selectedBoardId()"
+        [attr.data-canvas-png-board-id]="canvasPngBoardId()"
+      >
         <span class="selection-dot" aria-hidden="true"></span>
         <div>
           <p class="label body-s">Selection</p>
@@ -149,11 +172,15 @@ export class AppComponent {
   readonly diagnostics = signal<ZuiDiagnostic[]>([]);
   readonly canExport = signal(false);
   readonly selectionLabel = signal<string | null>(null);
+  readonly selectedBoardId = signal<string | null>(null);
+  readonly canvasPngBoardId = signal<string | null>(null);
   readonly busy = signal(false);
   readonly previewBoardId = signal<string | null>(null);
   readonly layoutAudit = signal<RenderedLayoutAudit | null>(null);
   readonly layoutAuditRequestId = signal<string | null>(null);
   readonly reviewCase = signal<LayoutReviewCaseMessage | null>(null);
+  readonly fontResourceName = signal<string | null>(null);
+  private fontResources?: PenpotFontResourceManifest;
 
   constructor() {
     merge(
@@ -187,6 +214,27 @@ export class AppComponent {
     return JSON.stringify(this.layoutAudit()?.semanticNodes ?? []);
   }
 
+  clearFontResources(): void {
+    this.fontResources = undefined;
+    this.fontResourceName.set(null);
+  }
+
+  loadFontResources(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.clearFontResources();
+    this.busy.set(true);
+    void file.text().then((contents) => {
+      this.fontResources = parseFontResourceManifest(JSON.parse(contents));
+      this.fontResourceName.set(file.name);
+      this.status.set({level:'idle',message:`字体资源清单 · ${file.name}`});
+    }).catch((error: unknown) => {
+      this.status.set({level:'error',message:error instanceof Error ? error.message : String(error)});
+    }).finally(() => this.busy.set(false));
+  }
+
   importFile(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -210,6 +258,7 @@ export class AppComponent {
           fileName: file.name,
           source,
           replaceSelection: true,
+          ...(this.fontResources ? {fontResources:this.fontResources} : {}),
         }),
       )
       .catch((error: unknown) => {
@@ -226,6 +275,14 @@ export class AppComponent {
     this.sendMessage({ type: 'export-zui' });
   }
 
+  exportCanvasPng(): void {
+    const expectedBoardId = this.selectedBoardId();
+    if (!expectedBoardId) return;
+    this.canvasPngBoardId.set(null);
+    this.busy.set(true);
+    this.sendMessage({ type: 'export-canvas-png', expectedBoardId });
+  }
+
   private handleMessage(message: PluginHostMessage): void {
     if (message.type === 'theme') {
       this.theme.set(message.content);
@@ -234,6 +291,7 @@ export class AppComponent {
     if (message.type === 'selection') {
       this.canExport.set(message.canExport);
       this.selectionLabel.set(message.label);
+      this.selectedBoardId.set(message.boardId);
       return;
     }
     if (message.type === 'status') {
@@ -258,7 +316,38 @@ export class AppComponent {
       this.layoutAuditRequestId.set(message.requestId ?? null);
       return;
     }
+    if (message.type === 'canvas-png-ready') {
+      if (message.boardId !== this.selectedBoardId()) {
+        this.busy.set(false);
+        this.status.set({ level: 'error', message: 'Canvas PNG belongs to a different selected Board.' });
+        return;
+      }
+      this.downloadCanvasPng(message.fileName, message.bytes, message.width, message.height, message.boardId);
+      return;
+    }
     this.download(message.fileName, message.source);
+  }
+
+  private downloadCanvasPng(fileName: string, bytes: Uint8Array, width: number, height: number, boardId: string): void {
+    if (!(bytes instanceof Uint8Array) || bytes.byteLength < 24) {
+      this.busy.set(false);
+      this.status.set({ level: 'error', message: 'Canvas PNG message did not contain PNG bytes.' });
+      return;
+    }
+    const ownedBytes = bytes.slice();
+    const url = URL.createObjectURL(
+      new Blob([ownedBytes.buffer as ArrayBuffer], { type: 'image/png' }),
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    this.canvasPngBoardId.set(boardId);
+    this.busy.set(false);
+    this.status.set({ level: 'success', message: fileName + ' · ' + width + '×' + height });
+    deferDownloadUrlRevocation(url);
   }
 
   private download(fileName: string, source: string): void {
