@@ -12,7 +12,7 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/164-editor-multi-user-collaborative-editing-session-replication-locks-presence-transaction-conflict-current-source-review.md
 related_runtime_owners:
   - docs/plans/optimize/zircon_runtime/24-stable-identity-handle-generation-owner-epoch-stale-reference-exhaustion-review.md
-  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor.md
 related_editor_owners:
   - docs/plans/optimize/zircon_editor/02-document-transaction-save-autosave-recovery-review.md
   - docs/plans/optimize/zircon_editor/08-command-registry-keymap-menu-palette-context-routing-remote-automation-review.md

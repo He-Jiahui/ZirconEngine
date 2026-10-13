@@ -18,7 +18,7 @@ function create(id:string,width=200,height=28): Fake {
   const item: Fake={id,type:'board',children:[],parent:null,width,height,x:0,y:0,hidden:false,layoutChild:{absolute:false,horizontalSizing:'fill',verticalSizing:'fill',topMargin:0,rightMargin:0,bottomMargin:0,leftMargin:0},data:new Map(),
     getSharedPluginData(ns,key){return this.data.get(ns+':'+key)??'';},setSharedPluginData(ns,key,value){this.data.set(ns+':'+key,value);},
     appendChild(child){if(child.parent)child.parent.children=child.parent.children.filter(old=>old!==child);this.children.push(child);child.parent=this;},
-    resize(w,h){this.width=w;this.height=h;}};
+    resize(w,h){if(!Number.isFinite(w)||!Number.isFinite(h)||w<=0||h<=0)throw new Error('resize requires finite positive dimensions');this.width=w;this.height=h;}};
   item.setSharedPluginData(NS,ROLE,ZUI_ROLE_NODE);item.setSharedPluginData(NS,NODE,id);return item;
 }
 function setup(){
@@ -43,6 +43,49 @@ function setup(){
   return {asset,boards,document,projection,desired};
 }
 describe('production original Board toolbar reflow',()=>{
+  it('keeps zero extent closed popups hidden through wide narrow wide reflow without resizing or cloning Source boards',()=>{
+    const fixture=setup(),row=fixture.boards.get('row')!,popup=fixture.boards.get('popup')!;
+    fixture.document.nodes!.popup!.props!['popup_open']=true;
+    const before=JSON.stringify(fixture.document),originalBoards=new Map(fixture.boards);
+    const originalChildren=new Map([...originalBoards].map(([id,current])=>[id,[...current.children]] as const));
+    const initialSize=[popup.width,popup.height];
+    row.width=200;
+    const closed=prepareViewportToolbarLayout(fixture.asset as unknown as Board,fixture.document,fixture.projection,fixture.desired)!;
+    expect([closed.plan.inline,closed.plan.open,closed.plan.popupWidth,closed.plan.popupHeight]).toEqual([3,false,0,0]);
+    expect(popup.hidden).toBe(true);expect([popup.width,popup.height]).toEqual(initialSize);
+    expect(JSON.stringify(fixture.document)).toBe(before);
+    row.width=85;
+    const narrow=prepareViewportToolbarLayout(fixture.asset as unknown as Board,fixture.document,fixture.projection,fixture.desired)!;
+    expect([narrow.plan.inline,narrow.plan.open,narrow.plan.popupWidth,narrow.plan.popupHeight]).toEqual([0,true,58,100]);
+    expect(popup.hidden).toBe(false);expect([popup.width,popup.height]).toEqual([58,100]);
+    expect(popup.children).toHaveLength(3);
+    ['g1','g2','g3'].forEach((id,index)=>expect(popup.children[index]).toBe(originalBoards.get(id)));
+    expect(JSON.stringify(fixture.document)).toBe(before);
+    row.width=200;
+    const wide=prepareViewportToolbarLayout(fixture.asset as unknown as Board,fixture.document,fixture.projection,fixture.desired)!;
+    expect([wide.plan.inline,wide.plan.open,wide.plan.popupWidth,wide.plan.popupHeight]).toEqual([3,false,0,0]);
+    expect(popup.hidden).toBe(true);expect([popup.width,popup.height]).toEqual([58,100]);
+    expect(fixture.boards.get('more')!.hidden).toBe(true);
+    for(const layout of [closed,narrow,wide])for(const [id,current] of originalBoards)expect(layout.boards.get(id)).toBe(current);
+    for(const [id,children] of originalChildren){
+      const current=originalBoards.get(id)!;expect(current.children).toHaveLength(children.length);
+      children.forEach((child,index)=>expect(current.children[index]).toBe(child));
+    }
+    expect(JSON.stringify(fixture.document)).toBe(before);
+  });
+
+  it('rejects an open popup with zero height before moving original Source boards',()=>{
+    const fixture=setup(),row=fixture.boards.get('row')!,children=[...row.children];
+    fixture.document.nodes!.popup!.props!['popup_open']=true;
+    fixture.boards.get('viewport')!.height=28;
+    const before=JSON.stringify(fixture.document);
+    expect(()=>prepareViewportToolbarLayout(fixture.asset as unknown as Board,fixture.document,fixture.projection,fixture.desired)).toThrow(/open popup requires finite positive dimensions \(width=58, height=0\)/);
+    expect(row.children).toHaveLength(children.length);
+    children.forEach((child,index)=>expect(row.children[index]).toBe(child));
+    expect(fixture.boards.get('popup')!.children).toEqual([]);
+    expect(JSON.stringify(fixture.document)).toBe(before);
+  });
+
   it('moves original boards on measured resize and restores their canonical source parents without cloning',()=>{
     const fixture=setup(),before=JSON.stringify(fixture.document),identities=['g1','g2','g3'].map(id=>fixture.boards.get(id)!);
     const closed=prepareViewportToolbarLayout(fixture.asset as unknown as Board,fixture.document,fixture.projection,fixture.desired)!;

@@ -97,14 +97,28 @@ where
         )?;
         break;
     }
-    // BUG: [CR-HUBCORE-0002] 项目与引擎清单仅按路径去重，同 id 仍会进入 Hub 状态；Tauri 原样投影后，Web 的 plugins 唯一性校验抛错，使整份状态在页面消费前被拒为协议失配。
     entries.sort_by(|left, right| {
         scope_rank(&left.scope)
             .cmp(&scope_rank(&right.scope))
             .then_with(|| left.id.cmp(&right.id))
             .then_with(|| left.package_root.cmp(&right.package_root))
     });
-    Ok(entries)
+    let mut unique = HashSet::with_capacity(entries.len());
+    Ok(entries
+        .into_iter()
+        .filter(|entry| {
+            if unique.insert(entry.id.clone()) {
+                true
+            } else {
+                eprintln!(
+                    "zircon_hub: duplicate plugin catalog id `{}` at `{}` ignored; the first sorted entry is retained",
+                    entry.id,
+                    entry.manifest_path.display()
+                );
+                false
+            }
+        })
+        .collect())
 }
 
 fn scope_rank(scope: &str) -> usize {

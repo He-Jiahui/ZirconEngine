@@ -247,6 +247,74 @@ fn authority_rejects_when_manifest_buffer_would_exceed_scratch_budget() {
 }
 
 #[test]
+fn authority_rejects_over_budget_candidate_projection_before_publication() {
+    let root_path = temporary_authority_root("publication-scratch-budget");
+    let package_root = root_path.join("metered");
+    fs::create_dir_all(&package_root).expect("create native plugin package");
+    let manifest = metered_manifest();
+    fs::write(package_root.join("plugin.toml"), &manifest).expect("write native plugin manifest");
+
+    let mut budget = test_budget();
+    budget.max_read_bytes = manifest.len() as u64;
+    budget.max_scratch_bytes = 2_048;
+    let service = test_native_plugin_discovery_refresh_service(budget);
+    let root = test_native_plugin_discovery_root(root_path.clone());
+    let ticket = service.submit(root.clone());
+    wait_for_terminal(&ticket);
+
+    assert!(matches!(
+        ticket.terminal(),
+        Some(NativePluginDiscoveryRefreshTerminal::Failed(error))
+            if matches!(
+                error.as_ref(),
+                NativePluginDiscoveryRefreshError::BudgetExceeded {
+                    kind: NativePluginDiscoveryRefreshBudgetKind::ScratchBytes,
+                    ..
+                }
+            )
+    ));
+    assert!(service.snapshot(&root).is_none());
+    let _ = fs::remove_dir_all(root_path);
+}
+
+#[test]
+fn authority_rejects_duplicate_projection_over_diagnostic_budget() {
+    let root_path = temporary_authority_root("duplicate-diagnostic-budget");
+    for package in ["first", "second", "third"] {
+        let package_root = root_path.join(package);
+        fs::create_dir_all(&package_root).expect("create duplicate package directory");
+        let manifest = metered_manifest();
+        fs::write(package_root.join("plugin.toml"), manifest)
+            .expect("write duplicate native plugin manifest");
+    }
+
+    let mut budget = test_budget();
+    budget.max_diagnostics = 1;
+    // Keep publication scratch independent from the diagnostic-count boundary exercised here.
+    // Three retained parsed manifests need the conservative source-expansion estimate plus the
+    // cloned candidate/index entries before duplicate projection can reject the second diagnostic.
+    budget.max_scratch_bytes = 64 * 1024;
+    let service = test_native_plugin_discovery_refresh_service(budget);
+    let root = test_native_plugin_discovery_root(root_path.clone());
+    let ticket = service.submit(root.clone());
+    wait_for_terminal(&ticket);
+
+    assert!(matches!(
+        ticket.terminal(),
+        Some(NativePluginDiscoveryRefreshTerminal::Failed(error))
+            if matches!(
+                error.as_ref(),
+                NativePluginDiscoveryRefreshError::BudgetExceeded {
+                    kind: NativePluginDiscoveryRefreshBudgetKind::DiagnosticCount,
+                    ..
+                }
+            )
+    ));
+    assert!(service.snapshot(&root).is_none());
+    let _ = fs::remove_dir_all(root_path);
+}
+
+#[test]
 fn service_uses_the_runtime_io_lane_and_never_calls_the_synchronous_loader() {
     let source = include_str!("../service.rs");
 

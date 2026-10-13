@@ -11,7 +11,9 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker};
-use crate::graphics::WgpuRenderFramework;
+use crate::graphics::{
+    screen_space_ambient_occlusion_render_feature_descriptor, WgpuRenderFramework,
+};
 use crate::scene::components::{default_render_layer_mask, Mobility};
 
 use super::super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
@@ -318,9 +320,11 @@ fn ssao_product_default_is_fail_closed_and_preserves_scene_output() {
         viewport_size,
     );
 
+    let mut rendering_features = default_rendering_feature_descriptors();
+    rendering_features.push(screen_space_ambient_occlusion_render_feature_descriptor());
     let server = WgpuRenderFramework::new_for_test_with_plugin_render_features(
         asset_manager,
-        default_rendering_feature_descriptors(),
+        rendering_features,
         Vec::new(),
         Vec::new(),
     )

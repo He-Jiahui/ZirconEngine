@@ -68,17 +68,17 @@ impl PluginInterfaceMethodManifest {
         self
     }
 
-    // BUG: [CR-PLUGIN-BOUNDARY-0201] 反序列化或直接修改公开列表后顺序可无序，二分插入可能再次加入已有能力；
-    // 包接口校验随后会拒绝重复能力；证据：公开字段和接口校验投影。
-    /// 从构造器初始空列表连续调用时，能力按名称有序且去重；外部写入列表后须重新校验。
+    /// 即使公开字段被反序列化或直接改成无序列表，也按名称排序并去重。
     pub fn with_required_capability(mut self, capability: impl Into<String>) -> Self {
         let capability = capability.into();
-        if let Err(index) = self
+        if !self
             .required_capabilities
-            .binary_search_by(|candidate| candidate.as_str().cmp(capability.as_str()))
+            .iter()
+            .any(|candidate| candidate == &capability)
         {
-            self.required_capabilities.insert(index, capability);
+            self.required_capabilities.push(capability);
         }
+        self.required_capabilities.sort();
         self
     }
 

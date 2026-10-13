@@ -5,7 +5,7 @@ parent_plan: astra-full-domain-20260905
 plan_sources:
   - docs/plans/astra/layouts/01-responsive-layout.md
   - docs/plans/astra/layouts/02-native-minimums-and-layout-restore.md
-  - docs/plans/optimize/zircon_editor/193-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/193-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance.md
 ---
 
 # Editor 每 leaf 工作台投影与精确恢复

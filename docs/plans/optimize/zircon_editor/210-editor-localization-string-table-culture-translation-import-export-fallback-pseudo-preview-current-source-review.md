@@ -15,7 +15,7 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/107-editor-localization-string-table-culture-translation-fallback-pseudo-preview-current-source-review.md
   - docs/plans/optimize/zircon_editor/154-editor-localization-string-table-culture-translation-import-export-fallback-pseudo-preview-current-source-review.md
 runtime_owner:
-  - docs/plans/optimize/zircon_runtime/83-runtime-localization-internationalization-locale-culture-message-format-plural-number-date-string-table-resource-fallback-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/83-runtime-localization-internationalization-locale-culture-message-format-plural-number-date-string-table-resource-fallback.md
 related_code:
   - zircon_runtime_interface/src/ui/template/asset/localization
   - zircon_runtime_interface/src/resource/marker.rs

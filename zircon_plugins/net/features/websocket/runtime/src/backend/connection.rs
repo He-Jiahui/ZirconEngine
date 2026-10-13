@@ -3,12 +3,14 @@
 
 use std::collections::VecDeque;
 use std::fmt;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use futures_util::stream::SplitSink;
 use futures_util::SinkExt;
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc;
+use tokio::sync::Notify;
 use tokio_tungstenite::WebSocketStream;
 use zircon_plugin_net_runtime::WebSocketRuntimeConnection;
 use zircon_runtime::core::framework::net::{NetConnectionState, NetError, NetWebSocketFrame};
@@ -25,6 +27,51 @@ pub(super) struct TungsteniteWebSocketConnection {
     pub(super) state: Arc<Mutex<NetConnectionState>>,
     outbound: WebSocketFrameSender,
     pub(super) inbound: Arc<Mutex<VecDeque<NetWebSocketFrame>>>,
+    pub(super) reader_cancel: Arc<WebSocketReaderCancellation>,
+}
+
+#[derive(Debug, Default)]
+pub(super) struct WebSocketReaderCancellation {
+    cancelled: AtomicBool,
+    pub(super) notify: Notify,
+}
+
+impl WebSocketReaderCancellation {
+    pub(super) fn cancel(&self) {
+        self.cancelled.store(true, Ordering::Release);
+        self.notify.notify_waiters();
+        self.notify.notify_one();
+    }
+
+    pub(super) fn is_cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::Acquire)
+    }
+
+    pub(super) async fn cancelled(&self) {
+        loop {
+            let notified = self.notify.notified();
+            if self.is_cancelled() {
+                return;
+            }
+            notified.await;
+        }
+    }
+}
+
+impl Drop for TungsteniteWebSocketConnection {
+    fn drop(&mut self) {
+        let mut state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if !matches!(
+            *state,
+            NetConnectionState::Failed | NetConnectionState::Closed
+        ) {
+            *state = NetConnectionState::Closed;
+        }
+        self.reader_cancel.cancel();
+    }
 }
 
 #[derive(Clone)]
@@ -48,12 +95,20 @@ impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
             .expect("net WebSocket state mutex poisoned")
     }
 
-    // BUG: [CR-PLUGIN-NET-0014] 根关闭/登记回滚只写 Closed；reader 不检查此状态，仍可收帧并发布已移除或未登记 ID 的事件。
+    // Publish terminal state under the reader admission lock before waking a
+    // reader that may be waiting for queue capacity.
     fn set_state(&self, state: NetConnectionState) {
-        *self
+        let mut current = self
             .state
             .lock()
-            .expect("net WebSocket state mutex poisoned") = state;
+            .expect("net WebSocket state mutex poisoned");
+        *current = state;
+        if matches!(
+            state,
+            NetConnectionState::Closed | NetConnectionState::Failed
+        ) {
+            self.reader_cancel.cancel();
+        }
     }
 
     fn send(&self, _runtime: &Runtime, frame: NetWebSocketFrame) -> Result<(), NetError> {
@@ -87,6 +142,9 @@ impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
             }
         }
         drop(inbound);
+        if drain_count != 0 {
+            self.reader_cancel.notify.notify_one();
+        }
         if received_close {
             *self
                 .state
@@ -111,6 +169,7 @@ impl TungsteniteWebSocketConnection {
                 state,
                 outbound,
                 inbound,
+                reader_cancel: Arc::new(WebSocketReaderCancellation::default()),
             },
             TungsteniteWebSocketReadHalf::Client(stream),
         )
@@ -129,6 +188,7 @@ impl TungsteniteWebSocketConnection {
                 state,
                 outbound,
                 inbound,
+                reader_cancel: Arc::new(WebSocketReaderCancellation::default()),
             },
             TungsteniteWebSocketReadHalf::Server(stream),
         )

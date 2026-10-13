@@ -808,15 +808,23 @@ async function prepareEditorMainFrameReviewHost(
         observation.kind + ':' + observation.surfaceKey);
     mountedKinds.add(observation.kind);
     const control = observation.kind === 'document'
-      ? 'UnrealProjectDocumentContext' : 'BottomDrawerHeaderRoot';
-    const matches = Object.values(projection.nodes ?? {}).filter((node) => node.control_id === control);
+      ? 'UnrealLevelViewport' : 'BottomDrawerHeaderRoot';
+    const matches = Object.values(projection.nodes ?? {}).filter((node) => node.control_id === control ||
+      (observation.kind === 'document' && node['penpot_prefab_source'] ===
+        'zircon_editor/assets/ui/editor/unreal/components/viewport.zui#UnrealLevelViewport' &&
+        node['penpot_review_source_node_id'] === 'root'));
     if (matches.length !== 1)
       throw new Error('Actual Header authored mount is missing or ambiguous: ' + control);
     const target = matches[0];
-    target.component = 'Overlay';
-    target.layout = { ...(target.layout ?? {}), container: { kind: 'Overlay' },
-      height: { min: observation.viewport.height, preferred: observation.viewport.height,
-        max: observation.viewport.height, stretch: 'Fixed' } };
+    const viewportChildren = observation.kind === 'document' ? [...(target.children ?? [])] : undefined;
+    if (viewportChildren && (viewportChildren.length !== 1 ||
+        projection.nodes?.[viewportChildren[0].node]?.control_id !== 'UnrealSceneViewViewport'))
+      throw new Error('Actual document Header lost its original viewport Overlay child');
+    target.component = viewportChildren ? 'VerticalGroup' : 'Overlay';
+    target.layout = { ...(target.layout ?? {}),
+      container: viewportChildren ? { kind: 'VerticalBox', gap: 0 } : { kind: 'Overlay' },
+      ...(!viewportChildren ? { height: { min: observation.viewport.height, preferred: observation.viewport.height,
+        max: observation.viewport.height, stretch: 'Fixed' } } : {}) };
     if (observation.kind === 'bottom') {
       const drawers = workbenchPresentation?.['drawers'];
       const bottom = Array.isArray(drawers)
@@ -835,6 +843,10 @@ async function prepareEditorMainFrameReviewHost(
     dependencies.embed(view, UNREAL_DOCK_HEADER_SOURCE, themeSourcePath, {
       preserveUnselectedBranchDefaults: true,
     });
+    const headerRoot = view.nodes![view.root!.node];
+    headerRoot.layout = { ...(headerRoot.layout ?? {}),
+      height: { min: observation.viewport.height, preferred: observation.viewport.height,
+        max: observation.viewport.height, stretch: 'Fixed' } };
     projection.imports = {
       widgets: uniqueStrings([...strings(projection.imports?.['widgets']), ...strings(view.imports?.['widgets'])]),
       styles: uniqueStrings([...strings(projection.imports?.['styles']), ...strings(view.imports?.['styles'])]),
@@ -845,7 +857,17 @@ async function prepareEditorMainFrameReviewHost(
     projection['penpot_dependency_sources'] = [...dependencySources];
     // Only actual Source instance inputs determine layout. Observed row frames
     // and mount rectangles remain evidence and are never copied into this view.
-    mountViewIntoContainer(projection, target, view, 'review_consumed_dock_header_' + index);
+    const headerPrefix = 'review_consumed_dock_header_' + index;
+    mountViewIntoContainer(projection, target, view, headerPrefix);
+    if (viewportChildren) {
+      const headerMount = target.children![target.children!.length - 1];
+      const separatorId = headerPrefix + '__viewport_separator';
+      projection.nodes![separatorId] = { component: 'Separator',
+        props: { background_color: '$editor.border', penpot_generated_host_structure: true },
+        layout: { width: { stretch: 'Stretch' },
+          height: { min: 1, preferred: 1, max: 1, stretch: 'Fixed' } } };
+      target.children = [headerMount, { node: separatorId }, ...viewportChildren];
+    }
   }
   await prepareUnrealReviewTranslations(
     repoRoot,
@@ -868,16 +890,8 @@ async function prepareEditorMainFrameReviewHost(
   for (const [path, component] of UNREAL_COMPONENT_SOURCES)
     addConsumer(path, component);
   if (dockHeaders.length) addConsumer(UNREAL_DOCK_HEADER_SOURCE, 'view');
-  // The managed case source must contain the same mounted view as its Penpot
-  // projection. Business observations stay in the case DTO; the ordinary ZUI
-  // source retains the real node identity annotations used by source export.
-  const consumedSource = dockHeaders.length ? cloneZuiDocument(projection) : undefined;
-  if (consumedSource) {
-    for (const key of Object.keys(consumedSource))
-      if (key.startsWith('penpot_review_')) delete consumedSource[key];
-  }
   return {
-    source: consumedSource ? serializeZuiDocument(consumedSource) : source,
+    source,
     projection,
     consumers: [...consumers].map(([key, component]) => ({
       sourcePath: key.slice(0, key.lastIndexOf('#')),

@@ -1,0 +1,5116 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "core-session-003",
+  "owner": "core_contracts",
+  "agentHandle": "/root/core_contracts",
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "max",
+  "checkout": "E:/Git/ZirconEngine",
+  "head": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "observedAtUtc": "2026-10-13 04:48:37 UTC",
+  "state": "awaiting-independent-review",
+  "scope": [
+    "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+    "zircon_runtime_interface/src/runtime_api/session/session.rs",
+    "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+    "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+    "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+    "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+  ],
+  "evidencePath": "docs/tests/source-comment-review-evidence-core-session-003.json",
+  "authority": {
+    "coverageSnapshotSha256": "efe6d0ac73503db0a8c72462fcb2c7f30499f3a957f3b51ea39c26d753ea9156",
+    "assignment": "root独占授权的core-session-003精确6源码+本证据，初始物理SHA按账本校验；不写global coverage/issues/plan。",
+    "standardSha256": "fd4665076c529273a59ef74b08f83a2d572099a438c5d20ac81e6b14a7047b73",
+    "schemaSha256": "b21c4dc2261bba0a582121a5807e48bafb6def8d5ccc8b24a545f4929aa91db6"
+  },
+  "reviewInventory": {
+    "objectGroups": 46,
+    "definitionAnchors": 223,
+    "countsByKind": {
+      "module-summary": 6,
+      "import-binding": 14,
+      "struct": 8,
+      "field": 35,
+      "inherent-impl": 8,
+      "derive-attribute": 8,
+      "representation-attribute": 6,
+      "function": 22,
+      "macro-invocation": 7,
+      "test-attribute": 1,
+      "module-declaration": 15,
+      "module-path-attribute": 15,
+      "use-declaration": 13,
+      "re-export": 63,
+      "configuration-attribute": 2
+    },
+    "namedFieldCount": 35,
+    "structCount": 8,
+    "inherentImplCount": 8,
+    "functionCount": 22,
+    "publicReexportBindings": 63,
+    "productionModuleDeclarations": 13,
+    "cfgTestModuleDeclarations": 2,
+    "inlineOrTupleFields": 0,
+    "methodParameters": "逐方法parameters字段枚举；与definition anchors不同口径，不假称AST扫描器发现。",
+    "basis": "人工逐声明/字段/impl/属性/导入/宏与函数体核对，组内逐成员枚举；counts从本证据真实唯一锚点计算，不是全仓覆盖率。",
+    "allAssignedFilesReadCompletely": true,
+    "allMethodBodiesAndErrorBranchesReviewed": true
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+      "beforeSha256": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+      "currentSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "afterSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "reviewedSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "state": "awaiting-independent-review",
+      "owner": "core_contracts",
+      "batchId": "core-session-003",
+      "objectEvidence": [
+        "SES-OBJ-001",
+        "SES-OBJ-007",
+        "SES-OBJ-015"
+      ],
+      "callerEvidence": [
+        "CAM",
+        "EVENT",
+        "SIM",
+        "ROUTE"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending",
+        "accepted": false
+      },
+      "validation": {
+        "rustfmtExitCode": 0,
+        "staticChecks": {
+          "status": "passed",
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--check",
+            "--",
+            "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+            "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+            "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+            "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+          ],
+          "exitCode": 0,
+          "receipt": {
+            "execCell": "28",
+            "nativeSession": 47798,
+            "finalChunkId": "e3a672"
+          },
+          "stderrObservation": "Git给出LF将由autocrlf转CRLF提示，本次只读命令未写源；未把提示当作行尾已转换。"
+        },
+        "sourceProof": {
+          "baselineLines": 38,
+          "currentLines": 76,
+          "insertedCommentOrBlankLines": 38,
+          "deletedOrChangedLines": 0,
+          "originalRawByteLinesPreserved": true
+        }
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null,
+        "formalAcceptance": false
+      },
+      "physicalLayout": {
+        "initial": {
+          "lines": 38,
+          "CRLF": 0,
+          "bareLF": 38
+        },
+        "current": {
+          "lines": 76,
+          "CRLF": 0,
+          "bareLF": 76
+        },
+        "originalEolBytesPreserved": true,
+        "newCommentsUseAdjacentLineEol": true
+      },
+      "completeFileRead": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+      "beforeSha256": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+      "currentSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "afterSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "reviewedSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "state": "awaiting-independent-review",
+      "owner": "core_contracts",
+      "batchId": "core-session-003",
+      "objectEvidence": [
+        "SES-OBJ-002",
+        "SES-OBJ-008",
+        "SES-OBJ-009",
+        "SES-OBJ-016",
+        "SES-OBJ-017",
+        "SES-OBJ-018",
+        "SES-OBJ-019",
+        "SES-OBJ-020"
+      ],
+      "callerEvidence": [
+        "APP",
+        "FFI",
+        "WAKE",
+        "HOSTWAKE",
+        "DESTROY"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending",
+        "accepted": false
+      },
+      "validation": {
+        "rustfmtExitCode": 0,
+        "staticChecks": {
+          "status": "passed",
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--check",
+            "--",
+            "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+            "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+            "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+            "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+          ],
+          "exitCode": 0,
+          "receipt": {
+            "execCell": "28",
+            "nativeSession": 47798,
+            "finalChunkId": "e3a672"
+          },
+          "stderrObservation": "Git给出LF将由autocrlf转CRLF提示，本次只读命令未写源；未把提示当作行尾已转换。"
+        },
+        "sourceProof": {
+          "baselineLines": 72,
+          "currentLines": 149,
+          "insertedCommentOrBlankLines": 77,
+          "deletedOrChangedLines": 0,
+          "originalRawByteLinesPreserved": true
+        }
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null,
+        "formalAcceptance": false
+      },
+      "physicalLayout": {
+        "initial": {
+          "lines": 72,
+          "CRLF": 0,
+          "bareLF": 72
+        },
+        "current": {
+          "lines": 149,
+          "CRLF": 0,
+          "bareLF": 149
+        },
+        "originalEolBytesPreserved": true,
+        "newCommentsUseAdjacentLineEol": true
+      },
+      "completeFileRead": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+      "beforeSha256": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+      "currentSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "afterSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "reviewedSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "state": "awaiting-independent-review",
+      "owner": "core_contracts",
+      "batchId": "core-session-003",
+      "objectEvidence": [
+        "SES-OBJ-003",
+        "SES-OBJ-010",
+        "SES-OBJ-021",
+        "SES-OBJ-022",
+        "SES-OBJ-023",
+        "SES-OBJ-024",
+        "SES-OBJ-025",
+        "SES-OBJ-026"
+      ],
+      "callerEvidence": [
+        "APP",
+        "HANDLE",
+        "RESOURCE",
+        "TRAIT"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending",
+        "accepted": false
+      },
+      "validation": {
+        "rustfmtExitCode": 0,
+        "staticChecks": {
+          "status": "passed",
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--check",
+            "--",
+            "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+            "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+            "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+            "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+          ],
+          "exitCode": 0,
+          "receipt": {
+            "execCell": "28",
+            "nativeSession": 47798,
+            "finalChunkId": "e3a672"
+          },
+          "stderrObservation": "Git给出LF将由autocrlf转CRLF提示，本次只读命令未写源；未把提示当作行尾已转换。"
+        },
+        "sourceProof": {
+          "baselineLines": 84,
+          "currentLines": 155,
+          "insertedCommentOrBlankLines": 71,
+          "deletedOrChangedLines": 0,
+          "originalRawByteLinesPreserved": true
+        }
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null,
+        "formalAcceptance": false
+      },
+      "physicalLayout": {
+        "initial": {
+          "lines": 84,
+          "CRLF": 0,
+          "bareLF": 84
+        },
+        "current": {
+          "lines": 155,
+          "CRLF": 0,
+          "bareLF": 155
+        },
+        "originalEolBytesPreserved": true,
+        "newCommentsUseAdjacentLineEol": true
+      },
+      "completeFileRead": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+      "beforeSha256": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+      "currentSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "afterSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "reviewedSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "state": "awaiting-independent-review",
+      "owner": "core_contracts",
+      "batchId": "core-session-003",
+      "objectEvidence": [
+        "SES-OBJ-004",
+        "SES-OBJ-011",
+        "SES-OBJ-012",
+        "SES-OBJ-013",
+        "SES-OBJ-014",
+        "SES-OBJ-027",
+        "SES-OBJ-028",
+        "SES-OBJ-029",
+        "SES-OBJ-030",
+        "SES-OBJ-031"
+      ],
+      "callerEvidence": [
+        "SURFACE",
+        "BIND",
+        "WIRE",
+        "UIADAPTER"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending",
+        "accepted": false
+      },
+      "validation": {
+        "rustfmtExitCode": 0,
+        "staticChecks": {
+          "status": "passed",
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--check",
+            "--",
+            "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+            "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+            "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+            "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+          ],
+          "exitCode": 0,
+          "receipt": {
+            "execCell": "28",
+            "nativeSession": 47798,
+            "finalChunkId": "e3a672"
+          },
+          "stderrObservation": "Git给出LF将由autocrlf转CRLF提示，本次只读命令未写源；未把提示当作行尾已转换。"
+        },
+        "sourceProof": {
+          "baselineLines": 97,
+          "currentLines": 208,
+          "insertedCommentOrBlankLines": 111,
+          "deletedOrChangedLines": 0,
+          "originalRawByteLinesPreserved": true
+        }
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null,
+        "formalAcceptance": false
+      },
+      "physicalLayout": {
+        "initial": {
+          "lines": 97,
+          "CRLF": 81,
+          "bareLF": 16
+        },
+        "current": {
+          "lines": 208,
+          "CRLF": 169,
+          "bareLF": 39
+        },
+        "originalEolBytesPreserved": true,
+        "newCommentsUseAdjacentLineEol": true
+      },
+      "completeFileRead": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+      "beforeSha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+      "currentSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "afterSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "reviewedSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "state": "awaiting-independent-review",
+      "owner": "core_contracts",
+      "batchId": "core-session-003",
+      "objectEvidence": [
+        "SES-OBJ-005",
+        "SES-OBJ-033",
+        "SES-OBJ-034",
+        "SES-OBJ-035",
+        "SES-OBJ-036",
+        "SES-OBJ-037",
+        "SES-OBJ-038",
+        "SES-OBJ-039",
+        "SES-OBJ-040",
+        "SES-OBJ-041",
+        "SES-OBJ-042",
+        "SES-OBJ-043",
+        "SES-OBJ-044",
+        "SES-OBJ-045",
+        "SES-OBJ-046"
+      ],
+      "callerEvidence": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending",
+        "accepted": false
+      },
+      "validation": {
+        "rustfmtExitCode": 0,
+        "staticChecks": {
+          "status": "passed",
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--check",
+            "--",
+            "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+            "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+            "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+            "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+          ],
+          "exitCode": 0,
+          "receipt": {
+            "execCell": "28",
+            "nativeSession": 47798,
+            "finalChunkId": "e3a672"
+          },
+          "stderrObservation": "Git给出LF将由autocrlf转CRLF提示，本次只读命令未写源；未把提示当作行尾已转换。"
+        },
+        "sourceProof": {
+          "baselineLines": 86,
+          "currentLines": 96,
+          "insertedCommentOrBlankLines": 10,
+          "deletedOrChangedLines": 0,
+          "originalRawByteLinesPreserved": true
+        }
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null,
+        "formalAcceptance": false
+      },
+      "physicalLayout": {
+        "initial": {
+          "lines": 86,
+          "CRLF": 0,
+          "bareLF": 86
+        },
+        "current": {
+          "lines": 96,
+          "CRLF": 0,
+          "bareLF": 96
+        },
+        "originalEolBytesPreserved": true,
+        "newCommentsUseAdjacentLineEol": true
+      },
+      "completeFileRead": true
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+      "beforeSha256": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+      "currentSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "afterSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "reviewedSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "state": "awaiting-independent-review",
+      "owner": "core_contracts",
+      "batchId": "core-session-003",
+      "objectEvidence": [
+        "SES-OBJ-006",
+        "SES-OBJ-032"
+      ],
+      "callerEvidence": [
+        "APP",
+        "HANDLE"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending",
+        "accepted": false
+      },
+      "validation": {
+        "rustfmtExitCode": 0,
+        "staticChecks": {
+          "status": "passed",
+          "command": [
+            "git",
+            "--no-optional-locks",
+            "diff",
+            "--check",
+            "--",
+            "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+            "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+            "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+            "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+          ],
+          "exitCode": 0,
+          "receipt": {
+            "execCell": "28",
+            "nativeSession": 47798,
+            "finalChunkId": "e3a672"
+          },
+          "stderrObservation": "Git给出LF将由autocrlf转CRLF提示，本次只读命令未写源；未把提示当作行尾已转换。"
+        },
+        "sourceProof": {
+          "baselineLines": 23,
+          "currentLines": 28,
+          "insertedCommentOrBlankLines": 5,
+          "deletedOrChangedLines": 0,
+          "originalRawByteLinesPreserved": true
+        }
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null,
+        "formalAcceptance": false
+      },
+      "physicalLayout": {
+        "initial": {
+          "lines": 23,
+          "CRLF": 0,
+          "bareLF": 23
+        },
+        "current": {
+          "lines": 28,
+          "CRLF": 0,
+          "bareLF": 28
+        },
+        "originalEolBytesPreserved": true,
+        "newCommentsUseAdjacentLineEol": true
+      },
+      "completeFileRead": true
+    }
+  ],
+  "objectEvidence": [
+    {
+      "id": "SES-OBJ-001",
+      "symbol": "camera.rs module/imports",
+      "kind": "module-and-import-bindings",
+      "members": [
+        "camera.rs module responsibility",
+        "serde::Deserialize",
+        "serde::Serialize",
+        "crate::math::Transform"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 1,
+          "symbol": "camera.rs module responsibility",
+          "kind": "module-summary",
+          "expectedText": "//!"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 5,
+          "symbol": "serde::Deserialize",
+          "kind": "import-binding",
+          "expectedText": "Deserialize"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 5,
+          "symbol": "serde::Serialize",
+          "kind": "import-binding",
+          "expectedText": "Serialize"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 7,
+          "symbol": "crate::math::Transform",
+          "kind": "import-binding",
+          "expectedText": "Transform"
+        }
+      ],
+      "calls": [
+        "CAM",
+        "EVENT",
+        "SIM",
+        "ROUTE"
+      ],
+      "implementations": [
+        "声明域与导入绑定不运行注册或资源操作；运行语义由本批逐类型/逐方法记录及真实消费者定义。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "宏/FFI关联见各数据类型和具体调用记录；没有独立模块初始化函数。"
+      ],
+      "testsOrContract": [
+        "ABIGUARD",
+        "BOUNDARY"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：Rust模块编译/名称解析；状态：只引入列明绑定；后果：本域符号可用于定义及派生；本批不增加运行期副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "源码全文已读；所有原有use、path和cfg token保持。测试模块的代码仅cfg(test)接入。"
+      ],
+      "commentDecision": "新增中文//!说明职责、边界及本域引用；导入本身不添加复述式逐行注释。"
+    },
+    {
+      "id": "SES-OBJ-002",
+      "symbol": "session.rs module/imports",
+      "kind": "module-and-import-bindings",
+      "members": [
+        "session.rs module responsibility",
+        "crate::buffer::ZrByteSlice",
+        "ZIRCON_RUNTIME_ABI_VERSION_V1",
+        "ZIRCON_RUNTIME_ABI_VERSION_V3"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 1,
+          "symbol": "session.rs module responsibility",
+          "kind": "module-summary",
+          "expectedText": "//!"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 5,
+          "symbol": "crate::buffer::ZrByteSlice",
+          "kind": "import-binding",
+          "expectedText": "ZrByteSlice"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 6,
+          "symbol": "ZIRCON_RUNTIME_ABI_VERSION_V1",
+          "kind": "import-binding",
+          "expectedText": "ZIRCON_RUNTIME_ABI_VERSION_V1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 6,
+          "symbol": "ZIRCON_RUNTIME_ABI_VERSION_V3",
+          "kind": "import-binding",
+          "expectedText": "ZIRCON_RUNTIME_ABI_VERSION_V3"
+        }
+      ],
+      "calls": [
+        "APP",
+        "FFI",
+        "WAKE",
+        "HOSTWAKE",
+        "DESTROY"
+      ],
+      "implementations": [
+        "声明域与导入绑定不运行注册或资源操作；运行语义由本批逐类型/逐方法记录及真实消费者定义。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "宏/FFI关联见各数据类型和具体调用记录；没有独立模块初始化函数。"
+      ],
+      "testsOrContract": [
+        "ABIGUARD",
+        "BOUNDARY"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：Rust模块编译/名称解析；状态：只引入列明绑定；后果：本域符号可用于定义及派生；本批不增加运行期副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "源码全文已读；所有原有use、path和cfg token保持。测试模块的代码仅cfg(test)接入。"
+      ],
+      "commentDecision": "新增中文//!说明职责、边界及本域引用；导入本身不添加复述式逐行注释。"
+    },
+    {
+      "id": "SES-OBJ-003",
+      "symbol": "session_identity.rs module/imports",
+      "kind": "module-and-import-bindings",
+      "members": [
+        "session_identity.rs module responsibility",
+        "std::sync::Arc",
+        "crate::handles::ZrRuntimeSessionHandle"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 1,
+          "symbol": "session_identity.rs module responsibility",
+          "kind": "module-summary",
+          "expectedText": "//!"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 5,
+          "symbol": "std::sync::Arc",
+          "kind": "import-binding",
+          "expectedText": "Arc"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 7,
+          "symbol": "crate::handles::ZrRuntimeSessionHandle",
+          "kind": "import-binding",
+          "expectedText": "ZrRuntimeSessionHandle"
+        }
+      ],
+      "calls": [
+        "APP",
+        "HANDLE",
+        "RESOURCE",
+        "TRAIT"
+      ],
+      "implementations": [
+        "声明域与导入绑定不运行注册或资源操作；运行语义由本批逐类型/逐方法记录及真实消费者定义。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "宏/FFI关联见各数据类型和具体调用记录；没有独立模块初始化函数。"
+      ],
+      "testsOrContract": [
+        "ABIGUARD",
+        "BOUNDARY"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：Rust模块编译/名称解析；状态：只引入列明绑定；后果：本域符号可用于定义及派生；本批不增加运行期副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "源码全文已读；所有原有use、path和cfg token保持。测试模块的代码仅cfg(test)接入。"
+      ],
+      "commentDecision": "新增中文//!说明职责、边界及本域引用；导入本身不添加复述式逐行注释。"
+    },
+    {
+      "id": "SES-OBJ-004",
+      "symbol": "viewport.rs module/imports",
+      "kind": "module-and-import-bindings",
+      "members": [
+        "viewport.rs module responsibility",
+        "crate::handles::ZrRuntimeViewportHandle",
+        "ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1",
+        "ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 1,
+          "symbol": "viewport.rs module responsibility",
+          "kind": "module-summary",
+          "expectedText": "//!"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 5,
+          "symbol": "crate::handles::ZrRuntimeViewportHandle",
+          "kind": "import-binding",
+          "expectedText": "ZrRuntimeViewportHandle"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 8,
+          "symbol": "ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1",
+          "kind": "import-binding",
+          "expectedText": "ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 8,
+          "symbol": "ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1",
+          "kind": "import-binding",
+          "expectedText": "ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1"
+        }
+      ],
+      "calls": [
+        "SURFACE",
+        "BIND",
+        "WIRE",
+        "UIADAPTER"
+      ],
+      "implementations": [
+        "声明域与导入绑定不运行注册或资源操作；运行语义由本批逐类型/逐方法记录及真实消费者定义。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "宏/FFI关联见各数据类型和具体调用记录；没有独立模块初始化函数。"
+      ],
+      "testsOrContract": [
+        "ABIGUARD",
+        "BOUNDARY"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：Rust模块编译/名称解析；状态：只引入列明绑定；后果：本域符号可用于定义及派生；本批不增加运行期副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "源码全文已读；所有原有use、path和cfg token保持。测试模块的代码仅cfg(test)接入。"
+      ],
+      "commentDecision": "新增中文//!说明职责、边界及本域引用；导入本身不添加复述式逐行注释。"
+    },
+    {
+      "id": "SES-OBJ-005",
+      "symbol": "mod.rs module/imports",
+      "kind": "module-and-import-bindings",
+      "members": [
+        "mod.rs module responsibility"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 1,
+          "symbol": "mod.rs module responsibility",
+          "kind": "module-summary",
+          "expectedText": "//!"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "声明域与导入绑定不运行注册或资源操作；运行语义由本批逐类型/逐方法记录及真实消费者定义。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "显式#[path]子模块及cfg(test)接入在下方单独逐成员记录。"
+      ],
+      "testsOrContract": [
+        "ABIGUARD",
+        "BOUNDARY"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：Rust模块编译/名称解析；状态：只引入列明绑定；后果：本域符号可用于定义及派生；本批不增加运行期副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "源码全文已读；所有原有use、path和cfg token保持。测试模块的代码仅cfg(test)接入。"
+      ],
+      "commentDecision": "新增中文//!说明职责、边界及本域引用；导入本身不添加复述式逐行注释。"
+    },
+    {
+      "id": "SES-OBJ-006",
+      "symbol": "tests/session_identity_tests.rs module/imports",
+      "kind": "module-and-import-bindings",
+      "members": [
+        "tests/session_identity_tests.rs module responsibility",
+        "std::sync::Arc",
+        "super::GatewaySessionIdentity",
+        "crate::ZrRuntimeSessionHandle"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 1,
+          "symbol": "tests/session_identity_tests.rs module responsibility",
+          "kind": "module-summary",
+          "expectedText": "//!"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 4,
+          "symbol": "std::sync::Arc",
+          "kind": "import-binding",
+          "expectedText": "Arc"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 6,
+          "symbol": "super::GatewaySessionIdentity",
+          "kind": "import-binding",
+          "expectedText": "GatewaySessionIdentity"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 7,
+          "symbol": "crate::ZrRuntimeSessionHandle",
+          "kind": "import-binding",
+          "expectedText": "ZrRuntimeSessionHandle"
+        }
+      ],
+      "calls": [
+        "APP",
+        "HANDLE"
+      ],
+      "implementations": [
+        "声明域与导入绑定不运行注册或资源操作；运行语义由本批逐类型/逐方法记录及真实消费者定义。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "宏/FFI关联见各数据类型和具体调用记录；没有独立模块初始化函数。"
+      ],
+      "testsOrContract": [
+        "本文件test属性与断言保持原文。"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：Rust模块编译/名称解析；状态：只引入列明绑定；后果：本域符号可用于定义及派生；本批不增加运行期副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "源码全文已读；所有原有use、path和cfg token保持。测试模块的代码仅cfg(test)接入。"
+      ],
+      "commentDecision": "新增中文//!说明职责、边界及本域引用；导入本身不添加复述式逐行注释。"
+    },
+    {
+      "id": "SES-OBJ-007",
+      "symbol": "ZrRuntimeViewportCameraV1 data/fields/impl",
+      "kind": "data-contract-group",
+      "members": [
+        "ZrRuntimeViewportCameraV1",
+        "ZrRuntimeViewportCameraV1::abi_version",
+        "ZrRuntimeViewportCameraV1::transform",
+        "ZrRuntimeViewportCameraV1::projection_kind",
+        "ZrRuntimeViewportCameraV1::fov_y_radians",
+        "ZrRuntimeViewportCameraV1::ortho_size",
+        "ZrRuntimeViewportCameraV1::z_near",
+        "ZrRuntimeViewportCameraV1::z_far",
+        "impl ZrRuntimeViewportCameraV1",
+        "ZrRuntimeViewportCameraV1 derive(Clone,Copy,Debug,PartialEq,Serialize,Deserialize)"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 24,
+          "symbol": "ZrRuntimeViewportCameraV1",
+          "kind": "struct",
+          "expectedText": "pub struct ZrRuntimeViewportCameraV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 26,
+          "symbol": "ZrRuntimeViewportCameraV1::abi_version",
+          "kind": "field",
+          "expectedText": "abi_version: u32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 28,
+          "symbol": "ZrRuntimeViewportCameraV1::transform",
+          "kind": "field",
+          "expectedText": "transform: Transform"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 30,
+          "symbol": "ZrRuntimeViewportCameraV1::projection_kind",
+          "kind": "field",
+          "expectedText": "projection_kind: u32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 32,
+          "symbol": "ZrRuntimeViewportCameraV1::fov_y_radians",
+          "kind": "field",
+          "expectedText": "fov_y_radians: f32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 34,
+          "symbol": "ZrRuntimeViewportCameraV1::ortho_size",
+          "kind": "field",
+          "expectedText": "ortho_size: f32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 36,
+          "symbol": "ZrRuntimeViewportCameraV1::z_near",
+          "kind": "field",
+          "expectedText": "z_near: f32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 38,
+          "symbol": "ZrRuntimeViewportCameraV1::z_far",
+          "kind": "field",
+          "expectedText": "z_far: f32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 41,
+          "symbol": "impl ZrRuntimeViewportCameraV1",
+          "kind": "inherent-impl",
+          "expectedText": "impl ZrRuntimeViewportCameraV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 9,
+          "symbol": "ZrRuntimeViewportCameraV1 derive(Clone,Copy,Debug,PartialEq,Serialize,Deserialize)",
+          "kind": "derive-attribute",
+          "expectedText": "#[derive("
+        }
+      ],
+      "calls": [
+        "SIM",
+        "ROUTE",
+        "EVENT",
+        "CAM"
+      ],
+      "implementations": [
+        "固有impl的全部成员在下方方法记录中枚举；无手写Drop或额外trait实现。",
+        "Clone由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Copy由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Debug由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "PartialEq由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Serialize由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Deserialize由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "此类型没有repr(C)承诺；camera经serde JSON，identity经Rust trait/值传递，均不把Rust对象直接当C布局。"
+      ],
+      "testsOrContract": [
+        "CAMTEST",
+        "EVENTTEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：构造/复制/派生调用；状态：各列明字段作为描述值保存；后果：消费者按同一字段含义验证或比较，impl声明自身没有可执行副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "serde派生不调用validate_editor_camera；有限性/scale/rotation/projection判断在CAM:148-180。",
+        "相机值被controller复制，JSON Vec借用由ROUTE覆盖同步事件调用；只改extract相机，非Scene相机节点。",
+        "fov、ortho、near、far均要求finite，0<near<far；几何范围按projection分支，未知kind错误。"
+      ],
+      "commentDecision": "保留旧注释，补中文职责、实际调用时机、字段语义、生命周期及#参考。所有列明字段逐项核对，未新增行为。",
+      "fieldRoles": [
+        {
+          "name": "abi_version",
+          "type": "u32",
+          "line": 26
+        },
+        {
+          "name": "transform",
+          "type": "Transform",
+          "line": 28
+        },
+        {
+          "name": "projection_kind",
+          "type": "u32",
+          "line": 30
+        },
+        {
+          "name": "fov_y_radians",
+          "type": "f32",
+          "line": 32
+        },
+        {
+          "name": "ortho_size",
+          "type": "f32",
+          "line": 34
+        },
+        {
+          "name": "z_near",
+          "type": "f32",
+          "line": 36
+        },
+        {
+          "name": "z_far",
+          "type": "f32",
+          "line": 38
+        }
+      ],
+      "generatedTraits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq",
+        "Serialize",
+        "Deserialize"
+      ]
+    },
+    {
+      "id": "SES-OBJ-008",
+      "symbol": "ZrRuntimeWakeSinkV1 data/fields/impl",
+      "kind": "data-contract-group",
+      "members": [
+        "ZrRuntimeWakeSinkV1",
+        "ZrRuntimeWakeSinkV1::abi_version",
+        "ZrRuntimeWakeSinkV1::token",
+        "ZrRuntimeWakeSinkV1::wake",
+        "impl ZrRuntimeWakeSinkV1",
+        "ZrRuntimeWakeSinkV1 derive(Clone,Copy,Debug)",
+        "ZrRuntimeWakeSinkV1 repr(C)"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 26,
+          "symbol": "ZrRuntimeWakeSinkV1",
+          "kind": "struct",
+          "expectedText": "pub struct ZrRuntimeWakeSinkV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 28,
+          "symbol": "ZrRuntimeWakeSinkV1::abi_version",
+          "kind": "field",
+          "expectedText": "abi_version: u32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 30,
+          "symbol": "ZrRuntimeWakeSinkV1::token",
+          "kind": "field",
+          "expectedText": "token: u64"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 32,
+          "symbol": "ZrRuntimeWakeSinkV1::wake",
+          "kind": "field",
+          "expectedText": "wake: Option<unsafe extern \"C\" fn(u64)>"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 35,
+          "symbol": "impl ZrRuntimeWakeSinkV1",
+          "kind": "inherent-impl",
+          "expectedText": "impl ZrRuntimeWakeSinkV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 15,
+          "symbol": "ZrRuntimeWakeSinkV1 derive(Clone,Copy,Debug)",
+          "kind": "derive-attribute",
+          "expectedText": "#[derive("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 14,
+          "symbol": "ZrRuntimeWakeSinkV1 repr(C)",
+          "kind": "representation-attribute",
+          "expectedText": "#[repr(C)]"
+        }
+      ],
+      "calls": [
+        "HOSTWAKE",
+        "WAKE",
+        "ACTIVITY",
+        "DESTROY",
+        "APP"
+      ],
+      "implementations": [
+        "固有impl的全部成员在下方方法记录中枚举；无手写Drop或额外trait实现。",
+        "Clone由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Copy由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Debug由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "repr(C)和原字段类型/顺序保留；FFI入口与所有权责任见相关caller快照。"
+      ],
+      "testsOrContract": [
+        "CONFIGTEST",
+        "ABIGUARD"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：构造/复制/派生调用；状态：各列明字段作为描述值保存；后果：消费者按同一字段含义验证或比较，impl声明自身没有可执行副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "三字段分别为V1版本、opaque host token及C函数地址；pair只有disabled(0,None)或registered(nonzero,Some)。",
+        "Copy只复制标量和地址。Runtime from_abi/wake不会证明函数地址安全；宿主负责可调用函数/状态、线程适用性及不跨C展开。",
+        "DESTROY在同callback线程拒绝同步销毁；disable新entries后drain in-flight；失败不能当已静止，APP成功destroy后才注销及卸载。"
+      ],
+      "commentDecision": "保留旧注释，补中文职责、实际调用时机、字段语义、生命周期及#参考。所有列明字段逐项核对，未新增行为。",
+      "fieldRoles": [
+        {
+          "name": "abi_version",
+          "type": "u32",
+          "line": 28
+        },
+        {
+          "name": "token",
+          "type": "u64",
+          "line": 30
+        },
+        {
+          "name": "wake",
+          "type": "Option<unsafe extern \"C\" fn(u64)>",
+          "line": 32
+        }
+      ],
+      "generatedTraits": [
+        "Clone",
+        "Copy",
+        "Debug"
+      ]
+    },
+    {
+      "id": "SES-OBJ-009",
+      "symbol": "ZrRuntimeSessionConfigV3 data/fields/impl",
+      "kind": "data-contract-group",
+      "members": [
+        "ZrRuntimeSessionConfigV3",
+        "ZrRuntimeSessionConfigV3::abi_version",
+        "ZrRuntimeSessionConfigV3::profile",
+        "ZrRuntimeSessionConfigV3::project_root",
+        "ZrRuntimeSessionConfigV3::play_scene",
+        "ZrRuntimeSessionConfigV3::play_report_pipe",
+        "ZrRuntimeSessionConfigV3::wake_sink",
+        "impl ZrRuntimeSessionConfigV3",
+        "ZrRuntimeSessionConfigV3 derive(Clone,Copy,Debug)",
+        "ZrRuntimeSessionConfigV3 repr(C)"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 99,
+          "symbol": "ZrRuntimeSessionConfigV3",
+          "kind": "struct",
+          "expectedText": "pub struct ZrRuntimeSessionConfigV3"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 101,
+          "symbol": "ZrRuntimeSessionConfigV3::abi_version",
+          "kind": "field",
+          "expectedText": "abi_version: u32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 103,
+          "symbol": "ZrRuntimeSessionConfigV3::profile",
+          "kind": "field",
+          "expectedText": "profile: ZrByteSlice"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 106,
+          "symbol": "ZrRuntimeSessionConfigV3::project_root",
+          "kind": "field",
+          "expectedText": "project_root: ZrByteSlice"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 109,
+          "symbol": "ZrRuntimeSessionConfigV3::play_scene",
+          "kind": "field",
+          "expectedText": "play_scene: ZrByteSlice"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 112,
+          "symbol": "ZrRuntimeSessionConfigV3::play_report_pipe",
+          "kind": "field",
+          "expectedText": "play_report_pipe: ZrByteSlice"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 114,
+          "symbol": "ZrRuntimeSessionConfigV3::wake_sink",
+          "kind": "field",
+          "expectedText": "wake_sink: ZrRuntimeWakeSinkV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 117,
+          "symbol": "impl ZrRuntimeSessionConfigV3",
+          "kind": "inherent-impl",
+          "expectedText": "impl ZrRuntimeSessionConfigV3"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 87,
+          "symbol": "ZrRuntimeSessionConfigV3 derive(Clone,Copy,Debug)",
+          "kind": "derive-attribute",
+          "expectedText": "#[derive("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 86,
+          "symbol": "ZrRuntimeSessionConfigV3 repr(C)",
+          "kind": "representation-attribute",
+          "expectedText": "#[repr(C)]"
+        }
+      ],
+      "calls": [
+        "APP",
+        "FFI",
+        "PROFILE",
+        "PROJECT",
+        "API",
+        "EXPORT"
+      ],
+      "implementations": [
+        "固有impl的全部成员在下方方法记录中枚举；无手写Drop或额外trait实现。",
+        "Clone由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Copy由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Debug由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "repr(C)和原字段类型/顺序保留；FFI入口与所有权责任见相关caller快照。"
+      ],
+      "testsOrContract": [
+        "CONFIGTEST",
+        "ABIGUARD"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：构造/复制/派生调用；状态：各列明字段作为描述值保存；后果：消费者按同一字段含义验证或比较，impl声明自身没有可执行副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "V3 config与V1 wake分别检查。profile/project_root/play_scene/play_report_pipe四切片借用于同步create；Copy不会保活任何输入allocation。",
+        "APP的静态/借用字符串建立真实可读区间；unsafe ABI调用方仍负责单allocation、初始化、完整调用期存活与无并发写，FFI的数值预算不能证明裸地址。",
+        "PROFILE先解析静态mode值；PROJECT把root解析为拥有的路径并保存RelPath场景，report仅验证且transport由App持有；wake另有会话期注册寿命。"
+      ],
+      "commentDecision": "保留旧注释，补中文职责、实际调用时机、字段语义、生命周期及#参考。所有列明字段逐项核对，未新增行为。",
+      "fieldRoles": [
+        {
+          "name": "abi_version",
+          "type": "u32",
+          "line": 101
+        },
+        {
+          "name": "profile",
+          "type": "ZrByteSlice",
+          "line": 103
+        },
+        {
+          "name": "project_root",
+          "type": "ZrByteSlice",
+          "line": 106
+        },
+        {
+          "name": "play_scene",
+          "type": "ZrByteSlice",
+          "line": 109
+        },
+        {
+          "name": "play_report_pipe",
+          "type": "ZrByteSlice",
+          "line": 112
+        },
+        {
+          "name": "wake_sink",
+          "type": "ZrRuntimeWakeSinkV1",
+          "line": 114
+        }
+      ],
+      "generatedTraits": [
+        "Clone",
+        "Copy",
+        "Debug"
+      ]
+    },
+    {
+      "id": "SES-OBJ-010",
+      "symbol": "GatewaySessionIdentity data/fields/impl",
+      "kind": "data-contract-group",
+      "members": [
+        "GatewaySessionIdentity",
+        "GatewaySessionIdentity::runtime_instance",
+        "GatewaySessionIdentity::runtime_session",
+        "GatewaySessionIdentity::gateway_generation",
+        "GatewaySessionIdentity::transport_epoch",
+        "GatewaySessionIdentity::project",
+        "GatewaySessionIdentity::play_instance",
+        "impl GatewaySessionIdentity",
+        "GatewaySessionIdentity derive(Clone,Debug,PartialEq,Eq,Hash)"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 28,
+          "symbol": "GatewaySessionIdentity",
+          "kind": "struct",
+          "expectedText": "pub struct GatewaySessionIdentity"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 30,
+          "symbol": "GatewaySessionIdentity::runtime_instance",
+          "kind": "field",
+          "expectedText": "runtime_instance: u64"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 32,
+          "symbol": "GatewaySessionIdentity::runtime_session",
+          "kind": "field",
+          "expectedText": "runtime_session: ZrRuntimeSessionHandle"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 34,
+          "symbol": "GatewaySessionIdentity::gateway_generation",
+          "kind": "field",
+          "expectedText": "gateway_generation: u64"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 36,
+          "symbol": "GatewaySessionIdentity::transport_epoch",
+          "kind": "field",
+          "expectedText": "transport_epoch: u64"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 38,
+          "symbol": "GatewaySessionIdentity::project",
+          "kind": "field",
+          "expectedText": "project: Option<Arc<str>>"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 40,
+          "symbol": "GatewaySessionIdentity::play_instance",
+          "kind": "field",
+          "expectedText": "play_instance: Option<u64>"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 43,
+          "symbol": "impl GatewaySessionIdentity",
+          "kind": "inherent-impl",
+          "expectedText": "impl GatewaySessionIdentity"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 13,
+          "symbol": "GatewaySessionIdentity derive(Clone,Debug,PartialEq,Eq,Hash)",
+          "kind": "derive-attribute",
+          "expectedText": "#[derive("
+        }
+      ],
+      "calls": [
+        "APP",
+        "HANDLE",
+        "GATEWAY",
+        "TRAIT",
+        "RESOURCE"
+      ],
+      "implementations": [
+        "固有impl的全部成员在下方方法记录中枚举；无手写Drop或额外trait实现。",
+        "Clone由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Debug由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "PartialEq由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Eq由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Hash由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "此类型没有repr(C)承诺；camera经serde JSON，identity经Rust trait/值传递，均不把Rust对象直接当C布局。"
+      ],
+      "testsOrContract": [
+        "本批session_identity_tests:11-28"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：构造/复制/派生调用；状态：各列明字段作为描述值保存；后果：消费者按同一字段含义验证或比较，impl声明自身没有可执行副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "所有六字段参与派生Eq/Hash；Clone只共享Arc<str>并复制其余标识，不是会话或DLL保活。",
+        "new接受调用方标识、设generation0/PIENone，无验证/自动epoch分配；APP当前传1，GATEWAY兼容new可传0，两者不能被改写为固定自动生成契约。",
+        "实际provider保活由APP/GATEWAY runtime_owner及gateway lease独立负责；身份只描述来源，完整比较防止不同实例/传输/项目/Play标签混用。"
+      ],
+      "commentDecision": "保留旧注释，补中文职责、实际调用时机、字段语义、生命周期及#参考。所有列明字段逐项核对，未新增行为。",
+      "fieldRoles": [
+        {
+          "name": "runtime_instance",
+          "type": "u64",
+          "line": 30
+        },
+        {
+          "name": "runtime_session",
+          "type": "ZrRuntimeSessionHandle",
+          "line": 32
+        },
+        {
+          "name": "gateway_generation",
+          "type": "u64",
+          "line": 34
+        },
+        {
+          "name": "transport_epoch",
+          "type": "u64",
+          "line": 36
+        },
+        {
+          "name": "project",
+          "type": "Option<Arc<str>>",
+          "line": 38
+        },
+        {
+          "name": "play_instance",
+          "type": "Option<u64>",
+          "line": 40
+        }
+      ],
+      "generatedTraits": [
+        "Clone",
+        "Debug",
+        "PartialEq",
+        "Eq",
+        "Hash"
+      ]
+    },
+    {
+      "id": "SES-OBJ-011",
+      "symbol": "ZrRuntimeViewportSizeV1 data/fields/impl",
+      "kind": "data-contract-group",
+      "members": [
+        "ZrRuntimeViewportSizeV1",
+        "ZrRuntimeViewportSizeV1::width",
+        "ZrRuntimeViewportSizeV1::height",
+        "impl ZrRuntimeViewportSizeV1",
+        "ZrRuntimeViewportSizeV1 derive(Clone,Copy,Debug,PartialEq,Eq)",
+        "ZrRuntimeViewportSizeV1 repr(C)"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 22,
+          "symbol": "ZrRuntimeViewportSizeV1",
+          "kind": "struct",
+          "expectedText": "pub struct ZrRuntimeViewportSizeV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 24,
+          "symbol": "ZrRuntimeViewportSizeV1::width",
+          "kind": "field",
+          "expectedText": "width: u32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 26,
+          "symbol": "ZrRuntimeViewportSizeV1::height",
+          "kind": "field",
+          "expectedText": "height: u32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 78,
+          "symbol": "impl ZrRuntimeViewportSizeV1",
+          "kind": "inherent-impl",
+          "expectedText": "impl ZrRuntimeViewportSizeV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 12,
+          "symbol": "ZrRuntimeViewportSizeV1 derive(Clone,Copy,Debug,PartialEq,Eq)",
+          "kind": "derive-attribute",
+          "expectedText": "#[derive("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 11,
+          "symbol": "ZrRuntimeViewportSizeV1 repr(C)",
+          "kind": "representation-attribute",
+          "expectedText": "#[repr(C)]"
+        }
+      ],
+      "calls": [
+        "WIRE",
+        "SURFACE",
+        "FFI",
+        "BIND"
+      ],
+      "implementations": [
+        "固有impl的全部成员在下方方法记录中枚举；无手写Drop或额外trait实现。",
+        "Clone由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Copy由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Debug由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "PartialEq由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Eq由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "repr(C)和原字段类型/顺序保留；FFI入口与所有权责任见相关caller快照。"
+      ],
+      "testsOrContract": [
+        "SURFACETEST",
+        "METRICSTEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：构造/复制/派生调用；状态：各列明字段作为描述值保存；后果：消费者按同一字段含义验证或比较，impl声明自身没有可执行副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "尺寸单位由外层逻辑/物理字段或请求指定；new本身不校验或钳制。",
+        "SURFACE消费各max1；FFI frame dimensions检查上限和RGBA预算，不能把其写为new已拒绝0或统一尺寸政策。"
+      ],
+      "commentDecision": "保留旧注释，补中文职责、实际调用时机、字段语义、生命周期及#参考。所有列明字段逐项核对，未新增行为。",
+      "fieldRoles": [
+        {
+          "name": "width",
+          "type": "u32",
+          "line": 24
+        },
+        {
+          "name": "height",
+          "type": "u32",
+          "line": 26
+        }
+      ],
+      "generatedTraits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq",
+        "Eq"
+      ]
+    },
+    {
+      "id": "SES-OBJ-012",
+      "symbol": "ZrRuntimeViewportMetricsV1 data/fields/impl",
+      "kind": "data-contract-group",
+      "members": [
+        "ZrRuntimeViewportMetricsV1",
+        "ZrRuntimeViewportMetricsV1::logical_size",
+        "ZrRuntimeViewportMetricsV1::device_scale_factor",
+        "ZrRuntimeViewportMetricsV1::physical_size",
+        "impl ZrRuntimeViewportMetricsV1",
+        "ZrRuntimeViewportMetricsV1 derive(Clone,Copy,Debug,PartialEq)",
+        "ZrRuntimeViewportMetricsV1 repr(C)"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 44,
+          "symbol": "ZrRuntimeViewportMetricsV1",
+          "kind": "struct",
+          "expectedText": "pub struct ZrRuntimeViewportMetricsV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 46,
+          "symbol": "ZrRuntimeViewportMetricsV1::logical_size",
+          "kind": "field",
+          "expectedText": "logical_size: ZrRuntimeViewportSizeV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 48,
+          "symbol": "ZrRuntimeViewportMetricsV1::device_scale_factor",
+          "kind": "field",
+          "expectedText": "device_scale_factor: f32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 50,
+          "symbol": "ZrRuntimeViewportMetricsV1::physical_size",
+          "kind": "field",
+          "expectedText": "physical_size: ZrRuntimeViewportSizeV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 53,
+          "symbol": "impl ZrRuntimeViewportMetricsV1",
+          "kind": "inherent-impl",
+          "expectedText": "impl ZrRuntimeViewportMetricsV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 30,
+          "symbol": "ZrRuntimeViewportMetricsV1 derive(Clone,Copy,Debug,PartialEq)",
+          "kind": "derive-attribute",
+          "expectedText": "#[derive("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 29,
+          "symbol": "ZrRuntimeViewportMetricsV1 repr(C)",
+          "kind": "representation-attribute",
+          "expectedText": "#[repr(C)]"
+        }
+      ],
+      "calls": [
+        "WIRE",
+        "TRANSLATED",
+        "UIEVENT",
+        "UIADAPTER",
+        "EVENT"
+      ],
+      "implementations": [
+        "固有impl的全部成员在下方方法记录中枚举；无手写Drop或额外trait实现。",
+        "Clone由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Copy由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Debug由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "PartialEq由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "repr(C)和原字段类型/顺序保留；FFI入口与所有权责任见相关caller快照。"
+      ],
+      "testsOrContract": [
+        "METRICSTEST",
+        "UITEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：构造/复制/派生调用；状态：各列明字段作为描述值保存；后果：消费者按同一字段含义验证或比较，impl声明自身没有可执行副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "logical_size、scale、physical_size按值保存；viewport_metrics事件把physical_size复制到size给Runtime resize。",
+        "UIADAPTER任一非0尺寸存在时独立保存两种尺寸并回退无效scale；全零时从event.size回退。没有验证两尺寸乘法关系，不夸大constructor验证。",
+        "f32字段只有PartialEq，不声称Eq或跨NaN总序；无裸资源借用。"
+      ],
+      "commentDecision": "保留旧注释，补中文职责、实际调用时机、字段语义、生命周期及#参考。所有列明字段逐项核对，未新增行为。",
+      "fieldRoles": [
+        {
+          "name": "logical_size",
+          "type": "ZrRuntimeViewportSizeV1",
+          "line": 46
+        },
+        {
+          "name": "device_scale_factor",
+          "type": "f32",
+          "line": 48
+        },
+        {
+          "name": "physical_size",
+          "type": "ZrRuntimeViewportSizeV1",
+          "line": 50
+        }
+      ],
+      "generatedTraits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq"
+      ]
+    },
+    {
+      "id": "SES-OBJ-013",
+      "symbol": "ZrRuntimeNativeSurfaceTargetV1 data/fields/impl",
+      "kind": "data-contract-group",
+      "members": [
+        "ZrRuntimeNativeSurfaceTargetV1",
+        "ZrRuntimeNativeSurfaceTargetV1::abi_version",
+        "ZrRuntimeNativeSurfaceTargetV1::kind",
+        "ZrRuntimeNativeSurfaceTargetV1::window_handle",
+        "ZrRuntimeNativeSurfaceTargetV1::display_handle",
+        "impl ZrRuntimeNativeSurfaceTargetV1",
+        "ZrRuntimeNativeSurfaceTargetV1 derive(Clone,Copy,Debug,PartialEq,Eq)",
+        "ZrRuntimeNativeSurfaceTargetV1 repr(C)"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 107,
+          "symbol": "ZrRuntimeNativeSurfaceTargetV1",
+          "kind": "struct",
+          "expectedText": "pub struct ZrRuntimeNativeSurfaceTargetV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 109,
+          "symbol": "ZrRuntimeNativeSurfaceTargetV1::abi_version",
+          "kind": "field",
+          "expectedText": "abi_version: u32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 111,
+          "symbol": "ZrRuntimeNativeSurfaceTargetV1::kind",
+          "kind": "field",
+          "expectedText": "kind: u32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 113,
+          "symbol": "ZrRuntimeNativeSurfaceTargetV1::window_handle",
+          "kind": "field",
+          "expectedText": "window_handle: u64"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 115,
+          "symbol": "ZrRuntimeNativeSurfaceTargetV1::display_handle",
+          "kind": "field",
+          "expectedText": "display_handle: u64"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 118,
+          "symbol": "impl ZrRuntimeNativeSurfaceTargetV1",
+          "kind": "inherent-impl",
+          "expectedText": "impl ZrRuntimeNativeSurfaceTargetV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 92,
+          "symbol": "ZrRuntimeNativeSurfaceTargetV1 derive(Clone,Copy,Debug,PartialEq,Eq)",
+          "kind": "derive-attribute",
+          "expectedText": "#[derive("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 91,
+          "symbol": "ZrRuntimeNativeSurfaceTargetV1 repr(C)",
+          "kind": "representation-attribute",
+          "expectedText": "#[repr(C)]"
+        }
+      ],
+      "calls": [
+        "TARGET",
+        "SURFACE",
+        "BIND",
+        "FFI"
+      ],
+      "implementations": [
+        "固有impl的全部成员在下方方法记录中枚举；无手写Drop或额外trait实现。",
+        "Clone由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Copy由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Debug由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "PartialEq由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Eq由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "repr(C)和原字段类型/顺序保留；FFI入口与所有权责任见相关caller快照。"
+      ],
+      "testsOrContract": [
+        "SURFACETEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：构造/复制/派生调用；状态：各列明字段作为描述值保存；后果：消费者按同一字段含义验证或比较，impl声明自身没有可执行副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "raw种类使用u32；当前consumer仅V1 Win32、非0HWND，display_handle按HINSTANCE解释且0合法转None。",
+        "描述没有原生所有权；window须保持至成功unbind或成功session destroy；失败不得视为结束借用。",
+        "none只占位，当前bind拒绝NONE，真正unbind是独立已注册API槽。"
+      ],
+      "commentDecision": "保留旧注释，补中文职责、实际调用时机、字段语义、生命周期及#参考。所有列明字段逐项核对，未新增行为。",
+      "fieldRoles": [
+        {
+          "name": "abi_version",
+          "type": "u32",
+          "line": 109
+        },
+        {
+          "name": "kind",
+          "type": "u32",
+          "line": 111
+        },
+        {
+          "name": "window_handle",
+          "type": "u64",
+          "line": 113
+        },
+        {
+          "name": "display_handle",
+          "type": "u64",
+          "line": 115
+        }
+      ],
+      "generatedTraits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq",
+        "Eq"
+      ]
+    },
+    {
+      "id": "SES-OBJ-014",
+      "symbol": "ZrRuntimeBindViewportSurfaceRequestV1 data/fields/impl",
+      "kind": "data-contract-group",
+      "members": [
+        "ZrRuntimeBindViewportSurfaceRequestV1",
+        "ZrRuntimeBindViewportSurfaceRequestV1::abi_version",
+        "ZrRuntimeBindViewportSurfaceRequestV1::viewport",
+        "ZrRuntimeBindViewportSurfaceRequestV1::size",
+        "ZrRuntimeBindViewportSurfaceRequestV1::target",
+        "impl ZrRuntimeBindViewportSurfaceRequestV1",
+        "ZrRuntimeBindViewportSurfaceRequestV1 derive(Clone,Copy,Debug,PartialEq,Eq)",
+        "ZrRuntimeBindViewportSurfaceRequestV1 repr(C)"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 171,
+          "symbol": "ZrRuntimeBindViewportSurfaceRequestV1",
+          "kind": "struct",
+          "expectedText": "pub struct ZrRuntimeBindViewportSurfaceRequestV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 173,
+          "symbol": "ZrRuntimeBindViewportSurfaceRequestV1::abi_version",
+          "kind": "field",
+          "expectedText": "abi_version: u32"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 175,
+          "symbol": "ZrRuntimeBindViewportSurfaceRequestV1::viewport",
+          "kind": "field",
+          "expectedText": "viewport: ZrRuntimeViewportHandle"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 177,
+          "symbol": "ZrRuntimeBindViewportSurfaceRequestV1::size",
+          "kind": "field",
+          "expectedText": "size: ZrRuntimeViewportSizeV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 179,
+          "symbol": "ZrRuntimeBindViewportSurfaceRequestV1::target",
+          "kind": "field",
+          "expectedText": "target: ZrRuntimeNativeSurfaceTargetV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 182,
+          "symbol": "impl ZrRuntimeBindViewportSurfaceRequestV1",
+          "kind": "inherent-impl",
+          "expectedText": "impl ZrRuntimeBindViewportSurfaceRequestV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 160,
+          "symbol": "ZrRuntimeBindViewportSurfaceRequestV1 derive(Clone,Copy,Debug,PartialEq,Eq)",
+          "kind": "derive-attribute",
+          "expectedText": "#[derive("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 159,
+          "symbol": "ZrRuntimeBindViewportSurfaceRequestV1 repr(C)",
+          "kind": "representation-attribute",
+          "expectedText": "#[repr(C)]"
+        }
+      ],
+      "calls": [
+        "BIND",
+        "SURFACE",
+        "FFI",
+        "API",
+        "EXPORT"
+      ],
+      "implementations": [
+        "固有impl的全部成员在下方方法记录中枚举；无手写Drop或额外trait实现。",
+        "Clone由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Copy由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Debug由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "PartialEq由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证",
+        "Eq由该准确derive生成；仅按当前字段组成解释，不声称额外验证/认证"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "repr(C)和原字段类型/顺序保留；FFI入口与所有权责任见相关caller快照。"
+      ],
+      "testsOrContract": [
+        "SURFACETEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        "进入：构造/复制/派生调用；状态：各列明字段作为描述值保存；后果：消费者按同一字段含义验证或比较，impl声明自身没有可执行副作用。"
+      ],
+      "constraintsAndLifecycle": [
+        "外层version/内嵌target version分别检查；FFI先admit session，再要求DEFAULT_VIEWPORT，再创建surface descriptor。",
+        "请求按值复制，不验证viewport来源/窗口存活；调用者独立保证正确会话和仍有效的target。",
+        "new仅保存；bound target的持有责任延续至实际成功解绑/销毁，保持source生命周期和API边界。"
+      ],
+      "commentDecision": "保留旧注释，补中文职责、实际调用时机、字段语义、生命周期及#参考。所有列明字段逐项核对，未新增行为。",
+      "fieldRoles": [
+        {
+          "name": "abi_version",
+          "type": "u32",
+          "line": 173
+        },
+        {
+          "name": "viewport",
+          "type": "ZrRuntimeViewportHandle",
+          "line": 175
+        },
+        {
+          "name": "size",
+          "type": "ZrRuntimeViewportSizeV1",
+          "line": 177
+        },
+        {
+          "name": "target",
+          "type": "ZrRuntimeNativeSurfaceTargetV1",
+          "line": 179
+        }
+      ],
+      "generatedTraits": [
+        "Clone",
+        "Copy",
+        "Debug",
+        "PartialEq",
+        "Eq"
+      ]
+    },
+    {
+      "id": "SES-OBJ-015",
+      "symbol": "ZrRuntimeViewportCameraV1::new",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeViewportCameraV1::new"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "line": 57,
+          "symbol": "ZrRuntimeViewportCameraV1::new",
+          "kind": "function",
+          "expectedText": "fn new("
+        }
+      ],
+      "calls": [
+        "SIM",
+        "CAMTEST",
+        "EVENTTEST",
+        "ROUTE"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "结果经serde JSON事件消费，不把new直接注册为C槽。"
+      ],
+      "testsOrContract": [
+        "CAMTEST",
+        "EVENTTEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "七参数给定；const构造。",
+          "stateAndEffect": "逐字段原样初始化Self并返回，没有校验、序列化、跨会话调用或场景修改。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "transform/projection及planes由CAM检查；serde/constructor不替代接纳入口；返回拥有的Copy值。"
+      ],
+      "commentDecision": "补中文概述、参数组、返回及实际producer/consumer参考。",
+      "parameters": [
+        "abi_version:u32",
+        "transform:Transform",
+        "projection_kind:u32",
+        "fov_y_radians:f32",
+        "ortho_size:f32",
+        "z_near:f32",
+        "z_far:f32"
+      ]
+    },
+    {
+      "id": "SES-OBJ-016",
+      "symbol": "ZrRuntimeWakeSinkV1::disabled",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeWakeSinkV1::disabled"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 43,
+          "symbol": "ZrRuntimeWakeSinkV1::disabled",
+          "kind": "function",
+          "expectedText": "fn disabled("
+        }
+      ],
+      "calls": [
+        "WAKE",
+        "APP"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "CONFIGTEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "不需要host wake的描述构造。",
+          "stateAndEffect": "Self固定V1/token0/wakeNone；Runtime wake看到None直接false；不unregister已有host target。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "只描述disabled，无资源操作。"
+      ],
+      "commentDecision": "解释禁用描述与真实停用注册的区别、返回及参考。",
+      "parameters": []
+    },
+    {
+      "id": "SES-OBJ-017",
+      "symbol": "ZrRuntimeWakeSinkV1::new",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeWakeSinkV1::new"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 63,
+          "symbol": "ZrRuntimeWakeSinkV1::new",
+          "kind": "function",
+          "expectedText": "fn new("
+        }
+      ],
+      "calls": [
+        "HOSTWAKE",
+        "CONFIGTEST"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "CONFIGTEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "host已有路由token和函数。",
+          "stateAndEffect": "保存V1与token/wakeSome；0token仍会被原样保存而由is_valid/from_abi拒绝。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "不验证地址/登记状态；host维持callback和context寿命、回调线程前提；DESTROY拒绝同session同步重入。"
+      ],
+      "commentDecision": "补包装职责、参数、返回约束与actual host sink/runtime admission。",
+      "parameters": [
+        "token:u64",
+        "wake:unsafe extern C fn(u64)"
+      ]
+    },
+    {
+      "id": "SES-OBJ-018",
+      "symbol": "ZrRuntimeWakeSinkV1::is_valid",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeWakeSinkV1::is_valid",
+        "ZrRuntimeWakeSinkV1::is_valid::matches!"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 80,
+          "symbol": "ZrRuntimeWakeSinkV1::is_valid",
+          "kind": "function",
+          "expectedText": "fn is_valid("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 82,
+          "symbol": "ZrRuntimeWakeSinkV1::is_valid::matches!",
+          "kind": "macro-invocation",
+          "expectedText": "matches!"
+        }
+      ],
+      "calls": [
+        "CONFIGTEST",
+        "WAKE"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "CONFIGTEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "可复制的字段描述给定。",
+          "stateAndEffect": "短路版本比较并用matches!仅接受(0,None)/(1..,Some(_))，不调用callback、不读取宿主资源。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "true是数值配对结论，非地址/线程/生命周期证明。"
+      ],
+      "commentDecision": "中文明确形状检查责任，不给出ABI安全推断。",
+      "parameters": [
+        "self:Self"
+      ]
+    },
+    {
+      "id": "SES-OBJ-019",
+      "symbol": "ZrRuntimeSessionConfigV3::empty",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeSessionConfigV3::empty"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 127,
+          "symbol": "ZrRuntimeSessionConfigV3::empty",
+          "kind": "function",
+          "expectedText": "fn empty("
+        }
+      ],
+      "calls": [
+        "CONFIGTEST",
+        "APP",
+        "PROFILE",
+        "FFI"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "CONFIGTEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "创建默认配置值。",
+          "stateAndEffect": "Self V3，四slice empty，wake disabled；无session/route注册。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "is_valid可true但启动由FFI等完整路径决定；空profile当前PROFILE解释Runtime，空root且两个play字段空→None。"
+      ],
+      "commentDecision": "记录默认描述、返回与真实profile消费；不声称empty完成启动。",
+      "parameters": []
+    },
+    {
+      "id": "SES-OBJ-020",
+      "symbol": "ZrRuntimeSessionConfigV3::is_valid",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeSessionConfigV3::is_valid"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "line": 146,
+          "symbol": "ZrRuntimeSessionConfigV3::is_valid",
+          "kind": "function",
+          "expectedText": "fn is_valid("
+        }
+      ],
+      "calls": [
+        "CONFIGTEST",
+        "FFI"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "CONFIGTEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "给定Copy配置。",
+          "stateAndEffect": "仅V3 && wake.is_valid；不checked_slice、parse profile或project。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "FFI不依赖此helper作为完整创建验证而显式检查各层；safe形状helper不证明unsafe slice前提。"
+      ],
+      "commentDecision": "强调有限检查范围与create接纳入口。",
+      "parameters": [
+        "self:Self"
+      ]
+    },
+    {
+      "id": "SES-OBJ-021",
+      "symbol": "GatewaySessionIdentity::new",
+      "kind": "method-and-body",
+      "members": [
+        "GatewaySessionIdentity::new"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 58,
+          "symbol": "GatewaySessionIdentity::new",
+          "kind": "function",
+          "expectedText": "fn new("
+        }
+      ],
+      "calls": [
+        "APP",
+        "GATEWAY"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "本批identity测试:13-20"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "caller给四基础参数。",
+          "stateAndEffect": "保存instance/session/epoch/project Arc；generation0、PIENone；不验证输入、不分配epoch。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "Arc仅字符串所有权；APP成功status及valid session后调用，兼容gateway路径(0,session,0,None)也调用；本构造器无success证明。"
+      ],
+      "commentDecision": "旧英文保留，补中文概述、参数、返回与完整来源/独立资源寿命约束。",
+      "parameters": [
+        "runtime_instance:u64",
+        "runtime_session:ZrRuntimeSessionHandle",
+        "transport_epoch:u64",
+        "project:Option<Arc<str>>"
+      ]
+    },
+    {
+      "id": "SES-OBJ-022",
+      "symbol": "GatewaySessionIdentity::detached",
+      "kind": "method-and-body",
+      "members": [
+        "GatewaySessionIdentity::detached"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 83,
+          "symbol": "GatewaySessionIdentity::detached",
+          "kind": "function",
+          "expectedText": "fn detached("
+        }
+      ],
+      "calls": [
+        "DETACHED",
+        "INPROCESS",
+        "TRAIT"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "实际trait实现源码与本方法固定值契约；未新增detached测试。"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "endpoint故意无ABI Runtime session。",
+          "stateAndEffect": "计数0，handle invalid，project/PIE None；不destroy、unbind或替换gateway。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "detached是值描述；HANDLE实际publish另行分配gateway generation；with_*可得到投影后的detached值。"
+      ],
+      "commentDecision": "补无session职责、返回与无资源动作说明；保留旧英文。",
+      "parameters": []
+    },
+    {
+      "id": "SES-OBJ-023",
+      "symbol": "GatewaySessionIdentity scalar getters",
+      "kind": "shared-read-only-method-contract",
+      "members": [
+        "GatewaySessionIdentity::runtime_instance",
+        "GatewaySessionIdentity::runtime_session",
+        "GatewaySessionIdentity::gateway_generation",
+        "GatewaySessionIdentity::transport_epoch",
+        "GatewaySessionIdentity::play_instance"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 94,
+          "symbol": "GatewaySessionIdentity::runtime_instance",
+          "kind": "function",
+          "expectedText": "fn runtime_instance("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 98,
+          "symbol": "GatewaySessionIdentity::runtime_session",
+          "kind": "function",
+          "expectedText": "fn runtime_session("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 102,
+          "symbol": "GatewaySessionIdentity::gateway_generation",
+          "kind": "function",
+          "expectedText": "fn gateway_generation("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 106,
+          "symbol": "GatewaySessionIdentity::transport_epoch",
+          "kind": "function",
+          "expectedText": "fn transport_epoch("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 118,
+          "symbol": "GatewaySessionIdentity::play_instance",
+          "kind": "function",
+          "expectedText": "fn play_instance("
+        }
+      ],
+      "calls": [
+        "RESOURCE:58-61及51-54消费五个标量getter；GATEWAY:70消费runtime_session；HANDLE:176/247消费generation"
+      ],
+      "implementations": [
+        "各方法都是固有impl的&self读取"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "Rust值getter，无FFI调用或注册；返回Copy标量/opaque handle，非资源租约"
+      ],
+      "testsOrContract": [
+        "本批test22-24/26-27逐个断言五方法"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "symbol": "GatewaySessionIdentity::runtime_instance",
+          "entry": "借用&self",
+          "stateAndEffect": "只读取同名字段并返回Copy值，不改变身份/计数器/底层资源"
+        },
+        {
+          "symbol": "GatewaySessionIdentity::runtime_session",
+          "entry": "借用&self",
+          "stateAndEffect": "只读取同名字段并返回Copy值，不改变身份/计数器/底层资源"
+        },
+        {
+          "symbol": "GatewaySessionIdentity::gateway_generation",
+          "entry": "借用&self",
+          "stateAndEffect": "只读取同名字段并返回Copy值，不改变身份/计数器/底层资源"
+        },
+        {
+          "symbol": "GatewaySessionIdentity::transport_epoch",
+          "entry": "借用&self",
+          "stateAndEffect": "只读取同名字段并返回Copy值，不改变身份/计数器/底层资源"
+        },
+        {
+          "symbol": "GatewaySessionIdentity::play_instance",
+          "entry": "借用&self",
+          "stateAndEffect": "只读取同名字段并返回Copy值，不改变身份/计数器/底层资源"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "五个成员分别列明；不以标量getter返回值替代完整Eq/Hash来源比较。"
+      ],
+      "commentDecision": "逐方法审阅且记录；字段和类型文档已说明职责，没有给直白getter新增重复命名的注释。"
+    },
+    {
+      "id": "SES-OBJ-024",
+      "symbol": "GatewaySessionIdentity::project",
+      "kind": "method-and-body",
+      "members": [
+        "GatewaySessionIdentity::project"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 114,
+          "symbol": "GatewaySessionIdentity::project",
+          "kind": "function",
+          "expectedText": "fn project("
+        }
+      ],
+      "calls": [
+        "RESOURCE"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "本批test25"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "借用identity的&self。",
+          "stateAndEffect": "Option<Arc<str>>::as_deref→Option<&str>，无分配与path解析；None原样None。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "输出str borrow绑定&self，ArcClone只共享字符串；项目标签也参与完整Eq/Hash而不是资源授权。"
+      ],
+      "commentDecision": "补借用有效期及resource_scope引用。",
+      "parameters": [
+        "&self"
+      ]
+    },
+    {
+      "id": "SES-OBJ-025",
+      "symbol": "GatewaySessionIdentity::with_gateway_generation",
+      "kind": "method-and-body",
+      "members": [
+        "GatewaySessionIdentity::with_gateway_generation"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 134,
+          "symbol": "GatewaySessionIdentity::with_gateway_generation",
+          "kind": "function",
+          "expectedText": "fn with_gateway_generation("
+        }
+      ],
+      "calls": [
+        "HANDLE"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "本批test19/26"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "消费self和publisher给定u64。",
+          "stateAndEffect": "只给gateway_generation赋参值，返回self；其他五字段保留。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "不计算generation或publish gateway；字段参与完整Eq/Hash，保存来源的调用方要同步采用返回值。"
+      ],
+      "commentDecision": "保留旧英文，补中文概述、参数/返回及发布期身份替换责任。",
+      "parameters": [
+        "mut self:Self",
+        "gateway_generation:u64"
+      ]
+    },
+    {
+      "id": "SES-OBJ-026",
+      "symbol": "GatewaySessionIdentity::with_play_instance",
+      "kind": "method-and-body",
+      "members": [
+        "GatewaySessionIdentity::with_play_instance"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "line": 151,
+          "symbol": "GatewaySessionIdentity::with_play_instance",
+          "kind": "function",
+          "expectedText": "fn with_play_instance("
+        }
+      ],
+      "calls": [
+        "HANDLE",
+        "RESOURCE"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "本批test20/27"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "消费self和Option<u64>标签。",
+          "stateAndEffect": "只改变play_instance并返回self；None可清除该标签，不销毁Play。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "完整身份变化，保存的event/operation/frame来源需同步采用新值；值builder不管理底层session。"
+      ],
+      "commentDecision": "保留旧英文，补中文概述、参数/返回和Eq/Hash投影责任。",
+      "parameters": [
+        "mut self:Self",
+        "play_instance:Option<u64>"
+      ]
+    },
+    {
+      "id": "SES-OBJ-027",
+      "symbol": "ZrRuntimeViewportMetricsV1::new",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeViewportMetricsV1::new"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 65,
+          "symbol": "ZrRuntimeViewportMetricsV1::new",
+          "kind": "function",
+          "expectedText": "fn new("
+        }
+      ],
+      "calls": [
+        "WIRE",
+        "TRANSLATED",
+        "METRICSTEST",
+        "UITEST"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "METRICSTEST",
+        "UITEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "给定logical、scale、physical同一次观测。",
+          "stateAndEffect": "逐字段保存，没有求比例、finite/positive检查或事件dispatch。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "无指针生命周期；UIADAPTER采用自己的无效scale/全零尺寸回退，不声称所有producer先校验一致性。"
+      ],
+      "commentDecision": "补三参数职责、返回/一致观测要求和事件消费参考。",
+      "parameters": [
+        "logical_size:ZrRuntimeViewportSizeV1",
+        "device_scale_factor:f32",
+        "physical_size:ZrRuntimeViewportSizeV1"
+      ]
+    },
+    {
+      "id": "SES-OBJ-028",
+      "symbol": "ZrRuntimeViewportSizeV1::new",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeViewportSizeV1::new"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 86,
+          "symbol": "ZrRuntimeViewportSizeV1::new",
+          "kind": "function",
+          "expectedText": "fn new("
+        }
+      ],
+      "calls": [
+        "BIND",
+        "SURFACETEST",
+        "WIRE",
+        "METRICSTEST"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "SURFACETEST",
+        "METRICSTEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "任何u32宽高。",
+          "stateAndEffect": "Self{width,height}原样返回；零及大值都可构造。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "单位随请求；SURFACE max1，FFI frame budget独立，不提供统一零值政策。"
+      ],
+      "commentDecision": "说明封装与消费层钳制/预算分离，带实际参考。",
+      "parameters": [
+        "width:u32",
+        "height:u32"
+      ]
+    },
+    {
+      "id": "SES-OBJ-029",
+      "symbol": "ZrRuntimeNativeSurfaceTargetV1::none",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeNativeSurfaceTargetV1::none"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 129,
+          "symbol": "ZrRuntimeNativeSurfaceTargetV1::none",
+          "kind": "function",
+          "expectedText": "fn none("
+        }
+      ],
+      "calls": [
+        "SURFACETEST"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "SURFACETEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "未获得原生target的占位描述。",
+          "stateAndEffect": "保存caller version、kind NONE、两个handle0；不unbind。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "当前bind consumer拒绝NONE，测试利用该值探测admission/version/viewport路径；解绑单独FFI。"
+      ],
+      "commentDecision": "明确NONE占位和真实unbind区别及返回约束。",
+      "parameters": [
+        "abi_version:u32"
+      ]
+    },
+    {
+      "id": "SES-OBJ-030",
+      "symbol": "ZrRuntimeNativeSurfaceTargetV1::win32",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeNativeSurfaceTargetV1::win32"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 149,
+          "symbol": "ZrRuntimeNativeSurfaceTargetV1::win32",
+          "kind": "function",
+          "expectedText": "fn win32("
+        }
+      ],
+      "calls": [
+        "TARGET",
+        "SURFACETEST"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "SURFACETEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "caller给version/HWND/HINSTANCE值。",
+          "stateAndEffect": "保存kindWin32，hwnd→window_handle，hinstance→display_handle；没有OS调用/有效性检查。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "SURFACE拒绝0HWND并独立检查version；hinstance0合法；host仍保活window直到成功解绑/销毁。"
+      ],
+      "commentDecision": "记录参数路由与原生寿命边界，未把非0检查写为有效窗口证明。",
+      "parameters": [
+        "abi_version:u32",
+        "hwnd:u64",
+        "hinstance:u64"
+      ]
+    },
+    {
+      "id": "SES-OBJ-031",
+      "symbol": "ZrRuntimeBindViewportSurfaceRequestV1::new",
+      "kind": "method-and-body",
+      "members": [
+        "ZrRuntimeBindViewportSurfaceRequestV1::new"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "line": 195,
+          "symbol": "ZrRuntimeBindViewportSurfaceRequestV1::new",
+          "kind": "function",
+          "expectedText": "fn new("
+        }
+      ],
+      "calls": [
+        "BIND",
+        "SURFACETEST"
+      ],
+      "implementations": [
+        "归属该类型固有impl；无不同函数体的trait派发。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "函数本身没有FFI调用/注册副作用；具体值进入的FFI/trait/发布边界由列明caller证明。"
+      ],
+      "testsOrContract": [
+        "SURFACETEST"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "caller选择会话内viewport、物理size及live target。",
+          "stateAndEffect": "逐字段初始化值，不bind/校验/建立ownership。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "FFIwith_session先admission，版本/默认viewport/平台随后验证；host window生命周期独立于request Copy。"
+      ],
+      "commentDecision": "概述/参数/返回/生命周期/#参考齐全，source完全不改调用或字段。",
+      "parameters": [
+        "abi_version:u32",
+        "viewport:ZrRuntimeViewportHandle",
+        "size:ZrRuntimeViewportSizeV1",
+        "target:ZrRuntimeNativeSurfaceTargetV1"
+      ]
+    },
+    {
+      "id": "SES-OBJ-032",
+      "symbol": "gateway_session_identity_preserves_runtime_owner_and_editor_projection",
+      "kind": "test-and-statement-block",
+      "members": [
+        "identity fixture #[test]",
+        "gateway_session_identity_preserves_runtime_owner_and_editor_projection",
+        "identity fixture assert_eq! runtime_instance",
+        "identity fixture assert_eq! runtime_session",
+        "identity fixture assert_eq! transport_epoch",
+        "identity fixture assert_eq! project",
+        "identity fixture assert_eq! gateway_generation",
+        "identity fixture assert_eq! play_instance"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 9,
+          "symbol": "identity fixture #[test]",
+          "kind": "test-attribute",
+          "expectedText": "#[test]"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 11,
+          "symbol": "gateway_session_identity_preserves_runtime_owner_and_editor_projection",
+          "kind": "function",
+          "expectedText": "fn gateway_session_identity_preserves_runtime_owner_and_editor_projection("
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 22,
+          "symbol": "identity fixture assert_eq! runtime_instance",
+          "kind": "macro-invocation",
+          "expectedText": "assert_eq!"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 23,
+          "symbol": "identity fixture assert_eq! runtime_session",
+          "kind": "macro-invocation",
+          "expectedText": "assert_eq!"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 24,
+          "symbol": "identity fixture assert_eq! transport_epoch",
+          "kind": "macro-invocation",
+          "expectedText": "assert_eq!"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 25,
+          "symbol": "identity fixture assert_eq! project",
+          "kind": "macro-invocation",
+          "expectedText": "assert_eq!"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 26,
+          "symbol": "identity fixture assert_eq! gateway_generation",
+          "kind": "macro-invocation",
+          "expectedText": "assert_eq!"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "line": 27,
+          "symbol": "identity fixture assert_eq! play_instance",
+          "kind": "macro-invocation",
+          "expectedText": "assert_eq!"
+        }
+      ],
+      "calls": [
+        "new(7,handle11,epoch13,projectArc)→with_generation17→with_play19；每个getter实际调用位于列明断言"
+      ],
+      "implementations": [
+        "本文件仅普通unit test，无fixture registry/FFI"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[test]由mod96在cfg(test)下接入；六assert_eq!逐成员列明，宏输入未改"
+      ],
+      "testsOrContract": [
+        "测试源码契约，未运行Cargo或新增doctest"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "test runner调用本函数",
+          "stateAndEffect": "13-20构造值和共享项目String，22-27核对全部六字段；无实际session/gateway/window状态改变。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "这个测试验证组合字段保持，不能冒充callback安全、detached发布、Eq/Hash抗冲突或跨线程运行验收。"
+      ],
+      "commentDecision": "新增//!及test文档说明精确覆盖范围、差异化数值夹具理由，原断言和路径字符串逐字保留。"
+    },
+    {
+      "id": "SES-OBJ-033",
+      "symbol": "session facade app_session_configuration_v2",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod app_session_configuration_v2",
+        "app_session_configuration_v2 path=app_session_configuration_v2.rs",
+        "pub use app_session_configuration_v2",
+        "app_session_configuration_v2::ZrRuntimeAppSessionConfigurationError",
+        "app_session_configuration_v2::ZrRuntimeAppSessionConfigurationV2",
+        "app_session_configuration_v2::ZrRuntimeImeCandidateRectV2",
+        "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_CANDIDATE_RECT_SCHEMA_V2",
+        "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_CAPABILITY_CANDIDATE_RECT_V2",
+        "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_CAPABILITY_IME_COMPOSITION_V2",
+        "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_COMPOSITION_SCHEMA_V2",
+        "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_CONFIGURATION_ABI_VERSION_V2",
+        "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_COORDINATE_SPACE_WINDOW_V1",
+        "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_MAX_NATIVE_COORDINATE_V2",
+        "app_session_configuration_v2::ZR_RUNTIME_CONFIGURE_APP_SESSION_SYMBOL_V2"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 12,
+          "symbol": "mod app_session_configuration_v2",
+          "kind": "module-declaration",
+          "expectedText": "mod app_session_configuration_v2;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 11,
+          "symbol": "app_session_configuration_v2 path=app_session_configuration_v2.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "app_session_configuration_v2.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 41,
+          "symbol": "pub use app_session_configuration_v2",
+          "kind": "use-declaration",
+          "expectedText": "pub use app_session_configuration_v2::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 42,
+          "symbol": "app_session_configuration_v2::ZrRuntimeAppSessionConfigurationError",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeAppSessionConfigurationError"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 42,
+          "symbol": "app_session_configuration_v2::ZrRuntimeAppSessionConfigurationV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeAppSessionConfigurationV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 43,
+          "symbol": "app_session_configuration_v2::ZrRuntimeImeCandidateRectV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeImeCandidateRectV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 43,
+          "symbol": "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_CANDIDATE_RECT_SCHEMA_V2",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_APP_SESSION_CANDIDATE_RECT_SCHEMA_V2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 44,
+          "symbol": "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_CAPABILITY_CANDIDATE_RECT_V2",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_APP_SESSION_CAPABILITY_CANDIDATE_RECT_V2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 45,
+          "symbol": "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_CAPABILITY_IME_COMPOSITION_V2",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_APP_SESSION_CAPABILITY_IME_COMPOSITION_V2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 46,
+          "symbol": "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_COMPOSITION_SCHEMA_V2",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_APP_SESSION_COMPOSITION_SCHEMA_V2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 47,
+          "symbol": "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_CONFIGURATION_ABI_VERSION_V2",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_APP_SESSION_CONFIGURATION_ABI_VERSION_V2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 48,
+          "symbol": "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_COORDINATE_SPACE_WINDOW_V1",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_APP_SESSION_COORDINATE_SPACE_WINDOW_V1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 49,
+          "symbol": "app_session_configuration_v2::ZR_RUNTIME_APP_SESSION_MAX_NATIVE_COORDINATE_V2",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_APP_SESSION_MAX_NATIVE_COORDINATE_V2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 49,
+          "symbol": "app_session_configuration_v2::ZR_RUNTIME_CONFIGURE_APP_SESSION_SYMBOL_V2",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_CONFIGURE_APP_SESSION_SYMBOL_V2"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/app_session_configuration_v2.rs"
+    },
+    {
+      "id": "SES-OBJ-034",
+      "symbol": "session facade camera",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod camera",
+        "camera path=camera.rs",
+        "pub use camera",
+        "camera::ZrRuntimeViewportCameraV1"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 14,
+          "symbol": "mod camera",
+          "kind": "module-declaration",
+          "expectedText": "mod camera;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 13,
+          "symbol": "camera path=camera.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "camera.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 51,
+          "symbol": "pub use camera",
+          "kind": "use-declaration",
+          "expectedText": "pub use camera::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 51,
+          "symbol": "camera::ZrRuntimeViewportCameraV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeViewportCameraV1"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/camera.rs"
+    },
+    {
+      "id": "SES-OBJ-035",
+      "symbol": "session facade editor_transform",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod editor_transform",
+        "editor_transform path=editor_transform.rs",
+        "pub use editor_transform",
+        "editor_transform::ZrRuntimeEditorTransformError",
+        "editor_transform::ZrRuntimeEditorTransformPhaseV1",
+        "editor_transform::ZrRuntimeEditorTransformWriteV1",
+        "editor_transform::ZrRuntimeTransformV1"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 16,
+          "symbol": "mod editor_transform",
+          "kind": "module-declaration",
+          "expectedText": "mod editor_transform;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 15,
+          "symbol": "editor_transform path=editor_transform.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "editor_transform.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 52,
+          "symbol": "pub use editor_transform",
+          "kind": "use-declaration",
+          "expectedText": "pub use editor_transform::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 53,
+          "symbol": "editor_transform::ZrRuntimeEditorTransformError",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeEditorTransformError"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 53,
+          "symbol": "editor_transform::ZrRuntimeEditorTransformPhaseV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeEditorTransformPhaseV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 54,
+          "symbol": "editor_transform::ZrRuntimeEditorTransformWriteV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeEditorTransformWriteV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 54,
+          "symbol": "editor_transform::ZrRuntimeTransformV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeTransformV1"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/editor_transform.rs"
+    },
+    {
+      "id": "SES-OBJ-036",
+      "symbol": "session facade events",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod events",
+        "events path=events.rs",
+        "pub use events",
+        "events::ZrRuntimeEventV1"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 21,
+          "symbol": "mod events",
+          "kind": "module-declaration",
+          "expectedText": "mod events;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 20,
+          "symbol": "events path=events.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "events.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 56,
+          "symbol": "pub use events",
+          "kind": "use-declaration",
+          "expectedText": "pub use events::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 56,
+          "symbol": "events::ZrRuntimeEventV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeEventV1"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/events.rs"
+    },
+    {
+      "id": "SES-OBJ-037",
+      "symbol": "session facade ime_composition_capability_v2",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod ime_composition_capability_v2",
+        "ime_composition_capability_v2 path=ime_compose_capability_v2.rs",
+        "pub use ime_composition_capability_v2",
+        "ime_composition_capability_v2::ZrRuntimeImeCompositionNegotiation",
+        "ime_composition_capability_v2::ZrRuntimeImeCompositionWireVersion",
+        "ime_composition_capability_v2::ZR_RUNTIME_IME_COMPOSITION_V2_CAPABILITY",
+        "ime_composition_capability_v2::ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE",
+        "ime_composition_capability_v2::ZR_RUNTIME_IME_COMPOSITION_V2_MIN_API_VERSION"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 23,
+          "symbol": "mod ime_composition_capability_v2",
+          "kind": "module-declaration",
+          "expectedText": "mod ime_composition_capability_v2;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 22,
+          "symbol": "ime_composition_capability_v2 path=ime_compose_capability_v2.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "ime_compose_capability_v2.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 57,
+          "symbol": "pub use ime_composition_capability_v2",
+          "kind": "use-declaration",
+          "expectedText": "pub use ime_composition_capability_v2::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 58,
+          "symbol": "ime_composition_capability_v2::ZrRuntimeImeCompositionNegotiation",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeImeCompositionNegotiation"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 58,
+          "symbol": "ime_composition_capability_v2::ZrRuntimeImeCompositionWireVersion",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeImeCompositionWireVersion"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 59,
+          "symbol": "ime_composition_capability_v2::ZR_RUNTIME_IME_COMPOSITION_V2_CAPABILITY",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_IME_COMPOSITION_V2_CAPABILITY"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 59,
+          "symbol": "ime_composition_capability_v2::ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 60,
+          "symbol": "ime_composition_capability_v2::ZR_RUNTIME_IME_COMPOSITION_V2_MIN_API_VERSION",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_IME_COMPOSITION_V2_MIN_API_VERSION"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs"
+    },
+    {
+      "id": "SES-OBJ-038",
+      "symbol": "session facade ime_composition_v2",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod ime_composition_v2",
+        "ime_composition_v2 path=ime_composition_v2.rs",
+        "pub use ime_composition_v2",
+        "ime_composition_v2::ZrRuntimeImeCompositionContextV2",
+        "ime_composition_v2::ZrRuntimeImeCompositionOperationV2",
+        "ime_composition_v2::ZrRuntimeImeCompositionV2",
+        "ime_composition_v2::ZrRuntimeImeCompositionV2Error",
+        "ime_composition_v2::ZrRuntimeImePreeditClauseAvailabilityV2",
+        "ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_CLAUSE_BYTES",
+        "ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_HEADER_BYTES",
+        "ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_MAGIC",
+        "ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_MAX_CLAUSES",
+        "ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_SCHEMA"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 25,
+          "symbol": "mod ime_composition_v2",
+          "kind": "module-declaration",
+          "expectedText": "mod ime_composition_v2;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 24,
+          "symbol": "ime_composition_v2 path=ime_composition_v2.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "ime_composition_v2.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 62,
+          "symbol": "pub use ime_composition_v2",
+          "kind": "use-declaration",
+          "expectedText": "pub use ime_composition_v2::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 63,
+          "symbol": "ime_composition_v2::ZrRuntimeImeCompositionContextV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeImeCompositionContextV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 63,
+          "symbol": "ime_composition_v2::ZrRuntimeImeCompositionOperationV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeImeCompositionOperationV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 64,
+          "symbol": "ime_composition_v2::ZrRuntimeImeCompositionV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeImeCompositionV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 64,
+          "symbol": "ime_composition_v2::ZrRuntimeImeCompositionV2Error",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeImeCompositionV2Error"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 65,
+          "symbol": "ime_composition_v2::ZrRuntimeImePreeditClauseAvailabilityV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeImePreeditClauseAvailabilityV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 65,
+          "symbol": "ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_CLAUSE_BYTES",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_IME_COMPOSITION_V2_CLAUSE_BYTES"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 66,
+          "symbol": "ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_HEADER_BYTES",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_IME_COMPOSITION_V2_HEADER_BYTES"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 66,
+          "symbol": "ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_MAGIC",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_IME_COMPOSITION_V2_MAGIC"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 67,
+          "symbol": "ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_MAX_CLAUSES",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_IME_COMPOSITION_V2_MAX_CLAUSES"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 67,
+          "symbol": "ime_composition_v2::ZR_RUNTIME_IME_COMPOSITION_V2_SCHEMA",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_IME_COMPOSITION_V2_SCHEMA"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/ime_composition_v2.rs"
+    },
+    {
+      "id": "SES-OBJ-039",
+      "symbol": "session facade operation",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod operation",
+        "operation path=operation.rs",
+        "pub use operation",
+        "operation::ZrRuntimeHarvestOperationFnV2",
+        "operation::ZrRuntimeOperationDetailKindV2",
+        "operation::ZrRuntimeOperationHandle",
+        "operation::ZrRuntimeOperationOutcomeV1",
+        "operation::ZrRuntimeOperationPhase",
+        "operation::ZrRuntimeOperationResultV1",
+        "operation::ZrRuntimeOperationStatusV2",
+        "operation::ZrRuntimeOperationSubmitRequestV1",
+        "operation::ZrRuntimePollOperationFnV2",
+        "operation::ZrRuntimeSubmitOperationFnV1"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 27,
+          "symbol": "mod operation",
+          "kind": "module-declaration",
+          "expectedText": "mod operation;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 26,
+          "symbol": "operation path=operation.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "operation.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 69,
+          "symbol": "pub use operation",
+          "kind": "use-declaration",
+          "expectedText": "pub use operation::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 70,
+          "symbol": "operation::ZrRuntimeHarvestOperationFnV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeHarvestOperationFnV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 70,
+          "symbol": "operation::ZrRuntimeOperationDetailKindV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeOperationDetailKindV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 70,
+          "symbol": "operation::ZrRuntimeOperationHandle",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeOperationHandle"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 71,
+          "symbol": "operation::ZrRuntimeOperationOutcomeV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeOperationOutcomeV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 71,
+          "symbol": "operation::ZrRuntimeOperationPhase",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeOperationPhase"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 71,
+          "symbol": "operation::ZrRuntimeOperationResultV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeOperationResultV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 72,
+          "symbol": "operation::ZrRuntimeOperationStatusV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeOperationStatusV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 72,
+          "symbol": "operation::ZrRuntimeOperationSubmitRequestV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeOperationSubmitRequestV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 72,
+          "symbol": "operation::ZrRuntimePollOperationFnV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimePollOperationFnV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 73,
+          "symbol": "operation::ZrRuntimeSubmitOperationFnV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeSubmitOperationFnV1"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/operation.rs"
+    },
+    {
+      "id": "SES-OBJ-040",
+      "symbol": "session facade plugin_event_mirror",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod plugin_event_mirror",
+        "plugin_event_mirror path=plugin_event_mirror.rs",
+        "pub use plugin_event_mirror",
+        "plugin_event_mirror::ZrRuntimeDrainPluginEventsFnV2",
+        "plugin_event_mirror::ZrRuntimePluginEventDeliveryBatchV1",
+        "plugin_event_mirror::ZrRuntimePluginEventDeliveryV1",
+        "plugin_event_mirror::ZrRuntimePluginEventSubscribeRequestV1",
+        "plugin_event_mirror::ZrRuntimePluginEventSubscriptionHandle",
+        "plugin_event_mirror::ZrRuntimeSubscribePluginEventFnV1",
+        "plugin_event_mirror::ZrRuntimeUnsubscribePluginEventFnV1",
+        "plugin_event_mirror::ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1",
+        "plugin_event_mirror::ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 29,
+          "symbol": "mod plugin_event_mirror",
+          "kind": "module-declaration",
+          "expectedText": "mod plugin_event_mirror;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 28,
+          "symbol": "plugin_event_mirror path=plugin_event_mirror.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "plugin_event_mirror.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 75,
+          "symbol": "pub use plugin_event_mirror",
+          "kind": "use-declaration",
+          "expectedText": "pub use plugin_event_mirror::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 76,
+          "symbol": "plugin_event_mirror::ZrRuntimeDrainPluginEventsFnV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeDrainPluginEventsFnV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 76,
+          "symbol": "plugin_event_mirror::ZrRuntimePluginEventDeliveryBatchV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimePluginEventDeliveryBatchV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 77,
+          "symbol": "plugin_event_mirror::ZrRuntimePluginEventDeliveryV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimePluginEventDeliveryV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 77,
+          "symbol": "plugin_event_mirror::ZrRuntimePluginEventSubscribeRequestV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimePluginEventSubscribeRequestV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 78,
+          "symbol": "plugin_event_mirror::ZrRuntimePluginEventSubscriptionHandle",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimePluginEventSubscriptionHandle"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 78,
+          "symbol": "plugin_event_mirror::ZrRuntimeSubscribePluginEventFnV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeSubscribePluginEventFnV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 79,
+          "symbol": "plugin_event_mirror::ZrRuntimeUnsubscribePluginEventFnV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeUnsubscribePluginEventFnV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 79,
+          "symbol": "plugin_event_mirror::ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 80,
+          "symbol": "plugin_event_mirror::ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1",
+          "kind": "re-export",
+          "expectedText": "ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs"
+    },
+    {
+      "id": "SES-OBJ-041",
+      "symbol": "session facade requests",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod requests",
+        "requests path=requests.rs",
+        "pub use requests",
+        "requests::ZrRuntimeAccessibilityTreeRequestV1",
+        "requests::ZrRuntimeFrameRequestV1",
+        "requests::ZrRuntimeFrameV2",
+        "requests::ZrRuntimeHostFetchRequestV1"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 31,
+          "symbol": "mod requests",
+          "kind": "module-declaration",
+          "expectedText": "mod requests;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 30,
+          "symbol": "requests path=requests.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "requests.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 82,
+          "symbol": "pub use requests",
+          "kind": "use-declaration",
+          "expectedText": "pub use requests::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 83,
+          "symbol": "requests::ZrRuntimeAccessibilityTreeRequestV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeAccessibilityTreeRequestV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 83,
+          "symbol": "requests::ZrRuntimeFrameRequestV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeFrameRequestV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 83,
+          "symbol": "requests::ZrRuntimeFrameV2",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeFrameV2"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 84,
+          "symbol": "requests::ZrRuntimeHostFetchRequestV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeHostFetchRequestV1"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/requests.rs"
+    },
+    {
+      "id": "SES-OBJ-042",
+      "symbol": "session facade session",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod session",
+        "session path=session.rs",
+        "pub use session",
+        "session::ZrRuntimeSessionConfigV3",
+        "session::ZrRuntimeWakeSinkV1"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 33,
+          "symbol": "mod session",
+          "kind": "module-declaration",
+          "expectedText": "mod session;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 32,
+          "symbol": "session path=session.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "session.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 86,
+          "symbol": "pub use session",
+          "kind": "use-declaration",
+          "expectedText": "pub use session::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 86,
+          "symbol": "session::ZrRuntimeSessionConfigV3",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeSessionConfigV3"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 86,
+          "symbol": "session::ZrRuntimeWakeSinkV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeWakeSinkV1"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/session.rs"
+    },
+    {
+      "id": "SES-OBJ-043",
+      "symbol": "session facade session_identity",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod session_identity",
+        "session_identity path=session_identity.rs",
+        "pub use session_identity",
+        "session_identity::GatewaySessionIdentity"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 35,
+          "symbol": "mod session_identity",
+          "kind": "module-declaration",
+          "expectedText": "mod session_identity;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 34,
+          "symbol": "session_identity path=session_identity.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "session_identity.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 87,
+          "symbol": "pub use session_identity",
+          "kind": "use-declaration",
+          "expectedText": "pub use session_identity::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 87,
+          "symbol": "session_identity::GatewaySessionIdentity",
+          "kind": "re-export",
+          "expectedText": "GatewaySessionIdentity"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs"
+    },
+    {
+      "id": "SES-OBJ-044",
+      "symbol": "session facade translated_events",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod translated_events",
+        "translated_events path=translated_events.rs",
+        "pub use translated_events",
+        "translated_events::ZrRuntimeTranslatedEventV1"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 37,
+          "symbol": "mod translated_events",
+          "kind": "module-declaration",
+          "expectedText": "mod translated_events;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 36,
+          "symbol": "translated_events path=translated_events.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "translated_events.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 88,
+          "symbol": "pub use translated_events",
+          "kind": "use-declaration",
+          "expectedText": "pub use translated_events::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 88,
+          "symbol": "translated_events::ZrRuntimeTranslatedEventV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeTranslatedEventV1"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/translated_events.rs"
+    },
+    {
+      "id": "SES-OBJ-045",
+      "symbol": "session facade viewport",
+      "kind": "module-wiring-and-explicit-reexports",
+      "members": [
+        "mod viewport",
+        "viewport path=viewport.rs",
+        "pub use viewport",
+        "viewport::ZrRuntimeBindViewportSurfaceRequestV1",
+        "viewport::ZrRuntimeNativeSurfaceTargetV1",
+        "viewport::ZrRuntimeViewportMetricsV1",
+        "viewport::ZrRuntimeViewportSizeV1"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 39,
+          "symbol": "mod viewport",
+          "kind": "module-declaration",
+          "expectedText": "mod viewport;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 38,
+          "symbol": "viewport path=viewport.rs",
+          "kind": "module-path-attribute",
+          "expectedText": "viewport.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 89,
+          "symbol": "pub use viewport",
+          "kind": "use-declaration",
+          "expectedText": "pub use viewport::"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 90,
+          "symbol": "viewport::ZrRuntimeBindViewportSurfaceRequestV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeBindViewportSurfaceRequestV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 90,
+          "symbol": "viewport::ZrRuntimeNativeSurfaceTargetV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeNativeSurfaceTargetV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 91,
+          "symbol": "viewport::ZrRuntimeViewportMetricsV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeViewportMetricsV1"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 91,
+          "symbol": "viewport::ZrRuntimeViewportSizeV1",
+          "kind": "re-export",
+          "expectedText": "ZrRuntimeViewportSizeV1"
+        }
+      ],
+      "calls": [
+        "APIFACADE",
+        "ROOTFACADE"
+      ],
+      "implementations": [
+        "只审核当前门面声明/导出绑定；子模块中本批范围外的实现不因重导出被标为已审。"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "#[path]将内部模块名绑定到列明实际文件；导出逐成员明确，没有pub use wildcard。"
+      ],
+      "testsOrContract": [
+        "BOUNDARY:997-1008 显式域门面约束"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "模块编译/公开名称解析",
+          "stateAndEffect": "将该模块列明绑定公开到session域，再由APIFACADE/ROOTFACADE转出；不复制数据、不执行函数或注册回调。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "原path与pub use语句原样保留；模块名ime_composition_capability_v2实际绑定ime_compose_capability_v2.rs，不能误按模块名字推断物理路径。"
+      ],
+      "commentDecision": "门面以新增//!解释域职责；各路径/导出逐绑定审查但不增复述式别名文档。",
+      "resolvedTarget": "zircon_runtime_interface/src/runtime_api/session/viewport.rs"
+    },
+    {
+      "id": "SES-OBJ-046",
+      "symbol": "session facade cfg(test) modules",
+      "kind": "test-module-wiring",
+      "members": [
+        "editor_transform_tests cfg(test)",
+        "editor_transform_tests path",
+        "mod editor_transform_tests",
+        "session_identity_tests cfg(test)",
+        "session_identity_tests path",
+        "mod session_identity_tests"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 17,
+          "symbol": "editor_transform_tests cfg(test)",
+          "kind": "configuration-attribute",
+          "expectedText": "#[cfg(test)]"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 18,
+          "symbol": "editor_transform_tests path",
+          "kind": "module-path-attribute",
+          "expectedText": "tests/editor_transform_tests.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 19,
+          "symbol": "mod editor_transform_tests",
+          "kind": "module-declaration",
+          "expectedText": "mod editor_transform_tests;"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 94,
+          "symbol": "session_identity_tests cfg(test)",
+          "kind": "configuration-attribute",
+          "expectedText": "#[cfg(test)]"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 95,
+          "symbol": "session_identity_tests path",
+          "kind": "module-path-attribute",
+          "expectedText": "tests/session_identity_tests.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "line": 96,
+          "symbol": "mod session_identity_tests",
+          "kind": "module-declaration",
+          "expectedText": "mod session_identity_tests;"
+        }
+      ],
+      "calls": [
+        "Rust测试配置通过显式路径接入两模块"
+      ],
+      "implementations": [
+        "测试项只在cfg(test)有效；editor_transform测试实现不在本批编辑/审查范围"
+      ],
+      "macroOrRegistrationOrFfi": [
+        "两个cfg/test path attrs以及test module declarations均逐成员保留"
+      ],
+      "testsOrContract": [
+        "本批identity test记录；BOUNDARY的test来源过滤规则"
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "entry": "cfg(test)成立",
+          "stateAndEffect": "测试源码可访问本域re-export；production不编入这些test模块；本批不改变属性求值或路径。"
+        }
+      ],
+      "constraintsAndLifecycle": [
+        "identity测试实际23→28行仅注释插入；另一测试源码只定位模块，不声称审阅其实现。"
+      ],
+      "commentDecision": "新增门面//!点明两个测试接入，原配置和path完全保留。"
+    }
+  ],
+  "callerEvidence": [
+    {
+      "id": "CAM",
+      "path": "zircon_runtime/src/dynamic_api/camera_controller.rs",
+      "observedSha256": "8ef920b817492b46ae453c98a05fca66b579f9d4604491793723000fd80ade35",
+      "readRanges": [
+        [
+          1,
+          201
+        ]
+      ],
+      "provenRelationships": [
+        "apply_editor_camera:51-61 在保存值前调用 validate_editor_camera:148-180；相同值返回 false。",
+        "validate 检查V1、变换有限性、scale绝对值最小值阈值、rotation长度平方容差；几何分支按投影种类检查，其余投影标量均有限且0<near<far。",
+        "apply_editor_camera_to_extract:63-70 与 apply_editor_camera_to_snapshot:183-197 只更新extract的相机描述，保留core_pipeline/exposure，不改Scene节点。"
+      ]
+    },
+    {
+      "id": "EVENT",
+      "path": "zircon_runtime/src/dynamic_api/session/events.rs",
+      "observedSha256": "3de66fd03293517a05fd4e2361808dfba3a089336d50f45a012357c983ad450c",
+      "readRanges": [
+        [
+          1,
+          65
+        ],
+        [
+          75,
+          123
+        ],
+        [
+          146,
+          209
+        ]
+      ],
+      "provenRelationships": [
+        "handle_event:77-102 先要求DEFAULT_VIEWPORT，resize消费event.size。",
+        "handle_viewport_camera:180-200 bounded_json::decode以VIEWPORT_CAMERA_REQUEST_LIMIT及 |_|1 计数解码，再apply_editor_camera；解码/预算/语义错误各自返回状态。"
+      ]
+    },
+    {
+      "id": "SIM",
+      "path": "zircon_editor/src/ui/host/editor_host_event_controller/simulate_camera.rs",
+      "observedSha256": "ceb340dd0999e588b54abcfc0311004640463aaa64b9879cc0228e1cc24f0e89",
+      "readRanges": [
+        [
+          1,
+          57
+        ]
+      ],
+      "provenRelationships": [
+        "simulate_preview_camera:14-48 仅Simulate且附着Play world时取得编辑器camera snapshot，映射投影种类并new相机DTO；未有快照返回None。"
+      ]
+    },
+    {
+      "id": "ROUTE",
+      "path": "zircon_editor/src/core/play/controller/preview_routing.rs",
+      "observedSha256": "e2bd9e0524a59e01315aa84093e5fa84c87d6132c99aed65e71bf5ffb25d9269",
+      "readRanges": [
+        [
+          70,
+          142
+        ]
+      ],
+      "provenRelationships": [
+        "route_simulate_camera:88-137 在transition锁下确认Simulate/world/gateway；to_vec编码并检查字节预算，保留Vec直到handle_event_at_identity同步调用结束；构造viewport_camera事件。"
+      ]
+    },
+    {
+      "id": "SURFACE",
+      "path": "zircon_runtime/src/dynamic_api/surface.rs",
+      "observedSha256": "5327ad19929a3fb955e4f1bec55be73a4f8429ee565536ba271f8c61cd29125a",
+      "readRanges": [
+        [
+          1,
+          54
+        ]
+      ],
+      "provenRelationships": [
+        "render_surface_descriptor:10-39 分别验证request/target V1；仅Win32且HWND非0，hinstance0变None，width/height各max(1)；不查询句柄实际存活。"
+      ]
+    },
+    {
+      "id": "TARGET",
+      "path": "zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs",
+      "observedSha256": "b47a6f5e546665e7403d068d78248e77fb78989caddbeb4f953d4a69a775b8b2",
+      "readRanges": [
+        [
+          1,
+          57
+        ]
+      ],
+      "provenRelationships": [
+        "runtime_native_surface_target:33-56 从借用Window取得window/display raw pair，仅Win32+Windows配对可创建target；hinstance缺失编码0。"
+      ]
+    },
+    {
+      "id": "BIND",
+      "path": "zircon_app/src/entry/runtime_entry_app/surface_present/binding.rs",
+      "observedSha256": "73fa6ffac6d875a83d8a8b0c48cbf6a2793d33c30c48ea379aa9b8f7bdf19c51",
+      "readRanges": [
+        [
+          1,
+          63
+        ]
+      ],
+      "provenRelationships": [
+        "bind_current_window_surface:18-24 clone宿主window引用；bind_window_surface:28-54 检查诊断模式/能力，取得target并把session viewport/size传入请求；attempted在FFI前置位。"
+      ]
+    },
+    {
+      "id": "APP",
+      "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+      "observedSha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+      "readRanges": [
+        [
+          89,
+          225
+        ],
+        [
+          224,
+          274
+        ]
+      ],
+      "provenRelationships": [
+        "create_with_profile_and_project:126-205 将profile静态bytes及project/play借用字符串转为切片，借用贯穿同步create；成功状态及valid handle后new(runtime_instance,handle,1,projectArc)。",
+        "editor_gateway:91-115 把self Arc作为实际runtime_owner，完整identity单独传入；identity自身不保活会话。",
+        "try_destroy:224-244 先释放表面、调用destroy、ensure_status成功后才unregister wake、invalidate handle和runtime.take；失败保留资源。"
+      ]
+    },
+    {
+      "id": "HOSTWAKE",
+      "path": "zircon_app/src/entry/runtime_library/wake_registry.rs",
+      "observedSha256": "534e8afb4004382ecf391c46af0d00ddc1b0c5ecb26c4d45cb73bcbbef13d8dc",
+      "readRanges": [
+        [
+          1,
+          109
+        ]
+      ],
+      "provenRelationships": [
+        "register_target:45-58 分配非0且不占用的token并保存Arc target；sink:60-62 new(token,trampoline)。",
+        "trampoline:85-93 catch_unwind包住token lookup，lookup clone Arc后释放registry锁才唤醒；unregister:70-76 删除路由，但既有克隆须等Runtime回调静止才可结束关联资源责任。"
+      ]
+    },
+    {
+      "id": "WAKE",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/wake_registration.rs",
+      "observedSha256": "c111421756bc15681b53a74fbaf327c6be2116f0e0cdc18d6983b547f2577fe1",
+      "readRanges": [
+        [
+          1,
+          168
+        ]
+      ],
+      "provenRelationships": [
+        "from_abi:50-70 只验证V1及(0,None)/(nonzero,Some)配对后保存callback/token。",
+        "wake:72-90 enabled检查和inflight计数在锁内，释放该锁后调用复制的unsafe C函数；guard Drop:152-162 递减并notify。",
+        "channel_wake:92-97 克隆注册用于异步通知；disable:99-101 阻止新调用，wait:103-111 等已有调用；线程栈标识用于同会话同步销毁拒绝。"
+      ]
+    },
+    {
+      "id": "ACTIVITY",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/frame_activity.rs",
+      "observedSha256": "2a0c57613a38b5d0e61834fa855cb91eb172ac38d05f63739ddbc10a38f4cb3b",
+      "readRanges": [
+        [
+          1,
+          57
+        ]
+      ],
+      "provenRelationships": [
+        "RuntimeFrameActivity::disable_wake_entries/wait_for_wake_callbacks/callback_active依次转发至注册对象；唤醒与帧需求有独立状态。"
+      ]
+    },
+    {
+      "id": "DESTROY",
+      "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+      "observedSha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce",
+      "readRanges": [
+        [
+          344,
+          405
+        ]
+      ],
+      "provenRelationships": [
+        "destroy_session_slot_with_timeout:350-402 同线程active callback先返回InvalidArgument；begin_close之后disable_wake_entries，先drain actions再drain wake callbacks；超时或未归还allocation preserve_failed_teardown_for_retry并返回失败。"
+      ]
+    },
+    {
+      "id": "FFI",
+      "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+      "observedSha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+      "readRanges": [
+        [
+          1,
+          165
+        ],
+        [
+          251,
+          306
+        ],
+        [
+          345,
+          407
+        ],
+        [
+          905,
+          924
+        ]
+      ],
+      "provenRelationships": [
+        "create_session:47-109 输出先置invalid，检查V3、wake配对、四切片预算，再解析profile与startup config并尝试创建；成功才发布handle。",
+        "bind_viewport_surface:345-368 先with_session admission，查两层version、DEFAULT_VIEWPORT，再descriptor/actualbind。",
+        "unbind:370-384 是独立操作；NONE target并非解绑。",
+        "capture/present分别在FFI内调用validate_frame_dimensions；905-915 用单维预算及u64饱和RGBA乘积预算，不把零尺寸误写成这里已拒绝。"
+      ]
+    },
+    {
+      "id": "PROFILE",
+      "path": "zircon_runtime/src/dynamic_api/session/profile.rs",
+      "observedSha256": "7aeed46a2249997215d3fdff2ca299081cc9ef83c007e9303368ce88ffca88f6",
+      "readRanges": [
+        [
+          1,
+          82
+        ]
+      ],
+      "provenRelationships": [
+        "from_bytes:26-35 空profile与b\"runtime\"均为Runtime；其余已列静态名称映射相应模式，未知None。"
+      ]
+    },
+    {
+      "id": "PROJECT",
+      "path": "zircon_runtime/src/dynamic_api/session/project.rs",
+      "observedSha256": "4b801d1036577e6676a73fe725203c37d0ea85425f8ed8735071c3e7b945c77f",
+      "readRanges": [
+        [
+          23,
+          162
+        ]
+      ],
+      "provenRelationships": [
+        "from_abi_slice:63-82 空root为None；checked_slice→UTF8→trim→resolve physical root。",
+        "from_abi_startup_config:84-115 先检查三切片；无root但非空play_scene/report为错误，有root则解析scene并验证report名称；config持有解析后的路径/相对scene，不保存输入裸指针；report transport属App。"
+      ]
+    },
+    {
+      "id": "EXPORT",
+      "path": "zircon_runtime/src/dynamic_api/exports.rs",
+      "observedSha256": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+      "readRanges": [
+        [
+          18,
+          107
+        ],
+        [
+          137,
+          160
+        ]
+      ],
+      "provenRelationships": [
+        "RUNTIME_API_V8:25-54 注册create/destroy/handle_event/bind/unbind/present等真实函数槽。",
+        "zircon_runtime_get_api_v8:56-75 宿主形状验证后返回静态表；create_session_ffi:92-97及bind/unbind:142-154 用catch_ffi_panic委派至FFI实现。"
+      ]
+    },
+    {
+      "id": "API",
+      "path": "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
+      "observedSha256": "82064916edc1aa4a74821e3b3aa91c1775f071fc84570a68248d621747992856",
+      "readRanges": [
+        [
+          44,
+          86
+        ]
+      ],
+      "provenRelationships": [
+        "当前create alias:45-46 值传递V3 config及输出handle指针；bind:81-82 值请求加会话；unbind:85-86 独立viewport操作。",
+        "本批首次读曾为06d97bb681c596c958a28237c1fd5590ca8f88d70128a5b1aa67094487487a39/210行，此次为320行；该外部变化未由本agent写入，引用以本次快照为准，不恢复旧核心范围。"
+      ]
+    },
+    {
+      "id": "HANDLE",
+      "path": "zircon_editor/src/core/gateway/handle.rs",
+      "observedSha256": "589c4313f9a369060e0fec40b8c9b85c68ee01a6e340385ef06be8fd7d2443a8",
+      "readRanges": [
+        [
+          104,
+          213
+        ],
+        [
+          112,
+          203
+        ],
+        [
+          230,
+          279
+        ]
+      ],
+      "provenRelationships": [
+        "GatewayGeneration::new:115-129 从endpoint完整identity添加generation与play_instance；replace_for_play:150-163 锁住replacement后分配generation并发布Arc。",
+        "detach_at_identity:168-187 在同一replacement锁内比较完整值，错误返回StaleGeneration，成功发布detached generation。",
+        "with_world_at_identity:239-251 与mutable:259-271 取得同一个不可变lease并比较完整值后调用，replacement不会把原请求改发到新会话。"
+      ]
+    },
+    {
+      "id": "GATEWAY",
+      "path": "zircon_editor/src/core/gateway/session/gateway.rs",
+      "observedSha256": "88faab5e235123154d281829f4a0fff212566e26a602cbabb62b44068336faec",
+      "readRanges": [
+        [
+          34,
+          127
+        ]
+      ],
+      "provenRelationships": [
+        "new_with_identity:59-98 先要求session valid且identity.runtime_session==session；实际runtime_owner Arc独立保活提供方。兼容new:39-54 以(0,session,0,None)创建基础identity，不证明new本身分配全局身份。"
+      ]
+    },
+    {
+      "id": "TRAIT",
+      "path": "zircon_editor/src/core/gateway/contract.rs",
+      "observedSha256": "f51967115b4b45d83016dee3b784d478225e75e84b4aa75efffe2fb196484192",
+      "readRanges": [
+        [
+          217,
+          226
+        ]
+      ],
+      "provenRelationships": [
+        "EditorRuntimeGateway::session_identity:220-225 要求完整App/transport身份；detached仅用于故意无Runtime会话的endpoint，rawhandle可能被其他Runtime复用。"
+      ]
+    },
+    {
+      "id": "RESOURCE",
+      "path": "zircon_editor/src/core/play/preview_frame.rs",
+      "observedSha256": "c7dad4d93adb43a16bd200f4c6feaada82bb8e425606c4e27de0a1128a3c6d57",
+      "readRanges": [
+        [
+          16,
+          69
+        ]
+      ],
+      "provenRelationships": [
+        "PlayPreviewFrameIdentity::resource_scope:45-65 使用全部六身份字段及frame/PIE尺寸代次组成来源scope；project借用str后仅格式化字符串。"
+      ]
+    },
+    {
+      "id": "DETACHED",
+      "path": "zircon_editor/src/core/gateway/detached.rs",
+      "observedSha256": "d656ba7d2c97ffa8baae3023efee63bbd729b83e5ed27dda28442282bf0fb085",
+      "readRanges": [
+        [
+          13,
+          22
+        ]
+      ],
+      "provenRelationships": [
+        "session_handle无效且session_identity:17-19 返回GatewaySessionIdentity::detached，不调用资源销毁。"
+      ]
+    },
+    {
+      "id": "INPROCESS",
+      "path": "zircon_editor/src/core/gateway/in_process.rs",
+      "observedSha256": "04ed091822184dbd3b5b7400f9a5c43137af144ea5ba95504eeac55cafb8217b",
+      "readRanges": [
+        [
+          77,
+          86
+        ]
+      ],
+      "provenRelationships": [
+        "此直接World endpoint的ABI session invalid，session_identity:81-83 返回detached；World访问生命由自己的gateway owner管理。"
+      ]
+    },
+    {
+      "id": "WIRE",
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "observedSha256": "d2bd41c9d7243c5de4eb25acd1d613eb0d52d18ea8b5fffdcb624f0f1122d6e8",
+      "readRanges": [
+        [
+          1,
+          84
+        ]
+      ],
+      "provenRelationships": [
+        "new:31-51 使用0尺寸/scale1/空payload占位；viewport_metrics:69-83 原样存三项metrics并physical_size复制到event.size。"
+      ]
+    },
+    {
+      "id": "TRANSLATED",
+      "path": "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+      "observedSha256": "76a6df697cfef4a3ebe400ab7ea020576e248fdc87de2edb38dd26e7ffc68d5d",
+      "readRanges": [
+        [
+          1,
+          58
+        ]
+      ],
+      "provenRelationships": [
+        "viewport_metrics:25-35 包装标准事件并附静态host reason，不额外验证度量。"
+      ]
+    },
+    {
+      "id": "UIEVENT",
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event.rs",
+      "observedSha256": "aec82080f076e4f767b0f7adbd63174231dfad246b4c68b53561b6e8714474f2",
+      "readRanges": [
+        [
+          1,
+          86
+        ]
+      ],
+      "provenRelationships": [
+        "UiRuntimeEvent::new:39-65 复制metrics metadata，payload改用真实Rust借用；unsafe from_abi先checked_slice再new，字段copy不构成裸指针安全证明。"
+      ]
+    },
+    {
+      "id": "UIADAPTER",
+      "path": "zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs",
+      "observedSha256": "975e04ad2d26e4179927b46032e62421fa1e62b76ec4b2b599f9114653c3162e",
+      "readRanges": [
+        [
+          1,
+          120
+        ],
+        [
+          250,
+          289
+        ]
+      ],
+      "provenRelationships": [
+        "viewport_metrics:256-278 任一尺寸分量非0时分别复制logical/physical并sanitized_scale_factor；所有分量0时回退event.size和scale1。",
+        "sanitized_scale_factor:280-286 finite且>0则转f64，否则1；不验证physical==logical*scale，未虚构这项不变量。"
+      ]
+    },
+    {
+      "id": "CONFIGTEST",
+      "path": "zircon_runtime_interface/src/tests/contracts.rs",
+      "observedSha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+      "readRanges": [
+        [
+          596,
+          651
+        ],
+        [
+          1147,
+          1181
+        ]
+      ],
+      "provenRelationships": [
+        "runtime_v3_session_config_and_wake_sink_layout_and_validity_are_stable:606-647 验证disabled/new/empty以及错版/缺token/缺fn失败，固定size/offset断言；仅源码审阅，未运行。",
+        "1153-1157 用不同logical/physical及scale2构造metrics，其他事件契约夹具保存该值；没有据此声称任意尺寸一致性被验证。"
+      ]
+    },
+    {
+      "id": "CAMTEST",
+      "path": "zircon_runtime/src/dynamic_api/tests/camera_controller.rs",
+      "observedSha256": "4766f7a7c035e346a57484a025ae6a19b08f19acf603ee688d89554f39df9d1a",
+      "readRanges": [
+        [
+          1,
+          62
+        ]
+      ],
+      "provenRelationships": [
+        "editor_camera_override_changes_only_the_render_extract_view:30-62 断言transform/projection覆盖，core_pipeline/exposure及Scene world transform不变；未执行。"
+      ]
+    },
+    {
+      "id": "EVENTTEST",
+      "path": "zircon_runtime/src/dynamic_api/session/tests/events.rs",
+      "observedSha256": "59745045329cc336657535dd2bf9ccbb4223857a6f414c7a2424e9a7af5777c3",
+      "readRanges": [
+        [
+          116,
+          153
+        ]
+      ],
+      "provenRelationships": [
+        "simulate_camera_event_overrides_render_extract_without_mutating_the_play_world:118-153 用真实serde JSON借用经过handle_event，断言Ok、extract变而World不变；未执行。"
+      ]
+    },
+    {
+      "id": "SURFACETEST",
+      "path": "zircon_runtime/src/dynamic_api/tests/viewport.rs",
+      "observedSha256": "cd8d0ba6004ea17df39539d23889bbd9bf2a9f5e2dadd97a0b592f05774f2192",
+      "readRanges": [
+        [
+          1,
+          98
+        ]
+      ],
+      "provenRelationships": [
+        "4-95 测试wrong request/target version、unknown viewport、invalid session、NONE unsupported的具体返回路径；只读了这些测试，不声称执行或看过文件余部。"
+      ]
+    },
+    {
+      "id": "METRICSTEST",
+      "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+      "observedSha256": "61b9c9dcad27c05acdbfb14126fc14dcdfe5b7ec7afb53eee33e9b1526446d63",
+      "readRanges": [
+        [
+          45,
+          113
+        ]
+      ],
+      "provenRelationships": [
+        "runtime_event_adapter_maps_viewport_and_window_events_to_window_pump_facts:61-113 用640×360/1280×720/scale2构造事件，匹配转换后的UiWindowMetrics三字段；窗口适配调用上下文已读。"
+      ]
+    },
+    {
+      "id": "UITEST",
+      "path": "zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/batch_adapter.rs",
+      "observedSha256": "011d2875440cffc48a5c0f777c81af89eaef1f2242ba9f8596e4473290d7a7d6",
+      "readRanges": [
+        [
+          1,
+          44
+        ]
+      ],
+      "provenRelationships": [
+        "runtime_ui_manager_dispatches_runtime_event_batch_through_window_adapter:6-44 把DTO metrics作为viewport事件批项送入真实window pump，检查路由/diagnostic；不声称读过其余测试。"
+      ]
+    },
+    {
+      "id": "ABIGUARD",
+      "path": "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+      "observedSha256": "727355154d092d305e004b83e52af7d23982469e9608a5004d6b3eff98b5a9d7",
+      "readRanges": [
+        [
+          114,
+          199
+        ],
+        [
+          401,
+          506
+        ]
+      ],
+      "provenRelationships": [
+        "runtime_play_startup_dtos_keep_explicit_c_layout_and_raw_kind:161-199 核对session两DTO reprC/字段顺序。",
+        "assert_repr_c_before_struct:406-421 以准确pub struct锚点和先前struct区分repr归属；discover_struct_fields:444-473 只读取pub字段行，新增注释不被解析为字段。"
+      ]
+    },
+    {
+      "id": "BOUNDARY",
+      "path": "zircon_runtime_interface/src/tests/boundary.rs",
+      "observedSha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+      "readRanges": [
+        [
+          1,
+          144
+        ],
+        [
+          455,
+          572
+        ],
+        [
+          981,
+          1013
+        ]
+      ],
+      "provenRelationships": [
+        "FORBIDDEN_SOURCE_NEEDLES:33-50 全文禁串含实现crate路径、系统模块；identity:71/530 仅准许Arc同步导入。",
+        "child预算:114-115/986-995 包含注释与空行，总700；本批4owner全部低于预算。",
+        "域门面997-1008 禁pub use wildcard；本批mod继续显式63绑定；未声称全仓边界测试执行成功。"
+      ]
+    },
+    {
+      "id": "APIFACADE",
+      "path": "zircon_runtime_interface/src/runtime_api/mod.rs",
+      "observedSha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63",
+      "readRanges": [
+        [
+          112,
+          145
+        ]
+      ],
+      "provenRelationships": [
+        "pub use session:114-145 显式转出本域合同至runtime_api；未修改此路径。"
+      ]
+    },
+    {
+      "id": "ROOTFACADE",
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "observedSha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+      "readRanges": [
+        [
+          137,
+          174
+        ]
+      ],
+      "provenRelationships": [
+        "crate根pub use runtime_api:137-174 转出身份、session、viewport、camera与FFI alias，支持新增rustdoc链接的导出目标；未修改此路径。"
+      ]
+    }
+  ],
+  "existingIssueTags": [],
+  "issueIds": [],
+  "issues": [],
+  "issuePolicy": {
+    "prefix": "ZCA-SES",
+    "newBugCount": 0,
+    "newTodoCount": 0,
+    "newSafetyTagCount": 0,
+    "existingBugOrTodoCount": 0,
+    "reason": "完整已读调用路径支撑新增说明；形状验证的局限是已知调用契约，不因无测试凭空编号BUG。分配源无unsafe块，不虚构SAFETY前提。"
+  },
+  "validation": {
+    "language": "rust",
+    "rustfmt": {
+      "status": "passed",
+      "version": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+      "command": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "files": 6,
+      "allExitCode": 0,
+      "firstReceipt": {
+        "execCell": "25",
+        "nativeSession": 75582,
+        "finalChunkId": "dc4f3b",
+        "exitCode": 0
+      },
+      "affectedSummaryRecheck": {
+        "execCell": "27",
+        "nativeChunkId": "1b3c41",
+        "paths": [
+          "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "zircon_runtime_interface/src/runtime_api/session/session_identity.rs"
+        ],
+        "eachExitCode": 0
+      },
+      "writesPerformed": false
+    },
+    "scopedDiffCheck": {
+      "status": "passed",
+      "command": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--check",
+        "--",
+        "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+        "zircon_runtime_interface/src/runtime_api/session/session.rs",
+        "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+        "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+        "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+        "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+      ],
+      "exitCode": 0,
+      "receipt": {
+        "execCell": "28",
+        "nativeSession": 47798,
+        "finalChunkId": "e3a672"
+      },
+      "stderrObservation": "Git给出LF将由autocrlf转CRLF提示，本次只读命令未写源；未把提示当作行尾已转换。"
+    },
+    "executableStructure": {
+      "status": "passed",
+      "method": "对当前HEAD5a547...的逐行SequenceMatcher，所有差异opcode只能insert且插入行为空或独立//注释；before时逐原始byte-lines保留断言及immediate SHA校验；不据此冒充编译/运行。",
+      "baselineLines": 400,
+      "currentLines": 712,
+      "insertedCommentOrBlankLines": 312,
+      "deletedOrChangedOriginalLines": 0,
+      "receipt": {
+        "execCell": "22",
+        "nativeSession": 86232,
+        "exitCode": 0,
+        "finalChunkId": "029e87"
+      },
+      "recheckReceipt": {
+        "execCell": "28",
+        "nativeSession": 47798,
+        "exitCode": 0
+      }
+    },
+    "staticAffectedGuards": {
+      "status": "passed",
+      "ownerBudget": 700,
+      "ownerLineCounts": {
+        "camera.rs": 76,
+        "session.rs": 149,
+        "session_identity.rs": 155,
+        "viewport.rs": 208
+      },
+      "facadeReexportsExplicit": true,
+      "reprCAndFieldSequence": {
+        "ZrRuntimeWakeSinkV1": [
+          "abi_version",
+          "token",
+          "wake"
+        ],
+        "ZrRuntimeSessionConfigV3": [
+          "abi_version",
+          "profile",
+          "project_root",
+          "play_scene",
+          "play_report_pipe",
+          "wake_sink"
+        ],
+        "method": "按ABIGUARD:406-421的find/rfind及444-473逐行字段规则，两个repr(C)均位于各自结构属性块，字段序列完全匹配冻结清单。"
+      },
+      "fullTextForbiddenNeedles": "实盘复用BOUNDARY:33-50的16个禁串，5个生产文件逐一匹配；仅identity现有Arc导入命中std::sync并符合BOUNDARY:71,530精确例外，无新增命中。",
+      "receipt": {
+        "execCell": "37",
+        "nativeChunkId": "6532e7",
+        "exitCode": 0
+      },
+      "fullTextForbiddenNeedleCount": 16,
+      "productionFilesChecked": 5,
+      "localPathAttributeTargetsChecked": 15,
+      "localPathTargetsExistAndStayWithinCrate": true
+    },
+    "cargo": {
+      "run": false,
+      "acceptance": false,
+      "reason": "纯注释，只读格式/结构/受影响文本守卫；无需宽泛Cargo，Jenkins验证票据尚无本批真实验收。"
+    },
+    "rustdoc": {
+      "run": false,
+      "newExecutableDoctests": 0,
+      "linkReview": "Self及公开crate::runtime_api符号由实际decl与APIFACADE/ROOTFACADE确认；跨crate私有符号使用code identifiers，不新增失效跨crate链接。"
+    },
+    "canonicalSelfCheck": {
+      "status": "passed",
+      "validatedAtUtc": "2026-10-13T05:10:27.385832+00:00",
+      "receipt": {
+        "execCell": "37",
+        "nativeChunkId": "6532e7",
+        "exitCode": 0
+      },
+      "schemaCoverageAndObjectRequiredFieldsMatched": true,
+      "exclusiveSourcePaths": 6,
+      "physicalFinalSourceHashesMatched": 6,
+      "objectGroups": 46,
+      "definitionAnchorsMatched": 223,
+      "memberSymbolsExactlyEnumerateDefinitions": true,
+      "kindCountsMatchDeclaredInventory": true,
+      "functionDeclarationsMatched": 22,
+      "namedFields": 35,
+      "moduleDeclarations": 15,
+      "publicReexportBindings": 63,
+      "callerReferences": 37,
+      "callerHashMismatches": [],
+      "sourceIssueTags": 0,
+      "initialCheckerFailure": {
+        "execCell": "36",
+        "nativeChunkId": "7be102",
+        "exitCode": 1,
+        "reason": "检查脚本的同步导入正则包含前置换行，首次字符串比较未trim；修正为与守卫相同的trim后重跑本静态自检通过。",
+        "sourceMutation": false
+      },
+      "limits": "静态结构/哈希/文本守卫检查；不冒充Cargo、Rustdoc、运行验收或全仓完整审查。"
+    }
+  },
+  "independentReview": {
+    "status": "pending",
+    "reviewer": "/root",
+    "accepted": false,
+    "sourceFreeze": true,
+    "reason": "根已逐窗独立读部分caller，不以此代替本6最终diff/hash/member与canonical evidence独立接收。"
+  },
+  "acceptance": {
+    "batchIntakeAccepted": false,
+    "formalAcceptance": false,
+    "runtimeAcceptance": false,
+    "cargoAcceptance": false,
+    "commitReceipt": null,
+    "wholeRepositoryCompleted": false
+  },
+  "foreignObservations": {
+    "heldOldSourceScopes": "root报告旧68源码约02:24UTC回到HEAD，旧core11/schema6全部hold，未恢复。",
+    "driftReport": {
+      "path": "docs/tests/source-comment-review-assigned-source-drift-20261013.json",
+      "observedSha256": "c594a23dde4b4ba225861ba183290fa4657a8b381b18370efee3ff018427bc02",
+      "scope": "79 assigned only，68held；不能据此宣称完整全仓已扫描或归属明确。"
+    },
+    "readOnlyReflog": {
+      "receipt": {
+        "execCell": "30",
+        "nativeSession": 68041,
+        "exitCode": 0,
+        "finalChunkId": "7383fa"
+      },
+      "entry": "5a547d4e2 HEAD@{2026-10-13T10:23:32+08:00} reset: moving to HEAD",
+      "utcEquivalent": "2026-10-13 02:23:32 UTC",
+      "inference": "与报告漂移时间吻合；只证明reflog有reset事件，不证明hard/mixed/soft模式或执行者。"
+    },
+    "apiTableDependencyDrift": {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
+      "firstObservedSha256": "06d97bb681c596c958a28237c1fd5590ca8f88d70128a5b1aa67094487487a39",
+      "firstLines": 210,
+      "latestObservedSha256": "82064916edc1aa4a74821e3b3aa91c1775f071fc84570a68248d621747992856",
+      "latestLines": 320,
+      "editedByThisBatch": false,
+      "policy": "只引用已重读当前alias及实际caller，不恢复旧source或把该外部变化算本批交付。",
+      "impactAssessment": "已重读当前320行快照中44-86的函数别名及EXPORT实际函数表注册调用；别名与实际实现边界仍支持本批DTO、输入借用、回调及表面消费文档。37项引用最终哈希核对中API仍为82064916...快照。该依赖不属本批可交付源，其外部归属与后续处置由root/Jenkins核对，未恢复或覆盖。"
+    },
+    "authorizationSubmissions": [
+      {
+        "path": ".jenkins/state/authorizations/source-comment-audit-execute-20261012.submission.json",
+        "observedSha256": "773239adb6ccebd1c3d52b8992bf25076d901cec691e86cdaf4b9f3d5e3720b9",
+        "phase": "submitted",
+        "formalAcceptance": false,
+        "nativeAcceptance": false
+      },
+      {
+        "path": ".jenkins/state/authorizations/source-comment-audit-check-20261012.submission.json",
+        "observedSha256": "f474f4f23bca7b5d4188644348566765e72189e835cadc5c41a73082646348d8",
+        "phase": "submitted",
+        "formalAcceptance": false
+      }
+    ],
+    "interpretation": "提交排队信息不是正式动作授权或验证通过；控制/权限配置未写。"
+  },
+  "processReceipts": {
+    "sourceMutation": [
+      {
+        "execCell": "22",
+        "nativeSession": 86232,
+        "finalChunkId": "029e87",
+        "exitCode": 0,
+        "scope": [
+          "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+        ]
+      },
+      {
+        "execCell": "27",
+        "nativeChunkId": "1b3c41",
+        "exitCode": 0,
+        "scope": [
+          "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "zircon_runtime_interface/src/runtime_api/session/session_identity.rs"
+        ]
+      }
+    ],
+    "thisBatchKnownNativeProcessesTerminated": true,
+    "earlierSchemaEvidenceAppend": "旧cell10 wait=aborted后not found，无native session终态；旧canonical仍9组，未重跑，由root/Jenkins诊断，不冒称原进程退出。",
+    "runnerFailures": "只读CreateProcess spawn_ready拒绝，未创建native session；已保留真实终态/错误口径。"
+  },
+  "artifactLifecycle": {
+    "authoredCanonicalDeliverableOnly": true,
+    "sourceCopiesCreated": 0,
+    "temporaryHelpersCreated": 0,
+    "buildProductsCreated": 0,
+    "gitWritesPerformed": 0,
+    "generationRuns": 0,
+    "cleanupPerformed": false,
+    "freedBytes": 0,
+    "retainedPaths": [
+      "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+      "zircon_runtime_interface/src/runtime_api/session/session.rs",
+      "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+      "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+      "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+      "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+      "docs/tests/source-comment-review-evidence-core-session-003.json"
+    ],
+    "globalTaskCloseout": "pending，旧scope/未知动作/正式验收由root和Jenkins继续核对"
+  }
+}

@@ -87,6 +87,33 @@ fn joint_constraint_metadata_rejects_invalid_axis_documents() {
         .expect_err("duplicate axis entries must be rejected");
     assert!(duplicate_error.to_string().contains("duplicate field `x`"));
 
+    let duplicate_after_null = r#"{
+        "linear_limits": {
+            "x": null,
+            "x": [-0.2, 0.2]
+        }
+    }"#;
+    let duplicate_null_error =
+        serde_json::from_str::<PhysicsJointConstraintMetadata>(duplicate_after_null)
+            .expect_err("a null map value must not allow a duplicate axis document");
+    // A map value must contain two limits; null is rejected before the next key.
+    assert!(duplicate_null_error
+        .to_string()
+        .contains("invalid type: null"));
+
+    let duplicate_alias = r#"{
+        "linear_limits": {
+            "x": [-0.2, 0.2],
+            "0": [0.0, 1.0]
+        }
+    }"#;
+    let duplicate_alias_error =
+        serde_json::from_str::<PhysicsJointConstraintMetadata>(duplicate_alias)
+            .expect_err("axis aliases must share the duplicate-key check");
+    assert!(duplicate_alias_error
+        .to_string()
+        .contains("duplicate field `x`"));
+
     let unknown_axis = r#"{
         "angular_limits": {
             "w": [-0.25, 0.25]

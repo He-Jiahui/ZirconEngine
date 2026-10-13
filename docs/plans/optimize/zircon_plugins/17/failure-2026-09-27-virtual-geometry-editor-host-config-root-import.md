@@ -4,7 +4,7 @@ status: open
 created_at: 2026-09-27
 summary_slug: virtual-geometry-editor-host-config-root-import
 origin_plan: docs/plans/zircon_plugins/10-editor-integration.md
-fixing_plan: docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster-product-integration-review.md
+fixing_plan: docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster.md
 origin_child_dir: docs/plans/zircon_plugins/10
 fixing_child_dir: docs/plans/optimize/zircon_plugins/17
 plan_link_mode: child_record_only
@@ -21,7 +21,7 @@ tests:
 
 - 来源计划：`docs/plans/zircon_plugins/10-editor-integration.md`
 - 来源执行切片：全仓 failure 滚动诊断发现的 first-party Editor helper 编译边界。
-- 修复责任计划：`docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster-product-integration-review.md`
+- 修复责任计划：`docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster.md`
 - 交接原因：该产品 Editor package 持有 `editor_host_contract_marker()`；共享 Editor host 常量已公开在规范 host 模块，消费者应迁移到该边界。
 
 ## 失败现象与复现证据

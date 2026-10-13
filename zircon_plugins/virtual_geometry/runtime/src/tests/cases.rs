@@ -1,5 +1,14 @@
 use super::*;
 
+#[path = "product_args_prepare.rs"]
+mod product_args_prepare;
+#[path = "uploader_contract.rs"]
+mod uploader_contract;
+#[path = "virtual_geometry_execution.rs"]
+mod virtual_geometry_execution;
+#[path = "virtual_geometry_gpu.rs"]
+mod virtual_geometry_gpu;
+
 #[test]
 fn virtual_geometry_registration_contributes_render_feature_descriptor() {
     let report = plugin_registration();

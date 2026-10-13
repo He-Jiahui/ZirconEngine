@@ -20,6 +20,14 @@ pub(super) struct NativePluginDiscoveryManifestIndex {
 }
 
 impl NativePluginDiscoveryManifestIndex {
+    pub(super) fn len(&self) -> usize {
+        self.candidates.len()
+    }
+
+    pub(super) fn contains_path(&self, path: &Path) -> bool {
+        self.candidates.contains_key(path)
+    }
+
     pub(super) fn from_candidates(candidates: Vec<NativePluginCandidate>) -> Self {
         let mut index = Self::default();
         for candidate in candidates {
@@ -89,15 +97,23 @@ impl NativePluginDiscoveryManifestIndex {
     }
 
     /// 清单路径排序决定同包标识的唯一赢家；重复项留在索引中，诊断随每次投影重算。
-    pub(super) fn project(&self) -> (Vec<NativePluginCandidate>, Vec<String>) {
+    pub(super) fn project(
+        &self,
+        max_diagnostics: usize,
+    ) -> Result<(Vec<NativePluginCandidate>, Vec<String>), NativePluginDiscoveryRefreshError> {
         let mut selected = BTreeMap::<String, PathBuf>::new();
         let mut candidates = Vec::with_capacity(self.candidates.len());
         let mut diagnostics = Vec::new();
 
         for (manifest_path, candidate) in &self.candidates {
             if let Some(first_path) = selected.get(&candidate.plugin_id) {
-                // BUG: [CR-PLUGIN-NATIVE-0206] 这些重复包诊断未经过收集槽准入，也未校验最终诊断数；
-                // 候选总数在额度内但重复项超过诊断上限时，发布快照仍越过声明的诊断预算；证据：快照直接接收本投影。
+                if diagnostics.len() >= max_diagnostics {
+                    return Err(NativePluginDiscoveryRefreshError::budget_exceeded(
+                        super::NativePluginDiscoveryRefreshBudgetKind::DiagnosticCount,
+                        max_diagnostics.saturating_add(1) as u64,
+                        max_diagnostics as u64,
+                    ));
+                }
                 diagnostics.push(format!(
                     "duplicate native plugin package id `{}`: keeping {}, ignoring {}",
                     candidate.plugin_id,
@@ -109,7 +125,7 @@ impl NativePluginDiscoveryManifestIndex {
             selected.insert(candidate.plugin_id.clone(), manifest_path.clone());
             candidates.push(candidate.clone());
         }
-        (candidates, diagnostics)
+        Ok((candidates, diagnostics))
     }
 }
 

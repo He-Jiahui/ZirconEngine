@@ -1,5 +1,5 @@
 //! 管理器同步剪辑采样保留作者轨道到骨名或路径的解析顺序；帧系统则使用编译目标表。
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use zircon_runtime::core::framework::animation::{
     AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationSkeletonAsset,
@@ -204,9 +204,14 @@ fn skeleton_bone_path(skeleton: &AnimationSkeletonAsset, index: usize) -> Option
     let bone = skeleton.bones.get(index)?;
     let mut segments = vec![bone.name.clone()];
     let mut parent = bone.parent_index;
-    // BUG: [CR-PLUGIN-ANIMATION-0006] 原始骨架有父链环且轨道请求路径解析时，此循环不会结束；管理器公开采样入口未先做拓扑校验；证据：manager.rs:149 和 ClipTrackBoneLookup 的调用。
+    let mut visited = HashSet::with_capacity(skeleton.bones.len());
+    visited.insert(index);
     while let Some(parent_index) = parent {
-        let parent_bone = skeleton.bones.get(parent_index as usize)?;
+        let parent_index = usize::try_from(parent_index).ok()?;
+        if !visited.insert(parent_index) {
+            return None;
+        }
+        let parent_bone = skeleton.bones.get(parent_index)?;
         segments.push(parent_bone.name.clone());
         parent = parent_bone.parent_index;
     }

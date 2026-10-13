@@ -3,7 +3,7 @@ doc_type: milestone-detail
 status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_editor/129-editor-search-filter-query-index-result-find-usage-reference-navigation-current-source-review.md
-  - docs/plans/optimize/zircon_editor/181-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/181-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world.md
 related_records:
   - docs/plans/astra/features/editor/716-hierarchy-filter-borrowed-query-capacity.md
   - docs/plans/astra/features/editor/718-hierarchy-filter-lazy-match-flags.md

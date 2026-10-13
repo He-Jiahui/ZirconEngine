@@ -38,3 +38,16 @@ fn gpu_scene_projection_sanitizes_invalid_bounds_and_fails_open() {
     assert_eq!(projected.radius, 0.0);
     assert!(projected.force_hzb_visible);
 }
+
+#[test]
+fn gpu_scene_projection_fails_open_for_non_finite_vertex_bounds() {
+    let invalid_vertex_bounds =
+        RenderMeshBounds::from_positions([[0.0, 0.0, 0.0], [f32::NAN, 1.0, 0.0]]);
+    assert!(!invalid_vertex_bounds.is_finite());
+
+    let projected = project_local_bounds_for_gpu_scene(invalid_vertex_bounds, true);
+
+    assert_eq!(projected.center, [0.0; 3]);
+    assert_eq!(projected.radius, 0.0);
+    assert!(projected.force_hzb_visible);
+}

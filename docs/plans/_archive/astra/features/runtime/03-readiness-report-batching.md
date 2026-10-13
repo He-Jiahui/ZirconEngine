@@ -1,7 +1,7 @@
 ---
 status: implemented_pending_validation
 plan_sources:
-  - docs/plans/optimize/zircon_runtime/64-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/64-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation.md
   - docs/plans/optimize/zircon_runtime/207/2026-08-26-dependency-readiness-capacity.md
   - docs/plans/optimize/zircon_runtime/207/2026-09-09-empty-readiness-fast-path.md
 ---

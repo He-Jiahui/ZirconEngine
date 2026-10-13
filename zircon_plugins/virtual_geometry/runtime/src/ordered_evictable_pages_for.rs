@@ -19,7 +19,11 @@ impl VirtualGeometryRuntimeState {
         }
 
         let mut current_page_id = page_id;
+        let mut visited = BTreeSet::new();
         while let Some(parent_page_id) = self.page_parent_pages().get(&current_page_id).copied() {
+            if !visited.insert(parent_page_id) {
+                break;
+            }
             if frontier_hot_pages.contains(&parent_page_id) {
                 return true;
             }
@@ -153,7 +157,11 @@ impl VirtualGeometryRuntimeState {
 
         let mut current_page_id = descendant_page_id;
         let mut distance = 0_u32;
+        let mut visited = BTreeSet::new();
         while let Some(parent_page_id) = self.page_parent_pages().get(&current_page_id).copied() {
+            if !visited.insert(parent_page_id) {
+                return None;
+            }
             distance = distance.saturating_add(1);
             if parent_page_id == ancestor_page_id {
                 return Some(distance);

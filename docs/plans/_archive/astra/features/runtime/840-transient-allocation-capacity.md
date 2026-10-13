@@ -2,7 +2,7 @@
 doc_type: milestone-detail
 status: implemented_pending_validation
 plan_sources:
-  - docs/plans/optimize/zircon_runtime/214-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution-current-working-tree-review.md
+  - docs/plans/optimize/zircon_runtime/214-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution.md
   - docs/plans/optimize/zircon_runtime/214/2026-09-19-transient-allocation-capacity.md
 related_records:
   - docs/plans/astra/features/runtime/680-20260911-runtime-ui-optimization-batch-completion.md

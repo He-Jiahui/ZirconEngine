@@ -8,7 +8,7 @@ verification_head: 8ee9411db24b7b4bdaf3fe028194642a7557c0b6
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/17-sound-audio-clip-mixer-routing-effect-spatial-acoustic-timeline-authoring-review.md
 related_runtime_owner:
-  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor.md
 related_editor_owners:
   - docs/plans/optimize/zircon_editor/02-document-transaction-save-autosave-recovery-review.md
   - docs/plans/optimize/zircon_editor/04-asset-index-import-reimport-catalog-thumbnail-reference-workflow-review.md
@@ -93,7 +93,7 @@ Runtime139 之后的当前工作树增加了真实的局部优化：WAV 常见�
 ### 2.3 Owner 边界
 
 - Editor93 唯一负责 Audio Clip/Mixer/Acoustic/Timeline authoring document、operation、transaction、audition、toolkit、view model 与 truthful product surface。
-- [Runtime139](../zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor-product-integration-current-source-review.md) 负责 device/callback、mixer execution、voice、stream/residency、World bridge、DSP/spatial/acoustics、event/timeline clock 与 shutdown；本报告不重复登记其 Runtime P1。
+- [Runtime139](../zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor.md) 负责 device/callback、mixer execution、voice、stream/residency、World bridge、DSP/spatial/acoustics、event/timeline clock 与 shutdown；本报告不重复登记其 Runtime P1。
 - [Editor02](02-document-transaction-save-autosave-recovery-review.md)、[Editor04](04-asset-index-import-reimport-catalog-thumbnail-reference-workflow-review.md)、[Editor05](05-inspector-reflection-property-authoring-customization-review.md)、[Editor09](09-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-review.md) 分别持有共享 document、asset/import、typed inspector 与 job authority。
 - [Editor14](14-animation-sequence-graph-state-machine-timeline-curve-preview-compiler-authoring-review.md)持有通用 Timeline/Curve authoring；Sound track provider只能注册类型化扩展，不得另造平行时间系统。
 

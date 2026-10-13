@@ -250,6 +250,11 @@ def run(args):
         finally:api.close()
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--profile-directory',type=Path,required=True);parser.add_argument('--output-directory',type=Path,required=True);parser.add_argument('--case-json',type=Path,required=True);parser.add_argument('--contract-configuration',type=Path,required=True);parser.add_argument('--contract-configuration-sha256',required=True);parser.add_argument('--project-root',type=Path);parser.add_argument('--pid',type=int,required=True);parser.add_argument('--hwnd',type=int,required=True);parser.add_argument('--expected-dpi',type=int,choices=(96,144),required=True);parser.add_argument('--timeout-ms',type=int,default=10000);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--profile-directory',type=Path,required=True);parser.add_argument('--output-directory',type=Path,required=True);parser.add_argument('--case-json',type=Path,required=True);parser.add_argument('--contract-configuration',type=Path,required=True);parser.add_argument('--contract-configuration-sha256',required=True);parser.add_argument('--project-root',type=Path);parser.add_argument('--pid',type=int,required=True);parser.add_argument('--hwnd',type=int,required=True)
+    dpi=parser.add_mutually_exclusive_group(required=True)
+    dpi.add_argument('--expected-dpi',type=int,choices=(96,144))
+    dpi.add_argument('--preview-dpi',type=int,choices=(120,),help='Capture a 125%% preview; this is not a formal 100%%/150%% acceptance case.')
+    parser.add_argument('--timeout-ms',type=int,default=10000);args=parser.parse_args()
+    if args.preview_dpi is not None:args.expected_dpi=args.preview_dpi
     if not 50<=args.timeout_ms<=10000:parser.error('--timeout-ms must be 50..10000')
     run(args)

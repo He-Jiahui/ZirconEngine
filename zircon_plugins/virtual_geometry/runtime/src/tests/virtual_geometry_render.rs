@@ -139,6 +139,63 @@ fn render_framework_executes_virtual_geometry_gpu_chain_with_resident_payload() 
 }
 
 #[test]
+fn render_framework_uploads_multiple_cooked_virtual_geometry_pages() {
+    let (root, asset_manager, model) = cooked_two_page_project();
+    let material = resource_handle::<MaterialMarker>(&asset_manager, "builtin://material/default");
+    let viewport_size = UVec2::new(160, 120);
+    let mut extract = build_single_entity_extract(viewport_size, model, material);
+    // Exercise automatic extraction from a cooked model so page payloads are supplied by the
+    // registered runtime provider and pass through the real GPU upload path.
+    extract.geometry.virtual_geometry = None;
+    extract.geometry.virtual_geometry_debug = Some(RenderVirtualGeometryDebugState {
+        forced_mip: Some(10),
+        ..Default::default()
+    });
+
+    let framework = pluginized_wgpu_render_framework_with_asset_manager(asset_manager);
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    framework
+        .set_quality_profile(viewport, virtual_geometry_only_quality_profile())
+        .unwrap();
+    let mut completed_page_count = 0;
+    let mut replaced_page_count = 0;
+    for _ in 0..4 {
+        framework
+            .submit_frame_extract(viewport, extract.clone())
+            .unwrap();
+        let stats = framework.query_stats().unwrap();
+        assert_eq!(stats.last_virtual_geometry_page_budget, 1);
+        assert!(stats.last_virtual_geometry_requested_page_count <= 1);
+        completed_page_count += stats.last_virtual_geometry_completed_page_count;
+        replaced_page_count += stats.last_virtual_geometry_replaced_page_count;
+    }
+    assert!(
+        completed_page_count >= 2,
+        "multi-page upload should complete both nonresident leaf pages across budgeted frames"
+    );
+    assert!(
+        replaced_page_count >= 1,
+        "one-slot residency should report page replacement while the streaming frontier advances"
+    );
+    let snapshot = framework
+        .query_virtual_geometry_debug_snapshot()
+        .unwrap()
+        .expect("automatic extraction should produce a debug snapshot");
+    assert!(!snapshot.resident_page_payloads.is_empty());
+    assert_eq!(snapshot.resident_pages.len(), 1);
+    assert_eq!(snapshot.selected_clusters.len(), 1);
+    framework
+        .capture_frame(viewport)
+        .unwrap()
+        .expect("multi-page virtual geometry should produce a captured frame");
+    framework.destroy_viewport(viewport).unwrap();
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn render_framework_stats_follow_public_virtual_geometry_execution_segments() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let model = resource_handle::<ModelMarker>(&asset_manager, "builtin://cube");
@@ -306,7 +363,7 @@ fn render_framework_stats_expose_node_and_cluster_cull_worklist_counts() {
     );
 }
 
-fn build_single_entity_extract(
+pub(super) fn build_single_entity_extract(
     viewport_size: UVec2,
     model: ResourceHandle<ModelMarker>,
     material: ResourceHandle<MaterialMarker>,
@@ -345,6 +402,7 @@ fn build_single_entity_extract(
             display_mode: DisplayMode::Shaded,
             ..RenderOverlayExtract::default()
         },
+        environment: Default::default(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: false,
             skybox_enabled: false,
@@ -383,7 +441,7 @@ fn build_single_entity_extract(
     extract
 }
 
-fn build_same_page_dual_entity_extract(
+pub(super) fn build_same_page_dual_entity_extract(
     viewport_size: UVec2,
     model: ResourceHandle<ModelMarker>,
     material: ResourceHandle<MaterialMarker>,
@@ -434,6 +492,7 @@ fn build_same_page_dual_entity_extract(
             display_mode: DisplayMode::Shaded,
             ..RenderOverlayExtract::default()
         },
+        environment: Default::default(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: false,
             skybox_enabled: false,
@@ -458,7 +517,7 @@ fn build_same_page_dual_entity_extract(
     extract
 }
 
-fn build_hierarchical_instance_extract(
+pub(super) fn build_hierarchical_instance_extract(
     viewport_size: UVec2,
     model: ResourceHandle<ModelMarker>,
     material: ResourceHandle<MaterialMarker>,
@@ -497,6 +556,7 @@ fn build_hierarchical_instance_extract(
             display_mode: DisplayMode::Shaded,
             ..RenderOverlayExtract::default()
         },
+        environment: Default::default(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: false,
             skybox_enabled: false,
@@ -626,7 +686,7 @@ fn mesh_snapshot(
     }
 }
 
-fn virtual_geometry_only_quality_profile() -> RenderQualityProfile {
+pub(super) fn virtual_geometry_only_quality_profile() -> RenderQualityProfile {
     RenderQualityProfile::new("vg-execution-stats")
         .with_virtual_geometry(true)
         .with_hybrid_global_illumination(false)
@@ -697,6 +757,67 @@ fn cooked_triangle_project() -> (
         .unwrap();
     let model_uri = uri.to_string();
     let model = resource_handle::<ModelMarker>(&asset_manager, &model_uri);
+    (root, asset_manager, model)
+}
+
+fn cooked_two_page_project() -> (
+    PathBuf,
+    Arc<ProjectAssetManager>,
+    ResourceHandle<ModelMarker>,
+) {
+    let root = unique_temp_graphics_root("vg_render_graph_two_pages");
+    let model_dir = root.join("assets").join("models");
+    fs::create_dir_all(&model_dir).unwrap();
+    ProjectManifest::new(
+        "VirtualGeometryTwoPageRenderGraph",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(root.join("zircon-project.toml"))
+    .unwrap();
+
+    let uri = AssetUri::parse("res://models/vg_two_pages.model.toml").unwrap();
+    let vertices = vec![
+        MeshVertex::new(Vec3::new(-0.95, -0.8, 0.0), Vec3::Z, Vec2::new(0.0, 1.0)),
+        MeshVertex::new(Vec3::new(-0.05, -0.8, 0.0), Vec3::Z, Vec2::new(1.0, 1.0)),
+        MeshVertex::new(Vec3::new(-0.5, 0.8, 0.0), Vec3::Z, Vec2::new(0.5, 0.0)),
+        MeshVertex::new(Vec3::new(0.05, -0.8, 0.0), Vec3::Z, Vec2::new(0.0, 1.0)),
+        MeshVertex::new(Vec3::new(0.95, -0.8, 0.0), Vec3::Z, Vec2::new(1.0, 1.0)),
+        MeshVertex::new(Vec3::new(0.5, 0.8, 0.0), Vec3::Z, Vec2::new(0.5, 0.0)),
+    ];
+    let indices = vec![0, 1, 2, 3, 4, 5];
+    let virtual_geometry = cook_virtual_geometry_from_mesh(
+        &vertices,
+        &indices,
+        VirtualGeometryCookConfig {
+            cluster_triangle_count: 1,
+            page_cluster_count: 1,
+            mesh_name: Some("render-graph-two-page-mesh".to_string()),
+            source_hint: Some(uri.to_string()),
+        },
+    )
+    .expect("two triangles should cook into two virtual geometry pages");
+    let model_asset = ModelAsset {
+        uri: uri.clone(),
+        primitives: vec![ModelPrimitiveAsset {
+            vertices,
+            indices,
+            mesh: None,
+            mesh_sdf: None,
+            virtual_geometry: Some(virtual_geometry),
+        }],
+    };
+    fs::write(
+        model_dir.join("vg_two_pages.model.toml"),
+        model_asset.to_toml_string().unwrap(),
+    )
+    .unwrap();
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let model = resource_handle::<ModelMarker>(&asset_manager, &uri.to_string());
     (root, asset_manager, model)
 }
 

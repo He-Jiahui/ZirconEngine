@@ -50,6 +50,7 @@ fn hub_config_round_trips_settings_and_engines() {
     config.runtime.new_project_location = PathBuf::from("E:/Drafts");
     config.runtime.new_project_engine_id = Some("local".to_string());
     config.action_history.push(HubActionRecord {
+        id: String::new(),
         finished_unix_ms: 9,
         action: crate::state::HubActionKind::OpenEditor,
         status: crate::state::HubActionStatus::Success,
@@ -128,6 +129,49 @@ fn legacy_settings_without_output_provenance_fail_closed() {
 }
 
 #[test]
+fn legacy_home_build_default_is_migrated_with_windows_path_normalization() {
+    let home = PathBuf::from(r"C:\Users\HeJiahui");
+    let mut settings = HubSettings::default();
+    settings.default_build_output_dir = PathBuf::from(r"c:/users/heJIAhui/zirconbuilds/");
+    settings.default_build_output_provenance = OutputRootProvenance::Unverified;
+
+    migrate_legacy_build_output_default(&mut settings, Some(home));
+
+    assert_eq!(
+        settings.default_build_output_dir,
+        default_build_output_dir()
+    );
+    assert_eq!(
+        settings.default_build_output_provenance,
+        OutputRootProvenance::HubManaged
+    );
+}
+
+#[test]
+fn legacy_build_default_migration_preserves_custom_and_folder_picker_paths() {
+    let home = PathBuf::from(r"C:\Users\HeJiahui");
+    let custom_root = PathBuf::from(r"E:\cargo-targets\zircon-local\custom-build");
+    let mut custom = HubSettings::default();
+    custom.default_build_output_dir = custom_root.clone();
+    custom.default_build_output_provenance = OutputRootProvenance::Unverified;
+
+    migrate_legacy_build_output_default(&mut custom, Some(home.clone()));
+    assert_eq!(custom.default_build_output_dir, custom_root);
+
+    let picked_path = PathBuf::from(r"C:\Users\HeJiahui\ZirconBuilds");
+    let mut picked = HubSettings::default();
+    picked.default_build_output_dir = picked_path.clone();
+    picked.default_build_output_provenance = OutputRootProvenance::NativeFolderPicker;
+
+    migrate_legacy_build_output_default(&mut picked, Some(home));
+    assert_eq!(picked.default_build_output_dir, picked_path);
+    assert_eq!(
+        picked.default_build_output_provenance,
+        OutputRootProvenance::NativeFolderPicker
+    );
+}
+
+#[test]
 fn selecting_the_same_registered_engine_output_preserves_native_provenance() {
     let path = PathBuf::from("E:/picked-builds");
     let mut settings = HubSettings::default();
@@ -198,6 +242,44 @@ command_line = []
         config.action_history[1].recovery.as_ref(),
         Some(&HubMessage::raw_text("archived recovery"))
     );
+}
+
+#[test]
+fn loading_legacy_action_history_assigns_and_persists_unique_ids() {
+    let temp = temp_test_dir("zircon-hub-config-action-record-ids");
+    let path = temp.join("hub.toml");
+    fs::write(
+        &path,
+        "[[action_history]]\nid = \"legacy-duplicate\"\nfinished_unix_ms = 3\naction = \"open-editor\"\nstatus = \"success\"\ntarget = \"Game\"\ndetail = \"first\"\n\n[[action_history]]\nid = \"legacy-duplicate\"\nfinished_unix_ms = 2\naction = \"open-editor\"\nstatus = \"success\"\ntarget = \"Game\"\ndetail = \"second\"\n\n[[action_history]]\nfinished_unix_ms = 1\naction = \"open-editor\"\nstatus = \"success\"\ntarget = \"Game\"\ndetail = \"third\"\n",
+    )
+    .unwrap();
+
+    let migrated = HubConfig::load(&path).unwrap();
+    let ids: Vec<_> = migrated
+        .action_history
+        .iter()
+        .map(|record| record.id.as_str())
+        .collect();
+    assert_eq!(ids[0], "legacy-duplicate");
+    assert!(ids.iter().all(|id| !id.is_empty()));
+    assert_eq!(
+        ids.iter().collect::<std::collections::HashSet<_>>().len(),
+        3
+    );
+
+    let persisted = fs::read_to_string(&path).unwrap();
+    let reloaded = HubConfig::load(&path).unwrap();
+    assert_eq!(
+        reloaded
+            .action_history
+            .iter()
+            .map(|record| record.id.as_str())
+            .collect::<Vec<_>>(),
+        ids
+    );
+    assert!(persisted.contains("id = \"legacy-duplicate\""));
+
+    fs::remove_dir_all(temp).unwrap();
 }
 
 #[test]
@@ -378,6 +460,7 @@ fn config_repair_truncates_recent_projects_and_action_history() {
         .collect();
     config.action_history = (0..(ACTION_HISTORY_LIMIT + 2))
         .map(|index| HubActionRecord {
+            id: String::new(),
             finished_unix_ms: index as u64,
             action: crate::state::HubActionKind::OpenEditor,
             status: crate::state::HubActionStatus::Success,

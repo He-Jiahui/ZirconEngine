@@ -6,7 +6,7 @@ mod performance_tests;
 #[path = "pose/tests/borrowed_path_tests.rs"]
 mod borrowed_path_tests;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::animation::{
     AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationSkeletonAsset,

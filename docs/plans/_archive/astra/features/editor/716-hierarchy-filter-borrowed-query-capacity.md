@@ -4,7 +4,7 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_editor/01-retained-ui-architecture-performance-review.md
   - docs/plans/optimize/zircon_editor/129-editor-search-filter-query-index-result-find-usage-reference-navigation-current-source-review.md
-  - docs/plans/optimize/zircon_editor/181-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/181-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world.md
   - docs/plans/optimize/zircon_editor/218-editor-level-variant-data-layer-level-instance-world-outliner-current-source-review.md
 related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md

@@ -9,7 +9,7 @@ scope:
 status: static_complete_shared_source_preserved_dynamic_pending
 canonical_owners:
   - docs/plans/optimize/zircon_plugins/06-first-party-plugin-source-editor-runtime-dist-catalog-profile-capability-closure-review.md
-  - docs/plans/optimize/zircon_runtime/39-prefab-archetype-prototype-class-default-instance-override-runtime-instantiation-propagation-hot-reload-network-save-scalability-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/39-prefab-archetype-prototype-class-default-instance-override-runtime-instantiation-propagation-hot-reload-network-save-scalability.md
   - docs/plans/optimize/zircon_editor/03-scene-prefab-selection-mode-gizmo-picking-review.md
 references:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/LevelInstance/LevelInstanceSubsystem.cpp

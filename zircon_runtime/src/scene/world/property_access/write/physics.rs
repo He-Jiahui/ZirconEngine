@@ -195,6 +195,16 @@ impl World {
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
     ) -> SceneResult<bool> {
+        if let [field, subfield] = segments {
+            if field == "materialoverride" {
+                return self.set_collider_material_override_property(
+                    entity,
+                    subfield,
+                    value,
+                    property_path,
+                );
+            }
+        }
         let Some(collider) = self.get_mut::<ColliderComponent>(entity) else {
             return missing_component_error(entity, property_path);
         };
@@ -235,50 +245,6 @@ impl World {
                     }
                 }
                 collider.material = Some(crate::core::resource::ResourceHandle::new(next));
-            }
-            [field, subfield] if field == "materialoverride" => {
-                // BUG: [CR-R02-runtime_world_property_binding-0001] override 为 None 时，未知子字段或非法值仍先插入默认配置，再返回 Err；证据：下方分支和读取器可观察 None 变 Some，入口无回滚。
-                let material_override = collider
-                    .material_override
-                    .get_or_insert_with(Default::default);
-                match subfield.as_str() {
-                    "staticfriction" => {
-                        let next = expect_scalar(value, property_path)?;
-                        if material_override.static_friction == next {
-                            return Ok(false);
-                        }
-                        material_override.static_friction = next;
-                    }
-                    "dynamicfriction" => {
-                        let next = expect_scalar(value, property_path)?;
-                        if material_override.dynamic_friction == next {
-                            return Ok(false);
-                        }
-                        material_override.dynamic_friction = next;
-                    }
-                    "restitution" => {
-                        let next = expect_scalar(value, property_path)?;
-                        if material_override.restitution == next {
-                            return Ok(false);
-                        }
-                        material_override.restitution = next;
-                    }
-                    "frictioncombine" => {
-                        let next = parse_combine_rule(&expect_enum(value, property_path)?)?;
-                        if material_override.friction_combine == next {
-                            return Ok(false);
-                        }
-                        material_override.friction_combine = next;
-                    }
-                    "restitutioncombine" => {
-                        let next = parse_combine_rule(&expect_enum(value, property_path)?)?;
-                        if material_override.restitution_combine == next {
-                            return Ok(false);
-                        }
-                        material_override.restitution_combine = next;
-                    }
-                    _ => return unknown_property_error(property_path),
-                }
             }
             [field, transform_field] if field == "localtransform" => {
                 let mut next = collider.local_transform;
@@ -375,6 +341,43 @@ impl World {
         Ok(true)
     }
 
+    fn set_collider_material_override_property(
+        &mut self,
+        entity: EntityId,
+        subfield: &str,
+        value: ScenePropertyValue,
+        property_path: &ComponentPropertyPath,
+    ) -> SceneResult<bool> {
+        let Some(current) = self
+            .get::<ColliderComponent>(entity)
+            .map(|collider| collider.material_override.clone())
+        else {
+            return missing_component_error(entity, property_path);
+        };
+        let mut next = current.clone().unwrap_or_default();
+        match subfield {
+            "staticfriction" => next.static_friction = expect_scalar(value, property_path)?,
+            "dynamicfriction" => next.dynamic_friction = expect_scalar(value, property_path)?,
+            "restitution" => next.restitution = expect_scalar(value, property_path)?,
+            "frictioncombine" => {
+                next.friction_combine = parse_combine_rule(&expect_enum(value, property_path)?)?
+            }
+            "restitutioncombine" => {
+                next.restitution_combine = parse_combine_rule(&expect_enum(value, property_path)?)?
+            }
+            _ => return unknown_property_error(property_path),
+        }
+        if current.as_ref() == Some(&next) || (current.is_none() && next == Default::default()) {
+            return Ok(false);
+        }
+        let collider = self
+            .get_mut::<ColliderComponent>(entity)
+            .ok_or_else(|| SceneError::missing_entity("update collider for", entity))?;
+        collider.material_override = Some(next);
+        self.mark_node_cache_dirty();
+        Ok(true)
+    }
+
     pub(super) fn set_joint_property(
         &mut self,
         entity: EntityId,
@@ -382,6 +385,11 @@ impl World {
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
     ) -> SceneResult<bool> {
+        if let [field, bound] = segments {
+            if field == "limits" {
+                return self.set_joint_limit_property(entity, bound, value, property_path);
+            }
+        }
         let Some(joint) = self.get_mut::<JointComponent>(entity) else {
             return missing_component_error(entity, property_path);
         };
@@ -416,20 +424,6 @@ impl World {
                 }
                 joint.axis = next;
             }
-            [field, bound] if field == "limits" => {
-                let next = expect_scalar(value, property_path)?;
-                // BUG: [CR-R02-runtime_world_property_binding-0008] limits 为 None 时，未知边界仍先插入默认限制再返回 Err；首次 min=0 也返回 false 却变为 Some。证据：下方校验/等值分支与 entries/physics.rs 的可选投影。
-                let limits = joint.limits.get_or_insert([0.0, 0.0]);
-                let index = match bound.as_str() {
-                    "min" => 0,
-                    "max" => 1,
-                    _ => return unknown_property_error(property_path),
-                };
-                if limits[index] == next {
-                    return Ok(false);
-                }
-                limits[index] = next;
-            }
             [field] if field == "collideconnected" => {
                 let next = expect_bool(value, property_path)?;
                 if joint.collide_connected == next {
@@ -439,6 +433,35 @@ impl World {
             }
             _ => return unknown_property_error(property_path),
         }
+        self.mark_node_cache_dirty();
+        Ok(true)
+    }
+
+    fn set_joint_limit_property(
+        &mut self,
+        entity: EntityId,
+        bound: &str,
+        value: ScenePropertyValue,
+        property_path: &ComponentPropertyPath,
+    ) -> SceneResult<bool> {
+        let Some(current) = self.get::<JointComponent>(entity).map(|joint| joint.limits) else {
+            return missing_component_error(entity, property_path);
+        };
+        let next_value = expect_scalar(value, property_path)?;
+        let index = match bound {
+            "min" => 0,
+            "max" => 1,
+            _ => return unknown_property_error(property_path),
+        };
+        let mut next = current.unwrap_or([0.0, 0.0]);
+        next[index] = next_value;
+        if current == Some(next) || (current.is_none() && next == [0.0, 0.0]) {
+            return Ok(false);
+        }
+        let joint = self
+            .get_mut::<JointComponent>(entity)
+            .ok_or_else(|| SceneError::missing_entity("update joint for", entity))?;
+        joint.limits = Some(next);
         self.mark_node_cache_dirty();
         Ok(true)
     }

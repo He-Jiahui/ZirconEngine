@@ -11,6 +11,13 @@ use super::NetContentDownloadRuntimeManager;
 impl NetContentDownloadRuntimeManager {
     pub fn candidate_urls(&self, download: NetDownloadId, chunk_id: &str) -> Option<Vec<String>> {
         let state = self.state();
+        if state
+            .progress
+            .get(&download)
+            .is_some_and(|progress| progress.status == NetDownloadStatus::Cancelled)
+        {
+            return None;
+        }
         let manifest = state.manifests.get(&download)?;
         let chunk = manifest.chunks.iter().find(|chunk| chunk.id == chunk_id)?;
         Some(candidate_urls_for_chunk(manifest, chunk))
@@ -22,6 +29,13 @@ impl NetContentDownloadRuntimeManager {
         chunk_id: &str,
     ) -> Option<NetDownloadAttemptDescriptor> {
         let state = self.state();
+        if state
+            .progress
+            .get(&download)
+            .is_some_and(|progress| progress.status == NetDownloadStatus::Cancelled)
+        {
+            return None;
+        }
         let manifest = state.manifests.get(&download)?;
         let chunk = manifest.chunks.iter().find(|chunk| chunk.id == chunk_id)?;
         let key = (download, chunk_id.to_string());
@@ -42,6 +56,13 @@ impl NetContentDownloadRuntimeManager {
         diagnostic: impl Into<String>,
     ) -> Option<NetDownloadProgress> {
         let mut state = self.state();
+        if state
+            .progress
+            .get(&download)
+            .is_some_and(|progress| progress.status == NetDownloadStatus::Cancelled)
+        {
+            return state.progress.get(&download).cloned();
+        }
         let manifest = state.manifests.get(&download)?;
         manifest.chunks.iter().find(|chunk| chunk.id == chunk_id)?;
         let candidate_count = 1 + manifest.mirror_urls.len();

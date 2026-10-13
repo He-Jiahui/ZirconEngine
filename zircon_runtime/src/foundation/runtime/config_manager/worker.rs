@@ -15,7 +15,7 @@ use super::commit_fence::ConfigCommitFence;
 use super::state::ConfigPersistenceState;
 use super::writer::ConfigFileWriter;
 
-pub(super) type ConfigSnapshotSource = Arc<dyn Fn() -> HashMap<String, Value> + Send + Sync>;
+pub(super) type ConfigSnapshotSource = Arc<dyn Fn() -> HashMap<String, Arc<Value>> + Send + Sync>;
 
 const WORKER_THREAD_NAME: &str = "zr-config-persist";
 /// 把配置脏请求合并为整文件写入，并提供等待目标确认及关闭回收的服务。
@@ -35,6 +35,8 @@ pub(super) struct ConfigPersistenceWorker {
     publication: Mutex<()>,
     #[cfg(test)]
     publication_test_hooks: std::sync::OnceLock<PublicationTestHooks>,
+    #[cfg(test)]
+    shutdown_timeout_test_hook: std::sync::OnceLock<Box<dyn Fn(bool) + Send + Sync>>,
     thread: Mutex<Option<JoinHandle<()>>>,
     shutdown_timeout: Duration,
 }
@@ -98,6 +100,8 @@ impl ConfigPersistenceWorker {
             publication: Mutex::new(()),
             #[cfg(test)]
             publication_test_hooks: std::sync::OnceLock::new(),
+            #[cfg(test)]
+            shutdown_timeout_test_hook: std::sync::OnceLock::new(),
             thread: Mutex::new(Some(thread)),
             shutdown_timeout,
         }))
@@ -169,6 +173,19 @@ impl ConfigPersistenceWorker {
         if should_notify {
             self.shared.changed.notify_one();
         }
+    }
+
+    #[cfg(test)]
+    pub(super) fn install_shutdown_timeout_test_hook(
+        &self,
+        on_timeout: impl Fn(bool) + Send + Sync + 'static,
+    ) {
+        assert!(
+            self.shutdown_timeout_test_hook
+                .set(Box::new(on_timeout))
+                .is_ok(),
+            "shutdown timeout test hook is installed once"
+        );
     }
 
     /// 等待进入本次调用时的 dirty 目标获得成功确认。
@@ -280,6 +297,10 @@ impl Drop for ConfigPersistenceWorker {
         drop(state);
 
         if !worker_exited {
+            #[cfg(test)]
+            if let Some(hook) = self.shutdown_timeout_test_hook.get() {
+                hook(commit_in_progress);
+            }
             if commit_in_progress {
                 tracing::error!(
                     path = %self.shared.path.display(),

@@ -10,7 +10,7 @@ verification_epoch: 2026-08-30
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/141-editor-navigation-navmesh-settings-agent-area-surface-modifier-obstacle-off-mesh-link-bake-query-debug-preview-current-source-review.md
   - docs/plans/optimize/zircon_editor/19-navigation-navmesh-settings-agent-area-surface-modifier-obstacle-off-mesh-link-bake-query-debug-authoring-review.md
-  - docs/plans/optimize/zircon_editor/95-editor-navigation-navmesh-settings-agent-area-surface-modifier-obstacle-off-mesh-link-bake-query-debug-preview-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/95-editor-navigation-navmesh-settings-agent-area-surface-modifier-obstacle-off-mesh-link-bake-query-debug-preview.md
 related_runtime_owner:
   - docs/plans/optimize/zircon_runtime/169-runtime-navigation-current-working-tree-bake-artifact-query-crowd-editor-boundary-review.md
 related_code:
@@ -31,7 +31,7 @@ related_code:
 plan_sources:
   - docs/plans/optimize/zircon_editor/141-editor-navigation-navmesh-settings-agent-area-surface-modifier-obstacle-off-mesh-link-bake-query-debug-preview-current-source-review.md
   - docs/plans/optimize/zircon_editor/19-navigation-navmesh-settings-agent-area-surface-modifier-obstacle-off-mesh-link-bake-query-debug-authoring-review.md
-  - docs/plans/optimize/zircon_editor/95-editor-navigation-navmesh-settings-agent-area-surface-modifier-obstacle-off-mesh-link-bake-query-debug-preview-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/95-editor-navigation-navmesh-settings-agent-area-surface-modifier-obstacle-off-mesh-link-bake-query-debug-preview.md
   - docs/plans/zircon_plugins/05-navigation.md
   - docs/plans/zircon_plugins/05/failure-2026-07-15-navigation-bake-selection-operation-arguments.md
   - docs/plans/zircon_plugins/05/failure-2026-07-30-navigation-overlay-frame-publication.md

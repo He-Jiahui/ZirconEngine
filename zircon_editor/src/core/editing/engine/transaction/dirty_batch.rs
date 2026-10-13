@@ -166,18 +166,16 @@ impl HistoryDirtyJournal {
 
     fn changed_histories_after(&mut self, generation: u64) -> Vec<HistoryContextId> {
         let start = self.change_start_after(generation).min(self.changes.len());
-        #[cfg(test)]
-        let (changes, journal_visits) = (&self.changes, &mut self.journal_visits);
-        #[cfg(not(test))]
         let changes = &self.changes;
         let remaining = changes.len().saturating_sub(start);
         let mut changed = HashSet::with_capacity(remaining);
         for (_, history) in changes.range(start..) {
-            #[cfg(test)]
-            {
-                *journal_visits += 1;
-            }
             changed.insert(*history);
+        }
+        #[cfg(test)]
+        {
+            // The complete retained range was visited; account once outside its hot loop.
+            self.journal_visits += remaining;
         }
         let mut changed = changed.into_iter().collect::<Vec<_>>();
         changed.sort_unstable();

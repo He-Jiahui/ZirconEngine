@@ -2,7 +2,7 @@
 
 - Date: 2026-08-21
 - Owner: `optimize-plugins19-stable-slot-index-r1-01a00797-20260821`
-- Source plan: `docs/plans/optimize/zircon_plugins/19-first-party-hybrid-gi-source-runtime-editor-dist-catalog-scene-representation-surface-cache-global-sdf-radiance-cache-probe-trace-denoise-product-integration-review.md`, HGI-V-P1-19
+- Source plan: `docs/plans/optimize/zircon_plugins/19-first-party-hybrid-gi-source-runtime-editor-dist-catalog-scene-representation-surface-cache-global-sdf-radiance-cache-probe-trace-denoise.md`, HGI-V-P1-19
 - Status: implementation complete; combined managed validation pending
 
 ## Problem

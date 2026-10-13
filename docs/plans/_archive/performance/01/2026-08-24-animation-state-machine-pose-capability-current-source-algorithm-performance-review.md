@@ -11,7 +11,7 @@ status: m1_parameter_proxy_implemented_component_parameter_owner_hard_cut_red_dy
 canonical_owners:
   - docs/plans/optimize/zircon_plugins/13-first-party-animation-source-runtime-editor-dist-catalog-skeleton-clip-pose-graph-state-machine-ik-skinning-product-integration-review.md
   - docs/plans/optimize/zircon_runtime/08c-animation-runtime-review.md
-  - docs/plans/optimize/zircon_editor/82-editor-animation-blend-space-axis-sample-triangulation-interpolation-filter-per-bone-additive-sync-runtime-evaluation-preview-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/82-editor-animation-blend-space-axis-sample-triangulation-interpolation-filter-per-bone-additive-sync-runtime-evaluation-preview.md
 references:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Animation/AnimNode_StateMachine.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Animation/BlendSpace.cpp

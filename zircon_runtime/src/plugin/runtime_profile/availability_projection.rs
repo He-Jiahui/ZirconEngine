@@ -242,11 +242,10 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
         let mut linked_provider_rows = 0;
         #[cfg(test)]
         let mut native_dynamic_provider_rows = 0;
-        // BUG: [CR-PLUGIN-BOUNDARY-0303] 带诊断的失败注册仍可被计为提供者，
-        // 必需项可能被误判已满足；证据：本循环只检查选择开关和目标，未检查注册状态。
         for registration in registrations {
             if !registration.project_selection.enabled
                 || !registration.project_selection.supports_target(target)
+                || !registration.is_success()
             {
                 continue;
             }

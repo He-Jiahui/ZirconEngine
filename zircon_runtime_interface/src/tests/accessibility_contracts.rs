@@ -1,3 +1,11 @@
+//! 覆盖无障碍 DTO、节点查找、动作事件和捕获 ABI 的接口契约测试。
+//!
+//! 测试只构造拥有者值或同步调用本地 stub；忽略的节点查找基准须单独执行才有性能结果。
+//! 请求参数保值、槽位布局与借用存活分别检查，不用接口构造推断 Runtime 已完成捕获。
+//! # 参考
+//! [`UiAccessibilityTreeSnapshot`]、[`ZrRuntimeAccessibilityTreeRequestV1`]、
+//! [`ZrRuntimeCaptureAccessibilityTreeFnV2`]。
+
 use crate::{
     runtime_api::ZrRuntimeCaptureFrameFnV2,
     ui::{
@@ -20,6 +28,10 @@ use crate::{
     ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
 };
 
+/// 借用可序列化值，经过 JSON 字符串往返取得无输入借用的拥有者 T。
+///
+/// 参数 value 在编码期存活；T 的 DeserializeOwned 保证返回值不借用临时字符串。
+/// 此 helper 把失败视为测试前提错误而 unwrap，仅用于下面的接口 DTO 契约。
 fn round_trip<T>(value: &T) -> T
 where
     T: serde::Serialize + serde::de::DeserializeOwned,
@@ -27,6 +39,7 @@ where
     serde_json::from_str(&serde_json::to_string(value).unwrap()).unwrap()
 }
 
+/// 验证未排序 wire/手工快照的节点查找仍可从线性回退路径找到目标。
 #[test]
 fn accessibility_snapshot_node_falls_back_for_unsorted_wire_input() {
     let snapshot = UiAccessibilityTreeSnapshot {
@@ -46,11 +59,16 @@ fn accessibility_snapshot_node_falls_back_for_unsorted_wire_input() {
     );
 }
 
+/// 对已排序快照比较二分入口与线性扫描；默认 ignored，不能把静态审查当性能达标。
+///
+/// 常量固定节点、探针和样本规模；两个分支交替先后次序，black_box 避免消除查找结果。
+/// 报告的是本基准样本的纳秒分位点，断言只约束显式执行此基准的结果。
 #[test]
 #[ignore = "release-only accessibility node lookup benchmark"]
 fn accessibility_snapshot_sorted_node_lookup_benchmark() {
     use std::{hint::black_box, time::Instant};
 
+    // 三个规模常量限定本次基准的可比输入，不是产品节点或响应预算。
     const NODE_COUNT: u64 = 4_096;
     const PROBE_COUNT: usize = 100_000;
     const SAMPLE_COUNT: usize = 11;
@@ -69,9 +87,11 @@ fn accessibility_snapshot_sorted_node_lookup_benchmark() {
     let mut linear_samples = Vec::with_capacity(SAMPLE_COUNT);
     let mut indexed_samples = Vec::with_capacity(SAMPLE_COUNT);
 
+    // 每个样本使用相同探针，交替测量顺序减少固定先后次序对比较的影响。
     for sample in 0..SAMPLE_COUNT {
         let measure_linear = || {
             let started = Instant::now();
+            // 所有探针都来自已构造的 ID 集合，expect 失败表示夹具前提失效。
             for node_id in &probes {
                 black_box(
                     snapshot
@@ -90,6 +110,7 @@ fn accessibility_snapshot_sorted_node_lookup_benchmark() {
             }
             started.elapsed().as_nanos()
         };
+        // 交替只改变测量顺序；两种算法每轮都各产生一个样本。
         if sample % 2 == 0 {
             linear_samples.push(measure_linear());
             indexed_samples.push(measure_indexed());
@@ -99,6 +120,7 @@ fn accessibility_snapshot_sorted_node_lookup_benchmark() {
         }
     }
 
+    // 分别排序得到各算法的样本分位点，不将不同轮次按索引配对。
     linear_samples.sort_unstable();
     indexed_samples.sort_unstable();
     let p50 = SAMPLE_COUNT / 2;
@@ -118,6 +140,7 @@ fn accessibility_snapshot_sorted_node_lookup_benchmark() {
     );
 }
 
+/// 验证动作请求/结果字段往返及空 JSON 采用公开 Default 的动作、来源与状态。
 #[test]
 fn accessibility_action_dtos_round_trip_with_defaults() {
     let request = UiAccessibilityActionRequest {
@@ -149,6 +172,7 @@ fn accessibility_action_dtos_round_trip_with_defaults() {
     assert_eq!(default_result.status, UiAccessibilityActionStatus::Accepted);
 }
 
+/// 构造八个诊断码，检查 snake_case wire 名与完整 DTO 往返，保持原测试枚举范围。
 #[test]
 fn accessibility_diagnostic_codes_serialize_as_snake_case() {
     let diagnostics = vec![
@@ -215,6 +239,7 @@ fn accessibility_diagnostic_codes_serialize_as_snake_case() {
     assert_eq!(round_trip(&diagnostics), diagnostics);
 }
 
+/// 验证无障碍输入事件往返仍属于 Accessibility 家族，并保留目标、动作与来源。
 #[test]
 fn accessibility_input_event_payload_round_trips() {
     let metadata =
@@ -234,6 +259,7 @@ fn accessibility_input_event_payload_round_trips() {
 
     let round_tripped = round_trip(&event);
 
+    // 必须先确认枚举家族再消费字段，错误家族通过测试 panic 显式失败。
     let UiInputEvent::Accessibility(payload) = round_tripped else {
         panic!("accessibility input event changed family");
     };
@@ -245,6 +271,7 @@ fn accessibility_input_event_payload_round_trips() {
     );
 }
 
+/// 验证捕获请求构造器只保留版本、视口、尺寸和 generation_hint，不推断缓存行为。
 #[test]
 fn runtime_accessibility_tree_request_constructor_preserves_generation_hint() {
     let request = ZrRuntimeAccessibilityTreeRequestV1::new(
@@ -260,8 +287,10 @@ fn runtime_accessibility_tree_request_constructor_preserves_generation_hint() {
     assert_eq!(request.generation_hint, 99);
 }
 
+/// 用本地同步 stub 验证无障碍捕获函数指针参数/返回形状及规范空输出。
 #[test]
 fn runtime_accessibility_capture_function_type_matches_abi_shape() {
+    // stub 的 session 与 hint 断言固定调用夹具，未查找任何真实 Runtime 注册表。
     unsafe extern "C" fn capture_stub(
         session: ZrRuntimeSessionHandle,
         request: ZrRuntimeAccessibilityTreeRequestV1,
@@ -270,6 +299,8 @@ fn runtime_accessibility_capture_function_type_matches_abi_shape() {
         assert_eq!(session, ZrRuntimeSessionHandle::new(11));
         assert_eq!(request.generation_hint, 4);
         assert!(!output.is_null());
+        // SAFETY: 本测试在下方传入存活的 mut output，类型/对齐正确且调用期唯一可写；
+        // stub 仅在同步调用内将规范空结果写到该位置，不保存指针或移交非空 allocation。
         unsafe {
             *output = ZrOwnedResultV2::empty();
         }
@@ -278,6 +309,8 @@ fn runtime_accessibility_capture_function_type_matches_abi_shape() {
 
     let capture: ZrRuntimeCaptureAccessibilityTreeFnV2 = capture_stub;
     let mut output = ZrOwnedResultV2::empty();
+    // SAFETY: capture 指向上方本地 stub，output 在整个同步调用内存活且唯一可写；
+    // 参数是无借用字段的值请求，stub 不保留输出地址。
     let status = unsafe {
         capture(
             ZrRuntimeSessionHandle::new(11),
@@ -295,6 +328,7 @@ fn runtime_accessibility_capture_function_type_matches_abi_shape() {
     assert!(output.is_empty());
 }
 
+/// 验证默认 V8 表将无障碍捕获保持为可选槽，并固定它与帧捕获槽的相邻布局。
 #[test]
 fn runtime_api_default_leaves_accessibility_capture_optional() {
     let api = ZrRuntimeApiV8::empty();
@@ -311,6 +345,7 @@ fn runtime_api_default_leaves_accessibility_capture_optional() {
     );
 }
 
+/// 验证动作事件只保存已编码请求的字节借用，并在 owner bytes 存活期间读取相同内容。
 #[test]
 fn runtime_event_accessibility_action_carries_serialized_payload_bytes() {
     let request = UiAccessibilityActionRequest {
@@ -334,6 +369,8 @@ fn runtime_event_accessibility_action_carries_serialized_payload_bytes() {
 
     assert_eq!(event.kind, ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1);
     assert_eq!(event.viewport, ZrRuntimeViewportHandle::new(22));
+    // SAFETY: event.payload 直接指向上方 bytes 的完整已初始化区域；bytes 在此仍存活，
+    // 未发生改动或释放，读取限额等于原长度，此只读切片不跨出测试作用域。
     assert_eq!(
         unsafe { event.payload.checked_slice(bytes.len()) }.unwrap(),
         bytes.as_slice()

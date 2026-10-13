@@ -4,8 +4,8 @@ status: fixed
 failure_scope: local
 created_at: 2026-08-28
 summary_slug: rhi-lib-test-self-import
-origin_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
-fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+origin_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
+fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
 origin_child_dir: docs/plans/optimize/zircon_runtime/90
 fixing_child_dir: docs/plans/optimize/zircon_runtime/90
 plan_link_mode: child_record_only
@@ -26,9 +26,9 @@ resolved_at: 2026-09-05
 
 ## 来源执行者
 
-- 来源计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md`
+- 来源计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md`
 - 来源执行切片：Runtime90 RHI library test validation
-- 修复责任计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md`
+- 修复责任计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md`
 - 交接原因：失败位于 Runtime90 所有的 neutral RHI unit-test tree；无上层替代路径。
 
 ## 失败现象与复现证据

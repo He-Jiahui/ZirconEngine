@@ -37,9 +37,9 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/11c-gpu-ui-renderer-atlas-sdf-batch-clip-submit-review.md
   - docs/plans/optimize/zircon_runtime/24-stable-identity-handle-generation-owner-epoch-stale-reference-exhaustion-review.md
   - docs/plans/optimize/zircon_runtime/50-runtime-manager-resolver-named-service-handle-generation-lifecycle-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/64-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/64-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation.md
   - docs/plans/optimize/zircon_runtime/70-runtime-scene-text-text2d-text3d-billboard-font-layout-localization-extract-render-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/79-runtime-ui-renderer-display-list-paint-order-clip-transform-opacity-atlas-text-glyph-batch-wgpu-submit-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/79-runtime-ui-renderer-display-list-paint-order-clip-transform-opacity-atlas-text-glyph-batch-wgpu-submit.md
   - docs/plans/zircon_runtime/text/01/failure-2026-07-18-font-face-metadata-reparse.md
   - docs/plans/zircon_runtime/text/01/failure-2026-07-18-font-fallback-candidate-rebuild.md
   - docs/plans/zircon_runtime/text/09/failure-2026-07-18-font-handle-per-glyph-global-lock.md

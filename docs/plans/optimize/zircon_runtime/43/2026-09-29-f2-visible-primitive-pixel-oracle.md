@@ -16,7 +16,7 @@ related_tests:
 plan_sources:
   - docs/plans/mvp/03-f2-scene-runtime.md
   - docs/plans/optimize/zircon_runtime/43-dynamic-runtime-session-registry-ffi-frame-event-extract-host-request-world-sync-ui-shader-prewarm-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/99zf-runtime-dynamic-session-registry-ffi-frame-event-extract-host-request-world-sync-ui-shader-prewarm-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zf-runtime-dynamic-session-registry-ffi-frame-event-extract-host-request-world-sync-ui-shader-prewarm.md
 ---
 
 # Runtime43 / F2: persisted primitive pixel oracle

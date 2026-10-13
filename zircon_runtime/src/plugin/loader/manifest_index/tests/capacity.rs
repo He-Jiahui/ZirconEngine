@@ -39,6 +39,29 @@ fn optimization_batch_20260826fz_runtime221_manifest_projection_reserves_index_s
 }
 
 #[test]
+fn duplicate_manifest_diagnostics_are_checked_against_publication_budget() {
+    let source = include_str!("../../discovery_refresh/contract.rs");
+    assert!(source.contains("if diagnostics.len() > max_diagnostics"));
+    assert!(source.contains("NativePluginDiscoveryRefreshBudgetKind::DiagnosticCount"));
+}
+
+#[test]
+fn duplicate_manifest_projection_rejects_exhausted_diagnostic_budget() {
+    let candidate = |path: &str| super::NativePluginCandidate {
+        plugin_id: "shared.package".into(),
+        package_manifest: crate::plugin::PluginPackageManifest::new("shared.package", "Shared"),
+        manifest_path: path.into(),
+        library_path: format!("{path}.dll").into(),
+    };
+    let index = super::NativePluginDiscoveryManifestIndex::from_candidates(vec![
+        candidate("a/plugin.toml"),
+        candidate("b/plugin.toml"),
+    ]);
+
+    assert!(index.project(0).is_err());
+}
+
+#[test]
 #[ignore = "managed Windows release performance evidence"]
 fn optimization_batch_20260826fz_runtime221_native_manifest_projection_capacity_bench() {
     let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);

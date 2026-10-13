@@ -1,0 +1,547 @@
+//! Regressions for observable virtual-geometry submission behavior through WGPU.
+//!
+//! Orphaned tests that depended on the removed `SceneRenderer` prepare injection or
+//! private buffer-drop/readback hooks are deliberately not represented as product tests.
+
+use std::{
+    fs,
+    path::PathBuf,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
+
+use image::{ImageBuffer, ImageFormat, Rgba};
+use zircon_runtime::asset::assets::{AlphaMode, MaterialAsset};
+use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::{AssetReference, AssetUri};
+use zircon_runtime::core::framework::render::{
+    DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
+    RenderFramework, RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract,
+    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportDescriptor, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderWorldSnapshotHandle,
+    RendererCommon, ViewportCameraSnapshot,
+};
+use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
+use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_runtime::scene::components::{Mobility, default_render_layer_mask};
+
+use super::virtual_geometry_render_framework_stats as render_fixture;
+use crate::test_support::render_feature_fixtures::pluginized_wgpu_render_framework_with_asset_manager;
+
+const VIEWPORT_SIZE: UVec2 = UVec2::new(160, 120);
+
+struct ProductFrame {
+    rgba: Vec<u8>,
+    debug: zircon_runtime::core::framework::render::RenderVirtualGeometryDebugSnapshot,
+    stats: zircon_runtime::core::framework::render::RenderStats,
+}
+
+fn render(extract: RenderFrameExtract, assets: Arc<ProjectAssetManager>) -> ProductFrame {
+    let framework = pluginized_wgpu_render_framework_with_asset_manager(assets);
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(VIEWPORT_SIZE))
+        .unwrap();
+    framework
+        .set_quality_profile(viewport, virtual_geometry_only_quality_profile())
+        .unwrap();
+    framework.submit_frame_extract(viewport, extract).unwrap();
+    let stats = framework.query_stats().unwrap();
+    let debug = framework
+        .query_virtual_geometry_debug_snapshot()
+        .unwrap()
+        .expect("public WGPU virtual-geometry snapshot");
+    let rgba = framework
+        .capture_frame(viewport)
+        .unwrap()
+        .expect("public WGPU frame capture")
+        .rgba;
+    framework.destroy_viewport(viewport).unwrap();
+    ProductFrame { rgba, debug, stats }
+}
+
+fn virtual_geometry_only_quality_profile() -> RenderQualityProfile {
+    render_fixture::virtual_geometry_only_quality_profile()
+}
+
+fn basic_assets() -> Arc<ProjectAssetManager> {
+    Arc::new(ProjectAssetManager::default())
+}
+
+fn dual_extract() -> RenderFrameExtract {
+    let assets = ProjectAssetManager::default();
+    let model = resource_handle::<ModelMarker>(&assets, "builtin://cube");
+    let material = resource_handle::<MaterialMarker>(&assets, "builtin://material/default");
+    render_fixture::build_same_page_dual_entity_extract(VIEWPORT_SIZE, model, material)
+}
+
+#[test]
+fn public_wgpu_submission_records_follow_visible_entity_order() {
+    let result = render(dual_extract(), basic_assets());
+    let entities = result
+        .debug
+        .submission_order
+        .iter()
+        .map(|entry| entry.entity)
+        .collect::<Vec<_>>();
+    assert_eq!(entities, vec![2, 3]);
+    assert_eq!(result.debug.submission_records.len(), entities.len());
+    assert!(!result.rgba.is_empty());
+}
+
+#[test]
+fn public_wgpu_execution_segments_preserve_submission_tokens() {
+    let result = render(dual_extract(), basic_assets());
+    let tokens = result
+        .debug
+        .submission_records
+        .iter()
+        .map(|record| record.submission_index)
+        .collect::<Vec<_>>();
+    assert_eq!(tokens, vec![0, 1]);
+    for (segment, record) in result
+        .debug
+        .execution_segments
+        .iter()
+        .zip(&result.debug.submission_records)
+    {
+        assert_eq!(segment.submission_index, Some(record.submission_index));
+        assert_eq!(segment.entity, record.entity);
+    }
+    assert_eq!(
+        result.debug.execution_segment_count as usize,
+        result.stats.last_virtual_geometry_execution_segment_count
+    );
+}
+
+#[test]
+fn public_wgpu_hierarchy_reports_child_lineage() {
+    let assets = ProjectAssetManager::default();
+    let model = resource_handle::<ModelMarker>(&assets, "builtin://cube");
+    let material = resource_handle::<MaterialMarker>(&assets, "builtin://material/default");
+    let extract =
+        render_fixture::build_hierarchical_instance_extract(VIEWPORT_SIZE, model, material);
+    let result = render(extract, Arc::new(assets));
+    assert!(
+        result
+            .debug
+            .execution_segments
+            .iter()
+            .any(|segment| segment.lineage_depth > 0)
+    );
+    assert!(!result.rgba.is_empty());
+}
+
+#[test]
+fn public_wgpu_pending_page_exposes_request_frontier() {
+    let assets = ProjectAssetManager::default();
+    let mut extract = render_fixture::build_single_entity_extract(
+        VIEWPORT_SIZE,
+        resource_handle::<ModelMarker>(&assets, "builtin://cube"),
+        resource_handle::<MaterialMarker>(&assets, "builtin://material/default"),
+    );
+    let virtual_geometry = extract.geometry.virtual_geometry.as_mut().unwrap();
+    virtual_geometry.pages[0].resident = false;
+    let expected_page = virtual_geometry.pages[0].page_id;
+    let result = render(extract, Arc::new(assets));
+    assert!(
+        result
+            .debug
+            .pending_page_request_inspections
+            .iter()
+            .any(|request| request.page_id == expected_page)
+    );
+}
+
+#[test]
+fn public_wgpu_transparent_order_controls_captured_center_pixel() {
+    let (root, assets, model, red, blue) = transparent_project("transparent_order");
+    let forward = render(
+        transparent_extract(model.clone(), red.clone(), blue.clone(), false),
+        Arc::clone(&assets),
+    );
+    let reverse = render(
+        transparent_extract(model, red, blue, true),
+        Arc::clone(&assets),
+    );
+    let forward_center = center_pixel(&forward.rgba);
+    let reverse_center = center_pixel(&reverse.rgba);
+    assert!(forward_center[2] > forward_center[0], "{forward_center:?}");
+    assert!(reverse_center[0] > reverse_center[2], "{reverse_center:?}");
+    assert_eq!(
+        forward
+            .debug
+            .submission_order
+            .iter()
+            .map(|entry| entry.entity)
+            .collect::<Vec<_>>(),
+        vec![2, 3]
+    );
+    assert_eq!(
+        reverse
+            .debug
+            .submission_order
+            .iter()
+            .map(|entry| entry.entity)
+            .collect::<Vec<_>>(),
+        vec![3, 2]
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn public_wgpu_multi_primitive_draws_have_distinct_submission_tokens() {
+    let (root, assets, model, red, blue) = transparent_project("multi_primitive_tokens");
+    let result = render(
+        transparent_extract(model, red, blue, false),
+        Arc::clone(&assets),
+    );
+    assert_eq!(result.debug.submission_records.len(), 4);
+    assert!(result.stats.last_virtual_geometry_indirect_draw_count > 0);
+    for entity in [2, 3] {
+        let mut records = result
+            .debug
+            .submission_records
+            .iter()
+            .filter(|record| record.entity == entity)
+            .collect::<Vec<_>>();
+        records.sort_by_key(|record| record.draw_ref_rank);
+        assert_eq!(
+            records
+                .iter()
+                .map(|record| record.draw_ref_rank)
+                .collect::<Vec<_>>(),
+            vec![0, 1]
+        );
+    }
+    let mut tokens = result
+        .debug
+        .submission_records
+        .iter()
+        .map(|record| record.submission_index)
+        .collect::<Vec<_>>();
+    tokens.sort_unstable();
+    tokens.dedup();
+    assert_eq!(tokens.len(), 4, "each primitive draw needs its own token");
+    let _ = fs::remove_dir_all(root);
+}
+
+fn transparent_project(
+    label: &str,
+) -> (
+    PathBuf,
+    Arc<ProjectAssetManager>,
+    ResourceHandle<ModelMarker>,
+    ResourceHandle<MaterialMarker>,
+    ResourceHandle<MaterialMarker>,
+) {
+    let root = unique_temp_project_root(label);
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "VirtualGeometryPublicTransparentOrder",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+    write_flat_color_wgsl(paths.assets_root().join("shaders/flat_color.wgsl"));
+    write_solid_png(paths.assets_root().join("textures/white.png"));
+    write_two_primitive_gltf(paths.assets_root().join("models/two_primitives.gltf"));
+    write_material(
+        paths.assets_root().join("materials/red.zmaterial"),
+        "PublicOrderRed",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [1.0, 0.0, 0.0, 0.65],
+    );
+    write_material(
+        paths.assets_root().join("materials/blue.zmaterial"),
+        "PublicOrderBlue",
+        "res://shaders/flat_color.wgsl",
+        "res://textures/white.png",
+        [0.0, 0.0, 1.0, 0.65],
+    );
+    let assets = Arc::new(ProjectAssetManager::default());
+    assets
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    ProjectManager::open(&root)
+        .unwrap()
+        .scan_and_import()
+        .unwrap();
+    let model = resource_handle::<ModelMarker>(&assets, "res://models/two_primitives.gltf");
+    let red = resource_handle::<MaterialMarker>(&assets, "res://materials/red.zmaterial");
+    let blue = resource_handle::<MaterialMarker>(&assets, "res://materials/blue.zmaterial");
+    (root, assets, model, red, blue)
+}
+
+fn transparent_extract(
+    model: ResourceHandle<ModelMarker>,
+    red: ResourceHandle<MaterialMarker>,
+    blue: ResourceHandle<MaterialMarker>,
+    reverse: bool,
+) -> RenderFrameExtract {
+    let mut camera = ViewportCameraSnapshot {
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, 4.0),
+            ..Transform::default()
+        },
+        projection_mode: ProjectionMode::Orthographic,
+        ortho_size: 1.2,
+        ..ViewportCameraSnapshot::default()
+    };
+    camera.apply_viewport_size(VIEWPORT_SIZE);
+    let mesh = |entity, material| RenderMeshSnapshot {
+        node_id: entity,
+        stable_instance_key: entity << 16,
+        transform_revision: 0,
+        transform: Transform {
+            scale: Vec3::new(0.8, 0.8, 1.0),
+            ..Transform::default()
+        },
+        model: model.clone(),
+        mesh: None,
+        material,
+        mesh_lod: None,
+        morph_weights: Vec::new(),
+        tint: Vec4::ONE,
+        mobility: Mobility::Dynamic,
+        static_state: Default::default(),
+        common: RendererCommon {
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
+            is_static: false,
+            ..RendererCommon::default()
+        },
+    };
+    let snapshot = RenderSceneSnapshot {
+        scene: RenderSceneGeometryExtract {
+            camera,
+            meshes: vec![mesh(2, red), mesh(3, blue)],
+            directional_lights: Vec::new(),
+            point_lights: Vec::new(),
+            spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
+        },
+        overlays: RenderOverlayExtract {
+            display_mode: DisplayMode::Shaded,
+            ..RenderOverlayExtract::default()
+        },
+        environment: Default::default(),
+        preview: PreviewEnvironmentExtract {
+            lighting_enabled: false,
+            skybox_enabled: false,
+            fallback_skybox: FallbackSkyboxKind::None,
+            clear_color: Vec4::ZERO,
+        },
+        virtual_geometry_debug: None,
+    };
+    let mut extract =
+        RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(91), snapshot);
+    let clusters = if reverse {
+        vec![cluster(3, 30, 301), cluster(2, 20, 300)]
+    } else {
+        vec![cluster(2, 20, 300), cluster(3, 30, 301)]
+    };
+    let (red_offset, blue_offset) = if reverse { (1, 0) } else { (0, 1) };
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 2,
+        clusters,
+        hierarchy_nodes: Vec::new(),
+        hierarchy_child_ids: Vec::new(),
+        pages: vec![page(300), page(301)],
+        page_dependencies: Vec::new(),
+        instances: vec![instance(2, red_offset, 300), instance(3, blue_offset, 301)],
+        debug: Default::default(),
+    });
+    extract
+}
+
+fn cluster(entity: u64, cluster_id: u32, page_id: u32) -> RenderVirtualGeometryCluster {
+    RenderVirtualGeometryCluster {
+        entity,
+        cluster_id,
+        hierarchy_node_id: None,
+        page_id,
+        lod_level: 0,
+        parent_cluster_id: None,
+        bounds_center: Vec3::ZERO,
+        bounds_radius: 1.0,
+        screen_space_error: 1.0,
+    }
+}
+
+fn page(page_id: u32) -> RenderVirtualGeometryPage {
+    RenderVirtualGeometryPage {
+        page_id,
+        resident: true,
+        size_bytes: 4096,
+    }
+}
+
+fn instance(entity: u64, cluster_offset: u32, page_id: u32) -> RenderVirtualGeometryInstance {
+    RenderVirtualGeometryInstance {
+        entity,
+        stable_instance_key: 0,
+        source_model: None,
+        transform: Transform {
+            scale: Vec3::new(0.8, 0.8, 1.0),
+            ..Transform::default()
+        },
+        cluster_offset,
+        cluster_count: 1,
+        page_offset: page_id - 300,
+        page_count: 1,
+        mesh_name: Some(format!("product-order-{entity}")),
+        source_hint: Some("public-wgpu-product-order".to_string()),
+    }
+}
+
+fn center_pixel(rgba: &[u8]) -> [u8; 4] {
+    let index = ((VIEWPORT_SIZE.y / 2 * VIEWPORT_SIZE.x + VIEWPORT_SIZE.x / 2) * 4) as usize;
+    [
+        rgba[index],
+        rgba[index + 1],
+        rgba[index + 2],
+        rgba[index + 3],
+    ]
+}
+
+fn unique_temp_project_root(label: &str) -> PathBuf {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    std::env::temp_dir().join(format!("zircon_{label}_{unique}"))
+}
+
+fn write_flat_color_wgsl(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(
+        path,
+        r#"
+struct SceneUniform { view_proj: mat4x4<f32>, light_dir: vec4<f32>, light_color: vec4<f32>, ambient_color: vec4<f32>, };
+struct ModelUniform { model: mat4x4<f32>, tint: vec4<f32>, };
+@group(0) @binding(0) var<uniform> scene: SceneUniform;
+@group(1) @binding(0) var<uniform> model_data: ModelUniform;
+@group(2) @binding(0) var albedo_tex: texture_2d<f32>;
+@group(2) @binding(1) var albedo_sampler: sampler;
+struct VertexInput { @location(0) position: vec3<f32>, @location(1) normal: vec3<f32>, @location(2) uv: vec2<f32>, };
+struct VertexOutput { @builtin(position) clip_position: vec4<f32>, @location(0) uv: vec2<f32>, };
+@vertex fn vs_main(input: VertexInput) -> VertexOutput { var output: VertexOutput; output.clip_position = scene.view_proj * model_data.model * vec4<f32>(input.position, 1.0); output.uv = input.uv; return output; }
+@fragment fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> { return textureSample(albedo_tex, albedo_sampler, input.uv) * model_data.tint; }
+"#,
+    )
+    .unwrap();
+}
+
+fn write_two_primitive_gltf(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    let mut binary = Vec::new();
+    for value in [
+        -1.0f32, -1.0, 0.0, 0.0, 1.0, 0.0, -1.0, 1.0, 0.0, // left triangle
+    ] {
+        binary.extend_from_slice(&value.to_le_bytes());
+    }
+    for index in [0u32, 1, 2] {
+        binary.extend_from_slice(&index.to_le_bytes());
+    }
+    for value in [
+        0.0f32, -1.0, 0.0, 1.0, 1.0, 0.0, 1.0, -1.0, 0.0, // right triangle
+    ] {
+        binary.extend_from_slice(&value.to_le_bytes());
+    }
+    for index in [0u32, 1, 2] {
+        binary.extend_from_slice(&index.to_le_bytes());
+    }
+    let binary_path = path
+        .ancestors()
+        .nth(3)
+        .expect("glTF path should be below <project>/assets/models")
+        .join(".generated/two_primitives.bin");
+    fs::create_dir_all(binary_path.parent().unwrap()).unwrap();
+    fs::write(&binary_path, &binary).unwrap();
+    let gltf = format!(
+        r#"{{
+  "asset": {{"version": "2.0"}},
+  "buffers": [{{"uri": "../../.generated/two_primitives.bin", "byteLength": {}}}],
+  "bufferViews": [
+    {{"buffer":0,"byteOffset":0,"byteLength":36,"target":34962}},
+    {{"buffer":0,"byteOffset":36,"byteLength":12,"target":34963}},
+    {{"buffer":0,"byteOffset":48,"byteLength":36,"target":34962}},
+    {{"buffer":0,"byteOffset":84,"byteLength":12,"target":34963}}
+  ],
+  "accessors": [
+    {{"bufferView":0,"componentType":5126,"count":3,"type":"VEC3","min":[-1.0,-1.0,0.0],"max":[0.0,1.0,0.0]}},
+    {{"bufferView":1,"componentType":5125,"count":3,"type":"SCALAR","min":[0],"max":[2]}},
+    {{"bufferView":2,"componentType":5126,"count":3,"type":"VEC3","min":[0.0,-1.0,0.0],"max":[1.0,1.0,0.0]}},
+    {{"bufferView":3,"componentType":5125,"count":3,"type":"SCALAR","min":[0],"max":[2]}}
+  ],
+  "meshes": [{{"primitives": [
+    {{"attributes":{{"POSITION":0}},"indices":1}},
+    {{"attributes":{{"POSITION":2}},"indices":3}}
+  ]}}],
+  "nodes": [{{"mesh":0}}],
+  "scenes": [{{"nodes":[0]}}],
+  "scene": 0
+}}"#,
+        binary.len()
+    );
+    fs::write(path, gltf).unwrap();
+}
+
+fn write_solid_png(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    ImageBuffer::<Rgba<u8>, _>::from_pixel(2, 2, Rgba([255, 255, 255, 255]))
+        .save_with_format(path, ImageFormat::Png)
+        .unwrap();
+}
+
+fn write_material(path: PathBuf, name: &str, shader_uri: &str, texture_uri: &str, color: [f32; 4]) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    let material = MaterialAsset {
+        name: Some(name.to_string()),
+        shader: asset_reference(shader_uri),
+        parent: None,
+        options: Default::default(),
+        queue: None,
+        base_color: color,
+        base_color_texture: Some(asset_reference(texture_uri)),
+        normal_texture: None,
+        metallic: 0.0,
+        roughness: 1.0,
+        metallic_roughness_texture: None,
+        occlusion_texture: None,
+        emissive: [0.0; 3],
+        emissive_texture: None,
+        alpha_mode: AlphaMode::Blend,
+        double_sided: true,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
+    };
+    fs::write(path, material.to_toml_string().unwrap()).unwrap();
+}
+
+fn asset_reference(uri: &str) -> AssetReference {
+    AssetReference::from_locator(AssetUri::parse(uri).unwrap())
+}
+
+fn resource_handle<T>(manager: &ProjectAssetManager, uri: &str) -> ResourceHandle<T> {
+    ResourceHandle::new(
+        manager
+            .resolve_asset_id(&AssetUri::parse(uri).unwrap())
+            .unwrap_or_else(|| panic!("missing resource {uri}")),
+    )
+}

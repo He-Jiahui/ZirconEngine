@@ -30,6 +30,7 @@ impl UiBindingContractTerm {
         Self::Command,
     ];
 
+    /// 返回用于诊断或 schema 字段的稳定小写名称。
     pub const fn schema_name(self) -> &'static str {
         match self {
             Self::Event => "event",
@@ -41,6 +42,7 @@ impl UiBindingContractTerm {
         }
     }
 
+    /// 返回协议文档采用的术语定义；字符串供描述展示，不参与解析分派。
     pub const fn definition(self) -> &'static str {
         match self {
             Self::Event => "typed input or component occurrence that triggers matching",
@@ -62,6 +64,7 @@ pub enum UiBindingSchemaNameKind {
 }
 
 impl UiBindingSchemaNameKind {
+    /// 只有 route 和 action 对应派发链实体；payload 字段返回 None。
     pub const fn contract_term(self) -> Option<UiBindingContractTerm> {
         match self {
             Self::PayloadField => None,
@@ -70,6 +73,7 @@ impl UiBindingSchemaNameKind {
         }
     }
 
+    /// 给校验错误提供面向用户的名称类别。
     pub const fn diagnostic_name(self) -> &'static str {
         match self {
             Self::PayloadField => "action payload field",
@@ -105,21 +109,26 @@ impl fmt::Display for UiBindingSchemaNameKind {
 }
 
 #[derive(Clone, Debug, Error, PartialEq, Eq, Serialize, Deserialize)]
+/// 名称校验失败的结构化原因，保留字节位置或空段序号供诊断定位。
 pub enum UiBindingSchemaNameError {
     #[error("{kind} name cannot be empty")]
+    /// 对应类别的名称为空。
     Empty { kind: UiBindingSchemaNameKind },
     #[error("{kind} name uses {actual_bytes} bytes, exceeding the {maximum_bytes}-byte limit")]
+    /// UTF-8 字节数超过共享 schema 上限。
     TooLong {
         kind: UiBindingSchemaNameKind,
         actual_bytes: usize,
         maximum_bytes: usize,
     },
     #[error("{kind} name contains an empty segment at index {segment_index}")]
+    /// 点分名称含有空段；segment_index 从零开始。
     EmptySegment {
         kind: UiBindingSchemaNameKind,
         segment_index: usize,
     },
     #[error("{kind} name contains invalid character `{character}` at byte {byte_index}")]
+    /// 名称含不属于该类别字符集的字符；byte_index 是 UTF-8 字节偏移。
     InvalidCharacter {
         kind: UiBindingSchemaNameKind,
         character: char,
@@ -210,6 +219,7 @@ impl UiActionPayloadFieldName {
         }
     }
 
+    /// 将已知稳定拼写映射回登记项；None 表示未知字段，不表示通用键语法错误。
     pub fn from_schema_name(value: &str) -> Option<Self> {
         match value {
             "additive" => Some(Self::Additive),

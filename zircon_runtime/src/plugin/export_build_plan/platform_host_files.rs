@@ -396,12 +396,10 @@ fn swift_string_escape(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
-// BUG: [CR-PLUGIN-EXPORT-AUDIT-0002] 合法 profile 名可含换行，而此处不转义 JS 行终止符；WebGPU 宿主错误消息的字符串字面量会产生语法错误。证据：browser.rs 的 browser_runtime_host_script_template。
 fn javascript_string_escape(value: &str) -> String {
     value.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
-// BUG: [CR-PLUGIN-EXPORT-AUDIT-0001] 只转义反斜杠和引号；合法 profile 名可含换行，移动端/浏览器 JSON 清单会失效。证据：export_profile_validation.rs 的名称校验只检查 trim；mobile.rs 与 browser.rs 将 profile.name 插入 JSON。
 fn json_string_escape(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
 }

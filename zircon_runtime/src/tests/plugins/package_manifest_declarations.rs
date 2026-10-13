@@ -18,17 +18,20 @@ use crate::plugin::{
 };
 
 #[test]
-fn bridge_method_required_capability_builder_uses_incremental_sorted_insertion() {
+fn bridge_method_required_capability_builder_normalizes_public_unsorted_values() {
     let source = include_str!("../../plugin/package_manifest/plugin_interface_manifest.rs");
-    assert!(source.contains("binary_search_by"));
-    assert!(!source.contains("self.required_capabilities.sort()"));
-    assert!(!source.contains("self.required_capabilities.dedup()"));
+    assert!(source.contains("self.required_capabilities.sort()"));
 
     let method = PluginInterfaceMethodManifest::new("sample", 0)
         .with_required_capability("zeta")
         .with_required_capability("alpha")
         .with_required_capability("zeta");
     assert_eq!(method.required_capabilities, ["alpha", "zeta"]);
+
+    let mut public_values = PluginInterfaceMethodManifest::new("sample", 1);
+    public_values.required_capabilities = vec!["zeta".into(), "alpha".into()];
+    let normalized = public_values.with_required_capability("zeta");
+    assert_eq!(normalized.required_capabilities, ["alpha", "zeta"]);
 }
 
 #[test]

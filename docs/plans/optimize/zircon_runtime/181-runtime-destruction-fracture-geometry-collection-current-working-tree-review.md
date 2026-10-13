@@ -6,7 +6,7 @@ review_date: 2026-08-30
 baseline_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 verification_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_runtime/99zu-runtime-destruction-fracture-geometry-collection-clustering-damage-field-simulation-rendering-cache-scalability-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zu-runtime-destruction-fracture-geometry-collection-clustering-damage-field-simulation-rendering-cache-scalability-editor.md
   - docs/plans/optimize/zircon_runtime/33-destruction-fracture-geometry-collection-clustering-damage-field-simulation-rendering-cache-scalability-product-integration-review.md
 related_editor_owner:
   - docs/plans/optimize/zircon_editor/241-editor-destruction-fracture-geometry-collection-current-working-tree-review.md

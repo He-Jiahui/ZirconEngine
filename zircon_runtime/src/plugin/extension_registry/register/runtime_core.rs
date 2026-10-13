@@ -26,7 +26,6 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
-    // BUG: [CR-PLUGIN-BOUNDARY-0101] 描述符名已是 `client.runtime` 时这里再附加 `.runtime`，模块登记为 `client.runtime.runtime` owner；对 `client.runtime` 撤销会留下模块；证据：contributions/extension.rs 的目标模块样例及本函数调用链。
     /// 目录注册模块贡献时使用；模块名既用于目标筛选，也必须与其它贡献的 owner 命名一致。
     pub fn register_module(
         &mut self,

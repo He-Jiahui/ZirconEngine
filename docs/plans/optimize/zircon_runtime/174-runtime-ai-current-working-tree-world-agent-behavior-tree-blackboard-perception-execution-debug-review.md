@@ -9,7 +9,7 @@ implementation_status: pending
 source_recheck_required: true
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_runtime/08f-ai-behavior-tree-blackboard-perception-runtime-review.md
-  - docs/plans/optimize/zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor.md
   - docs/plans/optimize/zircon_plugins/15-first-party-ai-source-runtime-editor-dist-catalog-behavior-tree-blackboard-perception-eqs-product-integration-review.md
 related_editor_owner:
   - docs/plans/optimize/zircon_editor/234-editor-ai-current-working-tree-authoring-graph-debug-overlay-workbench-review.md
@@ -30,7 +30,7 @@ tests:
   - zircon_plugins/ai/dist/src/lib.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/08f-ai-behavior-tree-blackboard-perception-runtime-review.md
-  - docs/plans/optimize/zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor.md
   - docs/plans/optimize/zircon_editor/142-editor-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-debug-authoring-current-source-review.md
   - docs/plans/optimize/zircon_plugins/15-first-party-ai-source-runtime-editor-dist-catalog-behavior-tree-blackboard-perception-eqs-product-integration-review.md
   - docs/plans/zircon_plugins/06-ai.md

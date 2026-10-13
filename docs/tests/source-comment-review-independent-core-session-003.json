@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "reviewer": "/root",
+  "checkout": "E:/Git/ZirconEngine",
+  "head": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "observedAtUtc": "2026-10-13T06:44:59.273113+00:00",
+  "state": "source-independently-reviewed-awaiting-coordinator",
+  "scopeLimits": {
+    "wholeRepositoryComplete": false,
+    "formalAcceptance": false,
+    "commitPending": true,
+    "prior68Held": true,
+    "rustfmtAndScopedDiffEvidenceReusedOnlyForMatchingSourceHashes": true,
+    "cargoOrRustdocRunByRoot": false
+  },
+  "proofMethod": "对当前 HEAD 的逻辑行做只增注释/空行检查；把匹配的最终原始字节行仅在内存重新拼合，SHA 必须等于账本初始物理 SHA；不创建源码副本。",
+  "artifactLifecycle": {
+    "temporaryFilesCreated": 0,
+    "buildProductsOrCachesCreated": 0,
+    "freedBytes": 0,
+    "retained": "授权源码注释、覆盖/问题账本与审查/交接证据；既有未知进程和历史证据不删除、不宣称关闭。"
+  },
+  "batchId": "core-session-003",
+  "agentEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+    "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+    "bytes": 195597
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+      "initialSha256": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+      "reviewedSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "currentBytes": 3195,
+      "baselineLines": 38,
+      "currentLines": 76,
+      "insertedCommentOrBlankLines": 38,
+      "deletedOrChangedOriginalLines": 0,
+      "originalRawByteLinesReconstructedInMemorySha256": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+      "originalRawByteLinesAndEolPreserved": true,
+      "physicalLayout": {
+        "CRLF": 0,
+        "bareLF": 76,
+        "UTF8BOM": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+      "initialSha256": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+      "reviewedSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "currentBytes": 7369,
+      "baselineLines": 72,
+      "currentLines": 149,
+      "insertedCommentOrBlankLines": 77,
+      "deletedOrChangedOriginalLines": 0,
+      "originalRawByteLinesReconstructedInMemorySha256": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+      "originalRawByteLinesAndEolPreserved": true,
+      "physicalLayout": {
+        "CRLF": 0,
+        "bareLF": 149,
+        "UTF8BOM": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+      "initialSha256": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+      "reviewedSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "currentBytes": 6935,
+      "baselineLines": 84,
+      "currentLines": 155,
+      "insertedCommentOrBlankLines": 71,
+      "deletedOrChangedOriginalLines": 0,
+      "originalRawByteLinesReconstructedInMemorySha256": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+      "originalRawByteLinesAndEolPreserved": true,
+      "physicalLayout": {
+        "CRLF": 0,
+        "bareLF": 155,
+        "UTF8BOM": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+      "initialSha256": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+      "reviewedSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "currentBytes": 9105,
+      "baselineLines": 97,
+      "currentLines": 208,
+      "insertedCommentOrBlankLines": 111,
+      "deletedOrChangedOriginalLines": 0,
+      "originalRawByteLinesReconstructedInMemorySha256": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+      "originalRawByteLinesAndEolPreserved": true,
+      "physicalLayout": {
+        "CRLF": 169,
+        "bareLF": 39,
+        "UTF8BOM": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+      "initialSha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+      "reviewedSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "currentBytes": 4319,
+      "baselineLines": 86,
+      "currentLines": 96,
+      "insertedCommentOrBlankLines": 10,
+      "deletedOrChangedOriginalLines": 0,
+      "originalRawByteLinesReconstructedInMemorySha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+      "originalRawByteLinesAndEolPreserved": true,
+      "physicalLayout": {
+        "CRLF": 0,
+        "bareLF": 96,
+        "UTF8BOM": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+      "initialSha256": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+      "reviewedSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "currentBytes": 1176,
+      "baselineLines": 23,
+      "currentLines": 28,
+      "insertedCommentOrBlankLines": 5,
+      "deletedOrChangedOriginalLines": 0,
+      "originalRawByteLinesReconstructedInMemorySha256": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+      "originalRawByteLinesAndEolPreserved": true,
+      "physicalLayout": {
+        "CRLF": 0,
+        "bareLF": 28,
+        "UTF8BOM": false
+      }
+    }
+  ],
+  "objectReview": {
+    "groups": 46,
+    "definitionAnchors": 223,
+    "memberEnumerationAndPhysicalAnchorsMatched": true,
+    "directCallerPinsMatched": 37,
+    "allAssignedSourceAndAddedDocumentationRead": true
+  },
+  "independentFindings": [
+    "相机 DTO 是传递值；Runtime 另行检验版本、有限几何、缩放/旋转及裁剪平面，应用于 render extract 而不改 Scene 节点。",
+    "会话配置字符串与 wake 注册上下文的借用、注册和销毁顺序按 Runtime/App 双向调用核对；销毁失败时调用方保留句柄及 DLL 归属。",
+    "SessionIdentity 的 nonce、epoch 与 Editor 整体身份匹配保护过期回执；viewport 逻辑/物理尺寸和 DPI fallback 按 UI adapter 核对。",
+    "重导出、模块/路径/cfg、derive、成员、方法、测试、私有分支均有精确对象或成员证据；无新 BUG/TODO。"
+  ],
+  "actualReadReceipts": [
+    {
+      "execCell": "27",
+      "chunkId": "19f362",
+      "exitCode": 0,
+      "scope": "six files added documentation; full original files and caller contexts were already read"
+    },
+    {
+      "execCell": "29",
+      "chunkId": "b8edc7",
+      "exitCode": 0,
+      "scope": "runtime_event_adapter logical/physical/DPI path"
+    }
+  ],
+  "scopedValidation": {
+    "language": "rust",
+    "rustfmt": {
+      "status": "passed",
+      "version": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+      "command": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true"
+      ],
+      "files": 6,
+      "allExitCode": 0,
+      "firstReceipt": {
+        "execCell": "25",
+        "nativeSession": 75582,
+        "finalChunkId": "dc4f3b",
+        "exitCode": 0
+      },
+      "affectedSummaryRecheck": {
+        "execCell": "27",
+        "nativeChunkId": "1b3c41",
+        "paths": [
+          "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "zircon_runtime_interface/src/runtime_api/session/session_identity.rs"
+        ],
+        "eachExitCode": 0
+      },
+      "writesPerformed": false
+    },
+    "scopedDiffCheck": {
+      "status": "passed",
+      "command": [
+        "git",
+        "--no-optional-locks",
+        "diff",
+        "--check",
+        "--",
+        "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+        "zircon_runtime_interface/src/runtime_api/session/session.rs",
+        "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+        "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+        "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+        "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+      ],
+      "exitCode": 0,
+      "receipt": {
+        "execCell": "28",
+        "nativeSession": 47798,
+        "finalChunkId": "e3a672"
+      },
+      "stderrObservation": "Git给出LF将由autocrlf转CRLF提示，本次只读命令未写源；未把提示当作行尾已转换。"
+    },
+    "executableStructure": {
+      "status": "passed",
+      "method": "对当前HEAD5a547...的逐行SequenceMatcher，所有差异opcode只能insert且插入行为空或独立//注释；before时逐原始byte-lines保留断言及immediate SHA校验；不据此冒充编译/运行。",
+      "baselineLines": 400,
+      "currentLines": 712,
+      "insertedCommentOrBlankLines": 312,
+      "deletedOrChangedOriginalLines": 0,
+      "receipt": {
+        "execCell": "22",
+        "nativeSession": 86232,
+        "exitCode": 0,
+        "finalChunkId": "029e87"
+      },
+      "recheckReceipt": {
+        "execCell": "28",
+        "nativeSession": 47798,
+        "exitCode": 0
+      }
+    },
+    "staticAffectedGuards": {
+      "status": "passed",
+      "ownerBudget": 700,
+      "ownerLineCounts": {
+        "camera.rs": 76,
+        "session.rs": 149,
+        "session_identity.rs": 155,
+        "viewport.rs": 208
+      },
+      "facadeReexportsExplicit": true,
+      "reprCAndFieldSequence": {
+        "ZrRuntimeWakeSinkV1": [
+          "abi_version",
+          "token",
+          "wake"
+        ],
+        "ZrRuntimeSessionConfigV3": [
+          "abi_version",
+          "profile",
+          "project_root",
+          "play_scene",
+          "play_report_pipe",
+          "wake_sink"
+        ],
+        "method": "按ABIGUARD:406-421的find/rfind及444-473逐行字段规则，两个repr(C)均位于各自结构属性块，字段序列完全匹配冻结清单。"
+      },
+      "fullTextForbiddenNeedles": "实盘复用BOUNDARY:33-50的16个禁串，5个生产文件逐一匹配；仅identity现有Arc导入命中std::sync并符合BOUNDARY:71,530精确例外，无新增命中。",
+      "receipt": {
+        "execCell": "37",
+        "nativeChunkId": "6532e7",
+        "exitCode": 0
+      },
+      "fullTextForbiddenNeedleCount": 16,
+      "productionFilesChecked": 5,
+      "localPathAttributeTargetsChecked": 15,
+      "localPathTargetsExistAndStayWithinCrate": true
+    },
+    "cargo": {
+      "run": false,
+      "acceptance": false,
+      "reason": "纯注释，只读格式/结构/受影响文本守卫；无需宽泛Cargo，Jenkins验证票据尚无本批真实验收。"
+    },
+    "rustdoc": {
+      "run": false,
+      "newExecutableDoctests": 0,
+      "linkReview": "Self及公开crate::runtime_api符号由实际decl与APIFACADE/ROOTFACADE确认；跨crate私有符号使用code identifiers，不新增失效跨crate链接。"
+    },
+    "canonicalSelfCheck": {
+      "status": "passed",
+      "validatedAtUtc": "2026-10-13T05:10:27.385832+00:00",
+      "receipt": {
+        "execCell": "37",
+        "nativeChunkId": "6532e7",
+        "exitCode": 0
+      },
+      "schemaCoverageAndObjectRequiredFieldsMatched": true,
+      "exclusiveSourcePaths": 6,
+      "physicalFinalSourceHashesMatched": 6,
+      "objectGroups": 46,
+      "definitionAnchorsMatched": 223,
+      "memberSymbolsExactlyEnumerateDefinitions": true,
+      "kindCountsMatchDeclaredInventory": true,
+      "functionDeclarationsMatched": 22,
+      "namedFields": 35,
+      "moduleDeclarations": 15,
+      "publicReexportBindings": 63,
+      "callerReferences": 37,
+      "callerHashMismatches": [],
+      "sourceIssueTags": 0,
+      "initialCheckerFailure": {
+        "execCell": "36",
+        "nativeChunkId": "7be102",
+        "exitCode": 1,
+        "reason": "检查脚本的同步导入正则包含前置换行，首次字符串比较未trim；修正为与守卫相同的trim后重跑本静态自检通过。",
+        "sourceMutation": false
+      },
+      "limits": "静态结构/哈希/文本守卫检查；不冒充Cargo、Rustdoc、运行验收或全仓完整审查。"
+    }
+  }
+}

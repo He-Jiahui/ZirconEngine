@@ -190,6 +190,33 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
         }
         // 外置和 stub 成熟度优先于提供者匹配；提供者本身不提升目录成熟度。
         if descriptor.maturity == PluginMaturity::Externalized {
+            if self.linked_plugin_ids.contains(descriptor.package_id) {
+                generation.push(
+                    false,
+                    row_from_descriptor(
+                        descriptor,
+                        required,
+                        RuntimePluginAvailabilityCategory::Linked,
+                        RuntimePluginAvailabilityReason::Linked,
+                    ),
+                );
+                return;
+            }
+            if self
+                .native_dynamic_plugin_ids
+                .contains(descriptor.package_id)
+            {
+                generation.push(
+                    false,
+                    row_from_descriptor(
+                        descriptor,
+                        required,
+                        RuntimePluginAvailabilityCategory::NativeDynamic,
+                        RuntimePluginAvailabilityReason::NativeDynamic,
+                    ),
+                );
+                return;
+            }
             generation.push(
                 !profile.allow_externalized_required_plugins && required,
                 row_from_descriptor(
@@ -213,9 +240,18 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
             );
             return;
         }
-        // BUG: [CR-PLUGIN-BOUNDARY-0202] 此分类链漏判已废弃状态；最低门槛为 Stub 或 Deprecated 时，
-        // Deprecated 可越过排位比较进入已链接或可用分类；等级比较本身符合其排序契约。
-        // 证据：前两项特殊状态早退、plugin_maturity 的不可用状态集合及后续提供者分支。
+        if descriptor.maturity == PluginMaturity::Deprecated {
+            generation.push(
+                required,
+                row_from_descriptor(
+                    descriptor,
+                    required,
+                    RuntimePluginAvailabilityCategory::BlockedByMaturity,
+                    RuntimePluginAvailabilityReason::Deprecated,
+                ),
+            );
+            return;
+        }
         if !descriptor.maturity.meets_minimum(profile.minimum_maturity) {
             generation.push(
                 required,

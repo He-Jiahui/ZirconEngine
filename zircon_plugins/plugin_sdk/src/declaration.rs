@@ -73,6 +73,7 @@ pub enum PluginPackageRole {
 }
 
 impl PluginCapabilityRole {
+    #[cfg(feature = "runtime")]
     const fn is_runtime_provided(self) -> bool {
         matches!(
             self,

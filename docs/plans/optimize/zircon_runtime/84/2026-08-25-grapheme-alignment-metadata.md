@@ -1,4 +1,4 @@
-Plan: docs/plans/optimize/zircon_runtime/84-runtime-rich-text-markup-parser-token-style-span-inline-object-link-image-table-list-layout-selection-accessibility-security-product-integration-current-source-review.md
+Plan: docs/plans/optimize/zircon_runtime/84-runtime-rich-text-markup-parser-token-style-span-inline-object-link-image-table-list-layout-selection-accessibility-security.md
 Milestone: M8
 Status: completed
 Files: ["zircon_runtime/src/text/rich/parser.rs", "zircon_runtime/src/text/rich/parser/performance_tests.rs", "tools/tests/test_runtime84_grapheme_alignment_performance_contract.py"]

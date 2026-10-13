@@ -5,7 +5,7 @@ scope:
   - zircon_runtime/src/render_graph
 status: static_complete_dynamic_pending
 canonical_owner:
-  - docs/plans/optimize/zircon_runtime/89-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/89-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution.md
 related_owners:
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

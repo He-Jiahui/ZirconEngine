@@ -1,7 +1,7 @@
 ---
 date: 2026-08-24
 related_plan: docs/plans/zircon_runtime/render/17-performance-and-profiling.md
-related_runtime90_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+related_runtime90_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
 doc_type: current-source-architecture-review-and-measurement-plan
 status: current_source_review_complete_runtime_baseline_pending
 coordination_owner: docs/plans/zircon_runtime/render/17

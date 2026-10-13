@@ -23,7 +23,7 @@ STATUS = "runtime_08_60_sparse_component_locator_source_complete_cargo_product_p
 STATUS_DOCS = (
     "docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md",
     "docs/plans/zircon_runtime/runtime/08/failure-2026-07-22-ecs-archetype-columnar-storage.md",
-    "docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event-product-integration-review.md",
+    "docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event.md",
     "docs/plans/optimize/zircon_runtime/60/2026-08-28-sparse-component-locator-pages.md",
 )
 

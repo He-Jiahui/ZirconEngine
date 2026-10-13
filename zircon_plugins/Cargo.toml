@@ -34,7 +34,7 @@ members = [
     "neural/runtime",
     "neural/dist",
     "neural/editor",
-    "neural/features/post/runtime",
+    "neural/features/post_process/runtime",
     "physics/runtime",
     "physics/dist",
     "physics/editor",

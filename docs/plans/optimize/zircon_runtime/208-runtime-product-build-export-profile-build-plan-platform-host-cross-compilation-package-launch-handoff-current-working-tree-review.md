@@ -12,7 +12,7 @@ source_recheck_required: true
 tooling_scope: excluded_by_user_request
 coordination_tracking: skipped_by_user_request
 related_reports:
-  - docs/plans/optimize/zircon_runtime/207-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-cook-package-incremental-build-worker-determinism-current-working-tree-review.md
+  - docs/plans/optimize/zircon_runtime/207-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-cook-package-incremental-build-worker-determinism.md
   - docs/plans/optimize/zircon_editor/269-editor-build-export-preset-pipeline-cook-pack-platform-bundle-publishing-resume-determinism-current-working-tree-review.md
 owner_plans:
   - docs/plans/zircon_editor/editor/15-build-export-and-publishing.md

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{UiLayoutEngineFamily, UiSlotKind};
+use super::UiLayoutEngineFamily;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UiAxis {

@@ -263,9 +263,14 @@ async function pluginServer(dist: string, bundle: string): Promise<{ server: Ser
 
 function transitDecoder(frontendPackage: string): (body: string) => unknown {
   const transit = createRequire(frontendPackage)('transit-js') as TransitLibrary;
-  // Shape's official transport representation is a map (types/shape.cljc :wfn).
-  const reader = transit.reader('json', { handlers: { shape: (value: unknown) => value },
-    defaultHandler: (tag: string, value: unknown) => ({ tag, value }) });
+  // Official shape readers call map->Shape; unset fixed record fields remain present as nil.
+  const shapeFields = ['id', 'name', 'type', 'x', 'y', 'width', 'height', 'rotation', 'selrect',
+    'points', 'transform', 'transform-inverse', 'parent-id', 'frame-id', 'flip-x', 'flip-y'];
+  const reader = transit.reader('json', { handlers: { shape: (value: unknown) => {
+    const record: RecordValue = Object.fromEntries(shapeFields.map((field) => [field, null]));
+    (value as TransitMap).forEach((entry: unknown, key: unknown) => { record[String(key).replace(/^:/, '')] = entry; });
+    return record;
+  } }, defaultHandler: (tag: string, value: unknown) => ({ tag, value }) });
   const plain = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(plain);
     if (transit.isSet(value)) {

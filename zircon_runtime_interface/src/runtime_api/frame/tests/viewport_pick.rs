@@ -1,5 +1,6 @@
 use super::*;
 
+/// 为请求验证与回执关联测试创建同一组视口、帧和输入身份。
 fn request() -> ZrRuntimeViewportPickRequestV1 {
     ZrRuntimeViewportPickRequestV1::new(
         ZrRuntimeViewportHandle::new(7),
@@ -13,6 +14,7 @@ fn request() -> ZrRuntimeViewportPickRequestV1 {
 }
 
 #[test]
+/// 校验像素边界、未知策略位和零帧代数会使请求无效。
 fn request_requires_exact_view_frame_input_and_physical_pixel_identity() {
     let request = request();
     assert!(request.validate_viewport_pick());
@@ -31,6 +33,7 @@ fn request_requires_exact_view_frame_input_and_physical_pixel_identity() {
 }
 
 #[test]
+/// 验证命中构造器保留请求身份和目标细节，并生成终态回执。
 fn hit_result_preserves_the_request_identity_and_target_detail() {
     let request = request();
     let result = ZrRuntimeViewportPickResultV1::hit(
@@ -53,6 +56,7 @@ fn hit_result_preserves_the_request_identity_and_target_detail() {
 }
 
 #[test]
+/// 验证非命中状态不能携带实体目标编号。
 fn stale_or_non_hit_completion_cannot_smuggle_a_target() {
     let request = request();
     let mut result = ZrRuntimeViewportPickResultV1::empty(
@@ -68,6 +72,7 @@ fn stale_or_non_hit_completion_cannot_smuggle_a_target() {
 }
 
 #[test]
+/// 验证非有限命中几何使回执校验和关联检查均失败。
 fn completion_rejects_non_finite_geometry_and_cross_frame_reuse() {
     let request = request();
     let mut result = ZrRuntimeViewportPickResultV1::hit(
@@ -94,6 +99,7 @@ fn completion_rejects_non_finite_geometry_and_cross_frame_reuse() {
 }
 
 #[test]
+/// 固定请求/回执保持无析构值且不超过 ABI 布局尺寸上限。
 fn contract_is_fixed_layout_and_allocation_free() {
     assert!(!core::mem::needs_drop::<ZrRuntimeViewportPickRequestV1>());
     assert!(!core::mem::needs_drop::<ZrRuntimeViewportPickResultV1>());

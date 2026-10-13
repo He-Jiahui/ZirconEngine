@@ -886,8 +886,8 @@ async function generateCatalog(
         'On 2026-09-25, all 4 current Penpot scenes passed at 240/360/480 logical widths and 150% DPI, including measured text boundaries. Reference: [ReactBits Notifications](https://pro.reactbits.dev/docs/app-ui/notifications) for a distinct notification surface; the local Workbench semantic info colors and flat panel radius remain authoritative. Native retained-host evidence and original-size dual-end review remain pending.',
       ];
     if (
-      sourcePath.endsWith('/shell/workbench_inspector_panel.zui') &&
-      prepared.document?.nodes?.['inspector_layer_label']?.layout?.['width']
+      sourcePath.endsWith('/unreal/components/details.zui') &&
+      prepared.document?.nodes?.['layer_label']?.layout?.['width']
     )
       entry.sourceChanges = [
         ...(entry.sourceChanges ?? []),
@@ -896,7 +896,7 @@ async function generateCatalog(
         'Reference: [ReactBits App Shell 4](https://pro.reactbits.dev/docs/app-ui/app-shell/app-shell-4) for the stable right inspector rail; the local neutral dark Workbench tokens, flat panel split and 14px body scale remain authoritative. Current Penpot recapture passed the main-band default and scroll scenes; native retained-host and dual-end evidence remain pending.',
       ];
     if (
-      sourcePath.endsWith('/shell/workbench_main_band.zui') &&
+      sourcePath.endsWith('/unreal/level_editor_window.zui') &&
       prepared.document?.['penpot_dynamic_review_state']
     )
       entry.sourceChanges = [
@@ -906,14 +906,14 @@ async function generateCatalog(
         'Reference: [ReactBits App Shell](https://pro.reactbits.dev/docs/app-ui/app-shell) and [Sidebar](https://pro.reactbits.dev/docs/app-ui/sidebar) for explicit shell regions and responsive rail behavior. Current Penpot capture passed 6/6 cases (4 default sizes plus two scroll positions); native Editor evidence and dual-end image review remain pending.',
       ];
     if (
-      sourcePath.endsWith('/shell/workbench_status_bar.zui') &&
-      prepared.document?.nodes?.['status_grid']?.layout?.['width']
+      sourcePath.endsWith('/unreal/components/host_status_bar.zui') &&
+      prepared.document?.nodes?.['status_primary_label']?.layout?.['width']
     )
       entry.sourceChanges = [
         ...(entry.sourceChanges ?? []),
-        'Original-size Penpot review found the wide-only Grid and Snap chips inheriting the shared 14px Chip padding while their fixed widths were too small; Grid: 10 cm split across two lines and painted outside the 24px status row at 1280px and 150% DPI.',
-        'The source keeps the status bar at the tokenized 24px height, removes only the wide chip vertical padding, and reserves 96px for Grid plus 80px for Snap. Labels, icon actions, responsive wide-tier visibility and event routes remain unchanged.',
-        'Reference: [ReactBits App Shell 4](https://pro.reactbits.dev/docs/app-ui/app-shell/app-shell-4) for persistent bottom status/navigation chrome; the local neutral dark Workbench palette and 14px body scale remain authoritative. Penpot recapture and native retained-host evidence are required before dual-end acceptance.',
+        'The Unreal host status bar is authored with a Starship-backed panel, a pixel-snapped divider and primary, secondary and viewport labels.',
+        'The primary label uses a 240/560/960px flexible slot; secondary and viewport labels reserve 96px and 104px. All three use 16px line boxes and 10.666667px text.',
+        'Reference: [ReactBits App Shell 4](https://pro.reactbits.dev/docs/app-ui/app-shell/app-shell-4) for persistent bottom status/navigation chrome; Starship and the authored host control IDs remain authoritative. Native retained-host evidence and dual-end review remain pending.',
       ];
     if (
       sourcePath.endsWith('/editor/asset_browser.zui') &&

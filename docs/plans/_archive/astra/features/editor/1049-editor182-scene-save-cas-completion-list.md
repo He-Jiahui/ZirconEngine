@@ -4,7 +4,7 @@ status: blocked_by_active_shared_scope
 validation_status: not_run_no_implementation
 performance_status: not_measured
 plan_sources:
-  - docs/plans/optimize/zircon_editor/182-editor-scene-document-authoring-world-open-new-reload-save-close-dirty-transition-autosave-recovery-multi-document-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/182-editor-scene-document-authoring-world-open-new-reload-save-close-dirty-transition-autosave-recovery-multi-document.md
   - docs/plans/optimize/zircon_editor/182/2026-09-29-scene-cas-ownership-handoff.md
 ---
 

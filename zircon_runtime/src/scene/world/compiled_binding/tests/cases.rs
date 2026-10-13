@@ -400,6 +400,39 @@ fn compiled_scene_property_writer_writes_mesh_morph_weights_without_path_dispatc
 }
 
 #[test]
+fn compiled_scene_property_writer_rejects_morph_weight_index_overflow() {
+    let mut world = World::empty();
+    let hero = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    world.rename_node(hero, "Hero").unwrap();
+    let accessor = world
+        .compile_scene_property_writer(
+            &EntityPath::parse("Hero").unwrap(),
+            &ComponentPropertyPath::parse(&format!("MeshRenderer.morph_weights.{}", usize::MAX))
+                .unwrap(),
+        )
+        .unwrap()
+        .unwrap();
+
+    let error = world
+        .write_compiled_scene_property(
+            &accessor,
+            crate::core::framework::scene::ScenePropertyValue::Scalar(0.75),
+        )
+        .expect_err("usize::MAX cannot be converted to a morph-weight vector length");
+    assert!(matches!(
+        error,
+        crate::scene::SceneError::InvalidPropertyIndex { .. }
+    ));
+    assert!(world
+        .get::<MeshRenderer>(hero)
+        .unwrap()
+        .morph_weights
+        .is_empty());
+}
+
+#[test]
 fn compiled_scene_property_writer_writes_camera_and_light_aliases_without_path_dispatch() {
     let mut world = World::empty();
     let root = world

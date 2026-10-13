@@ -22,7 +22,7 @@ use super::constants::WINDOW_MENU_INDEX;
 use super::menu_item_spec::MenuItemSpec;
 use super::HostMenuPointerLayout;
 
-const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.zui";
+const MENU_CHROME_ASSET: &str = "/assets/ui/editor/unreal/components/host_menu_bar.zui";
 const MENU_SLOT_PREFIX: &str = "MenuSlot";
 const MENU_BUTTON_COUNT: usize = 7;
 const MENU_STENCIL_REFERENCE_WIDTH: f32 = 1280.0;

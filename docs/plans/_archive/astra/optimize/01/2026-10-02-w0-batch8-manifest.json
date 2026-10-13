@@ -24,7 +24,7 @@
   },
   "captured_raw_files": [
     {
-      "path": "docs/plans/optimize/zircon_editor/187-editor-scene-viewport-camera-navigation-orbit-pan-zoom-fly-projection-alignment-frame-selection-bookmark-pilot-persistence-input-product-integration-current-source-review.md",
+      "path": "docs/plans/optimize/zircon_editor/187-editor-scene-viewport-camera-navigation-orbit-pan-zoom-fly-projection-alignment-frame-selection-bookmark-pilot-persistence-input.md",
       "sha256": "f25516b28fab49d142c11847454bea2107f6c21207ba57db054e88967a59e677"
     },
     {
@@ -64,15 +64,15 @@
       "sha256": "339d39aa43d44de26243a98fdbce297fadba5d9405a0a65770a01536cefa4277"
     },
     {
-      "path": "docs/plans/optimize/zircon_runtime/99i-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event-product-integration-current-source-review.md",
+      "path": "docs/plans/optimize/zircon_runtime/99i-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event.md",
       "sha256": "cc3ed8ff7b66ad42ca26a72c5242ca404d87fd634cc96280e317f6b6f665c5a1"
     },
     {
-      "path": "docs/plans/optimize/zircon_runtime/99j-runtime-scene-world-level-registry-lifecycle-project-io-snapshot-clone-serialization-schema-transaction-product-integration-current-source-review.md",
+      "path": "docs/plans/optimize/zircon_runtime/99j-runtime-scene-world-level-registry-lifecycle-project-io-snapshot-clone-serialization-schema-transaction.md",
       "sha256": "84127f0d53928043668be9e7ad36e278e7fc9c6f4daa898eef4c4b6bd42597bc"
     },
     {
-      "path": "docs/plans/optimize/zircon_runtime/99k-runtime-scene-hierarchy-transform-propagation-reparent-activation-mobility-visibility-bounds-render-product-integration-current-source-review.md",
+      "path": "docs/plans/optimize/zircon_runtime/99k-runtime-scene-hierarchy-transform-propagation-reparent-activation-mobility-visibility-bounds-render.md",
       "sha256": "8140527c4d8dc08a3556703574cee966af7605f1b2249f93cfe3bfba25ce9974"
     },
     {

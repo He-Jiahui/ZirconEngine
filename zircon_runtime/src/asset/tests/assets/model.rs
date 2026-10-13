@@ -82,6 +82,27 @@ fn virtual_geometry_vertex_ordinals_pack_into_joint_index_slots() {
 }
 
 #[test]
+fn virtual_geometry_deserialization_rejects_out_of_bounds_cluster_ranges() {
+    let document = r#"
+[[hierarchy_buffer]]
+node_id = 4
+child_node_ids = []
+cluster_start = 9
+cluster_count = 1
+page_id = 0
+mip_level = 0
+bounds_center = [0.0, 0.0, 0.0]
+bounds_radius = 0.0
+screen_space_error = 0.0
+"#;
+
+    let error = toml::from_str::<VirtualGeometryAsset>(document)
+        .expect_err("asset loading must reject ranges beyond the cluster header array");
+    assert!(error.to_string().contains("cluster range"));
+    assert!(error.to_string().contains("exceeds 0 headers"));
+}
+
+#[test]
 fn virtual_geometry_vertex_ordinals_do_not_rewrite_skinned_primitives() {
     let vertices = vec![
         MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO)

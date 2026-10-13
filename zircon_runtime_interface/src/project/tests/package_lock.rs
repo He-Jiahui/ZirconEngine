@@ -1,4 +1,5 @@
 use super::*;
+use std::str::FromStr;
 
 fn fixture() -> ProjectPackageLock {
     ProjectPackageLock {

@@ -29,9 +29,9 @@ related_code:
 related_reviews:
   - docs/plans/optimize/zircon_editor/132-editor-notification-center-toast-decision-history-actions-retention-accessibility-diagnostic-integration-current-source-review.md
   - docs/plans/optimize/zircon_editor/147-editor-runtime-diagnostics-performance-timeline-console-telemetry-observability-authoring-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor.md
   - docs/plans/optimize/zircon_runtime/99p-runtime-plugin-interface-bridge-slot-generation-strong-weak-native-vm-lifecycle-diagnostics-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/99zg-runtime-process-diagnostic-log-router-filter-record-queue-sink-durability-rotation-crash-multi-session-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zg-runtime-process-diagnostic-log-router-filter-record-queue-sink-durability-rotation-crash-multi-session.md
   - docs/plans/optimize/zircon_plugins/21-plugin-artifact-marketplace-third-party-package-install-update-trust-non-cargo-product-integration-review.md
 reference_engines:
   - dev/UnrealEngine/Engine/Plugins/Online/OnlineFramework/Source/Hotfix/Public/OnlineHotfixManager.h

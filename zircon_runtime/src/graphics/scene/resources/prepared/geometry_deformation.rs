@@ -43,7 +43,8 @@ impl PreparedGeometryDeformation {
             if position_deltas.is_empty() {
                 continue;
             }
-            let bounds = RenderMeshBounds::from_positions(position_deltas.iter().copied());
+            let bounds = RenderMeshBounds::try_from_positions(position_deltas.iter().copied())
+                .unwrap_or_else(RenderMeshBounds::invalid);
             if let Some(existing) = self.morph_target_delta_bounds.get_mut(target_index) {
                 *existing = union_bounds(*existing, bounds);
             } else {
@@ -72,12 +73,18 @@ impl PreparedGeometryDeformation {
         base_bounds: RenderMeshBounds,
         morph_weights: &[f32],
     ) -> RenderMeshBounds {
+        if !base_bounds.is_finite() {
+            return RenderMeshBounds::invalid();
+        }
         let mut min = Vec3::from_array(base_bounds.min);
         let mut max = Vec3::from_array(base_bounds.max);
         for (target_index, delta_bounds) in self.morph_target_delta_bounds.iter().enumerate() {
             let weight = morph_weights.get(target_index).copied().unwrap_or_default();
             if !weight.is_finite() || weight.abs() <= f32::EPSILON {
                 continue;
+            }
+            if !delta_bounds.is_finite() {
+                return RenderMeshBounds::invalid();
             }
             // 负 morph 权重会交换区间端点，须重新取 min/max 后累加，才能把形变范围保守地并入基础边界。
             let delta_min = Vec3::from_array(delta_bounds.min) * weight;
@@ -90,6 +97,9 @@ impl PreparedGeometryDeformation {
 }
 
 fn union_bounds(left: RenderMeshBounds, right: RenderMeshBounds) -> RenderMeshBounds {
+    if !left.is_finite() || !right.is_finite() {
+        return RenderMeshBounds::invalid();
+    }
     RenderMeshBounds::from_min_max(
         Vec3::from_array(left.min)
             .min(Vec3::from_array(right.min))

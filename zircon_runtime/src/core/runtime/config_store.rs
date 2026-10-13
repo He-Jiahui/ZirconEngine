@@ -41,19 +41,58 @@ impl ConfigStore {
         drop(retired);
     }
 
-    // Equality and publication share one lock; keep the existing Arc for unchanged values.
+    // Deep comparison does not block readers. Retain the observed owner until publication so
+    // a concurrent replacement cannot reuse its identity and invalidate the changed decision.
     pub(crate) fn store_value_if_changed(&self, key: &str, value: Value) -> bool {
-        let mut values = self.lock_values();
-        if values.get(key).map(|stored| stored.as_ref()) == Some(&value) {
-            drop(values);
-            return false;
+        self.store_value_if_changed_by(key, value, Value::eq)
+    }
+
+    fn store_value_if_changed_by(
+        &self,
+        key: &str,
+        value: Value,
+        equals: impl Fn(&Value, &Value) -> bool,
+    ) -> bool {
+        let mut observed = self.shared_value(key);
+        loop {
+            if !observed
+                .as_ref()
+                .is_some_and(|stored| equals(stored.as_ref(), &value))
+            {
+                break;
+            }
+            let current = self.shared_value(key);
+            if same_shared_owner(current.as_ref(), observed.as_ref()) {
+                return false;
+            }
+            observed = current;
         }
 
-        let replaced = values.insert(key.to_owned(), Arc::new(value));
-        drop(values);
-        // A large retired value, or an unused equal input, must not be dropped under the lock.
-        drop(replaced);
-        true
+        let owned_key = key.to_owned();
+        let value = Arc::new(value);
+        let mut unchanged = false;
+        loop {
+            let mut values = self.lock_values();
+            let current = values.get(key);
+            if same_shared_owner(current, observed.as_ref()) {
+                if unchanged {
+                    drop(values);
+                    return false;
+                }
+                let replaced = values.insert(owned_key, value);
+                drop(values);
+                drop(replaced);
+                return true;
+            }
+
+            let current = current.cloned();
+            drop(values);
+            // Retire a stale observation and repeat deep equality after releasing the mutex.
+            observed = current;
+            unchanged = observed
+                .as_ref()
+                .is_some_and(|stored| equals(stored.as_ref(), value.as_ref()));
+        }
     }
 
     pub fn load_value(&self, key: &str) -> Option<Value> {
@@ -81,6 +120,12 @@ impl ConfigStore {
         self.lock_values().get(key).cloned()
     }
 
+    // Persistence can serialize retained immutable owners without copying their JSON payloads.
+    pub(crate) fn shared_snapshot_values(&self) -> HashMap<String, Arc<Value>> {
+        let shared_entries = shared_snapshot_entries(&self.lock_values());
+        shared_entries.into_iter().collect()
+    }
+
     /// 为诊断和外部观察者返回独立快照；后续写入不会改变已取得的结果。
     pub fn snapshot_values(&self) -> HashMap<String, Value> {
         let shared_entries = shared_snapshot_entries(&self.lock_values());
@@ -91,7 +136,15 @@ impl ConfigStore {
     }
 }
 
-// 在配置锁内仅复制键与 Arc 所有权；调用方随后在锁外深拷贝 JSON，缩短大快照对写入的阻塞。
+fn same_shared_owner(current: Option<&Arc<Value>>, observed: Option<&Arc<Value>>) -> bool {
+    match (current, observed) {
+        (Some(current), Some(observed)) => Arc::ptr_eq(current, observed),
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+// 在配置锁内仅复制键与 Arc 所有权；调用方随后在锁外构造或处理快照。
 fn shared_snapshot_entries(values: &HashMap<String, Arc<Value>>) -> Vec<(String, Arc<Value>)> {
     values
         .iter()

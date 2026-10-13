@@ -109,7 +109,51 @@ impl ProjectAssetTestRuntime {
 }
 
 #[test]
-#[ignore = "writes reviewed WGPU product evidence under docs/tests/runtime/render"]
+fn smoke_volumetric_fog_executes_a_product_frame() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_runtime = ProjectAssetTestRuntime::new(asset_manager.clone());
+    let room_material = register_material(
+        asset_manager.as_ref(),
+        "res://materials/volumetric_smoke_room.zmaterial",
+        "VolumetricSmokeRoom",
+        [0.18, 0.20, 0.23, 1.0],
+        false,
+        true,
+    );
+    let frame_material = register_material(
+        asset_manager.as_ref(),
+        "res://materials/volumetric_smoke_frame.zmaterial",
+        "VolumetricSmokeFrame",
+        [0.11, 0.12, 0.13, 1.0],
+        true,
+        true,
+    );
+    let framework = WgpuRenderFramework::new_with_plugin_render_features(
+        asset_runtime.access(),
+        [render_feature_descriptor()],
+        render_pass_executor_registrations(),
+        Vec::new(),
+        asset_runtime.worker_pool(),
+    )
+    .expect("volumetric smoke WGPU framework");
+
+    let (frame, stats) = render_frame(
+        &framework,
+        "volumetric-product-smoke",
+        window_light_shaft_extract(room_material, frame_material, true, true),
+        false,
+    );
+
+    assert_volumetric_stats(&stats);
+    assert_eq!((frame.width, frame.height), (VIEWPORT_SIZE.x, VIEWPORT_SIZE.y));
+    assert!(
+        frame.rgba.chunks_exact(4).any(|pixel| pixel[0..3] != [0, 0, 0]),
+        "volumetric product frame should contain rendered scene pixels"
+    );
+}
+
+#[test]
+#[ignore = "writes reviewed WGPU product evidence to ZIRCON_RENDERING_SMOKE_OUTPUT_DIR"]
 fn export_volumetric_compiled_scene_window_light_shaft_perf_wgpu_png() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let asset_runtime = ProjectAssetTestRuntime::new(asset_manager.clone());

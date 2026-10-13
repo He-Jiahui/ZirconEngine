@@ -162,6 +162,15 @@ impl DefaultConfigManager {
             .install_publication_test_hooks(after_publication, on_contention);
     }
 
+    #[cfg(test)]
+    pub(super) fn install_shutdown_timeout_test_hook(
+        &self,
+        on_timeout: impl Fn(bool) + Send + Sync + 'static,
+    ) {
+        self.persistence
+            .install_shutdown_timeout_test_hook(on_timeout);
+    }
+
     fn runtime_core(&self) -> Result<CoreHandle, ConfigManagerError> {
         self.core
             .upgrade()

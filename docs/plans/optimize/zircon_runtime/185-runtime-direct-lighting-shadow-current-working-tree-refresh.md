@@ -6,7 +6,7 @@ review_date: 2026-08-30
 baseline_head: 79ff31b5e6f3cf8319f809013b2f960493a1a96a
 verification_head: 79ff31b5e6f3cf8319f809013b2f960493a1a96a
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_runtime/95-runtime-direct-lighting-photometry-light-grid-clustered-forward-plus-shadow-atlas-cascade-point-spot-rect-cookie-ies-submission-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/95-runtime-direct-lighting-photometry-light-grid-clustered-forward-plus-shadow-atlas-cascade-point-spot-rect-cookie-ies-submission.md
   - docs/plans/optimize/zircon_runtime/09e-direct-lighting-clustered-shadow-review.md
   - docs/plans/optimize/zircon_runtime/71-runtime-scene-light-directional-point-spot-rect-photometry-layer-shadow-cookie-ies-extract-authoring-product-integration-review.md
 related_editor_owner:

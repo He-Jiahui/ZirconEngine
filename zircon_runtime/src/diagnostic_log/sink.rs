@@ -1,7 +1,8 @@
 use arc_swap::ArcSwapOption;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::time::Duration;
 
@@ -25,6 +26,8 @@ use super::timestamp::current_log_timestamp;
 
 static LOG_CONTROLLER: OnceLock<ProcessLogController> = OnceLock::new();
 static PANIC_FLUSH_HOOK: OnceLock<()> = OnceLock::new();
+static LOG_FILE_NONCE: AtomicU64 = AtomicU64::new(0);
+const LOG_FILE_COLLISION_ATTEMPTS: usize = 32;
 
 /// Keeps the current sink generation alive until every dynamic runtime session has stopped.
 ///
@@ -716,6 +719,22 @@ fn open_first_available_log_file(
     file_enabled: bool,
     notes: &mut Vec<DiagnosticLogNote>,
 ) -> (Option<PathBuf>, Option<File>) {
+    open_first_available_log_file_with_nonce(
+        channel,
+        candidates,
+        file_enabled,
+        notes,
+        &LOG_FILE_NONCE,
+    )
+}
+
+fn open_first_available_log_file_with_nonce(
+    channel: &str,
+    candidates: Vec<LogDirectoryCandidate>,
+    file_enabled: bool,
+    notes: &mut Vec<DiagnosticLogNote>,
+    nonce: &AtomicU64,
+) -> (Option<PathBuf>, Option<File>) {
     if !file_enabled {
         notes.push(DiagnosticLogNote::new(
             DiagnosticLogLevel::Log,
@@ -738,12 +757,8 @@ fn open_first_available_log_file(
         }
 
         let file_path = candidate.path.join(format!("{channel}.log"));
-        match OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&file_path)
-        {
-            Ok(file) => {
+        match open_collision_free_log_file(&file_path, channel, nonce) {
+            Ok((file_path, file)) => {
                 notes.push(DiagnosticLogNote::new(
                     DiagnosticLogLevel::Log,
                     format!(
@@ -770,6 +785,51 @@ fn open_first_available_log_file(
         "no file-backed log sink available; console diagnostics remain active",
     ));
     (None, None)
+}
+
+fn open_collision_free_log_file(
+    primary_path: &Path,
+    channel: &str,
+    nonce: &AtomicU64,
+) -> std::io::Result<(PathBuf, File)> {
+    match OpenOptions::new()
+        .create_new(true)
+        .append(true)
+        .open(primary_path)
+    {
+        Ok(file) => return Ok((primary_path.to_path_buf(), file)),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+        Err(error) => return Err(error),
+    }
+
+    // Public channel names are ASCII after sanitize_channel_name. Bound only new suffixes.
+    let channel_prefix: String = channel.chars().take(32).collect();
+    // Exclusive creation, rather than the PID or this image-local nonce, owns the path.
+    for _ in 0..LOG_FILE_COLLISION_ATTEMPTS {
+        let generation = nonce
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+                value.checked_add(1)
+            })
+            .map_err(|_| std::io::Error::other("diagnostic log file nonce exhausted"))?;
+        let file_path = primary_path.with_file_name(format!(
+            "{channel_prefix}-{}-{generation:016x}.log",
+            std::process::id()
+        ));
+        match OpenOptions::new()
+            .create_new(true)
+            .append(true)
+            .open(&file_path)
+        {
+            Ok(file) => return Ok((file_path, file)),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) => return Err(error),
+        }
+    }
+
+    Err(std::io::Error::new(
+        std::io::ErrorKind::AlreadyExists,
+        "diagnostic log file collision retry limit (32) reached",
+    ))
 }
 
 fn sanitize_channel_name(channel: String) -> String {

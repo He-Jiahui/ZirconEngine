@@ -20,7 +20,8 @@ use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::core::resource::ResourceId;
 
 use super::cpu_reference::{
-    VirtualGeometryCpuReferenceConfig, VirtualGeometryCpuReferenceFrame,
+    VirtualGeometryCpuReferenceAssetValidationIssue, VirtualGeometryCpuReferenceConfig,
+    VirtualGeometryCpuReferenceFrame,
     VirtualGeometryCpuReferenceLeafCluster,
 };
 use super::page_payload::render_page_payloads_for_asset;
@@ -85,6 +86,8 @@ pub(crate) struct VirtualGeometryAutomaticExtractOutput {
     cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
     bvh_visualization_instances: Vec<RenderVirtualGeometryBvhVisualizationInstance>,
     resident_page_payloads: Vec<RenderVirtualGeometryPagePayload>,
+    asset_validation_issues: Vec<(EntityId, VirtualGeometryCpuReferenceAssetValidationIssue)>,
+    hierarchy_cycle_node_ids: Vec<(EntityId, u32)>,
 }
 
 impl VirtualGeometryAutomaticExtractOutput {
@@ -93,12 +96,16 @@ impl VirtualGeometryAutomaticExtractOutput {
         cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
         bvh_visualization_instances: Vec<RenderVirtualGeometryBvhVisualizationInstance>,
         resident_page_payloads: Vec<RenderVirtualGeometryPagePayload>,
+        asset_validation_issues: Vec<(EntityId, VirtualGeometryCpuReferenceAssetValidationIssue)>,
+        hierarchy_cycle_node_ids: Vec<(EntityId, u32)>,
     ) -> Self {
         Self {
             extract,
             cpu_reference_instances,
             bvh_visualization_instances,
             resident_page_payloads,
+            asset_validation_issues,
+            hierarchy_cycle_node_ids,
         }
     }
 
@@ -118,6 +125,16 @@ impl VirtualGeometryAutomaticExtractOutput {
 
     pub(crate) fn resident_page_payloads(&self) -> &[RenderVirtualGeometryPagePayload] {
         &self.resident_page_payloads
+    }
+
+    pub(crate) fn asset_validation_issues(
+        &self,
+    ) -> &[(EntityId, VirtualGeometryCpuReferenceAssetValidationIssue)] {
+        &self.asset_validation_issues
+    }
+
+    pub(crate) fn hierarchy_cycle_node_ids(&self) -> &[(EntityId, u32)] {
+        &self.hierarchy_cycle_node_ids
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
@@ -229,6 +246,8 @@ fn build_virtual_geometry_automatic_extract_with_config(
     let mut page_dependencies = Vec::new();
     let mut resident_page_payloads = Vec::new();
     let mut instances = Vec::new();
+    let mut asset_validation_issues = Vec::new();
+    let mut hierarchy_cycle_node_ids = Vec::new();
     let mut cpu_reference_instances = Vec::new();
     let mut bvh_visualization_instances = Vec::new();
     let mut cluster_budget = 0_u32;
@@ -250,6 +269,20 @@ fn build_virtual_geometry_automatic_extract_with_config(
             &instance.asset,
             &resident_page_list,
             config,
+        );
+        asset_validation_issues.extend(
+            cpu_reference
+                .asset_validation_issues()
+                .iter()
+                .cloned()
+                .map(|issue| (instance.entity, issue)),
+        );
+        hierarchy_cycle_node_ids.extend(
+            cpu_reference
+                .hierarchy_cycle_node_ids()
+                .iter()
+                .copied()
+                .map(|node_id| (instance.entity, node_id)),
         );
         let cpu_reference_instance_index =
             u32::try_from(cpu_reference_instances.len()).unwrap_or(u32::MAX);
@@ -386,6 +419,8 @@ fn build_virtual_geometry_automatic_extract_with_config(
         cpu_reference_instances,
         bvh_visualization_instances,
         resident_page_payloads,
+        asset_validation_issues,
+        hierarchy_cycle_node_ids,
     ))
 }
 

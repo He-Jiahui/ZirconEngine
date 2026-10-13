@@ -102,6 +102,8 @@ export function prepareViewportToolbarLayout(asset: Board,document: ZuiDocument,
   if(typeof offset!=='number'||!Number.isFinite(offset))throw new Error('Viewport toolbar: source popup position is missing');
   const budget=Math.max(0,viewport.y+viewport.height-(root.y+root.height)-offset);
   const plan=planViewportToolbar(document,projection,desired,row.width,budget);if(!plan)return undefined;
+  const validPopupSize=Number.isFinite(plan.popupWidth)&&Number.isFinite(plan.popupHeight)&&plan.popupWidth>0&&plan.popupHeight>0;
+  if(plan.open&&!validPopupSize)throw new Error('Viewport toolbar: open popup requires finite positive dimensions (width='+plan.popupWidth+', height='+plan.popupHeight+')');
   if(!plan.publication)for(const item of boards.values()){
     const original=item.getSharedPluginData(ZUI_METADATA_NAMESPACE,'viewport-toolbar-original-absolute');
     if(original&&item.layoutChild){
@@ -124,7 +126,7 @@ export function prepareViewportToolbarLayout(asset: Board,document: ZuiDocument,
   restoreSemanticOrder(row,plan.contract.originalRowChildren.filter(mount=>!suffix.has(mount.node)).map(mount=>board(boards,mount.node)));
   restoreSemanticOrder(popup,plan.contract.groups.slice(plan.inline).map(id=>board(boards,id)));
   more.hidden=plan.inline===plan.contract.groups.length;popup.hidden=!plan.open;
-  allocateNativeLayoutSize(popup,plan.popupWidth,plan.popupHeight,'anchored');
+  if(validPopupSize)allocateNativeLayoutSize(popup,plan.popupWidth,plan.popupHeight,'anchored');
   const sourceNodes=new Map<string,NonNullable<ViewportToolbarPlan['publication']>['nodes'][number]>();
   if(plan.publication)for(const raw of plan.publication.nodes){const id=plan.sourceByNativeId!.get(raw.nodeId);if(id)sourceNodes.set(id,raw);}
   return {plan,boards,sourceNodes,document:viewportToolbarRuntimeDocument(document,plan)};

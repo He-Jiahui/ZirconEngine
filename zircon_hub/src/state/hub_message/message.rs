@@ -146,13 +146,31 @@ impl Serialize for HubMessage {
     }
 }
 
-// BUG: [CR-HUBSTATE-0001] 较早参数包含后续占位符时会被再次替换，改变原始路径/诊断；证据：项目记录失败消息同时插入目录和错误文本。
-// 模板替换属于显示边界，用户参数应作为不可再解释的原文保留。
+// 模板只扫描一次；插入的参数作为原文追加，不能再被后续占位符规则解释。
 fn render_template(template: &str, params: &[String]) -> String {
-    let mut rendered = template.to_string();
-    for (index, param) in params.iter().enumerate() {
-        rendered = rendered.replace(&format!("{{{index}}}"), param);
+    let mut rendered = String::with_capacity(template.len());
+    let mut remaining = template;
+
+    while let Some(open) = remaining.find('{') {
+        rendered.push_str(&remaining[..open]);
+        let after_open = &remaining[open + 1..];
+        let Some(close) = after_open.find('}') else {
+            rendered.push_str(&remaining[open..]);
+            return rendered;
+        };
+        let placeholder = &after_open[..close];
+        if let Ok(index) = placeholder.parse::<usize>() {
+            if let Some(param) = params.get(index) {
+                rendered.push_str(param);
+                remaining = &after_open[close + 1..];
+                continue;
+            }
+        }
+
+        rendered.push_str(&remaining[open..open + close + 2]);
+        remaining = &after_open[close + 1..];
     }
+    rendered.push_str(remaining);
     rendered
 }
 

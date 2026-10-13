@@ -1,4 +1,4 @@
-Plan: docs/plans/optimize/zircon_runtime/95-runtime-direct-lighting-photometry-light-grid-clustered-forward-plus-shadow-atlas-cascade-point-spot-rect-cookie-ies-submission-product-integration-current-source-review.md
+Plan: docs/plans/optimize/zircon_runtime/95-runtime-direct-lighting-photometry-light-grid-clustered-forward-plus-shadow-atlas-cascade-point-spot-rect-cookie-ies-submission.md
 Milestone: M8
 Status: completed
 Files: ["zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs", "zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer/performance_tests.rs", "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan.rs", "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan/performance_tests.rs", "tools/tests/test_runtime95_frame_metadata_performance_contract.py"]

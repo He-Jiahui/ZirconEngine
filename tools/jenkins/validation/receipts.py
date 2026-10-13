@@ -20,7 +20,7 @@ from ..contracts import JenkinsError, digest, file_digest, require_digest
 SCHEMA_VERSION = 1
 PRODUCER_KIND = "jenkins.managed.producer-receipt"
 ACCEPTANCE_KIND = "jenkins.authoritative.acceptance-receipt"
-LIGHT_STAGES = frozenset({"source", "patch", "comments", "syntax", "format", "acceptance"})
+LIGHT_STAGES = frozenset({"source", "patch", "comments", "syntax", "format", "review", "acceptance"})
 HEAVY_STAGES = frozenset({"build", "unit_test", "integration_test", "regression_test",
                           "package_check", "editor_exe", "runtime_dll", "package"})
 APPROVED_PRODUCERS = frozenset({"zircon-jenkins", "jenkins-managed-runtime"})

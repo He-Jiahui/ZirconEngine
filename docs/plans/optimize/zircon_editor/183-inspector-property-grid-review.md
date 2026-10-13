@@ -34,7 +34,7 @@ tests:
 plan_sources:
   - docs/plans/optimize/zircon_editor/05-inspector-reflection-property-authoring-customization-review.md
   - docs/plans/optimize/zircon_editor/62-editor-inspector-property-grid-reflection-schema-multi-selection-edit-transaction-undo-prefab-override-customization-asset-reference-virtualization-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/99l-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99l-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md
   - docs/plans/zircon_editor/editor/06-ui-extension-framework.md
   - docs/plans/zircon_editor/editor/06/failure-2026-08-01-inspector-multi-selection-batch-mutation-missing.md
   - docs/plans/zircon_editor/editor/06/failure-2026-08-02-ticket-owned-field-editor-container-missing.md

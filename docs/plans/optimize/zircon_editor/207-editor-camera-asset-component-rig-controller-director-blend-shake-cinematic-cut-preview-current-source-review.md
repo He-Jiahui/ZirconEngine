@@ -49,7 +49,7 @@ related_code:
 plan_sources:
   - docs/plans/optimize/zircon_runtime/99za-runtime-camera-endpoint-director-rig-controller-blend-shake-cut-history-multiview-product-integration-current-source-review.md
   - docs/plans/optimize/zircon_runtime/99zy-runtime-cinematic-sequencer-sequence-shot-track-section-binding-hierarchy-evaluation-camera-cut-audio-event-take-recorder-movie-render-queue-network-save-scalability-editor-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/187-editor-scene-viewport-camera-navigation-orbit-pan-zoom-fly-projection-alignment-frame-selection-bookmark-pilot-persistence-input-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/187-editor-scene-viewport-camera-navigation-orbit-pan-zoom-fly-projection-alignment-frame-selection-bookmark-pilot-persistence-input.md
   - docs/plans/optimize/zircon_editor/166-editor-cinematic-sequencer-shot-track-binding-take-recorder-movie-render-queue-current-source-review.md
   - docs/plans/optimize/zircon_editor/206-editor-input-action-mapping-context-binding-trigger-modifier-device-user-rebinding-accessibility-current-source-review.md
   - docs/plans/zircon_runtime/runtime/08/failure-2026-08-23-editor-delete-subtree-all-cameras-invariant.md

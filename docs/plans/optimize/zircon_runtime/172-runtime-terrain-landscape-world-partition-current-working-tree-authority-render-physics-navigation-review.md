@@ -5,7 +5,7 @@ report_id: Runtime172
 review_date: 2026-08-30
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_runtime/99zq-runtime-terrain-landscape-heightfield-clipmap-quadtree-lod-material-layer-virtual-texture-foliage-world-partition-physics-navigation-editor-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability.md
 related_code:
   - zircon_plugins/terrain/plugin.toml
   - zircon_plugins/terrain/runtime/src/plugin.rs

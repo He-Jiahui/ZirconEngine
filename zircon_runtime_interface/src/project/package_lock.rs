@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, str::FromStr};
+use std::collections::BTreeSet;
 
 use super::{ProjectGuid, ProjectManifestDigest};
 

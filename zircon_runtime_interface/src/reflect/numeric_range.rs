@@ -13,6 +13,16 @@ pub struct ReflectNumericRange {
 }
 
 impl ReflectNumericRange {
+    /// 创建数值编辑约束，并拒绝无法形成有效区间的边界和步长。
+    ///
+    /// # 参数
+    /// `min`、`max` 和 `step` 为可选的有限数值；`precision` 原样保存为编辑提示。
+    ///
+    /// # 返回值
+    /// 校验通过时返回约束值。
+    ///
+    /// # 错误
+    /// 边界或步长非有限、上下界倒置、或步长非正时返回对应错误。字段值类型与约束兼容性由运行时注册校验。
     pub fn new(
         min: Option<f32>,
         max: Option<f32>,
@@ -44,18 +54,22 @@ impl ReflectNumericRange {
         })
     }
 
+    /// 返回可选的最小值；不存在下界时返回 `None`。
     pub const fn min(&self) -> Option<f32> {
         self.min
     }
 
+    /// 返回可选的最大值；不存在上界时返回 `None`。
     pub const fn max(&self) -> Option<f32> {
         self.max
     }
 
+    /// 返回可选的编辑步长；构造后若存在则为有限正数。
     pub const fn step(&self) -> Option<f32> {
         self.step
     }
 
+    /// 返回可选的小数精度提示；此类型不对该提示应用额外范围校验。
     pub const fn precision(&self) -> Option<u8> {
         self.precision
     }
@@ -74,6 +88,7 @@ impl<'de> Deserialize<'de> for ReflectNumericRange {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+// 线格式仅用于反序列化，随后必须经 `ReflectNumericRange::new` 执行同一组约束检查。
 struct ReflectNumericRangeWire {
     min: Option<f32>,
     max: Option<f32>,
@@ -82,11 +97,17 @@ struct ReflectNumericRangeWire {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+/// 构造数值编辑约束时遇到的具体无效条件。
 pub enum ReflectNumericRangeError {
+    /// 最小值不是有限数。
     NonFiniteMin,
+    /// 最大值不是有限数。
     NonFiniteMax,
+    /// 步长不是有限数。
     NonFiniteStep,
+    /// 最小值大于最大值；变体保留冲突的两个边界。
     Inverted { min: f32, max: f32 },
+    /// 步长为零或负数；变体保留实际步长。
     NonPositiveStep { step: f32 },
 }
 

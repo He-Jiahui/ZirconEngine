@@ -1,5 +1,6 @@
 use super::*;
 
+/// 按参数组装测试代数三元组，具体有效性由被测编解码器判断。
 fn context(
     window_generation: u64,
     focus_generation: u64,
@@ -12,6 +13,7 @@ fn context(
     }
 }
 
+/// 提供多字节 UTF-8 预编辑文本及对应的有效游标和样式范围。
 fn preedit() -> ZrRuntimeImeCompositionV2 {
     ZrRuntimeImeCompositionV2 {
         operation: ZrRuntimeImeCompositionOperationV2::Preedit,
@@ -34,6 +36,7 @@ fn preedit() -> ZrRuntimeImeCompositionV2 {
 }
 
 #[test]
+/// 覆盖有效多字节文本的编码、解码及代数保持。
 fn v2_round_trip_preserves_utf8_clause_boundaries_and_context_generations() {
     let original = preedit();
     let payload = original.encode().expect("encode bounded preedit");
@@ -41,6 +44,7 @@ fn v2_round_trip_preserves_utf8_clause_boundaries_and_context_generations() {
 }
 
 #[test]
+/// 覆盖字符内部字节端点的语义拒绝路径。
 fn v2_rejects_clause_boundaries_inside_a_multibyte_scalar() {
     let mut malformed = preedit();
     malformed.clauses[1].range.start_byte = 2;
@@ -53,6 +57,7 @@ fn v2_rejects_clause_boundaries_inside_a_multibyte_scalar() {
 }
 
 #[test]
+/// 覆盖短一字节、未知分段/可用性标签和非零保留字段的解码错误。
 fn v2_rejects_truncated_payloads_unknown_kinds_and_nonzero_reserved_fields() {
     let payload = preedit().encode().expect("valid payload");
     assert_eq!(
@@ -83,6 +88,7 @@ fn v2_rejects_truncated_payloads_unknown_kinds_and_nonzero_reserved_fields() {
 }
 
 #[test]
+/// 覆盖取消载荷携带文本时的操作字段组合错误。
 fn v2_cancel_payload_cannot_carry_text_cursor_or_clause_data() {
     let malformed = ZrRuntimeImeCompositionV2 {
         operation: ZrRuntimeImeCompositionOperationV2::Cancel,

@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/watch_diagnostics.rs
 base_reports:
   - docs/plans/performance/01/2026-08-15-runtime-asset-project-registry-pipeline-current-architecture-review.md
-  - docs/plans/optimize/zircon_runtime/88-runtime-asset-watch-change-ingress-coalescing-rename-overflow-targeted-reimport-generation-reload-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/88-runtime-asset-watch-change-ingress-coalescing-rename-overflow-targeted-reimport-generation-reload.md
 owner_plans:
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md

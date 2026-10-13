@@ -2,6 +2,26 @@ use crate::core::framework::project::{ExportPackagingStrategy, ExportProfile};
 use crate::plugin::RuntimeProfileDescriptor;
 
 #[cfg(test)]
+#[test]
+fn export_profile_name_diagnostics_reject_filesystem_paths_and_devices() {
+    use crate::core::framework::platform::RuntimeTargetMode;
+    use crate::core::framework::project::{ExportTargetPlatform, RuntimeProfileId};
+
+    for name in ["../outside", "C:\\outside", "C:relative", "NUL", "COM1"] {
+        let profile = ExportProfile::new(
+            name,
+            RuntimeTargetMode::ClientRuntime,
+            ExportTargetPlatform::Windows,
+            RuntimeProfileId::Client2d,
+        );
+        assert!(
+            !export_profile_name_fatal_diagnostics(&profile).is_empty(),
+            "unsafe profile name should be fatal: {name:?}"
+        );
+    }
+}
+
+#[cfg(test)]
 #[path = "../profile_validate/tests/strategy_capacity.rs"]
 mod strategy_capacity_tests;
 
@@ -66,9 +86,9 @@ pub(super) fn export_profile_runtime_profile_id_fatal_diagnostics(
 }
 
 pub(super) fn export_profile_name_fatal_diagnostics(profile: &ExportProfile) -> Vec<String> {
-    if profile.name.trim().is_empty() || profile.name.trim() != profile.name {
+    if !zircon_runtime_interface::export::valid_export_profile_name(&profile.name) {
         vec![format!(
-            "export profile name {:?} must be non-empty and trimmed",
+            "export profile name {:?} must contain only ASCII letters, digits, '_' or '-'",
             profile.name
         )]
     } else {

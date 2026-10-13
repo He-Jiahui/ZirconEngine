@@ -1,3 +1,8 @@
+//! 冻结函数表、函数指针类型和表头检查的公共出口。
+//!
+//! [`validate_runtime_api_v8_shape`] 与 Host 表形状检查只处理版本和大小；
+//! 原始指针读取、提供方身份、必需槽与动态库有效期须在调用边界分别建立。
+
 #[path = "api_shape.rs"]
 mod api_shape;
 #[path = "api_table.rs"]

@@ -119,6 +119,95 @@ fn bidirectional_rpc_accepts_valid_client_and_server_calls() {
 }
 
 #[test]
+fn bidirectional_client_origin_requires_joined_source_session() {
+    let rpc = net_rpc_runtime_manager();
+    rpc.register_rpc_handler(
+        RpcDescriptor::new("chat.moderate", RpcDirection::Bidirectional),
+        |_| Ok(Vec::new()),
+    )
+    .unwrap();
+
+    let missing = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new("chat.moderate", RpcDirection::ClientToServer, Vec::new()),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(missing.status, RpcDispatchStatus::SessionUnavailable);
+
+    let pending = rpc.begin_handshake();
+    let unauthenticated = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new("chat.moderate", RpcDirection::ClientToServer, Vec::new())
+            .with_source_session(pending),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(
+        unauthenticated.status,
+        RpcDispatchStatus::SessionUnavailable
+    );
+}
+
+#[test]
+fn bidirectional_invocation_from_client_requires_joined_source_session() {
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+
+    let rpc = net_rpc_runtime_manager();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let handler_calls = Arc::clone(&calls);
+    rpc.register_rpc_handler(
+        RpcDescriptor::new("chat.moderate", RpcDirection::Bidirectional),
+        move |_| {
+            handler_calls.fetch_add(1, Ordering::SeqCst);
+            Ok(Vec::new())
+        },
+    )
+    .unwrap();
+
+    let missing = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new("chat.moderate", RpcDirection::Bidirectional, Vec::new()),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(missing.status, RpcDispatchStatus::SessionUnavailable);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+    let pending_session = rpc.begin_handshake();
+    let pending = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new("chat.moderate", RpcDirection::Bidirectional, Vec::new())
+            .with_source_session(pending_session),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(pending.status, RpcDispatchStatus::SessionUnavailable);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+    let closed_session = complete_joined_session(&rpc, "closed-bidirectional-player");
+    rpc.close_session(closed_session).unwrap();
+    let closed = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new("chat.moderate", RpcDirection::Bidirectional, Vec::new())
+            .with_source_session(closed_session),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(closed.status, RpcDispatchStatus::SessionUnavailable);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+    let joined_session = complete_joined_session(&rpc, "joined-bidirectional-player");
+    let joined = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new("chat.moderate", RpcDirection::Bidirectional, Vec::new())
+            .with_source_session(joined_session),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(joined.status, RpcDispatchStatus::Accepted);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+    let server = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new("chat.moderate", RpcDirection::Bidirectional, Vec::new()),
+        RpcPeerRole::Server,
+    );
+    assert_eq!(server.status, RpcDispatchStatus::Accepted);
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+}
+
+#[test]
 fn rpc_feature_manager_denies_client_rpc_until_source_session_joined() {
     let rpc = net_rpc_runtime_manager();
     rpc.register_rpc(RpcDescriptor::command("chat.send"))

@@ -1,5 +1,5 @@
 use super::super::{
-    callback_status, NativePluginCallbackStatusV3, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    NativePluginCallbackStatusV3, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, callback_status,
 };
 
 /// Why an SDK byte allocation could not be published to a native consumer.

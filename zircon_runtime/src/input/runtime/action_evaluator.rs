@@ -20,6 +20,9 @@ mod workspace;
 #[cfg(test)]
 #[path = "tests/button_state_single_pass.rs"]
 mod button_state_single_pass_tests;
+#[cfg(test)]
+#[path = "tests/empty_binding.rs"]
+mod empty_binding_tests;
 
 use consumed_input_index::ConsumedInputIndex;
 use frame_axis_index::FrameAxisIndex;
@@ -317,6 +320,9 @@ fn evaluate_with_workspace(
             #[cfg(test)]
             metrics.record_binding_visit();
             let binding = &action_map.bindings[binding_index];
+            if binding.is_empty() {
+                continue;
+            }
             if binding.buttons.iter().any(|button| {
                 workspace
                     .consumed_inputs()
@@ -325,7 +331,6 @@ fn evaluate_with_workspace(
                 continue;
             }
 
-            // BUG: [CR-INPUT-0001] 直接反序列化或构造的空按钮空轴绑定会因 all_pressed 初值为 true 而使动作常按住；证据：InputActionMap 公共 bindings 字段可绕过 bind 的空绑定过滤。
             let has_buttons = !binding.buttons.is_empty();
             let has_axes = !binding.axes.is_empty();
             let mut all_pressed = true;

@@ -1,0 +1,610 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "agent": "world_sync_review",
+  "batchId": "world_sync_review-001",
+  "checkout": "E:\\Git\\ZirconEngine",
+  "reviewState": "awaiting-independent-review",
+  "reviewedHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/world_sync/mod.rs",
+      "language": "rust",
+      "initialSha256": "8daa917c293591411fb0258421332c6d6698a042ea85627d08a94951dd0d5d3e",
+      "beforeSha256": "8daa917c293591411fb0258421332c6d6698a042ea85627d08a94951dd0d5d3e",
+      "afterSha256": "22694224ff54afb51a1c8feb4cebcf9d39f08dffde4442d2bc35eaf42b1412c4",
+      "reviewedSha256": "22694224ff54afb51a1c8feb4cebcf9d39f08dffde4442d2bc35eaf42b1412c4",
+      "state": "awaiting-independent-review",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "callerEvidence": [
+        "zircon_runtime_interface/src/lib.rs exports `pub mod world_sync`.",
+        "Runtime query producer: zircon_runtime/src/scene/inspection/snapshot.rs; watch/fact producer: zircon_runtime/src/scene/inspection/subscription.rs.",
+        "Dynamic session and FFI consumers: zircon_runtime/src/dynamic_api/session/world_sync.rs and ffi.rs::query_world. Editor consumer: zircon_editor/src/core/gateway/contract.rs and session pump.",
+        "Assigned contract: zircon_runtime_interface/src/tests/world_sync_contracts.rs."
+      ],
+      "objectEvidence": [
+        {
+          "symbol": "world_sync module docs; mod invalidation; mod lifecycle_target_change; mod query; mod watch; re-exports AssetReloadFrameApplyReportDto, InvalidationBatch, WorldFact, LifecycleTargetChange, ComponentSelector, QueryFilter, ComponentWorldQuery, WorldHierarchyQuery, WorldInspectionFieldsQuery, WorldTransformSnapshotQuery, WorldQuery, EntityRow, WorldHierarchyRow, WorldInspectionFieldRow, WorldQueryResult, WatchKey, WatchRegistration, WatchToken",
+          "kind": "module boundary and exports",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/mod.rs::world_sync module docs; private module declarations invalidation, lifecycle_target_change, query, watch; and the listed public re-exports. The four child modules define and re-export portable query DTOs/results, watch types, invalidation facts, and lifecycle event through the interface crate.",
+          "calls": "Runtime dynamic session/FFI and Editor gateway exchange these DTOs; Runtime scene inspection and subscription systems produce their values.",
+          "implementations": "No local trait or generated implementations; child modules define DTOs and their serde derives.",
+          "macroOrRegistrationOrFfi": "Crate root exports the module; serde derives define wire representations on child declarations.",
+          "testsOrContract": "world_sync_contracts.rs round-trips wire values and checks stable tags/module boundary.",
+          "blockEntryAndStateAndEffect": "Module entry exposes wire types only; active world, session, and subscription state remain in Runtime owners.",
+          "commentDecision": "Added Chinese module documentation describing responsibilities, boundary, type families, and concrete producer/consumer paths.",
+          "constraintsAndLifecycle": "Requests/results are serialized snapshots; live world/watch lifetimes belong to Runtime sessions."
+        }
+      ],
+      "validation": [
+        "Initial hash matched assigned coverage before edit.",
+        "Final source SHA-256: 22694224ff54afb51a1c8feb4cebcf9d39f08dffde4442d2bc35eaf42b1412c4.",
+        "Only module documentation was added.",
+        "No forbidden marker occurs in this source-text-guarded file."
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/world_sync/query.rs",
+      "language": "rust",
+      "initialSha256": "323c754a6fc5e6f3a053a12ceca6e225c850fe3e1b855bb6df5a7252a4794ba5",
+      "beforeSha256": "323c754a6fc5e6f3a053a12ceca6e225c850fe3e1b855bb6df5a7252a4794ba5",
+      "afterSha256": "c78cc9c8542e4ee9fa291ff90594e9566fa3ee67981845c63c75749c998f3ffc",
+      "reviewedSha256": "c78cc9c8542e4ee9fa291ff90594e9566fa3ee67981845c63c75749c998f3ffc",
+      "state": "awaiting-independent-review",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "callerEvidence": [
+        "zircon_runtime/src/scene/inspection/snapshot.rs::World::query_world dispatches each query kind and creates its result DTO.",
+        "zircon_runtime/src/dynamic_api/session/ffi.rs::query_world passes WorldQuery::request_item_count as a function item to bounded_json::decode::<WorldQuery> (lines 779-784). bounded_json.rs lines 65-71 invokes the callback after typed deserialization, compares with max_items, and returns Items when excessive; ffi.rs lines 787-792 maps decode errors via invalid_or_limit_payload.",
+        "zircon_runtime/src/dynamic_api/bounded_json/tests/cases.rs::decode_applies_the_item_limit_to_business_items_not_json_nodes (lines 103-118) covers decoder business-item callback behavior.",
+        "Editor gateway contract and implementations pass query/result DTOs across the boundary; assigned contract tests cover wire and generation behavior."
+      ],
+      "objectEvidence": [
+        {
+          "symbol": "query module docs; EntityId",
+          "kind": "module and public alias",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::query module docs; EntityId. Defines portable query request/result DTOs and aliases the stable entity identifier to u64.",
+          "calls": "Used by Runtime snapshot production, dynamic session/FFI, Editor gateway, and assigned contracts.",
+          "implementations": "EntityId is an alias; no generated implementation.",
+          "macroOrRegistrationOrFfi": "Serde derives on DTOs encode wire values; query_world FFI decodes WorldQuery.",
+          "testsOrContract": "Assigned contracts assert query forms, result forms, and module boundary.",
+          "blockEntryAndStateAndEffect": "The module defines filters, query kinds, results, and rows but performs no world access.",
+          "commentDecision": "Added Chinese module overview and alias semantics.",
+          "constraintsAndLifecycle": "EntityId is wire identity; current-world presence is resolved by Runtime."
+        },
+        {
+          "symbol": "ComponentSelector; ComponentSelector::type_name; ComponentSelector::new",
+          "kind": "selector DTO, field, constructor",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::ComponentSelector; ComponentSelector::type_name; ComponentSelector::new. Owns the reflected component type path; constructor accepts Into<String>.",
+          "calls": "Built by query producers/tests and consumed by Runtime selection logic.",
+          "implementations": "Constructor converts and stores the path; serde derives encode the DTO.",
+          "macroOrRegistrationOrFfi": "No custom registration or generated implementation.",
+          "testsOrContract": "world_query_contract_round_trips_filters_selectors_and_generation_hint.",
+          "blockEntryAndStateAndEffect": "Input converts to owned String used later to select reflected component values.",
+          "commentDecision": "Documented selector and constructor input/ownership.",
+          "constraintsAndLifecycle": "Name must identify a component path meaningful to Runtime reflection/query code."
+        },
+        {
+          "symbol": "QueryFilter; QueryFilter::with; QueryFilter::without",
+          "kind": "filter DTO and fields",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::QueryFilter; QueryFilter::with; QueryFilter::without. Lists required and excluded component type paths.",
+          "calls": "ComponentWorldQuery carries it; Runtime query checks both lists.",
+          "implementations": "Default supplies empty vectors; fields are owned strings.",
+          "macroOrRegistrationOrFfi": "Serde derive only.",
+          "testsOrContract": "Assigned component query round-trip contract.",
+          "blockEntryAndStateAndEffect": "Required/excluded lists guide entity filtering in Runtime.",
+          "commentDecision": "Documented positive and exclusion semantics.",
+          "constraintsAndLifecycle": "Type path interpretation belongs to Runtime component query."
+        },
+        {
+          "symbol": "ComponentWorldQuery; filter; select; generation_hint",
+          "kind": "request DTO and fields",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::ComponentWorldQuery; filter; select; generation_hint. Combines filter, selected component fields, and optional caller-known generation.",
+          "calls": "WorldQuery::Components contains it; World::query_world consumes it.",
+          "implementations": "Serde DTO with defaultable filter/select and optional generation.",
+          "macroOrRegistrationOrFfi": "Serde derive; outer WorldQuery is FFI-decoded.",
+          "testsOrContract": "Wire round-trip and matching-generation tests.",
+          "blockEntryAndStateAndEffect": "Runtime filters and reads selections; matching nonsaturated generation may produce NotModified.",
+          "commentDecision": "Documented the DTO and each field, including cache-hint role.",
+          "constraintsAndLifecycle": "Hint is not authoritative; Runtime compares it with current state."
+        },
+        {
+          "symbol": "WorldHierarchyQuery; generation_hint",
+          "kind": "request DTO and field",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldHierarchyQuery; generation_hint. Carries optional cached hierarchy generation.",
+          "calls": "Built by WorldQuery::hierarchy and sent to Runtime hierarchy snapshot producer.",
+          "implementations": "Serde DTO.",
+          "macroOrRegistrationOrFfi": "Serde derive; nested decode via WorldQuery.",
+          "testsOrContract": "hierarchy_query_round_trips_generation_bearing_runtime_rows.",
+          "blockEntryAndStateAndEffect": "Runtime compares hint when choosing full versus unchanged hierarchy result.",
+          "commentDecision": "Documented cache-hint comparison role.",
+          "constraintsAndLifecycle": "Hint carries no hierarchy data and cannot override Runtime generation."
+        },
+        {
+          "symbol": "WorldInspectionFieldsQuery; entity; generation_hint",
+          "kind": "request DTO and fields",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldInspectionFieldsQuery; entity; generation_hint. Targets one entity for reflected fields and optionally carries cached generation.",
+          "calls": "Built by WorldQuery::inspection_fields and consumed by Runtime inspection snapshot code.",
+          "implementations": "Serde DTO; requested entity may be absent.",
+          "macroOrRegistrationOrFfi": "Serde derive; nested FFI decode.",
+          "testsOrContract": "focused_inspector_query_round_trips_fields_and_missing_entity_state.",
+          "blockEntryAndStateAndEffect": "Runtime resolves target and returns field rows or missing-target state.",
+          "commentDecision": "Documented target and hint semantics.",
+          "constraintsAndLifecycle": "Does not promise target presence."
+        },
+        {
+          "symbol": "WorldTransformSnapshotQuery; entity",
+          "kind": "request DTO and field",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldTransformSnapshotQuery; entity. Identifies the target entity for a transform snapshot.",
+          "calls": "Built by WorldQuery::transform_snapshot and consumed by Runtime snapshot production.",
+          "implementations": "Serde DTO.",
+          "macroOrRegistrationOrFfi": "Serde derive; no custom registration.",
+          "testsOrContract": "transform_snapshot_query_carries_world_replacement_identity.",
+          "blockEntryAndStateAndEffect": "Runtime resolves target and packages transform data with replacement identity.",
+          "commentDecision": "Documented target and returned world identity context.",
+          "constraintsAndLifecycle": "Entity presence is checked at query time; replacement identity distinguishes worlds."
+        },
+        {
+          "symbol": "WorldQuery; Components(ComponentWorldQuery); Hierarchy(WorldHierarchyQuery); InspectionFields(WorldInspectionFieldsQuery); TransformSnapshot(WorldTransformSnapshotQuery)",
+          "kind": "tagged request enum and variants",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldQuery; Components(ComponentWorldQuery); Hierarchy(WorldHierarchyQuery); InspectionFields(WorldInspectionFieldsQuery); TransformSnapshot(WorldTransformSnapshotQuery). Selects component, hierarchy, focused-inspection, or transform snapshot request with the matching payload DTO.",
+          "calls": "FFI query_world decodes it; dynamic session passes it to World::query_world for dispatch.",
+          "implementations": "Serde tagged enum; variants contain their matching request DTO.",
+          "macroOrRegistrationOrFfi": "Serde derive defines tagged wire format; no custom generated arms.",
+          "testsOrContract": "Assigned contracts cover all four request/result families.",
+          "blockEntryAndStateAndEffect": "Runtime match arm selects query implementation; transform request has no generation hint.",
+          "commentDecision": "Documented enum and every variant payload/dispatch role.",
+          "constraintsAndLifecycle": "Request contains no live world state; result facts come from Runtime."
+        },
+        {
+          "symbol": "WorldQuery::default; WorldQuery::hierarchy; WorldQuery::inspection_fields; WorldQuery::transform_snapshot",
+          "kind": "default and constructors",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldQuery::default; WorldQuery::hierarchy; WorldQuery::inspection_fields; WorldQuery::transform_snapshot. Default produces empty Components; named constructors create the three other request kinds.",
+          "calls": "Used by callers/tests before serialization and Runtime dispatch.",
+          "implementations": "WorldQuery::default is the explicit Default trait implementation and produces empty Components; the three named inherent constructors create the other request variants.",
+          "macroOrRegistrationOrFfi": "No macro or registration.",
+          "testsOrContract": "Assigned tests construct these request shapes.",
+          "blockEntryAndStateAndEffect": "Selects owned variant and stores arguments for subsequent dispatch.",
+          "commentDecision": "Documented constructor inputs and outputs.",
+          "constraintsAndLifecycle": "Constructors do not query or guarantee world entity presence."
+        },
+        {
+          "symbol": "WorldQuery::generation_hint; WorldQuery::with_generation_hint",
+          "kind": "accessor and builder",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldQuery::generation_hint; WorldQuery::with_generation_hint. Reads/writes optional hint for three cacheable kinds; transform snapshot returns None and ignores builder input.",
+          "calls": "Used by query callers and Runtime short-circuit; matching/saturated behavior has contracts.",
+          "implementations": "Matches each enum variant; builder mutates and returns self.",
+          "macroOrRegistrationOrFfi": "Ordinary inherent methods.",
+          "testsOrContract": "matching-generation and saturated-generation tests.",
+          "blockEntryAndStateAndEffect": "Variant branch reads/updates hint; result feeds later Runtime comparison.",
+          "commentDecision": "Documented per-kind behavior and cache use.",
+          "constraintsAndLifecycle": "Hint relates to caller cache; Runtime owns authoritative generation."
+        },
+        {
+          "symbol": "WorldQuery::request_item_count",
+          "kind": "request-budget callback",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldQuery::request_item_count. Counts Components filter/select entries plus one fixed item; other variants count one, using saturating addition.",
+          "calls": "ffi.rs::query_world passes this function item to bounded_json::decode::<WorldQuery> at lines 779-784. decode invokes it after deserialization, compares max_items, and returns Items above limit; FFI maps errors via invalid_or_limit_payload at lines 787-792.",
+          "implementations": "Reads request vectors and returns usize only.",
+          "macroOrRegistrationOrFfi": "Direct FFI decoder callback; no generated registration.",
+          "testsOrContract": "Assigned query contracts cover wire requests; generic callback behavior is covered by bounded_json/tests/cases.rs::decode_applies_the_item_limit_to_business_items_not_json_nodes lines 103-118.",
+          "blockEntryAndStateAndEffect": "Components sum with, without, select, and one; decoder checks this business-item count before returning typed request.",
+          "commentDecision": "Kept existing Chinese count note and clarified proven callback, budget check, and FFI error mapping. No issue is established.",
+          "constraintsAndLifecycle": "Callback reads decoded request and does not count matching entities or output rows."
+        },
+        {
+          "symbol": "WorldQuery::component_result_for_generation; WorldQuery::hierarchy_result_for_generation; WorldQuery::inspection_fields_result_for_generation; WorldQuery::transform_snapshot_result",
+          "kind": "result constructors",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldQuery::component_result_for_generation; WorldQuery::hierarchy_result_for_generation; WorldQuery::inspection_fields_result_for_generation; WorldQuery::transform_snapshot_result. Package matching result families with authoritative generation/unchanged marker or replacement identity as applicable.",
+          "calls": "Called after Runtime snapshot/query reads.",
+          "implementations": "Construct matching WorldQueryResult variant and apply generation hint policy where supported.",
+          "macroOrRegistrationOrFfi": "Ordinary methods; serde derives encode results.",
+          "testsOrContract": "Assigned tests verify result variants, generation match, and saturation.",
+          "blockEntryAndStateAndEffect": "After query work, packages rows or unchanged marker for serialization.",
+          "commentDecision": "Documented arguments, result variants, and generation/replacement constraints.",
+          "constraintsAndLifecycle": "Generation describes the read snapshot; replacement identity tracks world lifecycle."
+        },
+        {
+          "symbol": "EntityRow; entity; components",
+          "kind": "result row and fields",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::EntityRow; entity; components. Represents one entity and selected JSON component values keyed by type path.",
+          "calls": "Produced by Runtime component query and consumed by Editor; order contract checks identity order.",
+          "implementations": "Serde row with BTreeMap component values.",
+          "macroOrRegistrationOrFfi": "Serde derive only.",
+          "testsOrContract": "entity_rows_are_canonicalized_by_stable_entity_identity.",
+          "blockEntryAndStateAndEffect": "Runtime emits matched rows; fields carry identity and requested component values.",
+          "commentDecision": "Documented row and both fields.",
+          "constraintsAndLifecycle": "Values are a snapshot of query read state."
+        },
+        {
+          "symbol": "WorldHierarchyRow; entity; parent; depth; display_name; kind; subtree_hash; active_in_hierarchy; has_children",
+          "kind": "hierarchy row and fields",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldHierarchyRow; entity; parent; depth; display_name; kind; subtree_hash; active_in_hierarchy; has_children. Carries identity, parent/depth, display metadata, subtree hash, active flag, and child-presence flag.",
+          "calls": "Built by Runtime hierarchy traversal and serialized to Editor.",
+          "implementations": "Serde row; hash and traversal values are supplied by snapshot producer.",
+          "macroOrRegistrationOrFfi": "Serde derive only.",
+          "testsOrContract": "hierarchy_query_round_trips_generation_bearing_runtime_rows.",
+          "blockEntryAndStateAndEffect": "Producer establishes traversal relationships and metadata; values form one hierarchy snapshot.",
+          "commentDecision": "Documented row and every field by its observed use.",
+          "constraintsAndLifecycle": "Hash semantics belong to Runtime producer; row is point-in-time."
+        },
+        {
+          "symbol": "WorldInspectionFieldRow; component_type_path; component_display_name; field_name; field_display_name; value_type_path; value; writable; serializable; plugin_owned",
+          "kind": "inspection row and fields",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldInspectionFieldRow; component_type_path; component_display_name; field_name; field_display_name; value_type_path; value; writable; serializable; plugin_owned. Carries reflected component/field identity, labels, type/value, and editing/serialization/ownership metadata.",
+          "calls": "Built from Runtime reflection metadata and consumed by Editor inspector gateway.",
+          "implementations": "Serde DTO with ReflectedValue and producer-supplied flags.",
+          "macroOrRegistrationOrFfi": "Serde derive; reflection registration is upstream in Runtime.",
+          "testsOrContract": "focused_inspector_query_round_trips_fields_and_missing_entity_state.",
+          "blockEntryAndStateAndEffect": "Runtime gathers rows for existing target and registered fields; metadata accompanies each value.",
+          "commentDecision": "Documented each field without promising edit success.",
+          "constraintsAndLifecycle": "Owned snapshot; flags reflect metadata and do not guarantee later mutation succeeds."
+        },
+        {
+          "symbol": "WorldQueryResult; ComponentRows { generation, rows }; HierarchyRows { generation, rows }; InspectionFields { generation, entity, fields }; TransformSnapshot { generation, world_replacement_epoch, entity, transform }; EntityMissing { generation, entity }; NotModified { generation }",
+          "kind": "tagged result enum, variants, and payload fields",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/query.rs::WorldQueryResult; ComponentRows { generation, rows }; HierarchyRows { generation, rows }; InspectionFields { generation, entity, fields }; TransformSnapshot { generation, world_replacement_epoch, entity, transform }; EntityMissing { generation, entity }; NotModified { generation }. Defines six result variants: component rows; hierarchy rows; inspection fields; transform snapshot; missing entity; unchanged generation. Each field is listed in the symbol group.",
+          "calls": "zircon_runtime/src/scene/inspection/snapshot.rs::World::query_world and its per-query helpers create these result forms; RuntimeDynamicSession::query_world returns them; FFI serializes the result; Editor gateway consumes them.",
+          "implementations": "Serde tagged enum; WorldQuery inherent result constructors produce applicable variants and canonicalize component rows.",
+          "macroOrRegistrationOrFfi": "Serde derive provides kind/data representation; dynamic FFI output encoder enforces output payload limit.",
+          "testsOrContract": "Assigned tests cover ComponentRows/NotModified generation behavior, HierarchyRows, InspectionFields/EntityMissing, TransformSnapshot, and wire round trips.",
+          "blockEntryAndStateAndEffect": "Runtime dispatch selects the result after current world reads; missing-target branches return EntityMissing; matching non-saturated hint may return NotModified; otherwise rows include the read generation.",
+          "commentDecision": "Evidence corrected to enumerate the actual six result variants and every payload field.",
+          "constraintsAndLifecycle": "NotModified requires a supported matching hint; TransformSnapshot includes both read generation and world_replacement_epoch."
+        }
+      ],
+      "validation": [
+        "Initial hash matched assigned coverage before edit; final hash recorded above.",
+        "Final source SHA-256: c78cc9c8542e4ee9fa291ff90594e9566fa3ee67981845c63c75749c998f3ffc.",
+        "Static source-text guard scan found no forbidden marker in query.rs.",
+        "No API, behavior, wire tag, or assertion changed."
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/world_sync/watch.rs",
+      "language": "rust",
+      "initialSha256": "7ca8be641c725b646ad1c7eb6614250769d663c67539afda6e465a6d911032cd",
+      "beforeSha256": "7ca8be641c725b646ad1c7eb6614250769d663c67539afda6e465a6d911032cd",
+      "afterSha256": "2eb74a0bfcabd148150bfd934a2a7fffcb913ac795db9e0c5333ccbf0dd78bec",
+      "reviewedSha256": "2eb74a0bfcabd148150bfd934a2a7fffcb913ac795db9e0c5333ccbf0dd78bec",
+      "state": "awaiting-independent-review",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "callerEvidence": [
+        "zircon_runtime/src/scene/inspection/subscription.rs::SubscriptionTable::watch/unwatch allocate and revoke tokens; insert_typed_index/remove_typed_index index WatchKey; record_fact and invalidate branches map actual keys to facts.",
+        "zircon_runtime/src/dynamic_api/session/world_sync.rs transports watch/unwatch calls. zircon_runtime_interface/src/tests/world_sync_contracts.rs::watch_contract_round_trips_every_typed_key_and_token tests the four actual key variants and token wire value."
+      ],
+      "objectEvidence": [
+        {
+          "symbol": "WatchKey; Subtree { root: EntityId }; ComponentType { type_name: String }; Asset { resource_id: ResourceId }; WorldStructure",
+          "kind": "typed subscription-key enum, variants, and payload fields",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/watch.rs::WatchKey; Subtree { root: EntityId }; ComponentType { type_name: String }; Asset { resource_id: ResourceId }; WorldStructure. Defines four keys: Subtree with root entity, ComponentType with reflected type path, Asset with resource identity, and WorldStructure without payload.",
+          "calls": "zircon_runtime/src/scene/inspection/subscription.rs::SubscriptionTable::insert_typed_index, remove_typed_index, record_fact, and invalidate matching branches use these variants.",
+          "implementations": "Serde tagged enum; concrete runtime matching and indexing are implemented by SubscriptionTable.",
+          "macroOrRegistrationOrFfi": "Serde derives define kind/data tags; Runtime watch registration inserts each key into typed indexes.",
+          "testsOrContract": "zircon_runtime_interface/src/tests/world_sync_contracts.rs::watch_contract_round_trips_every_typed_key_and_token constructs and round-trips exactly Subtree, ComponentType, Asset, and WorldStructure.",
+          "blockEntryAndStateAndEffect": "The variant selects the watch index and fact matching rule; Subtree carries root, ComponentType carries type_name, Asset carries resource_id; WorldStructure carries no fields.",
+          "commentDecision": "Documented the actual four variants and their fields; no Editor view identity is part of this DTO.",
+          "constraintsAndLifecycle": "Keys express a registration target; active token ownership and invalidation lifetime are held by the Runtime session subscription table."
+        },
+        {
+          "symbol": "WatchRegistration; key; WatchRegistration::new",
+          "kind": "registration DTO, field, constructor",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/watch.rs::WatchRegistration; key; WatchRegistration::new. Packages one WatchKey; constructor stores the supplied key.",
+          "calls": "Caller creates request; session transports it; Runtime creates active subscription state.",
+          "implementations": "Serde DTO and ordinary constructor.",
+          "macroOrRegistrationOrFfi": "No generated code; Runtime registration logic owns activation.",
+          "testsOrContract": "watch_contract_round_trips_every_typed_key_and_token.",
+          "blockEntryAndStateAndEffect": "Constructor creates inert request value; Runtime later allocates session-scoped registration.",
+          "commentDecision": "Documented request role, field, and activation point.",
+          "constraintsAndLifecycle": "DTO lifetime is independent; active registration ends with unwatch/session lifecycle."
+        },
+        {
+          "symbol": "WatchToken; WatchToken.0 (u64); WatchToken::new; WatchToken::value; WatchToken::is_valid",
+          "kind": "opaque token and accessors",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/watch.rs::WatchToken; WatchToken.0 (private u64 tuple field); WatchToken::new; WatchToken::value; WatchToken::is_valid. Wraps the numeric identity; exposes construction, raw value, and nonzero validity predicate.",
+          "calls": "Runtime allocator creates it; batch emits it; Editor retains it for unwatch.",
+          "implementations": "Const methods; is_valid checks nonzero only.",
+          "macroOrRegistrationOrFfi": "Serde representation is derived; no custom FFI conversion here.",
+          "testsOrContract": "watch round-trip and canonical token order contracts.",
+          "blockEntryAndStateAndEffect": "Allocator supplies identity; accessors expose it; validity does not consult session state.",
+          "commentDecision": "Documented methods and distinguished numeric validity from active registration.",
+          "constraintsAndLifecycle": "Active status belongs to Runtime session registration and can end independently of nonzero value."
+        }
+      ],
+      "validation": [
+        "Initial hash matched; final hash recorded above.",
+        "Final source SHA-256: 2eb74a0bfcabd148150bfd934a2a7fffcb913ac795db9e0c5333ccbf0dd78bec.",
+        "No forbidden marker occurs in guarded source."
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/world_sync/invalidation.rs",
+      "language": "rust",
+      "initialSha256": "0fd70152fd30a3a5671f0b61512b95d5cbd808cfa520c2c2fc3f8907e9b11fb4",
+      "beforeSha256": "0fd70152fd30a3a5671f0b61512b95d5cbd808cfa520c2c2fc3f8907e9b11fb4",
+      "afterSha256": "1fba81194fea08128c198b81200ae9cc93a82319518406623f28910568764510",
+      "reviewedSha256": "1fba81194fea08128c198b81200ae9cc93a82319518406623f28910568764510",
+      "state": "awaiting-independent-review",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "callerEvidence": [
+        "zircon_runtime/src/scene/inspection/subscription.rs::SubscriptionTable::record_fact matches facts to watches; flush(generation) produces an InvalidationBatch with that generation and ordered dirty tokens.",
+        "zircon_runtime/src/dynamic_api/session/world_sync.rs::prepare_world_invalidation_output drains batches and builds bounded pages; commit_world_invalidation_page removes delivered items from original batches after commit; rollback_world_invalidation_output keeps them for retry.",
+        "zircon_runtime/src/dynamic_api/session/ffi.rs encodes/allocates output, then selects session commit or rollback. Editor pump reads each batch generation, dirty tokens, and facts."
+      ],
+      "objectEvidence": [
+        {
+          "symbol": "AssetReloadFrameApplyReportDto; applied; failed; stale; pending_count",
+          "kind": "report DTO and fields",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/invalidation.rs::AssetReloadFrameApplyReportDto; applied; failed; stale; pending_count. Reports applied, failed, stale-not-applied, and pending resource counts for a reload frame.",
+          "calls": "Populated by Runtime asset reload application paths and transported as frame status.",
+          "implementations": "Serde DTO; applying subsystem supplies counters.",
+          "macroOrRegistrationOrFfi": "Serde derive only.",
+          "testsOrContract": "No direct construction in assigned world-sync tests; producer/consumer tracing recorded above.",
+          "blockEntryAndStateAndEffect": "After frame application, counters summarize outcomes and remaining pending work.",
+          "commentDecision": "Documented DTO and each counter using observed semantics.",
+          "constraintsAndLifecycle": "Report describes one application and does not apply or retry work."
+        },
+        {
+          "symbol": "WorldFact; Spawned(EntityId); Despawned(EntityId); Reparented { entity, new_parent }; SceneLoaded { scene }; SceneUnloaded { scene }; WorldReplaced { replacement_epoch }; AssetReloadApplied(AssetReloadFrameApplyReportDto { applied, failed, stale, pending_count })",
+          "kind": "world fact enum, variants, and variant payload fields",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/invalidation.rs::WorldFact; Spawned(EntityId); Despawned(EntityId); Reparented { entity, new_parent }; SceneLoaded { scene }; SceneUnloaded { scene }; WorldReplaced { replacement_epoch }; AssetReloadApplied(AssetReloadFrameApplyReportDto { applied, failed, stale, pending_count }). Defines the seven wire facts and exact payloads: entity identity for Spawned/Despawned; entity/new_parent for Reparented; ResourceId scene for SceneLoaded/SceneUnloaded; replacement_epoch for WorldReplaced; report DTO for AssetReloadApplied.",
+          "calls": "zircon_runtime/src/scene/inspection/subscription.rs::SubscriptionTable::record_fact and enqueue_fact classify/queue facts; merge_fact handles coalescible pending facts. The assigned contract test serializes all seven variants.",
+          "implementations": "Serde tagged enum. AssetReloadFrameApplyReportDto is the nested report type; Runtime supplies the fact and fields.",
+          "macroOrRegistrationOrFfi": "Serde derives define the kind/data wire form; no generated variant implementation.",
+          "testsOrContract": "zircon_runtime_interface/src/tests/world_sync_contracts.rs::invalidation_batch_round_trip_preserves_generation_tokens_and_facts constructs all seven variants and round-trips them; static tag guard checks asset_reload_applied and world_replaced. Runtime subscription tests cover fact matching/coalescing.",
+          "blockEntryAndStateAndEffect": "SubscriptionTable::record_fact receives Runtime scene/lifecycle fact; fact matching invalidates selected watch classes, then enqueue/flush places facts into generation-bearing batches.",
+          "commentDecision": "Documented only the actual variants/payloads and their observed producer role.",
+          "constraintsAndLifecycle": "Fact payload is owned serializable data; replacement_epoch is distinct from InvalidationBatch.generation."
+        },
+        {
+          "symbol": "InvalidationBatch; generation; dirty; facts; InvalidationBatch::has_canonical_dirty_tokens",
+          "kind": "invalidation batch DTO, fields, and canonical-order predicate",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/invalidation.rs::InvalidationBatch; generation; dirty; facts; InvalidationBatch::has_canonical_dirty_tokens. DTO fields are generation: u64, dirty: Vec<WatchToken>, facts: Vec<WorldFact>; the predicate returns whether every adjacent dirty pair is strictly increasing.",
+          "calls": "zircon_runtime/src/scene/inspection/subscription.rs::SubscriptionTable::flush creates a batch at a supplied generation. zircon_runtime/src/dynamic_api/session/world_sync.rs::prepare_world_invalidation_output drains Vec<InvalidationBatch>, retains each batch generation while building bounded pages, and commit_world_invalidation_page removes delivered suffix items only after output commit; rollback retains in-flight page for retry.",
+          "implementations": "Serde DTO and inherent has_canonical_dirty_tokens using dirty.windows(2).all(|pair| pair[0] < pair[1]).",
+          "macroOrRegistrationOrFfi": "Serde derives encode the public batch; session uses a borrowed serializer and FFI output allocation commit/rollback paths.",
+          "testsOrContract": "invalidation_batch_round_trip_preserves_generation_tokens_and_facts round-trips the fields; canonical_dirty_tokens_require_strictly_increasing_runtime_tokens checks increasing, duplicate, and descending lists.",
+          "blockEntryAndStateAndEffect": "flush attaches one generation to its batch; session preserves the batch vector and generations across output pages, may split one batch’s dirty/facts across page boundaries, and removes only committed delivered items. It does not merge adjacent generations.",
+          "commentDecision": "Corrected the comment to describe generation-preserving paging, partial batch delivery, and commit timing; removed unsupported cross-generation merge/dedup wording.",
+          "constraintsAndLifecycle": "Rollback clears in-flight state without consuming pending items; commit consumes only the delivered prefix and leaves remainder queued."
+        }
+      ],
+      "validation": [
+        "Initial hash matched; final hash recorded above.",
+        "Final source SHA-256: 1fba81194fea08128c198b81200ae9cc93a82319518406623f28910568764510.",
+        "No forbidden marker occurs in guarded source."
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/world_sync/lifecycle_target_change.rs",
+      "language": "rust",
+      "initialSha256": "30b2c5da9baea6d12b94b8e41deb404049ae87b1751113a59a3230a5a91e327b",
+      "beforeSha256": "30b2c5da9baea6d12b94b8e41deb404049ae87b1751113a59a3230a5a91e327b",
+      "afterSha256": "d6ba193606b958a6d885de54d52e9629d9cc7b8f259cf18e9431d7ca047b424c",
+      "reviewedSha256": "d6ba193606b958a6d885de54d52e9629d9cc7b8f259cf18e9431d7ca047b424c",
+      "state": "awaiting-independent-review",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "callerEvidence": [
+        "zircon_runtime/src/scene/ecs/schedule_execution.rs::ScheduleExecution::target_change returns World when world owner identity changes and Schedule when the captured stage plan is no longer owned.",
+        "zircon_runtime/src/scene/world/error.rs and scene/dynamic/error.rs propagate lifecycle cause; zircon_runtime_interface/src/reflect/error.rs carries the typed cause.",
+        "Runtime owner-replacement tests and zircon_editor/src/tests/editing/node_ops/gateway_recovery.rs exercise cancellation behavior for both variants."
+      ],
+      "objectEvidence": [
+        {
+          "symbol": "LifecycleTargetChange; World; Schedule; fmt::Display for LifecycleTargetChange; Display::fmt",
+          "kind": "lifecycle cancellation enum, variants, and formatter",
+          "definition": "Defined at zircon_runtime_interface/src/world_sync/lifecycle_target_change.rs::LifecycleTargetChange; World; Schedule; fmt::Display for LifecycleTargetChange; Display::fmt. Defines World and Schedule causes and formats each as the matching literal name.",
+          "calls": "zircon_runtime/src/scene/ecs/schedule_execution.rs::ScheduleExecution::target_change distinguishes replaced world owner from replaced stage plan. zircon_runtime/src/scene/world/error.rs::SceneError::lifecycle_target_change and scene/dynamic/error.rs::DynamicSceneError::lifecycle_target_change propagate the typed reason; zircon_runtime_interface/src/reflect/error.rs carries it in ReflectError.",
+          "implementations": "World and Schedule have no payload. Display::fmt writes exactly World or Schedule; it performs no state change.",
+          "macroOrRegistrationOrFfi": "Serde derive with snake_case wire names; no FFI or dynamic registration in this file.",
+          "testsOrContract": "Cross-repository cancellation coverage includes zircon_runtime/src/scene/ecs/schedule_runner/tests/owner_replacement.rs and zircon_editor/src/tests/editing/node_ops/gateway_recovery.rs; assigned world_sync_contracts.rs has no direct lifecycle-target test.",
+          "blockEntryAndStateAndEffect": "Schedule execution checks owner identity first, then stage-plan ownership; it returns World or Schedule cause, which error wrappers preserve for callers. Display writes the selected name for diagnostics.",
+          "commentDecision": "Preserved the original module line exactly and added Chinese context for the two actual variants and formatter.",
+          "constraintsAndLifecycle": "This cause identifies which logical target changed; it carries no target handle or authority."
+        }
+      ],
+      "validation": [
+        "Initial hash matched; final hash recorded above.",
+        "Final source SHA-256: d6ba193606b958a6d885de54d52e9629d9cc7b8f259cf18e9431d7ca047b424c.",
+        "No forbidden marker occurs in guarded source."
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/world_sync_contracts.rs",
+      "language": "rust",
+      "initialSha256": "03ff834bc8704dd5483e54f6ca68066bbd40a82f63c90a40f6995f8bd1ff38a1",
+      "beforeSha256": "03ff834bc8704dd5483e54f6ca68066bbd40a82f63c90a40f6995f8bd1ff38a1",
+      "afterSha256": "7d9655c02c8ebdcb98d2d8e645be0b52234dc43673f3261122a48ea9e337b0f2",
+      "reviewedSha256": "7d9655c02c8ebdcb98d2d8e645be0b52234dc43673f3261122a48ea9e337b0f2",
+      "state": "awaiting-independent-review",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "callerEvidence": [
+        "Tests exercise public interface DTOs without Runtime/Editor internals.",
+        "world_sync_wire_tags_and_module_boundary_are_stable uses include_str! on query/watch/invalidation and crate-root source; comments are scanned against its forbidden markers.",
+        "Only module/helper comments changed; no test body, assertion, literal, or name changed."
+      ],
+      "objectEvidence": [
+        {
+          "symbol": "world_sync_contracts module docs; json_round_trip<T>",
+          "kind": "test module and helper",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::world_sync_contracts module docs; json_round_trip<T>. Module checks public JSON contracts; helper serializes and deserializes an owned DTO.",
+          "calls": "Round-trip tests use helper; final source guard reads assigned Rust source text.",
+          "implementations": "Generic over Serialize and DeserializeOwned.",
+          "macroOrRegistrationOrFfi": "Ordinary test attributes; include_str! is used by static boundary test.",
+          "testsOrContract": "Shared setup for following 12 tests.",
+          "blockEntryAndStateAndEffect": "Receives DTO reference, serializes/decodes, returns owned value without mutating input.",
+          "commentDecision": "Added Chinese module/helper documentation; helper usage and limits described.",
+          "constraintsAndLifecycle": "These contracts verify interface serialization, not Runtime world behavior."
+        },
+        {
+          "symbol": "world_query_contract_round_trips_filters_selectors_and_generation_hint",
+          "kind": "wire test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::world_query_contract_round_trips_filters_selectors_and_generation_hint. Checks component filter, selector, and generation hint survive JSON round-trip.",
+          "calls": "Uses json_round_trip on component request.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test.",
+          "testsOrContract": "Protects request wire values.",
+          "blockEntryAndStateAndEffect": "Construct, encode/decode, compare fields.",
+          "commentDecision": "Existing name/assertions sufficient; reviewed without extra comment.",
+          "constraintsAndLifecycle": "Wire preservation only."
+        },
+        {
+          "symbol": "world_query_returns_not_modified_only_for_a_matching_generation_hint",
+          "kind": "generation test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::world_query_returns_not_modified_only_for_a_matching_generation_hint. Checks matching hint selects NotModified and mismatching hint selects full result.",
+          "calls": "Uses query result constructor.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test.",
+          "testsOrContract": "Asserts generation match contract.",
+          "blockEntryAndStateAndEffect": "Constructs both cases and checks result variant.",
+          "commentDecision": "Assertions are self-describing; no added test comment.",
+          "constraintsAndLifecycle": "Does not test concurrent mutation."
+        },
+        {
+          "symbol": "hierarchy_query_round_trips_generation_bearing_runtime_rows",
+          "kind": "wire test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::hierarchy_query_round_trips_generation_bearing_runtime_rows. Checks hierarchy request/result, generation, and rows round-trip.",
+          "calls": "Uses hierarchy DTO and helper.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test.",
+          "testsOrContract": "Protects hierarchy wire fields.",
+          "blockEntryAndStateAndEffect": "Builds, round-trips, compares values.",
+          "commentDecision": "Existing test name/assertions sufficient.",
+          "constraintsAndLifecycle": "Does not execute traversal."
+        },
+        {
+          "symbol": "focused_inspector_query_round_trips_fields_and_missing_entity_state",
+          "kind": "wire test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::focused_inspector_query_round_trips_fields_and_missing_entity_state. Checks focused inspection fields and missing-target result state round-trip.",
+          "calls": "Uses inspection DTOs and helper.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test.",
+          "testsOrContract": "Protects inspector wire data.",
+          "blockEntryAndStateAndEffect": "Round-trips present fields and absent-target representation.",
+          "commentDecision": "Existing assertions sufficient.",
+          "constraintsAndLifecycle": "Does not query reflection registration."
+        },
+        {
+          "symbol": "transform_snapshot_query_carries_world_replacement_identity",
+          "kind": "wire test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::transform_snapshot_query_carries_world_replacement_identity. Checks transform result retains replacement identity through JSON.",
+          "calls": "Uses transform query/result DTO and helper.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test.",
+          "testsOrContract": "Protects replacement identity wire field.",
+          "blockEntryAndStateAndEffect": "Constructs, round-trips, compares identity.",
+          "commentDecision": "Existing name/assertions sufficient.",
+          "constraintsAndLifecycle": "Does not test event delivery."
+        },
+        {
+          "symbol": "entity_rows_are_canonicalized_by_stable_entity_identity",
+          "kind": "ordering test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::entity_rows_are_canonicalized_by_stable_entity_identity. Checks result helper canonicalizes unsorted rows by entity identity.",
+          "calls": "Invokes component result constructor.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test.",
+          "testsOrContract": "Protects row ordering.",
+          "blockEntryAndStateAndEffect": "Supplies unsorted input and checks emitted order.",
+          "commentDecision": "Existing setup/assertions sufficient.",
+          "constraintsAndLifecycle": "Does not test Runtime iteration order."
+        },
+        {
+          "symbol": "saturated_generation_never_returns_not_modified",
+          "kind": "boundary test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::saturated_generation_never_returns_not_modified. Checks saturated generation cannot take unchanged shortcut.",
+          "calls": "Exercises generation-aware result construction at u64 boundary.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test.",
+          "testsOrContract": "Protects saturation behavior.",
+          "blockEntryAndStateAndEffect": "Builds saturated case and checks full result.",
+          "commentDecision": "Existing boundary assertion sufficient.",
+          "constraintsAndLifecycle": "Covers represented numeric saturation."
+        },
+        {
+          "symbol": "watch_contract_round_trips_every_typed_key_and_token",
+          "kind": "wire test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::watch_contract_round_trips_every_typed_key_and_token. Checks all key variants, registration, and token round-trip.",
+          "calls": "Uses helper on typed watch values.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test.",
+          "testsOrContract": "Protects watch wire forms.",
+          "blockEntryAndStateAndEffect": "Constructs variants, encodes/decodes, compares.",
+          "commentDecision": "Existing assertions sufficient.",
+          "constraintsAndLifecycle": "Does not create live subscriptions."
+        },
+        {
+          "symbol": "invalidation_batch_round_trip_preserves_generation_tokens_and_facts",
+          "kind": "wire test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::invalidation_batch_round_trip_preserves_generation_tokens_and_facts. Checks batch generation, dirty tokens, and facts survive round-trip.",
+          "calls": "Uses helper on populated batch.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test.",
+          "testsOrContract": "Protects batch wire form.",
+          "blockEntryAndStateAndEffect": "Constructs and compares decoded batch.",
+          "commentDecision": "Existing fact assertions sufficient.",
+          "constraintsAndLifecycle": "Does not run invalidation pump."
+        },
+        {
+          "symbol": "canonical_dirty_tokens_require_strictly_increasing_runtime_tokens",
+          "kind": "canonical order test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::canonical_dirty_tokens_require_strictly_increasing_runtime_tokens. Checks increasing tokens pass while duplicate/descending values fail.",
+          "calls": "Invokes has_canonical_dirty_tokens.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test.",
+          "testsOrContract": "Protects order predicate.",
+          "blockEntryAndStateAndEffect": "Evaluates batches and asserts booleans.",
+          "commentDecision": "Existing cases sufficient.",
+          "constraintsAndLifecycle": "Predicate does not sort or mutate."
+        },
+        {
+          "symbol": "world_sync_contract_rejects_retired_or_unknown_wire_fields",
+          "kind": "wire rejection test",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::world_sync_contract_rejects_retired_or_unknown_wire_fields. Checks serde rejects retired/unknown fields for guarded DTOs.",
+          "calls": "Deserializes explicit JSON values and asserts errors.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "Ordinary test; existing literals preserved.",
+          "testsOrContract": "Protects compatibility rejection.",
+          "blockEntryAndStateAndEffect": "Each failed decode returns error and commits no DTO value.",
+          "commentDecision": "Reviewed input literals/assertions without changing them.",
+          "constraintsAndLifecycle": "Scope is serde behavior."
+        },
+        {
+          "symbol": "world_sync_wire_tags_and_module_boundary_are_stable",
+          "kind": "static source contract",
+          "definition": "Defined at zircon_runtime_interface/src/tests/world_sync_contracts.rs::world_sync_wire_tags_and_module_boundary_are_stable. Checks stable tags, module markers, and forbidden source marker set.",
+          "calls": "include_str! reads query.rs, watch.rs, invalidation.rs, and crate-root text.",
+          "implementations": "No production implementation.",
+          "macroOrRegistrationOrFfi": "include_str! embeds full source at test compile.",
+          "testsOrContract": "Explicit wire tag/module boundary guard.",
+          "blockEntryAndStateAndEffect": "Loads text and checks required/forbidden strings; comments are scanned.",
+          "commentDecision": "Added comments that avoid forbidden markers; no guard changed.",
+          "constraintsAndLifecycle": "Full source text participates in check."
+        }
+      ],
+      "validation": [
+        "Initial hash matched; final hash recorded above.",
+        "Final source SHA-256: 7d9655c02c8ebdcb98d2d8e645be0b52234dc43673f3261122a48ea9e337b0f2.",
+        "Guard source paths and forbidden markers were checked.",
+        "No build or tests were run; format/diff checks remain for handoff."
+      ]
+    }
+  ],
+  "crossFileEvidence": [
+    "Runtime query dispatch in zircon_runtime/src/scene/inspection/snapshot.rs selects request-specific results and packages current generation.",
+    "Runtime subscription table owns keys/tokens/facts and emits generation-bearing batches; dynamic session preserves batch boundaries and generations while paging, with commit/rollback controlling delivery consumption.",
+    "LifecycleTargetChange reports World/Schedule replacement during in-flight callbacks through typed error paths; it is separate from WorldFact::WorldReplaced invalidation notifications. Editor gateway consumes the public DTO/error contracts."
+  ],
+  "notes": [
+    "Cross-repository source was read only; only the six assigned Rust sources and this evidence file were written.",
+    "No generated files, source copies, builds, tests, commits, or Git write operations were performed.",
+    "No historical BUG, TODO, or SAFETY tags existed in the six files before review.",
+    "No BUG or SAFETY issue was established.",
+    "A function-item FFI reference to request_item_count was missed by the initial parenthesized-call search; after verification the erroneous new TODO/issue was removed and the call chain recorded.",
+    "Main-review correction: evidence now enumerates the actual WatchKey and WorldFact variants, the World/Schedule lifecycle cause, actual WorldQueryResult variants, and generation-preserving session paging; no cross-generation batch merge is claimed."
+  ]
+}

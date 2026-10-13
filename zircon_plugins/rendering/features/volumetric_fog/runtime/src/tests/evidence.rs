@@ -290,14 +290,11 @@ pub(super) fn format_report(
     )
 }
 
-// 将显式生成的产品证据放入仓库文档路径；调用方负责是否运行会产生文件副作用的测试。
+// 产品测试要求调用方提供已登记的产物目录，避免默认写入源码树。
 pub(super) fn render_output_dir() -> PathBuf {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    manifest_dir
-        .ancestors()
-        .nth(5)
-        .expect("volumetric plugin manifest should be nested under repository root")
-        .join("docs/tests/runtime/render")
+    std::env::var_os("ZIRCON_RENDERING_SMOKE_OUTPUT_DIR")
+        .map(PathBuf::from)
+        .expect("set ZIRCON_RENDERING_SMOKE_OUTPUT_DIR to the registered artifact directory")
 }
 
 fn comparison_frame(rgba: Vec<u8>) -> CapturedFrame {

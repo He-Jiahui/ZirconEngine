@@ -1,3 +1,8 @@
+//! 二进制 loader 的 typed decode、跨格式稳定性、历史迁移及 wire 兼容契约。
+//!
+//! `VersionedSchema` 探针使用空迁移链来隔离当前版本的编解码行为；历史样本则复用共享
+//! `FixtureDocument` 的 schema-zero 迁移，避免把线格式兼容与业务迁移混为一项。
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};

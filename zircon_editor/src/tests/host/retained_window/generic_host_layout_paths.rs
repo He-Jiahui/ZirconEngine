@@ -61,11 +61,11 @@ fn editor_ui_toml_assets_replace_former_workbench_source_roles() {
     let root = editor_root();
     for required in [
         "assets/ui/editor/unreal/editor_shell.zui",
-        "assets/ui/editor/workbench_menu_chrome.zui",
-        "assets/ui/editor/workbench_page_chrome.zui",
+        "assets/ui/editor/unreal/components/host_menu_bar.zui",
+        "assets/ui/editor/unreal/components/host_page_tabs.zui",
         "assets/ui/editor/unreal/components/dock_header.zui",
         "assets/ui/editor/workbench_activity_rail.zui",
-        "assets/ui/editor/workbench_status_bar.zui",
+        "assets/ui/editor/unreal/components/host_status_bar.zui",
         "assets/ui/editor/welcome.zui",
         "assets/ui/editor/ui_asset_editor.zui",
         "assets/ui/editor/component_showcase.zui",

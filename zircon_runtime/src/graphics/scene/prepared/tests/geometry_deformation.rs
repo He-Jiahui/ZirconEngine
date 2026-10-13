@@ -88,3 +88,17 @@ fn invalid_mesh_attributes_do_not_enable_skinning() {
 
     assert!(!PreparedGeometryDeformation::from_mesh_asset(&mesh).has_skinning());
 }
+#[test]
+fn non_finite_morph_bounds_remain_invalid_for_gpu_scene_fail_open() {
+    let mut deformation = super::PreparedGeometryDeformation::default();
+    deformation
+        .morph_target_delta_bounds
+        .push(crate::core::framework::render::RenderMeshBounds::invalid());
+
+    let bounds = deformation.local_bounds_for_morph_weights(
+        crate::core::framework::render::RenderMeshBounds::from_min_max([-1.0; 3], [1.0; 3]),
+        &[1.0],
+    );
+
+    assert!(!bounds.is_finite());
+}

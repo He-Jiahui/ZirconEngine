@@ -9,10 +9,10 @@ verification_head: working-tree
 verification_epoch: 2026-08-30
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/136-editor-animation-sequence-graph-state-machine-timeline-curve-preview-compiler-authoring-current-source-review.md
-  - docs/plans/optimize/zircon_editor/196-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/197-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/198-editor-animation-sequence-clip-channel-binding-interpolation-compression-event-root-motion-sync-preview-compiler-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/201-editor-animation-montage-section-slot-segment-notify-branching-point-sync-root-motion-runtime-playback-preview-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/196-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization.md
+  - docs/plans/optimize/zircon_editor/197-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence.md
+  - docs/plans/optimize/zircon_editor/198-editor-animation-sequence-clip-channel-binding-interpolation-compression-event-root-motion-sync-preview-compiler.md
+  - docs/plans/optimize/zircon_editor/201-editor-animation-montage-section-slot-segment-notify-branching-point-sync-root-motion-runtime-playback-preview.md
 related_runtime_owner:
   - docs/plans/optimize/zircon_runtime/170-runtime-animation-current-working-tree-source-compiled-pose-skinning-ik-root-motion-event-editor-boundary-review.md
 related_code:
@@ -29,10 +29,10 @@ related_code:
   - zircon_runtime/src/core/framework/animation/compiler
 plan_sources:
   - docs/plans/optimize/zircon_editor/136-editor-animation-sequence-graph-state-machine-timeline-curve-preview-compiler-authoring-current-source-review.md
-  - docs/plans/optimize/zircon_editor/196-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/197-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/198-editor-animation-sequence-clip-channel-binding-interpolation-compression-event-root-motion-sync-preview-compiler-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/201-editor-animation-montage-section-slot-segment-notify-branching-point-sync-root-motion-runtime-playback-preview-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/196-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization.md
+  - docs/plans/optimize/zircon_editor/197-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence.md
+  - docs/plans/optimize/zircon_editor/198-editor-animation-sequence-clip-channel-binding-interpolation-compression-event-root-motion-sync-preview-compiler.md
+  - docs/plans/optimize/zircon_editor/201-editor-animation-montage-section-slot-segment-notify-branching-point-sync-root-motion-runtime-playback-preview.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Animation/AnimSequenceBase.h
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Animation/AnimSequence.h

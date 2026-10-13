@@ -2,7 +2,7 @@
 
 - Date: 2026-08-25
 - Owner: `root-runtime63-atomic-component-registration-20260825`
-- Source plan: `docs/plans/optimize/zircon_runtime/63-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor-product-integration-review.md`, RSR-P0-001
+- Source plan: `docs/plans/optimize/zircon_runtime/63-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md`, RSR-P0-001
 - Status: implementation complete; combined managed validation pending
 
 ## Problem

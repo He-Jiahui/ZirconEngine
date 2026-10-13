@@ -12,7 +12,7 @@ implementation_status: pending
 source_recheck_required: true
 canonical_owner: Runtime83
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_runtime/83-runtime-localization-internationalization-locale-culture-message-format-plural-number-date-string-table-resource-fallback-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/83-runtime-localization-internationalization-locale-culture-message-format-plural-number-date-string-table-resource-fallback.md
 editor_owner:
   - docs/plans/optimize/zircon_editor/210-editor-localization-string-table-culture-translation-import-export-fallback-pseudo-preview-current-source-review.md
 related_code:

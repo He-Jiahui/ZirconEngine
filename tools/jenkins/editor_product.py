@@ -22,7 +22,7 @@ from typing import Mapping
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from tools.jenkins.contracts import JenkinsError, digest, file_digest
+from tools.jenkins.contracts import JenkinsError, digest, file_digest, require_digest
 from tools.jenkins.resources import canonical_build_root, physical_path_under
 from tools.jenkins.source import compute_source_digest
 from tools.jenkins.validation.receipts import validate_producer_receipt
@@ -33,6 +33,19 @@ PHASE_STAGES = {"check": "package_check", "compile": "build", "list": "discovery
                 "test": "unit_test", "editor_exe": "editor_exe", "runtime_dll": "runtime_dll", "package": "package"}
 NATIVE_STAGES = ("package_check", "build", "unit_test", "editor_exe", "runtime_dll", "package")
 PACKAGES = ("zircon_runtime_interface", "zircon_runtime", "zircon_editor", "zircon_app")
+# Production include_bytes! inputs from the Interface template pack.
+# Hidden .gitignore files are compiler inputs too; a directory inventory alone
+# must not silently omit them from a product preparation.
+PROJECT_TEMPLATE_INPUTS = tuple("templates/projects/renderable-empty/" + path for path in (
+    ".gitignore", ".zircon/autosave/.gitignore", ".zircon/cache/.gitignore",
+    ".zircon/play/.gitignore", ".zircon/registry/.gitignore", ".zircon/settings.toml",
+    ".zircon/thumbnails/.gitignore", "assets/materials/default.zmaterial",
+    "assets/materials/default.zmaterial.zmeta", "assets/models/cube.obj",
+    "assets/models/cube.obj.zmeta", "assets/scenes/main.scene.toml",
+    "assets/shaders/pbr_shader.zmeta", "assets/shaders/pbr_shader/pbr.wgsl",
+    "assets/shaders/pbr_shader/pbr.zshader", "export/desktop_windows.zpreset",
+    "zircon-project.toml",
+))
 HELPER_MODULES = ("tools.build.build_editor", "tools.dev.local_cargo",
                   "tools.build.zircon_build_product_profile", "tools.build.zircon_build_runtime_manifest",
                   "tools.build.zircon_build_size_report")
@@ -105,12 +118,32 @@ def helper_closure(manifest: Mapping, objects: Path) -> dict[str, str]:
     return {path: entries[path.casefold()]["sha256"] for path in sorted(required)}
 
 
+def template_closure(manifest: Mapping, objects: Path) -> dict[str, str]:
+    """Bind every production project template to its verified sealed bytes."""
+    present = _entries(manifest)
+    missing = sorted(path for path in PROJECT_TEMPLATE_INPUTS if path.casefold() not in present)
+    if missing:
+        raise JenkinsError("editor_inputs_missing", "Mandatory project template inputs are absent", details={"paths": missing})
+    result = {}
+    for path in sorted(PROJECT_TEMPLATE_INPUTS):
+        entry = present[path.casefold()]
+        checksum = require_digest(entry.get("sha256"), "projectTemplateHash")
+        if entry.get("objectDigest") != checksum:
+            raise JenkinsError("editor_template_corrupt", "Sealed project template object differs from its content hash", details={"path": path})
+        obj = objects / "inputs" / "objects" / checksum
+        if not obj.is_file() or file_digest(obj) != checksum:
+            raise JenkinsError("editor_template_corrupt", "Sealed project template object is missing or corrupt", details={"path": path})
+        result[path] = checksum
+    return result
+
+
 def mandatory_inputs(manifest: Mapping, *, shipping: bool, objects: Path) -> None:
     present = _entries(manifest)
     required = {"cargo.toml", "cargo.lock", *[name + "/cargo.toml" for name in PACKAGES],
                 "zircon_runtime/assets/fonts/default.font.toml", "zircon_runtime/assets/fonts/editor-ui.font.toml",
                 "zircon_runtime_interface/src/runtime_build_set/interface_spec_v1.json",
-                "zircon_runtime_interface/src/runtime_build_set/payload_schema_set_v1.json"}
+                "zircon_runtime_interface/src/runtime_build_set/payload_schema_set_v1.json",
+                *[path.casefold() for path in PROJECT_TEMPLATE_INPUTS]}
     # Asset membership is exact in the current-source intent. The package helper
     # validates every mandatory font payload and the BuildSet schema at staging.
     if not any(path.startswith("zircon_editor/assets/") for path in present):
@@ -145,6 +178,7 @@ def product_recipe(recipe: dict, *, template: str, manifest: Mapping, objects: P
     shipping = template == "editor_product_shipping"
     mandatory_inputs(manifest, shipping=shipping, objects=objects)
     helpers = helper_closure(manifest, objects)
+    templates = template_closure(manifest, objects)
     feature = "shipping-editor" if shipping else "target-editor-host"
     jobs = str(recipe["resourceEstimates"]["cpu"])
     cargo = recipe["cargoPath"]
@@ -179,6 +213,7 @@ def product_recipe(recipe: dict, *, template: str, manifest: Mapping, objects: P
               "requiredOutputsByStage": {PHASE_STAGES[phase]: value for phase, value in required.items()},
               "requiredOutputGlobs": [], "requiredOutputGlobsByPhase": {"compile": ["binaries/*.exe"], "test": ["binaries/*.exe"]},
               "productHelperClosure": helpers, "productHelperClosureDigest": digest(helpers),
+              "productTemplateClosure": templates, "productTemplateClosureDigest": digest(templates),
               "productPython": str(python), "productPythonSha256": file_digest(python),
               "productRunner": str(runner), "productRunnerSha256": file_digest(runner),
               "nativeUiAcceptance": False, "mvpAcceptance": False, "shippingAcceptance": False}

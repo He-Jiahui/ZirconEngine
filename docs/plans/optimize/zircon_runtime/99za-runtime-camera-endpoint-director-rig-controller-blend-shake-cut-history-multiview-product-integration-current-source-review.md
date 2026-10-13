@@ -45,7 +45,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/37-camera-endpoint-director-rig-controller-blend-shake-cinematic-cut-history-multiview-network-save-scalability-product-integration-review.md
   - docs/plans/optimize/zircon_editor/30-camera-asset-component-rig-controller-director-blend-shake-cinematic-cut-preview-authoring-review.md
   - docs/plans/optimize/zircon_runtime/24-stable-identity-handle-generation-owner-epoch-stale-reference-exhaustion-review.md
-  - docs/plans/optimize/zircon_runtime/65-runtime-scalability-quality-profile-device-profile-capability-tier-dynamic-resolution-frame-budget-lod-feature-fallback-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/65-runtime-scalability-quality-profile-device-profile-capability-tier-dynamic-resolution-frame-budget-lod-feature-fallback.md
   - docs/plans/performance/01/failure-2026-08-23-editor-delete-subtree-all-cameras-invariant.md
   - docs/plans/zircon_runtime/render/06/failure-2026-08-15-camera-resolution-scale-symbol-drift.md
   - docs/plans/zircon_runtime/render/07/failure-2026-08-08-camera-table-render-extract-stale-map.md

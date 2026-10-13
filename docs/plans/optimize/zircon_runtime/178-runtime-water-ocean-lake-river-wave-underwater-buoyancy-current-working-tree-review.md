@@ -6,7 +6,7 @@ review_date: 2026-08-30
 baseline_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 verification_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_runtime/99zr-runtime-water-ocean-lake-river-surface-wave-fft-shallow-water-rendering-underwater-buoyancy-query-physics-navigation-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zr-runtime-water-ocean-lake-river-surface-wave-fft-shallow-water-rendering-underwater-buoyancy-query-physics-navigation-editor.md
 related_editor_owner:
   - docs/plans/optimize/zircon_editor/238-editor-water-ocean-lake-river-surface-wave-underwater-buoyancy-authoring-current-working-tree-review.md
 related_code:

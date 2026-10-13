@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use zircon_runtime::asset::ModelAsset;
 use zircon_runtime::core::framework::render::{
@@ -141,6 +141,11 @@ fn confirmed_virtual_geometry_completion(
         .iter()
         .copied()
         .collect::<BTreeMap<u32, u32>>();
+    let reported_completed_page_ids = completion
+        .completed_page_assignments()
+        .iter()
+        .map(|(page_id, _reported_slot)| *page_id)
+        .collect::<HashSet<_>>();
     let previous_pending_pages = previous_pending_pages.into_iter().collect::<BTreeSet<_>>();
     let final_resident_pages = page_table_slot_by_page
         .keys()
@@ -149,12 +154,18 @@ fn confirmed_virtual_geometry_completion(
     let previous_page_by_slot = previous_slot_owners.into_iter().collect::<BTreeMap<_, _>>();
     let completed_page_assignments = page_table_entries
         .iter()
-        .filter(|(page_id, _slot)| previous_pending_pages.contains(page_id))
+        .filter(|(page_id, _slot)| {
+            previous_pending_pages.contains(page_id)
+                && reported_completed_page_ids.contains(page_id)
+        })
         .copied()
         .collect::<Vec<_>>();
     let completed_page_replacements = page_table_entries
         .iter()
-        .filter(|(page_id, _slot)| previous_pending_pages.contains(page_id))
+        .filter(|(page_id, _slot)| {
+            previous_pending_pages.contains(page_id)
+                && reported_completed_page_ids.contains(page_id)
+        })
         .filter_map(|(page_id, _reported_slot)| {
             let confirmed_slot = page_table_slot_by_page.get(page_id).copied()?;
             let previous_page_id = previous_page_by_slot.get(&confirmed_slot).copied()?;

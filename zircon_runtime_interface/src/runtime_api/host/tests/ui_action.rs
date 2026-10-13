@@ -1,3 +1,8 @@
+//! UI Action 的 ABI 序列化与有限 Debug 输出测试。
+//!
+//! secure fixture 使用空值 payload；它不覆盖任意手工构造 payload 的规则，生产队列的限制见
+//! `zircon_runtime::dynamic_api::session::runtime_ui::action_requests::RuntimeUiActionRequestQueue`。
+
 use std::collections::BTreeMap;
 
 use super::*;

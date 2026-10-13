@@ -191,7 +191,19 @@ impl World {
                 CompiledMeshRendererProperty::MorphWeight(index) => {
                     let next = Self::compiled_property_expect_scalar(value, &target.property_path)?;
                     let resized = if mesh.morph_weights.len() <= index {
-                        mesh.morph_weights.resize(index + 1, 0.0);
+                        let required_len = index.checked_add(1).ok_or_else(|| {
+                            SceneError::InvalidPropertyIndex {
+                                property_path: target.property_path.to_string(),
+                                index_kind: "morph weight index",
+                            }
+                        })?;
+                        mesh.morph_weights
+                            .try_reserve_exact(required_len - mesh.morph_weights.len())
+                            .map_err(|_| SceneError::InvalidPropertyIndex {
+                                property_path: target.property_path.to_string(),
+                                index_kind: "morph weight index",
+                            })?;
+                        mesh.morph_weights.resize(required_len, 0.0);
                         true
                     } else {
                         false

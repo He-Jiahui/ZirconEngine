@@ -2,7 +2,7 @@
 
 ## Scope
 
-- Owner report: `docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor-product-integration-current-source-review.md`
+- Owner report: `docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor.md`
 - Baseline: `8ee9411db24b7b4bdaf3fe028194642a7557c0b6`, epoch `434`
 - Session: `optimize-runtime99zn-graph-hierarchy-index-r1-20260825`
 - Production: `zircon_plugins/sound/runtime/src/kira_bridge/graph_compile.rs`

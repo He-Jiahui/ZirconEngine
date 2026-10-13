@@ -132,21 +132,110 @@ def validate_inventory(repo, inventory):
     return inventory
 
 
-def install(repo, *, upgrade_from=None, expected_job_script_sha256=None):
+def _template_text(raw):
+    # Match read_text's newline conversion without changing source bytes.
+    return raw.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+
+
+def render_job_source(context, installed, script_name, template_name, *, previous=False):
+    pin, raw = fingerprint(HERE / template_name)
+    expected = installed["sources"][template_name]
+    source = _template_text(raw)
+    require(pin["sha256"] == expected or (previous and sha(source.encode("utf-8")) == expected),
+            "Pinned intake job template changed")
+    values = {"REPO": str(context["repo"]),
+              "PYTHON": str(context["repo"] / ".jenkins/runtime/python/python.exe"),
+              "SCRIPT": str(HERE / script_name), "SOURCE_SHA": installed["sources"][script_name],
+              "DRIVER": installed["driverDigest"], "RUNTIME": installed["runtimeOperationId"]}
+    for name, value in values.items():
+        require(isinstance(value, str) and not any(c in value for c in ("\n", "\r", "'", '"', "%")),
+                "Unsafe fixed job value")
+        source = source.replace("@@" + name + "@@", value.replace("\\", "/"))
+    require("@@" not in source, "Unresolved intake job marker")
+    return source
+
+
+def job_script(raw):
+    import xml.etree.ElementTree as ET
+    root = ET.fromstring(raw)
+    definition = root.find("definition")
+    require(root.tag == "flow-definition" and definition is not None
+            and definition.get("class") == "org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition"
+            and definition.findtext("sandbox") == "true", "Existing intake job owner or sandbox changed")
+    source = definition.findtext("script")
+    require(isinstance(source, str) and source, "Existing intake job script is missing")
+    return source
+
+
+def require_job_idle(context, job):
+    manager = context["manager"]
+    status, raw = manager._request("job/" + job + "/api/json?tree=builds[building,result]")
+    require(status == 200, "Cannot inspect intake job builds")
+    builds = json.loads(raw).get("builds")
+    require(isinstance(builds, list) and all(isinstance(build, dict) and build.get("building") is False
+            and build.get("result") in {"SUCCESS", "UNSTABLE", "FAILURE", "NOT_BUILT", "ABORTED"}
+            for build in builds), "Do not update an intake job with a nonterminal build")
+    status, raw = manager._request("queue/api/json?tree=items[task[name,url]]")
+    require(status == 200, "Cannot inspect queued intake work")
+    items = json.loads(raw).get("items")
+    require(isinstance(items, list), "Queued intake work is unproven")
+    job_url = manager.base_url.rstrip("/") + "/job/" + job + "/"
+    for item in items:
+        task = item.get("task") if isinstance(item, dict) else None
+        require(isinstance(task, dict) and isinstance(task.get("name"), str)
+                and bool(task["name"]) and isinstance(task.get("url"), str) and bool(task["url"]),
+                "Queued intake work is unproven")
+        require(task["name"] != job and task["url"] != job_url, "Do not update an intake job with queued work")
+
+
+def verify_install_upgrade(context, previous, installed, old_source, *, source_names, script_name,
+                           template_name, upgrade_from, expected_job_script_sha256, rebind_runtime):
+    require(previous is not None and isinstance(upgrade_from, str) and SHA.fullmatch(upgrade_from)
+            and previous[1]["sha256"] == upgrade_from
+            and isinstance(expected_job_script_sha256, str) and SHA.fullmatch(expected_job_script_sha256)
+            and sha(old_source.encode("utf-8")) == expected_job_script_sha256,
+            "Existing intake upgrade requires exact previous installation and job script pins")
+    old = previous[0]
+    require(old.get("schemaVersion") == 1 and old.get("job") == installed["job"]
+            and old.get("repositoryRoot") == str(context["repo"])
+            and old.get("intakeOnlyAcceptance") is True and old.get("formalAcceptance") is False
+            and isinstance(old.get("driverDigest"), str) and SHA.fullmatch(old["driverDigest"])
+            and isinstance(old.get("runtimeOperationId"), str) and ID.fullmatch(old["runtimeOperationId"])
+            and isinstance(old.get("sources"), dict) and set(old["sources"]) == set(source_names)
+            and all(isinstance(value, str) and SHA.fullmatch(value) for value in old["sources"].values()),
+            "Existing intake installation belongs to another owner or source inventory")
+    same_runtime = all(old[k] == installed[k] for k in ("driverDigest", "runtimeOperationId"))
+    require(same_runtime or rebind_runtime is True, "Cross-runtime intake replacement requires --rebind-runtime")
+    require(old_source == render_job_source(context, old, script_name, template_name, previous=True),
+            "Existing intake job differs from its exact pinned prior template")
+    require_job_idle(context, installed["job"])
+    return {"previous": old, "previousInstallationSha256": upgrade_from,
+            "previousJobScriptSha256": expected_job_script_sha256,
+            "runtimeRebound": not same_runtime, "next": installed}
+
+
+def recheck_install_inputs(api, repo, context, previous, installed, installed_path):
+    fresh = api.capability(repo)
+    require(fresh["repo"] == context["repo"] and all(fresh["config"][key] == installed[key]
+            for key in ("driverDigest", "runtimeOperationId")), "Selected intake runtime changed during installation")
+    for name, expected in installed["sources"].items():
+        require(fingerprint(HERE / name)[0]["sha256"] == expected, "Intake source changed during installation")
+    if previous:
+        require(read_json(installed_path)[1]["sha256"] == previous[1]["sha256"],
+                "Previous intake installation changed during upgrade")
+    else:
+        require(not installed_path.exists(), "Intake installation appeared during creation")
+
+
+def install(repo, *, upgrade_from=None, expected_job_script_sha256=None, rebind_runtime=False):
     api = entry()
     context = api.capability(repo)
-    source_pins = {name: sha(plain(HERE / name).read_bytes()) for name in SOURCES}
+    source_pins = {name: fingerprint(HERE / name)[0]["sha256"] for name in SOURCES}
     installed = {"schemaVersion": 1, "job": JOB, "repositoryRoot": str(context["repo"]),
                  "driverDigest": context["config"]["driverDigest"],
                  "runtimeOperationId": context["config"]["runtimeOperationId"], "sources": source_pins,
                  "intakeOnlyAcceptance": True, "formalAcceptance": False}
-    source = (HERE / "zircon-records.groovy").read_text(encoding="utf-8")
-    for name, value in {"REPO": str(context["repo"]), "PYTHON": str(context["repo"] / ".jenkins/runtime/python/python.exe"),
-                        "SCRIPT": str(HERE / "records_queue.py"), "SOURCE_SHA": source_pins["records_queue.py"],
-                        "DRIVER": installed["driverDigest"], "RUNTIME": installed["runtimeOperationId"]}.items():
-        require(not any(c in value for c in ('\n', '\r', "'", '"', '%')), "Unsafe fixed path")
-        source = source.replace("@@" + name + "@@", value.replace("\\", "/"))
-    require("@@" not in source, "Unresolved job marker")
+    source = render_job_source(context, installed, "records_queue.py", "zircon-records.groovy")
     parameters = "".join("<hudson.model.StringParameterDefinition><name>" + name +
                          "</name><defaultValue></defaultValue><trim>true</trim></hudson.model.StringParameterDefinition>"
                          for name in ("INVENTORY_DIGEST", "TASK_ID", "MODE"))
@@ -159,45 +248,49 @@ def install(repo, *, upgrade_from=None, expected_job_script_sha256=None):
     manager = context["manager"]
     installed_path = context["repo"] / ".jenkins/state/records-queue/installed.json"
     previous = read_json(installed_path) if installed_path.exists() else None
+    if rebind_runtime:
+        require(previous is not None and previous[1]["sha256"] == upgrade_from
+                and isinstance(expected_job_script_sha256, str) and SHA.fullmatch(expected_job_script_sha256),
+                "Runtime rebind requires an exactly pinned existing intake installation")
     status, old = manager._request("job/" + JOB + "/config.xml")
     if status == 200:
-        import xml.etree.ElementTree as ET
-        old_source = ET.fromstring(old).findtext("definition/script")
-        if old_source != source:
-            # A bounded upgrade requires the exact prior installation and job
-            # source, unchanged runtime, and terminal builds. Other jobs and
-            # running pipelines cannot be replaced.
-            require(previous is not None and upgrade_from == previous[1]["sha256"] and
-                    expected_job_script_sha256 == sha(old_source.encode()) and
-                    previous[0]["job"] == JOB and previous[0]["repositoryRoot"] == str(context["repo"]) and
-                    all(previous[0][k] == installed[k] for k in ("driverDigest", "runtimeOperationId")) and
-                    previous[0]["sources"]["records_queue.py"] in old_source,
-                    "Existing records job has a different owner/source; exact upgrade pins required")
-            status, raw = manager._request("job/" + JOB + "/api/json?tree=builds[building]")
-            require(status == 200 and not any(b["building"] for b in json.loads(raw)["builds"]),
-                    "Do not change a records job with a running build")
-            write_once(installed_path.parent / "install-history" / (upgrade_from + ".json"),
-                       encoded({"previous": previous[0], "previousJobScriptSha256": expected_job_script_sha256,
-                                "next": installed}) + b"\n")
+        old_source = job_script(old)
+        if old_source != source or (previous and previous[0] != installed):
+            history = verify_install_upgrade(context, previous, installed, old_source, source_names=SOURCES,
+                script_name="records_queue.py", template_name="zircon-records.groovy", upgrade_from=upgrade_from,
+                expected_job_script_sha256=expected_job_script_sha256, rebind_runtime=rebind_runtime)
+            recheck_install_inputs(api, repo, context, previous, installed, installed_path)
+            write_once(installed_path.parent / "install-history" / (upgrade_from + ".json"), encoded(history) + b"\n")
             status, raw = manager._request("crumbIssuer/api/json")
             require(status == 200, "Jenkins crumb is unavailable")
             crumb = json.loads(raw)
+            require_job_idle(context, JOB)
+            recheck_install_inputs(api, repo, context, previous, installed, installed_path)
+            status, raw = manager._request("job/" + JOB + "/config.xml")
+            require(status == 200 and job_script(raw) == old_source, "Pinned prior intake job changed before update")
             status, _ = manager._request("job/" + JOB + "/config.xml", method="POST", data=xml.encode("utf-8"),
                                         headers={"Content-Type": "application/xml", crumb["crumbRequestField"]: crumb["crumb"]})
             require(status == 200, "Pinned records job update was not accepted")
+            status, raw = manager._request("job/" + JOB + "/config.xml")
+            require(status == 200 and job_script(raw) == source, "Updated records job requires reconciliation")
     else:
-        require(status == 404, "Cannot inspect records job")
+        require(status == 404 and previous is None and not rebind_runtime
+                and upgrade_from is None and expected_job_script_sha256 is None,
+                "Cannot create or replace an unproven existing records job")
+        recheck_install_inputs(api, repo, context, previous, installed, installed_path)
         status, raw = manager._request("crumbIssuer/api/json")
         require(status == 200, "Jenkins crumb is unavailable")
         crumb = json.loads(raw)
         status, _ = manager._request("createItem?name=" + JOB, method="POST", data=xml.encode("utf-8"),
                                     headers={"Content-Type": "application/xml", crumb["crumbRequestField"]: crumb["crumb"]})
         require(status == 200, "Jenkins did not create the fixed intake job")
+        status, raw = manager._request("job/" + JOB + "/config.xml")
+        require(status == 200 and job_script(raw) == source, "Created records job requires reconciliation")
+    recheck_install_inputs(api, repo, context, previous, installed, installed_path)
     if previous and previous[0] != installed:
-        require(upgrade_from == previous[1]["sha256"], "Installation upgrade requires its original hash")
         from tools.jenkins.state.atomic import atomic_json
         atomic_json(installed_path, installed)
-    else:
+    elif previous is None:
         write_once(installed_path, encoded(installed) + b"\n")
     return installed
 
@@ -436,13 +529,15 @@ def main(argv=None):
     parser.add_argument("--reconcile", action="store_true")
     parser.add_argument("--upgrade-from")
     parser.add_argument("--expected-job-script-sha256")
+    parser.add_argument("--rebind-runtime", action="store_true")
     args = parser.parse_args(argv)
     try:
         if args.expected_source_sha256:
             require(sha(Path(__file__).read_bytes()) == args.expected_source_sha256, "Executing intake source changed")
         if args.command == "install":
             result = install(args.repo_root, upgrade_from=args.upgrade_from,
-                             expected_job_script_sha256=args.expected_job_script_sha256)
+                             expected_job_script_sha256=args.expected_job_script_sha256,
+                             rebind_runtime=args.rebind_runtime)
         elif args.command == "submit":
             result = submit(args.repo_root, args.inventory_file, mode=args.mode, reconcile=args.reconcile)
         elif args.command == "work":
@@ -459,6 +554,10 @@ def main(argv=None):
             api, context, _ = binding(args.repo_root)
             result = api.record(context["repo"], "records_queue_task", args.task_id)
         print(encoded(result).decode())
+        if args.command == "work" and not result.get("done"):
+            # Distinguish durable waiting from failure without requiring any
+            # additional Jenkins sandbox parser/constructor approval.
+            return 10
         return 0
     except Exception as error:
         print(encoded({"status": "pending", "message": str(error), "formalAcceptance": False}).decode())

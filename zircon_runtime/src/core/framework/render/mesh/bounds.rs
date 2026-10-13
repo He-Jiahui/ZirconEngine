@@ -27,24 +27,54 @@ impl RenderMeshBounds {
         }
     }
 
-    // BUG: [CR-RENDER-MESH-0001] 含 NaN 的顶点可通过网格校验；min/max 忽略 NaN 后报告看似有效但不完整的包围盒。
     /// 为导入网格、模型和变形几何建立保守包围盒；空顶点集返回零盒，调用方负责判定其语义。
     pub fn from_positions(positions: impl IntoIterator<Item = [f32; 3]>) -> Self {
+        Self::try_from_positions(positions).unwrap_or_else(Self::invalid)
+    }
+
+    /// Rejects non-finite vertices instead of allowing float min/max to hide NaN inputs.
+    pub fn try_from_positions(positions: impl IntoIterator<Item = [f32; 3]>) -> Option<Self> {
         let mut iter = positions.into_iter();
         let Some(first) = iter.next() else {
-            return Self::default();
+            return Some(Self::default());
         };
+        if first.iter().any(|component| !component.is_finite()) {
+            return None;
+        }
 
         let mut min = first;
         let mut max = first;
         for position in iter {
+            if position.iter().any(|component| !component.is_finite()) {
+                return None;
+            }
             for axis in 0..3 {
                 min[axis] = min[axis].min(position[axis]);
                 max[axis] = max[axis].max(position[axis]);
             }
         }
 
-        Self::from_min_max(min, max)
+        let bounds = Self::from_min_max(min, max);
+        bounds.is_finite().then_some(bounds)
+    }
+
+    pub fn is_finite(self) -> bool {
+        self.min
+            .iter()
+            .chain(self.max.iter())
+            .chain(self.center.iter())
+            .all(|component| component.is_finite())
+            && self.radius.is_finite()
+            && self.radius >= 0.0
+    }
+
+    pub(crate) fn invalid() -> Self {
+        Self {
+            min: [f32::NAN; 3],
+            max: [f32::NAN; 3],
+            center: [f32::NAN; 3],
+            radius: f32::NAN,
+        }
     }
 
     pub fn transformed(self, transform: Transform) -> Self {

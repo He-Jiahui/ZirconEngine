@@ -666,6 +666,7 @@ impl HubRuntimeSession {
                 ),
             };
             self.record_action_and_persist(HubActionRecord {
+                id: crate::state::new_action_record_id(),
                 finished_unix_ms: crate::projects::now_unix_ms(),
                 action: HubActionKind::OpenEditor,
                 status: HubActionStatus::Success,
@@ -829,6 +830,7 @@ impl HubRuntimeSession {
         recovery: HubMessage,
     ) -> Result<(), HubError> {
         self.record_action_and_persist(HubActionRecord {
+            id: crate::state::new_action_record_id(),
             finished_unix_ms: crate::projects::now_unix_ms(),
             action: HubActionKind::OpenEditor,
             status: HubActionStatus::Failed,

@@ -2,7 +2,7 @@
 
 - Date: 2026-08-21
 - Owner: `optimize-runtime64-cow-registry-staging-r1-01a00797-20260821`
-- Source plan: `docs/plans/optimize/zircon_runtime/64-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation-product-integration-review.md`, RAR-P2-002
+- Source plan: `docs/plans/optimize/zircon_runtime/64-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation.md`, RAR-P2-002
 - Status: implementation complete; combined managed validation pending
 
 ## Problem

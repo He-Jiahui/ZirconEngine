@@ -10,7 +10,6 @@ use crate::asset::{AssetImportError, AssetUri};
 use super::ProjectManager;
 
 impl ProjectManager {
-    // BUG: [CR-ASSET-TYPESPROJECT-0001] 已存在的 res:// 源仅在各根下检查路径存在，随后物理解析却未复核是否仍位于该根；链接可使场景保存写到项目外。证据：source_operation_path_for_project_uri 与 scene/world/project_io/scene_asset.rs::save_scene_to_project。
     /// Resolves a logical asset URI through the project/package root registry once.
     ///
     /// The returned operation path is the sole filesystem input. Its display path is retained
@@ -20,9 +19,11 @@ impl ProjectManager {
         &self,
         uri: &AssetUri,
     ) -> Result<ResolvedProjectPath, AssetImportError> {
-        Ok(ProjectPaths::resolve_path(
-            self.source_operation_path_for_uri(uri)?,
-        )?)
+        let path = ProjectPaths::resolve_path(self.source_operation_path_for_uri(uri)?)?;
+        if uri.scheme() == ResourceScheme::Res {
+            self.validate_project_source_path_for_write(&path)?;
+        }
+        Ok(path)
     }
 
     /// Re-checks a source destination's physical identity immediately before publication.
@@ -38,8 +39,14 @@ impl ProjectManager {
         let physical_identity = ResolvedProjectPathIdentity::from(physical.clone());
         let contained = self.package_assets.project_roots().iter().any(|root| {
             ProjectPaths::resolve_existing(root)
-                .map(ResolvedProjectPathIdentity::from)
-                .map(|root| physical_identity.is_within(&root))
+                // Registry roots were physically bound when the project opened. If a root
+                // itself is later replaced by a junction/symlink, re-resolving it must not
+                // authorize the new external target as though it were the registered root.
+                .map(|resolved_root| {
+                    resolved_root.operation_path() == root.as_path()
+                        && physical_identity
+                            .is_within(&ResolvedProjectPathIdentity::from(resolved_root))
+                })
                 .unwrap_or(false)
         });
         if !contained {

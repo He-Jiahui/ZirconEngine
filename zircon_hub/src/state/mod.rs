@@ -16,7 +16,8 @@ mod task_cancellation;
 mod task_status;
 
 pub use action_history::{
-    push_action_record, HubActionKind, HubActionRecord, HubActionStatus, ACTION_HISTORY_LIMIT,
+    ensure_action_record_id, new_action_record_id, push_action_record, repair_action_record_ids,
+    HubActionKind, HubActionRecord, HubActionStatus, ACTION_HISTORY_LIMIT,
 };
 pub use hub_message::{
     BuildMessageId, DeliveryMessageId, EngineMessageId, HubMessage, HubMessageId, LearnMessageId,

@@ -7,7 +7,7 @@ baseline_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 verification_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_runtime/99zx-runtime-weather-climate-celestial-time-of-day-wind-precipitation-cloud-atmosphere-surface-state-determinism-network-save-scalability-editor-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/36-weather-climate-celestial-time-of-day-wind-precipitation-cloud-atmosphere-surface-state-determinism-network-save-scalability-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/36-weather-climate-celestial-time-of-day-wind-precipitation-cloud-atmosphere-surface-state-determinism-network-save-scalability.md
 related_editor_owner:
   - docs/plans/optimize/zircon_editor/244-editor-weather-climate-atmosphere-current-working-tree-review.md
 related_code:

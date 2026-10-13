@@ -26,6 +26,13 @@ pub(crate) enum ObjDecodeError {
         #[source]
         source: std::num::ParseFloatError,
     },
+    #[error("non-finite {label} '{value}' at {path}:{line}")]
+    NonFiniteScalar {
+        path: String,
+        line: usize,
+        label: String,
+        value: String,
+    },
     #[error("face with fewer than 3 vertices at {path}:{line}")]
     FaceVertexCount { path: String, line: usize },
     #[error("parse face vertex at {path}:{line}: {source}")]

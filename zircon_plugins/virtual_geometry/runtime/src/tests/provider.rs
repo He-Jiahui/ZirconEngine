@@ -11,6 +11,7 @@ use zircon_runtime::core::framework::render::{
 };
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_runtime::graphics::VirtualGeometryGpuCompletion;
 use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
 
 #[test]
@@ -62,6 +63,47 @@ fn provider_builds_neutral_extract_output_from_cooked_model_meshes() {
     assert!(!output.cpu_reference_instances().is_empty());
     assert!(!output.bvh_visualization_instances().is_empty());
     assert!(output.resident_page_payloads().is_empty());
+}
+
+#[test]
+fn provider_confirms_only_pending_gpu_page_assignments() {
+    let completion = VirtualGeometryGpuCompletion::new(
+        vec![(30, 3), (20, 2)],
+        vec![(30, 3), (99, 9)],
+        Vec::new(),
+    );
+
+    let confirmed = confirmed_virtual_geometry_completion(&completion, [], [30]);
+
+    assert_eq!(confirmed.page_table_entries(), &[(20, 2), (30, 3)]);
+    assert_eq!(confirmed.completed_page_assignments(), &[(30, 3)]);
+    assert!(confirmed.completed_page_replacements().is_empty());
+}
+
+#[test]
+fn provider_reports_the_page_replaced_by_an_implicitly_reused_slot() {
+    let completion =
+        VirtualGeometryGpuCompletion::new(vec![(30, 3), (20, 2)], vec![(30, 99)], Vec::new());
+
+    let confirmed = confirmed_virtual_geometry_completion(&completion, [(3, 10)], [30]);
+
+    assert_eq!(confirmed.page_table_entries(), &[(20, 2), (30, 3)]);
+    assert_eq!(confirmed.completed_page_assignments(), &[(30, 3)]);
+    assert_eq!(confirmed.completed_page_replacements(), &[(30, 10)]);
+}
+
+#[test]
+fn provider_normalizes_stale_and_conflicting_gpu_page_table_entries() {
+    let completion = VirtualGeometryGpuCompletion::new(
+        vec![(10, 0), (20, 1), (30, 0), (40, 2)],
+        vec![(30, 0)],
+        Vec::new(),
+    );
+
+    let confirmed = confirmed_virtual_geometry_completion(&completion, [], [30]);
+
+    assert_eq!(confirmed.page_table_entries(), &[(30, 0), (20, 1), (40, 2)]);
+    assert_eq!(confirmed.completed_page_assignments(), &[(30, 0)]);
 }
 
 fn cooked_model_asset() -> ModelAsset {

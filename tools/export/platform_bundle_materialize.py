@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import shutil
 import stat
+import os
 from pathlib import Path
 from typing import Any
 
 from .export_template_manifest import resolve_bundle_child
+from .profile_name import valid_export_profile_name
 from .platform_bundle_native_plugins_materialize import (
     materialize_platform_bundle_native_plugins,
 )
@@ -214,10 +216,37 @@ def copy_platform_bundle_file(
 def remove_platform_bundle_dir(
     label: str,
     directory: Path,
+    out_root: Path,
+    profile: str,
     diagnostics: list[str],
 ) -> bool:
     try:
-        shutil.rmtree(directory)
+        if not valid_export_profile_name(profile):
+            raise OSError("invalid export profile name")
+        root = Path(os.path.abspath(out_root))
+        expected_parent = root / "bundle"
+        expected_directory = expected_parent / profile
+        candidate = Path(os.path.abspath(directory))
+        if candidate != expected_directory:
+            raise OSError("refusing to remove a path outside the expected bundle/profile location")
+
+        # Reject symlink/junction ancestors before canonicalization can hide them.
+        components = [Path(candidate.anchor)]
+        for component in candidate.parts[1:]:
+            components.append(components[-1] / component)
+        for component in components:
+            try:
+                metadata = component.lstat()
+            except FileNotFoundError:
+                continue
+            attributes = getattr(metadata, "st_file_attributes", 0)
+            if stat.S_ISLNK(metadata.st_mode) or attributes & 0x400:
+                raise OSError(f"refusing to remove through symlink or reparse point: {component}")
+        if not expected_parent.is_dir() or not candidate.is_dir():
+            raise OSError("bundle parent and profile target must both be existing directories")
+        if not os.path.samefile(candidate.parent, expected_parent):
+            raise OSError("profile target parent identity does not match the output bundle root")
+        shutil.rmtree(candidate)
     except OSError as error:
         diagnostics.append(f"{label} {directory} could not be removed: {error}")
         return False

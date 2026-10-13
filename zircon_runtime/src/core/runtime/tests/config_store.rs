@@ -143,6 +143,161 @@ fn config_store_concurrent_equal_writers_publish_once_per_value() {
 }
 
 #[test]
+fn config_store_changed_comparison_rechecks_a_concurrent_raw_replacement() {
+    use std::cell::{Cell, RefCell};
+
+    for concurrent_value in [1_u64, 2] {
+        let store = ConfigStore::default();
+        store.store_value("target", Value::from(0_u64));
+        let previous = store.shared_value("target").unwrap();
+        let compared_values = RefCell::new(Vec::new());
+        let raw_owner = RefCell::new(None);
+        let replaced = Cell::new(false);
+
+        let changed =
+            store.store_value_if_changed_by("target", Value::from(1_u64), |stored, incoming| {
+                let guard = store
+                    .values
+                    .try_lock()
+                    .expect("deep JSON comparison must not hold the config map mutex");
+                drop(guard);
+                compared_values.borrow_mut().push(stored.clone());
+                if !replaced.replace(true) {
+                    // Model a raw Core write between owner observation and publication.
+                    store.store_value("target", Value::from(concurrent_value));
+                    *raw_owner.borrow_mut() = store.shared_value("target");
+                    assert_eq!(store.load::<u64>("target").unwrap(), concurrent_value);
+                    assert_eq!(
+                        store.snapshot_values().get("target"),
+                        Some(&Value::from(concurrent_value))
+                    );
+                }
+                stored == incoming
+            });
+
+        assert_eq!(changed, concurrent_value != 1);
+        assert_eq!(
+            compared_values.into_inner(),
+            vec![Value::from(0_u64), Value::from(concurrent_value)]
+        );
+        let current = store.shared_value("target").unwrap();
+        assert_eq!(current.as_ref(), &Value::from(1_u64));
+        assert_eq!(previous.as_ref(), &Value::from(0_u64));
+        assert_eq!(
+            Arc::ptr_eq(&current, raw_owner.borrow().as_ref().unwrap()),
+            concurrent_value == 1,
+            "an equal raw replacement keeps its shared owner"
+        );
+    }
+}
+
+#[test]
+fn config_store_equal_comparison_allows_reads_without_replacing_the_owner() {
+    let store = ConfigStore::default();
+    let original = Value::String("x".repeat(1024 * 1024));
+    store.store_value("large", original.clone());
+    let owner = store.shared_value("large").unwrap();
+    let comparisons = std::cell::Cell::new(0);
+
+    let changed = store.store_value_if_changed_by("large", original, |stored, incoming| {
+        let guard = store
+            .values
+            .try_lock()
+            .expect("equal JSON comparison must not hold the config map mutex");
+        drop(guard);
+        comparisons.set(comparisons.get() + 1);
+        store.store_value("unrelated", Value::from(7_u64));
+        assert_eq!(store.load::<u64>("unrelated").unwrap(), 7);
+        assert_eq!(store.snapshot_values().get("large"), Some(stored));
+        stored == incoming
+    });
+
+    assert!(!changed);
+    assert_eq!(comparisons.get(), 1);
+    assert!(Arc::ptr_eq(&owner, &store.shared_value("large").unwrap()));
+}
+
+#[test]
+fn config_store_equal_comparison_rechecks_a_concurrent_raw_change() {
+    use std::cell::{Cell, RefCell};
+
+    for concurrent_value in [1_u64, 2] {
+        let store = ConfigStore::default();
+        store.store_value("target", Value::from(1_u64));
+        let previous = store.shared_value("target").unwrap();
+        let compared_values = RefCell::new(Vec::new());
+        let raw_owner = RefCell::new(None);
+        let replaced = Cell::new(false);
+
+        let changed =
+            store.store_value_if_changed_by("target", Value::from(1_u64), |stored, incoming| {
+                let guard = store
+                    .values
+                    .try_lock()
+                    .expect("equal JSON comparison must not hold the config map mutex");
+                drop(guard);
+                compared_values.borrow_mut().push(stored.clone());
+                if !replaced.replace(true) {
+                    store.store_value("target", Value::from(concurrent_value));
+                    *raw_owner.borrow_mut() = store.shared_value("target");
+                }
+                stored == incoming
+            });
+
+        assert_eq!(changed, concurrent_value != 1);
+        assert_eq!(
+            compared_values.into_inner(),
+            vec![Value::from(1_u64), Value::from(concurrent_value)]
+        );
+        let current = store.shared_value("target").unwrap();
+        assert_eq!(current.as_ref(), &Value::from(1_u64));
+        assert_eq!(previous.as_ref(), &Value::from(1_u64));
+        assert_eq!(
+            Arc::ptr_eq(&current, raw_owner.borrow().as_ref().unwrap()),
+            concurrent_value == 1
+        );
+    }
+}
+
+#[test]
+#[ignore = "Release Runtime03 real 1B/1MiB/100MiB equal/change store probe; bounded Jenkins execution"]
+fn runtime03_config_store_equal_and_changed_large_value_samples() {
+    use std::time::Instant;
+
+    assert!(!cfg!(debug_assertions), "Release execution is required");
+    for payload_bytes in [1_usize, 1_048_576, 104_857_600] {
+        let store = ConfigStore::default();
+        let initial = Value::String("x".repeat(payload_bytes));
+        let mut changed = "x".repeat(payload_bytes - 1);
+        changed.push('y');
+        let changed = Value::String(changed);
+        for sample_index in 0..5 {
+            store.store_value("large", initial.clone());
+            let before = store.shared_value("large").unwrap();
+            let equal_input = initial.clone();
+            let started = Instant::now();
+            let equal_changed = store.store_value_if_changed("large", equal_input);
+            let equal_ns = started.elapsed().as_nanos();
+            assert!(!equal_changed);
+            assert!(Arc::ptr_eq(&before, &store.shared_value("large").unwrap()));
+            drop(before);
+
+            let changed_input = changed.clone();
+            let started = Instant::now();
+            let did_change = store.store_value_if_changed("large", changed_input);
+            let changed_ns = started.elapsed().as_nanos();
+            assert!(did_change);
+            let stored = store.shared_value("large").unwrap();
+            assert_eq!(stored.as_ref(), &changed);
+            assert_eq!(stored.as_str().unwrap().len(), payload_bytes);
+            println!(
+                "RUNTIME03_CONFIG_STORE_EQUAL_CHANGE_SAMPLE_V1 payload_bytes={payload_bytes} sample_index={sample_index} equal_ns={equal_ns} changed_ns={changed_ns} changed_byte=last caller_input_allocation=outside_window old_value_retirement=inside_changed_window numeric_performance_budget=unspecified"
+            );
+        }
+    }
+}
+
+#[test]
 fn config_store_public_store_converts_reentrant_keys_before_locking() {
     struct ReentrantKey<'a>(&'a ConfigStore);
 

@@ -8,7 +8,7 @@ baseline_epoch: 524
 canonical_owner: Editor29
 refreshes:
   - docs/plans/optimize/zircon_editor/29-input-action-mapping-context-binding-trigger-modifier-device-user-rebinding-accessibility-authoring-review.md
-  - docs/plans/optimize/zircon_editor/87-editor-input-action-mapping-context-binding-trigger-modifier-device-user-rebinding-accessibility-authoring-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/87-editor-input-action-mapping-context-binding-trigger-modifier-device-user-rebinding-accessibility-authoring.md
 related_code:
   - zircon_runtime/src/core/framework/input
   - zircon_runtime/src/input
@@ -39,7 +39,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/08-command-registry-keymap-menu-palette-context-routing-remote-automation-review.md
   - docs/plans/optimize/zircon_editor/12-settings-preferences-scope-persistence-locale-i18n-appearance-plugin-extensibility-review.md
   - docs/plans/optimize/zircon_editor/53-editor-interactive-tool-scheduler-resource-lease-input-capture-mode-modal-extension-lifecycle-product-integration-review.md
-  - docs/plans/optimize/zircon_editor/59-editor-scene-viewport-interaction-controller-input-picking-selection-highlight-gizmo-transaction-cancel-generation-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/59-editor-scene-viewport-interaction-controller-input-picking-selection-highlight-gizmo-transaction-cancel-generation.md
 reference_engines:
   - dev/UnrealEngine/Engine/Plugins/EnhancedInput/Source/EnhancedInput/Public/InputAction.h
   - dev/UnrealEngine/Engine/Plugins/EnhancedInput/Source/EnhancedInput/Public/InputMappingContext.h

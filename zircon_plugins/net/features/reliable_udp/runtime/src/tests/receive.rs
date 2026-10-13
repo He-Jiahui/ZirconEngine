@@ -33,6 +33,8 @@ fn reliable_udp_receiver_reassembles_out_of_order_fragments_once() {
         duplicate.status,
         ReliableDatagramReceiveStatus::DuplicateFragment
     );
+    assert_eq!(duplicate.ack, Some(ReliableDatagramAck::new(1)));
+    assert_eq!(duplicate.ack, Some(ReliableDatagramAck::new(1)));
     assert_eq!(manager.stats().received_packets, 3);
 }
 

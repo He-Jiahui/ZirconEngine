@@ -109,10 +109,9 @@ pub(super) fn depth_sort_key(effective_depth: f32) -> i64 {
     }
 }
 
-// BUG: [CR-RENDER-CORE-0001] 极大负深度量化为 i64::MIN 后，透明阶段取负在调试构建中溢出；诊断拆解可触发。
 pub(super) fn ordered_depth_key(phase: RenderPhase, depth_key: i64) -> i64 {
     if phase == RenderPhase::Transparent3d {
-        -depth_key
+        depth_key.saturating_neg()
     } else {
         depth_key
     }

@@ -13,6 +13,7 @@ import {
   normalizeZuiDocument,
   parseZuiDocument,
   type ZuiDocument,
+  type ZuiNode,
 } from './zui-document';
 import { reconcileReviewSource, reviewHost } from './zui-review-host';
 import { reviewDocumentForCase } from './zui-review-case';
@@ -21,8 +22,9 @@ import { segmentedGeometry } from './zui-segmented-geometry';
 const repo = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../../', import.meta.url)));
 const directory =
   'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs';
-const strip = `${directory}/workbench_tab_strip.zui`;
-const tab = `${directory}/workbench_tab.zui`;
+const strip =
+  'zircon_editor/assets/ui/editor/workbench/primitives/inputs/tab_strip.zui';
+const tab = `${directory}/tab.zui`;
 const diagnostic =
   'zircon_editor/assets/ui/editor/workbench/composites/feedback/diagnostic_row.zui';
 const statusItem =
@@ -31,7 +33,7 @@ const panelHeader =
   'zircon_editor/assets/ui/editor/workbench/composites/chrome/panel_header.zui';
 const sectionTitle =
   'zircon_editor/assets/ui/editor/workbench/primitives/chrome/section_title.zui';
-const button = `${directory}/workbench_button.zui`;
+const button = `${directory}/button.zui`;
 const theme = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
 const activityWindow =
   'zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui';
@@ -205,12 +207,12 @@ describe('component slot review host', () => {
     );
     const focusTab = focused.rootNodes[0].children[1];
     expect(focusTab.segmented?.colors.background).toBeNull();
-    expect(segmentedGeometry(focusTab.segmented!, 120, 32).parts['focus_ring']).toMatchObject({
+    expect(segmentedGeometry(focusTab.segmented!, 120, 32).parts['focus-ring']).toMatchObject({
       fill: 'transparent',
       stroke: '#0070E0',
       strokeWidth: 1,
     });
-    expect(segmentedGeometry(tabs[0].segmented!, 120, 32).parts['focus_ring']).toBeUndefined();
+    expect(segmentedGeometry(tabs[0].segmented!, 120, 32).parts['focus-ring']).toBeUndefined();
     expect(focusTab.text?.color).toBe('#C0C0C0');
     expect(
       segmentedGeometry(focusTab.segmented!, 120, 32).texts['primary'].x,
@@ -227,7 +229,7 @@ describe('component slot review host', () => {
     const before = cloneZuiDocument(document);
     const projection = projectZuiDocument(document);
     const shape = projection.rootNodes[0];
-    expect(segmentedGeometry(shape.segmented!, 120, 32).parts['focus_ring']).toBeUndefined();
+    expect(segmentedGeometry(shape.segmented!, 120, 32).parts['focus-ring']).toBeUndefined();
     expect(reconcileReviewSource(document, cloneProjectionSnapshot(projection)).changes).toEqual([]);
     expect(document).toEqual(before);
   });
@@ -485,10 +487,12 @@ describe('component slot review host', () => {
 });
 
 describe('actual consumed Unreal Header source projection', () => {
-  it('uses authored used slots and live captions/state, restores slots, and rejects source drift', async () => {
+  it('mounts one consumed Header above the original viewport, preserves Source ownership and used slots, and rejects source drift', async () => {
     const { createHash } = await import('node:crypto');
     const { prepareUnrealDockHeaderViews, UNREAL_DOCK_HEADER_SOURCE } =
       await import('../../tools/zui-layout-unreal-dock-headers');
+    const { canonicalSha256, validateWorkbenchPresentation } =
+      await import('../../tools/zui-layout-workbench-presentation');
     const header = parseZuiDocument(await readFile(repo + '/' + UNREAL_DOCK_HEADER_SOURCE, 'utf8')).document;
     const paths = [UNREAL_DOCK_HEADER_SOURCE, 'zircon_editor/assets/ui/editor/unreal/starship.zui',
       'zircon_editor/assets/ui/editor/theme/editor_tokens.zui'];
@@ -533,8 +537,122 @@ describe('actual consumed Unreal Header source projection', () => {
     const restored = (await prepareUnrealDockHeaderViews(repo, { dockHeaders: [observation(3)] }))[0].document;
     expect(restored.nodes!['dock_tab_strip'].children).toHaveLength(3);
     expect(restored.nodes!['dock_tab_2'].props?.['text']).toBe('Actual long caption 2');
+    const viewportSource = 'zircon_editor/assets/ui/editor/unreal/components/viewport.zui';
+    const dependencies = new LayoutDependencies();
+    await dependencies.load(repo, await trackedZuiPaths());
+    const mainFrameSource = parseZuiDocument(await readFile(repo + '/' + editorMainFrame, 'utf8')).document;
+    const before = normalizeZuiDocument(mainFrameSource);
+    // Match the complete empty-workspace DTO in zui-layout-strict-parity.spec.ts.
+    const presentation = {
+      schema: 'dev.zircon.editor.workbench-presentation', version: 1, activeLocale: 'en',
+      sourceFingerprint: {
+        sourcePath: levelEditorWindow,
+        sha256: createHash('sha256').update(await readFile(repo + '/' + levelEditorWindow)).digest('hex'),
+      },
+      stateFingerprint: '',
+      viewportSnap: { translationEnabled: false, rotationEnabled: true, scaleEnabled: false },
+      layout: {
+        active_main_page: 'main',
+        main_pages: [{ WorkbenchPage: { id: 'main', title: 'Workbench', activity_window: 'main-window' } }],
+        activity_windows: {
+          'main-window': {
+            window_id: 'main-window', descriptor_id: 'editor.main', host_mode: 'EmbeddedMainFrame',
+            activity_drawers: {},
+            content_workspace: { Tabs: { node_id: 'document-tabs', tabs: [], active_tab: null } },
+            menu_overflow_mode: 'Auto', region_overrides: {}, view_overrides: {},
+          },
+        },
+        floating_windows: [],
+      },
+      window: { id: 'main-window', title: 'Zircon Editor' },
+      pages: { activeId: 'main', items: [{ id: 'main', title: 'Workbench', activityWindowId: 'main-window' }] },
+      documents: { activeId: null, items: [] }, drawers: [],
+      hierarchy: { filterQuery: '', expandedIds: [], selectedIds: [], rows: [] },
+      inspector: {
+        entityId: null, name: '', parent: '', translation: ['0', '0', '0'], scale: ['1', '1', '1'],
+        renderLayerMask: 0, components: [],
+      },
+      status: { primary: '', secondary: null, viewportLabel: '', projectPath: '' },
+      dockHeaders: [],
+    };
+    const { stateFingerprint: plainFingerprint, ...plainState } = presentation;
+    void plainFingerprint;
+    presentation.stateFingerprint = canonicalSha256(plainState);
+    validateWorkbenchPresentation(presentation);
+    const withHeader = { ...presentation, dockHeaders: [one] };
+    const { stateFingerprint: mountedFingerprint, ...mountedState } = withHeader;
+    void mountedFingerprint;
+    withHeader.stateFingerprint = canonicalSha256(mountedState);
+    validateWorkbenchPresentation(withHeader);
+    const plain = (await prepareComponentReviewHost(
+      repo, editorMainFrame, mainFrameSource, dependencies, theme, presentation,
+    ))!;
+    const originals = new Map<string, { node: ZuiNode; baseline: ZuiNode; children: NonNullable<ZuiNode['children']> }>();
+    const embed = dependencies.embed.bind(dependencies);
+    dependencies.embed = (...args) => {
+      const result = embed(...args);
+      if (args[1] === levelEditorWindow)for (const [id, node] of Object.entries(args[0].nodes ?? {})) {
+        if (node['penpot_review_source_path'] === viewportSource)
+          originals.set(id, { node, baseline: structuredClone(plain.projection.nodes![id]), children: [...(node.children ?? [])] });
+      }
+      return result;
+    };
+    const mounted = (await prepareComponentReviewHost(
+      repo, editorMainFrame, mainFrameSource, dependencies, theme, withHeader,
+    ))!;
+    expect(mounted.source).toBe(plain.source);
+    expect(normalizeZuiDocument(mainFrameSource)).toEqual(before);
+    const nodes = mounted.projection.nodes!;
+    const viewportEntries = Object.entries(nodes).filter(([, node]) =>
+      node['penpot_prefab_source'] === viewportSource + '#UnrealLevelViewport');
+    expect(viewportEntries).toHaveLength(1);
+    const [viewportId, viewport] = viewportEntries[0];
+    expect(viewport.component).toBe('VerticalGroup');
+    expect(viewport.control_id).toBe('WorkbenchMainBandViewportPanel');
+    expect(viewport.layout?.['container']).toEqual({ kind: 'VerticalBox', gap: 0 });
+    expect(viewport.layout?.['height']).toEqual({ stretch: 'Stretch' });
+    expect(viewport.children).toHaveLength(3);
+    const [headerMount, separatorMount, innerMount] = viewport.children!;
+    expect(nodes[headerMount.node]).toMatchObject({
+      control_id: 'DockHeaderRoot', penpot_review_source_path: UNREAL_DOCK_HEADER_SOURCE,
+      penpot_review_source_node_id: header.root!.node, penpot_review_instance_path: '[]',
+    });
+    expect(nodes[headerMount.node].layout?.['height']).toEqual({ min: 31, preferred: 31, max: 31, stretch: 'Fixed' });
+    expect(nodes[separatorMount.node].component).toBe('Separator');
+    expect(nodes[separatorMount.node].props?.['penpot_generated_host_structure']).toBe(true);
+    expect(nodes[headerMount.node].props?.['penpot_generated_host_structure']).toBeUndefined();
+    expect(viewport.props?.['penpot_generated_host_structure']).toBeUndefined();
+    expect(nodes[separatorMount.node].layout?.['height']).toEqual({ min: 1, preferred: 1, max: 1, stretch: 'Fixed' });
+    expect(nodes[separatorMount.node]['penpot_review_source_path']).toBeUndefined();
+    expect(nodes[separatorMount.node]['penpot_review_source_node_id']).toBeUndefined();
+    expect(innerMount).toBe(originals.get(viewportId)!.children[0]);
+    expect(nodes[innerMount.node]).toMatchObject({ component: 'Overlay', control_id: 'UnrealSceneViewViewport' });
+    expect(nodes[innerMount.node].layout?.['height']).toEqual({ stretch: 'Stretch' });
+    for (const [id, original] of originals) {
+      expect(nodes[id]).toBe(original.node);
+      if (id === viewportId) {
+        expect(nodes[id].events).toEqual(original.baseline.events);
+        continue;
+      }
+      expect(nodes[id]).toEqual(original.baseline);
+      expect(nodes[id].children ?? []).toHaveLength(original.children.length);
+      original.children.forEach((child, index) => expect(nodes[id].children![index]).toBe(child));
+    }
+    const projected = Object.values(nodes);
+    expect(projected.filter((node) => node.control_id === 'DockHeaderRoot')).toHaveLength(1);
+    expect(projected.filter((node) => node.control_id === 'DockHeaderBar')).toHaveLength(1);
+    expect(projected.filter((node) => node.component === 'SceneViewViewport')).toHaveLength(1);
+    expect(projected.filter((node) => node.control_id === 'WorkbenchViewportSurface')).toHaveLength(1);
+    const context = projected.find((node) => node.control_id === 'UnrealProjectDocumentContext')!;
+    expect(context.component).toBe('HorizontalGroup');
+    expect(context.children).toHaveLength(1);
+    expect(nodes[context.children![0].node].control_id).toBe('UnrealProjectDocumentContextText');
+    expect(Object.keys(parseZuiDocument(mounted.source).document.nodes!))
+      .not.toContain(headerMount.node);
+    expect(Object.keys(parseZuiDocument(mounted.source).document.nodes!))
+      .not.toContain(separatorMount.node);
     one.sourceDocument.nodes!['dock_tab_group_0'].layout!['width'] = { min: 1, max: 2 };
     await expect(prepareUnrealDockHeaderViews(repo, { dockHeaders: [one] }))
       .rejects.toThrow('differs from the current authored');
-  });
+  }, 120_000);
 });

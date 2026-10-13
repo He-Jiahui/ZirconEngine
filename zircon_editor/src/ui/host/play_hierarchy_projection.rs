@@ -47,10 +47,19 @@ struct PlayHierarchySnapshot {
     selected_entities: BTreeSet<EntityId>,
 }
 
+#[cfg(test)]
+struct ChangedRowCapacityStats {
+    initial_capacity: usize,
+    final_capacity: usize,
+    growth_events: usize,
+}
+
 /// Identity-qualified retained projection of the runtime-owned Play hierarchy.
 #[derive(Default)]
 pub(super) struct PlayHierarchyProjection {
     snapshot: Option<PlayHierarchySnapshot>,
+    #[cfg(test)]
+    changed_row_capacity: Option<ChangedRowCapacityStats>,
 }
 
 impl PlayHierarchyProjection {
@@ -70,6 +79,10 @@ impl PlayHierarchyProjection {
         selected_entities: impl IntoIterator<Item = EntityId>,
         force_reflow: bool,
     ) -> Result<Option<SceneInspectionHierarchyFragment>, PlayHierarchyProjectionError> {
+        #[cfg(test)]
+        {
+            self.changed_row_capacity = None;
+        }
         let selected_entities = selected_entities.into_iter().collect::<BTreeSet<_>>();
         match result {
             WorldQueryResult::HierarchyRows { generation, rows } => self.apply_rows(
@@ -156,10 +169,12 @@ impl PlayHierarchyProjection {
             }
         }
 
-        let must_reflow = force_reflow
-            || previous.is_none()
-            || previous.is_some_and(|previous| !same_topology(&previous.rows, &rows));
-        if must_reflow {
+        let changed_count = if force_reflow {
+            None
+        } else {
+            previous.and_then(|previous| same_topology_changed_count(&previous.rows, &rows))
+        };
+        let Some(changed_count) = changed_count else {
             let fragment = Self::reflow_fragment(
                 generation,
                 rows.clone(),
@@ -175,14 +190,34 @@ impl PlayHierarchyProjection {
                 selected_entities,
             });
             return Ok(Some(fragment));
-        }
+        };
 
         let previous = previous.expect("non-reflow projection must have a same-identity base");
-        let mut changed_rows = Vec::with_capacity(rows.len());
+        let mut changed_rows = Vec::with_capacity(changed_count);
+        #[cfg(test)]
+        let initial_capacity = changed_rows.capacity();
+        #[cfg(test)]
+        let mut growth_events = 0;
         for (previous_row, current_row) in previous.rows.iter().zip(rows.iter()) {
             if previous_row != current_row {
+                #[cfg(test)]
+                let previous_capacity = changed_rows.capacity();
                 changed_rows.push(current_row.clone());
+                #[cfg(test)]
+                {
+                    if changed_rows.capacity() != previous_capacity {
+                        growth_events += 1;
+                    }
+                }
             }
+        }
+        #[cfg(test)]
+        {
+            self.changed_row_capacity = Some(ChangedRowCapacityStats {
+                initial_capacity,
+                final_capacity: changed_rows.capacity(),
+                growth_events,
+            });
         }
         let selection = selection_delta(previous, selection_revision, &selected_entities);
         let selection_changed = selection_revision != previous.selection_revision;
@@ -240,14 +275,18 @@ impl PlayHierarchyProjection {
             );
         }
         if force_reflow {
-            return Self::reflow_fragment(
+            let fragment = Self::reflow_fragment(
                 generation,
                 previous.rows.clone(),
                 focused_entity,
                 selection_revision,
                 &selected_entities,
-            )
-            .map(Some);
+            )?;
+            if let Some(snapshot) = self.snapshot.as_mut() {
+                snapshot.selection_revision = selection_revision;
+                snapshot.selected_entities = selected_entities;
+            }
+            return Ok(Some(fragment));
         }
         if selection_revision == previous.selection_revision {
             return Ok(None);
@@ -297,16 +336,24 @@ impl PlayHierarchyProjection {
     }
 }
 
-fn same_topology(
+fn same_topology_changed_count(
     previous: &[WorldInspectionHierarchyRow],
     current: &[WorldInspectionHierarchyRow],
-) -> bool {
-    previous.len() == current.len()
-        && previous.iter().zip(current).all(|(previous, current)| {
-            previous.entity == current.entity
-                && previous.parent == current.parent
-                && previous.depth == current.depth
-        })
+) -> Option<usize> {
+    if previous.len() != current.len() {
+        return None;
+    }
+    let mut changed_count = 0;
+    for (previous, current) in previous.iter().zip(current) {
+        if previous.entity != current.entity
+            || previous.parent != current.parent
+            || previous.depth != current.depth
+        {
+            return None;
+        }
+        changed_count += usize::from(previous != current);
+    }
+    Some(changed_count)
 }
 
 fn hierarchy_anchor(row: &WorldInspectionHierarchyRow) -> SceneInspectionHierarchyAnchor {

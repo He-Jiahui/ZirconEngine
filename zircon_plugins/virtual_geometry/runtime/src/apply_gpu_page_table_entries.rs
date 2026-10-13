@@ -120,7 +120,11 @@ fn inherits_hot_ancestor(
     page_parent_pages: &std::collections::BTreeMap<u32, u32>,
 ) -> bool {
     let mut current_page_id = page_id;
+    let mut visited_page_ids = BTreeSet::from([page_id]);
     while let Some(parent_page_id) = page_parent_pages.get(&current_page_id).copied() {
+        if !visited_page_ids.insert(parent_page_id) {
+            return false;
+        }
         if previous_hot_resident_pages.contains(&parent_page_id) {
             return true;
         }

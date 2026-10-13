@@ -14,7 +14,7 @@ related_reports:
   - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
   - docs/plans/zircon_runtime/runtime/12/2026-08-24-physical-input-before-ui-ownership-red.md
   - docs/plans/zircon_runtime/runtime/12/failure-2026-07-19-app-entry-input-and-gamepad-storm-budget.md
-  - docs/plans/optimize/zircon_runtime/99q-runtime-platform-host-window-registry-monitor-display-event-loop-application-lifecycle-surface-command-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99q-runtime-platform-host-window-registry-monitor-display-event-loop-application-lifecycle-surface-command.md
   - docs/plans/optimize/zircon_runtime/99r-runtime-input-device-event-frame-state-action-map-focus-gamepad-recording-replay-host-product-integration-current-source-review.md
   - docs/plans/optimize/zircon_app/08-product-host-bootstrap-loop-dynamic-runtime-shutdown-current-source-review.md
   - docs/plans/zircon_editor/editor/14/failure-2026-07-22-play-process-output-byte-budget.md

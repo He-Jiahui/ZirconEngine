@@ -194,12 +194,20 @@ impl NativePluginDiscoveryRefreshRequest {
 #[derive(Debug)]
 pub(super) struct NativePluginDiscoveryRefreshPayload {
     candidates: Vec<NativePluginCandidate>,
-    diagnostics: Vec<String>,
+    diagnostics: Vec<NativePluginDiscoveryRefreshDiagnostic>,
     /// Stable collector-owned identity for the exact inputs represented by this payload.
     input_identity: NativePluginDiscoveryInputIdentity,
     read_bytes: u64,
+    /// Source bytes whose parsed candidates are represented by this payload.
+    retained_manifest_bytes: u64,
     peak_scratch_bytes: u64,
     metrics: NativePluginDiscoveryRefreshMetrics,
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct NativePluginDiscoveryRefreshDiagnostic {
+    manifest_path: Option<PathBuf>,
+    message: String,
 }
 
 /// Runtime-owned bounded collector output. A Frameworks04 collector must reserve through this
@@ -207,7 +215,7 @@ pub(super) struct NativePluginDiscoveryRefreshPayload {
 pub(crate) struct NativePluginDiscoveryRefreshSink {
     budget: NativePluginDiscoveryRefreshBudget,
     candidates: Vec<NativePluginCandidate>,
-    diagnostics: Vec<String>,
+    diagnostics: Vec<NativePluginDiscoveryRefreshDiagnostic>,
     candidate_admissions: usize,
     diagnostic_admissions: usize,
     read_bytes: u64,
@@ -376,6 +384,7 @@ impl NativePluginDiscoveryRefreshSink {
             diagnostics: self.diagnostics,
             input_identity,
             read_bytes: self.read_bytes,
+            retained_manifest_bytes: self.read_bytes,
             peak_scratch_bytes: self.peak_scratch_bytes,
             metrics: self.metrics,
         }
@@ -400,7 +409,24 @@ pub(crate) struct NativePluginDiscoveryRefreshDiagnosticReservation {}
 
 impl NativePluginDiscoveryRefreshDiagnosticReservation {
     pub(crate) fn insert(self, sink: &mut NativePluginDiscoveryRefreshSink, diagnostic: String) {
-        sink.diagnostics.push(diagnostic);
+        sink.diagnostics
+            .push(NativePluginDiscoveryRefreshDiagnostic {
+                manifest_path: None,
+                message: diagnostic,
+            });
+    }
+
+    pub(in crate::plugin::native_plugin_loader) fn insert_for_manifest(
+        self,
+        sink: &mut NativePluginDiscoveryRefreshSink,
+        manifest_path: PathBuf,
+        diagnostic: String,
+    ) {
+        sink.diagnostics
+            .push(NativePluginDiscoveryRefreshDiagnostic {
+                manifest_path: Some(manifest_path),
+                message: diagnostic,
+            });
     }
 }
 
@@ -444,11 +470,45 @@ pub struct NativePluginDiscoverySnapshot {
     manifest_index: NativePluginDiscoveryManifestIndex,
     candidates: Arc<[NativePluginCandidate]>,
     diagnostics: Arc<[String]>,
-    collector_diagnostics: Arc<[String]>,
+    collector_diagnostics: Arc<[NativePluginDiscoveryRefreshDiagnostic]>,
     input_identity: NativePluginDiscoveryInputIdentity,
     read_bytes: u64,
+    retained_manifest_bytes: u64,
     peak_scratch_bytes: u64,
     metrics: NativePluginDiscoveryRefreshMetrics,
+}
+
+// Parsed manifests can retain many small owned values per source byte. Publication deep-clones
+// both the path index and selected candidates, so account a conservative expansion bound before
+// either allocation begins. The fixed inline term covers per-candidate/index entry overhead.
+const PUBLICATION_HEAP_BYTES_PER_MANIFEST_BYTE: u64 = 8;
+
+fn reserve_publication_scratch(
+    collector_peak: u64,
+    retained_manifest_bytes: u64,
+    candidate_count: usize,
+    max_scratch_bytes: u64,
+) -> Result<(), NativePluginDiscoveryRefreshError> {
+    let candidate_count = u64::try_from(candidate_count).unwrap_or(u64::MAX);
+    let publication_bytes = retained_manifest_bytes
+        .checked_mul(PUBLICATION_HEAP_BYTES_PER_MANIFEST_BYTE)
+        .and_then(|bytes| {
+            candidate_count
+                .checked_mul(std::mem::size_of::<NativePluginCandidate>() as u64)
+                .and_then(|inline| bytes.checked_add(inline.saturating_mul(2)))
+        })
+        .unwrap_or(u64::MAX);
+    let total_bytes = collector_peak
+        .checked_add(publication_bytes)
+        .unwrap_or(u64::MAX);
+    if total_bytes > max_scratch_bytes {
+        return Err(NativePluginDiscoveryRefreshError::budget_exceeded(
+            NativePluginDiscoveryRefreshBudgetKind::ScratchBytes,
+            total_bytes,
+            max_scratch_bytes,
+        ));
+    }
+    Ok(())
 }
 
 impl NativePluginDiscoverySnapshot {
@@ -457,15 +517,24 @@ impl NativePluginDiscoverySnapshot {
         input: NativePluginDiscoveryRefreshInput,
         generation: u64,
         payload: NativePluginDiscoveryRefreshPayload,
-    ) -> Self {
+        max_scratch_bytes: u64,
+        max_diagnostics: usize,
+    ) -> Result<Self, NativePluginDiscoveryRefreshError> {
         let NativePluginDiscoveryRefreshPayload {
             candidates,
             diagnostics,
             input_identity,
             read_bytes,
+            retained_manifest_bytes,
             peak_scratch_bytes,
             metrics,
         } = payload;
+        reserve_publication_scratch(
+            peak_scratch_bytes,
+            retained_manifest_bytes,
+            candidates.len(),
+            max_scratch_bytes,
+        )?;
         let index = NativePluginDiscoveryManifestIndex::from_candidates(candidates);
         Self::from_index(
             root,
@@ -475,8 +544,10 @@ impl NativePluginDiscoverySnapshot {
             diagnostics,
             input_identity,
             read_bytes,
+            retained_manifest_bytes,
             peak_scratch_bytes,
             metrics,
+            max_diagnostics,
         )
     }
 
@@ -488,24 +559,71 @@ impl NativePluginDiscoverySnapshot {
         work: &NativePluginDiscoveryRefreshWork,
         payload: NativePluginDiscoveryRefreshPayload,
         max_candidates: usize,
+        max_scratch_bytes: u64,
+        max_diagnostics: usize,
     ) -> Result<Self, NativePluginDiscoveryRefreshError> {
         let NativePluginDiscoveryRefreshPayload {
             candidates,
             diagnostics,
             input_identity,
             read_bytes,
+            retained_manifest_bytes: payload_manifest_bytes,
             peak_scratch_bytes,
             metrics,
         } = payload;
-        // TODO: [CR-PLUGIN-NATIVE-0208] 明确暂存预算是否覆盖发布阶段的索引克隆与候选投影；
-        // 此处及后续投影在收集槽之外复制持久候选，现有预算测试只检查收集准入；下一步核算大基准快照。
+        let actions = work
+            .manifest_actions()
+            .expect("incremental publication requires manifest actions");
+        let added_paths = actions
+            .iter()
+            .filter(|(path, action)| {
+                **action == super::work::NativePluginDiscoveryManifestAction::Refresh
+                    && !base.manifest_index.contains_path(path)
+            })
+            .count() as u64;
+        let next_candidate_count = base
+            .manifest_index
+            .len()
+            .saturating_add(added_paths as usize);
+        // A repeated notification for an existing path must not accumulate the same source bytes
+        // forever. New paths add their bytes once; replacements use a count-scaled ceiling so a
+        // single unusually large manifest cannot escape the retained-snapshot estimate.
+        let retained_manifest_bytes = if added_paths > 0 {
+            base.retained_manifest_bytes
+                .saturating_add(payload_manifest_bytes)
+        } else {
+            base.retained_manifest_bytes.max(
+                payload_manifest_bytes
+                    .saturating_mul(u64::try_from(next_candidate_count).unwrap_or(u64::MAX)),
+            )
+        };
+        reserve_publication_scratch(
+            peak_scratch_bytes,
+            retained_manifest_bytes,
+            next_candidate_count.saturating_add(candidates.len()),
+            max_scratch_bytes,
+        )?;
         let mut index = base.manifest_index.clone();
         index.apply_incremental(work, &candidates, max_candidates)?;
-        // BUG: [CR-PLUGIN-NATIVE-0203] 全扫曾记录某清单解析失败后，即使该清单经增量刷新修复或删除，
-        // 旧收集诊断仍被整体继承并展示；证据：全扫访客转诊断，本处没有按通知路径失效旧诊断。
-        let mut collector_diagnostics = base.collector_diagnostics.to_vec();
+        let mut collector_diagnostics: Vec<_> = base
+            .collector_diagnostics
+            .iter()
+            .filter(|diagnostic| {
+                diagnostic.manifest_path.as_ref().is_none_or(|path| {
+                    !actions.iter().any(|(changed, action)| match action {
+                        super::work::NativePluginDiscoveryManifestAction::Refresh => {
+                            path == changed
+                        }
+                        super::work::NativePluginDiscoveryManifestAction::Remove => {
+                            path == changed || path.starts_with(changed)
+                        }
+                    })
+                })
+            })
+            .cloned()
+            .collect();
         collector_diagnostics.extend(diagnostics);
-        Ok(Self::from_index(
+        Self::from_index(
             root,
             input,
             generation,
@@ -513,9 +631,11 @@ impl NativePluginDiscoverySnapshot {
             collector_diagnostics,
             input_identity,
             read_bytes,
+            retained_manifest_bytes,
             peak_scratch_bytes,
             metrics,
-        ))
+            max_diagnostics,
+        )
     }
 
     fn from_index(
@@ -523,16 +643,31 @@ impl NativePluginDiscoverySnapshot {
         input: NativePluginDiscoveryRefreshInput,
         generation: u64,
         manifest_index: NativePluginDiscoveryManifestIndex,
-        collector_diagnostics: Vec<String>,
+        collector_diagnostics: Vec<NativePluginDiscoveryRefreshDiagnostic>,
         input_identity: NativePluginDiscoveryInputIdentity,
         read_bytes: u64,
+        retained_manifest_bytes: u64,
         peak_scratch_bytes: u64,
         metrics: NativePluginDiscoveryRefreshMetrics,
-    ) -> Self {
-        let (candidates, duplicate_diagnostics) = manifest_index.project();
-        let mut diagnostics = collector_diagnostics.clone();
+        max_diagnostics: usize,
+    ) -> Result<Self, NativePluginDiscoveryRefreshError> {
+        let remaining_diagnostic_slots =
+            max_diagnostics.saturating_sub(collector_diagnostics.len());
+        let (candidates, duplicate_diagnostics) =
+            manifest_index.project(remaining_diagnostic_slots)?;
+        let mut diagnostics: Vec<_> = collector_diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.message.clone())
+            .collect();
         diagnostics.extend(duplicate_diagnostics);
-        Self {
+        if diagnostics.len() > max_diagnostics {
+            return Err(NativePluginDiscoveryRefreshError::budget_exceeded(
+                NativePluginDiscoveryRefreshBudgetKind::DiagnosticCount,
+                diagnostics.len() as u64,
+                max_diagnostics as u64,
+            ));
+        }
+        Ok(Self {
             root,
             input,
             generation,
@@ -542,9 +677,10 @@ impl NativePluginDiscoverySnapshot {
             collector_diagnostics: Arc::from(collector_diagnostics),
             input_identity,
             read_bytes,
+            retained_manifest_bytes,
             peak_scratch_bytes,
             metrics,
-        }
+        })
     }
 
     pub fn root(&self) -> &NativePluginDiscoveryRoot {

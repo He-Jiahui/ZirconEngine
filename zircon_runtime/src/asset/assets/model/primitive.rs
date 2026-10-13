@@ -91,17 +91,11 @@ fn mesh_bounds_and_planarity(vertices: &[MeshVertex]) -> (RenderMeshBounds, bool
         return (RenderMeshBounds::default(), true);
     };
 
-    let mut min = first.position;
-    let mut max = first.position;
-    let mut is_planar = first.position[2] == 0.0;
-    for vertex in &vertices[1..] {
-        for axis in 0..3 {
-            min[axis] = min[axis].min(vertex.position[axis]);
-            max[axis] = max[axis].max(vertex.position[axis]);
-        }
-        is_planar &= vertex.position[2] == 0.0;
-    }
-    (RenderMeshBounds::from_min_max(min, max), is_planar)
+    let bounds =
+        RenderMeshBounds::try_from_positions(vertices.iter().map(|vertex| vertex.position))
+            .unwrap_or_else(RenderMeshBounds::invalid);
+    let is_planar = vertices.iter().all(|vertex| vertex.position[2] == 0.0);
+    (bounds, is_planar)
 }
 
 #[cfg(test)]

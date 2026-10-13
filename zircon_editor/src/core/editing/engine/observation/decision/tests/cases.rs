@@ -9,10 +9,22 @@ use crate::core::editing::engine::{
 };
 use crate::core::play::{PlayInstanceId, WorldDomain};
 
-struct Context(Arc<AtomicU64>);
+struct Context {
+    route_generation: Arc<AtomicU64>,
+    activations: AtomicU64,
+}
+
+impl Context {
+    fn new(route_generation: Arc<AtomicU64>) -> Self {
+        Self {
+            route_generation,
+            activations: AtomicU64::new(0),
+        }
+    }
+}
 impl EditContext for Context {
     fn capture_world_route(&self, domain: WorldDomain) -> Result<EditWorldRoute, EditCommandError> {
-        if self.0.load(Ordering::SeqCst) == u64::MAX {
+        if self.route_generation.load(Ordering::SeqCst) == u64::MAX {
             return Err(EditCommandError::WorldRouteUnavailable {
                 world_domain: domain,
             });
@@ -20,10 +32,11 @@ impl EditContext for Context {
         Ok(EditWorldRoute::runtime(
             domain,
             crate::core::gateway::GatewaySessionIdentity::detached()
-                .with_gateway_generation(self.0.load(Ordering::SeqCst)),
+                .with_gateway_generation(self.route_generation.load(Ordering::SeqCst)),
         ))
     }
     fn activate_world_route(&mut self, _: &EditWorldRoute) -> Result<(), EditCommandError> {
+        self.activations.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }
     fn retire_world_route(&mut self, _: WorldDomain) -> Result<(), EditCommandError> {
@@ -76,7 +89,14 @@ fn command(value: &Arc<AtomicI64>) -> Add {
     }
 }
 fn engine() -> EditorTransactionEngine {
-    EditorTransactionEngine::new(Context(Arc::new(AtomicU64::new(0))))
+    EditorTransactionEngine::new(Context::new(Arc::new(AtomicU64::new(0))))
+}
+
+fn activation_count(engine: &EditorTransactionEngine) -> u64 {
+    engine
+        .with_context::<Context, _>(|context| context.activations.load(Ordering::SeqCst))
+        .unwrap()
+        .unwrap()
 }
 fn update(
     engine: &EditorTransactionEngine,
@@ -185,7 +205,7 @@ fn decision_token_preserves_engine_history_and_world_identity() {
 #[test]
 fn decision_token_preserves_busy_fault_and_route_errors() {
     let unavailable = Arc::new(AtomicU64::new(0));
-    let engine = EditorTransactionEngine::new(Context(Arc::clone(&unavailable)));
+    let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&unavailable)));
     let h = HistoryContextId::Global;
     let value = Arc::new(AtomicI64::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
@@ -228,7 +248,7 @@ fn exhausted_apply_revision_rejects_before_world_mutation() {
 #[test]
 fn decision_token_detects_nested_commit_and_live_gateway_replacement() {
     let gateway_generation = Arc::new(AtomicU64::new(0));
-    let engine = EditorTransactionEngine::new(Context(Arc::clone(&gateway_generation)));
+    let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&gateway_generation)));
     let h = HistoryContextId::Global;
     let value = Arc::new(AtomicI64::new(0));
     let mut parent = engine.begin("parent", h).unwrap();
@@ -409,7 +429,7 @@ fn history_transition_rejects_canceled_dirty_and_missing_authorization_before_fl
 #[test]
 fn authorized_history_transition_rejects_stale_route_busy_fault_and_manual_scope() {
     let route = Arc::new(AtomicU64::new(0));
-    let engine = EditorTransactionEngine::new(Context(Arc::clone(&route)));
+    let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&route)));
     let h = HistoryContextId::Global;
     let value = Arc::new(AtomicI64::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
@@ -476,7 +496,7 @@ fn pending_flush_events_publish_only_after_exclusive_reservation_is_released() {
     }
     let committed = Arc::new(AtomicU64::new(0));
     let engine = EditorTransactionEngine::with_event_sink(
-        Context(Arc::new(AtomicU64::new(0))),
+        Context::new(Arc::new(AtomicU64::new(0))),
         Arc::new(Sink(Arc::clone(&committed))),
     );
     let h = HistoryContextId::Global;
@@ -527,7 +547,7 @@ fn authorized_flush_failure_preserves_pending_scope_and_decision() {
 #[test]
 fn fresh_decision_does_not_authorize_a_pending_scope_pinned_to_a_stale_route() {
     let route = Arc::new(AtomicU64::new(0));
-    let engine = EditorTransactionEngine::new(Context(Arc::clone(&route)));
+    let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&route)));
     let h = HistoryContextId::Global;
     let value = Arc::new(AtomicI64::new(0));
     let id = update(&engine, h, MergeMode::Disable, &value);
@@ -692,4 +712,157 @@ fn typed_preparation_failure_and_context_mismatch_leave_pending_decision_unchang
     assert_eq!(engine.history_status(h).unwrap().len, 0);
     assert_eq!(value.load(Ordering::SeqCst), 1);
     engine.cancel(id).unwrap();
+}
+
+#[test]
+fn history_route_admission_rejects_replacement_before_mutating_retained_history() {
+    for h in [
+        HistoryContextId::Global,
+        HistoryContextId::Document(DocumentId::new(63)),
+    ] {
+        for undone in [false, true] {
+            let route = Arc::new(AtomicU64::new(0));
+            let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&route)));
+            let value = Arc::new(AtomicI64::new(0));
+            let mut seed = engine.begin("seed old route", h).unwrap();
+            seed.push(command(&value)).unwrap();
+            seed.commit().unwrap();
+            if undone {
+                assert!(engine.undo(h).unwrap());
+            }
+            let before = engine.history_status(h).unwrap();
+            let dirty_before = engine.dirty_states_since(None).unwrap();
+            let next_transaction = engine.lock_state().next_transaction;
+            let before_activations = activation_count(&engine);
+            assert!(before_activations > 0);
+            let old_route = engine.lock_state().histories[&h]
+                .world_route()
+                .unwrap()
+                .unwrap()
+                .clone();
+            route.store(1, Ordering::SeqCst);
+
+            assert!(matches!(
+                engine.begin("replacement world edit", h),
+                Err(EditCommandError::WorldRouteStale {
+                    world_domain: WorldDomain::Edit
+                })
+            ));
+            assert!(matches!(
+                engine.execute_operation(
+                    "replacement world operation",
+                    h,
+                    Some("replacement"),
+                    MergeMode::Disable,
+                    Box::new(command(&value))
+                ),
+                Err(EditCommandError::WorldRouteStale { .. })
+            ));
+            assert!(engine.lock_state().operation_group.is_none());
+            assert_eq!(activation_count(&engine), before_activations);
+            assert_eq!(engine.history_status(h).unwrap(), before);
+            assert_eq!(engine.lock_state().next_transaction, next_transaction);
+            assert!(engine.lock_state().active.is_empty());
+            assert_eq!(value.load(Ordering::SeqCst), i64::from(!undone));
+            assert_eq!(
+                engine
+                    .dirty_states_since(Some(dirty_before.cursor()))
+                    .unwrap()
+                    .kind(),
+                HistoryDirtyBatchKind::Unchanged
+            );
+            assert_eq!(
+                engine.lock_state().histories[&h].world_route().unwrap(),
+                Some(&old_route)
+            );
+
+            route.store(0, Ordering::SeqCst);
+            if undone {
+                assert!(engine.redo(h).unwrap());
+            }
+            let mut same_route = engine.begin("old route remains usable", h).unwrap();
+            same_route.push(command(&value)).unwrap();
+            same_route.commit().unwrap();
+            assert_eq!(value.load(Ordering::SeqCst), 2);
+            assert!(engine.undo(h).unwrap());
+            assert!(engine.undo(h).unwrap());
+            assert_eq!(value.load(Ordering::SeqCst), 0);
+        }
+    }
+}
+
+#[test]
+fn history_route_admission_preserves_nested_transactions_on_the_parent_route() {
+    let engine = engine();
+    let h = HistoryContextId::Global;
+    let value = Arc::new(AtomicI64::new(0));
+    let mut seed = engine.begin("seed", h).unwrap();
+    seed.push(command(&value)).unwrap();
+    seed.commit().unwrap();
+    let old_route = engine.lock_state().histories[&h]
+        .world_route()
+        .unwrap()
+        .unwrap()
+        .clone();
+    let mut parent = engine.begin("parent", h).unwrap();
+    parent.push(command(&value)).unwrap();
+    let mut child = engine.begin("child", h).unwrap();
+    child.push(command(&value)).unwrap();
+    assert!(engine
+        .lock_state()
+        .active
+        .iter()
+        .all(|active| active.route == old_route));
+    child.commit().unwrap();
+    parent.commit().unwrap();
+    assert_eq!(engine.history_status(h).unwrap().len, 2);
+    assert_eq!(engine.history_generation_snapshot(h).unwrap(), 2);
+    assert_eq!(value.load(Ordering::SeqCst), 3);
+    assert!(engine.undo(h).unwrap());
+    assert_eq!(value.load(Ordering::SeqCst), 1);
+    assert!(engine.undo(h).unwrap());
+    assert_eq!(value.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn history_route_admission_accepts_replacement_after_clear_and_for_an_empty_store() {
+    for cleared in [false, true] {
+        let route = Arc::new(AtomicU64::new(0));
+        let engine = EditorTransactionEngine::new(Context::new(Arc::clone(&route)));
+        let h = HistoryContextId::Global;
+        let value = Arc::new(AtomicI64::new(0));
+        if cleared {
+            let mut seed = engine.begin("old route", h).unwrap();
+            seed.push(command(&value)).unwrap();
+            seed.commit().unwrap();
+            let mut transition = engine
+                .begin_exclusive_transition("clear old route")
+                .unwrap();
+            assert!(transition
+                .clear_history_and_context::<Context>(h, "Context", |_| Ok(()))
+                .unwrap());
+            drop(transition);
+        } else {
+            engine
+                .lock_state()
+                .histories
+                .insert(h, HistoryStore::new(128).unwrap());
+        }
+        value.store(0, Ordering::SeqCst);
+        route.store(1, Ordering::SeqCst);
+        let mut replacement = engine.begin("fresh route", h).unwrap();
+        replacement.push(command(&value)).unwrap();
+        replacement.commit().unwrap();
+        assert_eq!(engine.history_status(h).unwrap().len, 1);
+        assert_eq!(
+            engine.lock_state().histories[&h].world_route().unwrap(),
+            Some(
+                &Context::new(Arc::clone(&route))
+                    .capture_world_route(WorldDomain::Edit)
+                    .unwrap()
+            )
+        );
+        assert!(engine.undo(h).unwrap());
+        assert_eq!(value.load(Ordering::SeqCst), 0);
+    }
 }

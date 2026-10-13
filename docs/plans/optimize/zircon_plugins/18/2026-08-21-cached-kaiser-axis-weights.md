@@ -2,7 +2,7 @@
 
 - Date: 2026-08-21
 - Owner: `optimize-plugins18-kaiser-axis-weights-r1-01a00797-20260821`
-- Source plan: `docs/plans/optimize/zircon_plugins/18-first-party-texture-source-importer-runtime-editor-dist-catalog-image-cubemap-array-volume-compression-streaming-product-integration-review.md`, TEX-P1-026 and TEX-P1-027
+- Source plan: `docs/plans/optimize/zircon_plugins/18-first-party-texture-source-importer-runtime-editor-dist-catalog-image-cubemap-array-volume-compression-streaming.md`, TEX-P1-026 and TEX-P1-027
 - Status: implementation complete; combined managed validation pending
 
 ## Current-source convergence receipt

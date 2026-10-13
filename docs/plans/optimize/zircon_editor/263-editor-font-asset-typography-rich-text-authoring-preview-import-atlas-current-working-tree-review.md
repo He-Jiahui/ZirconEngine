@@ -12,7 +12,7 @@ supersedes_currentness_of:
 canonical_parent_owners:
   - docs/plans/optimize/zircon_editor/145-editor-ui-asset-hud-widget-binding-theme-icon-accessibility-menu-flow-font-atlas-authoring-current-source-review.md
   - docs/plans/optimize/zircon_runtime/201-runtime-text-font-document-shaping-layout-raster-atlas-render-authority-current-working-tree-review.md
-  - docs/plans/optimize/zircon_runtime/196-runtime-memory-allocation-domain-budget-oom-pressure-fragmentation-pooling-cache-residency-observability-product-integration-current-working-tree-review.md
+  - docs/plans/optimize/zircon_runtime/196-runtime-memory-allocation-domain-budget-oom-pressure-fragmentation-pooling-cache-residency-observability-product-integration.md
   - docs/plans/optimize/zircon_runtime/200-runtime-ui-surface-input-focus-pointer-capture-ime-accessibility-frame-authority-current-working-tree-review.md
 related_code:
   - zircon_editor/src/ui/asset_editor

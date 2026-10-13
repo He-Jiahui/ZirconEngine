@@ -82,49 +82,181 @@ def verify_sealed_capture(captured, manifest):
         raise ValueError("Sealed source inventory differs from the complete declared capture")
 
 
+def _reusable_sealed_capture(state, *, source_root, snapshot, repository_root,
+                             repository_id, approved, objects):
+    """Reuse only a complete captured input with its original producer binding."""
+    from tools.jenkins.source import require_sealed_consumer, repository_id as physical_repository_id
+    from tools.jenkins.source.external_inputs import sources, flattened, verify_objects
+    from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
+    from tools.jenkins.workflow import pools
+
+    # Execution records are small references. Do not load every historical
+    # sealed_input manifest merely to find the same complete capture.
+    for row in state.list("execution"):
+        execution = row["payload"]
+        if (execution.get("kind") != "management_owned_cargo"
+                or execution.get("repositoryId") != repository_id
+                or execution.get("sourceRoot") != str(source_root)
+                or execution.get("capturedSourceDigest") != snapshot["sourceDigest"]):
+            continue
+        producer = row["key"]
+        reference = execution.get("sealedInputRef")
+        session = execution.get("sessionId")
+        if (not producer.startswith("management-") or not isinstance(session, str) or not session
+                or not isinstance(reference, str) or not re.fullmatch(r"[0-9a-f]{64}", reference)
+                or execution.get("sourceDigest") != reference):
+            raise ValueError("Captured preparation producer identity differs")
+        previous = state.get("sealed_input", reference)
+        if not previous:
+            raise ValueError("Captured preparation sealed input is missing")
+        payload = previous["payload"]
+        build_root = payload.get("buildRoot")
+        if not isinstance(build_root, str) or not build_root:
+            raise ValueError("Captured preparation build root identity differs")
+        candidate_root = canonical_build_root(build_root)
+        if candidate_root.path != approved.path:
+            # A legal foreign store is not an input for the selected root.
+            # Check its physical binding without reading or copying its CAS.
+            foreign_objects = physical_path_under(candidate_root, payload.get("objectRoot", ""), allow_missing=False)
+            foreign_namespace = physical_path_under(candidate_root, candidate_root.namespace(), allow_missing=False)
+            if foreign_objects != foreign_namespace:
+                raise ValueError("Foreign preparation object namespace differs")
+            continue
+        captured = state.get("management_source", producer[len("management-"):])
+        if not captured or captured["payload"] != snapshot:
+            raise ValueError("Preparation producer differs from the complete captured input")
+        manifest = payload.get("sourceManifest")
+        if (payload.get("status") != "sealed" or payload.get("sourceDigest") != reference
+                or payload.get("repositoryId") != repository_id
+                or payload.get("repositoryRoot") != str(repository_root)
+                or not isinstance(manifest, Mapping) or payload.get("manifest") != manifest
+                or digest(manifest) != reference or manifest.get("schemaVersion") != 1
+                or manifest.get("repositoryId") != repository_id
+                or manifest.get("preparationKind") != "current-source"
+                or manifest.get("declaredDependencies") != []):
+            raise ValueError("Captured preparation sealed manifest differs")
+        coverage_digest = digest(payload.get("coverage"))
+        if (payload.get("coverageDigest") != coverage_digest
+                or manifest.get("validationCoverageDigest") != coverage_digest):
+            raise ValueError("Captured preparation coverage identity differs")
+        consumer = require_sealed_consumer(state, repository_id_value=repository_id,
+            session_id=session, owner=producer, source_digest=reference, manifest_digest=reference)["payload"]
+        binding = {"repositoryId": repository_id, "sessionId": session, "owner": producer,
+                   "sourceDigest": reference, "manifestDigest": reference}
+        if any(consumer.get(name) != value for name, value in binding.items()):
+            raise ValueError("Captured preparation producer consumer differs")
+        actual_objects = physical_path_under(approved, payload.get("objectRoot", ""), allow_missing=False)
+        expected_objects = physical_path_under(approved, objects, allow_missing=False)
+        if (actual_objects != expected_objects
+                or manifest.get("selectedObjectNamespace", str(expected_objects)) != str(expected_objects)):
+            raise ValueError("Captured preparation object namespace differs")
+
+        external = sources(manifest)
+        if len(external) != len(snapshot["externalRoots"]):
+            raise ValueError("Captured preparation external closure differs")
+        verify_sealed_capture(snapshot["source"], manifest)
+        for captured_external, sealed_external in zip(snapshot["externalRoots"], external):
+            root = Path(captured_external["path"])
+            dependency = sealed_external["manifest"]
+            if (root != repository_root.parent / "zr_vm"
+                    or sealed_external.get("repositoryRoot") != str(root)
+                    or dependency.get("schemaVersion") != 1
+                    or dependency.get("repositoryId") != physical_repository_id(root)
+                    or dependency.get("declaredDependencies") != []):
+                raise ValueError("Captured preparation external identity differs")
+            verify_sealed_capture(captured_external["source"], dependency)
+        # Validate original paths before prefixing them into the sibling layout.
+        # Then retain the formal physical-path and every-byte CAS checks before
+        # publishing any new metadata or consumer reference.
+        for value in [manifest, *[item["manifest"] for item in external]]:
+            if not isinstance(value.get("entries"), list):
+                raise ValueError("Captured preparation manifest entries differ")
+            for entry in value["entries"]:
+                if not isinstance(entry, Mapping):
+                    raise ValueError("Captured preparation manifest entry differs")
+                pools._relative(entry.get("path"))
+        verify_objects(manifest, actual_objects)
+        pools._manifest(flattened(manifest), actual_objects, approved)
+        return previous
+    return None
+
+
 def seal_source(state, *, source_root, snapshot, repository_root, repository_id,
                 session_id, owner, approved, coverage):
     """Publish exact captured bytes through the existing formal input CAS."""
     from tools.jenkins.source import PathClaim, seal_candidate, register_sealed_consumer, _thaw
     from tools.jenkins.source.external_inputs import KIND
+    from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
 
     started = time.perf_counter()
     source_root, repository_root = Path(source_root), Path(repository_root)
     if snapshot.get("sourceRoot") != str(source_root):
         raise ValueError("Captured source root differs")
     objects = approved.namespace()
-    # Seal the smaller foreign dependency before the large owned engine. Its
-    # mutable checkout is no longer an execution input after exact CAS sealing.
-    external = []
-    for item in snapshot["externalRoots"]:
-        root = Path(item["path"])
-        if root != repository_root.parent / "zr_vm":
-            raise ValueError("External source differs from the canonical zr_vm dependency")
-        captured = item["source"]
-        claims = [PathClaim(path, "dependency", 0, checksum, 0)
-                  for path, checksum in source_files(captured).items()]
-        print("[management] Sealing external input " + str(root), flush=True)
-        dependency = seal_candidate(root, claims, object_root=objects, base_head=captured["head"])
-        dependency_manifest = _thaw(dependency.payload)
-        verify_sealed_capture(captured, dependency_manifest)
-        external.append({"kind": KIND, "name": "zr_vm", "repositoryRoot": str(root),
-                         "manifest": dependency_manifest, "sourceDigest": dependency.source_digest})
-    engine = snapshot["source"]
-    claims = [PathClaim(path, owner, 0, checksum, 0, repository_id)
-              for path, checksum in source_files(engine).items()]
-    print("[management] Sealing owned input " + str(source_root), flush=True)
-    sealed = seal_candidate(source_root, claims, object_root=objects, base_head=engine["head"])
-    manifest = _thaw(sealed.payload)
-    verify_sealed_capture(engine, manifest)
-    manifest.update(repositoryId=repository_id, preparationKind="current-source",
-                    validationCoverageDigest=digest(coverage), external=external)
+    reusable = _reusable_sealed_capture(state, source_root=source_root, snapshot=snapshot,
+        repository_root=repository_root, repository_id=repository_id, approved=approved, objects=objects)
+    reused_reference = reusable["key"] if reusable else None
+    if reusable:
+        print("[management] Reusing verified captured input " + reused_reference, flush=True)
+        manifest = reusable["payload"]["sourceManifest"]
+        external = manifest["external"]
+    else:
+        # Seal the smaller foreign dependency before the large owned engine. Its
+        # mutable checkout is no longer an execution input after exact CAS sealing.
+        external = []
+        for item in snapshot["externalRoots"]:
+            root = Path(item["path"])
+            if root != repository_root.parent / "zr_vm":
+                raise ValueError("External source differs from the canonical zr_vm dependency")
+            captured = item["source"]
+            claims = [PathClaim(path, "dependency", 0, checksum, 0)
+                      for path, checksum in source_files(captured).items()]
+            print("[management] Sealing external input " + str(root), flush=True)
+            dependency = seal_candidate(root, claims, object_root=objects, base_head=captured["head"])
+            dependency_manifest = _thaw(dependency.payload)
+            verify_sealed_capture(captured, dependency_manifest)
+            external.append({"kind": KIND, "name": "zr_vm", "repositoryRoot": str(root),
+                             "manifest": dependency_manifest, "sourceDigest": dependency.source_digest})
+        engine = snapshot["source"]
+        claims = [PathClaim(path, owner, 0, checksum, 0, repository_id)
+                  for path, checksum in source_files(engine).items()]
+        print("[management] Sealing owned input " + str(source_root), flush=True)
+        sealed = seal_candidate(source_root, claims, object_root=objects, base_head=engine["head"])
+        manifest = _thaw(sealed.payload)
+        verify_sealed_capture(engine, manifest)
+    manifest = {**manifest, "repositoryId": repository_id, "preparationKind": "current-source",
+                "validationCoverageDigest": digest(coverage), "external": external}
     source_digest = digest(manifest)
+    previous = reusable if reused_reference == source_digest else state.get("sealed_input", source_digest)
+    if previous and reusable is None:
+        prior = previous["payload"]
+        prior_build = prior.get("buildRoot")
+        if not isinstance(prior_build, str) or not prior_build:
+            raise ValueError("Existing sealed build root identity differs")
+        prior_root = canonical_build_root(prior_build)
+        if prior_root.path != approved.path:
+            # The legacy digest is already bound to another physical store.
+            # Preserve it; only this cold input gains a namespace-bound identity.
+            if (prior.get("status") != "sealed" or prior.get("sourceDigest") != source_digest
+                    or prior.get("repositoryId") != repository_id
+                    or prior.get("repositoryRoot") != str(repository_root)
+                    or prior.get("sourceManifest") != manifest or prior.get("manifest") != manifest
+                    or digest(prior["sourceManifest"]) != source_digest
+                    or prior.get("coverage") != coverage or prior.get("coverageDigest") != digest(coverage)):
+                raise ValueError("Foreign sealed source collision differs")
+            prior_objects = physical_path_under(prior_root, prior.get("objectRoot", ""), allow_missing=False)
+            prior_namespace = physical_path_under(prior_root, prior_root.namespace(), allow_missing=False)
+            if (prior_objects != prior_namespace
+                    or manifest.get("selectedObjectNamespace", str(prior_namespace)) != str(prior_namespace)):
+                raise ValueError("Foreign sealed source namespace differs")
+            manifest = {**manifest, "selectedObjectNamespace": str(objects)}
+            source_digest = digest(manifest)
+            previous = state.get("sealed_input", source_digest)
     record = {"status": "sealed", "repositoryRoot": str(repository_root),
               "repositoryId": repository_id, "sourceDigest": source_digest,
               "sourceManifest": manifest, "manifest": manifest,
               "objectRoot": str(objects), "buildRoot": str(approved.path),
               "coverage": coverage, "coverageDigest": digest(coverage)}
-    previous = state.get("sealed_input", source_digest)
     if previous:
         if previous["payload"] != record:
             raise ValueError("Existing sealed source differs")
@@ -137,6 +269,7 @@ def seal_source(state, *, source_root, snapshot, repository_root, repository_id,
             "sourceRoot": str(source_root), "capturedSourceDigest": snapshot["sourceDigest"],
             "capturedInputVerified": True, "coverageDigest": digest(coverage),
             "metrics": {"elapsedSeconds": time.perf_counter() - started,
+                        "reused": reusable is not None, "reusedSealedInputRef": reused_reference,
                         "rootOrder": [value["repositoryRoot"] for value in external] + [str(source_root)],
                         "fileCount": sum(entry["status"] == "present" for entry in manifest["entries"])
                                      + sum(entry["status"] == "present" for value in external

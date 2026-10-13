@@ -19,6 +19,14 @@ pub(super) enum GameplayHostError {
         operation: &'static str,
         entity: EntityId,
     },
+    #[error(
+        "cannot convert world transform for entity {entity}: parent {parent} has a non-invertible world transform"
+    )]
+    NonInvertibleParentTransform { entity: EntityId, parent: EntityId },
+    #[error(
+        "cannot represent world transform for entity {entity} as local TRS under parent {parent}"
+    )]
+    NonRepresentableParentTransform { entity: EntityId, parent: EntityId },
 }
 
 impl GameplayHostError {

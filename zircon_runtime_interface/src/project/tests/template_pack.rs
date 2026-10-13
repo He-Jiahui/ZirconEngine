@@ -65,7 +65,7 @@ fn render_exposes_a_stable_qualified_template_descriptor() {
     );
     assert_eq!(
         first.descriptor.content_digest().to_string(),
-        "05e89a48fdf1499bbf94aed42dba19dcf7923ca058294a10a0bc469dd838e21b"
+        "846f8acc3b16253c4780f12fbf153b26e40fd35eef61326be87fcff73acc668a"
     );
     assert_eq!(
         project_template_descriptor(ProjectTemplateId::RenderableEmpty),
@@ -300,9 +300,9 @@ fn renderable_empty_scene_declares_a_static_cube_with_persisted_project_referenc
             .get("translation")
             .and_then(toml::Value::as_array),
         Some(&vec![
-            toml::Value::Float(21.0),
+            toml::Value::Float(0.0),
             toml::Value::Float(2.0),
-            toml::Value::Float(14.5),
+            toml::Value::Float(26.0),
         ]),
         "the default camera composition must preserve the runtime framing contract"
     );
@@ -311,12 +311,12 @@ fn renderable_empty_scene_declares_a_static_cube_with_persisted_project_referenc
             .get("rotation")
             .and_then(toml::Value::as_array),
         Some(&vec![
+            toml::Value::Float(-0.03837652),
             toml::Value::Float(0.0),
             toml::Value::Float(0.0),
-            toml::Value::Float(0.0),
-            toml::Value::Float(1.0),
+            toml::Value::Float(0.99926335),
         ]),
-        "the runtime framing contract uses an unrotated camera and a wide field of view"
+        "the runtime framing contract uses a slightly downward-pitched camera and a wide field of view"
     );
     let camera_settings = camera
         .get("camera")

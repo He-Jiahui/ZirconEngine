@@ -52,6 +52,7 @@ pub use runtime_system::{
     NET_DIAGNOSTIC_QUEUED_EVENTS, NET_EVENT_ID, NET_EVENT_SCHEMA, NET_FLUSH_EGRESS_SYSTEM,
     NET_MAIN_SYSTEM_SET, NET_POLL_INGRESS_SYSTEM, NET_TRANSPORT_SYSTEM_SET,
 };
+pub use runtime_state::NET_RUNTIME_EVENT_QUEUE_CAPACITY;
 pub use service_types::{DefaultNetManager, NetDriver, NetRuntimeManager};
 pub use transport::{
     certificate_pin_matches, certificate_sha256_pin, rustls_client_config,

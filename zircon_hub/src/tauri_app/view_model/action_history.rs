@@ -50,6 +50,7 @@ pub(crate) fn action_history_rows(
         .collect()
 }
 
+#[cfg(test)]
 fn action_history_row(
     record: &HubActionRecord,
     now_ms: u64,
@@ -75,13 +76,7 @@ fn action_history_row(
     );
 
     HubActionHistoryItem {
-        // BUG: [CR-HUBSTATE-0003] 同毫秒、同动作且同目标的两条记录得到重复编号，Web 唯一性校验会拒绝整个状态；证据：终态使用毫秒时钟且没有序列身份。
-        id: format!(
-            "{}:{}:{}",
-            record.finished_unix_ms,
-            record.action.id(),
-            record.target
-        ),
+        id: record.id.clone(),
         kind: record.action.id().to_string(),
         action: text.action_label(record.action).to_string(),
         status: text.action_status_label(record.status).to_string(),

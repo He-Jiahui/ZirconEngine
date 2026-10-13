@@ -454,14 +454,183 @@ fn tick_active_agents_with_lod_inner(
         requests
     };
     let mut reports = Vec::with_capacity(requests.len());
-    // BUG: [CR-AI-MANAGER-0001] 前面已清零全部入选代理的累计时长；任一 tick 报错会使后续请求丢失该时长。
-    for request in requests {
-        let report = if let Some(host) = integration_host.as_mut() {
-            tick_agent_with_source(manager, request, true, Some(&mut **host))?
+    let mut requests = requests.into_iter();
+    while let Some(request) = requests.next() {
+        let result = if let Some(host) = integration_host.as_mut() {
+            tick_agent_with_source(manager, request, true, Some(&mut **host))
         } else {
-            tick_agent_with_source(manager, request, true, None)?
+            tick_agent_with_source(manager, request, true, None)
         };
-        reports.push(report);
+        match result {
+            Ok(report) => reports.push(report),
+            Err(error) => {
+                // Restore elapsed time for requests that never reached the executor.
+                let mut state = manager
+                    .state
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                for unprocessed in requests {
+                    if let Some(active) = state
+                        .active_behavior_trees
+                        .get_mut(&(unprocessed.world, unprocessed.entity))
+                    {
+                        active.pending_delta_seconds += unprocessed.delta_seconds;
+                    }
+                }
+                return Err(error);
+            }
+        }
     }
     Ok(reports)
+}
+
+#[cfg(test)]
+mod pending_delta_tests {
+    use std::sync::Mutex;
+
+    use zircon_runtime::core::framework::ai::{
+        AiBehaviorNodeDescriptor, AiBehaviorNodeKind, AiBehaviorTreeDescriptor, AiBlackboardEntry,
+        AiBlackboardValue,
+    };
+    use zircon_runtime::core::framework::scene::WorldHandle;
+    use zircon_runtime::plugin::PluginModuleId;
+
+    use crate::behavior_tree::{
+        BehaviorNodeCatalog, BehaviorNodeCategory, BehaviorNodeDescriptor, BehaviorNodeRuntime,
+        BehaviorNodeSemantics, BehaviorNodeTickContext,
+    };
+    use crate::manager::state::{ActiveBehaviorAgent, AgentBlackboard};
+    use crate::AiBehaviorTickLod;
+
+    use super::{
+        tick_active_agents_with_lod, AiDecisionStatus, AiManagerError, BehaviorTreeInstanceState,
+    };
+    use crate::DefaultAiManager;
+
+    static OBSERVED_DELTAS: Mutex<Vec<f32>> = Mutex::new(Vec::new());
+
+    #[derive(Debug)]
+    struct CaptureDelta;
+
+    impl BehaviorNodeRuntime for CaptureDelta {
+        fn tick(&mut self, context: &BehaviorNodeTickContext<'_>) -> AiDecisionStatus {
+            OBSERVED_DELTAS
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .push(context.delta_seconds());
+            AiDecisionStatus::Running
+        }
+    }
+
+    fn capture_delta_factory() -> Box<dyn BehaviorNodeRuntime> {
+        Box::new(CaptureDelta)
+    }
+
+    #[test]
+    fn failed_agent_preserves_only_later_unprocessed_agent_delta() {
+        OBSERVED_DELTAS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clear();
+
+        let mut catalog = BehaviorNodeCatalog::with_standard_nodes().expect("standard nodes");
+        catalog
+            .add_node(
+                PluginModuleId::from_raw(97),
+                BehaviorNodeDescriptor::new(
+                    "test.capture_delta",
+                    "Capture Delta",
+                    BehaviorNodeCategory::Task,
+                    BehaviorNodeSemantics::External,
+                )
+                .with_factory(capture_delta_factory),
+            )
+            .expect("capture delta node");
+        let manager = DefaultAiManager::with_behavior_node_catalog(catalog);
+        let tree = manager
+            .register_behavior_tree(
+                AiBehaviorTreeDescriptor::new("delta", "Delta", "root").with_node(
+                    AiBehaviorNodeDescriptor::new("root", AiBehaviorNodeKind::Task, "Root")
+                        .with_implementation("test.capture_delta"),
+                ),
+            )
+            .expect("tree registration");
+        let world = WorldHandle::new(10);
+        {
+            let mut state = manager.lock_state();
+            for entity in [101, 202] {
+                state.active_behavior_trees.insert(
+                    (world, entity),
+                    ActiveBehaviorAgent {
+                        behavior_tree: tree,
+                        blackboard_schema: None,
+                        pending_delta_seconds: 0.0,
+                    },
+                );
+                state
+                    .behavior_tree_instances
+                    .insert((world, entity), BehaviorTreeInstanceState::default());
+            }
+            // Select the first key in the same map traversal used to build tick requests.
+            let failing_entity = state
+                .active_behavior_trees
+                .keys()
+                .find_map(|(candidate_world, entity)| {
+                    (*candidate_world == world).then_some(*entity)
+                })
+                .expect("active agent");
+            state.blackboards.insert(
+                (world, failing_entity),
+                AgentBlackboard::Dynamic(vec![
+                    AiBlackboardEntry::new("duplicate", AiBlackboardValue::Bool(true)),
+                    AiBlackboardEntry::new("duplicate", AiBlackboardValue::Bool(false)),
+                ]),
+            );
+        }
+
+        let error =
+            tick_active_agents_with_lod(&manager, world, 0.2, 1, |_| AiBehaviorTickLod::Full)
+                .expect_err("duplicate stored blackboard entry must fail the first tick");
+        assert!(matches!(
+            error,
+            AiManagerError::DuplicateBlackboardEntry { .. }
+        ));
+
+        let state = manager.lock_state();
+        let entries = state
+            .active_behavior_trees
+            .iter()
+            .filter(|((candidate_world, _), _)| *candidate_world == world)
+            .map(|((_, entity), agent)| (*entity, agent.pending_delta_seconds))
+            .collect::<Vec<_>>();
+        assert_eq!(entries.iter().filter(|(_, delta)| *delta == 0.2).count(), 1);
+        assert_eq!(entries.iter().filter(|(_, delta)| *delta == 0.0).count(), 1);
+        let failing_entity = state
+            .blackboards
+            .iter()
+            .find_map(|((candidate_world, entity), blackboard)| {
+                (*candidate_world == world
+                    && matches!(blackboard, AgentBlackboard::Dynamic(entries) if entries.len() == 2))
+                    .then_some(*entity)
+            })
+            .expect("failing agent blackboard remains intact");
+        drop(state);
+
+        manager
+            .lock_state()
+            .blackboards
+            .remove(&(world, failing_entity));
+        tick_active_agents_with_lod(&manager, world, 0.3, 2, |_| AiBehaviorTickLod::Full)
+            .expect("following tick succeeds");
+
+        let observed = OBSERVED_DELTAS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        assert!(observed
+            .iter()
+            .any(|delta| (*delta - 0.5).abs() < f32::EPSILON));
+        assert!(observed
+            .iter()
+            .any(|delta| (*delta - 0.3).abs() < f32::EPSILON));
+    }
 }

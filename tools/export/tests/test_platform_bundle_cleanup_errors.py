@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,9 +13,118 @@ from tools.export.tests.export_test_support import (
     _run_platform_bundle_quiet,
     json_loads,
 )
+from tools.export.platform_bundle_materialize import remove_platform_bundle_dir
+from tools.export.cli_arguments import parse_args
 
 
 class PlatformBundleCleanupErrorsTests(unittest.TestCase):
+    def test_export_cli_rejects_unsafe_profile_names(self) -> None:
+        for profile in ("../outside", "C:\\outside", "C:relative", "/tmp/out", "nul", "COM1"):
+            with self.subTest(profile=profile), self.assertRaises(SystemExit):
+                parse_args(["--profile", profile])
+
+        for profile in ("windows-release", "editor_2"):
+            with self.subTest(profile=profile):
+                self.assertEqual(parse_args(["--profile", profile]).profile, profile)
+
+    def test_bundle_cleanup_rejects_profile_traversal_and_preserves_outside(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            out = root / "out"
+            outside = root / "sentinel"
+            outside.mkdir()
+            (outside / "keep.txt").write_text("keep", encoding="utf-8")
+            diagnostics: list[str] = []
+
+            removed = remove_platform_bundle_dir(
+                "test bundle cleanup", outside, out, "../sentinel", diagnostics
+            )
+
+            self.assertFalse(removed)
+            self.assertTrue((outside / "keep.txt").exists())
+            self.assertTrue(any("invalid export profile" in item for item in diagnostics))
+
+    def test_bundle_cleanup_rejects_symlinked_output_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            real_out = root / "real-out"
+            target = real_out / "bundle" / "release"
+            target.mkdir(parents=True)
+            sentinel = target / "keep.txt"
+            sentinel.write_text("keep", encoding="utf-8")
+            linked_out = root / "linked-out"
+            try:
+                linked_out.symlink_to(real_out, target_is_directory=True)
+            except OSError as error:
+                self.skipTest(f"could not create required directory symlink: {error}")
+            diagnostics: list[str] = []
+
+            removed = remove_platform_bundle_dir(
+                "test bundle cleanup", linked_out / "bundle" / "release", linked_out, "release", diagnostics
+            )
+
+            self.assertFalse(removed)
+            self.assertTrue(sentinel.exists())
+            self.assertTrue(any("symlink or reparse point" in item for item in diagnostics))
+
+    def test_bundle_cleanup_rejects_junctioned_output_root(self) -> None:
+        if os.name != "nt":
+            self.skipTest("directory junction regression requires Windows")
+        cmd = shutil.which("cmd.exe")
+        if cmd is None:
+            self.fail("cmd.exe is unavailable on Windows; cannot run the directory junction regression")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            real_out = root / "real-out"
+            target = real_out / "bundle" / "release"
+            target.mkdir(parents=True)
+            sentinel = target / "keep.txt"
+            sentinel.write_text("keep", encoding="utf-8")
+            linked_out = root / "linked-out"
+            command = (
+                f'{subprocess.list2cmdline([cmd])} /d /c '
+                f'mklink /J "{linked_out}" "{real_out}"'
+            )
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+            )
+            if result.returncode != 0 or not linked_out.is_dir():
+                detail = result.stderr.strip() or result.stdout.strip() or "no command output"
+                if result.returncode in (5, 1314):
+                    self.skipTest(
+                        f"Windows denied directory junction creation "
+                        f"(exit {result.returncode}): {detail}"
+                    )
+                self.fail(
+                    f"Windows mklink /J failed to create a directory junction "
+                    f"(exit {result.returncode}): {detail}"
+                )
+
+            try:
+                diagnostics: list[str] = []
+                removed = remove_platform_bundle_dir(
+                    "test bundle cleanup",
+                    linked_out / "bundle" / "release",
+                    linked_out,
+                    "release",
+                    diagnostics,
+                )
+
+                self.assertFalse(removed)
+                self.assertTrue(sentinel.exists(), "cleanup must preserve the real target sentinel")
+                self.assertTrue(
+                    any("symlink or reparse point" in item for item in diagnostics),
+                    diagnostics,
+                )
+            finally:
+                linked_out.rmdir()
+
     def test_platform_bundle_rejects_stale_bundle_cleanup_error(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

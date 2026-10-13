@@ -5,9 +5,9 @@ scope:
   - zircon_plugins/texture
 status: static_complete_product_and_dynamic_pending
 canonical_owners:
-  - docs/plans/optimize/zircon_plugins/18-first-party-texture-source-importer-runtime-editor-dist-catalog-image-cubemap-array-volume-compression-streaming-product-integration-review.md
+  - docs/plans/optimize/zircon_plugins/18-first-party-texture-source-importer-runtime-editor-dist-catalog-image-cubemap-array-volume-compression-streaming.md
   - docs/plans/optimize/zircon_editor/35-texture-image-cubemap-render-target-sampler-compression-streaming-preview-authoring-review.md
-  - docs/plans/optimize/zircon_runtime/92-runtime-texture-image-cubemap-array-volume-format-sampler-mip-compression-upload-streaming-residency-budget-eviction-virtual-texture-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/92-runtime-texture-image-cubemap-array-volume-format-sampler-mip-compression-upload-streaming-residency-budget-eviction-virtual-texture.md
 references:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/TextureDerivedDataTask.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Streaming/AsyncTextureStreaming.cpp

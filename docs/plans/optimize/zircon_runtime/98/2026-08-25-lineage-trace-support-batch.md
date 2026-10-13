@@ -1,4 +1,4 @@
-Plan: docs/plans/optimize/zircon_runtime/98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md
+Plan: docs/plans/optimize/zircon_runtime/98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache.md
 Milestone: M1
 Status: validation_pending
 Files: ["zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support.rs", "zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_trace_support/performance_tests.rs", "tools/tests/test_runtime98_lineage_trace_support_performance_contract.py"]

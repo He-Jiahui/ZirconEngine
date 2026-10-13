@@ -4,7 +4,7 @@ status: open
 created_at: 2026-08-24
 summary_slug: rhi-surface-allocator-borrow-compile
 origin_plan: docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
-fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
 origin_child_dir: docs/plans/zircon_editor/editor/17
 fixing_child_dir: docs/plans/optimize/zircon_runtime/90
 plan_link_mode: child_record_only
@@ -23,7 +23,7 @@ tests:
 
 - 来源计划：`docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md`
 - 来源执行切片：P1-10 durable transaction journal current-source managed validation
-- 修复责任计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md`
+- 修复责任计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md`
 - 交接原因：失败发生在 editor journal 进入编译前的共享 `zr_rhi` surface handle allocator；Runtime90 明确拥有 RHI surface/device integration，Editor17 不能在上层规避或修改该所有者。
 
 ## 失败现象与复现证据

@@ -29,6 +29,7 @@ KIND = "formal-lost-recovery-runtime-interruption"
 VARIANT = "lost-recovery-runtime"
 SAME_BOOT_VARIANT = "departed-committed-recovery-runtime"
 _ISSUED = object()
+_RUNTIME_WAIT_SECONDS = 60.0
 _FLAGS = ("nativeProofIssued", "nativeTerminationProven", "historicalEofClaimed",
           "nativeProofSynthesized", "bootBoundaryClaimed", "runtimeAcceptance", "cargoAcceptance",
           "historicalHoldsReleased", "executionHoldsReleaseAllowed", "validationAcceptanceAllowed",
@@ -42,6 +43,21 @@ _POINTERS = {"originalCommand": "recovery-lifecycle/command.json",
 def _require(condition, message, code="lost_recovery_runtime_unproven"):
     if not condition:
         raise JenkinsError(code, message, retryable=True)
+
+
+class _RuntimeOwnerBusy(JenkinsError):
+    """Only a positively observed native owner permits another read-only try."""
+
+    def __init__(self, owners):
+        super().__init__("lost_recovery_runtime_unproven", "A repository runtime still may own Jenkins Home",
+                         retryable=True, details={"runtimeOwnerInventory": owners})
+
+
+def _clear_runtime_inventory(repository):
+    owners = runtime_owner_inventory(repository)
+    if owners:
+        raise _RuntimeOwnerBusy(owners)
+    return owners
 
 
 def _ref(path, raw=None):
@@ -500,7 +516,7 @@ def _replacement(state, transition, recovery_digest):
     _artifact(state, transition["interruption"])
 
 
-def _capture(manager, request_id, scope, command_ref=None, descriptor_ref=None, transition=None, recovery_digest=None):
+def _capture_once(manager, request_id, scope, command_ref=None, descriptor_ref=None, transition=None, recovery_digest=None):
     from .owned_upgrade import _historical_release
     repo, state, home = (manager.paths.repo.absolute(), manager.paths.state.absolute(), manager.paths.home.absolute())
     _require(state == repo / ".jenkins/state" and home == repo / ".jenkins/jenkins_home"
@@ -639,8 +655,7 @@ def _capture(manager, request_id, scope, command_ref=None, descriptor_ref=None, 
                  and all(int(value["creationTime"]) < int(boot) for value in identities.values()),
                  "Only a genuine newer Windows boot beyond every original native birth permits interruption")
     departed = {key: _departure(value) for key, value in identities.items()}
-    inventory = runtime_owner_inventory(repo)
-    _require(inventory == [], "A repository runtime still may own Jenkins Home")
+    inventory = _clear_runtime_inventory(repo)
     owner = {"operation": {key: operation[key] for key in
              ("operationId", "generation", "hostPid", "homePath", "component", "controlPlaneOnly")},
              **{key: identities[key] for key in ("supervisor", "controller", "agent")}}
@@ -649,8 +664,9 @@ def _capture(manager, request_id, scope, command_ref=None, descriptor_ref=None, 
     policy, observation = _home_policy(home, scope), observe_home_available(home)
     endpoint = {"address": manager.spec.controller["listenAddress"], "port": int(manager.spec.controller["httpPort"])}
     check_port_available(endpoint["address"], endpoint["port"])
-    _require(str(windows_boot_filetime()) == boot and runtime_owner_inventory(repo) == inventory
-             and _lifecycle_fence(manager) == fence, "Boot, execution quarantine, Home or lifecycle changed during review")
+    _require(str(windows_boot_filetime()) == boot and _lifecycle_fence(manager) == fence,
+             "Boot, execution quarantine, Home or lifecycle changed during review")
+    _clear_runtime_inventory(repo)
     latest_execution = _execution_gate(manager, owner, selected, descriptor["protectedHolds"], boot, same_boot=committed)
     _require(canonical_json(_execution_comparison(latest_execution)) == canonical_json(_execution_comparison(execution))
              and _home_policy(home, scope) == policy, "Boot, execution quarantine, Home or lifecycle changed during review")
@@ -662,8 +678,8 @@ def _capture(manager, request_id, scope, command_ref=None, descriptor_ref=None, 
                  "Management quarantine or original recovery deliveries changed during review")
         management = latest_management
         departed = {key: _departure(value) for key, value in identities.items()}
-        _require(str(windows_boot_filetime()) == boot and runtime_owner_inventory(repo) == inventory,
-                 "Same-boot native ownership changed before interruption")
+        _require(str(windows_boot_filetime()) == boot, "Same-boot native ownership changed before interruption")
+        _clear_runtime_inventory(repo)
     for name, (reference, raw) in artifacts.items():
         if name == "originalCommand" and transition is not None:
             _replacement(state, transition, recovery_digest)
@@ -684,6 +700,26 @@ def _capture(manager, request_id, scope, command_ref=None, descriptor_ref=None, 
             **({"containmentReview": containment, "managementQuarantine": management,
                 "recoveryDeliveryInventory": deliveries} if committed else {}),
             **{name: False for name in _FLAGS}}, artifacts
+
+
+def _capture(manager, request_id, scope, command_ref=None, descriptor_ref=None, transition=None, recovery_digest=None):
+    """Wait for transient users without replaying a command or excluding owners.
+
+    Every retry starts the complete original review again. Unknown/inaccessible
+    identities, changed evidence and occupied Home files never enter this wait.
+    """
+    deadline = time.monotonic() + _RUNTIME_WAIT_SECONDS
+    boot, fence = str(windows_boot_filetime()), _lifecycle_fence(manager)
+    while True:
+        _require(str(windows_boot_filetime()) == boot and _lifecycle_fence(manager) == fence,
+                 "Boot or lifecycle changed while waiting for repository runtime departure")
+        try:
+            return _capture_once(manager, request_id, scope, command_ref, descriptor_ref, transition, recovery_digest)
+        except _RuntimeOwnerBusy:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise
+            time.sleep(min(.25, remaining))
 
 
 @dataclass(frozen=True, init=False)

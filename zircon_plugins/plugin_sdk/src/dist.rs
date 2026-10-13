@@ -93,7 +93,6 @@ macro_rules! native_dist_plugin_v3 {
         const __ZIRCON_NATIVE_DIST_RUNTIME_BRIDGE_METHOD_COUNT_V3: usize =
             <[()]>::len(&[$({
                 let _ = $runtime_bridge_method_name;
-                ()
             }),*]);
         static __ZIRCON_NATIVE_DIST_RUNTIME_BRIDGE_METHODS_V3: $crate::native::NativePluginStatic<
             [$crate::native::NativePluginBridgeMethodV3;

@@ -686,6 +686,7 @@ fn late_factory_object_drop_settles_before_initialization_claim_allows_cleanup()
 }
 
 #[test]
+#[cfg(feature = "text")]
 fn registered_text_cleanup_keeps_draining_family_and_same_generation_for_retry() {
     use crate::core::manager::RegisteredManagerService;
     use crate::engine_module::EngineModule;

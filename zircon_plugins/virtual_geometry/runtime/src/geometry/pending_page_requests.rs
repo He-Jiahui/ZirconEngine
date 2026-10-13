@@ -1,4 +1,7 @@
-use std::{cmp::Reverse, collections::BTreeMap};
+use std::{
+    cmp::Reverse,
+    collections::{BTreeMap, HashSet},
+};
 
 use crate::virtual_geometry::VirtualGeometryPrepareRequest;
 
@@ -121,11 +124,14 @@ fn preferred_recycled_page_id(state: &VirtualGeometryRuntimeState, page_id: u32)
     state.preferred_evictable_page_for_target(page_id, state.evictable_page_ids())
 }
 
-// BUG: [CR-VIRTUAL-GEOMETRY-0003] cooked 页依赖若含 3→1→2→1 环且仅页 3 待上传，父链遍历永不终止，prepare_frame 卡住；见 extract_registration.rs:76-107。
 fn has_pending_ancestor_request(state: &VirtualGeometryRuntimeState, page_id: u32) -> bool {
     let mut current_page_id = page_id;
+    let mut visited = HashSet::new();
 
     while let Some(parent_page_id) = state.page_parent_pages().get(&current_page_id).copied() {
+        if !visited.insert(parent_page_id) {
+            return false;
+        }
         if state.has_pending_page(parent_page_id) {
             return true;
         }
@@ -150,8 +156,12 @@ fn descendant_count(state: &VirtualGeometryRuntimeState, page_id: u32) -> usize 
 fn page_depth(state: &VirtualGeometryRuntimeState, page_id: u32) -> usize {
     let mut depth = 0usize;
     let mut current_page_id = page_id;
+    let mut visited = HashSet::new();
 
     while let Some(parent_page_id) = state.page_parent_pages().get(&current_page_id).copied() {
+        if !visited.insert(parent_page_id) {
+            break;
+        }
         depth += 1;
         current_page_id = parent_page_id;
     }

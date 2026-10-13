@@ -11,7 +11,8 @@ mod stage;
 
 pub use artifact::{ExportArtifactRef, ExportDigest, ExportStageIo};
 pub use preset::{
-    load_export_preset, ExportCookCompression, ExportCookOptions, ExportFileMode,
+    load_export_preset, valid_export_profile_name, ExportCookCompression, ExportCookOptions,
+    ExportFileMode,
     ExportPluginSubset, ExportPreset, ExportPresetLoadError, ExportPresetValidationError,
     ExportTargetMode,
 };

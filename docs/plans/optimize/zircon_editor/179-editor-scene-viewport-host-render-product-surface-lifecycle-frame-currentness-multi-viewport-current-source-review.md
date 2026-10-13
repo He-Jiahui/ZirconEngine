@@ -52,7 +52,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/09b-renderer-visibility-gpu-scene-review.md
   - docs/plans/optimize/zircon_runtime/11c-gpu-ui-renderer-atlas-sdf-batch-clip-submit-review.md
   - docs/plans/optimize/zircon_runtime/57-platform-host-window-registry-monitor-display-event-loop-application-lifecycle-surface-command-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/65-runtime-scalability-quality-profile-device-profile-capability-tier-dynamic-resolution-frame-budget-lod-feature-fallback-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/65-runtime-scalability-quality-profile-device-profile-capability-tier-dynamic-resolution-frame-budget-lod-feature-fallback.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Public/EditorViewportClient.h
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Private/SEditorViewport.cpp

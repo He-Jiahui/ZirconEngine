@@ -36,6 +36,22 @@ fn optimization_batch_20260830cl_pose_lookup_preserves_resolution_order() {
 }
 
 #[test]
+fn skeleton_bone_path_rejects_parent_cycles_and_invalid_indices() {
+    let cycle = AnimationSkeletonAsset {
+        name: None,
+        bones: vec![bone("a", Some(1)), bone("b", Some(0))],
+    };
+    assert_eq!(skeleton_bone_path(&cycle, 0), None);
+    assert_eq!(skeleton_bone_path(&cycle, 1), None);
+
+    let invalid_parent = AnimationSkeletonAsset {
+        name: None,
+        bones: vec![bone("orphan", Some(u32::MAX))],
+    };
+    assert_eq!(skeleton_bone_path(&invalid_parent, 0), None);
+}
+
+#[test]
 fn optimization_batch_20260830cl_pose_lookup_is_adaptive() {
     assert!(!should_index_bone_lookup(16, 16));
     assert!(!should_index_bone_lookup(32, 32));

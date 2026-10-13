@@ -121,6 +121,45 @@ fn mesh_asset_bounds_can_be_read_without_render_descriptor() {
 }
 
 #[test]
+fn mesh_asset_rejects_non_finite_positions_before_bounds_or_descriptor_use() {
+    let mut attributes = triangle_attributes();
+    attributes.insert(
+        MESH_ATTRIBUTE_POSITION.to_string(),
+        MeshAttributeValues::Float32x3(vec![
+            [0.0, 0.0, 0.0],
+            [f32::NAN, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+        ]),
+    );
+    let mesh = MeshAsset {
+        uri: AssetUri::parse("res://meshes/non-finite-bounds.zmesh").unwrap(),
+        topology: RenderMeshTopology::TriangleList,
+        attributes,
+        indices: Some(MeshIndices::U32(vec![0, 1, 2])),
+        asset_usage: Default::default(),
+        morph_targets: Vec::new(),
+        skin: None,
+        mesh_sdf: None,
+        virtual_geometry: None,
+    };
+
+    assert_eq!(
+        mesh.bounds().unwrap_err(),
+        MeshValidationError::NonFinitePosition {
+            vertex_index: 1,
+            axis: 0,
+        }
+    );
+    assert_eq!(
+        mesh.try_render_mesh_descriptor().unwrap_err(),
+        MeshValidationError::NonFinitePosition {
+            vertex_index: 1,
+            axis: 0,
+        }
+    );
+}
+
+#[test]
 fn mesh_asset_try_render_descriptor_reports_validation_errors() {
     let mut attributes = triangle_attributes();
     attributes.insert(

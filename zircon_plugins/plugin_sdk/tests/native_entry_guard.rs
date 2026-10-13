@@ -6,11 +6,11 @@ use zircon_plugin_sdk::native::{
 static REPORT: NativePluginStatic<NativePluginEntryReportV3> =
     NativePluginStatic::new(NativePluginEntryReportV3 {
         layout_epoch: native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
-        package_manifest_toml: b"\0".as_ptr().cast(),
-        diagnostics: b"ready\0".as_ptr().cast(),
-        negotiated_capabilities: b"\0".as_ptr().cast(),
-        required_capabilities: b"\0".as_ptr().cast(),
-        denied_capabilities: b"\0".as_ptr().cast(),
+        package_manifest_toml: c"".as_ptr(),
+        diagnostics: c"ready".as_ptr(),
+        negotiated_capabilities: c"".as_ptr(),
+        required_capabilities: c"".as_ptr(),
+        denied_capabilities: c"".as_ptr(),
         behavior: std::ptr::null(),
         bridge_methods: std::ptr::null(),
     });
@@ -42,7 +42,7 @@ fn host() -> NativePluginHostFunctionTableV3 {
     NativePluginHostFunctionTableV3 {
         abi_version: native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
         host_handle: 1,
-        granted_capabilities: b"\0".as_ptr().cast(),
+        granted_capabilities: c"".as_ptr(),
         host_abi_version: None,
         host_has_capability: None,
         host_log: None,
@@ -53,8 +53,8 @@ fn host() -> NativePluginHostFunctionTableV3 {
 #[test]
 fn normal_runtime_and_editor_entry_preserve_report_and_abi() {
     let host = host();
-    assert_eq!(normal_runtime_entry(&host), REPORT.as_ptr());
-    assert_eq!(normal_editor_entry(&host), REPORT.as_ptr());
+    assert_eq!(unsafe { normal_runtime_entry(&host) }, REPORT.as_ptr());
+    assert_eq!(unsafe { normal_editor_entry(&host) }, REPORT.as_ptr());
     assert_eq!(native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3, 3);
     assert_eq!(native::ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH, 5);
     assert_eq!(native::ZIRCON_NATIVE_PLUGIN_BEHAVIOR_ABI_VERSION_V4, 4);
@@ -62,13 +62,15 @@ fn normal_runtime_and_editor_entry_preserve_report_and_abi() {
 
 #[test]
 fn controlled_runtime_editor_and_expression_panics_return_null() {
-    assert!(
-        cfg!(panic = "unwind"),
-        "containment validation requires unwind profile; abort is not a skipped pass"
-    );
+    const {
+        assert!(
+            cfg!(panic = "unwind"),
+            "containment validation requires unwind profile; abort is not a skipped pass"
+        );
+    }
     let host = host();
-    assert!(panic_runtime_entry(&host).is_null());
-    assert!(panic_editor_entry(&host).is_null());
-    assert!(panic_expression_entry(&host).is_null());
-    assert_eq!(normal_runtime_entry(&host), REPORT.as_ptr());
+    assert!(unsafe { panic_runtime_entry(&host) }.is_null());
+    assert!(unsafe { panic_editor_entry(&host) }.is_null());
+    assert!(unsafe { panic_expression_entry(&host) }.is_null());
+    assert_eq!(unsafe { normal_runtime_entry(&host) }, REPORT.as_ptr());
 }

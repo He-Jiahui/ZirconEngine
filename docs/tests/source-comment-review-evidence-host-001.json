@@ -1,0 +1,987 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "host_review-001",
+  "checkout": "E:\\Git\\ZirconEngine",
+  "baseHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "reviewer": "/root/host_review",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "canonicalWriter": "host_review",
+  "agentDelivery": "delivered-to-/root",
+  "state": "awaiting-independent-review",
+  "sourcePins": [
+    {
+      "path": "zircon_runtime_interface/src/buffer.rs",
+      "sha256": "4b58a1cdd6ce17ebcbf50b394fb5cbfb1bee40e5279339f1848723106f6d7631",
+      "symbols": "ZrByteSlice::checked_slice; ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1 (4096); ZrRuntimePayloadLimitV1; ZrOwnedResultV2"
+    },
+    {
+      "path": "zircon_runtime_interface/src/world_sync/query.rs",
+      "sha256": "c78cc9c8542e4ee9fa291ff90594e9566fa3ee67981845c63c75749c998f3ffc",
+      "symbols": "WorldQueryResult actual bounded result variants"
+    },
+    {
+      "path": "zircon_runtime_interface/src/world_sync/invalidation.rs",
+      "sha256": "1fba81194fea08128c198b81200ae9cc93a82319518406623f28910568764510",
+      "symbols": "InvalidationBatch and paging/batch contract"
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",
+      "sha256": "ed31e8343b9b5520adb3d15b49725f6b67558dbfdd309a6d66d626f0e0709b1c",
+      "symbols": "operation output availability, ensure_call_succeeded/decode/propagation"
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+      "sha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+      "symbols": "App session Host state, output access, error propagation and viewport lifecycle"
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/runtime_session/surface_bindings.rs",
+      "sha256": "fff4bafb74bfe6ed02e6c6f3b4097a5b43dc38e182fe3247dd790c7adb5fa20c",
+      "symbols": "App begin_binding/begin_release/finish flow"
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_library/runtime_library_error.rs",
+      "sha256": "7b4f71766c6afc5575b7a35ed9a6d67f46a130736976e4de072cdce65b860f39",
+      "symbols": "RuntimeForeignOutputError category conversion; no fuse side effect"
+    },
+    {
+      "path": "zircon_editor/src/core/gateway/session/gateway.rs",
+      "sha256": "88faab5e235123154d281829f4a0fff212566e26a602cbabb62b44068336faec",
+      "symbols": "Editor gateway output state and ensure_call_succeeded/decode propagation"
+    },
+    {
+      "path": "zircon_editor/src/core/gateway/session/output.rs",
+      "sha256": "98ee9ed09a36d487422b0ff0727ca84d74bfb6554c30209edbf9c3e8cb97e789",
+      "symbols": "Editor shared output helpers, explicit protocol reject paths"
+    },
+    {
+      "path": "zircon_editor/src/core/gateway/error.rs",
+      "sha256": "a2bc51237897bc3f5c97f3351368d33afe907affafc69a9aa938d18ee09ac547",
+      "symbols": "Gateway error mapping for RuntimeForeignOutputError; no fuse side effect"
+    },
+    {
+      "path": "zircon_editor/src/core/gateway/session/viewport.rs",
+      "sha256": "70c31ab550a41a5ba0211675347cee520c3e741c8a123fab659bdde7666c99bc",
+      "symbols": "Editor begin_binding/begin_release/finish flow"
+    },
+    {
+      "path": "zircon_editor/src/core/gateway/session/operations.rs",
+      "sha256": "fb9f77b220222d7724f4a79d8df81508b9ce1903b662f32227975d14b770d8a8",
+      "symbols": "Editor operation response counter and error propagation"
+    },
+    {
+      "path": "zircon_editor/src/core/gateway/session/profile.rs",
+      "sha256": "d3883af70449a4bb30961ad915738672ed917ed1e690e8dec0f5e1aaaf60d381",
+      "symbols": "Editor ProfileControlResponse typed count/preflight path"
+    },
+    {
+      "path": "zircon_editor/src/core/gateway/session/world_sync.rs",
+      "sha256": "17544881d7d8c5b9ecee6a7ec53afe6be471b759b53567651efffbea380302da",
+      "symbols": "Editor WorldQuery and invalidation DTO/count flows"
+    },
+    {
+      "path": "zircon_editor/src/core/gateway/session/plugin_events.rs",
+      "sha256": "be0d4b9a780453ee81f3707ef07a9349780ea65d855d70d7020f882deb9c3518",
+      "symbols": "Editor plugin batch item count and output path"
+    }
+  ],
+  "files": [
+    {
+      "path": "zircon_runtime_host/src/foreign_output/budget.rs",
+      "beforeSha256": "24c05ed6447959158c44451c9ff6c1b958d8f027ad2e15486d1e1c5e526ccc68",
+      "afterSha256": "4f577ff75175d6268f0007359b7f5d82fc5f4348e256ab5fbf9a2d8015e28805",
+      "objectEvidence": [
+        {
+          "symbol": "RUNTIME_FOREIGN_OUTPUT_JSON_MAX_NESTING_DEPTH; RuntimeForeignOutputPreflight::{None,ProfileFiles}",
+          "kind": "constant/enum and variants",
+          "definition": "budget.rs#13-23",
+          "calls": "policy.rs profile/ordinary budgets; decode.rs preflight_json_graph",
+          "implementations": "None counts generic JSON/DTO budgets; ProfileFiles additionally tracks recognized profile collections",
+          "macroOrRegistrationOrFfi": "Private policy enum selected by budget constructors; no generated code or FFI here",
+          "testsOrContract": "cases.rs::nesting_and_total_decode_time_are_both_bounded and profile collection preflight cases; Interface nesting constant",
+          "blockEntryAndStateAndEffect": "Budget construction selects None; Profile policy causes file and known-item limits to be checked during syntax preflight; rejection is reported before typed DTO allocation.",
+          "commentDecision": "Added Chinese member descriptions; retained source comments.",
+          "constraintsAndLifecycle": "Nesting depth is shared Interface constant; private profile preflight only used for profile budget."
+        },
+        {
+          "symbol": "RuntimeForeignOutputBudget fields {max_encoded_bytes,max_items,max_decode_time,allow_empty,preflight}",
+          "kind": "struct and fields",
+          "definition": "budget.rs#37-48",
+          "calls": "decode.rs, item_count.rs through state.rs; policy constants",
+          "implementations": "Fields are copied value policy, not resource handles",
+          "macroOrRegistrationOrFfi": "Constructed from Interface ZrRuntimePayloadLimitV1 or caller-provided limits",
+          "testsOrContract": "budget validation functions and cases.rs budget boundary tests",
+          "blockEntryAndStateAndEffect": "The caller selects limits before decoding; allow_empty gates canonical empty output; preflight selects additional known profile collection checks.",
+          "commentDecision": "Added field explanations and type lifecycle/constraint docs.",
+          "constraintsAndLifecycle": "Budget Copy lifetime is independent of Runtime allocation; limits are caller specified in new, not promised to be narrower."
+        },
+        {
+          "symbol": "RuntimeForeignOutputBudget::{from_interface,new,allow_empty,preflight_profile_files,max_decode_time,validate_decode_duration,validate_encoded_len,validate_item_count}",
+          "kind": "impl methods",
+          "definition": "budget.rs#50-160",
+          "calls": "policy.rs constants; state.rs::decode_json; decode.rs::decode_bounded_json; cases.rs",
+          "implementations": "No trait or macro-generated implementation",
+          "macroOrRegistrationOrFfi": "Public API re-exported by foreign_output/mod.rs; preflight method remains private",
+          "testsOrContract": "cases.rs tests empty policy, byte/item/decode-time limits, profile preflight; Interface buffer.rs::ZrRuntimePayloadLimitV1",
+          "blockEntryAndStateAndEffect": "from_interface copies ABI limits; new stores three caller bounds and defaults empty=false; allow_empty and preflight_profile_files return changed copies; validators accept values at or below their limits and otherwise return ProtocolViolation.",
+          "commentDecision": "Expanded public parameter/return/time-boundary docs and retained existing comments.",
+          "constraintsAndLifecycle": "Duration boundary includes equality; decode time measured from syntax preflight through type validation; no implicit tightening guarantee."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "budget.rs::RuntimeForeignOutputBudget",
+          "caller": "zircon_runtime_host/src/foreign_output/policy.rs::{HOST_REQUEST_OUTPUT_BUDGET,PROFILE_RESPONSE_OUTPUT_BUDGET,OPERATION_RESULT_OUTPUT_BUDGET,PLUGIN_EVENT_OUTPUT_BUDGET,WORLD_QUERY_OUTPUT_BUDGET,WORLD_INVALIDATION_OUTPUT_BUDGET}",
+          "reason": "Each output family receives a shared Host budget derived from Interface limits; profile additionally enables preflight.",
+          "constraint": "ABI constants remain source of wire limits; caller-selected new() bounds are not asserted narrower."
+        },
+        {
+          "definition": "budget.rs::validate_*",
+          "caller": "zircon_runtime_host/src/foreign_output/state.rs::decode_json → decode.rs::decode_bounded_json",
+          "reason": "State validates encoded length before parsing; bounded decoder checks elapsed duration and typed item count.",
+          "constraint": "Failures become ProtocolViolation and are released/fused by the outer state flow."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/decode.rs",
+      "beforeSha256": "cd1d81ec84e02bb2dafb26abcb1a243f73c9dacac0d73dcd8cd2ce5be0ef9773",
+      "afterSha256": "c3a38ebf66f65f72aa2c421840b79aaa41a7147553efe60599838a74999e6b1d",
+      "objectEvidence": [
+        {
+          "symbol": "DECODE_READER_CHUNK_BYTES; decode_bounded_json<T,E>",
+          "kind": "constant/function",
+          "definition": "decode.rs#19,21-101",
+          "calls": "state.rs::decode_json; item_count.rs DTO item counter functions",
+          "implementations": "T: DeserializeOwned; E: Display",
+          "macroOrRegistrationOrFfi": "Serde DeserializeSeed/Visitor; no FFI or generated Host implementation",
+          "testsOrContract": "cases.rs generic JSON, profile preflight, nesting, deadline, typed count, and performance cases",
+          "blockEntryAndStateAndEffect": "Starts one deadline; checks clock-range addition; runs allocation-light syntax/profile preflight; checks elapsed time; parses through bounded reader; calls DTO validator; checks typed count and deadline before returning result+duration.",
+          "commentDecision": "Added lifecycle, inputs, tuple return, failure and outer-release ownership docs; ordinary comments explain same deadline/order.",
+          "constraintsAndLifecycle": "Borrowed input valid synchronously through return; state releases ABI storage only afterward; timeout shares one absolute deadline."
+        },
+        {
+          "symbol": "preflight_json_graph(bytes,max_json_values,budget,deadline,operation)",
+          "kind": "private function and control-flow blocks",
+          "definition": "decode.rs#103-176",
+          "calls": "decode_bounded_json; JsonItemSeed; JsonItemCounter",
+          "implementations": "Uses Serde Deserializer/Seed and IgnoredAny",
+          "macroOrRegistrationOrFfi": "Profile path selected by RuntimeForeignOutputPreflight; no ABI call",
+          "testsOrContract": "cases.rs bounded syntax, depth, profile maps/sequences, unknown-field cases",
+          "blockEntryAndStateAndEffect": "Entry selects General/ProfileRoot context and optional limits; visitor updates counters until Serde stops; then timeout and recorded overflow are distinguished before parser error; profile total checked before returning Ok.",
+          "commentDecision": "Documented allocation-free preflight, finite graph, profile paths, shared deadline; clarified checks occur before DTO allocation.",
+          "constraintsAndLifecycle": "Consumes read-only input under absolute deadline; does not materialize JSON tree."
+        },
+        {
+          "symbol": "JsonItemCounter fields {observed,limit,overflow_observed,profile_files_observed,profile_files_limit,profile_files_overflow_observed,profile_items_observed,profile_items_limit,profile_items_overflow_observed}; methods {new,observe,observe_profile_file,observe_profile_item}",
+          "kind": "private state object, fields, and methods",
+          "definition": "decode.rs#178-256",
+          "calls": "JsonItemSeed::deserialize; JsonItemVisitor scalar/sequence/map traversal",
+          "implementations": "Serde error type generic through each observe method",
+          "macroOrRegistrationOrFfi": "Counter constructor initializes profile envelope count to 1 only when profile item policy is active",
+          "testsOrContract": "cases.rs checks exact typed boundaries, plus-one, shared collections, nested diagnostics/profile snapshots",
+          "blockEntryAndStateAndEffect": "Each observe saturating-increments one count, stores first over-limit observed value and returns Serde custom error; subsequent preflight classifies which counter overflowed.",
+          "commentDecision": "Added field/member docs and made first-overflow/error behavior explicit.",
+          "constraintsAndLifecycle": "Counters live only for a preflight pass; no allocation tied to DTO lifetime."
+        },
+        {
+          "symbol": "JsonItemContext::{General,ProfileRoot,ProfileFiles,ProfileSnapshot,ProfileRuntimeDiagnostics,ProfileDiagnosticSeries,ProfileHotspotReport,ProfileCounterHotspotReport,ProfileUiHotspotReport,ProfileTypedArray,ProfileDiagnosticSeriesArray,ProfileCompositionReceipt,ProfileHotspotHints}; methods {is_profile_struct,is_profile_map,position_context,field_context}",
+          "kind": "enum variants and mapping methods",
+          "definition": "decode.rs#258-289,494-579",
+          "calls": "JsonItemVisitor::visit_seq/visit_map; ProfileFieldKey visitor",
+          "implementations": "Map path uses ProfileFieldKey; positional path uses Interface DTO sequence-field order",
+          "macroOrRegistrationOrFfi": "cases.rs map and positional profile tests including unknown nested names",
+          "testsOrContract": "Root enters profile context only when profile policy is active; sequence positions or recognized map keys propagate known DTO context; every unknown/mismatched child falls back to General, preventing nested lookalikes from consuming typed collection budgets.",
+          "blockEntryAndStateAndEffect": "Added variant/method explanations and recorded distinct map and positional routes.",
+          "commentDecision": "Only schema-known Interface DTO paths receive typed collection counts; general JSON node counter still covers every value."
+        },
+        {
+          "symbol": "ProfileItemKind::{File,CollectionItem}; JsonItemSeed<'a> fields {counter,context,profile_item}; DeserializeSeed::deserialize",
+          "kind": "enum, struct, fields, trait implementation/method",
+          "definition": "decode.rs#291-334",
+          "calls": "preflight_json_graph seeds root; recursively created by JsonItemVisitor",
+          "implementations": "Implements serde::de::DeserializeSeed; Value is (); generated by Serde trait dispatch at parse time",
+          "macroOrRegistrationOrFfi": "cases.rs files and typed collection preflight tests",
+          "testsOrContract": "At entry, optional profile element is counted first (File counts file+total; CollectionItem counts total), then generic JSON value count; visitor recursively traverses without retaining subtree.",
+          "blockEntryAndStateAndEffect": "Added purpose and field/member docs; records the counter-before-deserializer order.",
+          "commentDecision": "Mutable counter is borrowed for one synchronous parse; no typed DTO allocation here."
+        },
+        {
+          "symbol": "JsonItemVisitor<'a> fields {counter,context}; Visitor::expecting; visit_bool,visit_i64,visit_u64,visit_f64,visit_str,visit_borrowed_str,visit_string,visit_none,visit_unit,visit_some,visit_newtype_struct,visit_seq,visit_map",
+          "kind": "visitor struct, fields, trait implementation and every method",
+          "definition": "decode.rs#336-492",
+          "calls": "JsonItemSeed::deserialize invokes deserialize_any; nested values instantiate further seeds",
+          "implementations": "Implements serde::de::Visitor; Serde dispatches scalar/option/newtype/sequence/map methods",
+          "macroOrRegistrationOrFfi": "cases.rs syntax graph and all profile preflight object/sequence parity tests",
+          "testsOrContract": "Scalar methods consume one pre-counted node; Some/newtype recursively reuse current context; sequence enters known positional paths and marks known collections; map parses recognized profile keys or ignores unknown keys while traversing their values as General; composition receipt map/sequence itself counts as a typed item.",
+          "blockEntryAndStateAndEffect": "Documented structure and each previously undocumented visitor entry/method; retained existing English comments.",
+          "commentDecision": "Serde parser owns traversal; visitor retains no JSON graph; syntax pass errors immediately on a count/depth/deadline failure."
+        },
+        {
+          "symbol": "ProfileFieldKey variants {Files,Snapshot,RuntimeDiagnostics,ModuleCompositionReceipt,HotspotReport,CounterHotspotReport,UiHotspotReport,Frames,Spans,Counters,RecorderRetention,DiagnosticSeries,Profile,SubsystemTags,History,Hotspots,Hints,Scenarios,Alerts,Other}; Deserialize; ProfileFieldKeyVisitor::{expecting,visit_str,visit_borrowed_str}",
+          "kind": "enum variants, trait impl and visitor methods",
+          "definition": "decode.rs#581-678",
+          "calls": "JsonItemContext::field_context; JsonItemVisitor::visit_map",
+          "implementations": "Implements Deserialize and serde Visitor; recognized string identifiers map to enum; unknown string maps to Other",
+          "macroOrRegistrationOrFfi": "cases.rs known fields, unknown nested names, map/sequence parity cases",
+          "testsOrContract": "Map key is parsed to known field then propagated according to current schema context; borrowed-key method reuses mapping without extending input lifetime; unknown field routes to General.",
+          "blockEntryAndStateAndEffect": "Added every enum member/method role with map key rationale.",
+          "commentDecision": "Borrowed key lives only during parser callback; known mapping limited to current Interface DTO schema."
+        },
+        {
+          "symbol": "DeadlineReader<'a> fields {remaining,deadline,timed_out}; new; Read::read",
+          "kind": "reader struct, fields, constructor, trait method",
+          "definition": "decode.rs#680-721",
+          "calls": "decode_bounded_json and preflight_json_graph through serde_json BufReader",
+          "implementations": "Implements std::io::Read; fixed 4KiB maximum read chunk",
+          "macroOrRegistrationOrFfi": "No macro/FFI; shared helper used in both parse passes",
+          "testsOrContract": "cases.rs::nesting_and_total_decode_time_are_both_bounded and unrepresentable deadline case",
+          "blockEntryAndStateAndEffect": "Entry carries borrowed remaining bytes and one absolute deadline; read returns EOF for empty buffers/input, marks timeout and errors at deadline, otherwise copies at most destination, remainder, and chunk cap.",
+          "commentDecision": "Added constructor/Read contract and field lifecycle docs.",
+          "constraintsAndLifecycle": "Reader and timed_out borrow are scoped to one parse pass; outer code distinguishes I/O timeout from JSON error."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "decode.rs::decode_bounded_json",
+          "caller": "zircon_runtime_host/src/foreign_output/state.rs::RuntimeForeignOutputState::decode_json",
+          "reason": "Called after ABI ownership validation and byte-limit validation; output slice is released after synchronous decode returns.",
+          "constraint": "State's unsafe contract guarantees provider memory valid, immutable and readable through parsing."
+        },
+        {
+          "definition": "decode.rs::ProfileFieldKey / JsonItemContext",
+          "caller": "zircon_runtime_interface/src/profile.rs::ProfileControlResponse and nested ProfileSnapshot / diagnostics / hotspot DTO definitions",
+          "reason": "Map names and positional indexes follow the current serde DTO schema.",
+          "constraint": "Unknown nested names are deliberately not treated as typed profile collections."
+        },
+        {
+          "definition": "decode.rs::JsonItemCounter",
+          "caller": "zircon_runtime_host/src/foreign_output/tests/cases.rs profile boundary and map/positional parity tests",
+          "reason": "Tests verify preflight counts typed collections before business deserializer/allocation.",
+          "constraint": "The syntax graph ceiling and later exact type-level count are distinct budgets."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/error.rs",
+      "beforeSha256": "2a2e7a93ed4fb846fea5f638f5b4ed7a87805eba02cf93b3c790f4891cf11f29",
+      "afterSha256": "81f60e51355ba9dc47b87127d6ec1c44e01c61d53b8e68dfd75f20a7e17b5dd7",
+      "objectEvidence": [
+        {
+          "symbol": "RuntimeForeignOutputErrorKind::{RuntimeCall,ProtocolViolation}; RuntimeForeignOutputError fields; impl::{runtime_call,protocol_violation,kind,with_cleanup_failure,from_status}; Display; Error",
+          "kind": "enum variants, struct fields, methods, trait implementations",
+          "definition": "error.rs#14-104",
+          "calls": "state.rs, owned_buffer.rs, App runtime_library_error mapping and Editor gateway error mapping",
+          "implementations": "Display and std::error::Error implementations",
+          "macroOrRegistrationOrFfi": "from_status reads ZrStatus diagnostics through Interface ZrByteSlice::checked_slice",
+          "testsOrContract": "cases.rs failure, cleanup diagnostic, ordinary call failure, malformed output flows",
+          "blockEntryAndStateAndEffect": "Status success returns None; failure diagnostics are synchronously bounded/read; valid bytes are decoded lossily into message; diagnostics exceeding/null-invalid slice become ProtocolViolation; cleanup detail appends to existing error without changing kind.",
+          "commentDecision": "Added module/type/method role docs and SAFETY explanation at checked_slice call; moved summary before retained English # Safety section.",
+          "constraintsAndLifecycle": "Unsafe read requires same still-loaded provider and synchronous diagnostics lifetime; checked_slice checks pointer shape/address-space/max before forming slice."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "error.rs::RuntimeForeignOutputErrorKind",
+          "caller": "zircon_app/src/entry/runtime_library/runtime_library_error.rs and zircon_editor/src/core/gateway/error.rs",
+          "reason": "Application layers preserve RuntimeCall versus ProtocolViolation categories when converting to their local errors.",
+          "constraint": "Error conversion itself does not set Host protocol fuse."
+        },
+        {
+          "definition": "error.rs::from_status",
+          "caller": "zircon_runtime_interface/src/buffer.rs::ZrByteSlice::checked_slice; ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1",
+          "reason": "Interface checks null/length/isize/max before creating borrowed bytes; maximum is 4096.",
+          "constraint": "Provider must keep readable initialized bytes valid for the synchronous status conversion."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/item_count.rs",
+      "beforeSha256": "7e643d75bc34a77a5a596a59351184ad679a10197b613a7c7255b7d00f66e322",
+      "afterSha256": "594e5a55e6d2e40c488fe0b4026f0616a23aaf97261f62a641982610d08cf473",
+      "objectEvidence": [
+        {
+          "symbol": "json_value_item_count; operation_result_item_count; plugin_event_batch_item_count; profile_control_response_item_count; private profile_snapshot_item_count; world_query_item_count; world_invalidation_item_count",
+          "kind": "public/private functions",
+          "definition": "item_count.rs#24-167",
+          "calls": "App runtime_session operation/profile/event consumers; Editor session operations/profile/plugin_events/world_sync; decode_json validate closure",
+          "implementations": "Reads actual Interface DTO and WorldSync model collections",
+          "macroOrRegistrationOrFfi": "Data contracts in zircon_runtime_interface/src/runtime/operation.rs, profile.rs, world_sync/query.rs and world_sync/invalidation.rs",
+          "testsOrContract": "cases.rs::world_query_item_count_covers_every_result_variant plus profile typed boundary and zero-item tests",
+          "blockEntryAndStateAndEffect": "Each counter uses saturating addition over the declared DTO structure; the caller passes returned count after deserialization to budget.validate_item_count; JSON parse/deadline budget is checked separately; world query variant match counts its actual row/list/transform/missing/unchanged fields; invalidation counts dirty+facts+batch shell.",
+          "commentDecision": "Added parameter/return and decode-time separation docs for public counters; private helper docs state which collections are aggregated.",
+          "constraintsAndLifecycle": "Counters describe typed business entries, not arbitrary unknown JSON keys; ProfileResponse preflight separately bounds known collections before typed allocation."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "operation_result_item_count",
+          "caller": "zircon_app/src/entry/runtime_library/runtime_session/operation.rs; zircon_editor/src/core/gateway/session/operations.rs",
+          "reason": "Typed operation response validation closure computes budget item usage.",
+          "constraint": "DTO is already parsed; no decode-time measurement is returned by the counter."
+        },
+        {
+          "definition": "plugin_event_batch_item_count",
+          "caller": "zircon_app/src/entry/runtime_library/runtime_session.rs; zircon_editor/src/core/gateway/session/plugin_events.rs",
+          "reason": "Counts actual delivered event elements and shell for Host budget.",
+          "constraint": "The callback batch is then released by shared foreign-output state."
+        },
+        {
+          "definition": "profile_control_response_item_count",
+          "caller": "zircon_app/src/entry/runtime_library/runtime_session.rs; zircon_editor/src/core/gateway/session/profile.rs",
+          "reason": "Counts profile typed DTO collections after recognized preflight.",
+          "constraint": "Preflight limits only schema-known collections; unknown keys still consume generic JSON-node budget."
+        },
+        {
+          "definition": "world_query_item_count/world_invalidation_item_count",
+          "caller": "zircon_editor/src/core/gateway/session/world_sync.rs",
+          "reason": "WorldQuery is bounded and rejected on over-budget; invalidations carry separate batch/list semantics.",
+          "constraint": "No paging claim is made for WorldQuery; pagination pertains to invalidation paging contract."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/kind.rs",
+      "beforeSha256": "10ec137a9bd48e2cfb5e2333645b389d2b4aa3cb7fb1da5eee8c34a810fd82de",
+      "afterSha256": "d23007adca23d783248eb2bf7cd085736f9bae96d5b3b78f87dc1f2266fbfb0a",
+      "objectEvidence": [
+        {
+          "symbol": "RUNTIME_FOREIGN_OUTPUT_KIND_COUNT; RuntimeForeignOutputKind::{SessionProtocol,HostRequests,ProfileResponse,OperationResult,PluginEvents,WorldQuery,WorldInvalidations}; ALL; index; label",
+          "kind": "constant, enum variants and methods",
+          "definition": "kind.rs#8-65",
+          "calls": "state.rs counter index; policy.rs family budgets; diagnostic.rs stable diagnostic fields; App/Editor session call sites",
+          "implementations": "No trait/macro generation; enum selection follows explicit call-site category",
+          "macroOrRegistrationOrFfi": "cases.rs metrics/policy/output category contracts; all seven kinds referenced by App/Editor consumers",
+          "testsOrContract": "Call site selects category; ALL order, constant length, index arms and diagnostic labels remain aligned to fixed array slots.",
+          "blockEntryAndStateAndEffect": "Added enum/member semantics; corrected WorldQuery to returned query result, reserving paging/batch wording for WorldInvalidations.",
+          "commentDecision": "Stable diagnostic label and array index are compatibility-sensitive; no claim of WorldQuery pagination."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "RuntimeForeignOutputKind variants",
+          "caller": "zircon_app/src/entry/runtime_library/runtime_session.rs and runtime_session/operation.rs; zircon_editor/src/core/gateway/session/{gateway,profile,operations,plugin_events,world_sync}.rs",
+          "reason": "Each consumer identifies the output family before validation and records metrics against that family.",
+          "constraint": "ALL/index/label must preserve one-to-one stable ordering."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/metrics.rs",
+      "beforeSha256": "2c3f6be80d5998551a701f11da75a49dffe934fdf7ed898a0d899f4bc905821b",
+      "afterSha256": "70781e0d07b238c6f6e4f2b28f97a2f2ef3071024867249b874db75539c2829d",
+      "objectEvidence": [
+        {
+          "symbol": "RuntimeForeignOutputCounters fields {accepted_payloads,accepted_bytes,rejected_payloads,rejected_bytes,call_failures,blocked_calls,total_decode_nanoseconds,max_decode_nanoseconds}; methods {snapshot,record_accepted,record_rejected,record_call_failure,record_blocked_call,record_decode_time}",
+          "kind": "private struct, all fields and methods",
+          "definition": "metrics.rs#14-87",
+          "calls": "state.rs acceptance/reject/check paths; diagnostic formatter",
+          "implementations": "AtomicU64 relaxed loads, fetch_add and fetch_max",
+          "macroOrRegistrationOrFfi": "empty_counters constructs fixed array for RuntimeForeignOutputKind count",
+          "testsOrContract": "state/tests/diagnostic.rs tests old-output oracle and release performance; cases.rs metrics assertions",
+          "blockEntryAndStateAndEffect": "Accepted/rejected paths update counts/bytes and nonzero duration; call failures and blocked calls update separate counters; decode time saturates to u64 nanoseconds with nonzero sub-ns duration rounded to at least one; snapshot loads fields independently.",
+          "commentDecision": "Added each field/method's metric meaning and snapshot consistency caveat.",
+          "constraintsAndLifecycle": "Relaxed atomics are diagnostic counters; snapshots can combine different instants and are not transactional."
+        },
+        {
+          "symbol": "RuntimeForeignOutputMetrics fields; RuntimeForeignOutputMetricsSnapshot fields {protocol_failed,protocol_failures,blocked_session_calls,by_kind}; for_kind; has_activity; empty_counters; usize_to_u64; duration_to_u64_nanoseconds",
+          "kind": "public result structs, fields, impl and private helpers",
+          "definition": "metrics.rs#89-158",
+          "calls": "state.rs::metrics/diagnostic_line; state/diagnostic.rs renderer; App/Editor diagnostics",
+          "implementations": "Uses RuntimeForeignOutputKind::index stable order",
+          "macroOrRegistrationOrFfi": "state/tests/diagnostic.rs exact renderer equivalence tests",
+          "testsOrContract": "Snapshot copies fuse and metrics; for_kind indexes stable by-kind array; has_activity tests counts to decide whether to render; conversion helpers saturate unrepresentable values.",
+          "blockEntryAndStateAndEffect": "Added type/member/helper explanations and approximate-snapshot limitation.",
+          "commentDecision": "Diagnostic-only point-in-time observations; independently loaded fields need not reflect a single moment."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "RuntimeForeignOutputCounters::snapshot",
+          "caller": "zircon_runtime_host/src/foreign_output/state.rs::metrics",
+          "reason": "Copies each Relaxed atomic separately into an immutable diagnostics value.",
+          "constraint": "Does not acquire acceptance_gate and provides no cross-field consistency guarantee."
+        },
+        {
+          "definition": "render_diagnostic_line",
+          "caller": "zircon_runtime_host/src/foreign_output/state/diagnostic.rs",
+          "reason": "Consumes snapshot and emits stable labels/order only when activity exists.",
+          "constraint": "Formatting has legacy-output equivalence test in state/tests/diagnostic.rs."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/mod.rs",
+      "beforeSha256": "299651ae18ea0a0a95fe253e881c38b980195ec126ed9e5dbdbe8583dc6f9e5a",
+      "afterSha256": "c6e3b9e6f519ed0068772ec078ef81437864e8b220b89e5cf8a66253e695190d",
+      "objectEvidence": [
+        {
+          "symbol": "foreign_output module; #[path] child modules budget/decode/error/item_count/kind/metrics/owned_buffer/policy/state; public re-export set; cfg(test)::tests",
+          "kind": "module, path declarations, exports and test registration",
+          "definition": "foreign_output/mod.rs#1-48",
+          "calls": "zircon_runtime_host/src/lib.rs; App runtime_session; Editor core gateway/session",
+          "implementations": "#[path] attributes bind exact module source files; cfg(test) includes tests/cases.rs",
+          "macroOrRegistrationOrFfi": "foreign_output/tests/cases.rs; App and Editor consumer modules",
+          "testsOrContract": "External call begins after ABI result, enters this module for validation/decode/release; protocol rejection updates shared state; tests are compiled only under cfg(test).",
+          "blockEntryAndStateAndEffect": "Added module boundary and caller ownership map; retained original English header.",
+          "commentDecision": "This crate does not create provider allocation; same originating session performs release."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "foreign_output public exports",
+          "caller": "zircon_app/src/entry/runtime_library/runtime_session.rs; zircon_editor/src/core/gateway/session/gateway.rs and leaf session modules",
+          "reason": "Both application surfaces share the same Host decoder, budget types, error classification and state.",
+          "constraint": "Public export set determines App/Editor shared API; private helpers remain inside this module."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/owned_buffer.rs",
+      "beforeSha256": "2773848a2426649d7bbe659ee90eb7e86bc56f30edb6d951768be88b7bbd1b78",
+      "afterSha256": "497c6269b754650e5c33258d6c94fa1c2243e1ea3e109afc335289eda399110c",
+      "objectEvidence": [
+        {
+          "symbol": "RuntimeOwnedOutputReleaser fields {session,release}; methods {new,session,release}",
+          "kind": "struct, fields and methods, including unsafe constructor and ABI callback",
+          "definition": "owned_buffer.rs#18-63",
+          "calls": "state.rs ensure_call_succeeded/decode_json cleanup; App RuntimeApiTable and Editor gateway API table constructors",
+          "implementations": "Stores ZrRuntimeSessionHandle plus ZrRuntimeReleaseAllocationFnV2; no lease/ownership acquisition",
+          "macroOrRegistrationOrFfi": "Interface release ABI definition in buffer.rs/runtime table; tests test_releaser and benchmark_releaser",
+          "testsOrContract": "Caller constructs from provider's live table; release passes bound session and allocation ID to callback.",
+          "blockEntryAndStateAndEffect": "Moved Chinese constructor summary before existing English # Safety; added callback SAFETY rationale.",
+          "commentDecision": "Provider and session must remain loaded/live for every callback; exactly originating provider/session may release allocation."
+        },
+        {
+          "symbol": "release_owned_result(output,releaser,operation)",
+          "kind": "public unsafe function and branch blocks",
+          "definition": "owned_buffer.rs#65-94",
+          "calls": "state.rs and three release combinators",
+          "implementations": "Calls RuntimeForeignOutputError::from_status on callback status",
+          "macroOrRegistrationOrFfi": "Interface ZrOwnedResultV2::is_empty and allocation ID contract; matching release callback",
+          "testsOrContract": "cases.rs release-on-error/failure/empty/cleanup cases",
+          "blockEntryAndStateAndEffect": "Canonical empty returns Ok without callback; nonempty with invalid allocation ID is protocol violation; otherwise callback status becomes RuntimeCall or malformed-diagnostic ProtocolViolation.",
+          "commentDecision": "Added Chinese summary ahead of preserved English Safety section and SAFETY at callback/status read.",
+          "constraintsAndLifecycle": "Caller transfers unique release authority once; error diagnostics remain synchronously readable."
+        },
+        {
+          "symbol": "release_owned_result_after_error<T>; release_owned_result_after_result<T>",
+          "kind": "public unsafe combinators and result match arms",
+          "definition": "owned_buffer.rs#96-143",
+          "calls": "state.rs parse/validation/cleanup branches",
+          "implementations": "Delegate to release_owned_result",
+          "macroOrRegistrationOrFfi": "No generated/FFI signature beyond callback delegation",
+          "testsOrContract": "cases.rs cleanup error precedence/return semantics",
+          "blockEntryAndStateAndEffect": "after_error releases then returns original error or merges cleanup; after_result releases independent of Result and returns value only if both business and release succeed; simultaneous errors retain documented precedence.",
+          "commentDecision": "Added purpose-before-Safety docs and SAFETY at unsafe delegation sites.",
+          "constraintsAndLifecycle": "Inherit same provider/session and unique-release prerequisites; no allocation bytes are read here."
+        },
+        {
+          "symbol": "validate_owned_result; validate_owned_result_releasing_on_error",
+          "kind": "public validator and unsafe cleanup wrapper",
+          "definition": "owned_buffer.rs#145-197",
+          "calls": "state.rs before length slice/decode",
+          "implementations": "Interface ZrOwnedResultV2 fields",
+          "macroOrRegistrationOrFfi": "None",
+          "testsOrContract": "cases.rs malformed pointer shape/length/empty/allocation ID and cleanup branches",
+          "blockEntryAndStateAndEffect": "Validator accepts canonical empty, rejects nonempty null/zero/missing ID/length beyond representable range; wrapper returns original validated result or attempts cleanup on validation error.",
+          "commentDecision": "Added behavior/lifecycle docs and SAFETY at cleanup delegation.",
+          "constraintsAndLifecycle": "Metadata validation cannot prove pointer provenance/readability; unsafe caller separately guarantees live immutable allocation."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "RuntimeOwnedOutputReleaser::release",
+          "caller": "zircon_app/src/entry/runtime_library/runtime_session.rs RuntimeApiTable release member; zircon_editor/src/core/gateway/session/gateway.rs API table",
+          "reason": "App/Editor bind callback to the exact live provider/session that produced output.",
+          "constraint": "No copy or fallback allocator is used."
+        },
+        {
+          "definition": "release_owned_result",
+          "caller": "zircon_runtime_interface/src/buffer.rs::ZrOwnedResultV2 and release allocation callback contract",
+          "reason": "Valid nonempty allocation carries unique allocation ID; exactly originating session releases it.",
+          "constraint": "Canonical empty bypasses callback."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/policy.rs",
+      "beforeSha256": "cfcfd9561fbe9d5b2447d276e33515c18c1f2277f7e8e2a047a8c19784778c8a",
+      "afterSha256": "638389fd8dea519f48e04ecf3fa2af4d38249236f0c4ae4dc8aceeaa5c75e9d6",
+      "objectEvidence": [
+        {
+          "symbol": "HOST_REQUEST_OUTPUT_BUDGET, PROFILE_RESPONSE_OUTPUT_BUDGET, OPERATION_RESULT_OUTPUT_BUDGET, PLUGIN_EVENT_OUTPUT_BUDGET, WORLD_QUERY_OUTPUT_BUDGET, WORLD_INVALIDATION_OUTPUT_BUDGET",
+          "kind": "public budget constants",
+          "definition": "policy.rs#16-34",
+          "calls": "App runtime_session host-request/profile/plugin paths and operation module; Editor gateway output/profile/plugin/world-sync paths",
+          "implementations": "Each constant derives from corresponding Interface ZR_RUNTIME_*_OUTPUT_LIMIT_V1; profile additionally calls private preflight_profile_files",
+          "macroOrRegistrationOrFfi": "cases.rs::foreign_output_policies_derive_from_interface_limits",
+          "testsOrContract": "Call site selects family constant before decode; Profile limit includes known file/typed collection preflight; the other families use ordinary graph and DTO item checks.",
+          "blockEntryAndStateAndEffect": "Added concise source-of-limit/family documentation.",
+          "commentDecision": "Limits follow current Interface ABI declarations; no independent duplicated numbers."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "all six budget constants",
+          "caller": "zircon_runtime_interface/src/buffer.rs / payload limit constants and App/Editor leaf session consumers",
+          "reason": "Ensures App and Editor use same Host bounds for each ABI response family.",
+          "constraint": "Profile-only preflight is specific to ProfileResponse."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "beforeSha256": "35031cb444dc0a5e059caded00936978b859b7d21410fd8bda099cb42885cdc2",
+      "afterSha256": "a3ef8bd62a0c6d664c3391bcb87c428738cd5223d0f66ec07818eef125d75d6b",
+      "objectEvidence": [
+        {
+          "symbol": "RuntimeForeignOutputState fields {acceptance_gate,protocol_failed,protocol_failures,blocked_session_calls,counters}; Default",
+          "kind": "public state struct, every field and Default",
+          "definition": "state.rs#39-65",
+          "calls": "App RuntimeSession and Editor gateway store/share one state per runtime session",
+          "implementations": "Atomic acquire/release operations; counters indexed by RuntimeForeignOutputKind",
+          "macroOrRegistrationOrFfi": "No macro/FFI; state owns only local synchronization and metrics",
+          "testsOrContract": "cases.rs fuse/session/counter tests; App/Editor session creation paths",
+          "blockEntryAndStateAndEffect": "Default initializes fresh nonfused session; acceptance_gate serializes final accept/reject only and is not held across parsing or ABI callback; fuse is sticky once reject sets it.",
+          "commentDecision": "Added field/type lifecycle/lock-boundary docs.",
+          "constraintsAndLifecycle": "One shared instance per session; not provider-owned memory."
+        },
+        {
+          "symbol": "ensure_available,is_protocol_failed,ensure_session_available,reject_protocol",
+          "kind": "public state methods and branches",
+          "definition": "state.rs#69-113",
+          "calls": "App runtime_session/operation.rs and runtime_session.rs; Editor gateway/session leaves and output.rs",
+          "implementations": "No trait/macro; map to category- or session-level counters",
+          "macroOrRegistrationOrFfi": "cases.rs ordinary call, fuse, blocked call, rejection contracts",
+          "testsOrContract": "Availability checks only inspect fuse and increment appropriate blocked counter when fused; reject_protocol records zero bytes/time and calls shared rejection path.",
+          "blockEntryAndStateAndEffect": "Added parameter/return effects and atomic ordering rationale.",
+          "commentDecision": "A call failure is distinct from a protocol rejection; caller must explicitly reject errors classified as protocol violations."
+        },
+        {
+          "symbol": "ensure_call_succeeded(status,output,releaser,kind,operation,release_operation)",
+          "kind": "public unsafe function, validation/release branches and BUG site",
+          "definition": "state.rs#115-165",
+          "calls": "App runtime_session.rs and operation.rs; Editor gateway/session/output.rs",
+          "implementations": "Calls error::from_status, validate_owned_result, owned_buffer::release_owned_result, self.reject",
+          "macroOrRegistrationOrFfi": "Failure status and result/release ABI contract in Interface buffer.rs; ordinary RuntimeCall vs fuse tests in cases.rs",
+          "testsOrContract": "Success returns output for decode; failed status increments call_failures then validates and attempts release; ownership/release anomaly rejects/fuses; (None,None) returns call_error without reject. Static case with live >4096 readable diagnostics plus canonical empty output maps status to ProtocolViolation while leaving state unfused.",
+          "blockEntryAndStateAndEffect": "Preserved old English summary/Safety; clarified only ordinary RuntimeCall avoids fuse; added local SAFETY and ZCA-HST-001 BUG evidence without behavior change.",
+          "commentDecision": "Requires status/output from same live provider/session, readable diagnostics, readable nonempty bytes and unique release authority; reproducer does not use invalid pointer and no cargo run claimed."
+        },
+        {
+          "symbol": "decode_json<T,E> and internal blocks {fused-entry,empty,ownership/length/byte-limit checks,borrow/decode,release,finish_acceptance}",
+          "kind": "public unsafe generic decoder and all observable branches",
+          "definition": "state.rs#163-314,330-420",
+          "calls": "App and Editor decode wrappers; decode.rs/item_count.rs; metrics.rs",
+          "implementations": "Delegates to validator, bounded decoder and callback release; finish_acceptance gate determines final result",
+          "macroOrRegistrationOrFfi": "cases.rs decode, preflight, release failure, concurrency/fuse cases",
+          "testsOrContract": "Entry rejects/release when already fused; empty follows allow_empty; nonempty validates ownership/length/bytes, borrows for synchronous decode, releases before final acceptance; errors call reject after release; final gate rechecks fuse before accepting in-flight parse.",
+          "blockEntryAndStateAndEffect": "Added complete order/ownership/lock docs and specific SAFETY for raw slice and release calls.",
+          "commentDecision": "Raw bytes remain immutable/readable until slice use ends; unique authority transferred to release; no foreign callback occurs under acceptance_gate."
+        },
+        {
+          "symbol": "metrics,diagnostic_line,reject_and_release,finish_acceptance,reject,reject_locked,fused_session_error,fused_session_call_error,reported_len",
+          "kind": "public accessors and private state transition helpers/blocks",
+          "definition": "state.rs#315-443",
+          "calls": "metrics.rs, diagnostic.rs, all decode/error branches",
+          "implementations": "Atomic fuse swap + Mutex acceptance gate; release callback precedes gate acquisition",
+          "macroOrRegistrationOrFfi": "cases.rs concurrent reject prevents in-flight acceptance; state diagnostics tests",
+          "testsOrContract": "Reject path releases first then locks, sets sticky fuse once and updates failure/rejected counters; success release precedes same gate and final fuse recheck; accessors snapshot counters without holding gate; helpers construct errors or saturating lengths only.",
+          "blockEntryAndStateAndEffect": "Added branch entry/state/effect and callback lock ordering explanation.",
+          "commentDecision": "release callback may reenter external code, so never holds local gate; metrics are approximate independent loads."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "state APIs",
+          "caller": "zircon_app/src/entry/runtime_library/runtime_session.rs, runtime_session/operation.rs, runtime_session/surface_bindings.rs; zircon_editor/src/core/gateway/session/{gateway,output,viewport,operations,profile,plugin_events,world_sync}.rs",
+          "reason": "Shared state gates ABI session calls, validates owned output, records category metrics and propagates errors.",
+          "constraint": "For malformed diagnostics returning through ensure_call_succeeded, App ? and Error conversion and Editor ?/GatewayError conversion do not call reject_protocol; subsequent availability consults the unchanged host fuse."
+        },
+        {
+          "definition": "finish_acceptance/reject",
+          "caller": "state.rs unit cases, especially oversized_output_releases_then_fuses_every_session_call, concurrent_protocol_rejection_prevents_inflight_acceptance, ordinary_call_failure_releases_output_without_fusing_protocol",
+          "reason": "Baseline tests establish ordinary RuntimeCall is not a fuse trigger and protocol violations reject/fuse; independent core_contracts review followed control-flow and callers.",
+          "constraint": "No executable repro was added or run; the static trigger uses valid live bytes satisfying unsafe preconditions."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": [
+        "ZCA-HST-001"
+      ]
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/state/diagnostic.rs",
+      "beforeSha256": "4b483daa4e2c4d254f4bcfef6c8d5b4f561f019364a4e9b11c31a631a4887960",
+      "afterSha256": "7dd80d0ce81a9995265ac30f00c9b171bb2425961ddeab403eaab2d3c35dee81",
+      "objectEvidence": [
+        {
+          "symbol": "render_diagnostic_line; push_metric; push_u64; #[cfg(test)] path tests/diagnostic.rs",
+          "kind": "functions and test-module declaration",
+          "definition": "state/diagnostic.rs#15-100",
+          "calls": "state.rs::diagnostic_line; metrics snapshot",
+          "implementations": "push_u64 formats numeric values into stack digit buffer; from_utf8_unchecked uses ASCII digits written by loop",
+          "macroOrRegistrationOrFfi": "state/tests/diagnostic.rs exact legacy renderer oracle and performance comparison",
+          "testsOrContract": "No activity returns None; active snapshot writes stable fixed labels/ordered metric fields; numeric conversion emits only written decimal slice; unsafe conversion reads that stack slice synchronously.",
+          "blockEntryAndStateAndEffect": "Added module/function/block descriptions and explicit SAFETY while retaining original English proof comment.",
+          "commentDecision": "Stack digit slice valid only within push_u64; each byte is ASCII decimal after loop."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "render_diagnostic_line",
+          "caller": "zircon_runtime_host/src/foreign_output/state.rs::diagnostic_line",
+          "reason": "Converts an approximate metrics snapshot into optional owned diagnostic String.",
+          "constraint": "No ABI allocation or callback is involved."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/state/tests/diagnostic.rs",
+      "beforeSha256": "9c1a257afe6ba84ad0632f906eb0363633e6f057e3b3913a7bd0eff471a04712",
+      "afterSha256": "1634b20541f9b49596954c98f8824c45a0144fc65ff6e8fe9c368150bbd63bad",
+      "objectEvidence": [
+        {
+          "symbol": "metrics_fixture; legacy_render_diagnostic_line; single_buffer_diagnostic_matches_legacy_output; diagnostic_render_release_benchmark_evidence; nested measure_legacy/measure_optimized/percentile/raw helpers",
+          "kind": "test fixture, oracle, all tests and nested helpers",
+          "definition": "state/tests/diagnostic.rs#9-116",
+          "calls": "render_diagnostic_line and RuntimeForeignOutputMetricsSnapshot",
+          "implementations": "No production trait or FFI; benchmark helpers use std timing and percentile calculation",
+          "macroOrRegistrationOrFfi": "Legacy strategy retained as byte-for-byte output oracle; benchmark records evidence only and does not gate functional behavior",
+          "testsOrContract": "Fixture builds deterministic snapshot; oracle reproduces previous multi-buffer rendering; equivalence test compares output; performance test measures legacy/new implementation and prints sample statistics.",
+          "blockEntryAndStateAndEffect": "Added test/module/helper purposes and state that benchmark is evidence, not semantic behavior.",
+          "commentDecision": "Only test-local values; no build-time generated fixture."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "diagnostic tests",
+          "caller": "state/diagnostic.rs::render_diagnostic_line",
+          "reason": "Tests preserve textual output compatibility and collect focused implementation performance data.",
+          "constraint": "No cargo test was run in this comment-only batch."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/foreign_output/tests/cases.rs",
+      "beforeSha256": "39ac3ea56d4d22155e94b2e978f48a3922fbaf28f52e0130800b6db267122a57",
+      "afterSha256": "8c9e3649588a329e095d5cfc33049b0e26dd8185c8d33846c05759d96912bcb3",
+      "objectEvidence": [
+        {
+          "symbol": "BusinessDeserializeProbe::{deserialize}; ProfileResponseDeserializeProbe::{deserialize}; bounded_decode_preflights_the_json_graph_before_business_deserialization",
+          "kind": "probe structs, Serde implementations and test",
+          "definition": "tests/cases.rs#31-78",
+          "calls": "decode.rs::preflight_json_graph then typed Serde decode",
+          "implementations": "Custom Deserialize increments/records whether business DTO deserialization was reached",
+          "macroOrRegistrationOrFfi": "Demonstrates allocation-light preflight rejects before business DTO parse",
+          "testsOrContract": "Entry constructs serialized over-limit nested/collection payload; probe records parse entry; assertion checks rejection happens first.",
+          "blockEntryAndStateAndEffect": "Added probe/test purpose, preserving test logic.",
+          "commentDecision": "Only test-side callback observations."
+        },
+        {
+          "symbol": "TestAllocation; release_test_output; test_releaser; owned_output; TestPayload; BenchmarkPayload; benchmark_releaser; benchmark_output; test_budget; profile_files_payload; profile_hotspot_hints_payload",
+          "kind": "test fixture structs, fields, constructors and helpers",
+          "definition": "tests/cases.rs#80-242",
+          "calls": "RuntimeOwnedOutputReleaser::new; release_owned_result; decode_json",
+          "implementations": "Fixture callback removes registered allocation and tracks releases; payload bytes remain owned in registry until callback; canonical empty carries no allocation",
+          "macroOrRegistrationOrFfi": "All unsafe calls in this file are preceded by SAFETY explaining the live fixture callback/session and conditional byte ownership.",
+          "testsOrContract": "Registration enters registry before exposing raw ABI fields; release removes exact allocation once; `owned_output` does not free bytes before decode/release.",
+          "blockEntryAndStateAndEffect": "Added helper/fixture roles and one precise SAFETY rationale per unsafe block; no test assertion or data changed.",
+          "commentDecision": "Nonempty raw pointer is backed by live registered bytes until matching callback; empty output is never read/released."
+        },
+        {
+          "symbol": "world_query_item_count_covers_every_result_variant; bounded_json_acceptance_releases_once_and_records_metrics; oversized_output_releases_then_fuses_every_session_call; canonical_empty_pages_are_accepted_without_release; release_failure_preserves_cleanup_diagnostic_and_fuses_session; nesting_and_total_decode_time_are_both_bounded; unrepresentable_decode_deadline_releases_once_and_fuses_without_unwinding",
+          "kind": "test functions",
+          "definition": "tests/cases.rs#244-544",
+          "calls": "item_count.rs, decode.rs, owned_buffer.rs, state.rs, metrics.rs",
+          "implementations": "No additional production implementations",
+          "macroOrRegistrationOrFfi": "Tests exercise all WorldQueryResult variants, normal accept, byte limit+1, canonical empty, cleanup failure, nesting/time limit and clock overflow.",
+          "testsOrContract": "For each test, setup chooses fresh state/budget/fixture, enters public decode or ensure_call_succeeded under matching unsafe fixture contract, then asserts returned DTO/error, release count and fuse/counter state.",
+          "blockEntryAndStateAndEffect": "Added per-test contract purpose; retained assertions and payloads.",
+          "commentDecision": "No tests executed during comment review; fixture validity reviewed statically."
+        },
+        {
+          "symbol": "profile_files_preflight_accepts_the_exact_typed_limit; profile_files_preflight_rejects_limit_plus_one_before_typed_allocation; profile_files_preflight_ignores_nested_names_and_large_scalar_fields; profile_hotspot_hints_preflight_rejects_before_typed_deserialization; profile_hotspot_hints_preflight_accepts_typed_boundary_and_ignores_unknown_nesting; profile_collections_share_one_preflight_item_budget; profile_snapshot_collection_preflights_before_typed_deserialization; positional_profile_collections_preflight_before_typed_deserialization; positional_profile_collections_accept_typed_boundary_with_object_parity; positional_snapshot_and_diagnostic_series_preflight_nested_items; zero_profile_item_budget_rejects_the_envelope_before_typed_deserialization",
+          "kind": "test functions",
+          "definition": "tests/cases.rs#546-967",
+          "calls": "decode.rs JsonItemContext map/sequence traversal, JsonItemCounter; item_count.rs Profile DTO count",
+          "implementations": "Both map/object and positional sequence serde representations are exercised",
+          "macroOrRegistrationOrFfi": "Validates exact typed collection schema paths, nested profile structures, ignored unknown names, shared profile count and envelope count.",
+          "testsOrContract": "Each serialized profile response is preflighted before probe DTO; expected boundary acceptance/rejection and release/fuse outcomes are asserted.",
+          "blockEntryAndStateAndEffect": "Added per-test purpose and map/positional distinction.",
+          "commentDecision": "Unknown nested fields remain generic JSON values; profile preflight only recognizes schema paths."
+        },
+        {
+          "symbol": "ordinary_call_failure_releases_output_without_fusing_protocol; concurrent_protocol_rejection_prevents_inflight_acceptance; foreign_output_decode_performance_acceptance; foreign_output_policies_derive_from_interface_limits; percentile_nanoseconds",
+          "kind": "test functions and helper",
+          "definition": "tests/cases.rs#969-1208",
+          "calls": "state.rs and policy.rs",
+          "implementations": "Concurrency test uses synchronization channels/threads; perf test aggregates latency sample percentiles",
+          "macroOrRegistrationOrFfi": "Ordinary RuntimeCall is distinct from ProtocolViolation; concurrency contract requires final gate recheck; benchmark policy remains config evidence",
+          "testsOrContract": "Call-failure test asserts output released and no fuse; concurrent test blocks validation while another rejection fuses then verifies in-flight payload rejected; performance and policy cases compare metrics/limits.",
+          "blockEntryAndStateAndEffect": "Documented each scenario and helper; SAFETY contract comments sit adjacent to all unsafe blocks.",
+          "commentDecision": "Performance acceptance expectations are source tests only; not run in this task."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "all test fixture unsafe blocks",
+          "caller": "zircon_runtime_host/src/foreign_output/owned_buffer.rs::RuntimeOwnedOutputReleaser::new and release_owned_result; Interface ZrOwnedResultV2",
+          "reason": "The fixture binds a stable callback/session and holds nonempty buffers until callback; canonical empty results do not expose dereferenced bytes.",
+          "constraint": "25 adjacent `// SAFETY:` blocks; no raw invalid-pointer repro or added test."
+        },
+        {
+          "definition": "profile cases",
+          "caller": "zircon_runtime_interface profile DTO serde shape and decode.rs context mappings",
+          "reason": "Object and positional sequences map the same known DTO collections; unknown fields use General context.",
+          "constraint": "Cases fully read in source ranges 1-1208; evidence enumerates each test/helper rather than treating file as opaque."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/lib.rs",
+      "beforeSha256": "e9f65dcf067c384005fa3bdbe98809024f22dae538ed67a8fa49b61f93c569a4",
+      "afterSha256": "2db85551a5a8b0eb7ae1a0caf8b93081094874b15989b3ab8c05f0957f0ec687",
+      "objectEvidence": [
+        {
+          "symbol": "crate module; public path modules foreign_output and viewport_surface",
+          "kind": "crate root declarations",
+          "definition": "lib.rs#1-12",
+          "calls": "App runtime_session and Editor core/gateway/session",
+          "implementations": "#[path] binds exact implementation paths; no other macro/registration",
+          "macroOrRegistrationOrFfi": "Both public modules are imported by application crates",
+          "testsOrContract": "Crate boundary provides common adapters for ABI outputs and viewport binding lifecycle.",
+          "blockEntryAndStateAndEffect": "Added crate responsibility and concrete module consumers; retained old header.",
+          "commentDecision": "No runtime state allocated until consumers construct types."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "zircon_runtime_host crate public modules",
+          "caller": "zircon_app/src/entry/runtime_library/runtime_session.rs; zircon_editor/src/core/gateway/session/gateway.rs",
+          "reason": "Application consumers share this crate's output validation and viewport state helpers.",
+          "constraint": "The two public modules define the Host-side API boundary."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/tests/viewport_surface.rs",
+      "beforeSha256": "8acd39eaa288399d45c3a5119f2272aca485b030d341355f453e5fbe9f608d86",
+      "afterSha256": "3d15387955ac87a7ec091178c6b2091079d631fc50195b43bc20515ccfe422ee",
+      "objectEvidence": [
+        {
+          "symbol": "failed_rebind_restores_the_previous_viewport_surface_binding; bound_viewports_are_released_in_stable_handle_order; in_flight_binding_rejects_a_concurrent_release; failed_release_restores_the_viewport_surface_binding_for_retry; abandoned_binding_reservation_is_rolled_back; abandoned_release_reservation_restores_the_published_binding; in_flight_release_rejects_a_concurrent_rebind; shared_owners_observe_the_same_viewport_lifecycle",
+          "kind": "all eight test functions",
+          "definition": "tests/viewport_surface.rs#8-170",
+          "calls": "ViewportSurfaceBindings begin_binding/begin_release/finish/Drop/bound_viewports",
+          "implementations": "No trait/FFI; test uses deterministic handle keys and shared Arc",
+          "macroOrRegistrationOrFfi": "Cross-checks reservation transition, failure rollback, Drop rollback, mutual exclusion, stable ordering, shared owners",
+          "testsOrContract": "Each case enters one or more reservation tokens, simulates success/failure/drop or concurrent opposite operation, then asserts published Bound viewports and conflict result.",
+          "blockEntryAndStateAndEffect": "Added individual lifecycle intent docs while preserving existing test code.",
+          "commentDecision": "All state changes are local registry transitions; ABI boundary is represented by explicit finish result."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "viewport surface test suite",
+          "caller": "zircon_runtime_host/src/viewport_surface.rs and App/Editor surface adapters",
+          "reason": "Tests exercise the same shared registry types used around real Runtime bind/unbind ABI calls.",
+          "constraint": "No tests executed in this comment-only task."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_host/src/viewport_surface.rs",
+      "beforeSha256": "eae76f32b91e0f315a765b8907c393596cce39937c5d08066a9945861c47fea8",
+      "afterSha256": "3cdb67e230365b0aed99e92fa90e5dca5590b08644f2b26c065f48818c4a06d7",
+      "objectEvidence": [
+        {
+          "symbol": "ViewportSurfaceBindings field registry; ViewportSurfaceBindingRegistry field states; ViewportSurfaceBindingState::{Bound,Binding,Releasing}; ViewportSurfaceBindingOperation fields {registry,viewport,was_bound,completed}; ViewportSurfaceReleaseOperation fields {registry,viewport,completed}; ViewportSurfaceOperationInFlight field viewport; accessor viewport",
+          "kind": "public/private structs, all fields and enum variants",
+          "definition": "viewport_surface.rs#12-93",
+          "calls": "App runtime_session/surface_bindings.rs; Editor core/gateway/session/viewport.rs",
+          "implementations": "Operation tokens borrow registry; must_use guards unfinished token drop rollback",
+          "macroOrRegistrationOrFfi": "tests/viewport_surface.rs all eight state lifecycle cases",
+          "testsOrContract": "Map absence is unbound; Binding/Releasing reserves one transition; token stores previous state and completion marker; error returns conflicting viewport; Drop restores reservation's prepublished state.",
+          "blockEntryAndStateAndEffect": "Added lifecycle/member meaning while retaining English type summaries.",
+          "commentDecision": "Borrowed token prevents registry owner from outliving transition; one operation per viewport; mutex is not held over ABI."
+        },
+        {
+          "symbol": "ViewportSurfaceBindings::{begin_binding,begin_release,bound_viewports,lock_registry}",
+          "kind": "impl methods and branches",
+          "definition": "viewport_surface.rs#95-169",
+          "calls": "App/Editor surface adapters",
+          "implementations": "Returns borrowed operation tokens with lifetime tied to &self",
+          "macroOrRegistrationOrFfi": "tests/viewport_surface.rs conflict, absent release, stable teardown order",
+          "testsOrContract": "begin_binding reserves Binding and remembers prior Bound; begin_release reserves Releasing only for a published binding and returns None for absence; queries filter published Bound and sort raw handles.",
+          "blockEntryAndStateAndEffect": "Added parameter/return and transition docs.",
+          "commentDecision": "Registry lock is held only while state changes/snapshot copies."
+        },
+        {
+          "symbol": "ViewportSurfaceBindingOperation::{finish,lock_registry,rollback}; Drop::drop",
+          "kind": "impl methods and block transitions",
+          "definition": "viewport_surface.rs#171-235",
+          "calls": "App surface binding adapter calls finish after bind/rebind ABI",
+          "implementations": "RAII Drop invokes rollback",
+          "macroOrRegistrationOrFfi": "tests failed rebind, concurrent release and abandoned binding reservation",
+          "testsOrContract": "finish success publishes Bound; first-bind failure removes reservation; rebind failure preserves prior Bound; Drop before finish restores prior state; completion prevents second rollback.",
+          "blockEntryAndStateAndEffect": "Added state/effect docs for finish/rollback/Drop.",
+          "commentDecision": "No Runtime callback under registry lock; token is must_use and short lived."
+        },
+        {
+          "symbol": "ViewportSurfaceReleaseOperation::{finish,lock_registry,rollback}; Drop::drop",
+          "kind": "impl methods and block transitions",
+          "definition": "viewport_surface.rs#237-297",
+          "calls": "App teardown and Editor unbind adapter",
+          "implementations": "RAII Drop invokes rollback",
+          "macroOrRegistrationOrFfi": "tests failed release, in-flight rebind and abandoned release reservation",
+          "testsOrContract": "finish success removes published binding; failure restores Bound; Drop restores Bound; completion prevents duplicate rollback.",
+          "blockEntryAndStateAndEffect": "Added state/effect docs.",
+          "commentDecision": "Token borrows the same registry through completion/drop."
+        },
+        {
+          "symbol": "ViewportSurfaceBindingRegistry::{has_bound_viewports,bound_viewports}; lock_registry",
+          "kind": "private methods",
+          "definition": "viewport_surface.rs#299-327",
+          "calls": "ViewportSurfaceBindings accessors and operation completion methods",
+          "implementations": "No macro; Mutex poison recovery returns inner registry",
+          "macroOrRegistrationOrFfi": "tests stable raw-handle ordering and shared owner lifecycle",
+          "testsOrContract": "has_bound checks only Bound state; bound_viewports filters and sorts raw handles; lock_registry recovers poisoned mutex state rather than discarding it.",
+          "blockEntryAndStateAndEffect": "Added helper block effect and poison behavior docs.",
+          "commentDecision": "Returned Vec is owned snapshot, not a live map borrow."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "begin_binding/begin_release/finish",
+          "caller": "zircon_app/src/entry/runtime_library/runtime_session/surface_bindings.rs; zircon_editor/src/core/gateway/session/viewport.rs",
+          "reason": "Adapters reserve state, make Runtime ABI call outside mutex, then call finish with ABI result.",
+          "constraint": "App teardown calls bound_viewports for deterministic release iteration."
+        },
+        {
+          "definition": "ViewportSurfaceBindings",
+          "caller": "App RuntimeSession and Editor gateway store one shared Arc-backed registry for a Runtime session.",
+          "reason": "Both surfaces observe one binding lifecycle and prevent cross-owner concurrent transitions.",
+          "constraint": "Registry tracks host-side published state, not native resource internals."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    }
+  ],
+  "issues": [
+    {
+      "id": "ZCA-HST-001",
+      "kind": "BUG",
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "symbol": "RuntimeForeignOutputState::ensure_call_succeeded (None, None) match arm",
+      "trigger": "在新建且没有其他并发拒绝的 Host state 上，接收同一仍存活 provider/session 的失败 ZrStatus，其 diagnostics 指向仍存活且可读的 4097 个初始化字节；output 为 ZrOwnedResultV2::empty()，releaser 绑定该 provider/session。checked_slice(4096) 在创建切片前以 LimitExceeds 拒绝诊断长度，from_status 返回 ProtocolViolation。空输出 ownership validation 与 release 都成功，进入 (None,None)。该输入满足 unsafe API 的内存/生命周期前提；不使用无效指针。",
+      "observableImpact": "该分支只增加 call_failures 并返回 ProtocolViolation，不调用 reject；protocol_failed、protocol_failures、rejected_payloads 不变。Host 的 ensure_available/ensure_session_available 后续仍返回 Ok。App operation 调用用 ? 传播，RuntimeLibraryError 映射只改错误类别；Editor gateway 同样传播并映射为 GatewayError::Protocol；这些调用方没有二次 reject。",
+      "evidence": [
+        "zircon_runtime_host/src/foreign_output/error.rs::from_status -> ZrByteSlice::checked_slice(ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1)，Interface buffer.rs 将该上限定义为 4*1024，先检查形状、地址空间和上限再构造借用切片。",
+        "zircon_runtime_host/src/foreign_output/owned_buffer.rs::validate_owned_result 对 canonical empty 返回 Ok(0)；release_owned_result 对 output.is_empty() 直接 Ok(())，不调用回调。",
+        "state.rs::ensure_call_succeeded 在 (None,None) 返回 call_error；只有其他分支 self.reject。Baseline 同文件的 session fuse 在 reject path 设置，普通 RuntimeCall 正常 output/release 测试明确不 fuse。",
+        "App zircon_app/src/entry/runtime_library/runtime_session/operation.rs 和 runtime_library_error.rs；Editor zircon_editor/src/core/gateway/session/gateway.rs 与 core/gateway/error.rs：状态错误经 ?/From 映射，没有拒绝入口。",
+        "可静态复现状态及后续 availability 结果；未新增或执行 Cargo 测试。"
+      ],
+      "evidenceGap": "未宣称当前 Runtime 内部 producer 实际会产生超限 status diagnostics；静态控制流反例基于满足调用者 unsafe 契约的可读 live buffer。",
+      "nextAction": "保留本审查范围内的 BUG 标注，主审复核后由后续获授权行为修复任务决定状态处理；本批不修改执行逻辑。",
+      "sourceTag": "// BUG: [ZCA-HST-001]",
+      "reviewedSha256": "a3ef8bd62a0c6d664c3391bcb87c428738cd5223d0f66ec07818eef125d75d6b",
+      "independentReview": {
+        "reviewers": [
+          "/root",
+          "/root/core_contracts"
+        ],
+        "status": "passed-static-contract-review",
+        "evidence": "已独立读取 Host 分支、Interface buffer 检查、App/Editor 传播路径及既有普通 RuntimeCall/fuse 测试契约。"
+      },
+      "status": "new-static-bug-for-root-ledger"
+    }
+  ],
+  "validation": {
+    "commentOnly": {
+      "status": "passed",
+      "command": "git diff --unified=0 -- <16 assigned paths>",
+      "addedLines": 603,
+      "deletedLines": 0,
+      "addedNonCommentLines": 0,
+      "deletedNonCommentLines": 0,
+      "method": "Diff was scoped to exact assigned files; every addition is Rust comment syntax or a blank line; zero source removals; original English comments and summaries preserved. No string/macro payload or executable token changed."
+    },
+    "format": {
+      "status": "passed",
+      "tool": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+      "edition": "2021",
+      "config": "skip_children=true",
+      "command": "rustfmt --edition 2021 --config skip_children=true --check <all 16 assigned files>",
+      "exitCode": 0,
+      "finalChangedFilesRechecked": [
+        "zircon_runtime_host/src/foreign_output/state.rs",
+        "zircon_runtime_host/src/foreign_output/owned_buffer.rs",
+        "zircon_runtime_host/src/foreign_output/state/diagnostic.rs",
+        "zircon_runtime_host/src/foreign_output/tests/cases.rs"
+      ]
+    },
+    "diffWhitespace": {
+      "status": "passed",
+      "command": "git diff --check -- <all 16 assigned files>",
+      "exitCode": 0,
+      "note": "Git printed LF→CRLF worktree conversion warnings for assigned LF files; scoped diff check returned exit code 0 and no whitespace errors. No normalization was performed."
+    },
+    "cargoTests": {
+      "status": "not-run",
+      "reason": "本批只添加注释；按任务指示未运行 Cargo tests/build，也未新增可执行测试。"
+    },
+    "formalCoordinator": {
+      "status": "pending",
+      "reason": "本批等待 Jenkins 正式格式/解析与提交票据；agent 未运行 Git 写操作、生成、构建或清理。"
+    },
+    "reviewMethod": "逐段完整读取16个文件；tests/cases.rs 基线1112行完整按范围复读并按 fixture、visitor/profile、state/性能用例审查；使用基线 definitions/call sites/trait/serde/FFI contracts/tests 追踪；独立复核 ZCA-HST-001。"
+  },
+  "independentReview": {
+    "reviewer": "/root",
+    "status": "pending",
+    "evidence": "等待主审逐对象、注释语义、hash 与 issue 一致性核对。"
+  },
+  "legacyEvidence": {
+    "historicalIssueTags": "16个分配文件初始均无 BUG/TODO/SAFETY 标签；保留已有英文源注释和 unsafe # Safety sections，新增 SAFETY 仅用于已由 Interface/Host/test fixture 证明的前提。",
+    "existingCommentPreservation": "精确 scoped diff 0 deletions；原有英语 module headers、Safety contracts 和 // Every byte above is an ASCII decimal digit. 原文保留。"
+  },
+  "commit": {
+    "status": "pending",
+    "sha": null,
+    "owner": "Jenkins"
+  }
+}

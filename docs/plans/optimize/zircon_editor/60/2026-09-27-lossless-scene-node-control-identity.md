@@ -10,7 +10,7 @@ related_code:
 tests:
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_node_identity.rs
 plan_sources:
-  - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world.md
 ---
 
 # Editor60 lossless scene node control identity

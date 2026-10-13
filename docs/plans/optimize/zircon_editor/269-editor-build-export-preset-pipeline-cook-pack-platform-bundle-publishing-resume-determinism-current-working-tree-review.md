@@ -10,7 +10,7 @@ related_reports:
   - docs/plans/optimize/zircon_editor/257-editor-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-current-working-tree-review.md
   - docs/plans/optimize/zircon_editor/266-editor-filesystem-project-scene-autosave-journal-session-io-current-working-tree-review.md
   - docs/plans/optimize/zircon_runtime/204-runtime-filesystem-resource-io-path-atomic-transaction-recovery-security-current-working-tree-review.md
-  - docs/plans/optimize/zircon_runtime/207-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-cook-package-incremental-build-worker-determinism-current-working-tree-review.md
+  - docs/plans/optimize/zircon_runtime/207-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-cook-package-incremental-build-worker-determinism.md
 plan_sources:
   - docs/plans/zircon_editor/editor/15-build-export-and-publishing.md
   - docs/plans/zircon_editor/editor/15/2026-07-12-m1-1-export-pipeline-contract.md

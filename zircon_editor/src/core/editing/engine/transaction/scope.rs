@@ -81,6 +81,25 @@ impl EditorTransactionEngine {
                 }
             },
         };
+        // Retained undo and redo records belong to one world lifetime. Reject a
+        // replacement route before activating it or admitting any new commands.
+        let route_check = {
+            let state = self.lock_state();
+            state.histories.get(&history).map_or(Ok(()), |store| {
+                let stored = store.world_route()?;
+                if stored.is_some_and(|stored| stored != &route) {
+                    Err(EditCommandError::WorldRouteStale {
+                        world_domain: history.world_domain(),
+                    })
+                } else {
+                    Ok(())
+                }
+            })
+        };
+        if let Err(error) = route_check {
+            self.finish_operation(context, false);
+            return Err(error);
+        }
         if let Err(error) = context.activate_world_route(&route) {
             self.finish_operation(context, false);
             return Err(error);

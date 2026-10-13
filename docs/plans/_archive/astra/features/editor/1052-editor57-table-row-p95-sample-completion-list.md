@@ -4,7 +4,7 @@ status: benchmark_source_candidate_pending_validation
 validation_status: focused_static_checks_passed_managed_validation_pending
 performance_status: release_p95_not_measured
 plan_sources:
-  - docs/plans/optimize/zircon_editor/57-editor-asset-workspace-content-browser-folder-source-tree-selection-open-create-import-rename-move-delete-history-collection-product-integration-review.md
+  - docs/plans/optimize/zircon_editor/57-editor-asset-workspace-content-browser-folder-source-tree-selection-open-create-import-rename-move-delete-history-collection.md
   - docs/plans/optimize/zircon_editor/57/2026-09-29-table-row-p95-sample-coverage.md
 implementation_files:
   - zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs

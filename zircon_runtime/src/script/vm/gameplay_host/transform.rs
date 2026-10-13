@@ -1,6 +1,8 @@
 //! 位姿宿主导出通过当前场景世界读写实体；脚本传入的目标与步长必须符合世界坐标和有效时间语义，写入最终由 World 校验。
 use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValue};
-use crate::core::math::{Quat, Transform, Vec3};
+use crate::core::math::{
+    transform_to_mat4, try_affine_inverse, NumericPolicy, Quat, Transform, Vec3,
+};
 use crate::script::runtime_context_for_frame;
 
 use super::error::{GameplayHostError, GameplayHostResult};
@@ -140,7 +142,7 @@ pub(super) fn camera_follow(
             };
             let eye = target.translation + offset;
             let focus = target.translation + Vec3::Y;
-            Ok(world.update_transform(entity, Transform::looking_at(eye, focus, Vec3::Y))?)
+            update_world_transform(world, entity, Transform::looking_at(eye, focus, Vec3::Y))
         });
     result
         .map(ScriptHostValue::Bool)
@@ -156,12 +158,7 @@ pub(super) fn set_entity_position(
     let result = runtime
         .level
         .with_world_mut(|world| -> GameplayHostResult<bool> {
-            let mut transform = world
-                .world_transform(entity)
-                .unwrap_or_else(Transform::default);
-            // BUG: [CR-SCRIPT-AUDIT-0002] 此处读取世界位姿却交给写局部位姿的接口，有父节点时父级位姿会再叠加；同类平移、朝向、缩放和跟随路径亦受影响。证据：scene/world/query.rs 与 hierarchy.rs。
-            transform.translation = position;
-            Ok(world.update_transform(entity, transform)?)
+            update_world_position(world, entity, position)
         });
     result
         .map(ScriptHostValue::Bool)
@@ -177,11 +174,10 @@ pub(super) fn translate_entity(
     let result = runtime
         .level
         .with_world_mut(|world| -> GameplayHostResult<bool> {
-            let mut transform = world
-                .world_transform(entity)
-                .unwrap_or_else(Transform::default);
-            transform.translation += delta;
-            Ok(world.update_transform(entity, transform)?)
+            let position = world
+                .world_matrix(entity)
+                .ok_or_else(|| GameplayHostError::missing_entity("translate", entity))?;
+            update_world_position(world, entity, position.w_axis.truncate() + delta)
         });
     result
         .map(ScriptHostValue::Bool)
@@ -204,9 +200,9 @@ pub(super) fn face_entity_direction(
         .with_world_mut(|world| -> GameplayHostResult<bool> {
             let mut transform = world
                 .world_transform(entity)
-                .unwrap_or_else(Transform::default);
+                .ok_or_else(|| GameplayHostError::missing_entity("face direction for", entity))?;
             transform.rotation = Quat::from_rotation_y(yaw);
-            Ok(world.update_transform(entity, transform)?)
+            update_world_transform(world, entity, transform)
         });
     result
         .map(ScriptHostValue::Bool)
@@ -224,9 +220,9 @@ pub(super) fn set_entity_scale(
         .with_world_mut(|world| -> GameplayHostResult<bool> {
             let mut transform = world
                 .world_transform(entity)
-                .unwrap_or_else(Transform::default);
+                .ok_or_else(|| GameplayHostError::missing_entity("set scale for", entity))?;
             transform.scale = scale;
-            Ok(world.update_transform(entity, transform)?)
+            update_world_transform(world, entity, transform)
         });
     result
         .map(ScriptHostValue::Bool)
@@ -249,11 +245,7 @@ pub(super) fn follow_entity_position(
                     target_entity,
                 ));
             };
-            let mut transform = world
-                .world_transform(entity)
-                .unwrap_or_else(Transform::default);
-            transform.translation = target.translation + offset;
-            Ok(world.update_transform(entity, transform)?)
+            update_world_position(world, entity, target.translation + offset)
         });
     result
         .map(ScriptHostValue::Bool)
@@ -273,12 +265,12 @@ pub(super) fn move_entity_towards_target(
         .level
         .with_world_mut(|world| -> GameplayHostResult<bool> {
             let start = world
-                .world_transform(entity)
-                .map(|transform| transform.translation)
+                .world_matrix(entity)
+                .map(|matrix| matrix.w_axis.truncate())
                 .ok_or_else(|| GameplayHostError::missing_entity("move source", entity))?;
             let target = world
-                .world_transform(target_entity)
-                .map(|transform| transform.translation)
+                .world_matrix(target_entity)
+                .map(|matrix| matrix.w_axis.truncate())
                 .ok_or_else(|| GameplayHostError::missing_entity("move target", target_entity))?;
             let target = if prefer_navigation {
                 navigation_next_point(runtime, start, target).unwrap_or(target)
@@ -292,13 +284,97 @@ pub(super) fn move_entity_towards_target(
             }
             // TODO: [CR-SCRIPT-AUDIT-0001] 确认趋近移动是否允许负速度或负时间步长；当前入口未限符号，会朝目标反向移动，导航入口却收敛负速度；补充参数契约与边界测试。
             let step = delta.normalize() * (speed * dt).min(distance);
-            let mut transform = world
-                .world_transform(entity)
-                .unwrap_or_else(Transform::default);
-            transform.translation += step;
-            Ok(world.update_transform(entity, transform)?)
+            update_world_position(world, entity, start + step)
         });
     result
         .map(ScriptHostValue::Bool)
         .map_err(ScriptHostError::from)
+}
+
+/// Writes an intended world-space transform through World::update_transform's local-space API.
+///
+/// The scene stores TRS transforms, so the inverse-parent matrix is decomposed back to local TRS
+/// after applying it. Translation remains exact for affine parent transforms, including rotated
+/// and non-uniformly scaled parents; rotations/scales follow the scene's matrix decomposition.
+fn update_world_transform(
+    world: &mut crate::scene::World,
+    entity: u64,
+    transform: Transform,
+) -> GameplayHostResult<bool> {
+    update_world_matrix(world, entity, transform_to_mat4(transform))
+}
+
+fn update_world_position(
+    world: &mut crate::scene::World,
+    entity: u64,
+    position: Vec3,
+) -> GameplayHostResult<bool> {
+    let mut world_matrix = world
+        .world_matrix(entity)
+        .ok_or_else(|| GameplayHostError::missing_entity("update position for", entity))?;
+    world_matrix.w_axis = position.extend(1.0);
+    update_world_matrix(world, entity, world_matrix)
+}
+
+fn update_world_matrix(
+    world: &mut crate::scene::World,
+    entity: u64,
+    world_matrix: crate::core::math::Mat4,
+) -> GameplayHostResult<bool> {
+    if world.world_matrix(entity).is_none() {
+        return Err(GameplayHostError::missing_entity(
+            "update transform for",
+            entity,
+        ));
+    }
+
+    let local_transform = if let Some(parent) = world.parent_of(entity) {
+        let parent_matrix =
+            world
+                .world_matrix(parent)
+                .ok_or(crate::scene::SceneError::MissingParent {
+                    child: entity,
+                    parent,
+                })?;
+        let inverse = try_affine_inverse(parent_matrix, NumericPolicy::STRICT)
+            .map_err(|_| GameplayHostError::NonInvertibleParentTransform { entity, parent })?;
+        let local_matrix = inverse * world_matrix;
+        let (scale, rotation, translation) = local_matrix.to_scale_rotation_translation();
+        let local_transform = Transform {
+            translation,
+            rotation,
+            scale,
+        };
+        if !matrix_matches_trs(local_matrix, transform_to_mat4(local_transform)) {
+            return Err(GameplayHostError::NonRepresentableParentTransform { entity, parent });
+        }
+        local_transform
+    } else {
+        let (scale, rotation, translation) = world_matrix.to_scale_rotation_translation();
+        Transform {
+            translation,
+            rotation,
+            scale,
+        }
+    };
+
+    Ok(world.update_transform(entity, local_transform)?)
+}
+
+fn matrix_matches_trs(
+    matrix: crate::core::math::Mat4,
+    reconstructed: crate::core::math::Mat4,
+) -> bool {
+    let expected = matrix.to_cols_array();
+    let actual = reconstructed.to_cols_array();
+    for index in 0..expected.len() {
+        if !expected[index].is_finite() || !actual[index].is_finite() {
+            return false;
+        }
+        let tolerance = 1.0e-4 * expected[index].abs().max(actual[index].abs()).max(1.0);
+        if (expected[index] - actual[index]).abs() > tolerance {
+            return false;
+        }
+    }
+    true
 }

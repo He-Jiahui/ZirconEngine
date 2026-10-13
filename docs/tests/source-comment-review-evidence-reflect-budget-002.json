@@ -1,0 +1,1396 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "reflect-budget-002",
+  "checkout": "E:\\Git\\ZirconEngine",
+  "baseHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "reviewer": "/root/host_review",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "canonicalWriter": "host_review",
+  "agentDelivery": "delivered-to-/root",
+  "state": "awaiting-independent-review",
+  "sourcePins": [
+    {
+      "path": "zircon_runtime_interface/src/reflect/mod.rs",
+      "sha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5",
+      "symbols": "module inclusion and public reflect re-exports"
+    },
+    {
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+      "symbols": "public reflect module"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/mod.rs",
+      "sha256": "cf9aa41b68a7537b2bcf3b9d65d38033815b957503fe7eb12e5dd9a99fe2ee4d",
+      "symbols": "reflect_value_budget_contracts registration"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/zr_reflect_value.rs",
+      "sha256": "3c6cb7c4a88186f4af254efcd299f700042f236fc8e540fc081b14977c60c638",
+      "symbols": "ZrReflectValue conversion API, distinct from ReflectedValue validation"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/value_admission.rs",
+      "sha256": "d23257966d617a81a137d2e0573c4ba6ee8c25b2f8be89dd1a165dd0b7b7950a",
+      "symbols": "RUNTIME_REFLECT_VALUE_BUDGET and validate_reflected_value_contract"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/json_document/read.rs",
+      "sha256": "d161b84acb0bd35e76c30735a9f9c181ac77a93cd2680f836fbf4afee77ad471",
+      "symbols": "reflected_from_json validation after JSON construction"
+    },
+    {
+      "path": "zircon_runtime/src/scene/reflect/json_document/write.rs",
+      "sha256": "36839cdf434bfaa08909806bb3b67a76a112be5f918510ba05c6b6f2722abae6",
+      "symbols": "json_from_reflected validation before serialization"
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/plugin/vm_state_blob.rs",
+      "sha256": "09f379d6f3367c87bfd764116c713e134b2e0b97148c6a9cc9443a97cca9e624",
+      "symbols": "VM state blob reflected-field validation"
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/plugin/state_migration.rs",
+      "sha256": "3871f252035ad96deb985019f4e1fc939d730a656f43838d184349f55d0b0b17",
+      "symbols": "validate_target_default_values migration validation"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/boundary.rs",
+      "sha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+      "symbols": "FORBIDDEN_SOURCE_NEEDLES and is_rust_code_position lexical branch (lines 33-50 and 575-639)"
+    }
+  ],
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/reflect/value_budget.rs",
+      "beforeSha256": "e72fde9ca82a4c5d4112fe6412255b8c73ec0998a953c9f9be26883635901153",
+      "afterSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "objectEvidence": [
+        {
+          "symbol": "module value_budget",
+          "kind": "module",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#module value_budget",
+          "calls": "Re-exported from reflect/mod.rs; consumed by ReflectedValue::validate_with_budget.",
+          "implementations": "No handwritten trait implementation.",
+          "macroOrRegistrationOrFfi": "reflect/mod.rs includes module and re-exports public types; no direct FFI entry.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Defines caller-selected limit data and validation errors; Runtime policy is in scene/reflect/value_admission.rs.",
+          "commentDecision": "Added //! role, boundary, and concrete Runtime/test references.",
+          "constraintsAndLifecycle": "Does not validate schema, field types, or permissions."
+        },
+        {
+          "symbol": "ReflectValueBudget",
+          "kind": "public struct",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudget",
+          "calls": "Constructed by new and passed by value to validator and Runtime callers.",
+          "implementations": "Derives Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize.",
+          "macroOrRegistrationOrFfi": "Serde derive supplies serialization; reflect/mod.rs re-export; no direct FFI entry.",
+          "testsOrContract": "All getter and validation cases.",
+          "blockEntryAndStateAndEffect": "Stores four immutable usize limits; Copy allows reuse.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Zero values are representable; the type chooses no policy."
+        },
+        {
+          "symbol": "ReflectValueBudget.max_depth",
+          "kind": "private field",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudget.max_depth",
+          "calls": "Read by max_depth(), visit, and child_depth.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Supplies the one-based maximum depth.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Root is depth one; does not bound JSON parsing."
+        },
+        {
+          "symbol": "ReflectValueBudget.max_nodes",
+          "kind": "private field",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudget.max_nodes",
+          "calls": "Read by max_nodes() and ValidationState::visit.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Node test asserts 3 over 2; mixed graph uses roomy 9, not exact count.",
+          "blockEntryAndStateAndEffect": "Caps aggregate attempted visited nodes before commit.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Does not bound pending stack width or memory."
+        },
+        {
+          "symbol": "ReflectValueBudget.max_string_bytes",
+          "kind": "private field",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudget.max_string_bytes",
+          "calls": "Read by max_string_bytes() and ValidationState::add_string.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Sets shared total for reflected text, JSON strings, and map/object keys.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Measured in UTF-8 bytes; keys share the accumulator."
+        },
+        {
+          "symbol": "ReflectValueBudget.max_container_entries",
+          "kind": "private field",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudget.max_container_entries",
+          "calls": "Read through max_container_entries() by validate_container.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Sets a direct-entry cap applied independently to each container.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Distinct containers are not aggregated; empty container may pass a zero cap."
+        },
+        {
+          "symbol": "impl ReflectValueBudget",
+          "kind": "impl block",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#impl ReflectValueBudget",
+          "calls": "Provides new and four getters used by validation and Runtime policy.",
+          "implementations": "Inherent impl; no trait implementation.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Getter contract test exercises accessors.",
+          "blockEntryAndStateAndEffect": "Methods construct/copy scalar limits without mutation.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No borrow or external resource retained."
+        },
+        {
+          "symbol": "ReflectValueBudget::new",
+          "kind": "public const fn",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudget::new",
+          "calls": "Called by Runtime policy constants and test helper budget.",
+          "implementations": "Added parameter, return, and no-policy-validation documentation.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "All budget contract tests construct caller limits.",
+          "blockEntryAndStateAndEffect": "Copies args in depth/nodes/string-bytes/container-entries order; no validation or clamp.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Every usize, including zero, is preserved."
+        },
+        {
+          "symbol": "ReflectValueBudget::max_depth",
+          "kind": "public const fn",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudget::max_depth",
+          "calls": "Called by visit and child_depth.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Exact getter assertion.",
+          "blockEntryAndStateAndEffect": "Returns stored value without state change.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Returns caller-supplied one-based depth cap."
+        },
+        {
+          "symbol": "ReflectValueBudget::max_nodes",
+          "kind": "public const fn",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudget::max_nodes",
+          "calls": "Called by visit.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Exact getter assertion.",
+          "blockEntryAndStateAndEffect": "Returns stored value without state change.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Returns aggregate node cap."
+        },
+        {
+          "symbol": "ReflectValueBudget::max_string_bytes",
+          "kind": "public const fn",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudget::max_string_bytes",
+          "calls": "Called by add_string.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Exact getter assertion.",
+          "blockEntryAndStateAndEffect": "Returns stored value without state change.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Returns shared UTF-8 byte cap."
+        },
+        {
+          "symbol": "ReflectValueBudget::max_container_entries",
+          "kind": "public const fn",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudget::max_container_entries",
+          "calls": "Called by validate_container.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Exact getter assertion.",
+          "blockEntryAndStateAndEffect": "Returns stored value without state change.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Returns per-container direct-entry cap."
+        },
+        {
+          "symbol": "ReflectValueFloatKind",
+          "kind": "public enum",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueFloatKind",
+          "calls": "Constructed by validate_reflected; carried by NonFiniteFloat.",
+          "implementations": "Derives Copy/Clone/Debug/PartialEq/Eq/serde.",
+          "macroOrRegistrationOrFfi": "Serde derive; public re-export; no direct FFI.",
+          "testsOrContract": "Quaternion test asserts kind.",
+          "blockEntryAndStateAndEffect": "Discriminates reflected float shape.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No normalization/domain check."
+        },
+        {
+          "symbol": "ReflectValueFloatKind::Scalar",
+          "kind": "enum variant",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueFloatKind::Scalar",
+          "calls": "Selected for ReflectedValue::Scalar.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Labels scalar; failure index is zero.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Finiteness only."
+        },
+        {
+          "symbol": "ReflectValueFloatKind::Vec2",
+          "kind": "enum variant",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueFloatKind::Vec2",
+          "calls": "Selected for ReflectedValue::Vec2.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Labels two components; first failure uses zero-based index.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No normalization."
+        },
+        {
+          "symbol": "ReflectValueFloatKind::Vec3",
+          "kind": "enum variant",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueFloatKind::Vec3",
+          "calls": "Selected for ReflectedValue::Vec3.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Labels three components; first failure uses zero-based index.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No normalization."
+        },
+        {
+          "symbol": "ReflectValueFloatKind::Vec4",
+          "kind": "enum variant",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueFloatKind::Vec4",
+          "calls": "Selected for ReflectedValue::Vec4.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Labels four components; first failure uses zero-based index.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No normalization."
+        },
+        {
+          "symbol": "ReflectValueFloatKind::Quaternion",
+          "kind": "enum variant",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueFloatKind::Quaternion",
+          "calls": "Selected for ReflectedValue::Quaternion.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "NaN quaternion contract test.",
+          "blockEntryAndStateAndEffect": "Labels quaternion in NonFiniteFloat; test checks component one.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Finiteness only; no normalization."
+        },
+        {
+          "symbol": "ReflectValueBudgetDimension",
+          "kind": "public enum",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudgetDimension",
+          "calls": "Constructed at checked_add failure sites in visit, add_string, and child_depth.",
+          "implementations": "Derives Copy/Clone/Debug/PartialEq/Eq/serde.",
+          "macroOrRegistrationOrFfi": "Serde derive and reflect re-export; no direct FFI.",
+          "testsOrContract": "Overflow is declared but not triggered by these tests.",
+          "blockEntryAndStateAndEffect": "Names the unrepresentable counter dimension.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Ordinary limit exceedance uses another variant."
+        },
+        {
+          "symbol": "ReflectValueBudgetDimension::Depth",
+          "kind": "enum variant",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudgetDimension::Depth",
+          "calls": "Selected by child_depth on depth.checked_add overflow.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Identifies unrepresentable child depth.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Distinct from representable DepthExceeded."
+        },
+        {
+          "symbol": "ReflectValueBudgetDimension::Nodes",
+          "kind": "enum variant",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudgetDimension::Nodes",
+          "calls": "Selected by visit on node checked_add overflow.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Identifies unrepresentable node total.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Distinct from NodeBudgetExceeded."
+        },
+        {
+          "symbol": "ReflectValueBudgetDimension::StringBytes",
+          "kind": "enum variant",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueBudgetDimension::StringBytes",
+          "calls": "Selected by add_string on byte-total checked_add overflow.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Identifies unrepresentable UTF-8 total.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Distinct from StringBudgetExceeded."
+        },
+        {
+          "symbol": "ReflectValueValidationError",
+          "kind": "public enum",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueValidationError",
+          "calls": "Returned by public validator and traversal helpers.",
+          "implementations": "Derives Copy/Clone/Debug/Error/PartialEq/Eq/serde.",
+          "macroOrRegistrationOrFfi": "thiserror #[error] literals supply display; serde derives serialization; public re-export.",
+          "testsOrContract": "Tests assert every ordinary bound and NonFiniteFloat; not arithmetic overflow.",
+          "blockEntryAndStateAndEffect": "Carries overflow, bound failure, or non-finite reflected float.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No input mutation and no schema/type/permission conclusion."
+        },
+        {
+          "symbol": "ReflectValueValidationError::BudgetArithmeticOverflow { dimension }",
+          "kind": "variant and field",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueValidationError::BudgetArithmeticOverflow { dimension }",
+          "calls": "Built at checked_add failure sites in visit, add_string, child_depth.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Existing thiserror display literal preserved.",
+          "blockEntryAndStateAndEffect": "Reports Depth, Nodes, or StringBytes when next value is unrepresentable.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No overflow case is executed."
+        },
+        {
+          "symbol": "ReflectValueValidationError::DepthExceeded { actual, maximum }",
+          "kind": "variant and fields",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueValidationError::DepthExceeded { actual, maximum }",
+          "calls": "Returned by visit or child_depth for representable depth above cap.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Existing thiserror display literal preserved.",
+          "blockEntryAndStateAndEffect": "actual is first rejected one-based depth; maximum is caller cap.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Nested List and embedded JSON tests assert (3,2)."
+        },
+        {
+          "symbol": "ReflectValueValidationError::NodeBudgetExceeded { actual, maximum }",
+          "kind": "variant and fields",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueValidationError::NodeBudgetExceeded { actual, maximum }",
+          "calls": "Returned by visit after checked_add and before node assignment.",
+          "implementations": "Existing thiserror display literal preserved.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Node test asserts (3,2).",
+          "blockEntryAndStateAndEffect": "actual is attempted aggregate count; failed increment is not committed.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No stack-width/memory guarantee."
+        },
+        {
+          "symbol": "ReflectValueValidationError::StringBudgetExceeded { actual, maximum }",
+          "kind": "variant and fields",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueValidationError::StringBudgetExceeded { actual, maximum }",
+          "calls": "Returned by add_string after checked_add and before assignment.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Existing thiserror display literal preserved.",
+          "blockEntryAndStateAndEffect": "actual is attempted aggregate UTF-8 total including keys.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Key aa plus value bbb asserts (5,4)."
+        },
+        {
+          "symbol": "ReflectValueValidationError::ContainerEntriesExceeded { actual, maximum }",
+          "kind": "variant and fields",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueValidationError::ContainerEntriesExceeded { actual, maximum }",
+          "calls": "Returned by validate_container for one oversized container.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Existing thiserror display literal preserved.",
+          "blockEntryAndStateAndEffect": "Reports one container direct length only.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "List case asserts (2,1); no cross-container sum."
+        },
+        {
+          "symbol": "ReflectValueValidationError::NonFiniteFloat { kind, component }",
+          "kind": "variant and fields",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#ReflectValueValidationError::NonFiniteFloat { kind, component }",
+          "calls": "Returned by validate_finite at first non-finite f32.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Existing thiserror display literal preserved.",
+          "blockEntryAndStateAndEffect": "Carries shape and first failing zero-based component.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Quaternion NaN test asserts index 1; no normalization or schema check."
+        },
+        {
+          "symbol": "use serde::{Deserialize, Serialize};",
+          "kind": "import bindings",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#use serde::{Deserialize, Serialize};",
+          "calls": "Names serde traits derived for ReflectValueBudget, ReflectValueFloatKind, ReflectValueBudgetDimension, and ReflectValueValidationError.",
+          "implementations": "Derive macros generate Serialize/Deserialize implementations for those four public types.",
+          "macroOrRegistrationOrFfi": "Serde proc-macro derives occur at the four type declarations and consume these imports.",
+          "testsOrContract": "No dedicated serde round-trip test is in the assigned three files.",
+          "blockEntryAndStateAndEffect": "Import itself has no runtime state effect; type derives consume the bindings.",
+          "commentDecision": "No source comment added because import names and derive sites are direct; use evidence records the bindings.",
+          "constraintsAndLifecycle": "Compile-time code generation only; no borrow, runtime state, or FFI."
+        },
+        {
+          "symbol": "use thiserror::Error;",
+          "kind": "import binding",
+          "definition": "zircon_runtime_interface/src/reflect/value_budget.rs#use thiserror::Error;",
+          "calls": "Used by the Error derive on ReflectValueValidationError.",
+          "implementations": "Derive creates the Error implementation for formatting/source integration.",
+          "macroOrRegistrationOrFfi": "Proc-macro derive on ReflectValueValidationError; existing #[error] attributes define display messages.",
+          "testsOrContract": "Tests compare variants but do not exercise formatting.",
+          "blockEntryAndStateAndEffect": "Import has no state effect; generated behavior attaches to the enum.",
+          "commentDecision": "No source comment added because the single imported derive is explicit; enum record captures behavior.",
+          "constraintsAndLifecycle": "Compile-time derive only; no runtime state or FFI."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "reflect/mod.rs module inclusion and re-exports",
+          "caller": "zircon_runtime_interface/src/lib.rs::reflect",
+          "reason": "Publishes budget/errors and ReflectedValue validator on interface surface.",
+          "constraint": "No direct FFI entry accepts ReflectValueBudget; serde derives provide serialization only."
+        },
+        {
+          "definition": "value_admission.rs::RUNTIME_REFLECT_VALUE_BUDGET and validate_reflected_value_contract",
+          "caller": "Runtime scene reflected-value admission",
+          "reason": "Selects limits and validates already constructed reflected values.",
+          "constraint": "Does not replace schema, field type, or permission checks."
+        },
+        {
+          "definition": "json_document/read.rs::reflected_from_json",
+          "caller": "Runtime JSON read/construction",
+          "reason": "Validates after JSON conversion/load.",
+          "constraint": "Does not bound parse-time bytes/allocation."
+        },
+        {
+          "definition": "json_document/write.rs::json_from_reflected",
+          "caller": "Runtime JSON serialization",
+          "reason": "Validates before serialization.",
+          "constraint": "Does not certify schema or permissions."
+        },
+        {
+          "definition": "vm_state_blob.rs",
+          "caller": "Runtime VM state blob validation",
+          "reason": "Uses the same graph validator for state values.",
+          "constraint": "Each call has local state; input is borrowed."
+        },
+        {
+          "definition": "state_migration.rs::validate_target_default_values",
+          "caller": "Runtime VM state migration defaults",
+          "reason": "Checks target defaults through reflected value contract.",
+          "constraint": "UiBindingValue::validate_with_budget is a separate API and is not conflated."
+        },
+        {
+          "definition": "src/tests/mod.rs::reflect_value_budget_contracts",
+          "caller": "Rust test harness",
+          "reason": "Registers five contract tests.",
+          "constraint": "No tests were added or executed in this comment audit."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/value_validation.rs",
+      "beforeSha256": "aed1589286f1013cc2abcd6dbeba4cef42021c8f3cb093f8452de0a58abf5bf7",
+      "afterSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+      "objectEvidence": [
+        {
+          "symbol": "module value_validation",
+          "kind": "module",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#module value_validation",
+          "calls": "Validator is called by Runtime scene admission, JSON read/write, VM blob and state migration paths.",
+          "implementations": "No handwritten trait implementation.",
+          "macroOrRegistrationOrFfi": "Included privately by reflect/mod.rs; inherent method reachable via public ReflectedValue; no FFI.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Traverses an already constructed graph with a local Vec work stack.",
+          "commentDecision": "Added //! entry timing, boundaries, and Runtime/test references.",
+          "constraintsAndLifecycle": "Does not bound JSON parse allocation or check schema/type/permission."
+        },
+        {
+          "symbol": "PendingValue<'a>",
+          "kind": "private enum",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#PendingValue<'a>",
+          "calls": "Created and popped only inside validate_with_budget.",
+          "implementations": "Internal traversal enum; no trait implementation.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Indirectly covered by graph tests.",
+          "blockEntryAndStateAndEffect": "Distinguishes reflected and serde_json nodes and carries one-based depth.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Borrowed references last only for synchronous call."
+        },
+        {
+          "symbol": "PendingValue::Reflected { value, depth }",
+          "kind": "variant and fields",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#PendingValue::Reflected { value, depth }",
+          "calls": "Root seed and reflected List/Map children.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Pop invokes visit before reflected expansion.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "value borrows input; depth is one-based."
+        },
+        {
+          "symbol": "PendingValue::Reflected.value",
+          "kind": "variant field",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#PendingValue::Reflected.value",
+          "calls": "Read by reflected dispatch and validate_reflected.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Carries node without cloning/mutation.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Borrow tied to input."
+        },
+        {
+          "symbol": "PendingValue::Reflected.depth",
+          "kind": "variant field",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#PendingValue::Reflected.depth",
+          "calls": "Read by visit and validate_reflected.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Carries one-based node depth.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Root begins at one."
+        },
+        {
+          "symbol": "PendingValue::Json { value, depth }",
+          "kind": "variant and fields",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#PendingValue::Json { value, depth }",
+          "calls": "Pushed by ReflectedValue::Json and JSON Array/Object children.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Pop invokes visit before validate_json.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "JSON root is child of reflected wrapper."
+        },
+        {
+          "symbol": "PendingValue::Json.value",
+          "kind": "variant field",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#PendingValue::Json.value",
+          "calls": "Read by validate_json after pop.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Carries constructed serde_json node by borrow.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Not raw JSON text and not parsed here."
+        },
+        {
+          "symbol": "PendingValue::Json.depth",
+          "kind": "variant field",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#PendingValue::Json.depth",
+          "calls": "Read by visit and validate_json.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Includes wrapper and JSON root levels.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "One-based; JSON root is wrapper depth plus one."
+        },
+        {
+          "symbol": "impl ReflectedValue",
+          "kind": "impl block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#impl ReflectedValue",
+          "calls": "Attaches validator to ReflectedValue.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Inherent impl, not trait implementation.",
+          "blockEntryAndStateAndEffect": "Method borrows input and drains local stack.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Input is unchanged."
+        },
+        {
+          "symbol": "ReflectedValue::validate_with_budget",
+          "kind": "public method",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#ReflectedValue::validate_with_budget",
+          "calls": "Called by value_admission.rs, json_document/read.rs, json_document/write.rs, vm_state_blob.rs and state_migration.rs.",
+          "implementations": "No generated method or FFI wrapper; public through reflect re-export.",
+          "macroOrRegistrationOrFfi": "Added timing, parameter, return, constraints, and actual Runtime paths.",
+          "testsOrContract": "All five contract tests call it.",
+          "blockEntryAndStateAndEffect": "Seeds Reflected(self,1); LIFO-pop, count then dispatch; first error returns, empty stack succeeds.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Borrowed self; checks depth/nodes/UTF-8 bytes/per-container entries and reflected float finiteness only; no parsing/schema/type/permission."
+        },
+        {
+          "symbol": "validator local state and stack initialization",
+          "kind": "statement block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validator local state and stack initialization",
+          "calls": "First statements of validate_with_budget.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Creates zero counters and pushes root at depth one.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Pending Vec width and memory are not bounded by node limit."
+        },
+        {
+          "symbol": "validator while-pop loop and PendingValue dispatch",
+          "kind": "statement block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validator while-pop loop and PendingValue dispatch",
+          "calls": "Pops each work item and dispatches after visit.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Counts node before children; ? exits on first error; exhausted stack returns Ok.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Reverse push preserves iterator order under LIFO."
+        },
+        {
+          "symbol": "validate_reflected<'a>",
+          "kind": "private function",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_reflected<'a>",
+          "calls": "Called for every popped Reflected item.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "All reflected shape tests.",
+          "blockEntryAndStateAndEffect": "Matches payload, validates or schedules children.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No self-recursion; values borrowed."
+        },
+        {
+          "symbol": "validate_reflected: Scalar, Vec2, Vec3, Vec4, Quaternion",
+          "kind": "match arms",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_reflected: Scalar, Vec2, Vec3, Vec4, Quaternion",
+          "calls": "Each selects matching FloatKind and calls validate_finite.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Quaternion arm specifically tested.",
+          "blockEntryAndStateAndEffect": "Returns first non-finite component error or Ok.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Finiteness only, no normalization."
+        },
+        {
+          "symbol": "validate_reflected: String, Enum, Resource",
+          "kind": "match arms",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_reflected: String, Enum, Resource",
+          "calls": "Each calls state.add_string.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "String arm exercised.",
+          "blockEntryAndStateAndEffect": "Adds UTF-8 bytes to shared total.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No Resource URI or Enum schema check."
+        },
+        {
+          "symbol": "validate_reflected: List",
+          "kind": "match arm",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_reflected: List",
+          "calls": "Checks container; nonempty List computes child depth and reverse-pushes.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Checks length before scheduling; empty list has no child increment.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Per-container cap."
+        },
+        {
+          "symbol": "validate_reflected: Map",
+          "kind": "match arm",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_reflected: Map",
+          "calls": "Checks container, charges keys, reverse-pushes values.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Keys charged before child values; values share one child depth.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Keys count bytes, not graph nodes."
+        },
+        {
+          "symbol": "validate_reflected: Json",
+          "kind": "match arm",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_reflected: Json",
+          "calls": "Computes child_depth and pushes PendingValue::Json.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Schedules JSON root as wrapper child.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Both wrapper and JSON root count nodes."
+        },
+        {
+          "symbol": "validate_reflected: Null, Bool, Integer, Unsigned, Entity",
+          "kind": "match arms",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_reflected: Null, Bool, Integer, Unsigned, Entity",
+          "calls": "Return Ok after visit counted current node.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "No extra child, text or state change.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Field/entity validity is separate."
+        },
+        {
+          "symbol": "validate_json<'a>",
+          "kind": "private function",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_json<'a>",
+          "calls": "Called for every popped Json item.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Pattern matches serde_json::Value.",
+          "blockEntryAndStateAndEffect": "Matches constructed serde_json::Value and schedules children.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No JSON text parse or reflected-float check."
+        },
+        {
+          "symbol": "validate_json: String",
+          "kind": "match arm",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_json: String",
+          "calls": "Calls state.add_string.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Adds JSON string UTF-8 bytes to shared total.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Value already materialized."
+        },
+        {
+          "symbol": "validate_json: Array",
+          "kind": "match arm",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_json: Array",
+          "calls": "Checks direct length; nonempty array gets child depth and reverse-push.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Empty array has no child increment.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Per-array entry cap."
+        },
+        {
+          "symbol": "validate_json: Object",
+          "kind": "match arm",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_json: Object",
+          "calls": "Checks direct length, charges keys, reverse-pushes values.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Keys are charged before values are visited.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Object key and all text bytes share total."
+        },
+        {
+          "symbol": "validate_json: Null, Bool, Number",
+          "kind": "match arms",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_json: Null, Bool, Number",
+          "calls": "Return Ok after visit counted node.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "No children/text added.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "JSON Number is not reflected f32 validation."
+        },
+        {
+          "symbol": "ValidationState",
+          "kind": "private struct",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#ValidationState",
+          "calls": "Created once per validator call and passed mutably.",
+          "implementations": "Derives Default only.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Indirectly covered by errors.",
+          "blockEntryAndStateAndEffect": "Holds aggregate nodes and string_bytes.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Default zero; discarded on return; input unchanged."
+        },
+        {
+          "symbol": "ValidationState.nodes",
+          "kind": "private field",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#ValidationState.nodes",
+          "calls": "Updated only by visit after checks pass.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Node error actual is tested.",
+          "blockEntryAndStateAndEffect": "Stores accepted visited-node count.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Not pending stack width."
+        },
+        {
+          "symbol": "ValidationState.string_bytes",
+          "kind": "private field",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#ValidationState.string_bytes",
+          "calls": "Updated only by add_string after checks pass.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Key plus string total is tested.",
+          "blockEntryAndStateAndEffect": "Stores accepted cumulative UTF-8 bytes.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Includes keys charged before values."
+        },
+        {
+          "symbol": "impl ValidationState",
+          "kind": "impl block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#impl ValidationState",
+          "calls": "Provides visit and add_string.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Inherent private impl.",
+          "blockEntryAndStateAndEffect": "Candidate values checked before commit.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Per-call local state."
+        },
+        {
+          "symbol": "ValidationState::visit",
+          "kind": "private method",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#ValidationState::visit",
+          "calls": "Called for every popped reflected or JSON item.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Checks depth first, checked_add nodes, max_nodes, then commits.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Depth error wins if both constraints fail."
+        },
+        {
+          "symbol": "visit depth comparison branch",
+          "kind": "conditional block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#visit depth comparison branch",
+          "calls": "Checks depth > max_depth before node arithmetic.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Returns DepthExceeded without changing nodes.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "One-based depth."
+        },
+        {
+          "symbol": "visit checked_add/overflow branch",
+          "kind": "conditional block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#visit checked_add/overflow branch",
+          "calls": "checked_add computes candidate node count.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Overflow returns BudgetArithmeticOverflow(Nodes) before assignment.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No mutation on failure."
+        },
+        {
+          "symbol": "visit max_nodes comparison branch",
+          "kind": "conditional block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#visit max_nodes comparison branch",
+          "calls": "Compares candidate with max_nodes.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Over-limit returns NodeBudgetExceeded before assignment.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Aggregate reflected and JSON nodes."
+        },
+        {
+          "symbol": "visit node commit",
+          "kind": "statement block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#visit node commit",
+          "calls": "Runs after depth and node constraints pass.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Assigns nodes=actual for later visits.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Rejected increment is not retained."
+        },
+        {
+          "symbol": "ValidationState::add_string",
+          "kind": "private method",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#ValidationState::add_string",
+          "calls": "Called for reflected text, Map/Object keys, JSON strings and keys.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Computes checked UTF-8 total, cap-checks, commits on success.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "str::len is UTF-8 bytes; failure is not committed."
+        },
+        {
+          "symbol": "add_string checked_add/overflow branch",
+          "kind": "conditional block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#add_string checked_add/overflow branch",
+          "calls": "Adds value.len() to string_bytes with checked_add.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Overflow returns BudgetArithmeticOverflow(StringBytes).",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No state assignment on overflow."
+        },
+        {
+          "symbol": "add_string maximum comparison branch",
+          "kind": "conditional block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#add_string maximum comparison branch",
+          "calls": "Compares candidate with max_string_bytes.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Over-limit returns StringBudgetExceeded before assignment.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Includes previously charged keys and values."
+        },
+        {
+          "symbol": "add_string commit",
+          "kind": "statement block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#add_string commit",
+          "calls": "Runs only after arithmetic and cap checks pass.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Assigns string_bytes=actual.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Rejected bytes are not retained."
+        },
+        {
+          "symbol": "validate_container",
+          "kind": "private function",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_container",
+          "calls": "Called for reflected List/Map and JSON Array/Object.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Returns error iff direct length exceeds cap.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Containers checked separately; empty may pass zero cap."
+        },
+        {
+          "symbol": "validate_container over-limit/success branches",
+          "kind": "conditional block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_container over-limit/success branches",
+          "calls": "Branches on actual > max_container_entries.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Error carries actual/maximum; success changes no state.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No aggregate entry count."
+        },
+        {
+          "symbol": "child_depth",
+          "kind": "private function",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#child_depth",
+          "calls": "Called before adding children of nonempty containers and Json wrapper.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "checked_add one, then compares max_depth.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Empty containers need no child depth."
+        },
+        {
+          "symbol": "child_depth overflow branch",
+          "kind": "conditional block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#child_depth overflow branch",
+          "calls": "Uses checked_add for next depth.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Overflow returns BudgetArithmeticOverflow(Depth); child is not queued.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No state mutation."
+        },
+        {
+          "symbol": "child_depth max-depth branch",
+          "kind": "conditional block",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#child_depth max-depth branch",
+          "calls": "Compares representable child depth before enqueue.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Returns DepthExceeded or candidate.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Can fail before child is popped."
+        },
+        {
+          "symbol": "validate_finite",
+          "kind": "private function",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#validate_finite",
+          "calls": "Called by all reflected float-shape arms.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Quaternion NaN test checks first zero-based index.",
+          "blockEntryAndStateAndEffect": "Finds first !is_finite component or returns Ok.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "No normalization check."
+        },
+        {
+          "symbol": "use serde_json::Value;",
+          "kind": "import binding",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#use serde_json::Value;",
+          "calls": "Used by PendingValue::Json and validate_json matching.",
+          "implementations": "Names the JSON node type traversed by the validator.",
+          "macroOrRegistrationOrFfi": "No derive, registration, or FFI; type comes from serde_json.",
+          "testsOrContract": "Embedded JSON tests construct values with serde_json::json!.",
+          "blockEntryAndStateAndEffect": "Import only; construction/parsing occurs at callers/tests, not here.",
+          "commentDecision": "No source comment added because imported type name and uses are direct.",
+          "constraintsAndLifecycle": "Borrowed during validation; no parse-time ownership/allocation performed here."
+        },
+        {
+          "symbol": "use super::{ReflectValueBudget, ReflectValueBudgetDimension, ReflectValueFloatKind, ReflectValueValidationError, ReflectedValue};",
+          "kind": "import bindings",
+          "definition": "zircon_runtime_interface/src/reflect/value_validation.rs#use super::{ReflectValueBudget, ReflectValueBudgetDimension, ReflectValueFloatKind, ReflectValueValidationError, ReflectedValue};",
+          "calls": "Consumed by validate_with_budget, ValidationState, helpers, and visitor match arms.",
+          "implementations": "No trait implementation here; imports connect sibling declarations and parent ReflectedValue.",
+          "macroOrRegistrationOrFfi": "No macro or FFI; definitions live in reflect modules.",
+          "testsOrContract": "Public method and five tests exercise these bindings.",
+          "blockEntryAndStateAndEffect": "Import block itself has no state effect; counters/values are created later per call.",
+          "commentDecision": "No source comment added because each imported type is named and its use is explicit.",
+          "constraintsAndLifecycle": "Budget is passed by value; errors/kinds are owned values; ReflectedValue is borrowed."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "reflect/mod.rs module inclusion and re-exports",
+          "caller": "zircon_runtime_interface/src/lib.rs::reflect",
+          "reason": "Publishes budget/errors and ReflectedValue validator on interface surface.",
+          "constraint": "No direct FFI entry accepts ReflectValueBudget; serde derives provide serialization only."
+        },
+        {
+          "definition": "value_admission.rs::RUNTIME_REFLECT_VALUE_BUDGET and validate_reflected_value_contract",
+          "caller": "Runtime scene reflected-value admission",
+          "reason": "Selects limits and validates already constructed reflected values.",
+          "constraint": "Does not replace schema, field type, or permission checks."
+        },
+        {
+          "definition": "json_document/read.rs::reflected_from_json",
+          "caller": "Runtime JSON read/construction",
+          "reason": "Validates after JSON conversion/load.",
+          "constraint": "Does not bound parse-time bytes/allocation."
+        },
+        {
+          "definition": "json_document/write.rs::json_from_reflected",
+          "caller": "Runtime JSON serialization",
+          "reason": "Validates before serialization.",
+          "constraint": "Does not certify schema or permissions."
+        },
+        {
+          "definition": "vm_state_blob.rs",
+          "caller": "Runtime VM state blob validation",
+          "reason": "Uses the same graph validator for state values.",
+          "constraint": "Each call has local state; input is borrowed."
+        },
+        {
+          "definition": "state_migration.rs::validate_target_default_values",
+          "caller": "Runtime VM state migration defaults",
+          "reason": "Checks target defaults through reflected value contract.",
+          "constraint": "UiBindingValue::validate_with_budget is a separate API and is not conflated."
+        },
+        {
+          "definition": "src/tests/mod.rs::reflect_value_budget_contracts",
+          "caller": "Rust test harness",
+          "reason": "Registers five contract tests.",
+          "constraint": "No tests were added or executed in this comment audit."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs",
+      "beforeSha256": "aa6b1877d6cd25d4f37aac63200774ff040503f71ac048446970d55692737afd",
+      "afterSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+      "objectEvidence": [
+        {
+          "symbol": "module reflect_value_budget_contracts",
+          "kind": "test module",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#module reflect_value_budget_contracts",
+          "calls": "Registered by src/tests/mod.rs.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "#[path] registration and #[test] harness.",
+          "blockEntryAndStateAndEffect": "Builds in-memory fixtures; no host/filesystem.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Tests public budget contract only."
+        },
+        {
+          "symbol": "use std::collections::BTreeMap",
+          "kind": "import",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#use std::collections::BTreeMap",
+          "calls": "Used by reflected Map fixtures.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Provides ordered Map construction.",
+          "commentDecision": "Reviewed; names explicit import.",
+          "constraintsAndLifecycle": "No runtime state."
+        },
+        {
+          "symbol": "use crate::reflect::{ReflectValueBudget, ReflectValueFloatKind, ReflectValueValidationError, ReflectedValue}",
+          "kind": "import",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#use crate::reflect::{ReflectValueBudget, ReflectValueFloatKind, ReflectValueValidationError, ReflectedValue}",
+          "calls": "Imports public reflect API under test.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "No state transition.",
+          "commentDecision": "Reviewed; import names the tested API.",
+          "constraintsAndLifecycle": "Exercises public re-export surface."
+        },
+        {
+          "symbol": "budget",
+          "kind": "private helper",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#budget",
+          "calls": "Called by all five tests.",
+          "implementations": "Calls ReflectValueBudget::new.",
+          "macroOrRegistrationOrFfi": "No macro or FFI.",
+          "testsOrContract": "All five tests use helper.",
+          "blockEntryAndStateAndEffect": "Passes four arguments directly to new in depth/nodes/string-bytes/entries order.",
+          "commentDecision": "Added parameter and return docs.",
+          "constraintsAndLifecycle": "No defaults or extra validation; returned budget has no borrow."
+        },
+        {
+          "symbol": "budget parameters and return",
+          "kind": "helper contract",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#budget parameters and return",
+          "calls": "Arguments flow directly to new.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Returns ReflectValueBudget.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Parameters are four independent limits; zero is allowed."
+        },
+        {
+          "symbol": "reflected_value_budget_exposes_caller_owned_limits()",
+          "kind": "test function",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#reflected_value_budget_exposes_caller_owned_limits()",
+          "calls": "Calls helper and all four getters.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "#[test] harness registration.",
+          "blockEntryAndStateAndEffect": "Asserts 7,11,13,17 exactly; no mutation.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Tests stored caller limits, not validation."
+        },
+        {
+          "symbol": "reflected_value_budget_counts_reflected_and_embedded_json_graphs()",
+          "kind": "test function",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#reflected_value_budget_counts_reflected_and_embedded_json_graphs()",
+          "calls": "Builds Map with Json and List then calls validator.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Uses BTreeMap::from and serde_json::json!; #[test].",
+          "blockEntryAndStateAndEffect": "Asserts success with budget (6,9,19,2).",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "These are roomy limits, not exact graph counts."
+        },
+        {
+          "symbol": "reflected_value_budget_rejects_each_bounded_dimension()",
+          "kind": "test function",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#reflected_value_budget_rejects_each_bounded_dimension()",
+          "calls": "Runs four independent fixtures through validator.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "BTreeMap fixture and #[test].",
+          "blockEntryAndStateAndEffect": "Asserts Depth(3,2), Nodes(3,2), Strings(5,4), Container(2,1).",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Ordinary cap comparisons only; no overflow test."
+        },
+        {
+          "symbol": "depth subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "kind": "test block",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#depth subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "calls": "Nested Lists reach depth three.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Asserts 3 against 2.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Root depth one."
+        },
+        {
+          "symbol": "node subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "kind": "test block",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#node subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "calls": "List root plus two Null children attempts three nodes.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Asserts 3 against 2.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Shows node count, not stack width."
+        },
+        {
+          "symbol": "string subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "kind": "test block",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#string subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "calls": "Key aa is charged before child String bbb.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Asserts five UTF-8 bytes against four.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "ASCII makes byte lengths explicit."
+        },
+        {
+          "symbol": "container subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "kind": "test block",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#container subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "calls": "List contains two direct Null entries under cap one.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "Contract tests below; untested overflow paths are stated explicitly.",
+          "blockEntryAndStateAndEffect": "Asserts 2 against 1.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Direct entries only."
+        },
+        {
+          "symbol": "reflected_value_budget_rejects_non_finite_vector_components()",
+          "kind": "test function",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#reflected_value_budget_rejects_non_finite_vector_components()",
+          "calls": "Constructs Quaternion with NaN at index one and validates.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "#[test] harness registration.",
+          "blockEntryAndStateAndEffect": "Asserts NonFiniteFloat(Quaternion,1).",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Legacy function name says vector; fixture is Quaternion; finiteness only."
+        },
+        {
+          "symbol": "embedded_json_root_is_a_child_of_the_reflected_json_wrapper()",
+          "kind": "test function",
+          "definition": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs#embedded_json_root_is_a_child_of_the_reflected_json_wrapper()",
+          "calls": "Builds ReflectedValue::Json with array [null] then validates.",
+          "implementations": "No handwritten trait implementation in this item.",
+          "macroOrRegistrationOrFfi": "No generated registration or FFI entry applies.",
+          "testsOrContract": "serde_json::json! and #[test].",
+          "blockEntryAndStateAndEffect": "Asserts depth 3 over cap 2: wrapper 1, JSON root 2, child 3.",
+          "commentDecision": "Reviewed; added focused Chinese documentation/comment where useful and preserved executable content.",
+          "constraintsAndLifecycle": "Wrapper and JSON root both count; no raw text parsing."
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "reflect/mod.rs module inclusion and re-exports",
+          "caller": "zircon_runtime_interface/src/lib.rs::reflect",
+          "reason": "Publishes budget/errors and ReflectedValue validator on interface surface.",
+          "constraint": "No direct FFI entry accepts ReflectValueBudget; serde derives provide serialization only."
+        },
+        {
+          "definition": "value_admission.rs::RUNTIME_REFLECT_VALUE_BUDGET and validate_reflected_value_contract",
+          "caller": "Runtime scene reflected-value admission",
+          "reason": "Selects limits and validates already constructed reflected values.",
+          "constraint": "Does not replace schema, field type, or permission checks."
+        },
+        {
+          "definition": "json_document/read.rs::reflected_from_json",
+          "caller": "Runtime JSON read/construction",
+          "reason": "Validates after JSON conversion/load.",
+          "constraint": "Does not bound parse-time bytes/allocation."
+        },
+        {
+          "definition": "json_document/write.rs::json_from_reflected",
+          "caller": "Runtime JSON serialization",
+          "reason": "Validates before serialization.",
+          "constraint": "Does not certify schema or permissions."
+        },
+        {
+          "definition": "vm_state_blob.rs",
+          "caller": "Runtime VM state blob validation",
+          "reason": "Uses the same graph validator for state values.",
+          "constraint": "Each call has local state; input is borrowed."
+        },
+        {
+          "definition": "state_migration.rs::validate_target_default_values",
+          "caller": "Runtime VM state migration defaults",
+          "reason": "Checks target defaults through reflected value contract.",
+          "constraint": "UiBindingValue::validate_with_budget is a separate API and is not conflated."
+        },
+        {
+          "definition": "src/tests/mod.rs::reflect_value_budget_contracts",
+          "caller": "Rust test harness",
+          "reason": "Registers five contract tests.",
+          "constraint": "No tests were added or executed in this comment audit."
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": []
+    }
+  ],
+  "issues": [],
+  "validation": {
+    "commentOnly": {
+      "status": "passed",
+      "command": "git diff --unified=0 -- <3 assigned source paths>",
+      "addedLines": 173,
+      "deletedLines": 0,
+      "addedNonCommentLines": 0,
+      "deletedNonCommentLines": 0,
+      "method": "Read-only scoped diff parser found only comment or blank additions and no removals; executable tokens, strings, macro payloads, and assertions are unchanged."
+    },
+    "format": {
+      "status": "passed",
+      "tool": "rustfmt (version not separately queried)",
+      "edition": "2021",
+      "config": "skip_children=true",
+      "command": "rustfmt --edition 2021 --config skip_children=true --check zircon_runtime_interface/src/reflect/value_budget.rs zircon_runtime_interface/src/reflect/value_validation.rs zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs",
+      "exitCode": 0
+    },
+    "diffWhitespace": {
+      "status": "passed",
+      "command": "git diff --check -- zircon_runtime_interface/src/reflect/value_budget.rs zircon_runtime_interface/src/reflect/value_validation.rs zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs",
+      "exitCode": 0,
+      "note": "Git reported LF-to-CRLF worktree conversion warnings; check returned 0 with no whitespace errors and did not normalize line endings."
+    },
+    "cargoTests": {
+      "status": "not-run",
+      "reason": "Comment-only source edits; no Cargo build or tests were requested or run."
+    },
+    "formalCoordinator": {
+      "status": "pending",
+      "reason": "Awaiting Jenkins handoff and acceptance receipts; this agent ran no Git write, build, generation, or cleanup."
+    },
+    "reviewMethod": "Read complete assigned files and traced exports, Runtime admission/JSON/VM consumers, serde derives, test registration, every declaration/member/helper/branch/test. UiBindingValue::validate_with_budget is a separate contract. No behavior or API change. Evidence self-check now records 90 unique object/import/block entries, including four production import binding groups and the boundary lexical static result.",
+    "nativeProcessNotes": "All source-writing processes in this batch reached terminal status. Five earlier writer attempts terminated before the write loop; one guarded writer wrote all three files. An inherited read-only rg cell from earlier Host work remains unverified and pending; it was not restarted or killed. No build or generated outputs were created.",
+    "independentReview": {
+      "reviewer": "/root",
+      "status": "pending",
+      "evidence": "Awaiting independent object, contract, comment, and hash review."
+    },
+    "legacyEvidence": {
+      "historicalIssueTags": "The three initial coverage entries had no BUG, TODO, or SAFETY tags; this batch adds none.",
+      "existingCommentPreservation": "Scoped source diff has zero deletions; no strings, derives, assertions, or executable code changed."
+    },
+    "commit": {
+      "status": "pending",
+      "sha": null,
+      "owner": "Jenkins"
+    },
+    "boundaryLexicalStaticCheck": {
+      "status": "passed",
+      "boundarySource": "zircon_runtime_interface/src/tests/boundary.rs",
+      "boundarySourceSha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+      "forbiddenNeedleExpressions": 16,
+      "productionSources": [
+        "zircon_runtime_interface/src/reflect/value_budget.rs",
+        "zircon_runtime_interface/src/reflect/value_validation.rs"
+      ],
+      "fullTextMatches": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/value_budget.rs",
+          "line": 5,
+          "needle": "zircon_runtime/src",
+          "lexicalClass": "line documentation comment; is_rust_code_position returns false while line_comment is set"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/value_budget.rs",
+          "line": 22,
+          "needle": "zircon_runtime/src",
+          "lexicalClass": "line documentation comment; is_rust_code_position returns false while line_comment is set"
+        }
+      ],
+      "result": "Only two full-text hits occur: value_budget.rs lines 5 and 22; both are //! or /// lines. The scanner enters line_comment at // and returns false for code-position checks before newline. value_validation.rs has no hits. Neither source contains cfg(test) items to remove.",
+      "execution": "Static source inspection only; the boundary Cargo test was not run. These comment matches do not constitute a guard violation."
+    },
+    "evidenceSelfCheck": {
+      "status": "passed",
+      "guardBeforeWriteSha256": "7113d644a14c750bb35f5bdd069e5fc883bb60462e8208ca94f5701dec845ebf",
+      "requiredObjectFields": 10,
+      "recordsByFile": {
+        "zircon_runtime_interface/src/reflect/value_budget.rs": 31,
+        "zircon_runtime_interface/src/reflect/value_validation.rs": 45,
+        "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs": 14
+      },
+      "totalRecords": 90,
+      "symbolsUniqueWithinEachFile": true,
+      "sourceAfterHashesRechecked": true,
+      "sourcePinsRechecked": true
+    }
+  }
+}

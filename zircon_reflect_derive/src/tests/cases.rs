@@ -1,5 +1,9 @@
+//! 派生实现的单元覆盖：测试直接构造 `syn::DeriveInput` 并检查展开结果或诊断。
+//! 这些用例验证 proc-macro 内部展开契约；运行时 trait 调用另由 `zircon_runtime` 的反射测试覆盖。
+
 use syn::DeriveInput;
 
+/// 检查显式容器/字段元数据进入注册 token，并生成名称与槽位读写方法。
 #[test]
 fn derive_round_trips_reflect_type_info() {
     let input: DeriveInput = syn::parse_quote! {
@@ -44,6 +48,7 @@ fn derive_round_trips_reflect_type_info() {
     assert!(expansion.contains("1u32 =>"));
 }
 
+/// 检查类型身份键和字段身份键带首尾空白时都会拒绝展开。
 #[test]
 fn derive_rejects_non_canonical_stable_identity_keys() {
     let type_input: DeriveInput = syn::parse_quote! {
@@ -67,6 +72,7 @@ fn derive_rejects_non_canonical_stable_identity_keys() {
     assert!(error.to_string().contains("non-empty and already trimmed"));
 }
 
+/// 拒绝已退役的 `plugin_owned` 容器键，避免派生宏重新生成旧投影。
 #[test]
 fn derive_rejects_retired_plugin_owned_projection() {
     let input: DeriveInput = syn::parse_quote! {
@@ -84,6 +90,7 @@ fn derive_rejects_retired_plugin_owned_projection() {
         .contains("unknown zr_reflect type attribute"));
 }
 
+/// 检查枚举保留 `Enum` 类型形状，且不会把变体伪装成普通字段。
 #[test]
 fn derive_preserves_enum_shape_without_inventing_fields() {
     let input: DeriveInput = syn::parse_quote! {
@@ -103,6 +110,7 @@ fn derive_preserves_enum_shape_without_inventing_fields() {
     assert!(expansion.contains("ReflectScriptVisibility :: Private"));
 }
 
+/// 组件与资源角色同时声明时必须在宏展开阶段返回错误。
 #[test]
 fn derive_rejects_conflicting_component_and_resource_flags() {
     let input: DeriveInput = syn::parse_quote! {
@@ -120,6 +128,7 @@ fn derive_rejects_conflicting_component_and_resource_flags() {
         .contains("cannot be both a component and a resource"));
 }
 
+/// 未识别 Rust 字段类型没有显式反射值路径时必须拒绝展开。
 #[test]
 fn derive_rejects_unknown_field_type_without_explicit_value_path() {
     let input: DeriveInput = syn::parse_quote! {
@@ -136,6 +145,7 @@ fn derive_rejects_unknown_field_type_without_explicit_value_path() {
         .contains("requires value_type_path = \"...\""));
 }
 
+/// 检查已支持的列表元素类型递归生成嵌套 `List<...>` schema 路径。
 #[test]
 fn derive_infers_typed_list_value_paths() {
     let input: DeriveInput = syn::parse_quote! {
@@ -153,6 +163,7 @@ fn derive_infers_typed_list_value_paths() {
     assert!(expansion.contains("\"weights\" , \"List<List<Scalar>>\""));
 }
 
+/// 未识别的列表元素不能退化为缺少元素类型的宽泛 `List` 路径。
 #[test]
 fn derive_requires_an_explicit_path_for_unknown_list_elements() {
     let input: DeriveInput = syn::parse_quote! {
@@ -169,6 +180,7 @@ fn derive_requires_an_explicit_path_for_unknown_list_elements() {
         .contains("requires value_type_path = \"...\""));
 }
 
+/// 检查虚拟字段通过自定义回调读写，且只读回调不生成可编辑字段。
 #[test]
 fn derive_expands_virtual_fields_through_custom_accessors() {
     let input: DeriveInput = syn::parse_quote! {
@@ -206,6 +218,7 @@ fn derive_expands_virtual_fields_through_custom_accessors() {
     assert!(!expansion.contains("self . transform"));
 }
 
+/// 实体字段与容器声明的虚拟字段共享唯一的反射名称空间。
 #[test]
 fn derive_rejects_duplicate_reflected_field_names() {
     let input: DeriveInput = syn::parse_quote! {
@@ -231,6 +244,7 @@ fn derive_rejects_duplicate_reflected_field_names() {
         .contains("duplicate reflected field name `value`"));
 }
 
+/// 平台位宽整数不自动推断可移植 schema，必须显式选择反射值类型路径。
 #[test]
 fn derive_requires_explicit_accessors_for_platform_sized_integers() {
     for field_type in ["isize", "usize"] {

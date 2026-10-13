@@ -6,6 +6,9 @@ mod channel;
 mod events;
 #[path = "fixtures.rs"]
 mod fixtures;
+// Runtime plugin integration tests require the optional native-host plugin surface;
+// keep them enabled in native-host test runs while core-min omits that API.
+#[cfg(feature = "native-host")]
 #[path = "plugin.rs"]
 mod plugin;
 #[path = "registration/mod.rs"]

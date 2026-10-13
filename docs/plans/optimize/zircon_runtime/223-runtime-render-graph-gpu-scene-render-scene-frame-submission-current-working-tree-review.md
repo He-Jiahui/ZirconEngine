@@ -9,10 +9,10 @@ verification_head: working-tree
 verification_epoch: 2026-09-02
 supersedes_currentness_of:
   - zircon_runtime/213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review.md
-  - zircon_runtime/214-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution-current-working-tree-review.md
+  - zircon_runtime/214-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution.md
 related_owner_reports:
   - zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md
-  - zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+  - zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
   - zircon_runtime/213-runtime-visibility-gpu-scene-culling-batching-instancing-hzb-virtual-geometry-current-working-tree-review.md
   - zircon_editor/270-editor-scene-viewport-runtime-render-scene-visibility-hzb-picking-surface-product-integration-current-working-tree-review.md
 related_code:

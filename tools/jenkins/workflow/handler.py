@@ -18,7 +18,7 @@ from ..validation.receipts import HEAVY_STAGES, LIGHT_STAGES
 from ..source import handle as source_handle, get_sealed_consumer, require_sealed_consumer, repository_id
 from .classification import classify_change
 from .orchestrator import TEMPLATES
-from .syntax import syntax_receipt, format_receipt
+from .syntax import REVIEW_SUFFIXES, format_receipt, review_receipt, syntax_receipt
 from ..submission import request_payload as jenkins_request_payload, submit as jenkins_submit
 
 def _stage_recipe(stage: str, identity: dict) -> str:
@@ -739,14 +739,18 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
         root = record["payload"].get("objectRoot")
         if isinstance(root, str):
             for entry in manifest.get("entries", []):
-                if str(entry.get("path", "")).endswith(".rs") and entry.get("objectDigest") and entry.get("status") == "present":
-                    obj = Path(root).absolute() / "inputs" / "objects" / str(entry["objectDigest"])
-                    if obj.is_file():
-                        sources.append((str(entry.get("path")), obj.read_text(encoding="utf-8")))
+                path = str(entry.get("path", ""))
+                if Path(path).suffix.lower() not in REVIEW_SUFFIXES:
+                    continue
+                if not entry.get("objectDigest") or entry.get("status") != "present":
+                    continue
+                obj = Path(root).absolute() / "inputs" / "objects" / str(entry["objectDigest"])
+                if obj.is_file():
+                    sources.append((path, obj.read_text(encoding="utf-8")))
         if stage_name in HEAVY_STAGES | {"commit", "notify", "gc"}:
             raise JenkinsError("stage_requires_authority", "heavy and side-effect stages require their authoritative adapter", retryable=True)
-        if stage_name in {"syntax", "format"} and not sources:
-            raise JenkinsError("sealed_source_missing", "syntax and format require sealed source text")
+        if stage_name in {"syntax", "format", "review"} and not sources:
+            raise JenkinsError("sealed_source_missing", "syntax, format, and review require sealed source text")
         if stage_name == "patch":
             applied_preparation = manifest.get('preparationKind') == 'already-applied-patch'
             if applied_preparation:
@@ -812,12 +816,25 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
             elif stage_name == "format":
                 checks = [format_receipt(text, edition=str(payload.get("edition", "2021")), source_digest=identity.get("sourceInputDigest")) for _, text in sources]
                 raw_receipt = {"commandDigest": digest([c.get("commandDigest") for c in checks]), "edition": payload.get("edition", "2021")}
+            elif stage_name == "review":
+                checks = [review_receipt(path, text, edition=str(payload.get("edition", "2021")),
+                                         source_digest=identity.get("sourceInputDigest"))
+                          for path, text in sources]
+                languages = sorted({c.get("tool") for c in checks})
+                raw_receipt = {"commandDigest": digest([c.get("commandDigest") for c in checks]),
+                               "edition": payload.get("edition", "2021"),
+                               # A review covers several languages at once, so
+                               # the recorded tool must be the set actually used
+                               # rather than the Rust-only default.
+                               "tool": ",".join(languages) or "review",
+                               "languages": languages, "reviewedFiles": len(checks)}
             else:
                 raw_receipt = {"status": "passed", "kind": stage_name,
                                "sourceDigest": identity.get("sourceInputDigest")}
             execution_id = digest({"flow": key, "stage": stage_name})[:32]
             receipt = _light_receipt(state, repo_root, execution_id, stage_name, identity,
-                                     {"status": "passed", "exitCode": 0, "tool": "rustfmt",
+                                     {"status": "passed", "exitCode": 0,
+                                      "tool": raw_receipt.get("tool", "rustfmt"),
                                       "commandDigest": raw_receipt.get("commandDigest", digest(["rustfmt"])),
                                       "edition": raw_receipt.get("edition", payload.get("edition", "2021"))})
         except JenkinsError as error:
@@ -829,7 +846,10 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
         stages[index]["receipt"] = receipt
         receipts = dict(record["payload"].get("stageReceipts", {}))
         receipts[stage_name] = execution_id
-        status = "ready" if all(item["status"] in {"passed", "reused"} for item in stages if item["name"] in {"patch", "syntax", "format"}) else "pending"
+        # The filter runs over the stages this template actually declares, so
+        # naming review here cannot stall a template that has no review stage.
+        status = "ready" if all(item["status"] in {"passed", "reused"} for item in stages
+                                if item["name"] in {"patch", "syntax", "format", "review"}) else "pending"
         state.put("workflow", key, {**record["payload"], "status": status, "stages": stages, "stageReceipts": receipts}, expected_version=record["version"])
         return response(status, request_id=identity.get("requestId"), observed_generation=identity.get("generation"), receipt=receipt)
     if action == "observe-flow":

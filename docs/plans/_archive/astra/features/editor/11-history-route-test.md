@@ -1,7 +1,7 @@
 status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_editor/02-document-transaction-save-autosave-recovery-review.md
-  - docs/plans/optimize/zircon_editor/63-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/63-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation.md
 
 # History route and operation-group contract
 

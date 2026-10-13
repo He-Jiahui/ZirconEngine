@@ -106,7 +106,6 @@ fn clean_expired_requests(directory: &Path, now_unix_millis: u64) -> Result<(), 
     Ok(())
 }
 
-// BUG: [CR-HUBCORE-0003] 目录遍历中的单项错误被 `filter_map(Result::ok)` 丢弃，容量计数可能低于实际文件数并允许超限发布；证据：本函数与 publish_project_editor_focus_signal 的上限判断。
 // 收件箱限额是对发布者的背压约束，计数失败时不应默认为空。
 fn pending_request_count(directory: &Path) -> Result<usize, HubError> {
     let entries = match fs::read_dir(directory) {
@@ -114,24 +113,29 @@ fn pending_request_count(directory: &Path) -> Result<usize, HubError> {
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(0),
         Err(error) => return Err(error.into()),
     };
-    entries
-        .filter_map(Result::ok)
-        .filter(|entry| {
-            entry
-                .path()
-                .extension()
-                .and_then(|extension| extension.to_str())
-                == Some("json")
+    pending_request_count_from_entries(entries)
+}
+
+fn pending_request_count_from_entries(
+    entries: impl Iterator<Item = io::Result<fs::DirEntry>>,
+) -> Result<usize, HubError> {
+    entries.try_fold(0_usize, |count, entry| {
+        let entry = entry.map_err(HubError::from)?;
+        let is_json = entry
+            .path()
+            .extension()
+            .and_then(|extension| extension.to_str())
+            == Some("json");
+        if !is_json {
+            return Ok(count);
+        }
+        let metadata = entry.metadata().map_err(HubError::from)?;
+        Ok(if metadata.is_file() {
+            count.saturating_add(1)
+        } else {
+            count
         })
-        .try_fold(0_usize, |count, entry| {
-            entry.metadata().map_err(HubError::from).map(|metadata| {
-                if metadata.is_file() {
-                    count.saturating_add(1)
-                } else {
-                    count
-                }
-            })
-        })
+    })
 }
 
 // Editor 轮询请求目录，故仅在完整写入并同步后公布目标路径，避免读到半写的 JSON。
@@ -240,4 +244,16 @@ unsafe extern "system" {
         exclude: *mut std::ffi::c_void,
         reserved: *mut std::ffi::c_void,
     ) -> i32;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pending_request_count_propagates_directory_entry_errors() {
+        let entries = [Err(io::Error::other("injected directory entry failure"))].into_iter();
+
+        assert!(pending_request_count_from_entries(entries).is_err());
+    }
 }

@@ -66,9 +66,20 @@ pub(in crate::scene::world::property_access) fn expect_u32(
     property_path: &ComponentPropertyPath,
 ) -> SceneResult<u32> {
     match value {
-        // BUG: [CR-R02-runtime_world_property_binding-0004] 宽整数超出 u32 时静默截断；Unsigned(4294967296) 成功得到 0 并可写入渲染/碰撞掩码。证据：本分支及两个领域调用入口均未检查上界。
-        ScenePropertyValue::Unsigned(value) => Ok(value as u32),
-        ScenePropertyValue::Integer(value) if value >= 0 => Ok(value as u32),
+        ScenePropertyValue::Unsigned(value) => match u32::try_from(value) {
+            Ok(value) => Ok(value),
+            Err(_) => Err(SceneError::PropertyTypeMismatch {
+                property_path: property_path.to_string(),
+                expected: "u32 unsigned integer".to_string(),
+            }),
+        },
+        ScenePropertyValue::Integer(value) if value >= 0 => match u32::try_from(value) {
+            Ok(value) => Ok(value),
+            Err(_) => Err(SceneError::PropertyTypeMismatch {
+                property_path: property_path.to_string(),
+                expected: "u32 unsigned integer".to_string(),
+            }),
+        },
         _ => Err(SceneError::PropertyTypeMismatch {
             property_path: property_path.to_string(),
             expected: "unsigned integer".to_string(),

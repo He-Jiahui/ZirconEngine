@@ -13,18 +13,17 @@ use zircon_runtime::core::framework::net::{
 use crate::poison_recovery::{lock_or_error, lock_recover, NetSharedState};
 
 use super::egress::{AcceptedTcpConnection, NetEgress, TcpPollResult, WorkerReply};
-use super::ingress::NetIngress;
+use super::ingress::{NetIngress, NetWorkerIngress, WORKER_INGRESS_CAPACITY};
 use super::shutdown::NetWorkerShutdownReport;
 use super::transport_runtime::run_worker;
 
 const DEFAULT_EGRESS_CAPACITY: usize = 1024;
-const DEFAULT_INGRESS_CAPACITY: usize = 1024;
 const COMMAND_REPLY_TIMEOUT: Duration = Duration::from_secs(2);
 
 #[derive(Debug)]
 pub(crate) struct NetWorker {
     egress: mpsc::SyncSender<NetEgress>,
-    ingress: Mutex<mpsc::Receiver<NetIngress>>,
+    ingress: Arc<NetWorkerIngress>,
     lifecycle: Mutex<NetWorkerLifecycle>,
     shutdown: AtomicBool,
     #[cfg(test)]
@@ -43,15 +42,18 @@ impl NetWorker {
         runtime: tokio::runtime::Handle,
     ) -> Result<Self, NetError> {
         let (egress, worker_egress) = mpsc::sync_channel(DEFAULT_EGRESS_CAPACITY);
-        let (worker_ingress, ingress) = mpsc::sync_channel(DEFAULT_INGRESS_CAPACITY);
+        let ingress = NetWorkerIngress::new(WORKER_INGRESS_CAPACITY);
         let thread = thread::Builder::new()
             .name("zircon-net-worker".to_string())
-            .spawn(move || run_worker(worker_egress, worker_ingress, next_connection_id, runtime))
+            .spawn({
+                let worker_ingress = Arc::clone(&ingress);
+                move || run_worker(worker_egress, worker_ingress, next_connection_id, runtime)
+            })
             .map_err(|error| NetError::Io(error.to_string()))?;
 
         Ok(Self {
             egress,
-            ingress: Mutex::new(ingress),
+            ingress,
             lifecycle: Mutex::new(NetWorkerLifecycle {
                 thread: Some(thread),
                 shutdown_reply: None,
@@ -173,15 +175,15 @@ impl NetWorker {
     }
 
     pub(crate) fn drain_ingress(&self, max_events: usize) -> Vec<NetEvent> {
-        let mut events = Vec::new();
-        let ingress = lock_recover(&self.ingress);
-        while events.len() < max_events {
-            match ingress.try_recv() {
-                Ok(ingress) => events.push(ingress.into_event()),
-                Err(_) => break,
-            }
-        }
-        events
+        self.ingress.drain(max_events)
+    }
+
+    pub(crate) fn enqueue_event(&self, event: NetEvent) {
+        let _ = self.ingress.push(NetIngress::Event(event));
+    }
+
+    pub(crate) fn pending_ingress_count(&self) -> usize {
+        self.ingress.len()
     }
 
     pub(crate) fn shutdown(&self) -> Result<NetWorkerShutdownReport, NetError> {
@@ -194,6 +196,9 @@ impl NetWorker {
         }
 
         if lifecycle.shutdown_reply.is_none() {
+            // Release a producer blocked by a full ingress queue before joining the worker.
+            // Previously accepted events remain available to drain after shutdown.
+            self.ingress.cancel();
             let (reply, receiver) = mpsc::sync_channel(1);
             self.egress
                 .try_send(NetEgress::Shutdown { reply })

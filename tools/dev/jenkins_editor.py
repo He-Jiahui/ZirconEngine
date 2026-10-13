@@ -265,6 +265,20 @@ def _execute_locked(args, root, driver, identity, folder, *, call):
     if args.action == "query":
         saved = {"identity": identity, "buildRoot": build_root(root, args.build_root),
                  "runtimeOperationId": driver["runtimeOperationId"]}
+        query_path = folder / "current-source-query.json"
+        plain_path(query_path)
+        if query_path.exists():
+            control = dict(saved)
+            if args.current_source_ref:
+                control["currentSourceRef"] = require_identifier(args.current_source_ref, "currentSourceRef")
+            recorded = read_json(query_path, "saved current-source query")
+            try:
+                same_binding = (isinstance(recorded, dict)
+                                and canonical_json(recorded) == canonical_json(control))
+            except (TypeError, ValueError):
+                same_binding = False
+            if not same_binding:
+                raise EntryError("query_binding_conflict", "Existing query does not match the requested binding")
         return _query(root, driver, folder, saved, args, call)
     payload = intent_payload(args, root, identity)
     save_json(folder / "intent.json", payload, immutable=True)

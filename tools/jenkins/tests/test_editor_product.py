@@ -34,6 +34,8 @@ class EditorProductTests(unittest.TestCase):
             "zircon_runtime_interface/src/runtime_build_set/payload_schema_set_v1.json": b"{}",
             "tools/export/product_build_profiles.toml": b"# synthetic profile",
         }
+        self.synthetic.update({path: ("synthetic template: " + path + "\n").encode("utf-8")
+                               for path in product.PROJECT_TEMPLATE_INPUTS})
         self.synthetic.update({name + "/Cargo.toml": b"[package]\n" for name in product.PACKAGES})
         self.synthetic.update({name.replace(".", "/") + ".py": b"# synthetic helper\n" for name in product.HELPER_MODULES})
         self.synthetic["tools/build/build_editor.py"] = b"from tools.dev import local_cargo\nfrom tools.build.zircon_build_runtime_manifest import synthetic\n"
@@ -94,6 +96,51 @@ class EditorProductTests(unittest.TestCase):
         self.assertFalse(recipe["nativeUiAcceptance"])
         self.assertFalse(recipe["shippingAcceptance"])
         self.assertEqual(self.plan().recipe_ref, plan.recipe_ref)
+
+    def test_every_embedded_project_template_is_required_before_execution(self):
+        entries = self.manifest["entries"]
+        for path in product.PROJECT_TEMPLATE_INPUTS:
+            with self.subTest(path=path):
+                self.manifest["entries"] = [entry for entry in entries if entry["path"] != path]
+                self.configure()
+                with self.assertRaises(JenkinsError) as error:
+                    self.plan()
+                self.assertEqual(error.exception.code, "editor_inputs_missing")
+                self.assertIn(path, error.exception.details["paths"])
+
+    def test_deleted_template_cannot_satisfy_the_production_input_contract(self):
+        path = "templates/projects/renderable-empty/zircon-project.toml"
+        self.manifest["entries"] = [{**entry, "status": "deleted", "sha256": None, "objectDigest": None}
+                                    if entry["path"] == path else entry for entry in self.manifest["entries"]]
+        self.configure()
+        with self.assertRaises(JenkinsError) as error:
+            self.plan()
+        self.assertEqual(error.exception.code, "editor_inputs_missing")
+        self.assertIn(path, error.exception.details["paths"])
+
+    def test_corrupt_template_object_fails_before_native_execution(self):
+        path = "templates/projects/renderable-empty/assets/models/cube.obj"
+        entry = next(entry for entry in self.manifest["entries"] if entry["path"] == path)
+        (self.objects / "inputs/objects" / entry["objectDigest"]).write_bytes(b"corrupt template")
+        with self.assertRaises(JenkinsError) as error:
+            self.plan()
+        self.assertEqual(error.exception.code, "editor_template_corrupt")
+        self.assertEqual(error.exception.details["path"], path)
+
+    def test_template_bytes_are_bound_to_the_immutable_product_recipe(self):
+        first = self.plan()
+        closure = first.recipe["productTemplateClosure"]
+        self.assertEqual(len(closure), 17)
+        self.assertEqual(first.recipe["productTemplateClosureDigest"], digest(closure))
+        path = "templates/projects/renderable-empty/zircon-project.toml"
+        replacement = b"synthetic changed project descriptor\n"
+        self.entry(path, replacement)
+        self.configure()
+        second = self.plan()
+        self.assertEqual(second.recipe["productTemplateClosure"][path], hashlib.sha256(replacement).hexdigest())
+        self.assertNotEqual(first.recipe["productTemplateClosureDigest"], second.recipe["productTemplateClosureDigest"])
+        self.assertNotEqual(first.recipe_ref, second.recipe_ref)
+        self.assertEqual(first.recipe["preparationKey"], second.recipe["preparationKey"])
 
     def test_shipping_has_fixed_features_target_and_archive(self):
         development = self.plan()

@@ -37,7 +37,10 @@ fn contact_shadow_feature_registers_hzb_ray_march_pass() {
     assert_eq!(pass.pass_name, PASS_NAME);
     assert_eq!(pass.queue, QueueLane::AsyncCompute);
     assert_eq!(pass.executor_id.as_str(), EXECUTOR_ID);
-    assert!(pass.flags.has_side_effects);
+    assert!(
+        !pass.flags.has_side_effects,
+        "the graph output consumer keeps contact shadow live without side effects outside the graph"
+    );
     let workload = pass
         .compute_workload
         .as_ref()
@@ -187,6 +190,16 @@ fn contact_shadow_executor_rejects_resource_contract_drift() {
 }
 
 #[test]
+fn contact_shadow_executor_rejects_pass_flag_contract_drift() {
+    let mut context = context_for_contract();
+    context.flags.has_side_effects = true;
+
+    let error = validate_context(&context).unwrap_err();
+
+    assert!(error.contains("pass flag mismatch"), "{error}");
+}
+
+#[test]
 fn contact_shadow_shader_declares_expected_compute_bindings() {
     assert!(
         CONTACT_SHADOW_SHADER_SOURCE
@@ -260,6 +273,7 @@ fn test_extract() -> RenderFrameExtract {
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: zircon_runtime::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

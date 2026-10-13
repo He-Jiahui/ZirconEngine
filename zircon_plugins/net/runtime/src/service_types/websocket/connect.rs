@@ -1,5 +1,5 @@
 //! 调用可选 feature 建立真实 WS 连接，再登记 manager 连接表并发布状态事件。
-//! 后端回调可重入；登记失败只请求 Closed 状态。当前后端没有以此取消 reader，资源回滚边界见 CR-PLUGIN-NET-0014。
+//! 后端回调可重入；登记失败写入 Closed 状态，reader 随后停止接收和发布事件。
 
 use std::sync::Arc;
 

@@ -4,7 +4,7 @@ category: zircon_runtime
 report_id: Runtime214-reader-ledger-dedup-2026-09-29
 date: 2026-09-29
 session_id: astra-optimize-20260926-batch-a
-plan_source: docs/plans/optimize/zircon_runtime/214-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution-current-working-tree-review.md
+plan_source: docs/plans/optimize/zircon_runtime/214-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution.md
 implementation_status: source_candidate_pending_validation
 validation_status: focused_static_checks_passed_managed_validation_pending
 performance_status: duplicate_work_removed_product_gate_pending

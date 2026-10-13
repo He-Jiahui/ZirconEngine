@@ -9,6 +9,7 @@ mod target;
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract) use commands::workbench_popup_keyboard_command;
+pub(in crate::ui::retained_host::host_contract) use target::active_popup_keyboard_target_for_ui;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) use commands::WorkbenchPopupKeyboardCommand;
 pub(in crate::ui::retained_host::host_contract) use dispatch::{

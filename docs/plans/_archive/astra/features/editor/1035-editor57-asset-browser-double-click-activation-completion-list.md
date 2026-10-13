@@ -7,7 +7,7 @@ related_code:
   - zircon_editor/assets/i18n/zh-CN.toml
   - docs/plans/optimize/zircon_editor/57/2026-09-28-editor57-asset-browser-double-click-activation.md
 plan_sources:
-  - docs/plans/optimize/zircon_editor/57-editor-asset-workspace-content-browser-folder-source-tree-selection-open-create-import-rename-move-delete-history-collection-product-integration-review.md
+  - docs/plans/optimize/zircon_editor/57-editor-asset-workspace-content-browser-folder-source-tree-selection-open-create-import-rename-move-delete-history-collection.md
 status: partial_implemented_pending_validation
 validation_status: scoped_static_checks_passed_managed_validation_pending
 ---

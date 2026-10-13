@@ -1,5 +1,3 @@
-import groovy.json.JsonSlurperClassic
-
 def repo = '@@REPO@@'
 def python = '@@PYTHON@@'
 def script = '@@SCRIPT@@'
@@ -23,12 +21,11 @@ while (!done) {
             def rc = bat(returnStatus: true, script: '"' + python + '" -B -X utf8 "' + script + '" work --repo-root "' + repo +
                 '" --task-id ' + params.TASK_ID + ' --inventory-digest ' + params.INVENTORY_DIGEST + ' --output-file "' + output +
                 '" --expected-source-sha256 ' + sourceSha)
-            if (rc != 0) error('Records intake requires reconciliation; original messages and receipts are retained')
-            def result = new JsonSlurperClassic().parseText(readFile(file: output, encoding: 'UTF-8'))
-            done = result.done == true
+            if (!(rc in [0, 10])) error('Records intake requires reconciliation; original messages and receipts are retained')
+            done = rc == 0
             writeFile(file: params.TASK_ID + '.receipt.json', text: readFile(file: output, encoding: 'UTF-8'), encoding: 'UTF-8')
             archiveArtifacts(artifacts: params.TASK_ID + '.receipt.json', fingerprint: true)
-            currentBuild.description = params.TASK_ID + ': ' + result.phase + '; formal acceptance pending'
+            currentBuild.description = params.TASK_ID + ': ' + (done ? 'evidence archived' : 'waiting for formal input/acceptance')
         }
     }
     // Waiting contracts persist in Jenkins without occupying an executor.

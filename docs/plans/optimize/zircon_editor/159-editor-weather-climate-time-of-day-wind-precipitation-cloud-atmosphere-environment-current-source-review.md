@@ -38,7 +38,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/38-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-environment-authoring-review.md
   - docs/plans/optimize/zircon_editor/112-editor-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-current-source-review.md
   - docs/plans/optimize/zircon_runtime/99zx-runtime-weather-climate-celestial-time-of-day-wind-precipitation-cloud-atmosphere-surface-state-determinism-network-save-scalability-editor-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/96-runtime-environment-sky-atmosphere-cloud-ibl-reflection-probe-capture-convolution-sh-pmrem-cache-residency-submission-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/96-runtime-environment-sky-atmosphere-cloud-ibl-reflection-probe-capture-convolution-sh-pmrem-cache-residency-submission.md
   - docs/plans/optimize/zircon_editor/158-editor-volume-zone-trigger-region-gameplay-audio-post-process-environment-current-source-review.md
   - docs/plans/zircon_runtime/render/01/failure-2026-07-23-disabled-forward-volumetric-cache-field-anchor-drift.md
   - docs/plans/zircon_runtime/render/01/failure-2026-08-16-render01-realtime-ibl-recording-pass-import.md

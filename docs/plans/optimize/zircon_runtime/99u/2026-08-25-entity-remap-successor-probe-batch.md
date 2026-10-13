@@ -2,7 +2,7 @@
 
 ## Scope
 
-- Owner report: `docs/plans/optimize/zircon_runtime/99u-runtime-dynamic-scene-asset-reload-event-generation-reconciliation-stage-apply-instance-replacement-product-integration-current-source-review.md`
+- Owner report: `docs/plans/optimize/zircon_runtime/99u-runtime-dynamic-scene-asset-reload-event-generation-reconciliation-stage-apply-instance-replacement.md`
 - Baseline: `0fd7df4ecdd157f9505cd51013780e3225cfb83c`, epoch `435`
 - Session: `optimize-runtime99u-entity-remap-probe-r1-20260825`
 - Production: `zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction.rs`

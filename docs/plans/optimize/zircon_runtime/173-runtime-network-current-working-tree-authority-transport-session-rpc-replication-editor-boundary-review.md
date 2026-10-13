@@ -4,7 +4,7 @@ category: zircon_runtime
 report_id: Runtime173
 review_date: 2026-08-30
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor.md
   - docs/plans/optimize/zircon_runtime/08e-network-runtime-review.md
   - docs/plans/optimize/zircon_plugins/10-first-party-network-source-runtime-editor-dist-catalog-transport-rpc-replication-product-integration-review.md
 related_editor_owner:
@@ -38,7 +38,7 @@ tests:
   - zircon_plugins/net/features/reliable_udp/runtime/src/tests
   - zircon_plugins/net/features/content_download/runtime/src/tests
 plan_sources:
-  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor.md
   - docs/plans/optimize/zircon_runtime/08e-network-runtime-review.md
   - docs/plans/optimize/zircon_plugins/10-first-party-network-source-runtime-editor-dist-catalog-transport-rpc-replication-product-integration-review.md
   - docs/plans/performance/01/2026-08-24-plugin-net-replication-current-source-algorithm-performance-review.md

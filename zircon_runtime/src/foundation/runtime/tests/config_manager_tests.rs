@@ -17,6 +17,7 @@ use super::config_manager::{
 
 const TEST_FLUSH_TIMEOUT: Duration = Duration::from_secs(2);
 const TEST_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(2);
+const TEST_JOIN_OBSERVATION_TIMEOUT: Duration = Duration::from_millis(100);
 const LONG_TEST_DEBOUNCE: Duration = Duration::from_secs(60);
 static NEXT_TEST_PATH_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -185,15 +186,11 @@ impl BlockingAtomicWriter {
         self.changed.notify_all();
     }
 
-    fn wait_until_completed(&self) {
-        let state = self
-            .state
+    fn is_completed(&self) -> bool {
+        self.state
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let _state = self
-            .changed
-            .wait_while(state, |state| !state.completed)
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .completed
     }
 }
 
@@ -270,15 +267,11 @@ impl CommitAdmittedBlockingWriter {
         self.changed.notify_all();
     }
 
-    fn wait_until_completed(&self) {
-        let state = self
-            .state
+    fn is_completed(&self) -> bool {
+        self.state
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let _state = self
-            .changed
-            .wait_while(state, |state| !state.completed)
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .completed
     }
 }
 
@@ -723,27 +716,47 @@ fn shutdown_waits_for_a_late_writer_before_returning() {
         Duration::from_millis(25),
     )
     .unwrap();
+    let (cancelled_tx, cancelled_rx) = mpsc::channel();
+    old_manager.install_shutdown_timeout_test_hook(move |commit_in_progress| {
+        let _ = cancelled_tx.send(commit_in_progress);
+    });
     old_manager.set_value("owner", json!("stale")).unwrap();
+    // This writer is blocked after staging, before entering the commit fence.
     old_writer.wait_until_entered();
 
-    let release_writer = Arc::clone(&old_writer);
-    let releaser = std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_millis(50));
-        release_writer.release();
+    let (finished_tx, finished_rx) = mpsc::channel();
+    let shutdown = std::thread::spawn(move || {
+        drop(old_manager);
+        let _ = finished_tx.send(());
     });
-    let shutdown_started = Instant::now();
-    drop(old_manager);
-    releaser.join().unwrap();
-    assert!(shutdown_started.elapsed() >= Duration::from_millis(25));
-    old_writer.wait_until_completed();
+    let cancellation = cancelled_rx.recv_timeout(TEST_FLUSH_TIMEOUT);
+    // A completed Drop must be observable while the writer is still held; an immediate peek
+    // could only observe a preempted Drop thread instead of exercising its join.
+    let completion_while_held = finished_rx.recv_timeout(TEST_JOIN_OBSERVATION_TIMEOUT);
+    // Always release and join before assertions, including a failed cancellation observation.
+    old_writer.release();
+    let shutdown_result = shutdown.join();
+    let writer_completed_at_shutdown_return = old_writer.is_completed();
 
-    assert_eq!(
-        serde_json::from_slice::<Value>(&std::fs::read(&path).unwrap()).unwrap(),
-        json!({"owner": "stale"})
-    );
-    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 1);
-
+    let stale_write_was_rejected = !path.exists();
+    let remaining_files = std::fs::read_dir(&root).unwrap().count();
     std::fs::remove_dir_all(root).unwrap();
+
+    shutdown_result.unwrap();
+    assert!(!cancellation.unwrap(), "the staged write was not admitted");
+    assert!(
+        matches!(&completion_while_held, Err(mpsc::RecvTimeoutError::Timeout)),
+        "shutdown returned while the staged writer was held: {completion_while_held:?}"
+    );
+    assert!(
+        writer_completed_at_shutdown_return,
+        "shutdown returned before the staged writer completed"
+    );
+    assert!(
+        stale_write_was_rejected,
+        "cancelled staging must not publish stale JSON"
+    );
+    assert_eq!(remaining_files, 0, "rejected staging must be removed");
 }
 
 #[test]
@@ -760,25 +773,55 @@ fn replacement_activation_fails_fast_while_an_admitted_commit_is_still_running()
         Duration::from_millis(25),
     )
     .unwrap();
+    let (cancelled_tx, cancelled_rx) = mpsc::channel();
+    old_manager.install_shutdown_timeout_test_hook(move |commit_in_progress| {
+        let _ = cancelled_tx.send(commit_in_progress);
+    });
     old_manager.set_value("owner", json!("stale")).unwrap();
+    // This writer signals only from inside the already-admitted commit closure.
     old_writer.wait_until_entered();
-    drop(old_manager);
+    let (finished_tx, finished_rx) = mpsc::channel();
+    let shutdown = std::thread::spawn(move || {
+        drop(old_manager);
+        let _ = finished_tx.send(());
+    });
+    let cancellation = cancelled_rx.recv_timeout(TEST_FLUSH_TIMEOUT);
+    let completion_while_held = finished_rx.recv_timeout(TEST_JOIN_OBSERVATION_TIMEOUT);
 
     let new_runtime = CoreRuntime::new();
     let activation_started = Instant::now();
-    let error = DefaultConfigManager::new_with_options(
+    let activation = DefaultConfigManager::new_with_options(
         &new_runtime.handle(),
         path.clone(),
         Arc::new(FencedAtomicWriter),
         Duration::ZERO,
         TEST_SHUTDOWN_TIMEOUT,
-    )
-    .unwrap_err();
-    assert!(activation_started.elapsed() < Duration::from_millis(500));
-    assert!(error.to_string().contains("still in progress"));
+    );
+    let activation_elapsed = activation_started.elapsed();
 
     old_writer.release();
-    old_writer.wait_until_completed();
+    let shutdown_result = shutdown.join();
+    let writer_completed_at_shutdown_return = old_writer.is_completed();
+    shutdown_result.unwrap();
+    assert!(cancellation.unwrap(), "the old commit was admitted");
+    assert!(
+        matches!(&completion_while_held, Err(mpsc::RecvTimeoutError::Timeout)),
+        "shutdown returned while the admitted commit was held: {completion_while_held:?}"
+    );
+    assert!(
+        writer_completed_at_shutdown_return,
+        "shutdown returned before the admitted writer completed"
+    );
+    assert!(activation_elapsed < Duration::from_millis(500));
+    assert!(activation
+        .unwrap_err()
+        .to_string()
+        .contains("still in progress"));
+    assert_eq!(
+        serde_json::from_slice::<Value>(&std::fs::read(&path).unwrap()).unwrap(),
+        json!({"owner": "stale"}),
+        "cancellation must not revoke an admitted commit"
+    );
     let new_manager = DefaultConfigManager::new_with_options(
         &new_runtime.handle(),
         path.clone(),

@@ -1,0 +1,3636 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "legacy-core-transfer-006",
+  "checkout": "E:/Git/ZirconEngine",
+  "rootChatId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "previousChatId": "01a13045-75e3-7dd2-86d8-de54d914c232",
+  "owner": "core_review",
+  "reviewer": "/root/core_review",
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "max",
+  "head": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "observedAtUtc": "2026-10-13T13:13:37.223594+00:00",
+  "evidencePath": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+  "state": "ready-for-independent-review",
+  "authority": {
+    "rootGrant": "Only this new transfer evidence JSON is writable. The legacy nine source files, events caller and all historical/shared metadata remain read-only.",
+    "previousChatRelease": "Root relayed the user confirmation that the previous chat ended. This releases the chat handoff ambiguity; it does not automatically accept current SHA evidence, grant source edits or close any native/formal pending request.",
+    "scope": [
+      "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+      "zircon_runtime_interface/src/runtime_api/session/session.rs",
+      "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+      "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+      "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+      "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+      "zircon_runtime_interface/src/reflect/value_budget.rs",
+      "zircon_runtime_interface/src/reflect/value_validation.rs",
+      "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs"
+    ],
+    "sourceWriteGrant": false,
+    "exclusiveEvidenceWriteGrant": true,
+    "historicalSessionAuthority": {
+      "coverageSnapshotSha256": "efe6d0ac73503db0a8c72462fcb2c7f30499f3a957f3b51ea39c26d753ea9156",
+      "assignment": "root独占授权的core-session-003精确6源码+本证据，初始物理SHA按账本校验；不写global coverage/issues/plan。",
+      "standardSha256": "fd4665076c529273a59ef74b08f83a2d572099a438c5d20ac81e6b14a7047b73",
+      "schemaSha256": "b21c4dc2261bba0a582121a5807e48bafb6def8d5ccc8b24a545f4929aa91db6"
+    },
+    "historicalBudgetAuthority": "The old evidence attributes canonicalWriter=host_review and the ledger attributes the three exact paths to reflect-budget-002. Literal per-file writeGrant and a top-level authority assignment are absent in those records; their absence is disclosed rather than inventing a retrospective grant.",
+    "frozenReadonlyMetadata": [
+      {
+        "path": "docs/tests/source-comment-review-coverage.json",
+        "sha256": "f1348baac4723ca21c92c73c21ed6a432c687b26627e75af4bc6ef53c1ac8837"
+      },
+      {
+        "path": "docs/tests/source-comment-review-issues.json",
+        "sha256": "46b2192bdf2379aa7fe8c27977ecb3832edc1d2f2208092bad6bb77999abc49c"
+      }
+    ]
+  },
+  "scopePolicy": {
+    "sourceMutationCount": 0,
+    "gitWrites": false,
+    "builds": false,
+    "sourceCopiesOrSnapshots": false,
+    "temporaryHelpers": false,
+    "evidenceStorage": "Only provenance, pins, selectors, line anchors, contracts and receipts are stored. No whole source body or source snapshot is embedded.",
+    "physicalProofLimits": "Preserved original raw byte-lines and non-documentation source text, including original macro invocations and argument text. Added doc attributes are compiler-visible and can be observed by derive/procedural macros. Compiler-facing token equality is not claimed and comments_only mode is not forced.",
+    "noAcceptanceUpgrade": "Current transfer review is pending root independent review; historical source-reviewed does not prove formal Jenkins, Rustdoc, macro or commit acceptance."
+  },
+  "reviewInventory": {
+    "legacySourceFiles": 9,
+    "historicalCoreObjectGroups": 46,
+    "historicalBudgetObjectEntries": 90,
+    "coreCallerRecords": 37,
+    "coreExactPinMatches": 36,
+    "coreCommentOnlyPinDrifts": 1,
+    "budgetCallerRecords": 10,
+    "budgetExactPinMatches": 10,
+    "totalCallerRecords": 47,
+    "distinctCallerSourcePaths": 45,
+    "sourcePhysicalAfterMatches": 9,
+    "sourcePhysicalBeforeReconstructionMatches": 9,
+    "historicalAgentEvidenceFilesMatched": 2,
+    "historicalIndependentEvidenceFilesMatched": 2
+  },
+  "historicalEvidenceBindings": [
+    {
+      "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+      "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+      "currentPhysicalPinMatched": true,
+      "batchId": "core-session-003",
+      "recordedHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+      "historicalState": "awaiting-independent-review",
+      "role": "original assigned reviewer evidence",
+      "objectEntryCount": 46,
+      "statusMeaning": "Historical source review only; current transfer and formal acceptance are separately pending."
+    },
+    {
+      "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+      "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+      "currentPhysicalPinMatched": true,
+      "batchId": "reflect-budget-002",
+      "recordedHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+      "historicalState": "awaiting-independent-review",
+      "role": "original assigned reviewer evidence",
+      "objectEntryCount": 90,
+      "statusMeaning": "Historical source review only; current transfer and formal acceptance are separately pending."
+    },
+    {
+      "path": "docs/tests/source-comment-review-independent-core-session-003.json",
+      "sha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+      "currentPhysicalPinMatched": true,
+      "batchId": "core-session-003",
+      "recordedHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+      "historicalState": "source-independently-reviewed-awaiting-coordinator",
+      "role": "original independent review",
+      "objectEntryCount": 5,
+      "statusMeaning": "Historical source review only; current transfer and formal acceptance are separately pending."
+    },
+    {
+      "path": "docs/tests/source-comment-review-independent-reflect-budget-002.json",
+      "sha256": "e96648c83cdd56b2fc8769aa79898d42bc10ccba54620f6a6fb3d9eadacb9864",
+      "currentPhysicalPinMatched": true,
+      "batchId": "reflect-budget-002",
+      "recordedHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+      "historicalState": "source-independently-reviewed-awaiting-coordinator",
+      "role": "original independent review",
+      "objectEntryCount": 8,
+      "statusMeaning": "Historical source review only; current transfer and formal acceptance are separately pending."
+    }
+  ],
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "scopeMode": "read-only-existing-reviewed-source",
+      "initialSha256": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+      "beforeSha256": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+      "historicalAfterSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "historicalReviewedSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "transferStartSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "currentSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "afterSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "reviewedSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+      "sourceMutationsByThisBatch": 0,
+      "currentMatchesHistoricalAfter": true,
+      "state": "ready-for-independent-transfer-review; formal acceptance pending",
+      "historicalAttribution": {
+        "owner": "core_contracts",
+        "batchId": "core-session-003",
+        "ledgerState": "reviewed-awaiting-coordinator",
+        "writeGrantLiteral": "exact path; comment insertions only; preserve all original bytes/lines; stop on foreign content change",
+        "grantEvidence": {
+          "path": "docs/tests/source-comment-review-coverage.json",
+          "sha256": "f1348baac4723ca21c92c73c21ed6a432c687b26627e75af4bc6ef53c1ac8837",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/camera.rs]"
+        },
+        "agentAuthorityAssignment": "root独占授权的core-session-003精确6源码+本证据，初始物理SHA按账本校验；不写global coverage/issues/plan。",
+        "canonicalWriter": null,
+        "writeGrantFieldPresence": "explicit exact-path insertion grant",
+        "currentGrant": "No source write grant. The root granted only new transfer evidence JSON for this batch."
+      },
+      "dirtyBaseline": {
+        "currentGitPorcelainXY": " M",
+        "currentDirtyContent": "Historical comment insertions physically match final reviewed pin",
+        "originalBeforePhysicalPin": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+        "originalPreEditGitCleanliness": "not-proved; raw file hash and logical equivalence to HEAD do not establish historical index/worktree cleanliness",
+        "initialPhysicalLayout": {
+          "lines": 38,
+          "CRLF": 0,
+          "bareLF": 38,
+          "UTF8BOM": false
+        },
+        "currentPhysicalLayout": {
+          "lines": 76,
+          "CRLF": 0,
+          "bareLF": 76,
+          "UTF8BOM": false
+        },
+        "preservation": "Original comments and raw physical line endings retained. This transfer did not write or normalize any source."
+      },
+      "beforeAfterProvenance": {
+        "agentEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/camera.rs]"
+        },
+        "independentEvidence": {
+          "path": "docs/tests/source-comment-review-independent-core-session-003.json",
+          "sha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/camera.rs]"
+        },
+        "freshReadonlyProofReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        },
+        "proofMethod": "Read current exact bytes and git --no-optional-locks show HEAD:path. Compare logical lines with SequenceMatcher(autojunk=False); allow only inserted standalone // comment or blank lines. Select equal current raw byte-lines in memory and hash them against original before pin. No source copy or output file was created.",
+        "reconstructedPhysicalBeforeSha256": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+        "originalRawByteLinesAndEolPreserved": true,
+        "insertedCommentOrBlankLines": 38,
+        "baselineLines": 38,
+        "currentLines": 76,
+        "deletedOrChangedOriginalLines": 0,
+        "historicalIndependentRawByteProof": {
+          "path": "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+          "initialSha256": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+          "reviewedSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+          "currentBytes": 3195,
+          "baselineLines": 38,
+          "currentLines": 76,
+          "insertedCommentOrBlankLines": 38,
+          "deletedOrChangedOriginalLines": 0,
+          "originalRawByteLinesReconstructedInMemorySha256": "ce19c4fec2565abee29df14b0b1c4088bb9b57da01c102bd1d9dde58148f316a",
+          "originalRawByteLinesAndEolPreserved": true,
+          "physicalLayout": {
+            "CRLF": 0,
+            "bareLF": 76,
+            "UTF8BOM": false
+          }
+        },
+        "limits": "Physical insertions and original non-documentation source text preservation. Added doc attributes are compiler-visible; no compiler-facing token equality or Rustdoc/macros formal result is inferred."
+      },
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/camera.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-001",
+          "SES-OBJ-007",
+          "SES-OBJ-015"
+        ],
+        "historicalFileEntryCount": 3,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "sourceBatch": "core-session-003",
+        "transferSelector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "issueIds": [],
+      "historicalIndependentReview": {
+        "reviewer": "/root",
+        "status": "source-reviewed",
+        "accepted": true,
+        "reviewedSha256": "c3ea95737a69bb14ebbcaed2707c935e69bbe17c2b7e1015bf303cd494df719b",
+        "evidencePath": "docs/tests/source-comment-review-independent-core-session-003.json",
+        "evidenceSha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+        "formalAcceptance": false
+      },
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending-current-transfer-review",
+        "accepted": false,
+        "formalAcceptance": false
+      },
+      "validation": {
+        "currentPhysicalPinMatch": true,
+        "freshBeforeAfterPhysicalProof": "passed; cell 47",
+        "cargo": "not-run",
+        "rustdoc": "not-run",
+        "formalJenkins": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "owner": "Jenkins",
+        "sha": null,
+        "formalAcceptance": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "scopeMode": "read-only-existing-reviewed-source",
+      "initialSha256": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+      "beforeSha256": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+      "historicalAfterSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "historicalReviewedSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "transferStartSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "currentSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "afterSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "reviewedSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+      "sourceMutationsByThisBatch": 0,
+      "currentMatchesHistoricalAfter": true,
+      "state": "ready-for-independent-transfer-review; formal acceptance pending",
+      "historicalAttribution": {
+        "owner": "core_contracts",
+        "batchId": "core-session-003",
+        "ledgerState": "reviewed-awaiting-coordinator",
+        "writeGrantLiteral": "exact path; comment insertions only; preserve all original bytes/lines; stop on foreign content change",
+        "grantEvidence": {
+          "path": "docs/tests/source-comment-review-coverage.json",
+          "sha256": "f1348baac4723ca21c92c73c21ed6a432c687b26627e75af4bc6ef53c1ac8837",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/session.rs]"
+        },
+        "agentAuthorityAssignment": "root独占授权的core-session-003精确6源码+本证据，初始物理SHA按账本校验；不写global coverage/issues/plan。",
+        "canonicalWriter": null,
+        "writeGrantFieldPresence": "explicit exact-path insertion grant",
+        "currentGrant": "No source write grant. The root granted only new transfer evidence JSON for this batch."
+      },
+      "dirtyBaseline": {
+        "currentGitPorcelainXY": " M",
+        "currentDirtyContent": "Historical comment insertions physically match final reviewed pin",
+        "originalBeforePhysicalPin": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+        "originalPreEditGitCleanliness": "not-proved; raw file hash and logical equivalence to HEAD do not establish historical index/worktree cleanliness",
+        "initialPhysicalLayout": {
+          "lines": 72,
+          "CRLF": 0,
+          "bareLF": 72,
+          "UTF8BOM": false
+        },
+        "currentPhysicalLayout": {
+          "lines": 149,
+          "CRLF": 0,
+          "bareLF": 149,
+          "UTF8BOM": false
+        },
+        "preservation": "Original comments and raw physical line endings retained. This transfer did not write or normalize any source."
+      },
+      "beforeAfterProvenance": {
+        "agentEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/session.rs]"
+        },
+        "independentEvidence": {
+          "path": "docs/tests/source-comment-review-independent-core-session-003.json",
+          "sha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/session.rs]"
+        },
+        "freshReadonlyProofReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        },
+        "proofMethod": "Read current exact bytes and git --no-optional-locks show HEAD:path. Compare logical lines with SequenceMatcher(autojunk=False); allow only inserted standalone // comment or blank lines. Select equal current raw byte-lines in memory and hash them against original before pin. No source copy or output file was created.",
+        "reconstructedPhysicalBeforeSha256": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+        "originalRawByteLinesAndEolPreserved": true,
+        "insertedCommentOrBlankLines": 77,
+        "baselineLines": 72,
+        "currentLines": 149,
+        "deletedOrChangedOriginalLines": 0,
+        "historicalIndependentRawByteProof": {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session.rs",
+          "initialSha256": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+          "reviewedSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+          "currentBytes": 7369,
+          "baselineLines": 72,
+          "currentLines": 149,
+          "insertedCommentOrBlankLines": 77,
+          "deletedOrChangedOriginalLines": 0,
+          "originalRawByteLinesReconstructedInMemorySha256": "416438b3d566bdc0060ffd8e1fc2c7107d7c418d2afd74b39752b57972249e6e",
+          "originalRawByteLinesAndEolPreserved": true,
+          "physicalLayout": {
+            "CRLF": 0,
+            "bareLF": 149,
+            "UTF8BOM": false
+          }
+        },
+        "limits": "Physical insertions and original non-documentation source text preservation. Added doc attributes are compiler-visible; no compiler-facing token equality or Rustdoc/macros formal result is inferred."
+      },
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/session.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-002",
+          "SES-OBJ-008",
+          "SES-OBJ-009",
+          "SES-OBJ-016",
+          "SES-OBJ-017",
+          "SES-OBJ-018",
+          "SES-OBJ-019",
+          "SES-OBJ-020"
+        ],
+        "historicalFileEntryCount": 8,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "sourceBatch": "core-session-003",
+        "transferSelector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "issueIds": [],
+      "historicalIndependentReview": {
+        "reviewer": "/root",
+        "status": "source-reviewed",
+        "accepted": true,
+        "reviewedSha256": "cfb077567c7b53656f46f6087b1c64e480106282f68568f0243c2bc6df11ead8",
+        "evidencePath": "docs/tests/source-comment-review-independent-core-session-003.json",
+        "evidenceSha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+        "formalAcceptance": false
+      },
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending-current-transfer-review",
+        "accepted": false,
+        "formalAcceptance": false
+      },
+      "validation": {
+        "currentPhysicalPinMatch": true,
+        "freshBeforeAfterPhysicalProof": "passed; cell 47",
+        "cargo": "not-run",
+        "rustdoc": "not-run",
+        "formalJenkins": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "owner": "Jenkins",
+        "sha": null,
+        "formalAcceptance": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "scopeMode": "read-only-existing-reviewed-source",
+      "initialSha256": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+      "beforeSha256": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+      "historicalAfterSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "historicalReviewedSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "transferStartSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "currentSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "afterSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "reviewedSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+      "sourceMutationsByThisBatch": 0,
+      "currentMatchesHistoricalAfter": true,
+      "state": "ready-for-independent-transfer-review; formal acceptance pending",
+      "historicalAttribution": {
+        "owner": "core_contracts",
+        "batchId": "core-session-003",
+        "ledgerState": "reviewed-awaiting-coordinator",
+        "writeGrantLiteral": "exact path; comment insertions only; preserve all original bytes/lines; stop on foreign content change",
+        "grantEvidence": {
+          "path": "docs/tests/source-comment-review-coverage.json",
+          "sha256": "f1348baac4723ca21c92c73c21ed6a432c687b26627e75af4bc6ef53c1ac8837",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/session_identity.rs]"
+        },
+        "agentAuthorityAssignment": "root独占授权的core-session-003精确6源码+本证据，初始物理SHA按账本校验；不写global coverage/issues/plan。",
+        "canonicalWriter": null,
+        "writeGrantFieldPresence": "explicit exact-path insertion grant",
+        "currentGrant": "No source write grant. The root granted only new transfer evidence JSON for this batch."
+      },
+      "dirtyBaseline": {
+        "currentGitPorcelainXY": " M",
+        "currentDirtyContent": "Historical comment insertions physically match final reviewed pin",
+        "originalBeforePhysicalPin": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+        "originalPreEditGitCleanliness": "not-proved; raw file hash and logical equivalence to HEAD do not establish historical index/worktree cleanliness",
+        "initialPhysicalLayout": {
+          "lines": 84,
+          "CRLF": 0,
+          "bareLF": 84,
+          "UTF8BOM": false
+        },
+        "currentPhysicalLayout": {
+          "lines": 155,
+          "CRLF": 0,
+          "bareLF": 155,
+          "UTF8BOM": false
+        },
+        "preservation": "Original comments and raw physical line endings retained. This transfer did not write or normalize any source."
+      },
+      "beforeAfterProvenance": {
+        "agentEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/session_identity.rs]"
+        },
+        "independentEvidence": {
+          "path": "docs/tests/source-comment-review-independent-core-session-003.json",
+          "sha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/session_identity.rs]"
+        },
+        "freshReadonlyProofReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        },
+        "proofMethod": "Read current exact bytes and git --no-optional-locks show HEAD:path. Compare logical lines with SequenceMatcher(autojunk=False); allow only inserted standalone // comment or blank lines. Select equal current raw byte-lines in memory and hash them against original before pin. No source copy or output file was created.",
+        "reconstructedPhysicalBeforeSha256": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+        "originalRawByteLinesAndEolPreserved": true,
+        "insertedCommentOrBlankLines": 71,
+        "baselineLines": 84,
+        "currentLines": 155,
+        "deletedOrChangedOriginalLines": 0,
+        "historicalIndependentRawByteProof": {
+          "path": "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+          "initialSha256": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+          "reviewedSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+          "currentBytes": 6935,
+          "baselineLines": 84,
+          "currentLines": 155,
+          "insertedCommentOrBlankLines": 71,
+          "deletedOrChangedOriginalLines": 0,
+          "originalRawByteLinesReconstructedInMemorySha256": "fc0f419c1351361cd6a30df67b7b4fc8b2bcc2c4e6a56901a2e963aaeb5bd544",
+          "originalRawByteLinesAndEolPreserved": true,
+          "physicalLayout": {
+            "CRLF": 0,
+            "bareLF": 155,
+            "UTF8BOM": false
+          }
+        },
+        "limits": "Physical insertions and original non-documentation source text preservation. Added doc attributes are compiler-visible; no compiler-facing token equality or Rustdoc/macros formal result is inferred."
+      },
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/session_identity.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-003",
+          "SES-OBJ-010",
+          "SES-OBJ-021",
+          "SES-OBJ-022",
+          "SES-OBJ-023",
+          "SES-OBJ-024",
+          "SES-OBJ-025",
+          "SES-OBJ-026"
+        ],
+        "historicalFileEntryCount": 8,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "sourceBatch": "core-session-003",
+        "transferSelector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "issueIds": [],
+      "historicalIndependentReview": {
+        "reviewer": "/root",
+        "status": "source-reviewed",
+        "accepted": true,
+        "reviewedSha256": "7b01e38a256405fe70a0bfe9d018b6b0a7a5fb4d8de70000c684f9ff8ef138c7",
+        "evidencePath": "docs/tests/source-comment-review-independent-core-session-003.json",
+        "evidenceSha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+        "formalAcceptance": false
+      },
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending-current-transfer-review",
+        "accepted": false,
+        "formalAcceptance": false
+      },
+      "validation": {
+        "currentPhysicalPinMatch": true,
+        "freshBeforeAfterPhysicalProof": "passed; cell 47",
+        "cargo": "not-run",
+        "rustdoc": "not-run",
+        "formalJenkins": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "owner": "Jenkins",
+        "sha": null,
+        "formalAcceptance": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "scopeMode": "read-only-existing-reviewed-source",
+      "initialSha256": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+      "beforeSha256": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+      "historicalAfterSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "historicalReviewedSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "transferStartSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "currentSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "afterSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "reviewedSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+      "sourceMutationsByThisBatch": 0,
+      "currentMatchesHistoricalAfter": true,
+      "state": "ready-for-independent-transfer-review; formal acceptance pending",
+      "historicalAttribution": {
+        "owner": "core_contracts",
+        "batchId": "core-session-003",
+        "ledgerState": "reviewed-awaiting-coordinator",
+        "writeGrantLiteral": "exact path; comment insertions only; preserve all original bytes/lines; stop on foreign content change",
+        "grantEvidence": {
+          "path": "docs/tests/source-comment-review-coverage.json",
+          "sha256": "f1348baac4723ca21c92c73c21ed6a432c687b26627e75af4bc6ef53c1ac8837",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/viewport.rs]"
+        },
+        "agentAuthorityAssignment": "root独占授权的core-session-003精确6源码+本证据，初始物理SHA按账本校验；不写global coverage/issues/plan。",
+        "canonicalWriter": null,
+        "writeGrantFieldPresence": "explicit exact-path insertion grant",
+        "currentGrant": "No source write grant. The root granted only new transfer evidence JSON for this batch."
+      },
+      "dirtyBaseline": {
+        "currentGitPorcelainXY": " M",
+        "currentDirtyContent": "Historical comment insertions physically match final reviewed pin",
+        "originalBeforePhysicalPin": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+        "originalPreEditGitCleanliness": "not-proved; raw file hash and logical equivalence to HEAD do not establish historical index/worktree cleanliness",
+        "initialPhysicalLayout": {
+          "lines": 97,
+          "CRLF": 81,
+          "bareLF": 16,
+          "UTF8BOM": false
+        },
+        "currentPhysicalLayout": {
+          "lines": 208,
+          "CRLF": 169,
+          "bareLF": 39,
+          "UTF8BOM": false
+        },
+        "preservation": "Original comments and raw physical line endings retained. This transfer did not write or normalize any source."
+      },
+      "beforeAfterProvenance": {
+        "agentEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/viewport.rs]"
+        },
+        "independentEvidence": {
+          "path": "docs/tests/source-comment-review-independent-core-session-003.json",
+          "sha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/viewport.rs]"
+        },
+        "freshReadonlyProofReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        },
+        "proofMethod": "Read current exact bytes and git --no-optional-locks show HEAD:path. Compare logical lines with SequenceMatcher(autojunk=False); allow only inserted standalone // comment or blank lines. Select equal current raw byte-lines in memory and hash them against original before pin. No source copy or output file was created.",
+        "reconstructedPhysicalBeforeSha256": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+        "originalRawByteLinesAndEolPreserved": true,
+        "insertedCommentOrBlankLines": 111,
+        "baselineLines": 97,
+        "currentLines": 208,
+        "deletedOrChangedOriginalLines": 0,
+        "historicalIndependentRawByteProof": {
+          "path": "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+          "initialSha256": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+          "reviewedSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+          "currentBytes": 9105,
+          "baselineLines": 97,
+          "currentLines": 208,
+          "insertedCommentOrBlankLines": 111,
+          "deletedOrChangedOriginalLines": 0,
+          "originalRawByteLinesReconstructedInMemorySha256": "23de5d37bbd22a876ddbfa2fac2944cf14afb2254550f4a7f7feb67e9a4664dc",
+          "originalRawByteLinesAndEolPreserved": true,
+          "physicalLayout": {
+            "CRLF": 169,
+            "bareLF": 39,
+            "UTF8BOM": false
+          }
+        },
+        "limits": "Physical insertions and original non-documentation source text preservation. Added doc attributes are compiler-visible; no compiler-facing token equality or Rustdoc/macros formal result is inferred."
+      },
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/viewport.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-004",
+          "SES-OBJ-011",
+          "SES-OBJ-012",
+          "SES-OBJ-013",
+          "SES-OBJ-014",
+          "SES-OBJ-027",
+          "SES-OBJ-028",
+          "SES-OBJ-029",
+          "SES-OBJ-030",
+          "SES-OBJ-031"
+        ],
+        "historicalFileEntryCount": 10,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "sourceBatch": "core-session-003",
+        "transferSelector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "issueIds": [],
+      "historicalIndependentReview": {
+        "reviewer": "/root",
+        "status": "source-reviewed",
+        "accepted": true,
+        "reviewedSha256": "f71d5affb4aa0565f417650999837c0dbeff2193be4ff65e1b8fd02a984705e6",
+        "evidencePath": "docs/tests/source-comment-review-independent-core-session-003.json",
+        "evidenceSha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+        "formalAcceptance": false
+      },
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending-current-transfer-review",
+        "accepted": false,
+        "formalAcceptance": false
+      },
+      "validation": {
+        "currentPhysicalPinMatch": true,
+        "freshBeforeAfterPhysicalProof": "passed; cell 47",
+        "cargo": "not-run",
+        "rustdoc": "not-run",
+        "formalJenkins": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "owner": "Jenkins",
+        "sha": null,
+        "formalAcceptance": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "scopeMode": "read-only-existing-reviewed-source",
+      "initialSha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+      "beforeSha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+      "historicalAfterSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "historicalReviewedSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "transferStartSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "currentSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "afterSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "reviewedSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+      "sourceMutationsByThisBatch": 0,
+      "currentMatchesHistoricalAfter": true,
+      "state": "ready-for-independent-transfer-review; formal acceptance pending",
+      "historicalAttribution": {
+        "owner": "core_contracts",
+        "batchId": "core-session-003",
+        "ledgerState": "reviewed-awaiting-coordinator",
+        "writeGrantLiteral": "exact path; comment insertions only; preserve all original bytes/lines; stop on foreign content change",
+        "grantEvidence": {
+          "path": "docs/tests/source-comment-review-coverage.json",
+          "sha256": "f1348baac4723ca21c92c73c21ed6a432c687b26627e75af4bc6ef53c1ac8837",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/mod.rs]"
+        },
+        "agentAuthorityAssignment": "root独占授权的core-session-003精确6源码+本证据，初始物理SHA按账本校验；不写global coverage/issues/plan。",
+        "canonicalWriter": null,
+        "writeGrantFieldPresence": "explicit exact-path insertion grant",
+        "currentGrant": "No source write grant. The root granted only new transfer evidence JSON for this batch."
+      },
+      "dirtyBaseline": {
+        "currentGitPorcelainXY": " M",
+        "currentDirtyContent": "Historical comment insertions physically match final reviewed pin",
+        "originalBeforePhysicalPin": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+        "originalPreEditGitCleanliness": "not-proved; raw file hash and logical equivalence to HEAD do not establish historical index/worktree cleanliness",
+        "initialPhysicalLayout": {
+          "lines": 86,
+          "CRLF": 0,
+          "bareLF": 86,
+          "UTF8BOM": false
+        },
+        "currentPhysicalLayout": {
+          "lines": 96,
+          "CRLF": 0,
+          "bareLF": 96,
+          "UTF8BOM": false
+        },
+        "preservation": "Original comments and raw physical line endings retained. This transfer did not write or normalize any source."
+      },
+      "beforeAfterProvenance": {
+        "agentEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/mod.rs]"
+        },
+        "independentEvidence": {
+          "path": "docs/tests/source-comment-review-independent-core-session-003.json",
+          "sha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/mod.rs]"
+        },
+        "freshReadonlyProofReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        },
+        "proofMethod": "Read current exact bytes and git --no-optional-locks show HEAD:path. Compare logical lines with SequenceMatcher(autojunk=False); allow only inserted standalone // comment or blank lines. Select equal current raw byte-lines in memory and hash them against original before pin. No source copy or output file was created.",
+        "reconstructedPhysicalBeforeSha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+        "originalRawByteLinesAndEolPreserved": true,
+        "insertedCommentOrBlankLines": 10,
+        "baselineLines": 86,
+        "currentLines": 96,
+        "deletedOrChangedOriginalLines": 0,
+        "historicalIndependentRawByteProof": {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "initialSha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+          "reviewedSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+          "currentBytes": 4319,
+          "baselineLines": 86,
+          "currentLines": 96,
+          "insertedCommentOrBlankLines": 10,
+          "deletedOrChangedOriginalLines": 0,
+          "originalRawByteLinesReconstructedInMemorySha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc",
+          "originalRawByteLinesAndEolPreserved": true,
+          "physicalLayout": {
+            "CRLF": 0,
+            "bareLF": 96,
+            "UTF8BOM": false
+          }
+        },
+        "limits": "Physical insertions and original non-documentation source text preservation. Added doc attributes are compiler-visible; no compiler-facing token equality or Rustdoc/macros formal result is inferred."
+      },
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/mod.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-005",
+          "SES-OBJ-033",
+          "SES-OBJ-034",
+          "SES-OBJ-035",
+          "SES-OBJ-036",
+          "SES-OBJ-037",
+          "SES-OBJ-038",
+          "SES-OBJ-039",
+          "SES-OBJ-040",
+          "SES-OBJ-041",
+          "SES-OBJ-042",
+          "SES-OBJ-043",
+          "SES-OBJ-044",
+          "SES-OBJ-045",
+          "SES-OBJ-046"
+        ],
+        "historicalFileEntryCount": 15,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "sourceBatch": "core-session-003",
+        "transferSelector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "issueIds": [],
+      "historicalIndependentReview": {
+        "reviewer": "/root",
+        "status": "source-reviewed",
+        "accepted": true,
+        "reviewedSha256": "badf5e62406df52799aa1b470558bb1f04324399c1131320c5c1c5ccbf0dda96",
+        "evidencePath": "docs/tests/source-comment-review-independent-core-session-003.json",
+        "evidenceSha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+        "formalAcceptance": false
+      },
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending-current-transfer-review",
+        "accepted": false,
+        "formalAcceptance": false
+      },
+      "validation": {
+        "currentPhysicalPinMatch": true,
+        "freshBeforeAfterPhysicalProof": "passed; cell 47",
+        "cargo": "not-run",
+        "rustdoc": "not-run",
+        "formalJenkins": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "owner": "Jenkins",
+        "sha": null,
+        "formalAcceptance": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "scopeMode": "read-only-existing-reviewed-source",
+      "initialSha256": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+      "beforeSha256": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+      "historicalAfterSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "historicalReviewedSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "transferStartSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "currentSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "afterSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "reviewedSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+      "sourceMutationsByThisBatch": 0,
+      "currentMatchesHistoricalAfter": true,
+      "state": "ready-for-independent-transfer-review; formal acceptance pending",
+      "historicalAttribution": {
+        "owner": "core_contracts",
+        "batchId": "core-session-003",
+        "ledgerState": "reviewed-awaiting-coordinator",
+        "writeGrantLiteral": "exact path; comment insertions only; preserve all original bytes/lines; stop on foreign content change",
+        "grantEvidence": {
+          "path": "docs/tests/source-comment-review-coverage.json",
+          "sha256": "f1348baac4723ca21c92c73c21ed6a432c687b26627e75af4bc6ef53c1ac8837",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs]"
+        },
+        "agentAuthorityAssignment": "root独占授权的core-session-003精确6源码+本证据，初始物理SHA按账本校验；不写global coverage/issues/plan。",
+        "canonicalWriter": null,
+        "writeGrantFieldPresence": "explicit exact-path insertion grant",
+        "currentGrant": "No source write grant. The root granted only new transfer evidence JSON for this batch."
+      },
+      "dirtyBaseline": {
+        "currentGitPorcelainXY": " M",
+        "currentDirtyContent": "Historical comment insertions physically match final reviewed pin",
+        "originalBeforePhysicalPin": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+        "originalPreEditGitCleanliness": "not-proved; raw file hash and logical equivalence to HEAD do not establish historical index/worktree cleanliness",
+        "initialPhysicalLayout": {
+          "lines": 23,
+          "CRLF": 0,
+          "bareLF": 23,
+          "UTF8BOM": false
+        },
+        "currentPhysicalLayout": {
+          "lines": 28,
+          "CRLF": 0,
+          "bareLF": 28,
+          "UTF8BOM": false
+        },
+        "preservation": "Original comments and raw physical line endings retained. This transfer did not write or normalize any source."
+      },
+      "beforeAfterProvenance": {
+        "agentEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs]"
+        },
+        "independentEvidence": {
+          "path": "docs/tests/source-comment-review-independent-core-session-003.json",
+          "sha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+          "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs]"
+        },
+        "freshReadonlyProofReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        },
+        "proofMethod": "Read current exact bytes and git --no-optional-locks show HEAD:path. Compare logical lines with SequenceMatcher(autojunk=False); allow only inserted standalone // comment or blank lines. Select equal current raw byte-lines in memory and hash them against original before pin. No source copy or output file was created.",
+        "reconstructedPhysicalBeforeSha256": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+        "originalRawByteLinesAndEolPreserved": true,
+        "insertedCommentOrBlankLines": 5,
+        "baselineLines": 23,
+        "currentLines": 28,
+        "deletedOrChangedOriginalLines": 0,
+        "historicalIndependentRawByteProof": {
+          "path": "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs",
+          "initialSha256": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+          "reviewedSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+          "currentBytes": 1176,
+          "baselineLines": 23,
+          "currentLines": 28,
+          "insertedCommentOrBlankLines": 5,
+          "deletedOrChangedOriginalLines": 0,
+          "originalRawByteLinesReconstructedInMemorySha256": "52ff910f84810ab7c3c6773f6931bb1df9a2b8a7c45763cd0e943a354dc44130",
+          "originalRawByteLinesAndEolPreserved": true,
+          "physicalLayout": {
+            "CRLF": 0,
+            "bareLF": 28,
+            "UTF8BOM": false
+          }
+        },
+        "limits": "Physical insertions and original non-documentation source text preservation. Added doc attributes are compiler-visible; no compiler-facing token equality or Rustdoc/macros formal result is inferred."
+      },
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+        "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+        "selector": "files[path=zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs].objectEvidence",
+        "refs": [
+          "SES-OBJ-006",
+          "SES-OBJ-032"
+        ],
+        "historicalFileEntryCount": 2,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "sourceBatch": "core-session-003",
+        "transferSelector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "issueIds": [],
+      "historicalIndependentReview": {
+        "reviewer": "/root",
+        "status": "source-reviewed",
+        "accepted": true,
+        "reviewedSha256": "e88cffbe0b6111bcab95b5cb97ae95038ce449f4c9fe293d4d767a03c3d6b9ce",
+        "evidencePath": "docs/tests/source-comment-review-independent-core-session-003.json",
+        "evidenceSha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+        "formalAcceptance": false
+      },
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending-current-transfer-review",
+        "accepted": false,
+        "formalAcceptance": false
+      },
+      "validation": {
+        "currentPhysicalPinMatch": true,
+        "freshBeforeAfterPhysicalProof": "passed; cell 47",
+        "cargo": "not-run",
+        "rustdoc": "not-run",
+        "formalJenkins": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "owner": "Jenkins",
+        "sha": null,
+        "formalAcceptance": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/value_budget.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "scopeMode": "read-only-existing-reviewed-source",
+      "initialSha256": "e72fde9ca82a4c5d4112fe6412255b8c73ec0998a953c9f9be26883635901153",
+      "beforeSha256": "e72fde9ca82a4c5d4112fe6412255b8c73ec0998a953c9f9be26883635901153",
+      "historicalAfterSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "historicalReviewedSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "transferStartSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "currentSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "afterSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "reviewedSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+      "sourceMutationsByThisBatch": 0,
+      "currentMatchesHistoricalAfter": true,
+      "state": "ready-for-independent-transfer-review; formal acceptance pending",
+      "historicalAttribution": {
+        "owner": "host_review",
+        "batchId": "reflect-budget-002",
+        "ledgerState": "reviewed-awaiting-coordinator",
+        "writeGrantLiteral": null,
+        "grantEvidence": {
+          "path": "docs/tests/source-comment-review-coverage.json",
+          "sha256": "f1348baac4723ca21c92c73c21ed6a432c687b26627e75af4bc6ef53c1ac8837",
+          "selector": "files[path=zircon_runtime_interface/src/reflect/value_budget.rs]"
+        },
+        "agentAuthorityAssignment": null,
+        "canonicalWriter": "host_review",
+        "writeGrantFieldPresence": "historical literal writeGrant field absent; attribution and exact source/evidence pins retained",
+        "currentGrant": "No source write grant. The root granted only new transfer evidence JSON for this batch."
+      },
+      "dirtyBaseline": {
+        "currentGitPorcelainXY": " M",
+        "currentDirtyContent": "Historical comment insertions physically match final reviewed pin",
+        "originalBeforePhysicalPin": "e72fde9ca82a4c5d4112fe6412255b8c73ec0998a953c9f9be26883635901153",
+        "originalPreEditGitCleanliness": "not-proved; raw file hash and logical equivalence to HEAD do not establish historical index/worktree cleanliness",
+        "initialPhysicalLayout": null,
+        "currentPhysicalLayout": {
+          "lines": 159,
+          "CRLF": 0,
+          "bareLF": 159,
+          "UTF8BOM": false
+        },
+        "preservation": "Original comments and raw physical line endings retained. This transfer did not write or normalize any source."
+      },
+      "beforeAfterProvenance": {
+        "agentEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "files[path=zircon_runtime_interface/src/reflect/value_budget.rs]"
+        },
+        "independentEvidence": {
+          "path": "docs/tests/source-comment-review-independent-reflect-budget-002.json",
+          "sha256": "e96648c83cdd56b2fc8769aa79898d42bc10ccba54620f6a6fb3d9eadacb9864",
+          "selector": "files[path=zircon_runtime_interface/src/reflect/value_budget.rs]"
+        },
+        "freshReadonlyProofReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        },
+        "proofMethod": "Read current exact bytes and git --no-optional-locks show HEAD:path. Compare logical lines with SequenceMatcher(autojunk=False); allow only inserted standalone // comment or blank lines. Select equal current raw byte-lines in memory and hash them against original before pin. No source copy or output file was created.",
+        "reconstructedPhysicalBeforeSha256": "e72fde9ca82a4c5d4112fe6412255b8c73ec0998a953c9f9be26883635901153",
+        "originalRawByteLinesAndEolPreserved": true,
+        "insertedCommentOrBlankLines": 77,
+        "baselineLines": 82,
+        "currentLines": 159,
+        "deletedOrChangedOriginalLines": 0,
+        "historicalIndependentRawByteProof": {
+          "path": "zircon_runtime_interface/src/reflect/value_budget.rs",
+          "initialSha256": "e72fde9ca82a4c5d4112fe6412255b8c73ec0998a953c9f9be26883635901153",
+          "reviewedSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+          "currentBytes": 6497,
+          "baselineLines": 82,
+          "currentLines": 159,
+          "insertedCommentOrBlankLines": 77,
+          "deletedOrChangedOriginalLines": 0,
+          "originalRawByteLinesReconstructedInMemorySha256": "e72fde9ca82a4c5d4112fe6412255b8c73ec0998a953c9f9be26883635901153",
+          "originalRawByteLinesAndEolPreserved": true,
+          "physicalLayout": {
+            "CRLF": 0,
+            "bareLF": 159,
+            "UTF8BOM": false
+          }
+        },
+        "limits": "Physical insertions and original non-documentation source text preservation. Added doc attributes are compiler-visible; no compiler-facing token equality or Rustdoc/macros formal result is inferred."
+      },
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+        "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+        "selector": "files[path=zircon_runtime_interface/src/reflect/value_budget.rs].objectEvidence",
+        "refs": [
+          "module value_budget",
+          "ReflectValueBudget",
+          "ReflectValueBudget.max_depth",
+          "ReflectValueBudget.max_nodes",
+          "ReflectValueBudget.max_string_bytes",
+          "ReflectValueBudget.max_container_entries",
+          "impl ReflectValueBudget",
+          "ReflectValueBudget::new",
+          "ReflectValueBudget::max_depth",
+          "ReflectValueBudget::max_nodes",
+          "ReflectValueBudget::max_string_bytes",
+          "ReflectValueBudget::max_container_entries",
+          "ReflectValueFloatKind",
+          "ReflectValueFloatKind::Scalar",
+          "ReflectValueFloatKind::Vec2",
+          "ReflectValueFloatKind::Vec3",
+          "ReflectValueFloatKind::Vec4",
+          "ReflectValueFloatKind::Quaternion",
+          "ReflectValueBudgetDimension",
+          "ReflectValueBudgetDimension::Depth",
+          "ReflectValueBudgetDimension::Nodes",
+          "ReflectValueBudgetDimension::StringBytes",
+          "ReflectValueValidationError",
+          "ReflectValueValidationError::BudgetArithmeticOverflow { dimension }",
+          "ReflectValueValidationError::DepthExceeded { actual, maximum }",
+          "ReflectValueValidationError::NodeBudgetExceeded { actual, maximum }",
+          "ReflectValueValidationError::StringBudgetExceeded { actual, maximum }",
+          "ReflectValueValidationError::ContainerEntriesExceeded { actual, maximum }",
+          "ReflectValueValidationError::NonFiniteFloat { kind, component }",
+          "use serde::{Deserialize, Serialize};",
+          "use thiserror::Error;"
+        ],
+        "historicalFileEntryCount": 31,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "sourceBatch": "reflect-budget-002",
+        "transferSelector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "issueIds": [],
+      "historicalIndependentReview": {
+        "reviewer": "/root",
+        "status": "source-reviewed",
+        "accepted": true,
+        "reviewedSha256": "0c3416d04b9c03485d9c3ebfefac1ca7ce37f668f58415a3fae117d71bd34a96",
+        "evidencePath": "docs/tests/source-comment-review-independent-reflect-budget-002.json",
+        "evidenceSha256": "e96648c83cdd56b2fc8769aa79898d42bc10ccba54620f6a6fb3d9eadacb9864",
+        "formalAcceptance": false
+      },
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending-current-transfer-review",
+        "accepted": false,
+        "formalAcceptance": false
+      },
+      "validation": {
+        "currentPhysicalPinMatch": true,
+        "freshBeforeAfterPhysicalProof": "passed; cell 47",
+        "cargo": "not-run",
+        "rustdoc": "not-run",
+        "formalJenkins": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "owner": "Jenkins",
+        "sha": null,
+        "formalAcceptance": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/value_validation.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "scopeMode": "read-only-existing-reviewed-source",
+      "initialSha256": "aed1589286f1013cc2abcd6dbeba4cef42021c8f3cb093f8452de0a58abf5bf7",
+      "beforeSha256": "aed1589286f1013cc2abcd6dbeba4cef42021c8f3cb093f8452de0a58abf5bf7",
+      "historicalAfterSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+      "historicalReviewedSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+      "transferStartSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+      "currentSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+      "afterSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+      "reviewedSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+      "sourceMutationsByThisBatch": 0,
+      "currentMatchesHistoricalAfter": true,
+      "state": "ready-for-independent-transfer-review; formal acceptance pending",
+      "historicalAttribution": {
+        "owner": "host_review",
+        "batchId": "reflect-budget-002",
+        "ledgerState": "reviewed-awaiting-coordinator",
+        "writeGrantLiteral": null,
+        "grantEvidence": {
+          "path": "docs/tests/source-comment-review-coverage.json",
+          "sha256": "f1348baac4723ca21c92c73c21ed6a432c687b26627e75af4bc6ef53c1ac8837",
+          "selector": "files[path=zircon_runtime_interface/src/reflect/value_validation.rs]"
+        },
+        "agentAuthorityAssignment": null,
+        "canonicalWriter": "host_review",
+        "writeGrantFieldPresence": "historical literal writeGrant field absent; attribution and exact source/evidence pins retained",
+        "currentGrant": "No source write grant. The root granted only new transfer evidence JSON for this batch."
+      },
+      "dirtyBaseline": {
+        "currentGitPorcelainXY": " M",
+        "currentDirtyContent": "Historical comment insertions physically match final reviewed pin",
+        "originalBeforePhysicalPin": "aed1589286f1013cc2abcd6dbeba4cef42021c8f3cb093f8452de0a58abf5bf7",
+        "originalPreEditGitCleanliness": "not-proved; raw file hash and logical equivalence to HEAD do not establish historical index/worktree cleanliness",
+        "initialPhysicalLayout": null,
+        "currentPhysicalLayout": {
+          "lines": 333,
+          "CRLF": 0,
+          "bareLF": 333,
+          "UTF8BOM": false
+        },
+        "preservation": "Original comments and raw physical line endings retained. This transfer did not write or normalize any source."
+      },
+      "beforeAfterProvenance": {
+        "agentEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "files[path=zircon_runtime_interface/src/reflect/value_validation.rs]"
+        },
+        "independentEvidence": {
+          "path": "docs/tests/source-comment-review-independent-reflect-budget-002.json",
+          "sha256": "e96648c83cdd56b2fc8769aa79898d42bc10ccba54620f6a6fb3d9eadacb9864",
+          "selector": "files[path=zircon_runtime_interface/src/reflect/value_validation.rs]"
+        },
+        "freshReadonlyProofReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        },
+        "proofMethod": "Read current exact bytes and git --no-optional-locks show HEAD:path. Compare logical lines with SequenceMatcher(autojunk=False); allow only inserted standalone // comment or blank lines. Select equal current raw byte-lines in memory and hash them against original before pin. No source copy or output file was created.",
+        "reconstructedPhysicalBeforeSha256": "aed1589286f1013cc2abcd6dbeba4cef42021c8f3cb093f8452de0a58abf5bf7",
+        "originalRawByteLinesAndEolPreserved": true,
+        "insertedCommentOrBlankLines": 79,
+        "baselineLines": 254,
+        "currentLines": 333,
+        "deletedOrChangedOriginalLines": 0,
+        "historicalIndependentRawByteProof": {
+          "path": "zircon_runtime_interface/src/reflect/value_validation.rs",
+          "initialSha256": "aed1589286f1013cc2abcd6dbeba4cef42021c8f3cb093f8452de0a58abf5bf7",
+          "reviewedSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+          "currentBytes": 12933,
+          "baselineLines": 254,
+          "currentLines": 333,
+          "insertedCommentOrBlankLines": 79,
+          "deletedOrChangedOriginalLines": 0,
+          "originalRawByteLinesReconstructedInMemorySha256": "aed1589286f1013cc2abcd6dbeba4cef42021c8f3cb093f8452de0a58abf5bf7",
+          "originalRawByteLinesAndEolPreserved": true,
+          "physicalLayout": {
+            "CRLF": 0,
+            "bareLF": 333,
+            "UTF8BOM": false
+          }
+        },
+        "limits": "Physical insertions and original non-documentation source text preservation. Added doc attributes are compiler-visible; no compiler-facing token equality or Rustdoc/macros formal result is inferred."
+      },
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+        "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+        "selector": "files[path=zircon_runtime_interface/src/reflect/value_validation.rs].objectEvidence",
+        "refs": [
+          "module value_validation",
+          "PendingValue<'a>",
+          "PendingValue::Reflected { value, depth }",
+          "PendingValue::Reflected.value",
+          "PendingValue::Reflected.depth",
+          "PendingValue::Json { value, depth }",
+          "PendingValue::Json.value",
+          "PendingValue::Json.depth",
+          "impl ReflectedValue",
+          "ReflectedValue::validate_with_budget",
+          "validator local state and stack initialization",
+          "validator while-pop loop and PendingValue dispatch",
+          "validate_reflected<'a>",
+          "validate_reflected: Scalar, Vec2, Vec3, Vec4, Quaternion",
+          "validate_reflected: String, Enum, Resource",
+          "validate_reflected: List",
+          "validate_reflected: Map",
+          "validate_reflected: Json",
+          "validate_reflected: Null, Bool, Integer, Unsigned, Entity",
+          "validate_json<'a>",
+          "validate_json: String",
+          "validate_json: Array",
+          "validate_json: Object",
+          "validate_json: Null, Bool, Number",
+          "ValidationState",
+          "ValidationState.nodes",
+          "ValidationState.string_bytes",
+          "impl ValidationState",
+          "ValidationState::visit",
+          "visit depth comparison branch",
+          "visit checked_add/overflow branch",
+          "visit max_nodes comparison branch",
+          "visit node commit",
+          "ValidationState::add_string",
+          "add_string checked_add/overflow branch",
+          "add_string maximum comparison branch",
+          "add_string commit",
+          "validate_container",
+          "validate_container over-limit/success branches",
+          "child_depth",
+          "child_depth overflow branch",
+          "child_depth max-depth branch",
+          "validate_finite",
+          "use serde_json::Value;",
+          "use super::{ReflectValueBudget, ReflectValueBudgetDimension, ReflectValueFloatKind, ReflectValueValidationError, ReflectedValue};"
+        ],
+        "historicalFileEntryCount": 45,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "sourceBatch": "reflect-budget-002",
+        "transferSelector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "issueIds": [],
+      "historicalIndependentReview": {
+        "reviewer": "/root",
+        "status": "source-reviewed",
+        "accepted": true,
+        "reviewedSha256": "a23fdbb38a4037caa9226bd7c3b8abd5b79a21e4642867abdc9992fea9fe5882",
+        "evidencePath": "docs/tests/source-comment-review-independent-reflect-budget-002.json",
+        "evidenceSha256": "e96648c83cdd56b2fc8769aa79898d42bc10ccba54620f6a6fb3d9eadacb9864",
+        "formalAcceptance": false
+      },
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending-current-transfer-review",
+        "accepted": false,
+        "formalAcceptance": false
+      },
+      "validation": {
+        "currentPhysicalPinMatch": true,
+        "freshBeforeAfterPhysicalProof": "passed; cell 47",
+        "cargo": "not-run",
+        "rustdoc": "not-run",
+        "formalJenkins": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "owner": "Jenkins",
+        "sha": null,
+        "formalAcceptance": false
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "scopeMode": "read-only-existing-reviewed-source",
+      "initialSha256": "aa6b1877d6cd25d4f37aac63200774ff040503f71ac048446970d55692737afd",
+      "beforeSha256": "aa6b1877d6cd25d4f37aac63200774ff040503f71ac048446970d55692737afd",
+      "historicalAfterSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+      "historicalReviewedSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+      "transferStartSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+      "currentSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+      "afterSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+      "reviewedSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+      "sourceMutationsByThisBatch": 0,
+      "currentMatchesHistoricalAfter": true,
+      "state": "ready-for-independent-transfer-review; formal acceptance pending",
+      "historicalAttribution": {
+        "owner": "host_review",
+        "batchId": "reflect-budget-002",
+        "ledgerState": "reviewed-awaiting-coordinator",
+        "writeGrantLiteral": null,
+        "grantEvidence": {
+          "path": "docs/tests/source-comment-review-coverage.json",
+          "sha256": "f1348baac4723ca21c92c73c21ed6a432c687b26627e75af4bc6ef53c1ac8837",
+          "selector": "files[path=zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs]"
+        },
+        "agentAuthorityAssignment": null,
+        "canonicalWriter": "host_review",
+        "writeGrantFieldPresence": "historical literal writeGrant field absent; attribution and exact source/evidence pins retained",
+        "currentGrant": "No source write grant. The root granted only new transfer evidence JSON for this batch."
+      },
+      "dirtyBaseline": {
+        "currentGitPorcelainXY": " M",
+        "currentDirtyContent": "Historical comment insertions physically match final reviewed pin",
+        "originalBeforePhysicalPin": "aa6b1877d6cd25d4f37aac63200774ff040503f71ac048446970d55692737afd",
+        "originalPreEditGitCleanliness": "not-proved; raw file hash and logical equivalence to HEAD do not establish historical index/worktree cleanliness",
+        "initialPhysicalLayout": null,
+        "currentPhysicalLayout": {
+          "lines": 131,
+          "CRLF": 0,
+          "bareLF": 131,
+          "UTF8BOM": false
+        },
+        "preservation": "Original comments and raw physical line endings retained. This transfer did not write or normalize any source."
+      },
+      "beforeAfterProvenance": {
+        "agentEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "files[path=zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs]"
+        },
+        "independentEvidence": {
+          "path": "docs/tests/source-comment-review-independent-reflect-budget-002.json",
+          "sha256": "e96648c83cdd56b2fc8769aa79898d42bc10ccba54620f6a6fb3d9eadacb9864",
+          "selector": "files[path=zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs]"
+        },
+        "freshReadonlyProofReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        },
+        "proofMethod": "Read current exact bytes and git --no-optional-locks show HEAD:path. Compare logical lines with SequenceMatcher(autojunk=False); allow only inserted standalone // comment or blank lines. Select equal current raw byte-lines in memory and hash them against original before pin. No source copy or output file was created.",
+        "reconstructedPhysicalBeforeSha256": "aa6b1877d6cd25d4f37aac63200774ff040503f71ac048446970d55692737afd",
+        "originalRawByteLinesAndEolPreserved": true,
+        "insertedCommentOrBlankLines": 17,
+        "baselineLines": 114,
+        "currentLines": 131,
+        "deletedOrChangedOriginalLines": 0,
+        "historicalIndependentRawByteProof": {
+          "path": "zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs",
+          "initialSha256": "aa6b1877d6cd25d4f37aac63200774ff040503f71ac048446970d55692737afd",
+          "reviewedSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+          "currentBytes": 4276,
+          "baselineLines": 114,
+          "currentLines": 131,
+          "insertedCommentOrBlankLines": 17,
+          "deletedOrChangedOriginalLines": 0,
+          "originalRawByteLinesReconstructedInMemorySha256": "aa6b1877d6cd25d4f37aac63200774ff040503f71ac048446970d55692737afd",
+          "originalRawByteLinesAndEolPreserved": true,
+          "physicalLayout": {
+            "CRLF": 0,
+            "bareLF": 131,
+            "UTF8BOM": false
+          }
+        },
+        "limits": "Physical insertions and original non-documentation source text preservation. Added doc attributes are compiler-visible; no compiler-facing token equality or Rustdoc/macros formal result is inferred."
+      },
+      "objectEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+        "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+        "selector": "files[path=zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs].objectEvidence",
+        "refs": [
+          "module reflect_value_budget_contracts",
+          "use std::collections::BTreeMap",
+          "use crate::reflect::{ReflectValueBudget, ReflectValueFloatKind, ReflectValueValidationError, ReflectedValue}",
+          "budget",
+          "budget parameters and return",
+          "reflected_value_budget_exposes_caller_owned_limits()",
+          "reflected_value_budget_counts_reflected_and_embedded_json_graphs()",
+          "reflected_value_budget_rejects_each_bounded_dimension()",
+          "depth subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "node subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "string subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "container subcase in reflected_value_budget_rejects_each_bounded_dimension()",
+          "reflected_value_budget_rejects_non_finite_vector_components()",
+          "embedded_json_root_is_a_child_of_the_reflected_json_wrapper()"
+        ],
+        "historicalFileEntryCount": 14,
+        "reuseBasis": "Exact historical after SHA and independent evidence hash match; this is transfer verification of existing object evidence, not a new whole-source write review."
+      },
+      "callerEvidence": {
+        "sourceBatch": "reflect-budget-002",
+        "transferSelector": "callerReconciliation"
+      },
+      "existingIssueTags": [],
+      "issueIds": [],
+      "historicalIndependentReview": {
+        "reviewer": "/root",
+        "status": "source-reviewed",
+        "accepted": true,
+        "reviewedSha256": "680001c80b90bed6cf17118a8f47aa6b12a4df5dc6e5c392434a4b35aae241ff",
+        "evidencePath": "docs/tests/source-comment-review-independent-reflect-budget-002.json",
+        "evidenceSha256": "e96648c83cdd56b2fc8769aa79898d42bc10ccba54620f6a6fb3d9eadacb9864",
+        "formalAcceptance": false
+      },
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending-current-transfer-review",
+        "accepted": false,
+        "formalAcceptance": false
+      },
+      "validation": {
+        "currentPhysicalPinMatch": true,
+        "freshBeforeAfterPhysicalProof": "passed; cell 47",
+        "cargo": "not-run",
+        "rustdoc": "not-run",
+        "formalJenkins": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "owner": "Jenkins",
+        "sha": null,
+        "formalAcceptance": false
+      }
+    }
+  ],
+  "callerReconciliation": {
+    "core": [
+      {
+        "id": "CAM",
+        "path": "zircon_runtime/src/dynamic_api/camera_controller.rs",
+        "historicalSha256": "8ef920b817492b46ae453c98a05fca66b579f9d4604491793723000fd80ade35",
+        "currentSha256": "8ef920b817492b46ae453c98a05fca66b579f9d4604491793723000fd80ade35",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=CAM]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            201
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            201
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "apply_editor_camera:51-61 在保存值前调用 validate_editor_camera:148-180；相同值返回 false。",
+          "validate 检查V1、变换有限性、scale绝对值最小值阈值、rotation长度平方容差；几何分支按投影种类检查，其余投影标量均有限且0<near<far。",
+          "apply_editor_camera_to_extract:63-70 与 apply_editor_camera_to_snapshot:183-197 只更新extract的相机描述，保留core_pipeline/exposure，不改Scene节点。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "EVENT",
+        "path": "zircon_runtime/src/dynamic_api/session/events.rs",
+        "historicalSha256": "3de66fd03293517a05fd4e2361808dfba3a089336d50f45a012357c983ad450c",
+        "currentSha256": "3de66fd03293517a05fd4e2361808dfba3a089336d50f45a012357c983ad450c",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=EVENT]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            65
+          ],
+          [
+            75,
+            123
+          ],
+          [
+            146,
+            209
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            65
+          ],
+          [
+            75,
+            123
+          ],
+          [
+            146,
+            209
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "handle_event:77-102 先要求DEFAULT_VIEWPORT，resize消费event.size。",
+          "handle_viewport_camera:180-200 bounded_json::decode以VIEWPORT_CAMERA_REQUEST_LIMIT及 |_|1 计数解码，再apply_editor_camera；解码/预算/语义错误各自返回状态。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "SIM",
+        "path": "zircon_editor/src/ui/host/editor_host_event_controller/simulate_camera.rs",
+        "historicalSha256": "ceb340dd0999e588b54abcfc0311004640463aaa64b9879cc0228e1cc24f0e89",
+        "currentSha256": "ceb340dd0999e588b54abcfc0311004640463aaa64b9879cc0228e1cc24f0e89",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=SIM]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            57
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            57
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "simulate_preview_camera:14-48 仅Simulate且附着Play world时取得编辑器camera snapshot，映射投影种类并new相机DTO；未有快照返回None。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "ROUTE",
+        "path": "zircon_editor/src/core/play/controller/preview_routing.rs",
+        "historicalSha256": "e2bd9e0524a59e01315aa84093e5fa84c87d6132c99aed65e71bf5ffb25d9269",
+        "currentSha256": "e2bd9e0524a59e01315aa84093e5fa84c87d6132c99aed65e71bf5ffb25d9269",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=ROUTE]"
+        },
+        "historicalReadRanges": [
+          [
+            70,
+            142
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            70,
+            142
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "route_simulate_camera:88-137 在transition锁下确认Simulate/world/gateway；to_vec编码并检查字节预算，保留Vec直到handle_event_at_identity同步调用结束；构造viewport_camera事件。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "SURFACE",
+        "path": "zircon_runtime/src/dynamic_api/surface.rs",
+        "historicalSha256": "5327ad19929a3fb955e4f1bec55be73a4f8429ee565536ba271f8c61cd29125a",
+        "currentSha256": "5327ad19929a3fb955e4f1bec55be73a4f8429ee565536ba271f8c61cd29125a",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=SURFACE]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            54
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            54
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "render_surface_descriptor:10-39 分别验证request/target V1；仅Win32且HWND非0，hinstance0变None，width/height各max(1)；不查询句柄实际存活。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "TARGET",
+        "path": "zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs",
+        "historicalSha256": "b47a6f5e546665e7403d068d78248e77fb78989caddbeb4f953d4a69a775b8b2",
+        "currentSha256": "b47a6f5e546665e7403d068d78248e77fb78989caddbeb4f953d4a69a775b8b2",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=TARGET]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            57
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            57
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "runtime_native_surface_target:33-56 从借用Window取得window/display raw pair，仅Win32+Windows配对可创建target；hinstance缺失编码0。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BIND",
+        "path": "zircon_app/src/entry/runtime_entry_app/surface_present/binding.rs",
+        "historicalSha256": "73fa6ffac6d875a83d8a8b0c48cbf6a2793d33c30c48ea379aa9b8f7bdf19c51",
+        "currentSha256": "73fa6ffac6d875a83d8a8b0c48cbf6a2793d33c30c48ea379aa9b8f7bdf19c51",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=BIND]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            63
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            63
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "bind_current_window_surface:18-24 clone宿主window引用；bind_window_surface:28-54 检查诊断模式/能力，取得target并把session viewport/size传入请求；attempted在FFI前置位。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "APP",
+        "path": "zircon_app/src/entry/runtime_library/runtime_session.rs",
+        "historicalSha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+        "currentSha256": "00ae7deb79203c1888028a0a7ccf918a2d370eb4647dbe06c95095174eb6f8d0",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=APP]"
+        },
+        "historicalReadRanges": [
+          [
+            89,
+            225
+          ],
+          [
+            224,
+            274
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            89,
+            225
+          ],
+          [
+            224,
+            274
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "create_with_profile_and_project:126-205 将profile静态bytes及project/play借用字符串转为切片，借用贯穿同步create；成功状态及valid handle后new(runtime_instance,handle,1,projectArc)。",
+          "editor_gateway:91-115 把self Arc作为实际runtime_owner，完整identity单独传入；identity自身不保活会话。",
+          "try_destroy:224-244 先释放表面、调用destroy、ensure_status成功后才unregister wake、invalidate handle和runtime.take；失败保留资源。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "HOSTWAKE",
+        "path": "zircon_app/src/entry/runtime_library/wake_registry.rs",
+        "historicalSha256": "534e8afb4004382ecf391c46af0d00ddc1b0c5ecb26c4d45cb73bcbbef13d8dc",
+        "currentSha256": "534e8afb4004382ecf391c46af0d00ddc1b0c5ecb26c4d45cb73bcbbef13d8dc",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=HOSTWAKE]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            109
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            109
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "register_target:45-58 分配非0且不占用的token并保存Arc target；sink:60-62 new(token,trampoline)。",
+          "trampoline:85-93 catch_unwind包住token lookup，lookup clone Arc后释放registry锁才唤醒；unregister:70-76 删除路由，但既有克隆须等Runtime回调静止才可结束关联资源责任。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "WAKE",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/wake_registration.rs",
+        "historicalSha256": "c111421756bc15681b53a74fbaf327c6be2116f0e0cdc18d6983b547f2577fe1",
+        "currentSha256": "c111421756bc15681b53a74fbaf327c6be2116f0e0cdc18d6983b547f2577fe1",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=WAKE]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            168
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            168
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "from_abi:50-70 只验证V1及(0,None)/(nonzero,Some)配对后保存callback/token。",
+          "wake:72-90 enabled检查和inflight计数在锁内，释放该锁后调用复制的unsafe C函数；guard Drop:152-162 递减并notify。",
+          "channel_wake:92-97 克隆注册用于异步通知；disable:99-101 阻止新调用，wait:103-111 等已有调用；线程栈标识用于同会话同步销毁拒绝。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "ACTIVITY",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/frame_activity.rs",
+        "historicalSha256": "2a0c57613a38b5d0e61834fa855cb91eb172ac38d05f63739ddbc10a38f4cb3b",
+        "currentSha256": "2a0c57613a38b5d0e61834fa855cb91eb172ac38d05f63739ddbc10a38f4cb3b",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=ACTIVITY]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            57
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            57
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "RuntimeFrameActivity::disable_wake_entries/wait_for_wake_callbacks/callback_active依次转发至注册对象；唤醒与帧需求有独立状态。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "DESTROY",
+        "path": "zircon_runtime/src/dynamic_api/session/registry/session_store.rs",
+        "historicalSha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce",
+        "currentSha256": "216e26966462be7c7e036aecbc845add0260317a56525150bb751d7184d762ce",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=DESTROY]"
+        },
+        "historicalReadRanges": [
+          [
+            344,
+            405
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            344,
+            405
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "destroy_session_slot_with_timeout:350-402 同线程active callback先返回InvalidArgument；begin_close之后disable_wake_entries，先drain actions再drain wake callbacks；超时或未归还allocation preserve_failed_teardown_for_retry并返回失败。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "FFI",
+        "path": "zircon_runtime/src/dynamic_api/session/ffi.rs",
+        "historicalSha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+        "currentSha256": "3aec2f4a0d61e0b327ba5f55222c5f2835cf8ee706a7135208c7e77955e922ea",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=FFI]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            165
+          ],
+          [
+            251,
+            306
+          ],
+          [
+            345,
+            407
+          ],
+          [
+            905,
+            924
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            165
+          ],
+          [
+            251,
+            306
+          ],
+          [
+            345,
+            407
+          ],
+          [
+            905,
+            924
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "create_session:47-109 输出先置invalid，检查V3、wake配对、四切片预算，再解析profile与startup config并尝试创建；成功才发布handle。",
+          "bind_viewport_surface:345-368 先with_session admission，查两层version、DEFAULT_VIEWPORT，再descriptor/actualbind。",
+          "unbind:370-384 是独立操作；NONE target并非解绑。",
+          "capture/present分别在FFI内调用validate_frame_dimensions；905-915 用单维预算及u64饱和RGBA乘积预算，不把零尺寸误写成这里已拒绝。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "PROFILE",
+        "path": "zircon_runtime/src/dynamic_api/session/profile.rs",
+        "historicalSha256": "7aeed46a2249997215d3fdff2ca299081cc9ef83c007e9303368ce88ffca88f6",
+        "currentSha256": "7aeed46a2249997215d3fdff2ca299081cc9ef83c007e9303368ce88ffca88f6",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=PROFILE]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            82
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            82
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "from_bytes:26-35 空profile与b\"runtime\"均为Runtime；其余已列静态名称映射相应模式，未知None。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "PROJECT",
+        "path": "zircon_runtime/src/dynamic_api/session/project.rs",
+        "historicalSha256": "4b801d1036577e6676a73fe725203c37d0ea85425f8ed8735071c3e7b945c77f",
+        "currentSha256": "4b801d1036577e6676a73fe725203c37d0ea85425f8ed8735071c3e7b945c77f",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=PROJECT]"
+        },
+        "historicalReadRanges": [
+          [
+            23,
+            162
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            23,
+            162
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "from_abi_slice:63-82 空root为None；checked_slice→UTF8→trim→resolve physical root。",
+          "from_abi_startup_config:84-115 先检查三切片；无root但非空play_scene/report为错误，有root则解析scene并验证report名称；config持有解析后的路径/相对scene，不保存输入裸指针；report transport属App。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "EXPORT",
+        "path": "zircon_runtime/src/dynamic_api/exports.rs",
+        "historicalSha256": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+        "currentSha256": "fb6564729a8cc2457f7eb5b356bb4cfee3e359f39caad61d2f9fab1b3f5f23a8",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=EXPORT]"
+        },
+        "historicalReadRanges": [
+          [
+            18,
+            107
+          ],
+          [
+            137,
+            160
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            18,
+            107
+          ],
+          [
+            137,
+            160
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "RUNTIME_API_V8:25-54 注册create/destroy/handle_event/bind/unbind/present等真实函数槽。",
+          "zircon_runtime_get_api_v8:56-75 宿主形状验证后返回静态表；create_session_ffi:92-97及bind/unbind:142-154 用catch_ffi_panic委派至FFI实现。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "API",
+        "path": "zircon_runtime_interface/src/runtime_api/abi/api_table.rs",
+        "historicalSha256": "82064916edc1aa4a74821e3b3aa91c1775f071fc84570a68248d621747992856",
+        "currentSha256": "82064916edc1aa4a74821e3b3aa91c1775f071fc84570a68248d621747992856",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=API]"
+        },
+        "historicalReadRanges": [
+          [
+            44,
+            86
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            44,
+            86
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "当前create alias:45-46 值传递V3 config及输出handle指针；bind:81-82 值请求加会话；unbind:85-86 独立viewport操作。",
+          "本批首次读曾为06d97bb681c596c958a28237c1fd5590ca8f88d70128a5b1aa67094487487a39/210行，此次为320行；该外部变化未由本agent写入，引用以本次快照为准，不恢复旧核心范围。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "HANDLE",
+        "path": "zircon_editor/src/core/gateway/handle.rs",
+        "historicalSha256": "589c4313f9a369060e0fec40b8c9b85c68ee01a6e340385ef06be8fd7d2443a8",
+        "currentSha256": "589c4313f9a369060e0fec40b8c9b85c68ee01a6e340385ef06be8fd7d2443a8",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=HANDLE]"
+        },
+        "historicalReadRanges": [
+          [
+            104,
+            213
+          ],
+          [
+            112,
+            203
+          ],
+          [
+            230,
+            279
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            104,
+            213
+          ],
+          [
+            112,
+            203
+          ],
+          [
+            230,
+            279
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "GatewayGeneration::new:115-129 从endpoint完整identity添加generation与play_instance；replace_for_play:150-163 锁住replacement后分配generation并发布Arc。",
+          "detach_at_identity:168-187 在同一replacement锁内比较完整值，错误返回StaleGeneration，成功发布detached generation。",
+          "with_world_at_identity:239-251 与mutable:259-271 取得同一个不可变lease并比较完整值后调用，replacement不会把原请求改发到新会话。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "GATEWAY",
+        "path": "zircon_editor/src/core/gateway/session/gateway.rs",
+        "historicalSha256": "88faab5e235123154d281829f4a0fff212566e26a602cbabb62b44068336faec",
+        "currentSha256": "88faab5e235123154d281829f4a0fff212566e26a602cbabb62b44068336faec",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=GATEWAY]"
+        },
+        "historicalReadRanges": [
+          [
+            34,
+            127
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            34,
+            127
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "new_with_identity:59-98 先要求session valid且identity.runtime_session==session；实际runtime_owner Arc独立保活提供方。兼容new:39-54 以(0,session,0,None)创建基础identity，不证明new本身分配全局身份。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "TRAIT",
+        "path": "zircon_editor/src/core/gateway/contract.rs",
+        "historicalSha256": "f51967115b4b45d83016dee3b784d478225e75e84b4aa75efffe2fb196484192",
+        "currentSha256": "f51967115b4b45d83016dee3b784d478225e75e84b4aa75efffe2fb196484192",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=TRAIT]"
+        },
+        "historicalReadRanges": [
+          [
+            217,
+            226
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            217,
+            226
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "EditorRuntimeGateway::session_identity:220-225 要求完整App/transport身份；detached仅用于故意无Runtime会话的endpoint，rawhandle可能被其他Runtime复用。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "RESOURCE",
+        "path": "zircon_editor/src/core/play/preview_frame.rs",
+        "historicalSha256": "c7dad4d93adb43a16bd200f4c6feaada82bb8e425606c4e27de0a1128a3c6d57",
+        "currentSha256": "c7dad4d93adb43a16bd200f4c6feaada82bb8e425606c4e27de0a1128a3c6d57",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=RESOURCE]"
+        },
+        "historicalReadRanges": [
+          [
+            16,
+            69
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            16,
+            69
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "PlayPreviewFrameIdentity::resource_scope:45-65 使用全部六身份字段及frame/PIE尺寸代次组成来源scope；project借用str后仅格式化字符串。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "DETACHED",
+        "path": "zircon_editor/src/core/gateway/detached.rs",
+        "historicalSha256": "d656ba7d2c97ffa8baae3023efee63bbd729b83e5ed27dda28442282bf0fb085",
+        "currentSha256": "d656ba7d2c97ffa8baae3023efee63bbd729b83e5ed27dda28442282bf0fb085",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=DETACHED]"
+        },
+        "historicalReadRanges": [
+          [
+            13,
+            22
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            13,
+            22
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "session_handle无效且session_identity:17-19 返回GatewaySessionIdentity::detached，不调用资源销毁。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "INPROCESS",
+        "path": "zircon_editor/src/core/gateway/in_process.rs",
+        "historicalSha256": "04ed091822184dbd3b5b7400f9a5c43137af144ea5ba95504eeac55cafb8217b",
+        "currentSha256": "04ed091822184dbd3b5b7400f9a5c43137af144ea5ba95504eeac55cafb8217b",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=INPROCESS]"
+        },
+        "historicalReadRanges": [
+          [
+            77,
+            86
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            77,
+            86
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "此直接World endpoint的ABI session invalid，session_identity:81-83 返回detached；World访问生命由自己的gateway owner管理。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "WIRE",
+        "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+        "historicalSha256": "d2bd41c9d7243c5de4eb25acd1d613eb0d52d18ea8b5fffdcb624f0f1122d6e8",
+        "currentSha256": "b44a63486795ddbd2e28ff7bf5a174a25a689d1cfb287f0978b114328ef4cc09",
+        "historicalPinMatched": false,
+        "state": "comment-only physical drift; original non-doc source unchanged; fresh relevant contract read",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=WIRE]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            84
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            4,
+            88
+          ]
+        ],
+        "currentAnchors": "ZrViewportEventV1::new 35-56; viewport_metrics 73-87",
+        "provenRelationships": [
+          "new:31-51 使用0尺寸/scale1/空payload占位；viewport_metrics:69-83 原样存三项metrics并physical_size复制到event.size。"
+        ],
+        "relationshipReuse": "Fresh read and before-byte reconstruction required because physical SHA changed",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        },
+        "currentReadRanges": [
+          [
+            1,
+            90
+          ]
+        ],
+        "currentContractConfirmation": [
+          "new retains the supplied version/kind/viewport and initializes size and viewport metrics to zero, scale factor to 1, pointer/key/scancode scalars to 0 and payload to empty. It performs no version, geometry or payload validation.",
+          "viewport_metrics sets kind VIEWPORT_RESIZED, copies physical_size into size and stores supplied metrics; remaining fields are supplied through new. It performs no metrics validation.",
+          "Only six standalone documentation/comment/blank lines were inserted. Removal of these insertions in memory reconstructs the exact old caller pin; original caller code and macro invocations/arguments did not change."
+        ],
+        "physicalDriftProof": {
+          "currentLines": 659,
+          "headLogicalLines": 653,
+          "standaloneCommentOrBlankInsertions": 6,
+          "otherHunks": 0,
+          "headRawSha256": "d2bd41c9d7243c5de4eb25acd1d613eb0d52d18ea8b5fffdcb624f0f1122d6e8",
+          "reconstructedPhysicalBeforeSha256": "d2bd41c9d7243c5de4eb25acd1d613eb0d52d18ea8b5fffdcb624f0f1122d6e8",
+          "freshRelevantReadReceipt": {
+            "execCell": "49",
+            "finalChunkId": "0ff54c",
+            "exitCode": 0
+          }
+        },
+        "originalLedgerAttribution": {
+          "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+          "owner": "host_review",
+          "batchId": "ime-composition-003",
+          "state": "assigned",
+          "initialSha256": "d2bd41c9d7243c5de4eb25acd1d613eb0d52d18ea8b5fffdcb624f0f1122d6e8",
+          "currentSha256": "d2bd41c9d7243c5de4eb25acd1d613eb0d52d18ea8b5fffdcb624f0f1122d6e8",
+          "reviewedSha256": null
+        },
+        "scopeLimit": "events.rs remains an external readonly caller, not an additional source write/audit claim. Fresh read covered the session-relevant 1-90 region, not all 659 source lines."
+      },
+      {
+        "id": "TRANSLATED",
+        "path": "zircon_runtime_interface/src/runtime_api/session/translated_events.rs",
+        "historicalSha256": "76a6df697cfef4a3ebe400ab7ea020576e248fdc87de2edb38dd26e7ffc68d5d",
+        "currentSha256": "76a6df697cfef4a3ebe400ab7ea020576e248fdc87de2edb38dd26e7ffc68d5d",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=TRANSLATED]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            58
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            58
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "viewport_metrics:25-35 包装标准事件并附静态host reason，不额外验证度量。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "UIEVENT",
+        "path": "zircon_runtime_interface/src/ui/window/runtime_event.rs",
+        "historicalSha256": "aec82080f076e4f767b0f7adbd63174231dfad246b4c68b53561b6e8714474f2",
+        "currentSha256": "aec82080f076e4f767b0f7adbd63174231dfad246b4c68b53561b6e8714474f2",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=UIEVENT]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            86
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            86
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "UiRuntimeEvent::new:39-65 复制metrics metadata，payload改用真实Rust借用；unsafe from_abi先checked_slice再new，字段copy不构成裸指针安全证明。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "UIADAPTER",
+        "path": "zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs",
+        "historicalSha256": "975e04ad2d26e4179927b46032e62421fa1e62b76ec4b2b599f9114653c3162e",
+        "currentSha256": "975e04ad2d26e4179927b46032e62421fa1e62b76ec4b2b599f9114653c3162e",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=UIADAPTER]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            120
+          ],
+          [
+            250,
+            289
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            120
+          ],
+          [
+            250,
+            289
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "viewport_metrics:256-278 任一尺寸分量非0时分别复制logical/physical并sanitized_scale_factor；所有分量0时回退event.size和scale1。",
+          "sanitized_scale_factor:280-286 finite且>0则转f64，否则1；不验证physical==logical*scale，未虚构这项不变量。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "CONFIGTEST",
+        "path": "zircon_runtime_interface/src/tests/contracts.rs",
+        "historicalSha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+        "currentSha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=CONFIGTEST]"
+        },
+        "historicalReadRanges": [
+          [
+            596,
+            651
+          ],
+          [
+            1147,
+            1181
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            596,
+            651
+          ],
+          [
+            1147,
+            1181
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "runtime_v3_session_config_and_wake_sink_layout_and_validity_are_stable:606-647 验证disabled/new/empty以及错版/缺token/缺fn失败，固定size/offset断言；仅源码审阅，未运行。",
+          "1153-1157 用不同logical/physical及scale2构造metrics，其他事件契约夹具保存该值；没有据此声称任意尺寸一致性被验证。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "CAMTEST",
+        "path": "zircon_runtime/src/dynamic_api/tests/camera_controller.rs",
+        "historicalSha256": "4766f7a7c035e346a57484a025ae6a19b08f19acf603ee688d89554f39df9d1a",
+        "currentSha256": "4766f7a7c035e346a57484a025ae6a19b08f19acf603ee688d89554f39df9d1a",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=CAMTEST]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            62
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            62
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "editor_camera_override_changes_only_the_render_extract_view:30-62 断言transform/projection覆盖，core_pipeline/exposure及Scene world transform不变；未执行。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "EVENTTEST",
+        "path": "zircon_runtime/src/dynamic_api/session/tests/events.rs",
+        "historicalSha256": "59745045329cc336657535dd2bf9ccbb4223857a6f414c7a2424e9a7af5777c3",
+        "currentSha256": "59745045329cc336657535dd2bf9ccbb4223857a6f414c7a2424e9a7af5777c3",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=EVENTTEST]"
+        },
+        "historicalReadRanges": [
+          [
+            116,
+            153
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            116,
+            153
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "simulate_camera_event_overrides_render_extract_without_mutating_the_play_world:118-153 用真实serde JSON借用经过handle_event，断言Ok、extract变而World不变；未执行。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "SURFACETEST",
+        "path": "zircon_runtime/src/dynamic_api/tests/viewport.rs",
+        "historicalSha256": "cd8d0ba6004ea17df39539d23889bbd9bf2a9f5e2dadd97a0b592f05774f2192",
+        "currentSha256": "cd8d0ba6004ea17df39539d23889bbd9bf2a9f5e2dadd97a0b592f05774f2192",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=SURFACETEST]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            98
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            98
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "4-95 测试wrong request/target version、unknown viewport、invalid session、NONE unsupported的具体返回路径；只读了这些测试，不声称执行或看过文件余部。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "METRICSTEST",
+        "path": "zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs",
+        "historicalSha256": "61b9c9dcad27c05acdbfb14126fc14dcdfe5b7ec7afb53eee33e9b1526446d63",
+        "currentSha256": "61b9c9dcad27c05acdbfb14126fc14dcdfe5b7ec7afb53eee33e9b1526446d63",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=METRICSTEST]"
+        },
+        "historicalReadRanges": [
+          [
+            45,
+            113
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            45,
+            113
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "runtime_event_adapter_maps_viewport_and_window_events_to_window_pump_facts:61-113 用640×360/1280×720/scale2构造事件，匹配转换后的UiWindowMetrics三字段；窗口适配调用上下文已读。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "UITEST",
+        "path": "zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/batch_adapter.rs",
+        "historicalSha256": "011d2875440cffc48a5c0f777c81af89eaef1f2242ba9f8596e4473290d7a7d6",
+        "currentSha256": "011d2875440cffc48a5c0f777c81af89eaef1f2242ba9f8596e4473290d7a7d6",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=UITEST]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            44
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            44
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "runtime_ui_manager_dispatches_runtime_event_batch_through_window_adapter:6-44 把DTO metrics作为viewport事件批项送入真实window pump，检查路由/diagnostic；不声称读过其余测试。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "ABIGUARD",
+        "path": "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+        "historicalSha256": "727355154d092d305e004b83e52af7d23982469e9608a5004d6b3eff98b5a9d7",
+        "currentSha256": "727355154d092d305e004b83e52af7d23982469e9608a5004d6b3eff98b5a9d7",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=ABIGUARD]"
+        },
+        "historicalReadRanges": [
+          [
+            114,
+            199
+          ],
+          [
+            401,
+            506
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            114,
+            199
+          ],
+          [
+            401,
+            506
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "runtime_play_startup_dtos_keep_explicit_c_layout_and_raw_kind:161-199 核对session两DTO reprC/字段顺序。",
+          "assert_repr_c_before_struct:406-421 以准确pub struct锚点和先前struct区分repr归属；discover_struct_fields:444-473 只读取pub字段行，新增注释不被解析为字段。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BOUNDARY",
+        "path": "zircon_runtime_interface/src/tests/boundary.rs",
+        "historicalSha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+        "currentSha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=BOUNDARY]"
+        },
+        "historicalReadRanges": [
+          [
+            1,
+            144
+          ],
+          [
+            455,
+            572
+          ],
+          [
+            981,
+            1013
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            1,
+            144
+          ],
+          [
+            455,
+            572
+          ],
+          [
+            981,
+            1013
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "FORBIDDEN_SOURCE_NEEDLES:33-50 全文禁串含实现crate路径、系统模块；identity:71/530 仅准许Arc同步导入。",
+          "child预算:114-115/986-995 包含注释与空行，总700；本批4owner全部低于预算。",
+          "域门面997-1008 禁pub use wildcard；本批mod继续显式63绑定；未声称全仓边界测试执行成功。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "APIFACADE",
+        "path": "zircon_runtime_interface/src/runtime_api/mod.rs",
+        "historicalSha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63",
+        "currentSha256": "55a90c9da8bf19ca4ff8bc6383b29ca6857e99f4e015fbd8cc0f41d7edc22b63",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=APIFACADE]"
+        },
+        "historicalReadRanges": [
+          [
+            112,
+            145
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            112,
+            145
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "pub use session:114-145 显式转出本域合同至runtime_api；未修改此路径。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "ROOTFACADE",
+        "path": "zircon_runtime_interface/src/lib.rs",
+        "historicalSha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+        "currentSha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-core-session-003.json",
+          "sha256": "7c99dbbf5a3982b056119ea19c2b2d0425225cfd94a2d7ac7af329bd9d844a32",
+          "selector": "callerEvidence[id=ROOTFACADE]"
+        },
+        "historicalReadRanges": [
+          [
+            137,
+            174
+          ]
+        ],
+        "currentMappedReadRanges": [
+          [
+            137,
+            174
+          ]
+        ],
+        "currentAnchors": "Historical declaration/use anchors unchanged under identical raw SHA",
+        "provenRelationships": [
+          "crate根pub use runtime_api:137-174 转出身份、session、viewport、camera与FFI alias，支持新增rustdoc链接的导出目标；未修改此路径。"
+        ],
+        "relationshipReuse": "Verified same physical source SHA; historical exact ranges and contract evidence reused",
+        "shaGuardReceipt": {
+          "execCell": "47",
+          "nativeSession": 44738,
+          "finalChunkId": "e93657",
+          "exitCode": 0
+        }
+      }
+    ],
+    "budget": [
+      {
+        "id": "BUDGET-CALLER-001",
+        "path": "zircon_runtime_interface/src/reflect/mod.rs",
+        "historicalSha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5",
+        "currentSha256": "a7fd6a34ad0f8d841e3091b26c07b63bfb578d37fdbe4e315c766efbc0cbf6c5",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime_interface/src/reflect/mod.rs]"
+        },
+        "historicalSymbols": "module inclusion and public reflect re-exports",
+        "currentAnchors": [
+          {
+            "symbol": "mod value_budget",
+            "line": 39
+          },
+          {
+            "symbol": "mod value_validation",
+            "line": 41
+          },
+          {
+            "symbol": "ReflectedValue re-export",
+            "line": 58
+          },
+          {
+            "symbol": "budget/error re-exports",
+            "line": 73
+          }
+        ],
+        "currentRelevantReadRanges": [
+          [
+            1,
+            78
+          ]
+        ],
+        "provenRelationship": "Includes budget and validator implementation modules and publicly re-exports ReflectedValue, budget dimensions/float kind/errors. No direct FFI entry or Runtime implementation import is introduced.",
+        "evidenceReuse": "Original file-level named caller relations retained. Current declaration/use anchors re-identified and affected ranges read in this transfer under identical physical source pins.",
+        "freshPinAndSemanticReadReceipt": {
+          "execCell": "50",
+          "finalChunkId": "8b5b28",
+          "exitCode": 0
+        },
+        "earlierFreshPinReceipt": {
+          "execCell": "49",
+          "finalChunkId": "0ff54c",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BUDGET-CALLER-002",
+        "path": "zircon_runtime_interface/src/lib.rs",
+        "historicalSha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+        "currentSha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime_interface/src/lib.rs]"
+        },
+        "historicalSymbols": "public reflect module",
+        "currentAnchors": [
+          {
+            "symbol": "pub mod reflect",
+            "line": 35
+          }
+        ],
+        "currentRelevantReadRanges": [
+          [
+            35,
+            35
+          ]
+        ],
+        "provenRelationship": "Publishes the reflect contract module through the interface crate. Exact public module declaration was re-identified under the unchanged file pin.",
+        "evidenceReuse": "Original file-level named caller relations retained. Current declaration/use anchors re-identified and affected ranges read in this transfer under identical physical source pins.",
+        "freshPinAndSemanticReadReceipt": {
+          "execCell": "50",
+          "finalChunkId": "8b5b28",
+          "exitCode": 0
+        },
+        "earlierFreshPinReceipt": {
+          "execCell": "49",
+          "finalChunkId": "0ff54c",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BUDGET-CALLER-003",
+        "path": "zircon_runtime_interface/src/tests/mod.rs",
+        "historicalSha256": "cf9aa41b68a7537b2bcf3b9d65d38033815b957503fe7eb12e5dd9a99fe2ee4d",
+        "currentSha256": "cf9aa41b68a7537b2bcf3b9d65d38033815b957503fe7eb12e5dd9a99fe2ee4d",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime_interface/src/tests/mod.rs]"
+        },
+        "historicalSymbols": "reflect_value_budget_contracts registration",
+        "currentAnchors": [
+          {
+            "symbol": "mod reflect_value_budget_contracts",
+            "line": 32
+          }
+        ],
+        "currentRelevantReadRanges": [
+          [
+            30,
+            32
+          ]
+        ],
+        "provenRelationship": "Registers the existing budget contract test module. Its tests were reviewed historically; no test execution is claimed by this transfer.",
+        "evidenceReuse": "Original file-level named caller relations retained. Current declaration/use anchors re-identified and affected ranges read in this transfer under identical physical source pins.",
+        "freshPinAndSemanticReadReceipt": {
+          "execCell": "50",
+          "finalChunkId": "8b5b28",
+          "exitCode": 0
+        },
+        "earlierFreshPinReceipt": {
+          "execCell": "49",
+          "finalChunkId": "0ff54c",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BUDGET-CALLER-004",
+        "path": "zircon_runtime_interface/src/reflect/zr_reflect_value.rs",
+        "historicalSha256": "3c6cb7c4a88186f4af254efcd299f700042f236fc8e540fc081b14977c60c638",
+        "currentSha256": "3c6cb7c4a88186f4af254efcd299f700042f236fc8e540fc081b14977c60c638",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime_interface/src/reflect/zr_reflect_value.rs]"
+        },
+        "historicalSymbols": "ZrReflectValue conversion API, distinct from ReflectedValue validation",
+        "currentAnchors": [
+          {
+            "symbol": "ZrReflectValue",
+            "line": 8
+          },
+          {
+            "symbol": "to_reflected_value",
+            "line": 10
+          },
+          {
+            "symbol": "from_reflected_value",
+            "line": 22
+          },
+          {
+            "symbol": "impl_integer_value macro",
+            "line": 30
+          }
+        ],
+        "currentRelevantReadRanges": [
+          [
+            1,
+            45
+          ]
+        ],
+        "provenRelationship": "Field conversion trait and integer macro implementations form a separate conversion contract. to_reflected_value does not apply Runtime recursive budget and need not establish finite floats. Conversion errors do not replace ReflectedValue graph validation.",
+        "evidenceReuse": "Original file-level named caller relations retained. Current declaration/use anchors re-identified and affected ranges read in this transfer under identical physical source pins.",
+        "freshPinAndSemanticReadReceipt": {
+          "execCell": "50",
+          "finalChunkId": "8b5b28",
+          "exitCode": 0
+        },
+        "earlierFreshPinReceipt": {
+          "execCell": "49",
+          "finalChunkId": "0ff54c",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BUDGET-CALLER-005",
+        "path": "zircon_runtime/src/scene/reflect/value_admission.rs",
+        "historicalSha256": "d23257966d617a81a137d2e0573c4ba6ee8c25b2f8be89dd1a165dd0b7b7950a",
+        "currentSha256": "d23257966d617a81a137d2e0573c4ba6ee8c25b2f8be89dd1a165dd0b7b7950a",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime/src/scene/reflect/value_admission.rs]"
+        },
+        "historicalSymbols": "RUNTIME_REFLECT_VALUE_BUDGET and validate_reflected_value_contract",
+        "currentAnchors": [
+          {
+            "symbol": "RUNTIME_REFLECT_VALUE_BUDGET",
+            "line": 11
+          },
+          {
+            "symbol": "validate_reflected_value",
+            "line": 19
+          },
+          {
+            "symbol": "validate_reflected_field_values",
+            "line": 35
+          },
+          {
+            "symbol": "validate_reflected_value_contract",
+            "line": 45
+          },
+          {
+            "symbol": "validate_with_budget call",
+            "line": 48
+          }
+        ],
+        "currentRelevantReadRanges": [
+          [
+            1,
+            61
+          ]
+        ],
+        "provenRelationship": "Runtime sets depth 128, nodes 16384, string bytes 1 MiB, per-container entries 4096. Borrowed values use validate_with_budget; field-facing wrapper maps rejection to ReflectError::InvalidValue with type/field context. Each field is checked independently; graph budgets do not establish schema/permission correctness.",
+        "evidenceReuse": "Original file-level named caller relations retained. Current declaration/use anchors re-identified and affected ranges read in this transfer under identical physical source pins.",
+        "freshPinAndSemanticReadReceipt": {
+          "execCell": "50",
+          "finalChunkId": "8b5b28",
+          "exitCode": 0
+        },
+        "earlierFreshPinReceipt": {
+          "execCell": "49",
+          "finalChunkId": "0ff54c",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BUDGET-CALLER-006",
+        "path": "zircon_runtime/src/scene/reflect/json_document/read.rs",
+        "historicalSha256": "d161b84acb0bd35e76c30735a9f9c181ac77a93cd2680f836fbf4afee77ad471",
+        "currentSha256": "d161b84acb0bd35e76c30735a9f9c181ac77a93cd2680f836fbf4afee77ad471",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime/src/scene/reflect/json_document/read.rs]"
+        },
+        "historicalSymbols": "reflected_from_json validation after JSON construction",
+        "currentAnchors": [
+          {
+            "symbol": "reflected_from_json",
+            "line": 9
+          },
+          {
+            "symbol": "validate_with_budget call after load",
+            "line": 15
+          }
+        ],
+        "currentRelevantReadRanges": [
+          [
+            1,
+            20
+          ]
+        ],
+        "provenRelationship": "Versioned or historical schema-zero JSON is loaded before the constructed ReflectedValue is budget-validated. The budget does not cap JSON parser input bytes or allocation that occurred before validation.",
+        "evidenceReuse": "Original file-level named caller relations retained. Current declaration/use anchors re-identified and affected ranges read in this transfer under identical physical source pins.",
+        "freshPinAndSemanticReadReceipt": {
+          "execCell": "50",
+          "finalChunkId": "8b5b28",
+          "exitCode": 0
+        },
+        "earlierFreshPinReceipt": {
+          "execCell": "49",
+          "finalChunkId": "0ff54c",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BUDGET-CALLER-007",
+        "path": "zircon_runtime/src/scene/reflect/json_document/write.rs",
+        "historicalSha256": "36839cdf434bfaa08909806bb3b67a76a112be5f918510ba05c6b6f2722abae6",
+        "currentSha256": "36839cdf434bfaa08909806bb3b67a76a112be5f918510ba05c6b6f2722abae6",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime/src/scene/reflect/json_document/write.rs]"
+        },
+        "historicalSymbols": "json_from_reflected validation before serialization",
+        "currentAnchors": [
+          {
+            "symbol": "json_from_reflected",
+            "line": 9
+          },
+          {
+            "symbol": "validate_with_budget call before cloning/serialization",
+            "line": 10
+          }
+        ],
+        "currentRelevantReadRanges": [
+          [
+            1,
+            14
+          ]
+        ],
+        "provenRelationship": "Validates the borrowed graph before cloning it into a versioned JSON document and serializing. Validation failure prevents that serialization; schema and authorization remain separate concerns.",
+        "evidenceReuse": "Original file-level named caller relations retained. Current declaration/use anchors re-identified and affected ranges read in this transfer under identical physical source pins.",
+        "freshPinAndSemanticReadReceipt": {
+          "execCell": "50",
+          "finalChunkId": "8b5b28",
+          "exitCode": 0
+        },
+        "earlierFreshPinReceipt": {
+          "execCell": "49",
+          "finalChunkId": "0ff54c",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BUDGET-CALLER-008",
+        "path": "zircon_runtime/src/script/vm/plugin/vm_state_blob.rs",
+        "historicalSha256": "09f379d6f3367c87bfd764116c713e134b2e0b97148c6a9cc9443a97cca9e624",
+        "currentSha256": "09f379d6f3367c87bfd764116c713e134b2e0b97148c6a9cc9443a97cca9e624",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime/src/script/vm/plugin/vm_state_blob.rs]"
+        },
+        "historicalSymbols": "VM state blob reflected-field validation",
+        "currentAnchors": [
+          {
+            "symbol": "validate_reflected",
+            "line": 125
+          },
+          {
+            "symbol": "validate_reflected_objects",
+            "line": 130
+          },
+          {
+            "symbol": "validate_with_budget call",
+            "line": 160
+          }
+        ],
+        "currentRelevantReadRanges": [
+          [
+            152,
+            178
+          ]
+        ],
+        "provenRelationship": "In reflected object validation, duplicate source fields are rejected before the current field value is graph-validated under the Runtime budget. Graph rejection carries type and field context through VmStateMigrationError::ReflectedValueRejected. Each value validation borrows input and keeps local budget state.",
+        "evidenceReuse": "Original file-level named caller relations retained. Current declaration/use anchors re-identified and affected ranges read in this transfer under identical physical source pins.",
+        "freshPinAndSemanticReadReceipt": {
+          "execCell": "50",
+          "finalChunkId": "8b5b28",
+          "exitCode": 0
+        },
+        "earlierFreshPinReceipt": {
+          "execCell": "49",
+          "finalChunkId": "0ff54c",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BUDGET-CALLER-009",
+        "path": "zircon_runtime/src/script/vm/plugin/state_migration.rs",
+        "historicalSha256": "3871f252035ad96deb985019f4e1fc939d730a656f43838d184349f55d0b0b17",
+        "currentSha256": "3871f252035ad96deb985019f4e1fc939d730a656f43838d184349f55d0b0b17",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime/src/script/vm/plugin/state_migration.rs]"
+        },
+        "historicalSymbols": "validate_target_default_values migration validation",
+        "currentAnchors": [
+          {
+            "symbol": "target type indexing calls default validation",
+            "line": 152
+          },
+          {
+            "symbol": "validate_schema_default_values",
+            "line": 216
+          },
+          {
+            "symbol": "default validation from schema loop",
+            "line": 218
+          },
+          {
+            "symbol": "validate_target_default_values",
+            "line": 223
+          },
+          {
+            "symbol": "validate_with_budget call",
+            "line": 229
+          }
+        ],
+        "currentRelevantReadRanges": [
+          [
+            144,
+            170
+          ],
+          [
+            210,
+            241
+          ]
+        ],
+        "provenRelationship": "Target type indexing and schema default validation route present default values through the same Runtime graph budget. Fields without defaults are skipped; rejection includes target type and field. This is distinct from UiBindingValue::validate_with_budget.",
+        "evidenceReuse": "Original file-level named caller relations retained. Current declaration/use anchors re-identified and affected ranges read in this transfer under identical physical source pins.",
+        "freshPinAndSemanticReadReceipt": {
+          "execCell": "50",
+          "finalChunkId": "8b5b28",
+          "exitCode": 0
+        },
+        "earlierFreshPinReceipt": {
+          "execCell": "49",
+          "finalChunkId": "0ff54c",
+          "exitCode": 0
+        }
+      },
+      {
+        "id": "BUDGET-CALLER-010",
+        "path": "zircon_runtime_interface/src/tests/boundary.rs",
+        "historicalSha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+        "currentSha256": "ca4b17b240c2abbf36de0e8ed6d5c8ae6e17da58aa1660be382d3463acdc76bf",
+        "historicalPinMatched": true,
+        "state": "exact physical pin match; same contract source",
+        "historicalEvidence": {
+          "path": "docs/tests/source-comment-review-evidence-reflect-budget-002.json",
+          "sha256": "cd3505ab8d703188ded50caf53a3a4d07c181536493ae10a3d9626d369f309b9",
+          "selector": "sourcePins[path=zircon_runtime_interface/src/tests/boundary.rs]"
+        },
+        "historicalSymbols": "FORBIDDEN_SOURCE_NEEDLES and is_rust_code_position lexical branch (lines 33-50 and 575-639)",
+        "currentAnchors": [
+          {
+            "symbol": "FORBIDDEN_SOURCE_NEEDLES",
+            "line": 33
+          },
+          {
+            "symbol": "is_rust_code_position",
+            "line": 578
+          }
+        ],
+        "currentRelevantReadRanges": [
+          [
+            33,
+            50
+          ],
+          [
+            575,
+            639
+          ]
+        ],
+        "provenRelationship": "Forbidden Runtime source-path substrings are gated by the actual Rust-code-position scanner. // comments set line_comment and are excluded before newline; budget source paths in documentation do not by themselves violate this guard. This is static source inspection, not execution of the boundary test.",
+        "evidenceReuse": "Original file-level named caller relations retained. Current declaration/use anchors re-identified and affected ranges read in this transfer under identical physical source pins.",
+        "freshPinAndSemanticReadReceipt": {
+          "execCell": "50",
+          "finalChunkId": "8b5b28",
+          "exitCode": 0
+        },
+        "earlierFreshPinReceipt": {
+          "execCell": "49",
+          "finalChunkId": "0ff54c",
+          "exitCode": 0
+        }
+      }
+    ],
+    "budgetHistoricalNamedRelations": [
+      {
+        "definition": "reflect/mod.rs module inclusion and re-exports",
+        "caller": "zircon_runtime_interface/src/lib.rs::reflect",
+        "reason": "Publishes budget/errors and ReflectedValue validator on interface surface.",
+        "constraint": "No direct FFI entry accepts ReflectValueBudget; serde derives provide serialization only."
+      },
+      {
+        "definition": "value_admission.rs::RUNTIME_REFLECT_VALUE_BUDGET and validate_reflected_value_contract",
+        "caller": "Runtime scene reflected-value admission",
+        "reason": "Selects limits and validates already constructed reflected values.",
+        "constraint": "Does not replace schema, field type, or permission checks."
+      },
+      {
+        "definition": "json_document/read.rs::reflected_from_json",
+        "caller": "Runtime JSON read/construction",
+        "reason": "Validates after JSON conversion/load.",
+        "constraint": "Does not bound parse-time bytes/allocation."
+      },
+      {
+        "definition": "json_document/write.rs::json_from_reflected",
+        "caller": "Runtime JSON serialization",
+        "reason": "Validates before serialization.",
+        "constraint": "Does not certify schema or permissions."
+      },
+      {
+        "definition": "vm_state_blob.rs",
+        "caller": "Runtime VM state blob validation",
+        "reason": "Uses the same graph validator for state values.",
+        "constraint": "Each call has local state; input is borrowed."
+      },
+      {
+        "definition": "state_migration.rs::validate_target_default_values",
+        "caller": "Runtime VM state migration defaults",
+        "reason": "Checks target defaults through reflected value contract.",
+        "constraint": "UiBindingValue::validate_with_budget is a separate API and is not conflated."
+      },
+      {
+        "definition": "src/tests/mod.rs::reflect_value_budget_contracts",
+        "caller": "Rust test harness",
+        "reason": "Registers five contract tests.",
+        "constraint": "No tests were added or executed in this comment audit."
+      }
+    ],
+    "eventsDriftDisposition": "The old WIRE pin is stale as a physical pin. Fresh read plus six-comment insertion proof preserves the original session-relevant contract conclusion; current events pin and shifted anchors are recorded only here. Neither old evidence nor shared metadata was edited.",
+    "reusedValidationLimits": "Same source/test/configuration pins allow reuse of matching local static/format receipts. No formatter, Cargo or Rustdoc rerun was triggered merely to refresh unchanged source hashes."
+  },
+  "contractTransferFindings": [
+    "All nine current physical final hashes match both assigned-reviewer and original independent-review bindings; before pins reconstruct exactly from retained original raw byte-lines with comment-only insertions.",
+    "The original object inventories remain bound to exact reviewed final pins: 46 core session object groups and 90 budget declaration/import/block entries. This transfer reuses them and records fresh provenance; it does not assert newly performed complete consumer audits beyond documented ranges.",
+    "Core session contracts keep Runtime camera validation separate from transport DTOs; wake/config borrows, registration/destruction, retained DLL on destruction failure and session identity/viewport handling remain bounded by the unchanged consumer pins.",
+    "Budget validation applies to already constructed borrowed graphs; it does not bound prior parser allocations or replace schema, permissions, field type conversion or UiBindingValue contracts. Runtime/JSON/VM/default-value call order was reconfirmed.",
+    "The events constructor and viewport_metrics contracts remain unchanged under the only drifting core caller pin; only six documentation/comment/blank lines were inserted."
+  ],
+  "existingIssueTags": [],
+  "issueIds": [],
+  "newIssues": [],
+  "issuePolicy": "No source BUG/TODO/SAFETY label was added, removed or closed. Legacy shared issue metadata remains read-only. Existing readonly discrepancies reported in plugin-core-005 remain for root reconciliation.",
+  "nativeProcessReceipts": {
+    "freshCompletedChecks": [
+      {
+        "execCell": "47",
+        "nativeSession": 44738,
+        "finalChunkId": "e93657",
+        "exitCode": 0,
+        "scope": "Nine physical before/after proofs, core 37 caller pin guards, historical independent-review pin checks and events comment baseline proof",
+        "writes": 0
+      },
+      {
+        "execCell": "49",
+        "finalChunkId": "0ff54c",
+        "exitCode": 0,
+        "scope": "Events 1-90 actual caller semantics, shifted anchors, and budget ten physical caller pins",
+        "writes": 0
+      },
+      {
+        "execCell": "50",
+        "finalChunkId": "8b5b28",
+        "exitCode": 0,
+        "scope": "Budget ten current declaration/use anchors and affected consumer/static-boundary ranges",
+        "writes": 0
+      },
+      {
+        "execCell": "51",
+        "nativeSession": 52888,
+        "initialChunkId": "ed8b3b",
+        "finalChunkId": "cf96a6",
+        "exitCode": 0,
+        "scope": "Current HEAD and Git scoped dirty identification; output exceeded cap, not used as complete metadata extraction",
+        "writes": 0
+      },
+      {
+        "execCell": "54",
+        "finalChunkId": "e4085f",
+        "exitCode": 0,
+        "scope": "Compact exact historical authority, raw metadata pins and original unresolved-native status extraction",
+        "writes": 0
+      }
+    ],
+    "originalHistoricalStatus": {
+      "sessionSourceWriters": [
+        {
+          "execCell": "22",
+          "nativeSession": 86232,
+          "finalChunkId": "029e87",
+          "exitCode": 0,
+          "scope": [
+            "zircon_runtime_interface/src/runtime_api/session/camera.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session_identity.rs",
+            "zircon_runtime_interface/src/runtime_api/session/viewport.rs",
+            "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+            "zircon_runtime_interface/src/runtime_api/session/tests/session_identity_tests.rs"
+          ]
+        },
+        {
+          "execCell": "27",
+          "nativeChunkId": "1b3c41",
+          "exitCode": 0,
+          "scope": [
+            "zircon_runtime_interface/src/runtime_api/session/session.rs",
+            "zircon_runtime_interface/src/runtime_api/session/session_identity.rs"
+          ]
+        }
+      ],
+      "sessionEarlierSchemaAppend": "旧cell10 wait=aborted后not found，无native session终态；旧canonical仍9组，未重跑，由root/Jenkins诊断，不冒称原进程退出。",
+      "budgetNativeProcessNotes": "All source-writing processes in this batch reached terminal status. Five earlier writer attempts terminated before the write loop; one guarded writer wrote all three files. An inherited read-only rg cell from earlier Host work remains unverified and pending; it was not restarted or killed. No build or generated outputs were created.",
+      "inheritedRequestsTerminationProvenByThisTransfer": false,
+      "disposition": "The original earlier schema append and inherited Host rg request still have no consumed original native terminal receipt. Fresh independent readonly checks do not terminate, cancel, acknowledge, erase or prove terminal state of those old requests. No old process was killed or restarted."
+    }
+  },
+  "validation": {
+    "readOnlyTransferPins": "passed at frozen current inputs",
+    "freshBeforeAfterPhysicalProof": "passed; native cell 47",
+    "sameHashHistoricalScopedReceiptsReused": [
+      {
+        "path": "docs/tests/source-comment-review-independent-core-session-003.json",
+        "sha256": "b52f9fc414aa3fa359f68e35a1ab45a7cd0acabd10b996d95d51e09d96cb3489",
+        "selector": "scopedValidation"
+      },
+      {
+        "path": "docs/tests/source-comment-review-independent-reflect-budget-002.json",
+        "sha256": "e96648c83cdd56b2fc8769aa79898d42bc10ccba54620f6a6fb3d9eadacb9864",
+        "selector": "scopedValidation"
+      }
+    ],
+    "historicalReceiptMeaning": "Existing rustfmt/static/diff receipts are source-bound local evidence. Their old broad token/macro wording is narrowed by this transfer policy; no compiler-facing doc attribute equality or formal validation is inherited.",
+    "compilerFacingDocumentation": {
+      "docAttributesCompilerVisible": true,
+      "compilerFacingTokenEqualityClaimed": false,
+      "commentsOnlyModeForced": false,
+      "rustdocOrMacroValidation": "pending formal coordinator receipt"
+    },
+    "cargo": {
+      "run": false,
+      "acceptance": false
+    },
+    "rustdoc": {
+      "run": false,
+      "acceptance": false
+    },
+    "formalJenkins": {
+      "status": "pending",
+      "actualPassingAcceptanceReceiptAttached": false,
+      "originalNativeRequestTerminationClaimed": false
+    },
+    "independentTransferReview": {
+      "reviewer": "/root",
+      "status": "pending",
+      "accepted": false,
+      "formalAcceptance": false
+    }
+  },
+  "commit": {
+    "status": "pending",
+    "owner": "Jenkins",
+    "sha": null,
+    "formalAcceptance": false
+  },
+  "artifactLifecycle": {
+    "buildProductsCreated": 0,
+    "compilerCachesCreated": 0,
+    "sourceCopiesCreated": 0,
+    "temporaryHelpersCreated": 0,
+    "cleanupPerformed": false,
+    "bytesFreed": 0,
+    "ownedBackgroundProcessesRemaining": 0,
+    "retainedCanonicalEvidence": "docs/tests/source-comment-review-evidence-legacy-core-transfer-006.json",
+    "retainedReadonlyInputs": "All historical source/evidence/shared-ledger files, Git data and unproven original requests retained."
+  }
+}

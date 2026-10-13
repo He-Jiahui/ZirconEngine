@@ -10,10 +10,15 @@ mod evaluator;
 
 pub use evaluator::UiBindingExpressionEvaluationError;
 
+/// 最大 UTF-8 源文本字节数；在字符向量和 token 分配前检查。
 pub const UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES: usize = 16 * 1024;
+/// 单次输入允许的最大词法 token 数。
 pub const UI_BINDING_EXPRESSION_MAX_TOKENS: usize = 2_048;
+/// AST 解析完成和运行时求值共同遵守的节点预算。
 pub const UI_BINDING_EXPRESSION_MAX_NODES: usize = 1_024;
+/// 递归解析和显式栈求值的最大表达式深度。
 pub const UI_BINDING_EXPRESSION_MAX_DEPTH: usize = 64;
+/// 求值帧和值栈在转用溢出 Vec 前保留的内联槽数。
 pub const UI_BINDING_EXPRESSION_INLINE_STACK_CAPACITY: usize = 8;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -27,14 +32,20 @@ pub enum UiBindingExpression {
     /// 当前控件属性；编译器将名称解析为编译程序的属性索引。
     PropRef(String),
     /// References a descriptor-owned property on another control in the current tree.
+    /// 跨控件只读当前树中 descriptor-owned 属性，编译前仍需解析 control id 和属性名。
     ControlPropRef {
         control_id: String,
         property: String,
     },
+    /// 两侧值相等时为 true；解析器按同级左结合构造。
     Equals(Box<UiBindingExpression>, Box<UiBindingExpression>),
+    /// 两侧值不等时为 true；解析器按同级左结合构造。
     NotEquals(Box<UiBindingExpression>, Box<UiBindingExpression>),
+    /// 两侧都为布尔值且为 true 时成立；求值器短路 false 左侧。
     And(Box<UiBindingExpression>, Box<UiBindingExpression>),
+    /// 任一侧布尔值为 true 即成立；求值器短路 true 左侧。
     Or(Box<UiBindingExpression>, Box<UiBindingExpression>),
+    /// 对布尔子表达式取反；非布尔结果由求值器作为类型错误返回。
     Not(Box<UiBindingExpression>),
 }
 
@@ -49,6 +60,7 @@ impl UiBindingExpression {
     ///
     /// This intentionally tokenizes without requiring the whole expression dialect to parse, so
     /// editor-only functions can be preserved while quoted text such as `"param.title"` is ignored.
+    /// 只要 token 流出现独立 `param.<name>` 路径便返回 true；token 化失败时保守返回 false。
     pub fn contains_param_reference(input: &str) -> bool {
         Self::probe_param_reference(input).unwrap_or(false)
     }
@@ -60,6 +72,7 @@ impl UiBindingExpression {
 
     /// Reports whether the token stream contains a real `control.X.prop.Y` reference.
     /// Quoted preview text is ignored even when the full editor expression dialect is unsupported.
+    /// 只探测 control 路径，不要求整个编辑器表达式都属于 Runtime 支持的语法。
     pub fn contains_control_reference(input: &str) -> bool {
         Self::probe_control_reference(input).unwrap_or(false)
     }
@@ -70,6 +83,8 @@ impl UiBindingExpression {
     }
 }
 
+/// 在有 token 预算的输入中寻找独立路径根，并检查后续点分段数量。
+/// 返回 token 化错误供验证器产生诊断；不解析或验证路径目标是否存在。
 fn probe_path_root(
     input: &str,
     root: &str,
@@ -98,6 +113,7 @@ pub enum UiBindingExpressionParseError {
     UnterminatedString,
 }
 
+/// 为资产诊断提供稳定的人类可读语法/预算错误文本。
 impl fmt::Display for UiBindingExpressionParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -119,6 +135,7 @@ impl fmt::Display for UiBindingExpressionParseError {
 impl std::error::Error for UiBindingExpressionParseError {}
 
 #[derive(Clone, Debug, PartialEq)]
+/// 解析器内部的词法单元；Unsupported 延迟表达式子集错误，Consumed 标记已移出的槽位。
 enum Token {
     Ident(String),
     String(String),
@@ -136,15 +153,20 @@ enum Token {
     Or,
     Not,
     Unsupported(String),
+    /// next 移出非 Copy token 后留下的哨兵，不会进入未消费 token 范围。
     Consumed,
 }
 
+/// 对有界 token 向量维护单调游标，并按优先级逐层构造 AST。
 struct Parser {
+    /// 已由源字节和 token 上限约束的词法结果。
     tokens: Vec<Token>,
+    /// 下一个待消费 token 的位置；成功消费后只向前移动。
     index: usize,
 }
 
 impl Parser {
+    /// 先完成有预算 token 化，再建立位于首 token 的游标。
     fn new(input: &str) -> Result<Self, UiBindingExpressionParseError> {
         Ok(Self {
             tokens: tokenize_with_budget(input)?,
@@ -152,6 +174,7 @@ impl Parser {
         })
     }
 
+    /// 构造完整表达式，拒绝尾随 token，最后迭代检查 AST 节点数和深度。
     fn parse(mut self) -> Result<UiBindingExpression, UiBindingExpressionParseError> {
         if self.tokens.is_empty() {
             return Err(UiBindingExpressionParseError::Empty);
@@ -178,6 +201,7 @@ impl Parser {
         Ok(expression)
     }
 
+    /// 在 parse_equality 之上折叠 `&&`，形成比 `||` 更紧的左结合层。
     fn parse_and(
         &mut self,
         depth: usize,
@@ -190,6 +214,7 @@ impl Parser {
         Ok(expression)
     }
 
+    /// 解析相等/不等链；关系运算与调用方传入的下一级优先级分离。
     fn parse_equality(
         &mut self,
         depth: usize,
@@ -209,6 +234,7 @@ impl Parser {
         Ok(expression)
     }
 
+    /// 处理一元 `!` 并逐层检查递归深度，再交给 primary 解析。
     fn parse_unary(
         &mut self,
         depth: usize,
@@ -221,6 +247,7 @@ impl Parser {
         self.parse_primary(depth)
     }
 
+    /// 读取字面量、限定路径、类型化构造器或括号表达式；其余标识符按不支持语法报错。
     fn parse_primary(
         &mut self,
         depth: usize,
@@ -279,6 +306,7 @@ impl Parser {
         }
     }
 
+    /// 消费路径分隔符；缺失时报告语法位置上的意外 token。
     fn expect_dot(&mut self) -> Result<(), UiBindingExpressionParseError> {
         if self.consume(|token| matches!(token, Token::Dot)) {
             Ok(())
@@ -289,6 +317,7 @@ impl Parser {
         }
     }
 
+    /// 读取受支持的 `color`、资源/实例引用、enum、向量和 flags 构造值。
     fn parse_typed_literal(
         &mut self,
         constructor: &str,
@@ -313,6 +342,7 @@ impl Parser {
         Ok(UiBindingExpression::Literal(value))
     }
 
+    /// 读取恰好一个字符串参数并消费构造器右括号。
     fn expect_string_argument(
         &mut self,
         constructor: &str,
@@ -331,6 +361,7 @@ impl Parser {
     }
 
     // vec2/vec3/vec4 的长度由构造子固定；直接写入定长数组，避免临时堆分配后再转数组。
+    /// 读取构造器要求的 N 个数值和逗号，结果直接写入定长数组。
     fn expect_float_arguments<const N: usize>(
         &mut self,
         constructor: &str,
@@ -358,6 +389,7 @@ impl Parser {
     }
 
     #[cfg(test)]
+    /// 测试基线：以临时 Vec 收集同一组向量参数后转数组。
     fn expect_float_arguments_allocating<const N: usize>(
         &mut self,
         constructor: &str,
@@ -386,6 +418,7 @@ impl Parser {
             .expect("typed vector literal length is fixed by N"))
     }
 
+    /// 读取零个或多个逗号分隔字符串，供 flags 构造器使用。
     fn expect_string_arguments(
         &mut self,
         constructor: &str,
@@ -415,6 +448,7 @@ impl Parser {
         }
     }
 
+    /// 消费构造器终止符，阻止额外参数被静默忽略。
     fn expect_right_paren(
         &mut self,
         constructor: &str,
@@ -428,6 +462,7 @@ impl Parser {
         }
     }
 
+    /// 消费路径段标识符；EOF 或其他 token 都转换为解析错误。
     fn expect_ident(&mut self) -> Result<String, UiBindingExpressionParseError> {
         match self.next() {
             Some(Token::Ident(value)) => Ok(value),
@@ -438,6 +473,7 @@ impl Parser {
         }
     }
 
+    /// 仅在当前 token 满足一次性谓词时推进游标。
     fn consume(&mut self, matches: impl FnOnce(&Token) -> bool) -> bool {
         if self.peek().is_some_and(matches) {
             self.index += 1;
@@ -447,11 +483,13 @@ impl Parser {
         }
     }
 
+    /// 借用查看下一个未消费 token，不改变解析状态。
     fn peek(&self) -> Option<&Token> {
         self.tokens.get(self.index)
     }
 
     // token 内可能持有长字符串；推进索引后移出旧值，避免克隆，再用 sentinel 占住已消费槽位。
+    /// 移出当前 token 并推进游标；替换哨兵避免克隆可能较长的字符串。
     fn next(&mut self) -> Option<Token> {
         let token = self.tokens.get_mut(self.index)?;
         self.index += 1;
@@ -459,6 +497,7 @@ impl Parser {
     }
 
     #[cfg(test)]
+    /// 测试对照实现：克隆当前 token 后推进游标，用于与移动读取比较。
     fn next_cloned(&mut self) -> Option<Token> {
         let token = self.tokens.get(self.index).cloned()?;
         self.index += 1;
@@ -466,6 +505,7 @@ impl Parser {
     }
 }
 
+/// 检查当前 1-based 深度，超出统一常量时返回结构化预算错误。
 fn ensure_expression_depth(depth: usize) -> Result<(), UiBindingExpressionParseError> {
     if depth > UI_BINDING_EXPRESSION_MAX_DEPTH {
         Err(binding_expression_budget_error(
@@ -478,6 +518,7 @@ fn ensure_expression_depth(depth: usize) -> Result<(), UiBindingExpressionParseE
 }
 
 // 迭代遍历同时限制总节点数和树深；平坦布尔链可能很浅但节点很多，不能只依赖递归深度检查。
+/// 在解析成功后独立遍历 AST；深度限制无法替代对平坦运算链的节点数限制。
 fn validate_expression_budget(
     root: &UiBindingExpression,
 ) -> Result<(), UiBindingExpressionParseError> {
@@ -510,6 +551,7 @@ fn validate_expression_budget(
     Ok(())
 }
 
+/// 将解析器各阶段的预算名和上限统一编码为公开错误变体。
 fn binding_expression_budget_error(
     budget: &'static str,
     limit: usize,
@@ -518,6 +560,7 @@ fn binding_expression_budget_error(
 }
 
 // 先按 UTF-8 源字节拒绝超限输入，再开始字符和 token 分配；tokenizer 在每个新增 token 后提前止损。
+/// 先按 UTF-8 字节上限拒绝输入，再调用带 token 上限的词法器。
 fn tokenize_with_budget(input: &str) -> Result<Vec<Token>, UiBindingExpressionParseError> {
     if input.len() > UI_BINDING_EXPRESSION_MAX_SOURCE_BYTES {
         return Err(binding_expression_budget_error(
@@ -528,6 +571,7 @@ fn tokenize_with_budget(input: &str) -> Result<Vec<Token>, UiBindingExpressionPa
     tokenize(input, UI_BINDING_EXPRESSION_MAX_TOKENS)
 }
 
+/// 将表达式子集切成有序 token；遇到预算越界立即返回，不交付部分 token 列表。
 fn tokenize(input: &str, max_tokens: usize) -> Result<Vec<Token>, UiBindingExpressionParseError> {
     let trimmed = normalize_expression_input(input);
     let chars = trimmed.chars().collect::<Vec<_>>();
@@ -610,6 +654,7 @@ fn tokenize(input: &str, max_tokens: usize) -> Result<Vec<Token>, UiBindingExpre
 }
 
 #[cfg(test)]
+/// 测试对照路径：完整扫描后再比较 token 上限，用来验证生产词法器提前止损。
 fn tokenize_with_budget_unbounded_scan(
     input: &str,
 ) -> Result<Vec<Token>, UiBindingExpressionParseError> {
@@ -630,6 +675,7 @@ fn tokenize_with_budget_unbounded_scan(
 }
 
 // 资产中的 `=...` 表示动态表达式；去掉首尾空白和单个前缀标记后才进入同一套语法。
+/// 去掉首尾空白和可选单个 `=` 标记，供 parser 与 reference probe 共用。
 fn normalize_expression_input(input: &str) -> &str {
     let trimmed = input.trim();
     trimmed
@@ -638,6 +684,7 @@ fn normalize_expression_input(input: &str) -> &str {
         .unwrap_or(trimmed)
 }
 
+/// 从已消费开引号的位置读取字符串和转义；不闭合或转义不完整时返回 None。
 fn parse_string(chars: &[char], index: &mut usize, quote: char) -> Option<String> {
     *index += 1;
     let mut value = String::new();
@@ -667,6 +714,7 @@ fn parse_string(chars: &[char], index: &mut usize, quote: char) -> Option<String
 }
 
 // Unicode 转义固定读取四个 ASCII 十六进制字符到栈上缓冲；无效码点（含代理项）直接作为字符串错误处理。
+/// 从游标读取四位 ASCII 十六进制转义；代理项和无效码点不会转成 char。
 fn parse_unicode_escape(chars: &[char], index: &mut usize) -> Option<char> {
     let end = index.checked_add(4)?;
     let source = chars.get(*index..end)?;
@@ -685,6 +733,7 @@ fn parse_unicode_escape(chars: &[char], index: &mut usize) -> Option<char> {
 }
 
 #[cfg(test)]
+/// 测试对照实现：先收集四位字符到 String，再解析相同 Unicode 标量值。
 fn parse_unicode_escape_allocating(chars: &[char], index: &mut usize) -> Option<char> {
     let end = index.checked_add(4)?;
     let digits = chars.get(*index..end)?.iter().collect::<String>();
@@ -694,6 +743,7 @@ fn parse_unicode_escape_allocating(chars: &[char], index: &mut usize) -> Option<
         .and_then(char::from_u32)
 }
 
+/// 判断标识符是否属于 parser 可直接构造 UiValue 的固定名称集合。
 fn is_typed_literal_constructor(value: &str) -> bool {
     matches!(
         value,
@@ -701,6 +751,7 @@ fn is_typed_literal_constructor(value: &str) -> bool {
     )
 }
 
+/// 扫描负号/数字前缀；溢出或格式不支持的数值保留为 Unsupported token。
 fn parse_number_or_ident(chars: &[char], index: &mut usize) -> Token {
     let start = *index;
     if chars[*index] == '-' {
@@ -736,6 +787,7 @@ fn parse_number_or_ident(chars: &[char], index: &mut usize) -> Token {
 }
 
 // 逐位用 checked 算术解析整数，负数从零向下累积以覆盖 i64::MIN，且不先构造临时字符串。
+/// 不分配中间字符串地累积有符号整数；checked 算术覆盖 i64 边界并拒绝溢出。
 fn parse_i64_chars(chars: &[char]) -> Option<i64> {
     let (negative, digits) = match chars {
         ['-', digits @ ..] => (true, digits),
@@ -758,6 +810,7 @@ fn parse_i64_chars(chars: &[char]) -> Option<i64> {
 }
 
 #[cfg(test)]
+/// 测试对照实现：将数值字符先分配成 String，再委托标准解析器分类。
 fn parse_number_or_ident_allocating(chars: &[char], index: &mut usize) -> Token {
     let start = *index;
     if chars[*index] == '-' {
@@ -788,6 +841,7 @@ fn parse_number_or_ident_allocating(chars: &[char], index: &mut usize) -> Token 
 }
 
 // 关键字直接匹配字符切片可避免为 true/false/null 分配 String；普通标识符仍保留原拼写。
+/// 扫描 ASCII 标识符并就地识别 true、false、null，其他拼写保留为 Ident。
 fn parse_ident(chars: &[char], index: &mut usize) -> Token {
     let start = *index;
     while *index < chars.len()
@@ -807,6 +861,7 @@ fn parse_ident(chars: &[char], index: &mut usize) -> Token {
 }
 
 #[cfg(test)]
+/// 测试对照实现：先分配标识符 String，再按相同关键字规则分类。
 fn parse_ident_allocating(chars: &[char], index: &mut usize) -> Token {
     let start = *index;
     while *index < chars.len()
@@ -826,6 +881,7 @@ fn parse_ident_allocating(chars: &[char], index: &mut usize) -> Token {
     }
 }
 
+/// 把词法阶段保留的 Unsupported 或普通 token 映射成公开 parse error。
 fn parse_error_from_token(token: &Token) -> UiBindingExpressionParseError {
     match token {
         Token::Unsupported(value) if value == "unterminated string" => {

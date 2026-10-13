@@ -2,7 +2,7 @@
 doc_type: milestone-detail
 status: implemented_pending_validation
 plan_sources:
-  - docs/plans/optimize/zircon_editor/75-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/75-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization.md
   - docs/plans/optimize/zircon_editor/75/2026-09-19-keyframe-lane-capacity.md
 related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md

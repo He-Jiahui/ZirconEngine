@@ -10,7 +10,7 @@ refreshes:
   - docs/plans/optimize/zircon_editor/02-document-transaction-save-autosave-recovery-review.md
 related_reports:
   - docs/plans/optimize/zircon_runtime/160-runtime-filesystem-path-uri-vfs-mount-watch-sandbox-atomic-io-current-source-review.md
-  - docs/plans/optimize/zircon_editor/223-editor-project-operations-source-control-provider-workspace-changelist-diff-automation-validation-submission-gate-health-dashboard-current-source-review.md
+  - docs/plans/optimize/zircon_editor/223-editor-project-operations-source-control-provider-workspace-changelist-diff-automation-validation-submission-gate-health-dashboard.md
 related_code:
   - zircon_editor/src/core/editing
   - zircon_editor/src/core/document
@@ -151,7 +151,7 @@ source_recheck_required: true
 | P1-25 · Session heartbeat 无产品调用 | **Closed** | retained tick 驱动 heartbeat，并投影 degradation/failure state。 |
 | P1-26 · Drop 释放 session lock 的 I/O failure 被忽略 | **Closed** | normal close 使用显式 release 并传播错误；异常 Drop 只释放 OS lease、保留 residual 是 recovery 语义，不再做 fallible Drop I/O。 |
 | P1-27 · DocumentToolkit 没有 Save As 合同 | **Open** | toolkit 只暴露 save/source/autosave capture；生产树没有 Save As command、path admission、format/extension、identity rebinding 或 recent/import transaction。 |
-| P1-28 · Writable flag 无 source-control/checkout owner | **Open** | [Editor223](223-editor-project-operations-source-control-provider-workspace-changelist-diff-automation-validation-submission-gate-health-dashboard-current-source-review.md) 已确认 `SourceControlProvider` 等产品合同零命中；保存无法返回 checkout/declined/changelist terminal。 |
+| P1-28 · Writable flag 无 source-control/checkout owner | **Open** | [Editor223](223-editor-project-operations-source-control-provider-workspace-changelist-diff-automation-validation-submission-gate-health-dashboard.md) 已确认 `SourceControlProvider` 等产品合同零命中；保存无法返回 checkout/declined/changelist terminal。 |
 | P1-29 · Animation dirty bool 与 DirtyRegistry 双重真值 | **Closed** | animation session dirty 由 `DirtyRegistry::document_dirty_if_registered` 投影，私有 dirty truth 已移除。 |
 | P1-30 · Transaction fault/drop error 无产品恢复 owner | **Open** | event rejection 只 warning，`take_drop_error` 仅测试消费；无 incident center、document quarantine、retry/reload/recovery transition。 |
 

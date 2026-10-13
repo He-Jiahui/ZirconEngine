@@ -165,6 +165,46 @@ fn native_workbench_popup_menu_escape_dispatches_popup_cancel() {
 }
 
 #[test]
+fn native_popup_no_redraw_search_consumes_f_and_preserves_key_release() {
+    use crate::ui::retained_host::UiHostContext;
+    use winit::event::{ElementState, KeyEvent};
+    use winit::keyboard::{Key, KeyCode, KeyLocation, ModifiersState, PhysicalKey};
+    use zircon_runtime_interface::ui::dispatch::UiKeyboardInputState;
+    let ui = host_with_componentized_workbench_nodes();
+    assert!(ui.dispatch_native_popup_text_for_test("m").request_redraw());
+    let unhandled = Rc::new(RefCell::new(Vec::new()));
+    let observed = unhandled.clone();
+    ui.global::<UiHostContext>().on_unhandled_keyboard_input(move |input| observed.borrow_mut().push(input));
+    let key_event = |text: &str, code: KeyCode, state: ElementState| {
+        let key = Key::Character(text.into());
+        KeyEvent {
+            physical_key: PhysicalKey::Code(code),
+            logical_key: key.clone(),
+            text: Some(text.into()),
+            location: KeyLocation::Standard,
+            state,
+            repeat: false,
+            text_with_all_modifiers: Some(text.into()),
+            key_without_modifiers: key,
+        }
+    };
+    for (text, code) in [("f", KeyCode::KeyF), ("m", KeyCode::KeyM)] {
+        let result = ui.dispatch_native_key_for_test(key_event(text, code, ElementState::Pressed), ModifiersState::empty());
+        assert!(!result.request_redraw());
+        assert!(unhandled.borrow().is_empty());
+    }
+    ui.dispatch_native_key_for_test(key_event("f", KeyCode::KeyF, ElementState::Released), ModifiersState::empty());
+    assert_eq!(unhandled.borrow().len(), 1);
+    assert_eq!(unhandled.borrow()[0].state, UiKeyboardInputState::Released);
+    ui.set_host_presentation(HostWindowPresentationData::default());
+    ui.dispatch_native_key_for_test(key_event("f", KeyCode::KeyF, ElementState::Pressed), ModifiersState::empty());
+    let unhandled = unhandled.borrow();
+    assert_eq!(unhandled.len(), 2);
+    assert_eq!(unhandled[1].state, UiKeyboardInputState::Pressed);
+    assert!(unhandled[1].logical_key.eq_ignore_ascii_case("f"));
+}
+
+#[test]
 fn native_workbench_popup_menu_outside_primary_press_dispatches_popup_cancel() {
     let ui = host_with_componentized_workbench_nodes();
     let cancelled = Rc::new(RefCell::new(Vec::new()));

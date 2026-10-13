@@ -1,6 +1,7 @@
 use super::*;
 
 #[test]
+/// 覆盖旧 API 版本及缺少精确能力标记时保留 V1 选择。
 fn older_or_unadvertised_peers_are_v1_only() {
     let old = ZrRuntimeImeCompositionNegotiation::from_peer(
         7,
@@ -20,6 +21,7 @@ fn older_or_unadvertised_peers_are_v1_only() {
 }
 
 #[test]
+/// 覆盖精确能力与 schema 联合门槛及错误 schema 的前后顺序。
 fn exact_schema_and_capability_are_required_before_v2_state_is_emitted() {
     let negotiated = ZrRuntimeImeCompositionNegotiation::from_peer(
         8,

@@ -249,9 +249,10 @@ impl HubRuntimeSession {
             }
         }
         for detail in details {
-            self.config.action_history.insert(
-                0,
+            crate::state::push_action_record(
+                &mut self.config.action_history,
                 HubActionRecord {
+                    id: crate::state::new_action_record_id(),
                     finished_unix_ms: now_unix_ms(),
                     action: HubActionKind::OpenEditor,
                     status: HubActionStatus::Failed,
@@ -266,9 +267,10 @@ impl HubRuntimeSession {
             );
         }
         for receipt in unprojected_terminals {
-            self.config.action_history.insert(
-                0,
+            crate::state::push_action_record(
+                &mut self.config.action_history,
                 HubActionRecord {
+                    id: crate::state::new_action_record_id(),
                     finished_unix_ms: now_unix_ms(),
                     action: HubActionKind::OpenEditor,
                     status: HubActionStatus::Failed,
@@ -362,6 +364,7 @@ impl HubRuntimeSession {
             );
         }
         let record = HubActionRecord {
+            id: crate::state::new_action_record_id(),
             finished_unix_ms: now_unix_ms(),
             action: HubActionKind::OpenEditor,
             status,

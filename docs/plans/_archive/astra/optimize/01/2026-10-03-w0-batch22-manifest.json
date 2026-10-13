@@ -94,8 +94,8 @@
     {
       "batch": 22,
       "kind": "reports",
-      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reports\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md",
-      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\reports\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md",
+      "path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reports\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache.md",
+      "root_capture": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\astra-w0-batches22-23-root-canonical-publication-r2\\raw-author\\batch22\\raw-evidence\\reports\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache.md",
       "sha256": "da9695b9ff76f67a581c4a746a3542105aebf4aa09c72d1c04927a66c5513859",
       "bytes": 42127
     },
@@ -895,9 +895,9 @@
       "captured_at_utc": "2026-10-03T03:41:00.993156Z"
     },
     {
-      "path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md",
-      "relative_path": "docs/plans/optimize/zircon_runtime/98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md",
-      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reports\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md",
+      "path": "E:\\Git\\ZirconEngine\\docs\\plans\\optimize\\zircon_runtime\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache.md",
+      "relative_path": "docs/plans/optimize/zircon_runtime/98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache.md",
+      "capture_path": "C:\\Users\\HeJiahui\\.codex\\visualizations\\2026\\09\\30\\01a0f033-ce80-77e2-86f0-eed5bfbb5926\\w0\\batch22\\terminal-r2\\reports\\98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache.md",
       "sha256": "da9695b9ff76f67a581c4a746a3542105aebf4aa09c72d1c04927a66c5513859",
       "bytes": 42127,
       "lines": 408,

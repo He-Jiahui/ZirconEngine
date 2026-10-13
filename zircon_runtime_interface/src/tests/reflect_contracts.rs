@@ -1,3 +1,4 @@
+//! 反射接口的序列化形状、规范化入口与错误上下文契约测试；不执行 Runtime 对象访问或注册流程。
 use std::collections::BTreeMap;
 
 use crate::reflect::{
@@ -11,6 +12,7 @@ use crate::reflect::{
     ReflectedValue, MAX_REFLECT_TYPE_PATH_BYTES, REFLECT_SCHEMA_CATALOG_ALGORITHM_VERSION,
 };
 
+/// 为 wire-contract 用例组装含数值与文档字段的组件注册样本。
 fn sample_registration() -> ReflectTypeRegistration {
     let fields = vec![
         ReflectFieldInfo::from_stable_keys(
@@ -44,6 +46,7 @@ fn sample_registration() -> ReflectTypeRegistration {
     .with_remote_visible(true)
 }
 
+/// 通过 JSON 文本往返检查指定 DTO 的序列化和反序列化兼容性。
 fn round_trip<T>(value: &T) -> T
 where
     T: serde::Serialize + serde::de::DeserializeOwned,
@@ -52,6 +55,7 @@ where
 }
 
 #[test]
+/// 检查注册角色、插件归属、字段顺序和 canonical JSON 字段。
 fn type_registration_serializes_canonical_role_and_owner() {
     let mut registration = sample_registration()
         .with_plugin_id("sample.plugin")
@@ -97,6 +101,7 @@ fn type_registration_serializes_canonical_role_and_owner() {
 }
 
 #[test]
+/// 检查脚本可见性与远端可见性分别序列化，不互相推导。
 fn script_visibility_is_independent_from_remote_visibility() {
     let registration = sample_registration()
         .with_remote_visible(false)
@@ -122,6 +127,7 @@ fn script_visibility_is_independent_from_remote_visibility() {
 }
 
 #[test]
+/// 对所有受支持值形状逐项往返并要求序列化形式带 kind 标签。
 fn reflected_value_tagged_json_roundtrips_all_supported_shapes() {
     let mut map = BTreeMap::new();
     map.insert("first".to_string(), ReflectedValue::Integer(-1));
@@ -157,6 +163,7 @@ fn reflected_value_tagged_json_roundtrips_all_supported_shapes() {
 }
 
 #[test]
+/// 固定值、地址、读写 DTO 与错误变体的预期 JSON 外形。
 fn reflect_contract_dtos_use_expected_json_shapes() {
     let component = ReflectObjectAddress::component(42, "zircon::Name").unwrap();
     let resource = ReflectObjectAddress::resource("zircon::FrameCounter").unwrap();
@@ -267,6 +274,7 @@ fn reflect_contract_dtos_use_expected_json_shapes() {
 }
 
 #[test]
+/// 确认字段值 wire 记录不能只提供已退役的名称而缺少稳定 ID。
 fn reflected_field_value_rejects_legacy_name_only_wire() {
     assert!(
         serde_json::from_value::<ReflectFieldValue>(serde_json::json!({
@@ -278,6 +286,7 @@ fn reflected_field_value_rejects_legacy_name_only_wire() {
 }
 
 #[test]
+/// 确认读写请求拒绝旧的 name-only 字段寻址 wire。
 fn stable_id_read_write_requests_reject_legacy_field_name_wire() {
     let address = serde_json::json!({
         "kind": "Component",
@@ -303,6 +312,7 @@ fn stable_id_read_write_requests_reject_legacy_field_name_wire() {
 }
 
 #[test]
+/// 检查字段元数据选项的 round-trip 与默认可省略字段的 wire 形状。
 fn field_metadata_preserves_editability_defaults_and_docs() {
     let field = ReflectFieldInfo::from_stable_keys(
         "zircon.RigidBody",
@@ -360,6 +370,7 @@ fn field_metadata_preserves_editability_defaults_and_docs() {
 }
 
 #[test]
+/// 检查稳定字段 ID 对相同键确定、不同键区分，且 wire 解析拒绝 nil UUID。
 fn reflect_field_ids_are_deterministic_canonical_and_non_nil() {
     let id = ReflectFieldId::from_stable_keys("zircon.Transform", "translation");
     assert_eq!(
@@ -381,6 +392,7 @@ fn reflect_field_ids_are_deterministic_canonical_and_non_nil() {
 }
 
 #[test]
+/// 检查数值范围构造器和反序列化共同拒绝倒置边界及无效数值。
 fn numeric_range_rejects_invalid_constructor_and_wire_states() {
     assert_eq!(
         ReflectNumericRange::new(Some(f32::NAN), None, None, None),
@@ -418,6 +430,7 @@ fn numeric_range_rejects_invalid_constructor_and_wire_states() {
 }
 
 #[test]
+/// 检查对象地址、读写消息和目录请求/响应的 JSON round-trip。
 fn reflect_object_address_schema_and_read_write_dtos_roundtrip() {
     let component = ReflectObjectAddress::component(42, "zircon::Name").unwrap();
     let resource = ReflectObjectAddress::resource("zircon::FrameCounter").unwrap();
@@ -530,6 +543,7 @@ fn reflect_object_address_schema_and_read_write_dtos_roundtrip() {
 }
 
 #[test]
+/// 检查错误文本保留类型、字段、实体及地址种类等定位上下文。
 fn reflect_error_display_includes_type_field_and_entity_context() {
     let errors = [
         ReflectError::InvalidTypePath {
@@ -590,6 +604,7 @@ fn reflect_error_display_includes_type_field_and_entity_context() {
 }
 
 #[test]
+/// 固定类型路径与类型类别的规范 wire 表示，并核对类型信息便捷构造器。
 fn type_paths_and_type_kinds_use_approved_json_contract() {
     let path = ReflectTypePath::new("zircon::scene::Name", "Name").unwrap();
     let json = serde_json::to_value(&path).unwrap();
@@ -605,6 +620,7 @@ fn type_paths_and_type_kinds_use_approved_json_contract() {
 }
 
 #[test]
+/// 检查 Rust/VM 路径共用构造与反序列化校验语法并拒绝非法路径。
 fn reflect_type_path_uses_one_validated_constructor_and_wire_grammar() {
     let rust_path = ReflectTypePath::new("zircon::scene::Name", "Name")
         .unwrap()

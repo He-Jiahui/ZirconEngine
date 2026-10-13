@@ -54,6 +54,17 @@ fn render_product_probe_feature_off_falls_back_to_skybox() {
         .expect("probe product viewport");
 
     let enabled = fixture.capture_with_framework(&framework, viewport, true, true, 1);
+    let enabled_stats = framework
+        .query_stats()
+        .expect("reflection-probe product stats should be available");
+    assert!(
+        enabled_stats
+            .last_graph_executed_executor_ids
+            .iter()
+            .any(|executor| executor == "lighting.reflection-probes"),
+        "the active probe frame should execute the production reflection-probe compositor; executors={:?}",
+        enabled_stats.last_graph_executed_executor_ids
+    );
     let disabled = fixture.capture_with_framework(&framework, viewport, false, true, 2);
     let sky_only = fixture.capture_with_framework(&framework, viewport, true, false, 3);
     let fallback_error = mean_absolute_rgb_error(&disabled.rgba, &sky_only.rgba);

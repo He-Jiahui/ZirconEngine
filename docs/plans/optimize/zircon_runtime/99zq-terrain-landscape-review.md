@@ -8,7 +8,7 @@ baseline_epoch: 424
 verification_head: 3af73550dd00fe4805f71e96ce199f4ab633687f
 verification_epoch: 424
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_runtime/29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability.md
   - docs/plans/optimize/zircon_editor/16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review.md
 related_code:
   - zircon_runtime/src/asset/assets/authoring.rs
@@ -26,7 +26,7 @@ related_code:
   - examples/vampire
   - examples/woc
 plan_sources:
-  - docs/plans/optimize/zircon_runtime/29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/29-terrain-landscape-heightfield-quadtree-lod-material-layer-foliage-world-partition-physics-navigation-scalability.md
   - docs/plans/optimize/zircon_editor/16-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-review.md
   - docs/plans/optimize/zircon_runtime/09d-render-asset-streaming-residency-review.md
   - docs/plans/zircon_runtime/render/15-terrain-vegetation.md

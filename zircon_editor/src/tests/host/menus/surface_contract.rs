@@ -76,7 +76,7 @@ fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
     );
     let scene_projection =
         source("src/ui/layouts/windows/window/scene_projection.rs");
-    let menu_asset = source("assets/ui/editor/workbench_menu_chrome.zui");
+    let menu_asset = source("assets/ui/editor/unreal/components/host_menu_bar.zui");
     let popup_asset = source("assets/ui/editor/workbench_menu_popup.zui");
 
     assert!(host_components.contains("pub menu_frames: ModelRc<HostChromeControlFrameData>"));

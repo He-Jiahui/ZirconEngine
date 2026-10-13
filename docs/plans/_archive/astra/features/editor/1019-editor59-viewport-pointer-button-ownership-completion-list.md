@@ -3,7 +3,7 @@ doc_type: completion-list
 status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_editor/59/2026-09-27-viewport-pointer-button-ownership.md
-  - docs/plans/optimize/zircon_editor/59-editor-scene-viewport-interaction-controller-input-picking-selection-highlight-gizmo-transaction-cancel-generation-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/59-editor-scene-viewport-interaction-controller-input-picking-selection-highlight-gizmo-transaction-cancel-generation.md
 implementation_files:
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs

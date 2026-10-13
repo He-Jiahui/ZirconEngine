@@ -6,22 +6,22 @@ static HOST_ABI_VERSION_CALLS: AtomicUsize = AtomicUsize::new(0);
 static REPORT: NativePluginStatic<NativePluginEntryReportV3> =
     NativePluginStatic::new(NativePluginEntryReportV3 {
         layout_epoch: ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
-        package_manifest_toml: b"\0".as_ptr().cast(),
-        diagnostics: b"ready\0".as_ptr().cast(),
-        negotiated_capabilities: b"runtime.plugin.weather\0".as_ptr().cast(),
-        required_capabilities: b"runtime.plugin.weather\0".as_ptr().cast(),
-        denied_capabilities: b"runtime.plugin.denied\0".as_ptr().cast(),
+        package_manifest_toml: c"".as_ptr(),
+        diagnostics: c"ready".as_ptr(),
+        negotiated_capabilities: c"runtime.plugin.weather".as_ptr(),
+        required_capabilities: c"runtime.plugin.weather".as_ptr(),
+        denied_capabilities: c"runtime.plugin.denied".as_ptr(),
         behavior: std::ptr::null(),
         bridge_methods: std::ptr::null(),
     });
 static MISSING: NativePluginStatic<NativePluginEntryReportV3> =
     NativePluginStatic::new(NativePluginEntryReportV3 {
         layout_epoch: ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH,
-        package_manifest_toml: b"\0".as_ptr().cast(),
-        diagnostics: b"missing host\0".as_ptr().cast(),
-        negotiated_capabilities: b"\0".as_ptr().cast(),
-        required_capabilities: b"runtime.plugin.weather\0".as_ptr().cast(),
-        denied_capabilities: b"runtime.plugin.denied\0".as_ptr().cast(),
+        package_manifest_toml: c"".as_ptr(),
+        diagnostics: c"missing host".as_ptr(),
+        negotiated_capabilities: c"".as_ptr(),
+        required_capabilities: c"runtime.plugin.weather".as_ptr(),
+        denied_capabilities: c"runtime.plugin.denied".as_ptr(),
         behavior: std::ptr::null(),
         bridge_methods: std::ptr::null(),
     });
@@ -81,7 +81,7 @@ fn native_entry_point_selects_report_from_host_capabilities() {
         host_diagnostic: None,
     };
 
-    assert_eq!(ENTRY.entry_report(&host), REPORT.as_ptr());
+    assert_eq!(unsafe { ENTRY.entry_report(&host) }, REPORT.as_ptr());
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn native_entry_point_validates_the_host_abi_once_per_negotiation() {
         host_diagnostic: None,
     };
 
-    assert_eq!(ENTRY.entry_report(&host), REPORT.as_ptr());
+    assert_eq!(unsafe { ENTRY.entry_report(&host) }, REPORT.as_ptr());
     assert_eq!(HOST_ABI_VERSION_CALLS.load(Ordering::SeqCst), 1);
 }
 
@@ -115,7 +115,7 @@ fn native_entry_point_rejects_denied_capability() {
         host_diagnostic: None,
     };
 
-    assert_eq!(ENTRY.entry_report(&host), MISSING.as_ptr());
+    assert_eq!(unsafe { ENTRY.entry_report(&host) }, MISSING.as_ptr());
 }
 
 #[test]
@@ -178,6 +178,68 @@ fn native_panic_guard_maps_panic_to_callback_status() {
     let status = catch_native_callback_panic(b"panic caught\0", || panic!("fixture panic"));
 
     assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC);
+}
+
+#[test]
+fn native_panic_guard_returns_when_both_payload_destructors_panic() {
+    static SECONDARY_DROPS: AtomicUsize = AtomicUsize::new(0);
+
+    struct SecondaryPayload;
+    impl Drop for SecondaryPayload {
+        fn drop(&mut self) {
+            SECONDARY_DROPS.fetch_add(1, Ordering::SeqCst);
+            panic!("secondary payload destructor");
+        }
+    }
+    struct PrimaryPayload;
+    impl Drop for PrimaryPayload {
+        fn drop(&mut self) {
+            std::panic::panic_any(SecondaryPayload);
+        }
+    }
+
+    SECONDARY_DROPS.store(0, Ordering::SeqCst);
+    let status =
+        catch_native_callback_panic(b"panic caught\0", || std::panic::panic_any(PrimaryPayload));
+
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC);
+    assert_eq!(SECONDARY_DROPS.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn native_entry_guard_returns_when_both_payload_destructors_panic() {
+    static SECONDARY_DROPS: AtomicUsize = AtomicUsize::new(0);
+
+    struct SecondaryPayload;
+    impl Drop for SecondaryPayload {
+        fn drop(&mut self) {
+            SECONDARY_DROPS.fetch_add(1, Ordering::SeqCst);
+            panic!("secondary entry payload destructor");
+        }
+    }
+    struct PrimaryPayload;
+    impl Drop for PrimaryPayload {
+        fn drop(&mut self) {
+            std::panic::panic_any(SecondaryPayload);
+        }
+    }
+
+    SECONDARY_DROPS.store(0, Ordering::SeqCst);
+    let report = catch_native_entry_panic_v3(|| std::panic::panic_any(PrimaryPayload));
+
+    assert!(report.is_null());
+    assert_eq!(SECONDARY_DROPS.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn native_raw_pointer_query_helpers_are_unsafe_apis() {
+    let _: unsafe fn(*const NativePluginHostFunctionTableV3, &[&str]) -> bool =
+        host_supports_all_capabilities_v3;
+    let _: unsafe fn(*const NativePluginHostFunctionTableV3, &[&str]) -> bool =
+        host_supports_any_capability_v3;
+    let _: unsafe fn(*const NativePluginHostFunctionTableV3, &str) -> bool =
+        host_supports_capability_v3;
+    let _: unsafe fn(*const std::ffi::c_char, &str) -> bool = capability_list_contains;
 }
 
 #[test]

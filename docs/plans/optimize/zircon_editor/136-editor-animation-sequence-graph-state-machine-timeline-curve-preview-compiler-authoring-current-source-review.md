@@ -33,14 +33,14 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/07-play-session-process-pie-game-view-live-edit-recovery-review.md
   - docs/plans/optimize/zircon_editor/09-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-review.md
   - docs/plans/optimize/zircon_editor/14-animation-sequence-graph-state-machine-timeline-curve-preview-compiler-authoring-review.md
-  - docs/plans/optimize/zircon_editor/75-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/76-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/77-editor-animation-sequence-clip-channel-binding-interpolation-compression-event-root-motion-sync-preview-compiler-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/75-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization.md
+  - docs/plans/optimize/zircon_editor/76-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence.md
+  - docs/plans/optimize/zircon_editor/77-editor-animation-sequence-clip-channel-binding-interpolation-compression-event-root-motion-sync-preview-compiler.md
   - docs/plans/optimize/zircon_editor/78-editor-control-rig-rig-graph-hierarchy-controls-spaces-constraints-ik-solve-bake-preview-compiler-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/79-editor-motion-matching-pose-search-database-feature-schema-trajectory-query-runtime-selection-preview-debugger-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/80-editor-animation-montage-section-slot-segment-notify-branching-point-sync-root-motion-runtime-playback-preview-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/81-editor-animation-pose-library-pose-asset-pose-name-curve-weight-additive-base-runtime-evaluation-preview-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_editor/82-editor-animation-blend-space-axis-sample-triangulation-interpolation-filter-per-bone-additive-sync-runtime-evaluation-preview-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/79-editor-motion-matching-pose-search-database-feature-schema-trajectory-query-runtime-selection-preview-debugger.md
+  - docs/plans/optimize/zircon_editor/80-editor-animation-montage-section-slot-segment-notify-branching-point-sync-root-motion-runtime-playback-preview.md
+  - docs/plans/optimize/zircon_editor/81-editor-animation-pose-library-pose-asset-pose-name-curve-weight-additive-base-runtime-evaluation-preview.md
+  - docs/plans/optimize/zircon_editor/82-editor-animation-blend-space-axis-sample-triangulation-interpolation-filter-per-bone-additive-sync-runtime-evaluation-preview.md
   - docs/plans/optimize/zircon_editor/14/failure-2026-08-24-animation-editor-zui-deletion-closure.md
   - docs/plans/optimize/zircon_runtime/08c-animation-runtime-review.md
 reference_engines:

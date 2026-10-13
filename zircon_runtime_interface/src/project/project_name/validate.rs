@@ -51,14 +51,11 @@ pub fn validate_project_name(value: &str) -> Result<(), ProjectNameError> {
     Ok(())
 }
 
-// BUG: [CR-PROJECT-0002] Windows 也保留 COM¹/²/³、LPT¹/²/³ 及其带扩展名的形式；
-// 当前仅识别 ASCII 数字，建项请求和跨平台清单校验会放行这些设备名。
 fn is_windows_reserved(value: &str) -> bool {
-    matches!(value, "CON" | "PRN" | "AUX" | "NUL")
-        || value
-            .strip_prefix("COM")
-            .or_else(|| value.strip_prefix("LPT"))
-            .is_some_and(|suffix| {
-                matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
+    matches!(value, "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
+        || ["COM", "LPT"].iter().any(|prefix| {
+            value.strip_prefix(prefix).is_some_and(|suffix| {
+                matches!(suffix, "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³")
             })
+        })
 }

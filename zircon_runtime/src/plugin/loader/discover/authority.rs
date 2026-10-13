@@ -555,6 +555,16 @@ impl MeteredDiscoveryVisitor<'_> {
         reservation.insert(self.sink, build());
         Ok(())
     }
+
+    fn emit_manifest_diagnostic(
+        &mut self,
+        manifest_path: PathBuf,
+        build: impl FnOnce() -> String,
+    ) -> Result<(), NativePluginDiscoveryRefreshError> {
+        let reservation = self.sink.reserve_diagnostic(self.request)?;
+        reservation.insert_for_manifest(self.sink, manifest_path, build());
+        Ok(())
+    }
 }
 
 impl NativePluginManifestTraversalVisitor for MeteredDiscoveryVisitor<'_> {
@@ -572,12 +582,13 @@ impl NativePluginManifestTraversalVisitor for MeteredDiscoveryVisitor<'_> {
 
     fn manifest(&mut self, manifest_path: PathBuf) -> Result<(), Self::Error> {
         self.checkpoint()?;
+        let diagnostic_path = manifest_path.clone();
         match append_candidate_from_manifest_path(self.request, self.sink, manifest_path) {
             Ok(()) => Ok(()),
             Err(error @ NativePluginDiscoveryRefreshError::BudgetExceeded { .. })
             | Err(error @ NativePluginDiscoveryRefreshError::Cancelled)
             | Err(error @ NativePluginDiscoveryRefreshError::DeadlineExceeded) => Err(error),
-            Err(error) => self.emit_diagnostic(|| error.to_string()),
+            Err(error) => self.emit_manifest_diagnostic(diagnostic_path, || error.to_string()),
         }
     }
 

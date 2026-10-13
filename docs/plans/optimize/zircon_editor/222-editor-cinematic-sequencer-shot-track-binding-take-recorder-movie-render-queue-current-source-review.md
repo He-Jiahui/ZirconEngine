@@ -6,7 +6,7 @@ review_date: 2026-08-29
 baseline_head: 16e0c4f3dd15813eccd097eef56ba1488a267d86
 canonical_owner: Editor45
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_editor/83-editor-cinematic-sequencer-shot-track-section-binding-hierarchy-evaluation-camera-cut-audio-event-take-recorder-movie-render-queue-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/83-editor-cinematic-sequencer-shot-track-section-binding-hierarchy-evaluation-camera-cut-audio-event-take-recorder-movie-render-queue.md
   - docs/plans/optimize/zircon_editor/119-editor-cinematic-sequencer-shot-track-binding-take-recorder-movie-render-queue-current-source-review.md
   - docs/plans/optimize/zircon_editor/166-editor-cinematic-sequencer-shot-track-binding-take-recorder-movie-render-queue-current-source-review.md
 related_runtime_owners:

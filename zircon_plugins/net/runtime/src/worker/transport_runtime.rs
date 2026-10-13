@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
@@ -26,7 +26,7 @@ use zircon_runtime::core::framework::net::{
 use crate::transport::TransportStateMachine;
 
 use super::egress::{AcceptedTcpConnection, TcpPollResult};
-use super::ingress::NetIngress;
+use super::ingress::{NetIngress, NetWorkerIngress};
 use super::shutdown::NetWorkerShutdownReport;
 
 pub(super) use dispatch::run_worker;
@@ -53,7 +53,7 @@ struct WorkerTcpConnection {
 
 struct WorkerCore {
     runtime: Handle,
-    ingress: mpsc::SyncSender<NetIngress>,
+    ingress: Arc<NetWorkerIngress>,
     next_connection_id: Arc<AtomicU64>,
     udp_sockets: HashMap<NetSocketId, WorkerUdpSocket>,
     tcp_listeners: HashMap<NetListenerId, WorkerTcpListener>,
@@ -62,7 +62,7 @@ struct WorkerCore {
 
 impl WorkerCore {
     fn new(
-        ingress: mpsc::SyncSender<NetIngress>,
+        ingress: Arc<NetWorkerIngress>,
         next_connection_id: Arc<AtomicU64>,
         runtime: Handle,
     ) -> Self {
@@ -400,9 +400,8 @@ impl WorkerCore {
         NetConnectionId::new(self.next_connection_id.fetch_add(1, Ordering::Relaxed) + 1)
     }
 
-    // BUG: [CR-PLUGIN-NET-0001] ingress 满时静默丢掉连接/监听生命周期事件，ECS 与 worker 状态会失配。
     fn push_event(&self, event: NetEvent) {
-        let _ = self.ingress.try_send(NetIngress::Event(event));
+        let _ = self.ingress.push(NetIngress::Event(event));
     }
 }
 

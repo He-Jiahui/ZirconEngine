@@ -1,8 +1,6 @@
 use std::{collections::BinaryHeap, hint::black_box, time::Instant};
 
-use zircon_runtime::core::framework::net::{
-    RpcDirection, RpcInvocationDescriptor, RpcPeerRole,
-};
+use zircon_runtime::core::framework::net::{RpcDirection, RpcInvocationDescriptor, RpcPeerRole};
 
 use super::{take_queued_invocations, QueuedRpcInvocation};
 

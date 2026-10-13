@@ -91,6 +91,9 @@ fn archetype_table_replaces_and_marks_only_the_target_column() {
     *table
         .get_mut_at_tick::<i32>(health, 0, ChangeTick::new(9))
         .unwrap() = 20;
+    let modified_ticks = table.component_ticks(health, 0).unwrap();
+    assert_eq!(modified_ticks.added(), ChangeTick::new(2));
+    assert_eq!(modified_ticks.changed(), ChangeTick::new(9));
     let previous = table
         .replace(health, 0, stored(25_i32), ChangeTick::new(10))
         .unwrap();
@@ -98,7 +101,9 @@ fn archetype_table_replaces_and_marks_only_the_target_column() {
     assert_eq!(*previous.downcast::<i32>().unwrap(), 20);
     assert_eq!(table.get::<i32>(health, 0), Some(&25));
     assert_eq!(table.get::<&'static str>(label, 0), Some(&"hero"));
-    assert_eq!(table.component_ticks(health, 0), Some(ticks(10)));
+    let replaced_ticks = table.component_ticks(health, 0).unwrap();
+    assert_eq!(replaced_ticks.added(), ChangeTick::new(2));
+    assert_eq!(replaced_ticks.changed(), ChangeTick::new(10));
     assert_eq!(table.component_ticks(label, 0), Some(ticks(3)));
 }
 

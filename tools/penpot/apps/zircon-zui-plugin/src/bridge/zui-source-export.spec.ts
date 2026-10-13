@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { applyZuiExportToSourceFiles } from './zui-export-apply-sources';
 import fixtureSource from './roundtrip-fixture.zui?raw';
 import { parseZuiDocument, type ZuiDocument } from './zui-document';
 import {
@@ -24,6 +26,29 @@ function prepared() {
   projection.nodes!['submit']['penpot_prefab_source'] =
     'components/button.zui#RoundtripButton';
   return { source, projection };
+}
+
+
+function preparedComposedHostWithGeneratedSeparator() {
+  const { source, projection } = prepared();
+  const sourcePath = 'zircon_editor/assets/ui/workbench_window.zui';
+  const host = structuredClone(parseZuiDocument(source).document);
+  for (const [nodeId, node] of Object.entries(host.nodes ?? {})) {
+    node['penpot_review_source_path'] = sourcePath;
+    node['penpot_review_source_node_id'] = nodeId;
+    node['penpot_review_instance_path'] = '[]';
+  }
+  host.nodes!['generated_header_separator'] = {
+    component: 'Separator',
+    props: { penpot_generated_host_structure: true, background_color: '#141414' },
+    layout: { width: 100, height: 1 },
+  };
+  host.nodes!['root'].children!.push({ node: 'generated_header_separator' });
+  const fingerprints = [{ sourcePath, sha256: createHash('sha256').update(source).digest('hex') }];
+  projection['penpot_original_source_path'] = sourcePath;
+  projection['penpot_source_fingerprints'] = fingerprints;
+  projection['penpot_review_host'] = host;
+  return { source, projection, host, sourcePath, fingerprints };
 }
 
 describe('projection export to runtime source', () => {
@@ -69,20 +94,8 @@ describe('projection export to runtime source', () => {
   });
 
   it('exports a changed composed host as the original .zui plus a verifiable source-owner map', () => {
-    const { source, projection } = prepared();
-    const sourcePath =
-      'zircon_editor/assets/ui/workbench_window.zui';
-    const host = structuredClone(parseZuiDocument(source).document);
-    for (const [nodeId, node] of Object.entries(host.nodes ?? {})) {
-      node['penpot_review_source_path'] = sourcePath;
-      node['penpot_review_source_node_id'] = nodeId;
-      node['penpot_review_instance_path'] = '[]';
-    }
-    projection['penpot_original_source_path'] = sourcePath;
-    projection['penpot_source_fingerprints'] = [
-      { sourcePath, sha256: 'a'.repeat(64) },
-    ];
-    projection['penpot_review_host'] = host;
+    const { source, projection, host, sourcePath, fingerprints } =
+      preparedComposedHostWithGeneratedSeparator();
     const snapshot = cloneProjectionSnapshot(projectZuiDocument(host));
     snapshot.shapes.find((shape) => shape.nodeId === 'root')!.current.container.gap += 1;
 
@@ -127,6 +140,17 @@ describe('projection export to runtime source', () => {
       controlId: 'RoundtripRoot',
       instancePath: '[]',
     });
+    expect(manifest.identityMap.some(({ exportNodeId }) =>
+      exportNodeId === 'generated_header_separator')).toBe(false);
+    const applied = applyZuiExportToSourceFiles(
+      result.source!, { [sourcePath]: source }, fingerprints,
+    );
+    expect(applied.outputs).toHaveLength(1);
+    expect(applied.outputs[0].sourcePath).toBe(sourcePath);
+    const appliedDocument = parseZuiDocument(applied.outputs[0].source).document;
+    expect(appliedDocument.nodes!['generated_header_separator']).toBeUndefined();
+    expect((appliedDocument.nodes!.root.layout!['container'] as Record<string, unknown>)['gap'])
+      .toBe(snapshot.shapes.find((shape) => shape.nodeId === 'root')!.current.container.gap);
     expect(manifest.edits).toEqual([
       {
         exportNodeId: 'root',
@@ -139,6 +163,26 @@ describe('projection export to runtime source', () => {
           .container.gap,
       },
     ]);
+  });
+
+  it('rejects a visual edit to a marked generated Header separator', () => {
+    const { projection, host } = preparedComposedHostWithGeneratedSeparator();
+    const snapshot = cloneProjectionSnapshot(projectZuiDocument(host));
+    snapshot.shapes.find((shape) => shape.nodeId === 'generated_header_separator')!
+      .current.paint.fillColor = '#444444';
+    expect(() => reconcileReviewSource(projection, snapshot)).toThrow(
+      'Changed host node generated_header_separator has no captured source owner',
+    );
+  });
+
+  it('still rejects an authored host node with missing captured ownership', () => {
+    const { projection, host } = preparedComposedHostWithGeneratedSeparator();
+    delete host.nodes!.root['penpot_review_source_path'];
+    const snapshot = cloneProjectionSnapshot(projectZuiDocument(host));
+    snapshot.shapes.find((shape) => shape.nodeId === 'root')!.current.container.gap += 1;
+    expect(() => reconcileReviewSource(projection, snapshot)).toThrow(
+      'Host projection node root has no captured source ownership identity',
+    );
   });
 
   it('rejects edits to generated prefab internals without a source target', () => {

@@ -8,7 +8,7 @@ baseline_epoch: 2026-08-30
 verification_head: working-tree
 verification_epoch: 2026-08-30
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_runtime/99zp-runtime-navigation-navmesh-recast-detour-tilecache-crowd-query-pathfinding-obstacle-off-mesh-link-bake-streaming-world-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zp-runtime-navigation-navmesh-recast-detour-tilecache-crowd-query-pathfinding-obstacle-off-mesh-link-bake-streaming-world-editor.md
   - docs/plans/optimize/zircon_runtime/08d-navigation-runtime-review.md
   - docs/plans/optimize/zircon_plugins/14-first-party-navigation-source-native-runtime-editor-dist-catalog-recast-detour-crowd-tilecache-query-bake-product-integration-review.md
 related_code:
@@ -23,7 +23,7 @@ related_code:
   - zircon_plugins/ai/runtime/src/behavior_tree/nodes/integration.rs
   - zircon_app/src/entry
 plan_sources:
-  - docs/plans/optimize/zircon_runtime/99zp-runtime-navigation-navmesh-recast-detour-tilecache-crowd-query-pathfinding-obstacle-off-mesh-link-bake-streaming-world-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zp-runtime-navigation-navmesh-recast-detour-tilecache-crowd-query-pathfinding-obstacle-off-mesh-link-bake-streaming-world-editor.md
   - docs/plans/optimize/zircon_runtime/08d-navigation-runtime-review.md
   - docs/plans/optimize/zircon_plugins/14-first-party-navigation-source-native-runtime-editor-dist-catalog-recast-detour-crowd-tilecache-query-bake-product-integration-review.md
   - docs/plans/zircon_plugins/05-navigation.md

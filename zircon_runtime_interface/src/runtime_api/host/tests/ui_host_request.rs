@@ -1,3 +1,7 @@
+//! 通用 UI 宿主请求的投影、专用通道分流、JSON 字段兼容和有限 Debug 输出测试。
+//!
+//! 用例覆盖 PointerLock、Clipboard exclusion 与 ActivateLink，不是七种通用 kind 的穷举测试。
+
 use super::*;
 use crate::ui::{
     dispatch::{

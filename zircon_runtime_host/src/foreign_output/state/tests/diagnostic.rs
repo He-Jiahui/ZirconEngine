@@ -5,6 +5,7 @@ use super::super::super::kind::RUNTIME_FOREIGN_OUTPUT_KIND_COUNT;
 use super::super::super::metrics::RuntimeForeignOutputMetrics;
 use super::*;
 
+/// 构造每项指标都非零且类别值可区分的快照。
 fn metrics_fixture() -> RuntimeForeignOutputMetricsSnapshot {
     RuntimeForeignOutputMetricsSnapshot {
         protocol_failed: true,
@@ -26,6 +27,7 @@ fn metrics_fixture() -> RuntimeForeignOutputMetricsSnapshot {
     }
 }
 
+/// 保留旧格式化策略作为输出逐字一致性的测试 oracle。
 fn legacy_render_diagnostic_line(metrics: RuntimeForeignOutputMetricsSnapshot) -> Option<String> {
     if !metrics.has_activity() {
         return None;
@@ -53,6 +55,7 @@ fn legacy_render_diagnostic_line(metrics: RuntimeForeignOutputMetricsSnapshot) -
 }
 
 #[test]
+/// 检查单缓冲区实现与旧字段文本完全相同，并确认零活动时不产生诊断行。
 fn single_buffer_diagnostic_matches_legacy_output() {
     let metrics = metrics_fixture();
     assert_eq!(
@@ -69,11 +72,13 @@ fn single_buffer_diagnostic_matches_legacy_output() {
 }
 
 #[test]
+/// release-only 比较旧多缓冲格式化和当前单缓冲实现的 P50/P95 成本。
 #[ignore = "release-only diagnostic render benchmark"]
 fn diagnostic_render_release_benchmark_evidence() {
     const SAMPLE_PAIRS: usize = 21;
     const RENDERS_PER_SAMPLE: usize = 10_000;
 
+    /// 计时重复执行旧格式化路径并阻止优化器移除结果。
     fn measure_legacy(metrics: RuntimeForeignOutputMetricsSnapshot) -> u128 {
         let started = Instant::now();
         for _ in 0..RENDERS_PER_SAMPLE {
@@ -82,6 +87,7 @@ fn diagnostic_render_release_benchmark_evidence() {
         started.elapsed().as_nanos().max(1)
     }
 
+    /// 计时重复执行单缓冲格式化路径并阻止优化器移除结果。
     fn measure_optimized(metrics: RuntimeForeignOutputMetricsSnapshot) -> u128 {
         let started = Instant::now();
         for _ in 0..RENDERS_PER_SAMPLE {
@@ -90,6 +96,7 @@ fn diagnostic_render_release_benchmark_evidence() {
         started.elapsed().as_nanos().max(1)
     }
 
+    /// 以 ceil(rank) 规则取样本百分位值。
     fn percentile(samples: &[u128], percentile: usize) -> u128 {
         let mut sorted = samples.to_vec();
         sorted.sort_unstable();
@@ -97,6 +104,7 @@ fn diagnostic_render_release_benchmark_evidence() {
         sorted[rank.saturating_sub(1)]
     }
 
+    /// 将原始样本串成逗号分隔的基准证据文本。
     fn raw(samples: &[u128]) -> String {
         samples
             .iter()

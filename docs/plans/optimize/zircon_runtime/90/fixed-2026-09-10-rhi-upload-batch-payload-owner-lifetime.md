@@ -3,7 +3,7 @@ handoff_kind: fixed
 status: fixed
 created_at: 2026-08-28
 summary_slug: rhi-upload-batch-payload-owner-lifetime
-origin_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+origin_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
 fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 origin_child_dir: docs/plans/optimize/zircon_runtime/90
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
@@ -20,7 +20,7 @@ resolved_at: 2026-09-10
 
 ## 来源执行者
 
-- 来源计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md`
+- 来源计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md`
 - 来源执行切片：Lower-layer `zr_rhi` compilation and complete library regression.
 - 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
 - 交接原因：The failure was discovered while clearing the lower-layer `zr_rhi` compile chain and is isolated to the neutral upload-batch regression.

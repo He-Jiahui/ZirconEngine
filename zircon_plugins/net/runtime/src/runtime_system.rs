@@ -61,8 +61,11 @@ fn run_net_poll_ingress(context: RuntimeSceneSystemContext<'_>) -> Result<(), Co
         return Ok(());
     };
     let diagnostics = net.diagnostics();
-    // BUG: [CR-PLUGIN-NET-0003] 每帧都传 0，滚动诊断历史失去实际帧坐标。
-    record_net_diagnostics(context.core, 0, &diagnostics);
+    record_net_diagnostics(
+        context.core,
+        context.tick().outer_frame_index(),
+        &diagnostics,
+    );
     let events = net.drain_events(NET_POLL_INGRESS_EVENT_BUDGET);
     if events.is_empty() {
         return Ok(());

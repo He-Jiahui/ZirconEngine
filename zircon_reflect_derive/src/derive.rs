@@ -1,3 +1,6 @@
+//! 把 `syn::DeriveInput` 转换为运行时 `ZrReflect` trait 实现。
+//! 类型注册元数据、字段名分派和当前字段槽位分派均由同一份规范化字段序列生成。
+
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::BTreeSet;
@@ -10,6 +13,24 @@ use crate::fields::{
     read_slot_arm_tokens, write_arm_tokens, write_slot_arm_tokens,
 };
 
+/// 根据一个 Rust 类型的语法树构造 `ZrReflect` 实现。
+///
+/// # 使用时机与生命周期
+/// 由公开派生入口 [`crate::derive_zr_reflect`] 在编译期调用；输入和中间配置只用于构造本次展开结果。
+///
+/// # 参数
+/// `input` 是 `syn` 解析后的目标项，容器和字段属性由对应解析器读取。
+///
+/// # 返回值
+/// 返回实现运行时反射 trait 的 token；不支持的语法或配置返回带 span 的 `syn::Error`。
+///
+/// # 约束
+/// 目标项不能有泛型参数且不能是 union；结构体成员或自定义回调须生成与反射值类型相容的读写结果。
+/// 自动写入字段还须实现 `PartialEq`，用于判断写入是否改变值。枚举变体不转成普通字段。
+///
+/// # 参考
+/// 输入配置由 [`crate::attributes::parse_container_attributes`] 解析，实体字段由 [`crate::fields::collect_fields`] 收集；
+/// 结果实现 `zircon_runtime_interface::reflect::ZrReflect`，由运行时反射适配器调用。
 pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStream> {
     let input_span = input.span();
     if !input.generics.params.is_empty() {
@@ -36,6 +57,7 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
         .map(|identity| quote!(#identity))
         .unwrap_or_else(|| type_path.clone());
 
+    // 枚举变体不作为普通字段暴露；union 的重叠存储无法由此反射访问器安全表达。
     let (kind, mut fields) = match input.data {
         Data::Struct(data) => (
             quote!(::zircon_runtime_interface::reflect::ReflectTypeKind::Struct),
@@ -56,6 +78,7 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
     fields.extend(collect_virtual_fields(attributes.virtual_fields)?);
     validate_unique_field_names(&fields, input_span)?;
 
+    // 元数据字段顺序与两种分派共用该序列，因而生成槽位和注册索引保持一致。
     let field_info = fields
         .iter()
         .map(|field| field_info_tokens(field, &type_identity));
@@ -88,6 +111,7 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
 
     Ok(quote! {
         impl ::zircon_runtime_interface::reflect::ZrReflect for #ident {
+            // 调用者请求注册信息时才构造路径、字段元数据和可见性配置。
             fn reflect_type_registration(
             ) -> Result<
                 ::zircon_runtime_interface::reflect::ReflectTypeRegistration,
@@ -112,6 +136,7 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
                 .with_script_visibility(#script_visibility))
             }
 
+            // 按规范字段名读取；具体字段访问由字段 token 生成器选择成员或自定义回调。
             fn read_reflected_field(
                 &self,
                 field_name: &str,
@@ -128,6 +153,7 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
                 }
             }
 
+            // 按规范字段名写入；返回值沿用字段写分支报告的“值是否改变”。
             fn write_reflected_field(
                 &mut self,
                 field_name: &str,
@@ -142,6 +168,7 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
                 }
             }
 
+            // 槽位仅对应本次注册序列；未知槽位由该实现转成 UnknownField 错误。
             fn read_reflected_field_by_slot(
                 &self,
                 field_slot: u32,
@@ -158,6 +185,7 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
                 }
             }
 
+            // 按当前槽位写入，并保留字段写分支的变更标记和错误。
             fn write_reflected_field_by_slot(
                 &mut self,
                 field_slot: u32,
@@ -175,6 +203,16 @@ pub(crate) fn derive_zr_reflect_impl(input: DeriveInput) -> syn::Result<TokenStr
     })
 }
 
+/// 确保实体字段和虚拟字段共用的反射名称空间中没有重名。
+///
+/// # 参数
+/// `fields` 是跳过过滤后、虚拟字段追加后的规范字段序列；`span` 是重复名称诊断的位置。
+///
+/// # 返回值
+/// 所有名称唯一时返回 `Ok(())`，遇到第二个同名字段时返回 `syn::Error`。
+///
+/// # 参考
+/// 主流程在 [`derive_zr_reflect_impl`] 验证后才生成字段元数据；重名用例位于 `src/tests/cases.rs`。
 fn validate_unique_field_names(
     fields: &[crate::fields::ReflectedField],
     span: proc_macro2::Span,
@@ -191,6 +229,7 @@ fn validate_unique_field_names(
     Ok(())
 }
 
+/// 将解析出的策略枚举映射为 runtime-interface 中对应的全限定路径 token。
 fn serialization_tokens(kind: SerializationKind) -> TokenStream {
     let variant = match kind {
         SerializationKind::None => quote!(None),
@@ -202,6 +241,7 @@ fn serialization_tokens(kind: SerializationKind) -> TokenStream {
     quote!(::zircon_runtime_interface::reflect::ReflectSerializationStrategy::#variant)
 }
 
+/// 将解析出的脚本可见级别映射为 runtime-interface 的可见性枚举 token。
 fn script_visibility_tokens(kind: ScriptVisibilityKind) -> TokenStream {
     let variant = match kind {
         ScriptVisibilityKind::Private => quote!(Private),

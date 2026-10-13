@@ -8,11 +8,11 @@ use zircon_runtime::core::framework::net::NetError;
 
 use super::WorkerCore;
 use crate::worker::egress::{NetEgress, WorkerReply};
-use crate::worker::ingress::NetIngress;
+use crate::worker::ingress::NetWorkerIngress;
 
 pub(in crate::worker) fn run_worker(
     egress: mpsc::Receiver<NetEgress>,
-    ingress: mpsc::SyncSender<NetIngress>,
+    ingress: Arc<NetWorkerIngress>,
     next_connection_id: Arc<AtomicU64>,
     runtime: tokio::runtime::Handle,
 ) {

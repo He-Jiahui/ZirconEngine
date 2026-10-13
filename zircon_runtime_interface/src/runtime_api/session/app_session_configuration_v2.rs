@@ -24,13 +24,21 @@ use core::mem::size_of;
 use super::ime_composition_capability_v2::ZrRuntimeImeCompositionNegotiation;
 use super::ime_composition_capability_v2::ZR_RUNTIME_IME_COMPOSITION_V2_MIN_API_VERSION;
 
+/// 独立 AppSession 配置描述符使用的 ABI 版本号。
 pub const ZR_RUNTIME_APP_SESSION_CONFIGURATION_ABI_VERSION_V2: u32 = 2;
+/// 描述符中的组合 V2 能力位；提交时还须同时声明候选矩形能力。
 pub const ZR_RUNTIME_APP_SESSION_CAPABILITY_IME_COMPOSITION_V2: u64 = 1 << 0;
+/// 描述符中的候选矩形能力位；与组合 V2 能力共同构成必需集合。
 pub const ZR_RUNTIME_APP_SESSION_CAPABILITY_CANDIDATE_RECT_V2: u64 = 1 << 1;
+/// 本实现接受的组合载荷 schema 编号。
 pub const ZR_RUNTIME_APP_SESSION_COMPOSITION_SCHEMA_V2: u16 = 2;
+/// 本实现接受的候选矩形 schema 编号。
 pub const ZR_RUNTIME_APP_SESSION_CANDIDATE_RECT_SCHEMA_V2: u16 = 1;
+/// 候选矩形以窗口内像素坐标表达时使用的空间标签。
 pub const ZR_RUNTIME_APP_SESSION_COORDINATE_SPACE_WINDOW_V1: u32 = 1;
+/// 本地校验允许的原生有符号坐标最大值，边缘也必须不超过此值。
 pub const ZR_RUNTIME_APP_SESSION_MAX_NATIVE_COORDINATE_V2: i64 = i32::MAX as i64;
+/// 独立导出配置符号的 NUL 结尾名称，不属于冻结的 V8 函数表。
 pub const ZR_RUNTIME_CONFIGURE_APP_SESSION_SYMBOL_V2: &[u8] =
     b"zircon_runtime_configure_app_session_v2\0";
 
@@ -54,15 +62,21 @@ const REQUIRED_CAPABILITIES: u64 = ZR_RUNTIME_APP_SESSION_CAPABILITY_IME_COMPOSI
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ZrRuntimeImeCandidateRectV2 {
     /// Window-relative left edge of the text bounds in pixels.
+    /// 候选矩形左边缘的窗口内有符号像素坐标。
     pub origin_x: i32,
     /// Window-relative top edge of the text bounds in pixels.
+    /// 候选矩形上边缘的窗口内有符号像素坐标。
     pub origin_y: i32,
     /// Text-bound width.  Windows IMM uses a zero-width exclusion area at the caret.
+    /// 矩形像素宽度；零宽可表示插入点锚定区域。
     pub extent_width: u32,
     /// Text-bound height; must be nonzero for a candidate popup anchor.
+    /// 矩形像素高度；完整配置验证要求该值非零。
     pub extent_height: u32,
     /// Explicit coordinate-space tag; screen to window conversion is a host responsibility.
+    /// 必须使用窗口坐标标签；屏幕到窗口的转换由宿主负责。
     pub coordinate_space: u32,
+    /// 为 ABI 扩展保留，当前提交时必须为零。
     pub reserved: u32,
 }
 
@@ -142,22 +156,30 @@ impl ZrRuntimeImeCandidateRectV2 {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ZrRuntimeAppSessionConfigurationV2 {
+    /// 描述符 ABI 版本；验证只接受当前 V2 常量。
     pub abi_version: u32,
     /// 本描述符在当前 ABI 上的结构字节数；验证要求精确等于 [`Self::SIZE_BYTES`]，不接受仅含前缀的结构。
     pub size_bytes: usize,
+    /// 宿主声明的能力位；必须恰含当前两项必需能力且无未知位。
     pub capability_bits: u64,
     /// 提交方声明的 Runtime API 协议版本，须不小于组合 V2 的最低版本；单独满足此字段不代表完成能力协商。
     pub peer_api_version: u32,
+    /// 宿主声明的组合载荷 schema；验证要求与本实现匹配。
     pub composition_schema: u16,
+    /// 宿主声明的候选矩形 schema；验证要求与本实现匹配。
     pub candidate_rect_schema: u16,
+    /// 描述符保留字段；验证要求为零。
     pub reserved: u32,
     /// 宿主为窗口生命周期分配的非零代数；后续组合上下文须使用相应代数，由会话路由拒绝旧窗口事件。
     pub window_generation: u64,
+    /// 随配置按值提交的窗口内候选矩形，不借用宿主缓冲区。
     pub candidate_rect: ZrRuntimeImeCandidateRectV2,
+    /// 为描述符布局扩展保留的尾部字段；当前验证要求两项均为零。
     pub reserved_tail: [u64; 2],
 }
 
 impl ZrRuntimeAppSessionConfigurationV2 {
+    /// 当前描述符类型在本编译目标上的完整字节尺寸，验证要求精确匹配。
     pub const SIZE_BYTES: usize = size_of::<Self>();
 
     /// 保留传入的窗口代数与矩形；提交会话配置前仍须通过 validate 或 negotiation。
@@ -276,17 +298,29 @@ impl ZrRuntimeAppSessionConfigurationV2 {
 /// 参见 [`ZrRuntimeAppSessionConfigurationV2`] 和 [`ZrRuntimeImeCandidateRectV2`]。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ZrRuntimeAppSessionConfigurationError {
+    /// 描述符 ABI 版本不受本实现支持。
     UnsupportedVersion,
+    /// 描述符尺寸不是当前类型的精确尺寸。
     SizeMismatch,
+    /// 能力位包含当前实现未定义的位。
     UnknownCapability,
+    /// 缺少组合 V2 或候选矩形 V2 任一必需能力。
     MissingRequiredCapability,
+    /// 描述符、矩形或尾部保留字段不为零。
     NonZeroReserved,
+    /// 窗口生命周期代数为零。
     InvalidWindowGeneration,
+    /// 对端声明的 API 版本低于组合 V2 最低版本。
     UnsupportedPeerApiVersion,
+    /// 组合 schema 与本实现不匹配。
     UnsupportedCompositionSchema,
+    /// 候选矩形 schema 与本实现不匹配。
     UnsupportedCandidateRectSchema,
+    /// 候选矩形坐标空间不是受支持的窗口坐标。
     UnsupportedCoordinateSpace,
+    /// 候选矩形高度无效；当前校验拒绝零高度。
     InvalidCandidateRect,
+    /// 宽、高或右边、下边超出原生有符号坐标范围。
     UnrepresentableCandidateRect,
 }
 

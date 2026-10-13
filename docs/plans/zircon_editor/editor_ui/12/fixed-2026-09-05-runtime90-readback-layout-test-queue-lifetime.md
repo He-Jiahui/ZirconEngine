@@ -5,7 +5,7 @@ failure_scope: cross_plan
 created_at: 2026-08-23
 summary_slug: runtime90-readback-layout-test-queue-lifetime
 origin_plan: docs/plans/zircon_editor/editor_ui/12-unreal-magicavoxel-zui-design-convergence.md
-fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
 origin_child_dir: docs/plans/zircon_editor/editor_ui/12
 fixing_child_dir: docs/plans/optimize/zircon_runtime/90
 plan_link_mode: child_record_only
@@ -20,7 +20,7 @@ resolved_at: 2026-09-05
 
 - 来源计划：`docs/plans/zircon_editor/editor_ui/12-unreal-magicavoxel-zui-design-convergence.md`
 - 来源执行切片：M6 full lower-layer WGPU regression validation
-- 修复责任计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md`
+- 修复责任计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md`
 - 交接原因：Runtime90 explicitly owns the WGPU readback queue and
   `gpu_readback_queue/tests.rs`.
 

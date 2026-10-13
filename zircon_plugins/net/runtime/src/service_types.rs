@@ -40,6 +40,11 @@ pub struct DefaultNetManager {
 pub type NetRuntimeManager = DefaultNetManager;
 
 impl DefaultNetManager {
+    #[cfg(test)]
+    pub(crate) fn manager_event_queue_len_for_test(&self) -> usize {
+        lock_recover(&self.state.events).len()
+    }
+
     pub fn for_mode(mode: NetRuntimeMode) -> Self {
         Self::for_mode_with_thread_budget(mode, EngineThreadBudget::process_default())
     }

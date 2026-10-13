@@ -15,7 +15,7 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/108-editor-sprite-atlas-tileset-tilemap-canvas2d-animation-collision-preview-current-source-review.md
   - docs/plans/optimize/zircon_editor/155-editor-sprite-atlas-tileset-tilemap-canvas2d-animation-collision-preview-current-source-review.md
 related_runtime_owner:
-  - docs/plans/optimize/zircon_runtime/99e-runtime-sprite2d-canvas2d-sprite-atlas-tileset-tilemap-batching-sorting-lighting-physics-streaming-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99e-runtime-sprite2d-canvas2d-sprite-atlas-tileset-tilemap-batching-sorting-lighting-physics-streaming.md
 related_failures:
   - docs/plans/zircon_editor/editor/10/failure-2026-07-17-editor-sprite-atlas-paint-time-io.md
   - docs/plans/zircon_plugins/10/failure-2026-08-01-terrain-tilemap-scene-mode-factories-missing.md

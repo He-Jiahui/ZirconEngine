@@ -6,7 +6,7 @@ scope:
   - zircon_editor/src/scene/selection
 status: static_complete_dynamic_pending
 canonical_owner:
-  - docs/plans/optimize/zircon_editor/74-editor-scene-selection-authority-primary-active-range-filter-named-set-history-document-world-scope-lifecycle-performance-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/74-editor-scene-selection-authority-primary-active-range-filter-named-set-history-document-world-scope-lifecycle-performance.md
 references:
   - dev/UnrealEngine/Engine/Source/Runtime/TypedElementRuntime/Public/Elements/Framework/TypedElementSelectionSet.h
   - dev/UnrealEngine/Engine/Source/Runtime/TypedElementRuntime/Private/Elements/Framework/TypedElementSelectionSet.cpp

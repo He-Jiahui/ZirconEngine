@@ -1,26 +1,61 @@
+//! 在局部候选中建立目录身份、预算、短名和依赖图不变量，成功后才交给目录发布。
+//!
+//! 此层检查中立身份与显式依赖；默认值、编辑提示及适配器语义由注册端另行验证。
+
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use crate::reflect::{ReflectError, ReflectFieldId, ReflectFieldInfo};
 
 use super::{ReflectSchemaCatalogEntry, ReflectSchemaFieldIndex};
 
+/// 整批接纳与增量插入共享的类型数量上限。
 pub(super) const MAX_REFLECT_SCHEMA_TYPES: usize = 16_384;
+/// 每类型字段上限，也保证字段槽位的 `u32` 转换有界。
 const MAX_REFLECT_FIELDS_PER_TYPE: usize = 4_096;
+/// 当前名称和别名的字节上限；校验同时要求 ASCII 身份键。
 const MAX_REFLECT_FIELD_NAME_BYTES: usize = 128;
+/// 单个字段历史别名上限，先于索引建立检查。
 const MAX_REFLECT_FIELD_ALIASES_PER_FIELD: usize = 32;
+/// 一个类型的别名总量上限，以 checked_add 累计。
 const MAX_REFLECT_FIELD_ALIASES_PER_TYPE: usize = 4_096;
+/// 单项显式依赖上限，不从字段类型隐式增添边。
 const MAX_REFLECT_DEPENDENCIES_PER_TYPE: usize = 256;
+/// 全目录显式依赖边上限；批接纳和增量接纳使用同一预算。
 pub(super) const MAX_REFLECT_SCHEMA_DEPENDENCIES: usize = 65_536;
 
+/// 已在局部候选中完成所有检查的发布材料；不持有外部目录或实时对象。
+///
+/// # 参考
+/// [`super::ReflectSchemaCatalog::try_new`] 消费各索引，并从空的派生缓存开始。
 pub(super) struct AdmittedCatalog {
+    /// 按完整类型路径排序的规范化项，是其他投影的唯一元数据来源。
     pub(super) entries: BTreeMap<String, ReflectSchemaCatalogEntry>,
+    /// 仅保存当前唯一的短名到完整路径映射。
     pub(super) short_paths: BTreeMap<String, String>,
+    /// 冲突短名集合；冲突时不保留任意赢家。
     pub(super) ambiguous_short_paths: BTreeSet<String>,
+    /// 每类型按原字段声明顺序建立的 ID/旧名称索引。
     pub(super) field_indexes: BTreeMap<String, ReflectSchemaFieldIndex>,
+    /// 全目录 ID 的唯一类型和字段所有者，供增量接纳拒绝跨类型冲突。
     pub(super) field_id_owners: HashMap<ReflectFieldId, (String, String)>,
+    /// 已接纳的显式依赖边数，后续插入和移除据此维护预算。
     pub(super) dependency_edge_count: usize,
 }
 
+/// 消费整批候选，建立完整、无环且身份唯一的目录发布材料。
+///
+/// # 参数
+/// `entries` 可乱序；每个依赖目标必须同时属于该批次。
+///
+/// # 返回值
+/// 成功返回自有元数据及索引；预算、重复路径/ID 或依赖图错误返回 `ReflectError`。
+///
+/// # 约束与生命周期
+/// 所有变更只发生在本次局部候选中；错误不会向现有目录发布部分结果。
+/// 接纳保留字段序列，排序别名与依赖，不验证运行时字段值。
+///
+/// # 参考
+/// [`super::ReflectSchemaCatalog::try_new`]、[`canonicalize_and_validate_entry`]、[`dependency_order`]。
 pub(super) fn admit_entries(
     entries: Vec<ReflectSchemaCatalogEntry>,
 ) -> Result<AdmittedCatalog, ReflectError> {
@@ -55,6 +90,7 @@ pub(super) fn admit_entries(
                 ),
             ));
         }
+        // 插入全局所有者后若发现冲突，只丢弃本次候选；尚没有任何活动目录被修改。
         for field in &entry.registration.type_info.fields {
             if let Some((owner_type, owner_field)) =
                 global_field_ids.insert(field.id, (type_path.clone(), field.name.clone()))
@@ -72,6 +108,7 @@ pub(super) fn admit_entries(
         admitted.insert(type_path, entry);
     }
 
+    // 收齐整批才检查依赖，允许输入先列消费者；字段索引只在完整图通过后发布。
     let (short_paths, ambiguous_short_paths) = build_short_path_index(&admitted);
     dependency_order(&admitted)?;
     let field_indexes = admitted
@@ -94,6 +131,17 @@ pub(super) fn admit_entries(
 }
 
 // 这里只校验中立目录的身份与依赖约束；值类型、编辑提示等运行时语义由注册端继续校验。
+/// 就地检查并规范化一个候选的字段身份与依赖列表。
+///
+/// # 参数与返回值
+/// `entry` 是可丢弃的局部候选；成功保留字段次序、排序别名和依赖，违规返回错误。
+///
+/// # 约束
+/// 不检查目录内的依赖目标、跨类型 ID 或环；调用方必须继续执行整批/增量检查。
+/// 失败前可能已排序部分列表，公开只读校验入口会先克隆以保留调用方输入。
+///
+/// # 参考
+/// [`super::ReflectSchemaCatalog::validate_entry`]、`prepare_insert`、[`admit_entries`]。
 pub(super) fn canonicalize_and_validate_entry(
     entry: &mut ReflectSchemaCatalogEntry,
 ) -> Result<(), ReflectError> {
@@ -123,6 +171,7 @@ pub(super) fn canonicalize_and_validate_entry(
             ));
         }
     }
+    // 排序使依赖编码稳定；重复依赖仍是错误，不能靠去重掩盖候选身份问题。
     entry.dependencies.sort_unstable();
     if let Some(duplicate) = entry
         .dependencies
@@ -138,6 +187,16 @@ pub(super) fn canonicalize_and_validate_entry(
     Ok(())
 }
 
+/// 分两遍检查当前名和别名的唯一性，再排序别名集合。
+///
+/// # 参数与约束
+/// `type_path` 用于错误归属；`fields` 的数量已由调用方限制，字段次序始终保留。
+///
+/// # 返回值
+/// ID、名称、别名或预算冲突返回字段错误；成功后每个导入名称只对应一个字段。
+///
+/// # 参考
+/// [`canonicalize_and_validate_entry`]、[`super::field_index::ReflectSchemaFieldIndex::from_fields`]。
 fn validate_field_identities(
     type_path: &str,
     fields: &mut [ReflectFieldInfo],
@@ -186,6 +245,7 @@ fn validate_field_identities(
         }
     }
 
+    // 先收集所有当前名，别名才不会因字段顺序不同而遗漏与后续当前名的冲突。
     for field in fields.iter() {
         for alias in &field.aliases {
             validate_field_key(type_path, field, "alias", alias)?;
@@ -198,6 +258,7 @@ fn validate_field_identities(
             }
         }
     }
+    // 集合借用了名称和别名；结束借用后才可就地排序别名，保持字段本身的位置。
     drop(field_names);
     for field in fields {
         field.aliases.sort_unstable();
@@ -205,6 +266,10 @@ fn validate_field_identities(
     Ok(())
 }
 
+/// 检查一个身份键的非空、已裁剪、字节上限和 ASCII 字符集合。
+///
+/// `type_path`、`field` 和 `label` 只用于准确诊断；`value` 不做自动修剪或字符替换。
+/// 成功返回单位值，违规由 [`invalid_field_registration`] 保留所属字段。
 fn validate_field_key(
     type_path: &str,
     field: &ReflectFieldInfo,
@@ -238,6 +303,10 @@ fn validate_field_key(
     Ok(())
 }
 
+/// 从完整路径目录建立唯一短名映射和冲突集合。
+///
+/// `entries` 的完整路径键保持权威；返回的两个集合互斥，冲突短名不会选一个类型。
+/// 调用者在 [`super::ReflectSchemaCatalog::resolve_type_path`] 中仍先尝试完整路径。
 pub(super) fn build_short_path_index(
     entries: &BTreeMap<String, ReflectSchemaCatalogEntry>,
 ) -> (BTreeMap<String, String>, BTreeSet<String>) {
@@ -254,6 +323,7 @@ pub(super) fn build_short_path_index(
             }
             Some(existing) if existing == type_path => {}
             Some(_) => {
+                // 第二个所有者出现即撤销唯一映射；更多同名项继续保留冲突状态。
                 short_paths.remove(short);
                 ambiguous.insert(short.to_string());
             }
@@ -262,6 +332,16 @@ pub(super) fn build_short_path_index(
     (short_paths, ambiguous)
 }
 
+/// 以稳定的就绪集合顺序验证依赖闭包并生成依赖先于消费者的拓扑顺序。
+///
+/// # 参数
+/// `entries` 是完整路径目录；显式依赖使用完整路径，短名不参与补全。
+///
+/// # 返回值
+/// 缺失目标或有环返回注册错误；成功返回覆盖所有项的自有路径列表。
+///
+/// # 参考
+/// [`admit_entries`] 在发布前验证图，[`super::ReflectSchemaCatalog::dependency_order`] 缓存成功投影。
 pub(super) fn dependency_order(
     entries: &BTreeMap<String, ReflectSchemaCatalogEntry>,
 ) -> Result<Vec<String>, ReflectError> {
@@ -276,6 +356,7 @@ pub(super) fn dependency_order(
                     &format!("missing schema dependency `{dependency}`"),
                 ));
             }
+            // 反向边用于依赖就绪后降低消费者计数；先确认目标存在，避免遗漏闭包。
             dependents
                 .entry(dependency.clone())
                 .or_default()
@@ -292,6 +373,7 @@ pub(super) fn dependency_order(
         .map(|(type_path, _)| type_path.clone())
         .collect::<BTreeSet<_>>();
     let mut order = Vec::with_capacity(entries.len());
+    // 每次从就绪项中取字典序最小者；不同输入顺序不会改变同一图的输出顺序。
     while let Some(type_path) = ready.pop_first() {
         order.push(type_path.clone());
         let Some(consumers) = dependents.get(&type_path) else {
@@ -310,6 +392,7 @@ pub(super) fn dependency_order(
     if order.len() == entries.len() {
         return Ok(order);
     }
+    // 剩余计数非零即可证明存在环；所选诊断路径也可能是被环阻塞的下游消费者。
     let cycle_owner = remaining_dependencies
         .into_iter()
         .find(|(_, count)| *count != 0)
@@ -321,6 +404,7 @@ pub(super) fn dependency_order(
     ))
 }
 
+/// 把目录级原因复制为自有注册错误，使局部候选销毁后诊断仍有效。
 fn invalid_registration(type_path: &str, reason: &str) -> ReflectError {
     ReflectError::InvalidRegistration {
         type_path: type_path.to_string(),
@@ -328,6 +412,7 @@ fn invalid_registration(type_path: &str, reason: &str) -> ReflectError {
     }
 }
 
+/// 把字段级原因连同类型和字段名称复制到错误，不借用待丢弃的候选。
 fn invalid_field_registration(type_path: &str, field_name: &str, reason: &str) -> ReflectError {
     ReflectError::InvalidFieldRegistration {
         type_path: type_path.to_string(),

@@ -7,6 +7,7 @@ use crate::state::{
 #[test]
 fn action_history_row_localizes_action_status_message_and_recovery() {
     let record = HubActionRecord {
+        id: String::new(),
         finished_unix_ms: 1,
         action: HubActionKind::PackageProject,
         status: HubActionStatus::Failed,
@@ -40,6 +41,7 @@ fn action_history_row_localizes_action_status_message_and_recovery() {
 #[test]
 fn action_history_row_localizes_project_lifecycle_success_detail() {
     let created = HubActionRecord {
+        id: String::new(),
         finished_unix_ms: 1,
         action: HubActionKind::CreateProject,
         status: HubActionStatus::Success,
@@ -55,6 +57,7 @@ fn action_history_row_localizes_project_lifecycle_success_detail() {
         output_dir: None,
     };
     let imported = HubActionRecord {
+        id: String::new(),
         finished_unix_ms: 2,
         action: HubActionKind::ImportProject,
         status: HubActionStatus::Success,
@@ -80,6 +83,7 @@ fn action_history_row_localizes_project_lifecycle_success_detail() {
 #[test]
 fn action_history_row_renders_persisted_message_in_current_language() {
     let record = HubActionRecord {
+        id: String::new(),
         finished_unix_ms: 1,
         action: HubActionKind::CreateProject,
         status: HubActionStatus::Success,
@@ -105,6 +109,7 @@ fn action_history_row_renders_persisted_message_in_current_language() {
 #[test]
 fn action_history_row_localizes_log_excerpt() {
     let record = HubActionRecord {
+        id: String::new(),
         finished_unix_ms: 1,
         action: HubActionKind::RemoveProject,
         status: HubActionStatus::Success,
@@ -128,6 +133,7 @@ fn action_history_row_localizes_log_excerpt() {
 #[test]
 fn action_history_row_localizes_open_output_success_detail() {
     let record = HubActionRecord {
+        id: String::new(),
         finished_unix_ms: 1,
         action: HubActionKind::OpenOutput,
         status: HubActionStatus::Success,
@@ -150,8 +156,49 @@ fn action_history_row_localizes_open_output_success_detail() {
 }
 
 #[test]
+fn action_history_row_identity_survives_prepending_a_new_record() {
+    let record = HubActionRecord {
+        id: "persisted-old-id".to_string(),
+        finished_unix_ms: 7,
+        action: HubActionKind::CreateProject,
+        status: HubActionStatus::Success,
+        target: "Game".to_string(),
+        detail: HubMessage::new(HubMessageId::Project(ProjectMessageId::CreatedPath)),
+        log_excerpt: HubMessage::empty(),
+        recovery: None,
+        process_id: None,
+        command_line: Vec::new(),
+        output_dir: None,
+    };
+    let old_row = super::action_history_row(&record, 7, HubLanguage::English);
+    let mut history = vec![record];
+    crate::state::push_action_record(
+        &mut history,
+        HubActionRecord {
+            id: "persisted-new-id".to_string(),
+            finished_unix_ms: 7,
+            action: HubActionKind::CreateProject,
+            status: HubActionStatus::Success,
+            target: "Game".to_string(),
+            detail: HubMessage::new(HubMessageId::Project(ProjectMessageId::CreatedPath)),
+            log_excerpt: HubMessage::empty(),
+            recovery: None,
+            process_id: None,
+            command_line: Vec::new(),
+            output_dir: None,
+        },
+    );
+    let old_row_after_prepend = super::action_history_row(&history[1], 7, HubLanguage::English);
+
+    assert_eq!(old_row.id, "persisted-old-id");
+    assert_eq!(old_row_after_prepend.id, old_row.id);
+    assert_ne!(history[0].id, history[1].id);
+}
+
+#[test]
 fn action_history_detail_rows_include_backend_output_and_command_display() {
     let record = HubActionRecord {
+        id: String::new(),
         finished_unix_ms: 1,
         action: HubActionKind::BuildEditorRuntime,
         status: HubActionStatus::Success,

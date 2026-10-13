@@ -65,12 +65,12 @@ impl CoreHandle {
         self.inner.config_store.snapshot_values()
     }
 
-    // 配置持久化工作线程延迟读取此快照；仅捕获配置存储，避免服务反向持有整个运行时。
+    // 持久化线程延迟捕获不可变 JSON owner；仅保留配置存储，避免服务反向持有整个运行时。
     pub(crate) fn config_snapshot_source(
         &self,
-    ) -> Arc<dyn Fn() -> HashMap<String, Value> + Send + Sync> {
+    ) -> Arc<dyn Fn() -> HashMap<String, Arc<Value>> + Send + Sync> {
         let config_store = self.inner.config_store.clone();
-        Arc::new(move || config_store.snapshot_values())
+        Arc::new(move || config_store.shared_snapshot_values())
     }
 
     pub fn store_config<T: serde::Serialize>(

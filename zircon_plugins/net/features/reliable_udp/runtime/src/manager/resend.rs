@@ -39,7 +39,6 @@ impl NetReliableUdpRuntimeManager {
         let acknowledged = state
             .outbound
             .iter()
-            // BUG: [CR-PLUGIN-NET-0020] 截断 u64 会同时确认相差 65536 的在途消息，活动窗口没有阻止旧/新序号别名。
             .filter(|packet| acked_sequences.contains(&(packet.sequence as u16)))
             .map(|packet| packet.sequence)
             .collect::<HashSet<_>>();

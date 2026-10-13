@@ -20,6 +20,35 @@ fn sss_feature_registers_three_passes_executors_and_shading_model() {
 }
 
 #[test]
+fn sss_feature_wrapper_uses_host_product_descriptor_and_executors() {
+    let feature_passes = render_feature_descriptor().stage_passes;
+    let host_passes = zircon_runtime::graphics::subsurface_render_feature_descriptor().stage_passes;
+    assert_eq!(
+        feature_passes
+            .iter()
+            .map(|pass| pass.name.as_str())
+            .collect::<Vec<_>>(),
+        host_passes
+            .iter()
+            .map(|pass| pass.name.as_str())
+            .collect::<Vec<_>>()
+    );
+
+    let feature_executors = render_pass_executor_registrations();
+    let host_executors = zircon_runtime::graphics::subsurface_render_pass_executor_registrations();
+    assert_eq!(
+        feature_executors
+            .iter()
+            .map(|executor| executor.executor_id().clone())
+            .collect::<Vec<_>>(),
+        host_executors
+            .iter()
+            .map(|executor| executor.executor_id().clone())
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
 fn sss_graph_requires_deferred_pipeline_and_non_empty_profile_table() {
     let extract = extract_with_profiles(true);
     let compiled = RenderPipelineAsset::default_deferred()

@@ -1,4 +1,4 @@
-use super::{packed_sort_key_u64, SORT_KEY_QUEUE_SHIFT};
+use super::{depth_sort_key, ordered_depth_key, packed_sort_key_u64, SORT_KEY_QUEUE_SHIFT};
 use crate::core::framework::render::{RenderPhase, RenderPhaseSortComponents, RenderQueueValue};
 
 #[test]
@@ -124,6 +124,20 @@ fn render_sort_key_ui_z_index_maps_into_overlay_segment() {
         u64::from(RenderQueueValue::OVERLAY.raw())
     );
     assert!(low_z < high_z);
+}
+
+#[test]
+fn transparent_depth_order_saturates_at_minimum_integer() {
+    let quantized = depth_sort_key(f32::MIN);
+    assert_eq!(quantized, i64::MIN);
+    assert_eq!(
+        ordered_depth_key(RenderPhase::Transparent3d, quantized),
+        i64::MAX
+    );
+    assert_eq!(
+        ordered_depth_key(RenderPhase::Opaque3d, quantized),
+        i64::MIN
+    );
 }
 
 #[test]

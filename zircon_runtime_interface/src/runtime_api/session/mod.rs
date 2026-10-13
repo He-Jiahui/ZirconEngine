@@ -1,3 +1,13 @@
+//! 会话契约的结构入口，汇合创建配置、宿主事件、视口描述和异步操作的公共导出。
+//! [`ZrRuntimeSessionConfigV3`] 的字节借用于同步创建，[`ZrRuntimeWakeSinkV1`] 有独立注册寿命；
+//! [`GatewaySessionIdentity`] 是 Editor 保存和比较的值身份，不持有底层 Runtime 资源。
+//! [`ZrRuntimeViewportCameraV1`] 通过 JSON 事件传递，原生表面绑定则使用 C 布局请求。
+//! 各构造器的字段封装不能替代实际入口的预算、版本、平台或生命周期检查。
+//!
+//! # 参考
+//! 下方子模块分别定义协商、事件、操作和视口契约；公开符号经 `runtime_api` 与 crate 根导出。
+//! 两个显式测试模块仅在 `cfg(test)` 下接入，不改变生产模块路径。
+
 #[path = "app_session_configuration_v2.rs"]
 mod app_session_configuration_v2;
 #[path = "camera.rs"]

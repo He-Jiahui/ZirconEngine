@@ -1,6 +1,6 @@
 # Runtime64 Allocation-Free No-Op Readiness Updates
 
-Plan: docs/plans/optimize/zircon_runtime/64-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation-product-integration-review.md
+Plan: docs/plans/optimize/zircon_runtime/64-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation.md
 Milestone: M64.10 focused scale slice
 Status: implementation_complete; managed_validation_pending
 Files: ["docs/plans/optimize/zircon_runtime/64/2026-08-26-allocation-free-noop-readiness-updates.md","tools/tests/test_runtime64_readiness_noop_performance_contract.py","zircon_runtime/src/core/resource/manager/readiness_projection.rs"]

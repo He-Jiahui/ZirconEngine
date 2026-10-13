@@ -7,6 +7,7 @@ import sys
 from typing import Sequence
 
 from .preset_contract import load_export_preset
+from .profile_name import valid_export_profile_name
 
 
 STAGES = (
@@ -344,6 +345,8 @@ Examples:
         help="Print the selected stage command without executing it.",
     )
     args = parser.parse_args(argv)
+    if not valid_export_profile_name(args.profile):
+        parser.error("--profile must contain only ASCII letters, digits, '_' or '-'")
     args.stage_explicit = stage_explicit
     args.resume_from_explicit = resume_from_explicit
     args.pack_file_explicit = pack_file_explicit

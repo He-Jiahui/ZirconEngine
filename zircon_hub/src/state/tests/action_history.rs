@@ -8,6 +8,7 @@ fn action_history_keeps_newest_records() {
         push_action_record(
             &mut history,
             HubActionRecord {
+                id: String::new(),
                 finished_unix_ms: index,
                 action: HubActionKind::OpenEditor,
                 status: HubActionStatus::Success,
@@ -23,6 +24,15 @@ fn action_history_keeps_newest_records() {
     }
 
     assert_eq!(history.len(), ACTION_HISTORY_LIMIT);
+    assert!(history.iter().all(|record| !record.id.is_empty()));
+    assert_eq!(
+        history
+            .iter()
+            .map(|record| record.id.as_str())
+            .collect::<std::collections::HashSet<_>>()
+            .len(),
+        ACTION_HISTORY_LIMIT
+    );
     assert_eq!(history[0].target, "target 19");
     assert_eq!(history[ACTION_HISTORY_LIMIT - 1].target, "target 4");
 }

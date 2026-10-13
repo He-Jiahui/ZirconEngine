@@ -6,7 +6,7 @@ scope:
 status: static_complete_shared_source_preserved_and_dynamic_pending
 canonical_owners:
   - docs/plans/optimize/zircon_plugins/13-first-party-animation-source-runtime-editor-dist-catalog-skeleton-clip-pose-graph-state-machine-ik-skinning-product-integration-review.md
-  - docs/plans/optimize/zircon_editor/76-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/76-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence.md
   - docs/plans/optimize/zircon_runtime/08c-animation-runtime-review.md
 references:
   - dev/UnrealEngine/Engine/Source/Editor/AnimGraph/Private/AnimBlueprintCompiler.cpp

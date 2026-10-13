@@ -1,6 +1,31 @@
 use super::*;
 
 #[test]
+fn input_action_map_deserialization_filters_empty_bindings_and_preserves_valid_bindings() {
+    let valid_binding = InputBinding::button(
+        "jump",
+        crate::core::framework::input::InputButton::KeyCode(32),
+    );
+    let map = InputActionMap {
+        actions: vec![InputAction::new("jump")],
+        bindings: vec![
+            valid_binding.clone(),
+            InputBinding {
+                action: "jump".to_owned(),
+                buttons: Vec::new(),
+                axes: Vec::new(),
+            },
+        ],
+        ..InputActionMap::default()
+    };
+    let encoded = serde_json::to_value(map).expect("serialize current input action map schema");
+    let decoded: InputActionMap =
+        serde_json::from_value(encoded).expect("deserialize current input action map schema");
+
+    assert_eq!(decoded.bindings, vec![valid_binding]);
+}
+
+#[test]
 fn runtime56_batch_incremental_context_ordering_preserves_retired_order_and_duplicates() {
     let additions = vec![
         InputActionContext::new("gameplay").with_priority(10),

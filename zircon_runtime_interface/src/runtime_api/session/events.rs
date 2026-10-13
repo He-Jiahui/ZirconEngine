@@ -1,3 +1,6 @@
+//! Runtime 事件的固定布局载体与字段填充构造器。
+//! 构造器不执行能力协商或载荷解码；借用型载荷由同步事件入口消费。
+
 use crate::buffer::ZrByteSlice;
 use crate::handles::ZrRuntimeViewportHandle;
 
@@ -24,6 +27,7 @@ pub struct ZrRuntimeEventV1 {
     pub pointer_id: u64,
     pub key_code: u32,
     pub scan_code: u32,
+    /// 由事件 kind 解释的借用字节；非空区域须在同步事件处理返回前保持可读。
     pub payload: ZrByteSlice,
 }
 
@@ -467,6 +471,8 @@ impl ZrRuntimeEventV1 {
         }
     }
 
+    /// 使用既有 IME kind 携带状态 10 和组合 V2 编码字节。
+    /// 本构造器只填充字段，不验证载荷或协商结果；调用方须保持借用字节可读至同步处理返回。
     pub const fn ime_composition_v2(
         abi_version: u32,
         viewport: ZrRuntimeViewportHandle,

@@ -10,8 +10,8 @@ use crate::projects::{
     ProjectTemplateId, RecentProject, RECENT_PROJECT_LIMIT,
 };
 use crate::state::{
-    HubActionRecord, HubPage, ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode,
-    ACTION_HISTORY_LIMIT,
+    repair_action_record_ids, HubActionRecord, HubPage, ProjectFilterMode, ProjectSortMode,
+    ProjectSubpage, ProjectViewMode, ACTION_HISTORY_LIMIT,
 };
 
 use super::{
@@ -50,6 +50,10 @@ impl HubConfig {
         }
         let text = fs::read_to_string(path)?;
         let mut config: Self = toml::from_str(&text)?;
+        migrate_legacy_build_output_default(&mut config.settings, legacy_user_home_dir());
+        if repair_action_record_ids(&mut config.action_history) > 0 {
+            config.save(path)?;
+        }
         for project in &mut config.recent_projects {
             if project.path.join("zircon-project.toml").is_file() {
                 project.refresh_summary()?;
@@ -77,11 +81,43 @@ impl HubConfig {
         report.removed_project_metadata =
             prune_unowned_project_metadata(&mut self.project_metadata, &self.recent_projects);
         report.removed_action_history = truncate_action_history(&mut self.action_history);
+        report.repaired_action_history_ids = repair_action_record_ids(&mut self.action_history);
         report.repaired_active_engine =
             repair_active_engine(&self.engines, &mut self.active_engine_id);
         self.runtime.normalize();
         report
     }
+}
+
+fn legacy_user_home_dir() -> Option<PathBuf> {
+    std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .map(PathBuf::from)
+}
+
+fn migrate_legacy_build_output_default(settings: &mut HubSettings, home: Option<PathBuf>) {
+    if settings.default_build_output_provenance == OutputRootProvenance::NativeFolderPicker {
+        return;
+    }
+    let Some(home) = home else {
+        return;
+    };
+    let legacy_default = home.join("ZirconBuilds");
+    if normalize_windows_path(&settings.default_build_output_dir)
+        != normalize_windows_path(&legacy_default)
+    {
+        return;
+    }
+
+    settings.default_build_output_dir = default_build_output_dir();
+    settings.default_build_output_provenance = OutputRootProvenance::HubManaged;
+}
+
+fn normalize_windows_path(path: &Path) -> String {
+    path.to_string_lossy()
+        .replace('\\', "/")
+        .trim_end_matches('/')
+        .to_ascii_lowercase()
 }
 
 fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), HubError> {
@@ -169,6 +205,7 @@ pub struct HubConfigRepairReport {
     pub removed_recent_projects: usize,
     pub removed_project_metadata: usize,
     pub removed_action_history: usize,
+    pub repaired_action_history_ids: usize,
     pub repaired_active_engine: bool,
 }
 
@@ -177,6 +214,7 @@ impl HubConfigRepairReport {
         self.removed_recent_projects > 0
             || self.removed_project_metadata > 0
             || self.removed_action_history > 0
+            || self.repaired_action_history_ids > 0
             || self.repaired_active_engine
     }
 }

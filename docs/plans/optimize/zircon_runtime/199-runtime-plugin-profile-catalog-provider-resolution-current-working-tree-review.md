@@ -7,7 +7,7 @@ baseline_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 verification_head: 14c89f9776bed828cc85e05e4b9914b3f8d1e784
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_runtime/42-builtin-runtime-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/99zk-runtime-builtin-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zk-runtime-builtin-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report.md
 related_editor_owner:
   - docs/plans/optimize/zircon_editor/259-editor-plugin-provider-catalog-current-working-tree-review.md
 related_plugin_owner:

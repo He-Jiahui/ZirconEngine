@@ -18,6 +18,13 @@ impl RetainedEditorHost {
         keyboard: UiKeyboardInputEvent,
     ) {
         let shift_f5 = play_stop_trace_enabled() && is_shift_f5(&keyboard);
+        if is_escape_pressed(&keyboard) && self.workbench_window_bridge.content_drawer_is_open() {
+            match self.workbench_window_bridge.dismiss_content_drawer() {
+                Ok(()) => { let mut effects = UiHostEventEffects::default(); effects.request_paint_only(); self.apply_dispatch_effects(effects); }
+                Err(error) => self.set_status_line(error.to_string()),
+            }
+            return;
+        }
         let stop_shortcut_match = keyboard.state == UiKeyboardInputState::Pressed
             && match self.focused_game_stop_shortcut_matches(&keyboard) {
                 Ok(matches) => matches,
@@ -64,19 +71,13 @@ impl RetainedEditorHost {
             }
             return;
         }
-        if is_escape_pressed(&keyboard) && self.workbench_window_bridge.content_drawer_is_open() {
-            match self.workbench_window_bridge.dismiss_content_drawer() {
-                Ok(()) => { let mut effects = UiHostEventEffects::default(); effects.request_paint_only(); self.apply_dispatch_effects(effects); }
-                Err(error) => self.set_status_line(error.to_string()),
-            }
-            return;
-        }
         if self.try_begin_hierarchy_rename_from_keyboard(&keyboard) {
             return;
         }
         if is_escape_pressed(&keyboard) {
             self.retire_hierarchy_drag_with_reason(HierarchyTerminalReason::Escape);
             self.cancel_viewport_interaction();
+            self.dispatch_native_editor_keymap_command(&keyboard);
             return;
         }
         self.dispatch_native_editor_keymap_command(&keyboard);

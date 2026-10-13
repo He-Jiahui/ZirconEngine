@@ -96,4 +96,13 @@ fn content_download_manager_can_cancel_queued_downloads() {
 
     assert_eq!(cancelled.status, NetDownloadStatus::Cancelled);
     assert_eq!(cancelled.diagnostic.as_deref(), Some("download cancelled"));
+    assert!(manager.next_attempt(download, "chunk-cancel").is_none());
+    assert_eq!(manager.fetch_next_chunk(download, "chunk-cancel"), None);
+    assert_eq!(
+        manager
+            .mark_chunk_complete(download, "chunk-cancel", &zrpack_hash(b"hash"))
+            .unwrap()
+            .status,
+        NetDownloadStatus::Cancelled
+    );
 }

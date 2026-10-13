@@ -16,7 +16,7 @@ related_owner_reports:
   - zircon_runtime/193-runtime-module-service-registry-dependency-activation-unload-current-working-tree-review.md
   - zircon_runtime/194-runtime-event-message-observer-bus-current-working-tree-review.md
   - zircon_runtime/205-runtime-resource-lifecycle-load-ticket-cache-residency-generation-reload-cancellation-current-working-tree-review.md
-  - zircon_runtime/209-runtime-support-crates-contracts-math-resource-rhi-wgpu-workspace-boundary-device-lifecycle-product-integration-current-working-tree-review.md
+  - zircon_runtime/209-runtime-support-crates-contracts-math-resource-rhi-wgpu-workspace-boundary-device-lifecycle-product-integration.md
   - zircon_editor/270-editor-scene-viewport-runtime-render-scene-visibility-hzb-picking-surface-product-integration-current-working-tree-review.md
 related_code:
   - zircon_runtime_interface/src

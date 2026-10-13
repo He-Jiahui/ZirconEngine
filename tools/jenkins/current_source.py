@@ -75,23 +75,57 @@ def _git_selection(root: Path, paths: list[str]) -> tuple[set[str], set[str]]:
         raise JenkinsError("current_source_git_unavailable", "Cannot verify selected tracked and untracked source files") from error
 
 
+def _source_root(root: Path, value) -> Path:
+    """Admit a same-repository worktree as the byte source for this intake.
+
+    Repository identity stays bound to the canonical checkout, so a worktree may
+    supply source bytes without ever becoming the repository it is registered
+    against.  Sharing the checkout's Git common directory is what makes it the
+    same repository; a merely similar path would silently re-point the intake at
+    foreign content.  Managed worktrees live inside the checkout, so containment
+    is not evidence either way and is not tested.
+    """
+    if value in (None, ""):
+        return root
+    source = Path(value).absolute()
+    if source == root or not source.is_dir() or source.is_symlink():
+        raise JenkinsError("current_source_root_invalid",
+                           "Current source root must be a separate physical directory",
+                           details={"sourceRoot": str(source)})
+    completed = subprocess.run(["git", "-C", str(source), "rev-parse",
+                                "--path-format=absolute", "--git-common-dir"],
+                               capture_output=True, text=True, check=False)
+    if completed.returncode:
+        raise JenkinsError("current_source_root_invalid",
+                           "Current source root is not a Git worktree",
+                           details={"sourceRoot": str(source)})
+    if Path(completed.stdout.strip()).absolute() != (root / ".git"):
+        raise JenkinsError("current_source_root_mismatch",
+                           "Current source root belongs to a different repository",
+                           details={"sourceRoot": str(source)})
+    return source
+
+
 def _verify_current(root: Path, intent: Mapping) -> None:
-    if _head(root) != intent["baseHead"]:
+    source = _source_root(root, intent.get("sourceRoot"))
+    if _head(source) != intent["baseHead"]:
         raise JenkinsError("current_source_base_changed", "Current checkout HEAD differs from its registered base")
     expected = intent["currentHashes"]
-    tracked, untracked = _git_selection(root, list(expected))
+    tracked, untracked = _git_selection(source, list(expected))
     selected_untracked = {path for path, checksum in expected.items() if checksum is not None and path not in tracked}
     if selected_untracked != set(intent["untrackedPaths"]) or not selected_untracked <= untracked:
         raise JenkinsError("current_source_untracked_mismatch", "Explicit untracked files differ from Git's selected current closure")
     for path, checksum in expected.items():
-        target = root.joinpath(*path.split("/"))
+        target = source.joinpath(*path.split("/"))
+        # Relative paths are validated against the identity root; both roots
+        # share the same repository layout, so one canonical check covers both.
         canonical_path(root, path)
         if checksum is None:
             if path not in tracked or target.exists():
                 raise JenkinsError("current_source_deletion_invalid", "Null hashes may name only absent tracked files", details={"path": path})
         elif not target.is_file():
             raise JenkinsError("current_source_file_missing", "Selected source must be a present ordinary file", details={"path": path})
-        if _before_hash(root, path) != checksum:
+        if _before_hash(source, path) != checksum:
             raise JenkinsError("current_source_hash_mismatch", "Current source differs from its registered hash", details={"path": path})
 
 
@@ -123,6 +157,7 @@ def register_current_source(state, repo_root: Path, payload: dict, *, trusted_dr
     base = payload.get("baseHead")
     if not isinstance(base, str) or len(base) not in {40, 64} or any(c not in "0123456789abcdef" for c in base):
         raise JenkinsError("current_source_base_missing", "Current source requires an immutable Git base revision")
+    source = _source_root(root, payload.get("sourceRoot"))
     from .source.external_inputs import normalize_current
     supplied = {"schemaVersion": 1, "kind": "current-source", "identity": identity,
                 "repositoryRoot": str(root), "baseHead": base, "currentHashes": hashes,
@@ -131,6 +166,11 @@ def register_current_source(state, repo_root: Path, payload: dict, *, trusted_dr
                 "buildRoot": _build_root(root, payload.get("buildRoot")),
                 "runtimeOperationId": _runtime_binding(root, identity, payload),
                 "externalInputs": normalize_current(root, payload.get("externalInputs", []))}
+    # Recorded only when a worktree actually supplies the bytes: an ordinary
+    # checkout keeps the exact intent shape it has always had, so historical
+    # currentSourceRef digests stay verifiable.
+    if source != root:
+        supplied["sourceRoot"] = str(source)
     slot = digest([identity[key] for key in ("repositoryId", "sessionId", "requestId")])
     with _lock(root):
         authorization = _authorize(state, supplied)
@@ -162,6 +202,10 @@ def _load_intent(state, root: Path, payload: dict) -> tuple[str, dict]:
     intent = record["payload"]
     if intent["identity"] != _identity(payload) or intent["repositoryRoot"] != str(root.absolute()):
         raise JenkinsError("current_source_identity_mismatch", "Current-source intake belongs to another request or checkout")
+    # Re-admit the registered byte source on every load: it must still be a
+    # live worktree of this same repository, not merely the path it named once.
+    if intent.get("sourceRoot") and _source_root(root, intent["sourceRoot"]) != Path(intent["sourceRoot"]).absolute():
+        raise JenkinsError("current_source_root_changed", "Registered current-source worktree moved or changed identity")
     if payload.get("buildRoot") and _build_root(root, payload["buildRoot"]) != intent["buildRoot"]:
         raise JenkinsError("current_source_build_root_mismatch", "Current-source preparation must retain its build root")
     runtime = _runtime_binding(root, intent["identity"], payload)
@@ -228,7 +272,10 @@ def prepare_current_source(state, repo_root: Path, payload: dict, *, trusted_dri
                             0, checksum, 0, identity["repositoryId"])
                   for path, checksum in intent["currentHashes"].items()]
         object_root = canonical_build_root(intent["buildRoot"]).namespace()
-        manifest = seal_candidate(root, claims, object_root=object_root, base_head=intent["baseHead"])
+        # Identity comes from the canonical checkout; bytes come from the
+        # registered source root, which is the same repository by construction.
+        manifest = seal_candidate(root, claims, object_root=object_root, base_head=intent["baseHead"],
+                                  source_root=intent.get("sourceRoot"))
         plain = _thaw(manifest.payload)
         plain.update(preparationKind="current-source", validationCoverageDigest=digest(intent["coverage"]),
                      external=seal_external(intent["externalInputs"], object_root))
@@ -280,6 +327,30 @@ def submit_current_source(state, root: Path, payload: dict, *, transport=None, m
     runtime = _runtime_binding(root, identity, payload)
     parameters = {"currentSourceRef": reference, "attemptId": identity["attemptId"], "generation": "1",
                   "buildRoot": intent["buildRoot"], "stageImplementationDigest": identity["stageImplementationDigest"]}
+    # Authorization travels with the submission rather than being assumed by
+    # the pipeline: without these the flow reaches Acceptance and silently
+    # stops short of the commit stage, which reads as success.
+    authorization = payload.get("authorization")
+    if isinstance(authorization, Mapping):
+        if authorization.get("allowCommit") is True:
+            parameters["ALLOW_COMMIT"] = "true"
+            commit_token = authorization.get("commitAuthorization")
+            if not isinstance(commit_token, str) or not commit_token:
+                raise JenkinsError("commit_authorization_missing",
+                                   "Commit authorization requires its State scope identity")
+            parameters["COMMIT_AUTHORIZATION"] = commit_token
+        if authorization.get("allowNotify") is True:
+            parameters["ALLOW_NOTIFY"] = "true"
+            destination = authorization.get("notifyDestination")
+            if not isinstance(destination, str) or not destination:
+                raise JenkinsError("notification_destination_missing",
+                                   "Notification authorization requires its destination")
+            parameters["NOTIFY_DESTINATION"] = destination
+    # An absent marker keeps the long-standing "flow" namespace, so existing
+    # submissions retain their exact external delivery identity.
+    marker = payload.get("submissionRequestId")
+    if isinstance(marker, str) and marker:
+        parameters["submissionRequestId"] = marker
     fields = {"REPOSITORY_ID": identity["repositoryId"], "SESSION_ID": identity["sessionId"],
               "REQUEST_ID": identity["requestId"], "ATTEMPT_ID": identity["attemptId"], "GENERATION": "1",
               "CURRENT_SOURCE_REF": reference, "BUILD_ROOT": intent["buildRoot"],

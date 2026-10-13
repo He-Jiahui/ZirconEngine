@@ -7,7 +7,7 @@ implementation_status: source_candidate_pending_managed_validation
 validation_status: scratch_rustfmt_passed_managed_release_pending
 performance_status: product_gate_open
 record_target: docs/plans/optimize/zircon_runtime/214/2026-09-29-compile-timing-scope.md
-plan_source: docs/plans/optimize/zircon_runtime/214-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution-current-working-tree-review.md
+plan_source: docs/plans/optimize/zircon_runtime/214-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution.md
 candidate_id: runtime214-compile-timing
 ---
 
@@ -32,4 +32,4 @@ The harness retains its four graph shapes (chain, fanout, multi-writer, plugin-l
 
 G14 remains open. It needs same-source, same-scene product p50/p95/p99 render/graph-compile timing and allocator/RSS comparison, plus the selected product scene ID and deterministic camera workload, device/adapter/backend/driver profile, quality/render-scale/AA settings, and an explicit numeric ceiling. Render01 calls for three steady captures per scene, each aligned to same-frame PNG, RenderDoc RDC, and graph/profile sidecars, and records RenderGraph compile/cache, GPU frame, CPU render/RHI, RSS/VRAM p50/p95. Render17 specifies a fixed 1080p scene, separate cold/warm conditions, 60 warm-up frames, and at least 300 measured frames per sample. These references do not identify the G14 product scene/device or set its numeric ceiling. Their profile passages name p50/median and p95 but do not define the requested product p99 calculation/reporting. The synthetic compile scale lane cannot substitute for that product comparison.
 
-Profile/acceptance references: the Runtime214 master review's G14 row is at `docs/plans/optimize/zircon_runtime/214-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution-current-working-tree-review.md:319`; its global Render01 capture contract is at `docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md:597-600`; the Render17 frame sampling method is at `docs/plans/zircon_runtime/render/17/2026-08-11-render17-profiling-readiness-and-optimization-research.md:131-136`.
+Profile/acceptance references: the Runtime214 master review's G14 row is at `docs/plans/optimize/zircon_runtime/214-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution.md:319`; its global Render01 capture contract is at `docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md:597-600`; the Render17 frame sampling method is at `docs/plans/zircon_runtime/render/17/2026-08-11-render17-profiling-readiness-and-optimization-research.md:131-136`.

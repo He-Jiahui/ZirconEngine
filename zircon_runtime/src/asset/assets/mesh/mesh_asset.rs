@@ -239,6 +239,14 @@ impl MeshAsset {
     pub fn validate(&self) -> Result<(), MeshValidationError> {
         let vertex_count = self.vertex_count()?;
         validate_builtin_attribute_formats(&self.attributes)?;
+        for (vertex_index, position) in self.positions()?.iter().enumerate() {
+            if let Some(axis) = position.iter().position(|component| !component.is_finite()) {
+                return Err(MeshValidationError::NonFinitePosition { vertex_index, axis });
+            }
+        }
+        if RenderMeshBounds::try_from_positions(self.positions()?.iter().copied()).is_none() {
+            return Err(MeshValidationError::InvalidPositionBounds);
+        }
         for (name, values) in &self.attributes {
             if values.len() != vertex_count {
                 return Err(MeshValidationError::AttributeLengthMismatch {
@@ -367,8 +375,14 @@ impl MeshAsset {
     }
 
     pub fn bounds(&self) -> Result<RenderMeshBounds, MeshValidationError> {
-        self.positions()
-            .map(|positions| RenderMeshBounds::from_positions(positions.iter().copied()))
+        let positions = self.positions()?;
+        for (vertex_index, position) in positions.iter().enumerate() {
+            if let Some(axis) = position.iter().position(|value| !value.is_finite()) {
+                return Err(MeshValidationError::NonFinitePosition { vertex_index, axis });
+            }
+        }
+        RenderMeshBounds::try_from_positions(positions.iter().copied())
+            .ok_or(MeshValidationError::InvalidPositionBounds)
     }
 
     pub fn render_mesh_descriptor(&self) -> RenderMeshDescriptor {

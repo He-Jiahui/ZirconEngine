@@ -12,7 +12,7 @@ source_recheck_required: true
 canonical_owner: Editor29
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/29-input-action-mapping-context-binding-trigger-modifier-device-user-rebinding-accessibility-authoring-review.md
-  - docs/plans/optimize/zircon_editor/87-editor-input-action-mapping-context-binding-trigger-modifier-device-user-rebinding-accessibility-authoring-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/87-editor-input-action-mapping-context-binding-trigger-modifier-device-user-rebinding-accessibility-authoring.md
   - docs/plans/optimize/zircon_editor/103-editor-input-action-mapping-context-rebinding-accessibility-current-source-review.md
 related_code:
   - zircon_runtime/src/core/framework/input

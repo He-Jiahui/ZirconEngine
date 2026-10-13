@@ -416,6 +416,33 @@ fn raw(samples: &[u128]) -> String {
         .join(",")
 }
 
+#[test]
+fn discover_plugin_catalog_keeps_one_project_entry_for_duplicate_engine_id() {
+    let root = temp_repo_root("duplicate-plugin-id");
+    let project_root = root.join("project");
+    let engine_root = root.join("engine");
+    let project_plugin = project_root.join("Plugins").join("shared");
+    let engine_plugin = engine_root.join(PLUGINS_DIR).join("shared");
+    fs::create_dir_all(&project_plugin).unwrap();
+    fs::create_dir_all(&engine_plugin).unwrap();
+    let manifest = "id = \"shared.plugin\"\ndisplay_name = \"Shared\"\n";
+    fs::write(project_plugin.join(PLUGIN_MANIFEST_FILE), manifest).unwrap();
+    fs::write(engine_plugin.join(PLUGIN_MANIFEST_FILE), manifest).unwrap();
+
+    let entries =
+        discover_plugin_catalog_with_project_roots([project_root], [engine_root]).unwrap();
+    fs::remove_dir_all(root).unwrap();
+
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].id, "shared.plugin");
+    assert_eq!(entries[0].scope, PROJECT_PLUGIN_SCOPE);
+    assert!(
+        entries[0]
+            .manifest_path
+            .ends_with("Plugins/shared/plugin.toml")
+    );
+}
+
 fn temp_repo_root(label: &str) -> PathBuf {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)

@@ -2,7 +2,7 @@
 
 - Date: 2026-08-20
 - Owner: `optimize-runtime60-unique-entity-validation-r1-01a00797-20260820`
-- Source plan: `docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event-product-integration-review.md`, RECS-P1-18
+- Source plan: `docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event.md`, RECS-P1-18
 - Status: implementation complete; combined managed validation pending
 
 ## Problem

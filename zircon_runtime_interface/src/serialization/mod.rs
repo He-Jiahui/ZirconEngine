@@ -1,3 +1,9 @@
+//! 带版本的文本/二进制载荷、迁移和边界检查的统一接口。
+//!
+//! 调用方通过 [`VersionedSchema`] 声明持久载荷身份及迁移链，再以 [`load_versioned`]
+//! 等入口读取；模块内的格式实现负责验证 envelope、限制输入并将旧版本迁移到当前类型。
+//! Runtime、Editor 和接口 crate 自己的持久化文档都经由本模块导出的契约接入。
+
 #[path = "binary/mod.rs"]
 mod binary;
 #[path = "budget.rs"]

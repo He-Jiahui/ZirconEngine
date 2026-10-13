@@ -106,11 +106,9 @@ impl ExportPreset {
     }
 
     /// 供预设读写入口做初步校验；成功不代表 profile、资源和输出路径已满足执行约束。
-    // BUG: [CR-EXPORT-0001] profile_ref 可含 .. 路径段；PlatformBundle 以它拼接目录并清理旧包，
-    // 可能递归删除输出根外路径。需统一限制 profile 名并在删除前核验路径归属。
     pub fn validate(&self) -> Result<(), ExportPresetValidationError> {
-        if self.profile_ref.trim().is_empty() {
-            return Err(ExportPresetValidationError::EmptyProfileRef);
+        if !valid_export_profile_name(&self.profile_ref) {
+            return Err(ExportPresetValidationError::InvalidProfileRef);
         }
         if let Some(subset) = &self.plugin_subset {
             let mut package_ids = BTreeSet::new();
@@ -129,6 +127,19 @@ impl ExportPreset {
     }
 }
 
+pub fn valid_export_profile_name(value: &str) -> bool {
+    let upper = value.to_ascii_uppercase();
+    let reserved_device = matches!(upper.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || ["COM", "LPT"].iter().any(|prefix| {
+            (1..=9).any(|index| upper == format!("{prefix}{index}"))
+        });
+    !value.is_empty()
+        && !reserved_device
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+}
+
 impl VersionedSchema for ExportPreset {
     const SCHEMA: SchemaId = SchemaId::new("zircon.export-preset");
     const VERSION: u32 = 0;
@@ -141,7 +152,7 @@ impl VersionedSchema for ExportPreset {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExportPresetValidationError {
-    EmptyProfileRef,
+    InvalidProfileRef,
     EmptyPluginPackageId,
     DuplicatePluginPackageId { package_id: String },
 }
@@ -149,7 +160,9 @@ pub enum ExportPresetValidationError {
 impl fmt::Display for ExportPresetValidationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::EmptyProfileRef => formatter.write_str("export preset profile_ref is empty"),
+            Self::InvalidProfileRef => formatter.write_str(
+                "export preset profile_ref must contain only ASCII letters, digits, '_' or '-'",
+            ),
             Self::EmptyPluginPackageId => {
                 formatter.write_str("export preset plugin subset contains an empty package id")
             }

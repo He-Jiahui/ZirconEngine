@@ -274,5 +274,8 @@ fn visbuffer_mark_color(cluster_id: u32, page_id: u32, lod_level: u8) -> [u8; 4]
 }
 
 #[cfg(test)]
+#[path = "tests/virtual_geometry_submission.rs"]
+mod submission_tests;
+#[cfg(test)]
 #[path = "tests/virtual_geometry_snapshot.rs"]
 mod tests;

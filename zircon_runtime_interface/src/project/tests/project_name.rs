@@ -25,8 +25,13 @@ fn project_name_rejects_paths_prefixes_reserved_names_and_windows_tail_aliases()
         " Game",
         "CON",
         "con.txt",
+        "CONIN$",
+        "CONOUT$",
         "LPT1",
         "COM9.log",
+        "COM¹",
+        "com².txt",
+        "LPT³.data",
         "bad:name",
         "bad*name",
     ] {

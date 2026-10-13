@@ -108,6 +108,14 @@ impl EventStore {
             .and_then(|channel| channel.reader_leases.acquire(event_type_id))
     }
 
+    pub(crate) fn reader_registry(
+        &self,
+        event_type_id: EventTypeId,
+    ) -> Option<&Arc<EventReaderLeaseRegistry>> {
+        self.channel(event_type_id)
+            .map(|channel| &channel.reader_leases)
+    }
+
     pub fn disconnect_reader(&mut self, lease: &mut EventReaderLease) -> bool {
         let Some(channel) = self.channel(lease.event_type_id()) else {
             return false;

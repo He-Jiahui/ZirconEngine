@@ -286,7 +286,13 @@ function validateProjectionIdentityMap(
   baseline: ZuiDocument,
   canonicalSources: Readonly<Record<string, string>>,
 ): void {
-  const nodeIds = Object.keys(baseline.nodes ?? {});
+  const nodeIds = Object.entries(baseline.nodes ?? {})
+    .filter(([, node]) => !(node.component === 'Separator' &&
+      node.props?.['penpot_generated_host_structure'] === true &&
+      node['penpot_review_source_path'] === undefined &&
+      node['penpot_review_source_node_id'] === undefined &&
+      node['penpot_review_instance_path'] === undefined))
+    .map(([nodeId]) => nodeId);
   const identityIds = manifest.identityMap.map(({ exportNodeId }) => exportNodeId);
   if (
     nodeIds.length !== identityIds.length ||

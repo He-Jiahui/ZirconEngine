@@ -19,12 +19,17 @@ pub(crate) struct SceneScheduleStagePlan {
 }
 
 impl SceneScheduleStagePlan {
-    // BUG: [CR-SCENE-ECS-0002] 反序列化 Schedule 可带重复 stage；此处逐项编入同一阶段桶，WorldDriver 又逐项执行，导致系统重复运行。
     /// 将当前注册表编成阶段内拓扑顺序、命令 barrier 和冲突图；WorldDriver 只读此快照执行。
     pub(crate) fn from_registry(
         stages: &[SystemStage],
         registry: &SceneSystemRegistry,
     ) -> Result<Self, ScheduleError> {
+        let mut seen_stages = [false; SystemStage::COUNT];
+        for stage in stages {
+            if std::mem::replace(&mut seen_stages[stage.rank()], true) {
+                return Err(ScheduleError::DuplicateStage(*stage));
+            }
+        }
         let systems = registry.systems();
         let plan_systems = registry.plan_systems();
         for system in plan_systems {

@@ -15,120 +15,47 @@ LEGACY_THEME_ASSET_ALLOWLIST = {
 }
 CHROME_PROJECTION = REPO_ROOT / (
     "zircon_editor/src/ui/layouts/windows/window/"
-    "chrome_template_projection.rs"
+    "projection.rs"
 )
 MENU_POINTER_PROJECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/menu_pointer/"
+    "zircon_editor/src/ui/retained/menu_pointer/"
     "build_host_menu_pointer_layout.rs"
 )
 ACTIVITY_RAIL_PROJECTION = REPO_ROOT / (
     "zircon_editor/src/ui/layouts/windows/window/"
-    "chrome_template_projection/activity_rail.rs"
+    "projection/activity_rail.rs"
 )
 DOCK_HEADER_PROJECTION = REPO_ROOT / (
     "zircon_editor/src/ui/layouts/windows/window/"
-    "chrome_template_projection/dock_header.rs"
+    "projection/dock_header.rs"
 )
 SIDE_DOCK_HEADER_PROJECTION = REPO_ROOT / (
     "zircon_editor/src/ui/layouts/windows/window/"
-    "chrome_template_projection/dock_header/side.rs"
+    "projection/dock_header/side.rs"
 )
 MENU_CHROME_PROJECTION = REPO_ROOT / (
     "zircon_editor/src/ui/layouts/windows/window/"
-    "chrome_template_projection/menu_chrome.rs"
+    "projection/menu_chrome.rs"
 )
 PAGE_TAB_PROJECTION = REPO_ROOT / (
     "zircon_editor/src/ui/layouts/windows/window/"
-    "chrome_template_projection/page_tabs.rs"
+    "projection/page_tabs.rs"
 )
 RETAINED_SURFACE_VARIANTS = REPO_ROOT / (
     "zircon_editor/src/ui/retained/contract/paint/"
-    "template_style/colors/surface/variants.rs"
+    "style/colors/surface/variants.rs"
 )
 MENU_POPUP_CONTRACT = REPO_ROOT / (
     "zircon_editor/src/ui/retained/menu_popup_contract.rs"
 )
 
-HOST_CHROME_CLASSES = {
-    "workbench_activity_rail.zui": {
-        "activity_rail_root": "workbench-shell-root",
-        "activity_rail_panel": "workbench-rail",
-        "activity_rail_button_0": "workbench-rail-button",
-        "activity_rail_button_1": "workbench-rail-button",
-    },
-    "workbench_dock_header.zui": {
-        "dock_header_root": "workbench-shell-root",
-        "dock_header_bar": "workbench-tabs",
-        "dock_tab_0": "workbench-tab",
-        "dock_tab_close_0": "workbench-icon-button",
-        "dock_tab_1": "workbench-tab",
-        "dock_tab_close_1": "workbench-icon-button",
-        "dock_tab_2": "workbench-tab",
-    },
-    "workbench_menu_chrome.zui": {
-        "workbench_menu_chrome_root": "workbench-shell-root",
-        "workbench_menu_top_bar": "workbench-topbar",
-        "workbench_menu_separator": "workbench-divider",
-        **{
-            f"workbench_menu_slot_{index}": "workbench-tab"
-            for index in range(7)
-        },
-    },
-    "workbench_menu_popup.zui": {
-        "workbench_menu_popup_panel": "workbench-popup-menu",
-        **{
-            f"workbench_menu_popup_item_row_{index}": "workbench-list-row"
-            for index in range(16)
-        },
-    },
-    "workbench_page_chrome.zui": {
-        "workbench_page_chrome_root": "workbench-shell-root",
-        "workbench_page_bar": "workbench-tabs",
-        "workbench_page_tab_0": "workbench-tab",
-        "workbench_page_tab_close_0": "workbench-icon-button",
-        "workbench_page_tab_1": "workbench-tab",
-        "workbench_page_tab_close_1": "workbench-icon-button",
-        "workbench_page_tab_2": "workbench-tab",
-        "workbench_page_tab_close_2": "workbench-icon-button",
-    },
-    "workbench_status_bar.zui": {
-        "workbench_status_bar_root": "workbench-shell-root",
-        "workbench_status_bar_separator": "workbench-divider",
-        "workbench_status_bar_panel": "workbench-status",
-        "status_primary_label": "workbench-status-item",
-        "status_secondary_label": "workbench-status-item",
-        "status_viewport_label": "workbench-status-item",
-    },
-}
+HOST_CHROME_CLASSES = {'workbench_activity_rail.zui': {'activity_rail_root': 'workbench-shell-root', 'activity_rail_panel': 'workbench-rail', 'activity_rail_button_0': 'workbench-rail-button', 'activity_rail_button_1': 'workbench-rail-button'}, 'workbench_menu_popup.zui': {'workbench_menu_popup_panel': 'workbench-popup-menu', 'workbench_menu_popup_item_row_0': 'workbench-list-row', 'workbench_menu_popup_item_row_1': 'workbench-list-row', 'workbench_menu_popup_item_row_2': 'workbench-list-row', 'workbench_menu_popup_item_row_3': 'workbench-list-row', 'workbench_menu_popup_item_row_4': 'workbench-list-row', 'workbench_menu_popup_item_row_5': 'workbench-list-row', 'workbench_menu_popup_item_row_6': 'workbench-list-row', 'workbench_menu_popup_item_row_7': 'workbench-list-row', 'workbench_menu_popup_item_row_8': 'workbench-list-row', 'workbench_menu_popup_item_row_9': 'workbench-list-row', 'workbench_menu_popup_item_row_10': 'workbench-list-row', 'workbench_menu_popup_item_row_11': 'workbench-list-row', 'workbench_menu_popup_item_row_12': 'workbench-list-row', 'workbench_menu_popup_item_row_13': 'workbench-list-row', 'workbench_menu_popup_item_row_14': 'workbench-list-row', 'workbench_menu_popup_item_row_15': 'workbench-list-row'}, 'unreal/components/host_menu_bar.zui': {'workbench_menu_chrome_root': 'unreal-menu-bar', 'workbench_menu_top_bar': 'unreal-menu-bar', 'workbench_menu_separator': 'unreal-divider', 'workbench_menu_slot_0': 'unreal-control', 'workbench_menu_slot_1': 'unreal-control', 'workbench_menu_slot_2': 'unreal-control', 'workbench_menu_slot_3': 'unreal-control', 'workbench_menu_slot_4': 'unreal-control', 'workbench_menu_slot_5': 'unreal-control', 'workbench_menu_slot_6': 'unreal-control'}, 'unreal/components/host_page_tabs.zui': {'workbench_page_chrome_root': 'unreal-editor-main', 'workbench_page_bar': 'unreal-page-tabs', 'workbench_page_tab_0': 'unreal-major-tab', 'workbench_page_tab_close_0': 'unreal-major-tab-close', 'workbench_page_tab_1': 'unreal-major-tab', 'workbench_page_tab_close_1': 'unreal-major-tab-close', 'workbench_page_tab_2': 'unreal-major-tab', 'workbench_page_tab_close_2': 'unreal-major-tab-close'}, 'unreal/components/host_status_bar.zui': {'workbench_status_bar_root': 'unreal-status-bar', 'workbench_status_bar_separator': 'unreal-divider', 'workbench_status_bar_panel': 'unreal-status-bar', 'status_primary_label': 'unreal-status-label', 'status_secondary_label': 'unreal-status-label', 'status_viewport_label': 'unreal-status-label'}, 'unreal/components/dock_header.zui': {'dock_header_root': 'unreal-editor-shell', 'dock_header_bar': 'unreal-dock', 'dock_subtitle': 'unreal-status-label', 'dock_tab_group_0': 'unreal-dock-tab', 'dock_tab_0': 'unreal-dock-tab-label', 'dock_tab_close_0': 'unreal-icon-control', 'dock_tab_group_1': 'unreal-dock-tab', 'dock_tab_1': 'unreal-dock-tab-label', 'dock_tab_close_1': 'unreal-icon-control', 'dock_tab_group_2': 'unreal-dock-tab', 'dock_tab_2': 'unreal-dock-tab-label'}}
 
-QUIET_ROUNDED_NODES = {
-    "workbench_activity_rail.zui": {
-        "activity_rail_button_0",
-        "activity_rail_button_1",
-    },
-    "workbench_dock_header.zui": {
-        "dock_tab_0",
-        "dock_tab_close_0",
-        "dock_tab_1",
-        "dock_tab_close_1",
-        "dock_tab_2",
-    },
-    "workbench_menu_chrome.zui": {
-        f"workbench_menu_slot_{index}" for index in range(7)
-    },
-    "workbench_menu_popup.zui": {
-        f"workbench_menu_popup_item_row_{index}" for index in range(16)
-    },
-    "workbench_page_chrome.zui": {
-        "workbench_page_tab_0",
-        "workbench_page_tab_close_0",
-        "workbench_page_tab_1",
-        "workbench_page_tab_close_1",
-        "workbench_page_tab_2",
-        "workbench_page_tab_close_2",
-    },
-}
+QUIET_ROUNDED_NODES = {'workbench_activity_rail.zui': {'activity_rail_button_1', 'activity_rail_button_0'}, 'workbench_menu_popup.zui': {'workbench_menu_popup_item_row_12', 'workbench_menu_popup_item_row_15', 'workbench_menu_popup_item_row_9', 'workbench_menu_popup_item_row_10', 'workbench_menu_popup_item_row_1', 'workbench_menu_popup_item_row_3', 'workbench_menu_popup_item_row_13', 'workbench_menu_popup_item_row_2', 'workbench_menu_popup_item_row_7', 'workbench_menu_popup_item_row_4', 'workbench_menu_popup_item_row_8', 'workbench_menu_popup_item_row_11', 'workbench_menu_popup_item_row_5', 'workbench_menu_popup_item_row_6', 'workbench_menu_popup_item_row_14', 'workbench_menu_popup_item_row_0'}}
 
+UNREAL_THEME = "res://ui/editor/unreal/starship.zui"
+UNREAL_ASSETS = ('unreal/components/host_menu_bar.zui', 'unreal/components/host_page_tabs.zui', 'unreal/components/host_status_bar.zui', 'unreal/components/dock_header.zui')
+UNREAL_TOKENS = tomllib.loads((ASSET_ROOT / "unreal/starship.zui").read_text(encoding="utf-8"))["tokens"]
 
 def load_document(asset_name: str) -> dict:
     with (ASSET_ROOT / asset_name).open("rb") as source:
@@ -143,10 +70,13 @@ def rust_f32_constant(source: str, name: str) -> float:
 
 
 class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
-    def test_live_host_chrome_uses_one_strict_theme_authority(self):
+    def test_live_host_chrome_uses_its_current_theme_authority(self):
         for asset_name in HOST_CHROME_CLASSES:
             imports = load_document(asset_name)["imports"]
-            self.assertEqual([STRICT_THEME], imports["styles"], asset_name)
+            self.assertEqual([UNREAL_THEME if asset_name in UNREAL_ASSETS else STRICT_THEME], imports["styles"], asset_name)
+
+        for retired in ('workbench_menu_chrome.zui', 'workbench_page_chrome.zui', 'workbench_status_bar.zui', 'workbench_dock_header.zui'):
+            self.assertFalse((ASSET_ROOT / retired).exists(), retired)
 
         legacy_consumers = {
             path.name
@@ -158,7 +88,7 @@ class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
         }
         self.assertEqual(LEGACY_THEME_ASSET_ALLOWLIST, legacy_consumers)
 
-    def test_live_host_chrome_uses_workbench_semantic_style_roles(self):
+    def test_live_host_chrome_uses_current_semantic_style_roles(self):
         for asset_name, expected_classes in HOST_CHROME_CLASSES.items():
             nodes = load_document(asset_name)["nodes"]
             for node_name, expected_class in expected_classes.items():
@@ -176,14 +106,14 @@ class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
         )
 
         for asset_name in (
-            "workbench_dock_header.zui",
-            "workbench_page_chrome.zui",
+            "unreal/components/dock_header.zui",
+            "unreal/components/host_page_tabs.zui",
         ):
             nodes = load_document(asset_name)["nodes"]
             for node_name, node in nodes.items():
                 if "tab_close" in node_name:
                     self.assertIn(
-                        "workbench-quiet-action",
+                        ("unreal-icon-control" if "dock_header" in asset_name else "unreal-major-tab-close"),
                         node.get("classes", []),
                         f"{asset_name}:{node_name}",
                     )
@@ -194,7 +124,10 @@ class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
             for node_name, node in nodes.items():
                 props = node.get("props", {})
                 font_size = props.get("font_size")
-                if font_size is not None:
+                if font_size is not None and asset_name in UNREAL_ASSETS:
+                    resolved = UNREAL_TOKENS.get(font_size[1:]) if isinstance(font_size, str) and font_size.startswith("$") else font_size
+                    self.assertIn(resolved, (UNREAL_TOKENS["unreal_font_size"], UNREAL_TOKENS["unreal_font_small_size"]), f"{asset_name}:{node_name}:font_size")
+                elif font_size is not None:
                     self.assertIsInstance(
                         font_size, str, f"{asset_name}:{node_name}:font_size"
                     )
@@ -270,7 +203,7 @@ class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
         self.assertGreaterEqual(projection.count("&[]"), 2)
         self.assertGreaterEqual(menu_pointer.count("&[]"), 2)
 
-    def test_fallback_host_chrome_keeps_quiet_controls_rounded(self):
+    def test_fallback_host_chrome_keeps_unreal_controls_flat(self):
         sources = {
             path.name: path.read_text(encoding="utf-8")
             for path in (
@@ -282,6 +215,8 @@ class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
                 PAGE_TAB_PROJECTION,
             )
         }
+
+        self.assertRegex(sources[CHROME_PROJECTION.name], r"fn fallback_chrome_control_radius\(\) -> f32 \{\s*0\.0\s*\}")
 
         for source_name, source in sources.items():
             self.assertNotIn(
@@ -297,7 +232,7 @@ class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
             self.assertIn(
                 "corner_radius: fallback_chrome_control_radius(),",
                 source,
-                f"{source_name} fallback controls must use the shared small radius",
+                f"{source_name} fallback controls must use the shared flat radius",
             )
 
         self.assertIn(
@@ -310,7 +245,7 @@ class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
         projection = CHROME_PROJECTION.read_text(encoding="utf-8")
         authored_tests = (
             CHROME_PROJECTION.parent
-            / "chrome_template_projection/tests/authored_projection.rs"
+            / "tests/authored_projection.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn("page_chrome_stencil_matches_dynamic_layout(", projection)
@@ -327,7 +262,7 @@ class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
         projection = CHROME_PROJECTION.read_text(encoding="utf-8")
         authored_tests = (
             CHROME_PROJECTION.parent
-            / "chrome_template_projection/tests/authored_projection.rs"
+            / "tests/authored_projection.rs"
         ).read_text(encoding="utf-8")
         predicate = projection.split("fn tab_chrome_needs_fallback(", 1)[1].split(
             "#[cfg(test)]", 1
@@ -347,7 +282,7 @@ class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
         side_projection = SIDE_DOCK_HEADER_PROJECTION.read_text(encoding="utf-8")
         authored_tests = (
             CHROME_PROJECTION.parent
-            / "chrome_template_projection/tests/authored_projection.rs"
+            / "tests/authored_projection.rs"
         ).read_text(encoding="utf-8")
         predicate = projection.split("fn tab_chrome_needs_fallback(", 1)[1].split(
             "#[cfg(test)]", 1
@@ -371,7 +306,7 @@ class EditorZuiHostChromeStyleContractTests(unittest.TestCase):
         dock_projection = DOCK_HEADER_PROJECTION.read_text(encoding="utf-8")
         authored_tests = (
             CHROME_PROJECTION.parent
-            / "chrome_template_projection/tests/authored_projection.rs"
+            / "tests/authored_projection.rs"
         ).read_text(encoding="utf-8")
 
         self.assertIn('DOCK_TAB_OVERFLOW_CONTROL_ID: &str = "DockTabOverflow"', projection)

@@ -207,6 +207,16 @@ fn screen_space_ui_analytic_quad_scissor_includes_the_coverage_fringe() {
 }
 
 #[test]
+fn screen_space_ui_scissor_rounds_fractional_edges_outward() {
+    let scissor = frame_to_scissor(UiFrame::new(0.75, 0.75, 1.0, 1.0))
+        .expect("positive fractional frame has pixel coverage");
+    assert_eq!(
+        (scissor.x, scissor.y, scissor.width, scissor.height),
+        (0, 0, 2, 2)
+    );
+}
+
+#[test]
 fn screen_space_ui_analytic_scissor_stays_inside_parent_clip() {
     let plan = plan_screen_space_ui_batches(
         &UiRenderExtract {

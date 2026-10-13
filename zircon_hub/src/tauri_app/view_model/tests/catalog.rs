@@ -75,6 +75,9 @@ fn hub03_plugin_maturity_tone_does_not_parse_only_english_display_copy() {
     assert_eq!(plugin_maturity_tone("STABLE"), "success");
     assert_eq!(plugin_maturity_tone("稳定"), "success");
     assert_eq!(plugin_maturity_tone("preview"), "warning");
+    assert_eq!(plugin_maturity_tone("experimental"), "warning");
+    assert_eq!(plugin_maturity_tone("unstable"), "warning");
+    assert_eq!(plugin_maturity_tone("pre-stable"), "warning");
 }
 
 #[test]

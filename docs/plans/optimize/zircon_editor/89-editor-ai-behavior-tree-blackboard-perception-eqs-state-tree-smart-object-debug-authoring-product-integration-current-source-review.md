@@ -19,7 +19,7 @@ related_code:
 plan_sources:
   - docs/plans/optimize/zircon_editor/20-ai-behavior-tree-blackboard-perception-eqs-debug-authoring-review.md
   - docs/plans/optimize/zircon_runtime/08f-ai-behavior-tree-blackboard-perception-runtime-review.md
-  - docs/plans/optimize/zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor.md
   - docs/plans/zircon_plugins/06-ai.md
   - docs/plans/zircon_plugins/06/2026-07-28-ai-m5-editor-debug-validation-manifest.md
 reference_engines:

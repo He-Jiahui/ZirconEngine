@@ -11,7 +11,7 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/114-editor-procedural-content-generation-rule-graph-biome-world-generation-current-source-review.md
 related_runtime_owners:
   - docs/plans/optimize/zircon_runtime/99zq-runtime-terrain-landscape-heightfield-clipmap-quadtree-lod-material-layer-virtual-texture-foliage-world-partition-physics-navigation-editor-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/99zv-runtime-vegetation-tree-foliage-grass-species-instancing-wind-animation-billboard-impostor-lod-streaming-scalability-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zv-runtime-vegetation-tree-foliage-grass-species-instancing-wind-animation-billboard-impostor-lod-streaming-scalability-editor.md
 related_editor_owners:
   - docs/plans/optimize/zircon_editor/138-editor-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-current-source-review.md
   - docs/plans/optimize/zircon_editor/149-editor-spawn-rules-encounter-population-world-state-scenario-quest-authority-current-source-review.md

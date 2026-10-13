@@ -40,7 +40,11 @@ fn is_windows_unsafe_component(component: &str) -> bool {
 
     // Windows strips trailing spaces and periods before resolving a path component.
     let normalized = component.trim_end_matches([' ', '.']);
-    let device_stem = normalized.split('.').next().unwrap_or_default();
+    let device_stem = normalized
+        .split('.')
+        .next()
+        .unwrap_or_default()
+        .trim_end_matches([' ', '.']);
     let device_stem = device_stem.to_ascii_uppercase();
     matches!(device_stem.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
         || ["COM", "LPT"].iter().any(|prefix| {

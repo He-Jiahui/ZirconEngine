@@ -35,8 +35,8 @@ tests:
   - zircon_app/src/entry/tests/runtime_entry_window_lifecycle_guards
 plan_sources:
   - docs/plans/optimize/zircon_runtime/57-platform-host-window-registry-monitor-display-event-loop-application-lifecycle-surface-command-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/99q-runtime-platform-host-window-registry-monitor-display-event-loop-application-lifecycle-surface-command-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99q-runtime-platform-host-window-registry-monitor-display-event-loop-application-lifecycle-surface-command.md
+  - docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
   - docs/plans/optimize/zircon_runtime/103-runtime-clock-time-policy-world-fixed-step-timer-cadence-current-source-review.md
   - docs/plans/optimize/zircon_runtime/157-runtime-core-module-lifecycle-registry-service-resolution-shutdown-current-source-review.md
   - docs/plans/optimize/zircon_runtime/42-builtin-runtime-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report-product-integration-review.md

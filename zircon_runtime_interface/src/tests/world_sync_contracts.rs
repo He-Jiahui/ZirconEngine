@@ -1,3 +1,8 @@
+//! WorldSync DTO 的线级形状、往返序列化、代数短路和稳定排序契约。
+//!
+//! 这些测试只验证接口 crate 的传输结构；Runtime 的订阅匹配、Editor 的 token 投影以及
+//! 动态库 ABI 入口另由各自 crate 的测试覆盖。
+
 use std::collections::BTreeMap;
 
 use crate::math::{Quat, Transform, Vec3};
@@ -13,6 +18,7 @@ fn json_round_trip<T>(value: &T) -> T
 where
     T: serde::Serialize + serde::de::DeserializeOwned,
 {
+    // 通过真实 JSON 字节往返，避免只比较 Serde 中间 Value 而漏掉编码或解码边界。
     serde_json::from_str(&serde_json::to_string(value).unwrap()).unwrap()
 }
 

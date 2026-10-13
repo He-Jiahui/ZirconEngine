@@ -12,7 +12,7 @@ related_reports:
   - docs/plans/optimize/zircon_runtime/07/2026-08-26-vm-slot-invocation-lease-architecture-and-profile-plan.md
   - docs/plans/optimize/zircon_runtime/07/2026-08-28-typed-catalog-generation-identity.md
   - docs/plans/optimize/zircon_runtime/46-engine-module-service-contract-context-factory-descriptor-snapshot-composition-lifecycle-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/99zj-runtime-engine-module-service-contract-context-factory-descriptor-snapshot-composition-lifecycle-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zj-runtime-engine-module-service-contract-context-factory-descriptor-snapshot-composition-lifecycle.md
   - docs/plans/optimize/zircon_runtime/99p-runtime-plugin-interface-bridge-slot-generation-strong-weak-native-vm-lifecycle-diagnostics-product-integration-current-source-review.md
   - docs/plans/optimize/zircon_plugins/01-plugin-sdk-package-catalog-distribution-native-abi-review.md
   - docs/plans/optimize/zircon_plugins/16-first-party-zr-vm-language-source-runtime-dist-catalog-reflection-callsite-host-interface-gc-hot-reload-product-integration-review.md

@@ -46,7 +46,7 @@ class RuntimeArchetypeTopologyEqualityContractTests(unittest.TestCase):
             "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
             "docs/plans/engine-code-structure-convention.md",
             "docs/plans/engine-code-review-findings-2026-06.md",
-            "docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event-product-integration-review.md",
+            "docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event.md",
         )
         for relative_path in mirrors:
             plan = (repo_root / relative_path).read_text(encoding="utf-8")

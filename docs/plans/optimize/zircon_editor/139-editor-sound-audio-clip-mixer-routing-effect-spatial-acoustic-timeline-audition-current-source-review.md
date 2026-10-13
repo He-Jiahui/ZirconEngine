@@ -10,7 +10,7 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/93-editor-sound-audio-clip-mixer-routing-effect-spatial-acoustic-timeline-audition-product-integration-current-source-review.md
 related_runtime_owner:
   - docs/plans/optimize/zircon_runtime/08b-audio-runtime-review.md
-  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor.md
 related_editor_owners:
   - docs/plans/optimize/zircon_editor/02-document-transaction-save-autosave-recovery-review.md
   - docs/plans/optimize/zircon_editor/04-asset-index-import-reimport-catalog-thumbnail-reference-workflow-review.md

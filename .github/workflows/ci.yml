@@ -16,16 +16,17 @@ jobs:
     # local-cargo requires a physical D/E/F build root and 35 GiB free.
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: D:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: D:\cargo-targets\zircon-local\cache\rustup
-      TEMP: D:\cargo-targets\zircon-local\tmp
-      TMP: D:\cargo-targets\zircon-local\tmp
+      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
+      TEMP: E:\cargo-targets\zircon-local\tmp
+      TMP: E:\cargo-targets\zircon-local\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\wasm\ci\target
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@v5
       - name: Prepare physical output roots
         shell: pwsh
-        run: New-Item -ItemType Directory -Force -Path $env:CARGO_HOME, $env:RUSTUP_HOME, $env:TEMP | Out-Null
+        run: ./.github/scripts/prepare-cargo-roots.ps1
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -37,7 +38,7 @@ jobs:
         run: python -B tools/audits/check_runtime_dependency_boundaries.py --text
       - name: Compile portable core for the real Wasm target
         shell: pwsh
-        run: ./tools/dev/local-cargo.ps1 -PythonInterpreter (Get-Command python).Source -TargetDir D:\cargo-targets\zircon-local\wasm\ci\target check -p zircon_runtime --lib --no-default-features --features core-min --target wasm32-unknown-unknown --locked
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check -p zircon_runtime --lib --no-default-features --features core-min --target wasm32-unknown-unknown --locked
 
   dependency-governance:
     name: Dependency governance (${{ matrix.manifest }})
@@ -86,16 +87,20 @@ jobs:
     # Cargo output and toolchain caches must stay on the physical D: cargo root.
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\cargo-home
-      RUSTUP_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\rustup
-      TEMP: D:\\cargo-targets\\zircon-local\\tmp
-      TMP: D:\\cargo-targets\\zircon-local\\tmp
-      CARGO_TARGET_DIR: D:\\cargo-targets\\zircon-local\\ci\\profile-${{ matrix.profile }}\\target
+      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
+      TEMP: E:\cargo-targets\zircon-local\tmp
+      TMP: E:\cargo-targets\zircon-local\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\profile-${{ matrix.profile }}\target
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
+
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@1.94.1
@@ -107,11 +112,11 @@ jobs:
     name: Runtime additive domain (${{ matrix.feature }})
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\cargo-home
-      RUSTUP_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\rustup
-      TEMP: D:\\cargo-targets\\zircon-local\\tmp
-      TMP: D:\\cargo-targets\\zircon-local\\tmp
-      CARGO_TARGET_DIR: D:\\cargo-targets\\zircon-local\\ci\\domain-${{ matrix.feature }}\\target
+      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
+      TEMP: E:\cargo-targets\zircon-local\tmp
+      TMP: E:\cargo-targets\zircon-local\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\domain-${{ matrix.feature }}\target
     strategy:
       fail-fast: false
       matrix:
@@ -131,6 +136,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
@@ -144,11 +153,11 @@ jobs:
     name: Rust build & test
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\cargo-home
-      RUSTUP_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\rustup
-      TEMP: D:\\cargo-targets\\zircon-local\\tmp
-      TMP: D:\\cargo-targets\\zircon-local\\tmp
-      CARGO_TARGET_DIR: D:\\cargo-targets\\zircon-local\\ci\\rust\\target
+      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
+      TEMP: E:\cargo-targets\zircon-local\tmp
+      TMP: E:\cargo-targets\zircon-local\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\rust\target
     steps:
       - uses: actions/checkout@v5
 
@@ -162,11 +171,15 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1
+
       - name: Cache cargo registry
         uses: Swatinem/rust-cache@v2
 
       - name: Test convention runner
-        run: python -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
+        run: python -B -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
 
       - name: Test Cargo test-reachability guard
         run: python -m unittest tools.tests.test_validate_cargo_test_reachability -v
@@ -181,13 +194,29 @@ jobs:
         run: python -B tools/audits/separate_rust_tests.py --check
 
       - name: Run convention gates
-        run: python tools/audits/check_conventions.py --json
+        run: >-
+          python tools/audits/check_conventions.py --json
+          --only docs --only guards --only exemptions --only layering --only structure
+
+      - name: Check engine source path budget
+        run: python -B -m unittest tools.tests.test_path_names -v
+
+      - name: Audit engine source path budget
+        run: python -B tools/audits/path_names.py --summary
+
+      - name: Check Rust formatting
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 fmt --all -- --check
 
       - name: Build workspace
-        run: cargo build --workspace --locked --verbose
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo build --workspace --locked --verbose
 
       - name: Run unit tests
-        run: cargo test --workspace --locked --verbose
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo test --workspace --locked --verbose
+
+      - name: Run Clippy with warnings denied
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Check plugin workspace
         run: cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --verbose
@@ -195,14 +224,180 @@ jobs:
       - name: Build plugin workspace
         run: cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
 
+      - name: Check plugin workspace formatting
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 fmt --manifest-path zircon_plugins/Cargo.toml --all -- --check
+
+      - name: Run plugin workspace Clippy with warnings denied
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo clippy --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked -- -D warnings
+
       - name: Guard plugin Cargo test reachability
         run: python tools/audits/validate_cargo_test_reachability.py --manifest-path zircon_plugins/Cargo.toml --json
 
       - name: Check Rust plugin declarations, artifacts, and catalog wiring
-        run: cargo run --locked -p cargo-zircon -- plugin check --root . --artifact-root zircon_plugins/target/debug
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo run --locked -p cargo-zircon -- plugin check --root . --artifact-root "$env:CARGO_TARGET_DIR\debug"
 
       - name: Run plugin workspace tests
         run: cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
+
+  scene-ecs-miri:
+    name: Scene ECS storage and query (Miri)
+    runs-on: [self-hosted, Windows, X64]
+    env:
+      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
+      TEMP: E:\cargo-targets\zircon-local\tmp
+      TMP: E:\cargo-targets\zircon-local\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\miri-scene-ecs\target
+      MIRI_SYSROOT: E:\cargo-targets\zircon-local\ci\miri-scene-ecs\sysroot
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1
+      - name: Install nightly Miri
+        uses: dtolnay/rust-toolchain@nightly-2026-10-10
+        with:
+          components: miri
+      - name: Prepare Miri sysroot for Linux cross-interpretation
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo +nightly-2026-10-10 miri setup --target x86_64-unknown-linux-gnu
+      - name: Verify the prepared Miri sysroot
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $targetLib = Join-Path $env:MIRI_SYSROOT 'lib\rustlib\x86_64-unknown-linux-gnu\lib'
+          if (-not (Test-Path -LiteralPath $targetLib -PathType Container)) { throw 'Prepared Miri sysroot has no Linux target library directory.' }
+          if (-not (Get-ChildItem -LiteralPath $targetLib -Filter 'libstd-*' -File | Select-Object -First 1)) { throw 'Prepared Miri sysroot has no Linux standard library artifact.' }
+      - name: Interpret scene ECS component storage tests
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo +nightly-2026-10-10 miri test --target x86_64-unknown-linux-gnu -p zircon_runtime --lib --no-default-features --features native-host --locked scene::ecs::storage::component_storage::store::tests::sparse_rows_rekey_at_the_target_tick
+      - name: Interpret scene ECS archetype table tests
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo +nightly-2026-10-10 miri test --target x86_64-unknown-linux-gnu -p zircon_runtime --lib --no-default-features --features native-host --locked scene::ecs::archetype::table::tests
+      - name: Interpret scene ECS mutable query test
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo +nightly-2026-10-10 miri test --target x86_64-unknown-linux-gnu -p zircon_runtime --lib --no-default-features --features native-host --locked scene::tests::ecs_query_many::unsafe_custom_mutable_query_preserves_real_borrows_and_change_ticks
+
+  render-feature-smoke:
+    name: Rendering feature graph and frame smoke (${{ matrix.feature }})
+    runs-on: [self-hosted, Windows, X64]
+    env:
+      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
+      TEMP: E:\cargo-targets\zircon-local\tmp
+      TMP: E:\cargo-targets\zircon-local\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\render-feature-${{ matrix.feature }}\target
+      ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\cargo-targets\zircon-local\ci\render-feature-${{ matrix.feature }}\target\product-frame
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - feature: baked_lighting
+            manifest: zircon_plugins/Cargo.toml
+            package: zircon_plugin_rendering_baked_lighting_runtime
+            args: --lib
+            filter: baked_lighting_feature_executes_in_nonempty_wgpu_product_frame
+          - feature: decals
+            manifest: zircon_plugins/Cargo.toml
+            package: zircon_plugin_rendering_decals_runtime
+            args: --lib
+            filter: decals_feature_executes_in_nonempty_wgpu_product_frame
+          - feature: contact_shadow
+            manifest: zircon_plugins/Cargo.toml
+            package: zircon_plugin_rendering_contact_shadow_runtime
+            args: --lib
+            filter: contact_shadow_wgpu_product_capture_darkens_
+          - feature: irradiance_volumes
+            manifest: Cargo.toml
+            package: zircon_runtime
+            args: --lib --no-default-features --features graphics
+            filter: render_product_af_m2_cookie_and_volume_execute_and_change_wgpu_frame
+          - feature: light_cookies
+            manifest: Cargo.toml
+            package: zircon_runtime
+            args: --lib --no-default-features --features graphics
+            filter: render_product_af_m2_cookie_and_volume_execute_and_change_wgpu_frame
+          - feature: oit
+            manifest: Cargo.toml
+            package: zircon_runtime
+            args: --lib --no-default-features --features graphics
+            filter: render_product_advanced_lighting_oit_three_crossing_planes_differs_from_sorted
+          - feature: planar_reflections
+            manifest: Cargo.toml
+            package: zircon_runtime
+            args: --lib --no-default-features --features graphics
+            filter: render_product_planar_reflection_changes_mirror_floor_through_camera_loop
+          - feature: post_process
+            manifest: Cargo.toml
+            package: zircon_runtime
+            args: --lib --no-default-features --features graphics
+            filter: render_product_post_uber_light_effects_change_final_frame
+          - feature: reflection_probes
+            manifest: Cargo.toml
+            package: zircon_runtime
+            args: --lib --no-default-features --features graphics
+            filter: render_product_probe_feature_off_falls_back_to_skybox
+          - feature: ssao
+            manifest: Cargo.toml
+            package: zircon_runtime
+            args: --lib --no-default-features --features graphics
+            filter: ssao_product_default_is_fail_closed_and_preserves_scene_output
+          - feature: subsurface_scattering
+            manifest: Cargo.toml
+            package: zircon_runtime
+            args: --lib --no-default-features --features graphics
+            filter: render_product_sss_skin_sphere_executes_burley_indirect_pipeline
+          - feature: ray_tracing_policy
+            manifest: zircon_plugins/Cargo.toml
+            package: zircon_plugin_rendering_ray_tracing_policy_runtime
+            args: --lib
+            filter: ray_tracing_policy_reports_backend_gates_and_keeps_a_real_product_frame
+          - feature: shader_graph
+            manifest: zircon_plugins/Cargo.toml
+            package: zircon_plugin_rendering_shader_graph_runtime
+            args: --lib
+            filter: shader_graph_feature_executes_a_real_product_frame
+          - feature: vfx_graph
+            manifest: zircon_plugins/Cargo.toml
+            package: zircon_plugin_rendering_vfx_graph_runtime
+            args: --lib
+            filter: vfx_graph_feature_executes_a_real_product_frame
+          - feature: volumetric_fog
+            manifest: zircon_plugins/Cargo.toml
+            package: zircon_plugin_rendering_volumetric_fog_runtime
+            args: --lib
+            filter: smoke_volumetric_fog_executes_a_product_frame
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.94.1
+      - name: Compile feature graph and execute product-frame smoke
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test --manifest-path "${{ matrix.manifest }}" -p ${{ matrix.package }} ${{ matrix.args }} ${{ matrix.filter }} --locked
+      - name: Check irradiance-volume feature wrapper
+        if: matrix.feature == 'irradiance_volumes'
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_irradiance_volumes_runtime --lib irradiance_volume_feature_is_optional_and_registers_binding_executor --locked
+      - name: Check light-cookie feature wrapper
+        if: matrix.feature == 'light_cookies'
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_light_cookies_runtime --lib light_cookie_feature_is_optional_and_registers_atlas_executor --locked
+      - name: Check subsurface-scattering feature wrapper
+        if: matrix.feature == 'subsurface_scattering'
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_subsurface_scattering_runtime --lib sss_feature_registers_three_passes_executors_and_shading_model --locked
 
   plugin-standalone-validate:
     name: Plugin standalone validate all
@@ -222,11 +417,11 @@ jobs:
     name: Plugin standalone dist (${{ matrix.plugin_id }})
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\cargo-home
-      RUSTUP_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\rustup
-      TEMP: D:\\cargo-targets\\zircon-local\\tmp
-      TMP: D:\\cargo-targets\\zircon-local\\tmp
-      CARGO_TARGET_DIR: D:\\cargo-targets\\zircon-local\\ci\\plugin-${{ matrix.plugin_id }}\\target
+      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
+      TEMP: E:\cargo-targets\zircon-local\tmp
+      TMP: E:\cargo-targets\zircon-local\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\plugin-${{ matrix.plugin_id }}\target
     strategy:
       fail-fast: false
       matrix:
@@ -316,6 +511,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@1.94.1
 
@@ -329,17 +528,21 @@ jobs:
     name: Export platform contract (${{ matrix.export-platform }})
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\cargo-home
-      RUSTUP_HOME: D:\\cargo-targets\\zircon-local\\cache\\ci\\rustup
-      TEMP: D:\\cargo-targets\\zircon-local\\tmp
-      TMP: D:\\cargo-targets\\zircon-local\\tmp
-      CARGO_TARGET_DIR: D:\\cargo-targets\\zircon-local\\ci\\export-${{ matrix.export-platform }}\\target
+      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
+      TEMP: E:\cargo-targets\zircon-local\tmp
+      TMP: E:\cargo-targets\zircon-local\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\export-${{ matrix.export-platform }}\target
     strategy:
       fail-fast: false
       matrix:
         export-platform: [windows, linux, macos, android, ios, web_gpu, wasm, headless]
     steps:
       - uses: actions/checkout@v5
+
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@1.94.1

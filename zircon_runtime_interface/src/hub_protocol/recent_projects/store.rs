@@ -1,6 +1,7 @@
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
+#[cfg(unix)]
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -9,7 +10,9 @@ use uuid::Uuid;
 
 #[cfg(windows)]
 use super::windows_hub_recent_projects_mutex_name;
-use super::{hub_recent_projects_lock_path, HubRecentProjectsError, HubRecentProjectsV1};
+#[cfg(unix)]
+use super::hub_recent_projects_lock_path;
+use super::{HubRecentProjectsError, HubRecentProjectsV1};
 
 /// The shared history has at most eight entries and is only a rebuildable UI projection.
 pub const HUB_RECENT_PROJECTS_MAX_ENCODED_BYTES_V1: usize = 256 * 1024;

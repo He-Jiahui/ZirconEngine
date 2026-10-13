@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from .profile_name import valid_export_profile_name
+
 
 PRESET_SCHEMA_ID = "zircon.export-preset"
 PRESET_SCHEMA_VERSION = 0
@@ -61,8 +63,10 @@ def load_export_preset(path: str) -> dict[str, Any]:
             f"export preset {preset_path} payload has unknown fields: {', '.join(sorted(unknown))}"
         )
     profile_ref = payload.get("profile_ref")
-    if not isinstance(profile_ref, str) or not profile_ref.strip():
-        raise ValueError(f"export preset {preset_path} profile_ref must be non-empty")
+    if not isinstance(profile_ref, str) or not valid_export_profile_name(profile_ref):
+        raise ValueError(
+            f"export preset {preset_path} profile_ref must contain only ASCII letters, digits, '_' or '-'"
+        )
     target_mode = payload.get("target_mode")
     if target_mode not in {"client_runtime", "server_runtime"}:
         raise ValueError(

@@ -75,6 +75,7 @@ impl UiPipelineFrameReport {
             .collect()
     }
 
+    #[cfg(test)]
     fn missing_required_stages_linear(&self) -> Vec<UiPipelineStage> {
         UiPipelineStage::ordered()
             .iter()

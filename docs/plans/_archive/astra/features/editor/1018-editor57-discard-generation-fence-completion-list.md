@@ -3,7 +3,7 @@ doc_type: completion-list
 status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_editor/57/2026-09-27-discard-generation-fence.md
-  - docs/plans/optimize/zircon_editor/57-editor-asset-workspace-content-browser-folder-source-tree-selection-open-create-import-rename-move-delete-history-collection-product-integration-review.md
+  - docs/plans/optimize/zircon_editor/57-editor-asset-workspace-content-browser-folder-source-tree-selection-open-create-import-rename-move-delete-history-collection.md
 implementation_files:
   - zircon_editor/src/core/editing/engine/transaction/exclusive_transition.rs
   - zircon_editor/src/ui/workbench/startup/editor_state_project.rs

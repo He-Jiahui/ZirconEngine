@@ -9,10 +9,17 @@ use super::HubMessage;
 
 pub const ACTION_HISTORY_LIMIT: usize = 16;
 
+/// Generates a durable random key for a persisted action record.
+pub fn new_action_record_id() -> String {
+    uuid::Uuid::new_v4().to_string()
+}
+
 /// 一次终态动作的持久化诊断证据；恢复配置后仍可按当前语言呈现。
 /// 命令参数用于展示和追溯，不能仅凭历史记录重新执行动作。
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HubActionRecord {
+    #[serde(default)]
+    pub id: String,
     pub finished_unix_ms: u64,
     pub action: HubActionKind,
     pub status: HubActionStatus,
@@ -106,8 +113,34 @@ impl HubActionStatus {
 /// 由动作终结路径调用，按调用顺序保留最近记录；调用者须先构造完整诊断信息。
 /// 该历史是窗口内的有界摘要，完整构建日志由对应输出和报告保存。
 pub fn push_action_record(history: &mut Vec<HubActionRecord>, record: HubActionRecord) {
+    let mut record = record;
+    ensure_action_record_id(history, &mut record);
     history.insert(0, record);
     history.truncate(ACTION_HISTORY_LIMIT);
+}
+
+/// Assigns a missing or colliding ID before a record becomes part of persisted history.
+pub fn ensure_action_record_id(history: &[HubActionRecord], record: &mut HubActionRecord) -> bool {
+    if record.id.is_empty() || history.iter().any(|existing| existing.id == record.id) {
+        record.id = new_action_record_id();
+        true
+    } else {
+        false
+    }
+}
+
+/// Repairs missing or duplicate IDs while preserving the first occurrence of each existing ID.
+pub fn repair_action_record_ids(history: &mut [HubActionRecord]) -> usize {
+    let mut seen = std::collections::HashSet::new();
+    let mut repaired = 0;
+    for record in history {
+        if record.id.is_empty() || !seen.insert(record.id.clone()) {
+            record.id = new_action_record_id();
+            seen.insert(record.id.clone());
+            repaired += 1;
+        }
+    }
+    repaired
 }
 
 #[cfg(test)]

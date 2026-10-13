@@ -1,0 +1,113 @@
+stylesheets = []
+
+[asset]
+kind = "view"
+id = "res://ui/editor/unreal/components/host_menu_bar.zui"
+version = 2
+display_name = "Unreal Host Menu Bar"
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[root]
+node = "workbench_menu_chrome_root"
+
+[nodes.workbench_menu_chrome_root]
+component = "VerticalBox"
+control_id = "WorkbenchMenuBarRoot"
+pixel_snapping = "disabled"
+classes = ["unreal-menu-bar"]
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "workbench_menu_top_bar" }, { node = "workbench_menu_separator" }, { node = "workbench_menu_fill" }]
+
+[nodes.workbench_menu_top_bar]
+component = "VerticalBox"
+control_id = "WorkbenchMenuTopBar"
+classes = ["unreal-menu-bar"]
+props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "workbench_menu_top_inset" }, { node = "workbench_menu_slots_row" }]
+
+[nodes.workbench_menu_top_inset]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 2.0, preferred = 2.0, max = 2.0, stretch = "Fixed" } }
+
+[nodes.workbench_menu_leading_space]
+component = "Space"
+layout = { width = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.workbench_menu_trailing_fill]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.workbench_menu_slots_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+children = [{ node = "workbench_menu_leading_space" }, { node = "workbench_menu_slots_group" }]
+
+[nodes.workbench_menu_slots_group]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "workbench_menu_slot_0" }, { node = "workbench_menu_slot_1" }, { node = "workbench_menu_slot_2" }, { node = "workbench_menu_slot_3" }, { node = "workbench_menu_slot_4" }, { node = "workbench_menu_slot_5" }, { node = "workbench_menu_slot_6" }, { node = "workbench_menu_trailing_fill" }]
+
+[nodes.workbench_menu_separator]
+component = "Space"
+control_id = "WorkbenchMenuSeparator"
+pixel_snapping = "snap_to_pixel"
+classes = ["unreal-divider"]
+props = { surface_variant = "inset", radius = 0.0, border_width = 0.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.workbench_menu_fill]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.workbench_menu_slot_0]
+component = "Label"
+control_id = "MenuSlot0"
+classes = ["unreal-control", "unreal-menu-control"]
+props = { text = "File", surface_variant = "transparent", radius = 0.0, text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.workbench_menu_slot_1]
+component = "Label"
+control_id = "MenuSlot1"
+classes = ["unreal-control", "unreal-menu-control"]
+props = { text = "Edit", surface_variant = "transparent", radius = 0.0, text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.workbench_menu_slot_2]
+component = "Label"
+control_id = "MenuSlot2"
+classes = ["unreal-control", "unreal-menu-control"]
+props = { text = "Selection", surface_variant = "transparent", radius = 0.0, text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+layout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.workbench_menu_slot_3]
+component = "Label"
+control_id = "MenuSlot3"
+classes = ["unreal-control", "unreal-menu-control"]
+props = { text = "Play", surface_variant = "transparent", radius = 0.0, text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.workbench_menu_slot_4]
+component = "Label"
+control_id = "MenuSlot4"
+classes = ["unreal-control", "unreal-menu-control"]
+props = { text = "View", surface_variant = "transparent", radius = 0.0, text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.workbench_menu_slot_5]
+component = "Label"
+control_id = "MenuSlot5"
+classes = ["unreal-control", "unreal-menu-control"]
+props = { text = "Window", surface_variant = "transparent", radius = 0.0, text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.workbench_menu_slot_6]
+component = "Label"
+control_id = "MenuSlot6"
+classes = ["unreal-control", "unreal-menu-control"]
+props = { text = "Help", surface_variant = "transparent", radius = 0.0, text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
+layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }

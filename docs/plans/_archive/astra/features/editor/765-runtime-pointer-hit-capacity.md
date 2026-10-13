@@ -2,7 +2,7 @@
 doc_type: milestone-detail
 status: implemented_pending_validation
 plan_sources:
-  - docs/plans/optimize/zircon_editor/180-editor-scene-viewport-interaction-controller-input-picking-selection-highlight-gizmo-transaction-cancel-generation-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/180-editor-scene-viewport-interaction-controller-input-picking-selection-highlight-gizmo-transaction-cancel-generation.md
   - docs/plans/optimize/zircon_editor/180/2026-09-15-runtime-pointer-hit-capacity.md
   - docs/plans/optimize/zircon_runtime/47-runtime-picking-pointer-ray-hit-hover-drag-drop-event-backend-product-integration-review.md
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

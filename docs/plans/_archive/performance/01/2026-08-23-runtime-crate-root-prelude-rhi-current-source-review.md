@@ -9,7 +9,7 @@ status: static_complete_dynamic_pending
 canonical_owners:
   - docs/plans/optimize/zircon_runtime/42-builtin-runtime-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report-product-integration-review.md
   - docs/plans/optimize/zircon_runtime/46-engine-module-service-contract-context-factory-descriptor-snapshot-composition-lifecycle-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
 references:
   - dev/UnrealEngine/Engine/Source/Runtime/RHI/RHI.Build.cs
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/RenderCore.Build.cs

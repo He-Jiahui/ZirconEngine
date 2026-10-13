@@ -79,13 +79,14 @@ impl<'de> Visitor<'de> for AxisLimitsVisitor {
         A: MapAccess<'de>,
     {
         let mut limits = [None, None, None];
+        let mut seen = [false; 3];
         while let Some(key) = map.next_key::<String>()? {
             let index = axis_limit_index(&key)
                 .ok_or_else(|| de::Error::unknown_field(&key, &AXIS_LIMIT_KEYS))?;
-            // BUG: [CR-FRAMEWORK-SCENE-0003] 首次键值为 null 时槽位仍为 None，同轴第二次出现会绕过重复键拒绝。
-            if limits[index].is_some() {
+            if seen[index] {
                 return Err(de::Error::duplicate_field(AXIS_LIMIT_KEYS[index]));
             }
+            seen[index] = true;
             limits[index] = Some(map.next_value()?);
         }
         Ok(limits)

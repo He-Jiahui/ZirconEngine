@@ -27,7 +27,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor/14/failure-2026-08-12-thread-ownership-guard-test-scope.md
   - docs/plans/optimize/zircon_editor/09-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-review.md
   - docs/plans/optimize/zircon_editor/131-editor-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/192-runtime-task-execution-job-scheduler-task-graph-worker-domain-scope-cancellation-deadline-shutdown-diagnostics-product-adoption-current-working-tree-review.md
+  - docs/plans/optimize/zircon_runtime/192-runtime-task-execution-job-scheduler-task-graph-worker-domain-scope-cancellation-deadline-shutdown-diagnostics-product-adoption.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/IAssetCompilingManager.h
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/AssetCompilingManager.h

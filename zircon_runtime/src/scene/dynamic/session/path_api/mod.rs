@@ -9,7 +9,6 @@ mod load_save;
 mod merge;
 #[path = "query/mod.rs"]
 mod query;
-#[path = "restore/mod.rs"]
 mod restore;
 #[path = "transfer/mod.rs"]
 mod transfer;

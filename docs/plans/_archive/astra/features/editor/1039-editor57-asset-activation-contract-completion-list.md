@@ -5,7 +5,7 @@ related_code:
   - zircon_editor/src/core/asset/activation/tests.rs
   - docs/plans/optimize/zircon_editor/57/2026-09-28-asset-activation-contract.md
 plan_sources:
-  - docs/plans/optimize/zircon_editor/57-editor-asset-workspace-content-browser-folder-source-tree-selection-open-create-import-rename-move-delete-history-collection-product-integration-review.md
+  - docs/plans/optimize/zircon_editor/57-editor-asset-workspace-content-browser-folder-source-tree-selection-open-create-import-rename-move-delete-history-collection.md
 status: contract_defined_pending_execution_and_validation
 validation_status: scoped_static_checks_passed_managed_validation_pending
 ---

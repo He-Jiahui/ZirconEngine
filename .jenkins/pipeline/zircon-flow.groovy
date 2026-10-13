@@ -133,6 +133,13 @@ try {
             invokeControl('flow', 'run-stage', [identity: identity, stage: 'format',
                 sealedInputRef: sealedInputRef, edition: params.RUST_EDITION ?: '2021'])
         }
+        if (env.WORKFLOW_TEMPLATE in ['comments_only_review', 'module_unit_review',
+                                      'cross_module_review', 'failure_repair_review']) {
+            stage('Review') {
+                invokeControl('flow', 'run-stage', [identity: identity, stage: 'review',
+                    sealedInputRef: sealedInputRef, edition: params.RUST_EDITION ?: '2021'])
+            }
+        }
     }
     if (env.WORKFLOW_TEMPLATE != 'comments_only') {
         stage('Submit execution') {

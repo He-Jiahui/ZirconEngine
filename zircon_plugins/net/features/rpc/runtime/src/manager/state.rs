@@ -44,6 +44,9 @@ pub(in crate::manager) struct NetRpcRuntimeState {
 pub(in crate::manager) struct PendingRpcRequest {
     pub(in crate::manager) invocation: RpcInvocationDescriptor,
     pub(in crate::manager) started_at: Instant,
+    /// A synchronous handler cannot be cancelled; expiration must not invite a retry
+    /// while its side effects may still be running.
+    pub(in crate::manager) handler_executing: bool,
 }
 
 #[derive(Clone, Debug)]

@@ -1,0 +1,922 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "reflect-schema-002",
+  "owner": "core_contracts",
+  "reviewModel": "gpt-6.1-sol",
+  "reviewEffort": "max",
+  "checkout": "E:/Git/ZirconEngine",
+  "baselineHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "state": "reviewing",
+  "scope": "精确schema_catalog 6 Rust文件；保留旧文本/物理行尾，仅补中文注释；本证据正在逐组创作，未完成覆盖或验收。",
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "5a8e9d050236db49a2a8fc61e3abb49624884a5476444aa3c9a28d44d8a83225",
+      "beforeSha256": "5a8e9d050236db49a2a8fc61e3abb49624884a5476444aa3c9a28d44d8a83225",
+      "currentSha256": "f77367a60944f40e9b8c430a20baf555f8d3412e85755255958db40d69d02c08",
+      "afterSha256": "f77367a60944f40e9b8c430a20baf555f8d3412e85755255958db40d69d02c08",
+      "reviewedSha256": null,
+      "beforeLines": 337,
+      "afterLines": 422,
+      "insertedCommentOrBlankLines": 85,
+      "lineEnding": "LF",
+      "state": "reviewing",
+      "owner": "core_contracts",
+      "batchId": "reflect-schema-002",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": "pending exact source and full canonical evidence",
+      "validation": "scoped rustfmt read-only passed; final byte/structure audit pending",
+      "commit": "pending Jenkins receipt"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/schema_catalog/entry.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "369ef9019e23fe286ecb868c1269a8a5784f9d2ef7683f96675927864cb28fe4",
+      "beforeSha256": "369ef9019e23fe286ecb868c1269a8a5784f9d2ef7683f96675927864cb28fe4",
+      "currentSha256": "96d7897def1800d856e8cbfddbf3859557bfb0d009cdc205caef86f9cf9e97f0",
+      "afterSha256": "96d7897def1800d856e8cbfddbf3859557bfb0d009cdc205caef86f9cf9e97f0",
+      "reviewedSha256": null,
+      "beforeLines": 27,
+      "afterLines": 60,
+      "insertedCommentOrBlankLines": 33,
+      "lineEnding": "LF",
+      "state": "reviewing",
+      "owner": "core_contracts",
+      "batchId": "reflect-schema-002",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": "pending exact source and full canonical evidence",
+      "validation": "scoped rustfmt read-only passed; final byte/structure audit pending",
+      "commit": "pending Jenkins receipt"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/schema_catalog/field_index.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "ffb805f09f1b4c1885121427e9e1a5cbe6842efb27c329bbe9a03f19de165393",
+      "beforeSha256": "ffb805f09f1b4c1885121427e9e1a5cbe6842efb27c329bbe9a03f19de165393",
+      "currentSha256": "53714a5a7fdc93d466990f4136fa21973cad8a4855a5bc888c45aee3d51a8130",
+      "afterSha256": "53714a5a7fdc93d466990f4136fa21973cad8a4855a5bc888c45aee3d51a8130",
+      "reviewedSha256": null,
+      "beforeLines": 71,
+      "afterLines": 102,
+      "insertedCommentOrBlankLines": 31,
+      "lineEnding": "LF",
+      "state": "reviewing",
+      "owner": "core_contracts",
+      "batchId": "reflect-schema-002",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": "pending exact source and full canonical evidence",
+      "validation": "scoped rustfmt read-only passed; final byte/structure audit pending",
+      "commit": "pending Jenkins receipt"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/schema_catalog/fingerprint.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "0c192e41a6e15bfd20de368328b9d9571af38eb17d963ab866f81b2ee47a857c",
+      "beforeSha256": "0c192e41a6e15bfd20de368328b9d9571af38eb17d963ab866f81b2ee47a857c",
+      "currentSha256": "6a93b38e169d0a50754051d656c5dcfe5219cad64e652869dcb2e14163b4fca7",
+      "afterSha256": "6a93b38e169d0a50754051d656c5dcfe5219cad64e652869dcb2e14163b4fca7",
+      "reviewedSha256": null,
+      "beforeLines": 372,
+      "afterLines": 444,
+      "insertedCommentOrBlankLines": 72,
+      "lineEnding": "LF",
+      "state": "reviewing",
+      "owner": "core_contracts",
+      "batchId": "reflect-schema-002",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": "pending exact source and full canonical evidence",
+      "validation": "scoped rustfmt read-only passed; final byte/structure audit pending",
+      "commit": "pending Jenkins receipt"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "984de72ab23b2a4f438c1ce0c97ddc4f998af30c291759c93c81cf8cf9042572",
+      "beforeSha256": "984de72ab23b2a4f438c1ce0c97ddc4f998af30c291759c93c81cf8cf9042572",
+      "currentSha256": "11b2eed39e5a4879fca7dae4cbdafcc7e958b7ba500f22d8bfc4ce79907c6b85",
+      "afterSha256": "11b2eed39e5a4879fca7dae4cbdafcc7e958b7ba500f22d8bfc4ce79907c6b85",
+      "reviewedSha256": null,
+      "beforeLines": 412,
+      "afterLines": 576,
+      "insertedCommentOrBlankLines": 164,
+      "lineEnding": "LF",
+      "state": "reviewing",
+      "owner": "core_contracts",
+      "batchId": "reflect-schema-002",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": "pending exact source and full canonical evidence",
+      "validation": "read-only diff passed; rustfmt pending two inserted blank-line correction; original mutation terminal receipt pending",
+      "commit": "pending Jenkins receipt"
+    },
+    {
+      "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+      "language": "rust",
+      "classification": "first-party-source",
+      "initialSha256": "cbfaa95bade1b491214b0e01452034b4ed74381bb04e430c609499500be3fa76",
+      "beforeSha256": "cbfaa95bade1b491214b0e01452034b4ed74381bb04e430c609499500be3fa76",
+      "currentSha256": "54d6196ee41d8a89fbdabc8f93e8cc34fe64bfad51216d34afd84f997f0135b6",
+      "afterSha256": "54d6196ee41d8a89fbdabc8f93e8cc34fe64bfad51216d34afd84f997f0135b6",
+      "reviewedSha256": null,
+      "beforeLines": 272,
+      "afterLines": 289,
+      "insertedCommentOrBlankLines": 17,
+      "lineEnding": "CRLF",
+      "state": "reviewing",
+      "owner": "core_contracts",
+      "batchId": "reflect-schema-002",
+      "objectEvidence": [],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": "pending exact source and full canonical evidence",
+      "validation": "scoped rustfmt read-only passed; final byte/structure audit pending",
+      "commit": "pending Jenkins receipt"
+    }
+  ],
+  "objectEvidence": [
+    {
+      "id": "SCH-002-001",
+      "symbol": "候选目录项及构造/配置",
+      "kind": "struct",
+      "members": [
+        "ReflectSchemaCatalogEntry",
+        "ReflectSchemaCatalogEntry::registration",
+        "ReflectSchemaCatalogEntry::dependencies",
+        "impl ReflectSchemaCatalogEntry",
+        "ReflectSchemaCatalogEntry::new",
+        "ReflectSchemaCatalogEntry::with_dependencies"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/entry.rs",
+          "line": 20,
+          "symbol": "ReflectSchemaCatalogEntry",
+          "kind": "struct"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/entry.rs",
+          "line": 22,
+          "symbol": "ReflectSchemaCatalogEntry::registration",
+          "kind": "field"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/entry.rs",
+          "line": 25,
+          "symbol": "ReflectSchemaCatalogEntry::dependencies",
+          "kind": "field"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/entry.rs",
+          "line": 28,
+          "symbol": "impl ReflectSchemaCatalogEntry",
+          "kind": "impl"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/entry.rs",
+          "line": 39,
+          "symbol": "ReflectSchemaCatalogEntry::new",
+          "kind": "fn"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/entry.rs",
+          "line": 56,
+          "symbol": "ReflectSchemaCatalogEntry::with_dependencies",
+          "kind": "fn"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime/src/scene/reflect/type_registry.rs",
+          "symbol": "TypeRegistry::validate_new_registration / publish_prevalidated",
+          "relationship": "from metadata构造无显式依赖候选；接纳先于adapter发布",
+          "line": 42
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "admit_entries / canonicalize_and_validate_entry",
+          "relationship": "消费候选建立局部及全局不变量"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs",
+          "symbol": "ReflectSchemaCatalog::snapshot / try_from_snapshot",
+          "relationship": "自有值克隆/重新接纳"
+        }
+      ],
+      "implementations": [],
+      "macroOrRegistrationOrFfi": [
+        {
+          "symbol": "derive(Serialize, Deserialize), serde deny_unknown_fields",
+          "relationship": "拒绝未知成员；dependencies缺省空且为空不输出；serde不会执行目录接纳"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_requires_a_complete_acyclic_dependency_closure",
+          "relationship": "builder只是候选，闭包由接纳检查"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "incremental_catalog_matches_batch_publication",
+          "relationship": "batch与dependency先插顺序对应"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "new",
+          "entry": "自有registration",
+          "state": "未接纳且无依赖",
+          "effect": "返回候选，不验证身份或值"
+        },
+        {
+          "block": "with_dependencies",
+          "entry": "自有候选及依赖列表",
+          "state": "未改任何活动目录",
+          "effect": "原样替换列表，保留顺序/重复供后续检查"
+        },
+        {
+          "block": "serde",
+          "entry": "解码字段",
+          "state": "候选描述",
+          "effect": "必须另经目录接纳才能建立身份/依赖图不变量"
+        }
+      ],
+      "constraintsAndLifecycle": "registration/dependencies均为自有值；不持有adapter或实时对象引用。依赖不从value_type_path推导，builder成功不证明闭包。整批可乱序，增量依赖须先在目录内。",
+      "commentDecision": {
+        "action": "保留旧注释并补中文责任、输入/返回、约束、生命周期与实际参考",
+        "reason": "真实调用和接纳状态支持所述事实；仅注释，不改行为/API或断言"
+      }
+    },
+    {
+      "id": "SCH-002-002",
+      "symbol": "接纳预算常量",
+      "kind": "const",
+      "members": [
+        "MAX_REFLECT_SCHEMA_TYPES",
+        "MAX_REFLECT_FIELDS_PER_TYPE",
+        "MAX_REFLECT_FIELD_NAME_BYTES",
+        "MAX_REFLECT_FIELD_ALIASES_PER_FIELD",
+        "MAX_REFLECT_FIELD_ALIASES_PER_TYPE",
+        "MAX_REFLECT_DEPENDENCIES_PER_TYPE",
+        "MAX_REFLECT_SCHEMA_DEPENDENCIES"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 12,
+          "symbol": "MAX_REFLECT_SCHEMA_TYPES",
+          "kind": "const"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 14,
+          "symbol": "MAX_REFLECT_FIELDS_PER_TYPE",
+          "kind": "const"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 16,
+          "symbol": "MAX_REFLECT_FIELD_NAME_BYTES",
+          "kind": "const"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 18,
+          "symbol": "MAX_REFLECT_FIELD_ALIASES_PER_FIELD",
+          "kind": "const"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 20,
+          "symbol": "MAX_REFLECT_FIELD_ALIASES_PER_TYPE",
+          "kind": "const"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 22,
+          "symbol": "MAX_REFLECT_DEPENDENCIES_PER_TYPE",
+          "kind": "const"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 24,
+          "symbol": "MAX_REFLECT_SCHEMA_DEPENDENCIES",
+          "kind": "const"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "admit_entries",
+          "relationship": "整批类型/边总量"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "canonicalize_and_validate_entry / validate_field_identities / validate_field_key",
+          "relationship": "单项字段/键/别名/依赖"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs",
+          "symbol": "ReflectSchemaCatalog::prepare_insert",
+          "relationship": "共享整目录类型/边预算"
+        }
+      ],
+      "implementations": [],
+      "macroOrRegistrationOrFfi": [],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs",
+          "symbol": "type_registry_resolves_stable_field_ids_across_index_storage_boundary",
+          "relationship": "0/1/16/512/513/4096字段槽位",
+          "line": 186
+        },
+        {
+          "path": "zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs",
+          "symbol": "type_registry_rejects_over_budget_field_catalog_atomically",
+          "relationship": "4097字段拒绝",
+          "line": 238
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "bounds",
+          "entry": "已构造候选集合",
+          "state": "类型16384；字段4096；键128bytes；别名/field32、/type4096；依赖/type256、全图65536",
+          "effect": "超限拒绝；总量checked_add避免溢出"
+        }
+      ],
+      "constraintsAndLifecycle": "接纳预算是候选已构造后的约束，不是serde分配前读取预算。4096字段使u32 ordinal可表示；键字节上限之外仍查ASCII身份字符。",
+      "commentDecision": {
+        "action": "保留旧注释并补中文责任、输入/返回、约束、生命周期与实际参考",
+        "reason": "真实调用和接纳状态支持所述事实；仅注释，不改行为/API或断言"
+      }
+    },
+    {
+      "id": "SCH-002-003",
+      "symbol": "AdmittedCatalog 发布材料",
+      "kind": "struct",
+      "members": [
+        "AdmittedCatalog",
+        "AdmittedCatalog::entries",
+        "AdmittedCatalog::short_paths",
+        "AdmittedCatalog::ambiguous_short_paths",
+        "AdmittedCatalog::field_indexes",
+        "AdmittedCatalog::field_id_owners",
+        "AdmittedCatalog::dependency_edge_count"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 30,
+          "symbol": "AdmittedCatalog",
+          "kind": "struct"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 32,
+          "symbol": "AdmittedCatalog::entries",
+          "kind": "field"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 34,
+          "symbol": "AdmittedCatalog::short_paths",
+          "kind": "field"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 36,
+          "symbol": "AdmittedCatalog::ambiguous_short_paths",
+          "kind": "field"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 38,
+          "symbol": "AdmittedCatalog::field_indexes",
+          "kind": "field"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 40,
+          "symbol": "AdmittedCatalog::field_id_owners",
+          "kind": "field"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 42,
+          "symbol": "AdmittedCatalog::dependency_edge_count",
+          "kind": "field"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs",
+          "symbol": "ReflectSchemaCatalog::try_new",
+          "relationship": "消费六个自有投影，派生缓存从空开始"
+        }
+      ],
+      "implementations": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "admit_entries",
+          "relationship": "全部身份/预算/图通过才返回材料"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_rejects_duplicate_full_paths_and_global_field_ids",
+          "relationship": "失败不产生可发布材料"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "return bundle",
+          "entry": "局部及全局图检查通过",
+          "state": "规范化entries与短名、field ordinal、global id owners、edge count一致",
+          "effect": "移动到目录，不保留输入借用"
+        }
+      ],
+      "constraintsAndLifecycle": "所有索引来自唯一entries。field_id_owners元组是完整类型和当前字段名，edge_count checked累计。图闭包无环在field_indexes生成/材料返回前证明。",
+      "commentDecision": {
+        "action": "保留旧注释并补中文责任、输入/返回、约束、生命周期与实际参考",
+        "reason": "真实调用和接纳状态支持所述事实；仅注释，不改行为/API或断言"
+      }
+    },
+    {
+      "id": "SCH-002-004",
+      "symbol": "admit_entries 整批接纳",
+      "kind": "fn",
+      "members": [
+        "admit_entries"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 59,
+          "symbol": "admit_entries",
+          "kind": "fn"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs",
+          "symbol": "ReflectSchemaCatalog::try_new",
+          "relationship": "构造入口"
+        }
+      ],
+      "implementations": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "canonicalize_and_validate_entry / build_short_path_index / dependency_order",
+          "relationship": "规范化→收全批→图→field indexes"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_fingerprint_is_independent_of_input_and_metadata_set_order",
+          "relationship": "乱序输入/别名规范化"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_rejects_duplicate_full_paths_and_global_field_ids",
+          "relationship": "跨项冲突"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_requires_a_complete_acyclic_dependency_closure",
+          "relationship": "缺目标/环拒绝"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "count",
+          "entry": "自有Vec",
+          "state": "检查类型budget后分配局部maps",
+          "effect": "超限返回目录错误"
+        },
+        {
+          "block": "each entry",
+          "entry": "可丢弃局部项",
+          "state": "先重复canonical检查，再局部规范化；checked边数；ID插入owners",
+          "effect": "冲突只改本次局部map，Err丢弃全部"
+        },
+        {
+          "block": "graph/publication",
+          "entry": "完整输入收齐",
+          "state": "short projections→missing/cycle检查→field indexes",
+          "effect": "成功返回原子接纳材料"
+        }
+      ],
+      "constraintsAndLifecycle": "允许消费者在依赖之前列出，目标须在全批。Err不改现有目录；alias/deps排序不改变字段顺序。本层不安装adapter或校验default/editor/value语义。",
+      "commentDecision": {
+        "action": "保留旧注释并补中文责任、输入/返回、约束、生命周期与实际参考",
+        "reason": "真实调用和接纳状态支持所述事实；仅注释，不改行为/API或断言"
+      }
+    },
+    {
+      "id": "SCH-002-005",
+      "symbol": "局部候选规范化",
+      "kind": "fn",
+      "members": [
+        "canonicalize_and_validate_entry"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 145,
+          "symbol": "canonicalize_and_validate_entry",
+          "kind": "fn"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "admit_entries",
+          "relationship": "局部可丢弃候选"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs",
+          "symbol": "ReflectSchemaCatalog::validate_entry / prepare_insert",
+          "relationship": "前者先克隆，后者消费局部项"
+        }
+      ],
+      "implementations": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "validate_field_identities",
+          "relationship": "ID/name/alias约束"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_fingerprint_is_independent_of_input_and_metadata_set_order",
+          "relationship": "alias规范化"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_requires_a_complete_acyclic_dependency_closure",
+          "relationship": "图在局部检查之后验证"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "fields",
+          "entry": "&mut局部entry",
+          "state": "field count→identity/name/alias验证与排序",
+          "effect": "保留字段序列"
+        },
+        {
+          "block": "dependencies",
+          "entry": "显式完整路径列表",
+          "state": "依赖count、validate_type_path、自依赖拒绝；排序后相邻重复检测",
+          "effect": "重复报错而非静默dedup，不检查目标存在或全图"
+        }
+      ],
+      "constraintsAndLifecycle": "失败前可能已排序别名/依赖，所有公开保留输入的预检先clone。局部成功不证明全目录ID唯一、目标存在或无环。ReflectTypePath自身private字段/new/customDeserialize已验证registration路径，不重复猜测非法地址或路径。",
+      "commentDecision": {
+        "action": "保留旧注释并补中文责任、输入/返回、约束、生命周期与实际参考",
+        "reason": "真实调用和接纳状态支持所述事实；仅注释，不改行为/API或断言"
+      }
+    },
+    {
+      "id": "SCH-002-006",
+      "symbol": "名称和别名两遍接纳",
+      "kind": "fn",
+      "members": [
+        "validate_field_identities"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 200,
+          "symbol": "validate_field_identities",
+          "kind": "fn"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "canonicalize_and_validate_entry",
+          "relationship": "字段数已bounded"
+        }
+      ],
+      "implementations": [],
+      "macroOrRegistrationOrFfi": [],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_resolves_stable_slots_and_scoped_legacy_aliases",
+          "relationship": "type-local alias投影"
+        },
+        {
+          "path": "zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs",
+          "symbol": "type_registry_rejects_over_budget_field_catalog_atomically",
+          "relationship": "错误保持publication state",
+          "line": 238
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "pass1",
+          "entry": "原字段借用",
+          "state": "ID/currentName唯一、key规则、每field alias预算及总alias checked count",
+          "effect": "先收齐全部当前名称"
+        },
+        {
+          "block": "pass2",
+          "entry": "包含所有current names的HashSet<&str>",
+          "state": "每alias验证并插入同一set",
+          "effect": "自己的当前名、后续字段名、重复alias、跨field alias都冲突"
+        },
+        {
+          "block": "sort",
+          "entry": "全部通过",
+          "state": "drop借用name/alias集合",
+          "effect": "就地排序aliases但不排fields"
+        }
+      ],
+      "constraintsAndLifecycle": "名称与别名在每类型同一命名空间；跨类型ID检查另由admit/prepareInsert。drop终止借用而不删除用户数据，排序副作用仅在候选内。",
+      "commentDecision": {
+        "action": "保留旧注释并补中文责任、输入/返回、约束、生命周期与实际参考",
+        "reason": "真实调用和接纳状态支持所述事实；仅注释，不改行为/API或断言"
+      }
+    },
+    {
+      "id": "SCH-002-007",
+      "symbol": "键检查与自有诊断",
+      "kind": "fn",
+      "members": [
+        "validate_field_key",
+        "invalid_registration",
+        "invalid_field_registration"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 273,
+          "symbol": "validate_field_key",
+          "kind": "fn"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 408,
+          "symbol": "invalid_registration",
+          "kind": "fn"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 416,
+          "symbol": "invalid_field_registration",
+          "kind": "fn"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "validate_field_identities",
+          "relationship": "校验current name和alias"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "admit_entries / canonicalize_and_validate_entry / dependency_order",
+          "relationship": "准确错误归属"
+        }
+      ],
+      "implementations": [],
+      "macroOrRegistrationOrFfi": [],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_rejects_duplicate_full_paths_and_global_field_ids",
+          "relationship": "field级error类别"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "key",
+          "entry": "value/type/field/label借用",
+          "state": "非空/trim一致→字节上限→ASCII alnum/_/-",
+          "effect": "拒绝而非自动改写键"
+        },
+        {
+          "block": "diagnostic",
+          "entry": "借用候选名称/reason",
+          "state": "复制到ReflectError自有strings",
+          "effect": "候选销毁后诊断有效"
+        }
+      ],
+      "constraintsAndLifecycle": "键规则不包含display/default/value语义。helper不保存借用，type与field名称用于区别目录错误与字段错误。",
+      "commentDecision": {
+        "action": "保留旧注释并补中文责任、输入/返回、约束、生命周期与实际参考",
+        "reason": "真实调用和接纳状态支持所述事实；仅注释，不改行为/API或断言"
+      }
+    },
+    {
+      "id": "SCH-002-008",
+      "symbol": "短名唯一/冲突投影",
+      "kind": "fn",
+      "members": [
+        "build_short_path_index"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 310,
+          "symbol": "build_short_path_index",
+          "kind": "fn"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "admit_entries",
+          "relationship": "全批收齐"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs",
+          "symbol": "ReflectSchemaCatalog::try_remove",
+          "relationship": "删除后重建可消除原歧义"
+        }
+      ],
+      "implementations": [],
+      "macroOrRegistrationOrFfi": [],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_preserves_ambiguous_short_paths_without_selecting_a_winner",
+          "relationship": "完整路径仍解析/短名报歧义"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "first owner",
+          "entry": "canonical项+短名",
+          "state": "未在unique或ambiguous",
+          "effect": "建立unique映射"
+        },
+        {
+          "block": "second owner",
+          "entry": "不同canonical共享short",
+          "state": "撤销unique映射并加入ambiguous",
+          "effect": "不选任意赢家"
+        },
+        {
+          "block": "more owners",
+          "entry": "已ambiguous",
+          "state": "跳过新unique插入",
+          "effect": "保持冲突直到重建"
+        }
+      ],
+      "constraintsAndLifecycle": "完整路径权威独立于short map；resolve总先完整路径。两个返回集合互斥且自有，不借用entries。",
+      "commentDecision": {
+        "action": "保留旧注释并补中文责任、输入/返回、约束、生命周期与实际参考",
+        "reason": "真实调用和接纳状态支持所述事实；仅注释，不改行为/API或断言"
+      }
+    },
+    {
+      "id": "SCH-002-009",
+      "symbol": "稳定拓扑与环证明",
+      "kind": "fn",
+      "members": [
+        "dependency_order"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "line": 345,
+          "symbol": "dependency_order",
+          "kind": "fn"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs",
+          "symbol": "admit_entries",
+          "relationship": "发布前验证完整图"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/mod.rs",
+          "symbol": "ReflectSchemaCatalog::dependency_order",
+          "relationship": "接纳不变量支持lazy投影"
+        }
+      ],
+      "implementations": [],
+      "macroOrRegistrationOrFfi": [],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_requires_a_complete_acyclic_dependency_closure",
+          "relationship": "missing/cycle"
+        },
+        {
+          "path": "zircon_runtime_interface/src/reflect/schema_catalog/tests/cases.rs",
+          "symbol": "catalog_dependency_order_places_dependencies_before_consumers",
+          "relationship": "Leaf,Middle,Root"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "graph",
+          "entry": "完整entries/deps",
+          "state": "计数+dependency→consumer反向邻接；缺目标立即Err",
+          "effect": "图闭包已证明"
+        },
+        {
+          "block": "ready",
+          "entry": "zero-count BTreeSet",
+          "state": "pop_first字典序；降低consumer计数，到0加入ready",
+          "effect": "输入次序不影响拓扑"
+        },
+        {
+          "block": "complete/cycle",
+          "entry": "ready空",
+          "state": "全项输出则Ok；任一remaining>0说明环存在",
+          "effect": "诊断路径是首个未ready项，可能是被环阻塞的下游"
+        }
+      ],
+      "constraintsAndLifecycle": "局部接纳已拒绝重复/selfdeps。计数expect consumer属于entries。算法不递归。返回路径自有，lazy迭代器后续借用catalog。",
+      "commentDecision": {
+        "action": "保留旧注释并补中文责任、输入/返回、约束、生命周期与实际参考",
+        "reason": "真实调用和接纳状态支持所述事实；仅注释，不改行为/API或断言"
+      }
+    }
+  ],
+  "issues": [],
+  "readOnlyTraceSources": [],
+  "reviewMethod": [
+    "六文件完整阅读，所有成员/实现/语句块需逐组登记；当前证据组正在补齐，不能把索引清单当覆盖完成。",
+    "真实调用追踪TypeRegistry注册/VM同步、世界反射ID访问、动态场景代际门禁、derive metadata/slot producer；中立serde投影与VM活动快照分开核实。",
+    "每源写入前匹配ledger初始物理SHA；cases原CRLF逐行保留。无源码副本/临时脚本/build或Git写。"
+  ],
+  "validation": {
+    "initialPinsBeforeMutationMatched": true,
+    "scopedDiffCheck": {
+      "paths": 6,
+      "exitCode": 0
+    },
+    "scopedRustfmt": {
+      "admissionEntryFieldIndex": "passed in exact4 check output; only mod diff failed",
+      "fingerprintAndCases": {
+        "exitCode": 0
+      },
+      "mod": {
+        "exitCode": 1,
+        "requiredCorrection": "remove only this audit's inserted blank lines 31 and 34; awaiting exact unfreeze"
+      },
+      "allSixPassed": false
+    },
+    "declarationCoverage": "in progress",
+    "issuesBeforeReview": 0,
+    "newIssueCount": 0
+  },
+  "artifactLifecycle": {
+    "authoredEvidenceFile": "docs/tests/source-comment-review-evidence-reflect-schema-002.json",
+    "temporaryHelpers": 0,
+    "sourceCopies": 0,
+    "buildProducts": 0,
+    "freedBytes": 0,
+    "ownNativeProcesses": "current bounded native commands terminal; original mod mutation terminal receipt unavailable after host generation reset, Jenkins diagnosis pending",
+    "jenkinsArtifactReceipt": "pending original task receipt"
+  },
+  "acceptance": {
+    "intakeAccepted": true,
+    "intakeScope": "original task only",
+    "runtimeAcceptance": false,
+    "cargoAcceptance": false,
+    "formalAcceptance": false,
+    "done": false
+  },
+  "notes": [
+    "mod.rs完整576行hash11b2eed...实盘证明与写入计划一致；不重复未知终态mutator，不凭物理变化伪称进程结束。",
+    "首批core-001/clear12/clear11属于独立证据，不在此batch改写；三份外部行为漂移源码仍等待归属。"
+  ]
+}
+

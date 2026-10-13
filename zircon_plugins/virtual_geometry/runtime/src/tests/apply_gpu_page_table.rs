@@ -44,6 +44,14 @@ fn indexed_inheritance_matches_replacement_ancestor_and_descendant_semantics() {
 }
 
 #[test]
+fn hot_ancestor_walk_terminates_on_parent_cycle() {
+    let parents = BTreeMap::from([(1, 2), (2, 1), (3, 1)]);
+    let previous_hot_pages = BTreeSet::new();
+
+    assert!(!inherits_hot_ancestor(3, &previous_hot_pages, &parents));
+}
+
+#[test]
 #[ignore = "release performance gate"]
 fn indexed_hot_inheritance_release_benchmark() {
     let hierarchy_first_hot_page = BENCH_HIERARCHY_EDGES - BENCH_HOT_PAGES + 1;

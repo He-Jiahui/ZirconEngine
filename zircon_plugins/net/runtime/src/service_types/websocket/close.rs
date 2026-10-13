@@ -1,5 +1,5 @@
 //! 撤销 WebSocket 连接登记；网络对象在表锁外收到 Closed 状态请求，loopback 向对端排入关闭帧。
-//! 关闭事件表示连接表已移除，真实 reader 的退出尚未由该状态请求保证，见 CR-PLUGIN-NET-0014。
+//! 关闭事件表示连接表已移除；reader 观察共享连接状态后停止接收和发布事件。
 
 use std::sync::Arc;
 

@@ -71,14 +71,14 @@ fn runtime_interface03_batch55_61_single_pass_conversion_id_release_benchmark() 
         let measure_two_pass = || {
             let started = Instant::now();
             for _ in 0..VALIDATE_COUNT {
-                black_box(validate_conversion_id_two_pass(black_box(input)));
+                let _ = black_box(validate_conversion_id_two_pass(black_box(input)));
             }
             started.elapsed().as_nanos()
         };
         let measure_single_pass = || {
             let started = Instant::now();
             for _ in 0..VALIDATE_COUNT {
-                black_box(validate_conversion_id(black_box(input)));
+                let _ = black_box(validate_conversion_id(black_box(input)));
             }
             started.elapsed().as_nanos()
         };

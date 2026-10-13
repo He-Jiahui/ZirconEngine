@@ -13,8 +13,7 @@ pub(super) fn parse_obj_scalar(
         line,
         label: label.to_string(),
     })?;
-    // BUG: [CR-ASSET-COOK-0002] NaN 等非有限标量会被浮点解析接受并进入成功的网格载荷，后续顶点构造未校验有限性；证据：decode_obj_file 与 pipeline/types.rs。
-    value
+    let parsed = value
         .parse::<f32>()
         .map_err(|source| ObjDecodeError::InvalidScalar {
             path: path.to_string(),
@@ -22,5 +21,14 @@ pub(super) fn parse_obj_scalar(
             label: label.to_string(),
             value: value.to_string(),
             source,
-        })
+        })?;
+    if !parsed.is_finite() {
+        return Err(ObjDecodeError::NonFiniteScalar {
+            path: path.to_string(),
+            line,
+            label: label.to_string(),
+            value: value.to_string(),
+        });
+    }
+    Ok(parsed)
 }

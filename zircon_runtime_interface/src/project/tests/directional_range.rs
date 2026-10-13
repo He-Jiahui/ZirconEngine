@@ -6,6 +6,7 @@ use semver::{Version, VersionReq};
 use super::{caret_range, classify_incompatible_requirement};
 use crate::project::engine_compatibility::ProjectEngineCompatibilityDisposition;
 
+/// 解析测试输入后直接调用方向辅助函数；不代替公开入口的兼容性匹配步骤。
 fn classify(requirement: &str, running: &str) -> ProjectEngineCompatibilityDisposition {
     let requirement = VersionReq::parse(requirement).expect("test requirement must parse");
     let running = Version::parse(running).expect("test engine version must parse");

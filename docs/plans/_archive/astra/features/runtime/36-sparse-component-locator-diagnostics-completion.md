@@ -3,7 +3,7 @@ doc_type: milestone-detail
 status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/60/2026-08-28-sparse-component-locator-pages.md
-  - docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event.md
 related_code:
   - zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/sparse/locator.rs

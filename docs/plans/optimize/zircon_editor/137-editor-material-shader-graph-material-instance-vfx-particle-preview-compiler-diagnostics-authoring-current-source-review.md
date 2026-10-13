@@ -22,7 +22,7 @@ related_code:
   - zircon_runtime/src/graphics/shader/shader_assets.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/15-material-shader-graph-instance-vfx-particle-preview-compiler-diagnostics-authoring-review.md
-  - docs/plans/optimize/zircon_editor/91-editor-material-shader-graph-material-instance-vfx-particle-preview-compiler-diagnostics-authoring-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/91-editor-material-shader-graph-material-instance-vfx-particle-preview-compiler-diagnostics-authoring.md
   - docs/plans/optimize/zircon_editor/02-document-transaction-save-autosave-recovery-review.md
   - docs/plans/optimize/zircon_editor/04-asset-index-import-reimport-catalog-thumbnail-reference-workflow-review.md
   - docs/plans/optimize/zircon_editor/05-inspector-reflection-property-authoring-customization-review.md
@@ -34,7 +34,7 @@ plan_sources:
   - docs/plans/optimize/zircon_plugins/04-rendering-umbrella-feature-bundles-solari-native-provider-product-integration-review.md
   - docs/plans/optimize/zircon_plugins/05-shader-wgsl-family-importer-compiler-artifact-native-product-integration-review.md
   - docs/plans/optimize/zircon_plugins/09-first-party-particle-vfx-source-runtime-editor-dist-catalog-simulation-render-product-integration-review.md
-  - docs/plans/optimize/zircon_plugins/18-first-party-texture-source-importer-runtime-editor-dist-catalog-image-cubemap-array-volume-compression-streaming-product-integration-review.md
+  - docs/plans/optimize/zircon_plugins/18-first-party-texture-source-importer-runtime-editor-dist-catalog-image-cubemap-array-volume-compression-streaming.md
 reference_engines:
   - dev/Graphics/Packages/com.unity.shadergraph
   - dev/Graphics/Packages/com.unity.visualeffectgraph

@@ -1,7 +1,7 @@
 # Runtime83 Borrowed Localization Diagnostic Identity Dedup
 
 - Date: 2026-08-31
-- Parent plan: `docs/plans/optimize/zircon_runtime/83-runtime-localization-internationalization-locale-culture-message-format-plural-number-date-string-table-resource-fallback-product-integration-current-source-review.md`
+- Parent plan: `docs/plans/optimize/zircon_runtime/83-runtime-localization-internationalization-locale-culture-message-format-plural-number-date-string-table-resource-fallback.md`
 - Related record: `docs/plans/optimize/zircon_runtime/83/2026-08-25-localization-path-buffer.md`
 - Status: implementation_complete; managed_validation_pending
 - Owner Session: `root-runtime-interface03-activate-link-failure-20260831`

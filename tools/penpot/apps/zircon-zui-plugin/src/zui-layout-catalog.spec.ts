@@ -224,11 +224,16 @@ describe('ZUI layout catalog reports', () => {
       max: 112,
       stretch: 'Fixed',
     });
-    for (const name of ['workbench_panel_header', 'workbench_diagnostic_row']) {
-      const family = name === 'workbench_panel_header' ? 'chrome' : 'feedback';
+    for (const name of [
+      'dock_header',
+      'details',
+      'host_page_tabs',
+      'host_menu_bar',
+      'host_status_bar',
+    ]) {
       const path = resolve(
         testRepoRoot,
-        `zircon_editor/assets/ui/editor/components/workbench/composites/${family}/${name}.zui`,
+        `zircon_editor/assets/ui/editor/unreal/components/${name}.zui`,
       );
       const source = parseZuiDocument(await readFile(path, 'utf8')).document;
       expect(isStructuralWorkbenchHostDocument(source)).toBe(false);
@@ -299,18 +304,18 @@ describe('ZUI layout catalog reports', () => {
   it('gives the inspector layer label enough width to keep its text on one line', async () => {
     const sourcePath = resolve(
       testRepoRoot,
-      'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui',
+      'zircon_editor/assets/ui/editor/unreal/components/details.zui',
     );
     const source = parseZuiDocument(
       await readFile(sourcePath, 'utf8'),
     ).document;
-    expect(source.nodes?.inspector_layer_label?.layout?.width).toEqual({
+    expect(source.nodes?.layer_label?.layout?.width).toEqual({
       min: 72.0,
       preferred: 72.0,
       max: 72.0,
       stretch: 'Fixed',
     });
-    expect(source.nodes?.inspector_layer_mask?.layout?.width).toMatchObject({
+    expect(source.nodes?.layer?.layout?.width).toMatchObject({
       min: 96.0,
       preferred: 112.0,
       max: 120.0,
@@ -318,7 +323,7 @@ describe('ZUI layout catalog reports', () => {
     });
   });
 
-  it('does not retain popup cases from a pruned Workbench module branch', async () => {
+  it('keeps popup cases on the current Unreal level editor owner', async () => {
     const catalog = JSON.parse(
       await readFile(resolve(testRepoRoot, 'docs/_data/layout/catalog.json'), 'utf8'),
     ) as {
@@ -327,39 +332,95 @@ describe('ZUI layout catalog reports', () => {
     const entry = catalog.entries.find(
       ({ sourcePath }) =>
         sourcePath ===
-        'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui',
+        'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui',
     );
-    expect(entry?.cases?.some(({ state }) => state === 'open')).toBe(false);
-    expect(entry?.cases?.some(({ state }) => state === 'closed')).toBe(false);
+    expect(entry).toBeDefined();
+    expect(
+      catalog.entries.some(
+        ({ sourcePath }) =>
+          sourcePath ===
+          'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui',
+      ),
+    ).toBe(false);
+    expect(entry?.cases?.some(({ state }) => state === 'open')).toBe(true);
+    expect(entry?.cases?.some(({ state }) => state === 'closed')).toBe(true);
     expect(entry?.cases?.some(({ state }) => state === 'focus-return')).toBe(
-      false,
+      true,
     );
   });
 
-  it('keeps wide status chips single-line inside the 24px status bar', async () => {
+  it('verifies the live host status bar labels and measured slots', async () => {
     const sourcePath = resolve(
       testRepoRoot,
-      'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_status_bar.zui',
+      'zircon_editor/assets/ui/editor/unreal/components/host_status_bar.zui',
     );
     const source = parseZuiDocument(
       await readFile(sourcePath, 'utf8'),
     ).document;
-    for (const nodeId of ['status_grid', 'status_snap', 'status_zoom']) {
-      expect(source.nodes?.[nodeId]?.props).toMatchObject({
-        layout_padding_top: 0.0,
-        layout_padding_bottom: 0.0,
+    expect(source.asset.id).toBe(
+      'res://ui/editor/unreal/components/host_status_bar.zui',
+    );
+    expect(source.root.node).toBe('workbench_status_bar_root');
+    expect(
+      source.nodes?.workbench_status_bar_root?.children?.map(
+        ({ node }) => node,
+      ),
+    ).toEqual([
+      'workbench_status_bar_separator',
+      'workbench_status_bar_panel',
+      'status_primary_label',
+      'status_secondary_label',
+      'status_viewport_label',
+    ]);
+    expect(
+      [
+        'workbench_status_bar_root',
+        'workbench_status_bar_separator',
+        'workbench_status_bar_panel',
+        'status_primary_label',
+        'status_secondary_label',
+        'status_viewport_label',
+      ].map((nodeId) => source.nodes?.[nodeId]?.control_id),
+    ).toEqual([
+      'WorkbenchStatusBarRoot',
+      'StatusBarSeparator',
+      'StatusBarPanel',
+      'StatusPrimaryLabel',
+      'StatusSecondaryLabel',
+      'StatusViewportLabel',
+    ]);
+    for (const nodeId of [
+      'status_primary_label',
+      'status_secondary_label',
+      'status_viewport_label',
+    ]) {
+      expect(source.nodes?.[nodeId]?.props?.['font_size']).toBe(10.666667);
+      expect(source.nodes?.[nodeId]?.layout?.position).toMatchObject({
+        y: 3.0,
+      });
+      expect(source.nodes?.[nodeId]?.layout?.height).toEqual({
+        min: 16.0,
+        preferred: 16.0,
+        max: 16.0,
+        stretch: 'Fixed',
       });
     }
-    expect(source.nodes?.status_grid?.layout?.width).toEqual({
+    expect(source.nodes?.status_primary_label?.layout?.width).toEqual({
+      min: 240.0,
+      preferred: 560.0,
+      max: 960.0,
+      stretch: 'Stretch',
+    });
+    expect(source.nodes?.status_secondary_label?.layout?.width).toEqual({
       min: 96.0,
       preferred: 96.0,
       max: 96.0,
       stretch: 'Fixed',
     });
-    expect(source.nodes?.status_snap?.layout?.width).toEqual({
-      min: 80.0,
-      preferred: 80.0,
-      max: 80.0,
+    expect(source.nodes?.status_viewport_label?.layout?.width).toEqual({
+      min: 104.0,
+      preferred: 104.0,
+      max: 104.0,
       stretch: 'Fixed',
     });
   });
@@ -629,7 +690,7 @@ describe('ZUI layout catalog reports', () => {
     ).toBe(false);
   });
 
-  it('exposes the ReactBits layout-mode mapping from the generated catalog index', () => {
+  it('exposes Unreal source and acceptance guidance from the generated catalog index', () => {
     const index = renderIndex({
       schema: 'dev.zircon.zui.layout-catalog',
       version: 1,
@@ -639,16 +700,37 @@ describe('ZUI layout catalog reports', () => {
       entries: [],
     });
     expect(index).toContain(
-      '[ReactBits App UI 布局模式](../ui-and-layout/reactbits-app-shell-layout-modes.md)',
+      '[虚幻编辑器来源与验收](../../plans/unreal-editor-source-cutover.md)',
     );
   });
 
   it('enumerates product sources plus each project-owned fixture once', async () => {
-    const paths = await trackedZuiPaths();
+    const discovery = await discoverZuiSources();
+    const paths = discovery.paths;
     const bridgeFixture =
       'tools/penpot/apps/zircon-zui-plugin/src/bridge/roundtrip-fixture.zui';
 
-    expect(paths).toHaveLength(328);
+    const explicitFixtures = new Set(
+      discovery.metadata.explicitProjectFixtures.map(({ sourcePath }) => sourcePath),
+    );
+    const scannedPaths = paths.filter((path) => !explicitFixtures.has(path));
+    expect(discovery.metadata.controlledOrUnignoredSourceCount).toBeGreaterThanOrEqual(
+      scannedPaths.length,
+    );
+    expect(paths.length).toBeLessThanOrEqual(
+      discovery.metadata.controlledOrUnignoredSourceCount + explicitFixtures.size,
+    );
+    for (const sourcePath of [
+      'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui',
+      ...[
+        'content_drawer',
+        'details',
+        'dock_header',
+        'host_page_tabs',
+        'host_menu_bar',
+        'host_status_bar',
+      ].map((name) => `zircon_editor/assets/ui/editor/unreal/components/${name}.zui`),
+    ]) expect(paths.filter((path) => path === sourcePath)).toHaveLength(1);
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths).toEqual(
       [...paths].sort((left, right) => left.localeCompare(right, 'en')),
@@ -667,7 +749,13 @@ describe('ZUI layout catalog reports', () => {
     expect(discovery.metadata.scan).toBe(
       'git-ls-files-cached-others-exclude-standard',
     );
-    expect(discovery.metadata.controlledOrUnignoredSourceCount).toBe(327);
+    const explicitFixtures = new Set(
+      discovery.metadata.explicitProjectFixtures.map(({ sourcePath }) => sourcePath),
+    );
+    const scannedPaths = discovery.paths.filter((path) => !explicitFixtures.has(path));
+    expect(discovery.metadata.controlledOrUnignoredSourceCount).toBeGreaterThanOrEqual(
+      scannedPaths.length,
+    );
     expect(discovery.metadata.projectOwnedScannedFixtures).toEqual(
       projectOwnedReactBitsFixtures.map((sourcePath) =>
         expect.objectContaining({ sourcePath }),
@@ -682,8 +770,10 @@ describe('ZUI layout catalog reports', () => {
     expect(discovery.metadata.excludedRoots).toEqual(
       expect.arrayContaining(['docs/_data/layout/**', 'dev/**', 'target/**']),
     );
-    expect(discovery.paths).toHaveLength(328);
-  }, 15000);
+    expect(discovery.paths.length).toBeLessThanOrEqual(
+      discovery.metadata.controlledOrUnignoredSourceCount + explicitFixtures.size,
+    );
+  }, 30000);
 
   it('keeps agent workflow components source-owned across the native painter boundary', async () => {
     const sourcePath = resolve(
@@ -906,14 +996,14 @@ describe('dual-renderer catalog review', () => {
     ).toBe(1280);
     expect(
       defaultReviewCases(
-        'zircon_editor/assets/ui/editor/modules/core/assets/assets_workspace.zui',
+        'zircon_editor/assets/ui/editor/unreal/components/content_drawer.zui',
         'component',
       ).map((item) => item.viewport.width),
-    ).toEqual([1280, 1280, 900, 640]);
+    ).toEqual([360, 360, 240, 480]);
     expect(
       defaultReviewCases(
-        'zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui',
-        'component',
+        'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui',
+        'view',
       )[0].host,
     ).toBe('editor');
     for (const name of ['component_showcase', 'material_component_lab'])

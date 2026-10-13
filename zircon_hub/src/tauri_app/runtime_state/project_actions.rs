@@ -40,6 +40,7 @@ impl HubRuntimeSession {
         crate::state::push_action_record(
             &mut self.config.action_history,
             HubActionRecord {
+                id: crate::state::new_action_record_id(),
                 finished_unix_ms: crate::projects::now_unix_ms(),
                 action: HubActionKind::CreateProject,
                 status: HubActionStatus::Success,
@@ -539,6 +540,7 @@ impl HubRuntimeSession {
         crate::state::push_action_record(
             &mut self.config.action_history,
             HubActionRecord {
+                id: crate::state::new_action_record_id(),
                 finished_unix_ms: crate::projects::now_unix_ms(),
                 action,
                 status,

@@ -1,10 +1,15 @@
+//! 验证基础会话身份经 Editor 发布投影后保留全部调用方标识。
+//! 夹具使用不同数值区分构造字段与两个投影字段；不触发真实会话、gateway 或资源操作。
+
 use std::sync::Arc;
 
 use super::GatewaySessionIdentity;
 use crate::ZrRuntimeSessionHandle;
 
 #[test]
+/// 用逐字段断言核对基础构造与两次消费式投影的组合结果。
 fn gateway_session_identity_preserves_runtime_owner_and_editor_projection() {
+    // 各标识取不同值，使投影意外覆盖所属实例、会话或传输 epoch 时可被断言区分。
     let identity = GatewaySessionIdentity::new(
         7,
         ZrRuntimeSessionHandle::new(11),

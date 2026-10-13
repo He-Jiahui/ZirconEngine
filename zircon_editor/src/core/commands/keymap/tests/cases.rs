@@ -248,7 +248,7 @@ fn keyboard_signature_lookup_preserves_fallback_and_ignored_key_behavior() {
     );
     assert_eq!(
         keymap.resolve_keyboard_input_when(
-            &keyboard_event("", 116, false, false, false, false),
+            &keyboard_event("", 80, false, false, true, false),
             |_| true,
         ),
         Some("runtime.play_mode.enter")
@@ -280,6 +280,21 @@ fn keyboard_signature_lookup_preserves_fallback_and_ignored_key_behavior() {
         keymap.resolve_keyboard_input_when(&released, |_| true),
         None
     );
+}
+
+#[test]
+fn unreal_play_shortcuts_keep_command_ids_and_enabled_resolution() {
+    let keymap = EditorKeymap::default_workbench();
+    assert_eq!(keymap.chord_for_command("runtime.play_mode.enter"), Some(&EditorKeyChord::from_str("Alt+P").unwrap()));
+    assert_eq!(keymap.chord_for_command("runtime.play_mode.exit"), Some(&EditorKeyChord::from_str("Esc").unwrap()));
+    let stop = keyboard_event("Escape", 27, false, false, false, false);
+    assert_eq!(keymap.resolve_keyboard_input_when(&stop, |id| id == "runtime.play_mode.exit"), Some("runtime.play_mode.exit"));
+    assert_eq!(keymap.resolve_keyboard_input_when(&stop, |_| false), None);
+    for input in [keyboard_event("F5", 116, false, false, false, false), keyboard_event("F5", 116, false, true, false, false)] {
+        assert_eq!(keymap.resolve_keyboard_input_when(&input, |_| true), None);
+    }
+    let commands = crate::core::commands::default_workbench_commands();
+    assert!(keymap.conflicts_with_when(|id| commands.iter().find(|command| command.id().as_str() == id).map(|command| command.when().clone())).is_empty());
 }
 
 #[test]

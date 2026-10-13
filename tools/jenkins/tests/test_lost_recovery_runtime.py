@@ -164,6 +164,9 @@ class DepartedRuntime:
 
     def observations(self):
         stack = ExitStack()
+        # Existing invariant tests need immediate rejection; the wait contracts
+        # below use a deterministic clock and explicitly enable their window.
+        stack.enter_context(patch.object(recovery, "_RUNTIME_WAIT_SECONDS", 0))
         for module in (recovery, lost_owner, recovery_keeper, owned_upgrade):
             stack.enter_context(patch.object(module, "_raw", side_effect=lambda path: self.files[str(Path(path).absolute())]))
             stack.enter_context(patch.object(module, "_plain"))
@@ -260,6 +263,83 @@ class DepartedRuntime:
 
 
 class LostRecoveryRuntimeTests(unittest.TestCase):
+    def test_transient_runtime_departure_restarts_full_readonly_review(self):
+        scenario = DepartedRuntime().committed()
+        before = deepcopy(scenario.files)
+        with scenario.observations(), patch.object(recovery, "_RUNTIME_WAIT_SECONDS", 1), \
+                patch.object(recovery.time, "monotonic", return_value=0), \
+                patch.object(recovery.time, "sleep", side_effect=lambda delay: setattr(scenario.inventory, "return_value", [])) as wait:
+            scenario.inventory.return_value = [scenario.identities["agent"]]
+            plan = scenario.prepare()
+            self.assertEqual([], plan.document["runtimeOwnerInventory"])
+            self.assertEqual(scenario.holds, plan.document["executionQuarantine"]["protectedHolds"])
+            self.assertTrue(wait.called)
+        self.assertEqual(before, scenario.files)
+
+    def test_owner_appearing_at_final_observation_requires_complete_review_again(self):
+        scenario = DepartedRuntime().committed()
+        before = deepcopy(scenario.files)
+        with scenario.observations(), patch.object(recovery, "_RUNTIME_WAIT_SECONDS", 1), \
+                patch.object(recovery.time, "monotonic", return_value=0), \
+                patch.object(recovery.time, "sleep") as wait:
+            scenario.inventory.side_effect = [[], [], [scenario.identities["agent"]], [], [], []]
+            plan = scenario.prepare()
+            self.assertEqual([], plan.document["runtimeOwnerInventory"])
+            self.assertGreaterEqual(scenario.home_probe.call_count, 2)
+            self.assertTrue(wait.called)
+        self.assertEqual(before, scenario.files)
+
+    def test_persistent_runtime_occupancy_expires_without_writes_or_owner_exclusion(self):
+        scenario = DepartedRuntime().committed()
+        before, clock = deepcopy(scenario.files), [0.0]
+        def advance(delay):
+            clock[0] += delay
+        with scenario.observations(), patch.object(recovery, "_RUNTIME_WAIT_SECONDS", 1), \
+                patch.object(recovery.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(recovery.time, "sleep", side_effect=advance):
+            scenario.inventory.return_value = [scenario.identities["agent"]]
+            with self.assertRaises(JenkinsError) as raised:
+                scenario.prepare()
+            self.assertEqual("lost_recovery_runtime_unproven", raised.exception.code)
+            self.assertEqual([scenario.identities["agent"]], raised.exception.details["runtimeOwnerInventory"])
+            self.assertEqual(1.0, clock[0])
+        self.assertEqual(before, scenario.files)
+
+    def test_wait_rejects_changed_boot_fence_or_inaccessible_inventory(self):
+        for change in ("boot", "fence", "inaccessible"):
+            with self.subTest(change=change):
+                scenario = DepartedRuntime().committed()
+                before = deepcopy(scenario.files)
+                def mutate(delay):
+                    if change == "boot":
+                        scenario.boot_probe.return_value = scenario.boot + 1
+                    else:
+                        scenario.fence["deployment/driver.json"] = "f" * 64
+                with scenario.observations(), patch.object(recovery, "_RUNTIME_WAIT_SECONDS", 1), \
+                        patch.object(recovery.time, "monotonic", return_value=0), \
+                        patch.object(recovery.time, "sleep", side_effect=mutate) as wait:
+                    scenario.inventory.return_value = [scenario.identities["agent"]]
+                    if change == "inaccessible":
+                        scenario.inventory.side_effect = JenkinsError("deployment_inventory_inconclusive", "inaccessible")
+                    with self.assertRaises(JenkinsError):
+                        scenario.prepare()
+                    self.assertEqual(change != "inaccessible", wait.called)
+                self.assertEqual(before, scenario.files)
+
+    def test_reviewed_plan_revalidation_wait_keeps_original_identity_and_digest(self):
+        scenario = DepartedRuntime().committed()
+        with scenario.observations():
+            plan = scenario.prepare()
+            before = deepcopy(scenario.files)
+            scenario.inventory.return_value = [scenario.identities["agent"]]
+            with patch.object(recovery, "_RUNTIME_WAIT_SECONDS", 1), \
+                    patch.object(recovery.time, "monotonic", return_value=0), \
+                    patch.object(recovery.time, "sleep", side_effect=lambda delay: setattr(scenario.inventory, "return_value", [])):
+                current = plan.revalidate(scenario.manager)
+            self.assertEqual(plan.recovery_digest, current["recoveryDigest"])
+            self.assertEqual(plan.document["owner"], current["owner"])
+            self.assertEqual(before, scenario.files)
+
     def test_same_boot_committed_runtime_preserves_result_management_outcomes_and_holds(self):
         scenario = DepartedRuntime().committed()
         files, rows, management = deepcopy(scenario.files), deepcopy(scenario.rows), deepcopy(scenario.management_rows)

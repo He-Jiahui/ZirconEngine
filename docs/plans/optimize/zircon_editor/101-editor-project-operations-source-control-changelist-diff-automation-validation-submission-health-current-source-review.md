@@ -8,7 +8,7 @@ baseline_epoch: 524
 canonical_owner: Editor27
 refreshes:
   - docs/plans/optimize/zircon_editor/27-project-operations-source-control-changelist-diff-automation-report-submit-gates-health-dashboard-review.md
-  - docs/plans/optimize/zircon_editor/85-editor-project-operations-source-control-provider-workspace-changelist-diff-automation-validation-submission-gate-health-dashboard-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/85-editor-project-operations-source-control-provider-workspace-changelist-diff-automation-validation-submission-gate-health-dashboard.md
 related_code:
   - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production
   - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui

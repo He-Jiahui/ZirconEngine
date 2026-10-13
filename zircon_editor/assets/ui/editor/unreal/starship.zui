@@ -175,3 +175,37 @@ set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal
 [[stylesheets.rules]]
 selector = ".unreal-popup-menu"
 set = { self = { background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", border_color = "$unreal_dropdown_outline", border_width = 1.0, corner_radius = 4.0, font_family = "$unreal_font_family", font_size = "$unreal_font_size" } }
+
+
+# FStarshipCoreStyle::SetupDockingStyles / Docking.MajorTab.
+[[stylesheets.rules]]
+selector = ".unreal-page-tabs"
+set = { self = { background_color = "$unreal_background", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-major-tab"
+set = { self = { background_color = "transparent", foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight", border_width = 0.0, corner_radius = 0.0, padding = { left = 4.0, top = 4.0, right = 10.0, bottom = 4.0 } } }
+
+[[stylesheets.rules]]
+selector = ".unreal-major-tab:hovered"
+set = { self = { background_color = "#242424CC", foreground_color = "$unreal_foreground_hover" } }
+
+[[stylesheets.rules]]
+selector = ".unreal-major-tab:selected"
+set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground_hover" } }
+
+[[stylesheets.rules]]
+selector = ".unreal-major-tab-close"
+set = { self = { background_color = "transparent", foreground_color = "$unreal_foreground", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-major-tab-close:hovered"
+set = { self = { foreground_color = "$unreal_foreground_hover" } }
+
+[[stylesheets.rules]]
+selector = ".unreal-major-tab-close:pressed"
+set = { self = { foreground_color = "$unreal_foreground" } }
+
+[[stylesheets.rules]]
+selector = ".unreal-divider"
+set = { self = { background_color = "$unreal_input_outline", border_width = 0.0, corner_radius = 0.0 } }

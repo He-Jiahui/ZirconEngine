@@ -128,6 +128,7 @@ pub enum UiBindingMapKey {
 }
 
 impl UiBindingMapKey {
+    #[cfg(test)]
     pub(super) fn native_repr(&self) -> String {
         let mut output = String::new();
         self.native_repr_into(&mut output);
@@ -486,6 +487,7 @@ pub(super) fn validate_identity(
     Ok(())
 }
 
+#[cfg(test)]
 pub(super) fn quoted(value: &str) -> String {
     let mut output = String::new();
     quoted_into(value, &mut output);

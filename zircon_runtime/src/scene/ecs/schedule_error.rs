@@ -13,6 +13,8 @@ pub enum ScheduleError {
     InvalidSystemSetName(String),
     #[error("system {0} already registered")]
     DuplicateSystem(String),
+    #[error("stage {0:?} appears more than once in the schedule")]
+    DuplicateStage(super::SystemStage),
     #[error("system {0} is still in flight and cannot be retired")]
     SystemInFlight(String),
     #[error("system {0} registration builder was already consumed")]

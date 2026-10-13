@@ -35,7 +35,7 @@ tests:
   - zircon_app/src/entry/tests/runtime_entry_input_guards
 plan_sources:
   - docs/plans/optimize/zircon_runtime/56-input-device-event-frame-state-action-map-focus-gamepad-recording-replay-host-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/99q-runtime-platform-host-window-registry-monitor-display-event-loop-application-lifecycle-surface-command-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99q-runtime-platform-host-window-registry-monitor-display-event-loop-application-lifecycle-surface-command.md
   - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
   - docs/plans/zircon_runtime/runtime/12/failure-2026-07-19-app-entry-input-and-gamepad-storm-budget.md
   - docs/plans/performance/01/2026-08-14-runtime-input-ingress-current-review.md

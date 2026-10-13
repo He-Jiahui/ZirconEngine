@@ -73,6 +73,39 @@ fn optimization_batch_20260830cb_runtime355_quaternion_properties_preserve_resul
 }
 
 #[test]
+fn finite_large_quaternion_samples_normalize_without_overflow() {
+    let sample = AnimationChannelValueAsset::Quaternion([1.0e20, -1.0e20, 1.0e20, -1.0e20]);
+    let normalized = sample_quaternion(&sample).expect("large finite quaternion is normalizable");
+    assert!(normalized.is_finite());
+    assert!((normalized.length() - 1.0).abs() < 1.0e-6);
+    assert_eq!(normalized.to_array(), [0.5, -0.5, 0.5, -0.5]);
+}
+
+#[test]
+fn quaternion_sampling_rejects_non_finite_and_too_short_norms() {
+    for sample in [
+        AnimationChannelValueAsset::Quaternion([f32::NAN, 0.0, 0.0, 1.0]),
+        AnimationChannelValueAsset::Quaternion([f32::INFINITY, 0.0, 0.0, 1.0]),
+    ] {
+        assert_eq!(
+            sample_quaternion(&sample),
+            Err(AnimationError::NonFiniteSample {
+                sample_kind: "quaternion"
+            })
+        );
+    }
+    for sample in [
+        AnimationChannelValueAsset::Quaternion([0.0; 4]),
+        AnimationChannelValueAsset::Quaternion([1.0e-30, 0.0, 0.0, 0.0]),
+    ] {
+        assert_eq!(
+            sample_quaternion(&sample),
+            Err(AnimationError::ZeroLengthQuaternionSample)
+        );
+    }
+}
+
+#[test]
 fn optimization_batch_20260830cb_runtime355_production_fuses_quaternion_scans() {
     let source = include_str!("../../sampling.rs");
     let function = source

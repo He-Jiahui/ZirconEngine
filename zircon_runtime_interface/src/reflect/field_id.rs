@@ -28,6 +28,7 @@ impl ReflectFieldId {
         ))
     }
 
+    /// 从 UUID 构造字段 ID，并拒绝全零 UUID。
     pub fn try_from_uuid(value: Uuid) -> Result<Self, ReflectFieldIdParseError> {
         if value.is_nil() {
             return Err(ReflectFieldIdParseError::Nil);
@@ -35,12 +36,14 @@ impl ReflectFieldId {
         Ok(Self(value))
     }
 
+    /// 返回承载该身份的 UUID；该值按 UUID 形式序列化。
     pub fn as_uuid(self) -> Uuid {
         self.0
     }
 }
 
 impl Display for ReflectFieldId {
+    /// 以标准 UUID 文本格式写入身份值。
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "{}", self.0)
     }
@@ -49,6 +52,7 @@ impl Display for ReflectFieldId {
 impl FromStr for ReflectFieldId {
     type Err = ReflectFieldIdParseError;
 
+    /// 解析 UUID 文本并拒绝格式错误或全零身份。
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         Uuid::parse_str(value)
             .map_err(|source| ReflectFieldIdParseError::InvalidUuid { source })
@@ -57,6 +61,7 @@ impl FromStr for ReflectFieldId {
 }
 
 impl<'de> Deserialize<'de> for ReflectFieldId {
+    /// 反序列化 UUID 后通过 [`Self::try_from_uuid`] 执行非 nil 检查。
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

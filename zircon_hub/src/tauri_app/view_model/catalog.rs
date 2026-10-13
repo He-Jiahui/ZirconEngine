@@ -83,13 +83,52 @@ fn learn_row(resource: &LearnCatalogEntry, language: HubLanguage) -> HubLearnIte
     }
 }
 
-// BUG: [CR-HUBSTATE-0004] 清单允许任意成熟度字符串，“unstable”也包含稳定关键词而被标为成功色；证据：清单读取未限制枚举值且这里做子串匹配。
-fn plugin_maturity_tone(maturity: &str) -> &'static str {
-    if contains_ascii_case_insensitive(maturity, b"stable") || maturity.contains("稳定") {
-        "success"
-    } else {
-        "warning"
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PluginMaturity {
+    Stable,
+    Unstable,
+    Experimental,
+    Preview,
+    Beta,
+    Alpha,
+    Unknown,
+}
+
+impl PluginMaturity {
+    fn parse(value: &str) -> Self {
+        let value = value.trim();
+        if value.eq_ignore_ascii_case("stable") || value == "稳定" {
+            Self::Stable
+        } else if value.eq_ignore_ascii_case("unstable") || value == "不稳定" {
+            Self::Unstable
+        } else if value.eq_ignore_ascii_case("experimental") || value == "实验性" {
+            Self::Experimental
+        } else if value.eq_ignore_ascii_case("preview") || value == "预览" {
+            Self::Preview
+        } else if value.eq_ignore_ascii_case("beta") || value == "测试版" {
+            Self::Beta
+        } else if value.eq_ignore_ascii_case("alpha") || value == "早期" {
+            Self::Alpha
+        } else {
+            Self::Unknown
+        }
     }
+
+    fn tone(self) -> &'static str {
+        match self {
+            Self::Stable => "success",
+            Self::Unstable
+            | Self::Experimental
+            | Self::Preview
+            | Self::Beta
+            | Self::Alpha
+            | Self::Unknown => "warning",
+        }
+    }
+}
+
+fn plugin_maturity_tone(maturity: &str) -> &'static str {
+    PluginMaturity::parse(maturity).tone()
 }
 
 fn asset_detail(kind: &str, path: &str, language: HubLanguage) -> String {

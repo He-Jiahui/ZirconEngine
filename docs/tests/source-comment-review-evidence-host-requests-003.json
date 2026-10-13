@@ -1,0 +1,1412 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "host-requests-003",
+  "checkout": "E:\\Git\\ZirconEngine",
+  "baseHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "reviewer": "/root/reflection_review",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "canonicalWriter": "/root/reflection_review",
+  "agentDelivery": "写入本批唯一授权证据文件；源文件等待主审独立复核和 Jenkins 阶段验证。",
+  "state": "awaiting-independent-review",
+  "sourcePins": [
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/state.rs",
+      "sha256": "0c3b717c1dabcd981e1ab0cb30295a4584be449d7cad3aaf72af5af7dfe5b811",
+      "symbols": "collect_host_requests; prepare_host_request_output"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+      "sha256": "cb84dd06c26cd9fe5207d0a05bc4e1fdda2de54e10f9d176b23e729631b3f30d",
+      "symbols": "runtime_ime_host_request; optional composition-range conversion"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/runtime_ui/action_requests.rs",
+      "sha256": "937fffcc95c3f12cdbde8d809d1c56186d6ffd57185f6491f7eb782ddc19727c",
+      "symbols": "RuntimeUiActionRequestQueue::record_result; secure-ref producer invariant"
+    },
+    {
+      "path": "zircon_runtime/src/ui/surface/input/effect/host_request.rs",
+      "sha256": "9ad377b76c81539fb28adb4fae4e4ecfead6bdbb10fe5084b980e34e38f0dbd0",
+      "symbols": "host_request_for_effect; generic UI projection"
+    },
+    {
+      "path": "zircon_runtime/src/dynamic_api/session/events.rs",
+      "sha256": "3de66fd03293517a05fd4e2361808dfba3a089336d50f45a012357c983ad450c",
+      "symbols": "handle_clipboard_result"
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_entry_app/host_requests/drain.rs",
+      "sha256": "7f36f584cb8033692cf925b019a6027a2ff8b86877dc26fe0d13837ff22d04c0",
+      "symbols": "apply_runtime_host_requests"
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+      "sha256": "4585304596249244962b1901104d6170e3b95a22aa10965873be3ff82b2147d8",
+      "symbols": "viewport selection/routing"
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_entry_app/host_requests/ui_action.rs",
+      "sha256": "5cc889dcb2f71e4a8c64e7ff7469226c1cc152d4f17862a7e174c54990de0ced",
+      "symbols": "report_unhandled_runtime_ui_action"
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_entry_app/host_requests/ui_host_request.rs",
+      "sha256": "94897feed2906ff61207d398198bc50bbbef25427a083faa87005b150a8d3842",
+      "symbols": "report_unhandled_runtime_ui_host_request"
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_entry_app/host_requests/clipboard/mod.rs",
+      "sha256": "5dd5a9883461e1ff6155d66ac65991e6b3a0347e28da2ce63d0a037a02ece9fe",
+      "symbols": "platform clipboard operation/result creation"
+    },
+    {
+      "path": "zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs",
+      "sha256": "aaf8ef269a332a64f2c511cb36b4f7ef19cb0942ad0b49fc4f670975889e1159",
+      "symbols": "apply_runtime_ime_host_request lines 12-16; SetSurroundingText lines 41-54"
+    },
+    {
+      "path": "zircon_runtime/src/script/vm/gameplay_host/scene_transition.rs",
+      "sha256": "02d47e01e3681642ad5893b3d7ee396541bdc376a21c8a792820b1e554acf179",
+      "symbols": "request_scene_transition inserts typed World resource"
+    }
+  ],
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/host/mod.rs",
+      "beforeSha256": "eb8b91bf46146fbcad5830f5fe7d00928e411eccd41106d7786cd5780cb7755d",
+      "afterSha256": "27c9210bd9555a4be377a13046b7799cec3c4802dc3240a308dd678ba1fa9145",
+      "reviewedSha256": "27c9210bd9555a4be377a13046b7799cec3c4802dc3240a308dd678ba1fa9145",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "objectEvidence": [
+        {
+          "symbol": "host module; #[path] submodules clipboard/host_requests/ui_action/ui_host_request; public re-exports",
+          "kind": "module and re-export boundary",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/mod.rs#1-28",
+          "calls": [
+            "zircon_runtime_interface/src/runtime_api/mod.rs::pub use host::{...} exposes selected host DTOs to Runtime and App callers."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[path] maps four private modules to source files; pub use defines visibility; no generated code or FFI is implemented here."
+          ],
+          "testsOrContract": [
+            "The public list includes ZrRuntimeHostRequestV1 and its payload types; scene transition DTOs are also exported but are not variants of that batch enum."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Module loading connects the four sources; callers use re-exported ABI types. The added module comment records the batch-vs-World-resource boundary."
+          ],
+          "commentDecision": "Added module-boundary documentation; retained declarations and re-export list.",
+          "constraintsAndLifecycle": "This file owns names and visibility only; queueing, execution, and result delivery occur in Runtime/App callers."
+        }
+      ],
+      "callerEvidence": [
+        "zircon_runtime_interface/src/runtime_api/mod.rs::pub use host",
+        "zircon_runtime/src/dynamic_api/session/state.rs::collect_host_requests and prepare_host_request_output",
+        "zircon_app/src/entry/runtime_library/runtime_session.rs::drain_host_requests"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/host/clipboard.rs",
+      "beforeSha256": "0ddadd6c861c7d1d33eaa57df53d827b1e356c39c6e8c384206143051bfda569",
+      "afterSha256": "52d6fe80b1275b5943e943189b174eb0e4c3a432009dc6f01bd02358fe5ece5e",
+      "reviewedSha256": "52d6fe80b1275b5943e943189b174eb0e4c3a432009dc6f01bd02358fe5ece5e",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "objectEvidence": [
+        {
+          "symbol": "clipboard module",
+          "kind": "module",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/clipboard.rs#1-12",
+          "calls": [
+            "Included by host/mod.rs::clipboard and re-exported through runtime_api::host."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "Public structs derive Serde; no FFI or generated source here."
+          ],
+          "testsOrContract": [
+            "tests/clipboard.rs covers JSON identity/outcome roundtrip and encoded-body budget, not OS clipboard access."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Request DTOs move from Runtime UI queues through the host batch to App; result DTOs return through a clipboard-result event."
+          ],
+          "commentDecision": "Added module-level overview; retained code and original comments.",
+          "constraintsAndLifecycle": "Constructors assemble data only; App/Runtime own validation, platform operations, and event routing."
+        },
+        {
+          "symbol": "ZrRuntimeClipboardHostRequestV1 { target_viewport, target_surface, request }",
+          "kind": "struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/clipboard.rs::ZrRuntimeClipboardHostRequestV1",
+          "calls": [
+            "zircon_runtime/src/dynamic_api/session/state.rs::collect_host_requests collects clipboard requests from Runtime UI dispatch.",
+            "zircon_app/src/entry/runtime_entry_app/host_requests/clipboard/mod.rs consumes the request at its viewport."
+          ],
+          "implementations": [
+            "Serde derives preserve the typed request across JSON ABI."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Wrapped as ZrRuntimeHostRequestV1::Clipboard by the batch enum."
+          ],
+          "testsOrContract": [
+            "tests/clipboard.rs::clipboard_host_contract_roundtrips_surface_identity_and_typed_outcome checks identity/outcome roundtrip."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Fields carry viewport routing, Runtime UI surface identity, and the read/write transfer request. App checks viewport and request combination before platform clipboard calls."
+          ],
+          "commentDecision": "Added type lifecycle/constraint docs and field docs; retained public declaration.",
+          "constraintsAndLifecycle": "Constructor does not verify intent/kind/text consistency, execute a platform operation, or dispatch an event."
+        },
+        {
+          "symbol": "ZrRuntimeClipboardHostRequestV1::new",
+          "kind": "constructor method",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/clipboard.rs::impl ZrRuntimeClipboardHostRequestV1::new",
+          "calls": [
+            "Runtime UI request queue and batch assembly pass viewport, surface, and typed request."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "No macro or FFI; returned value is Serde encoded downstream."
+          ],
+          "testsOrContract": [
+            "The clipboard contract test roundtrips the request through JSON."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Copies viewport/surface and moves request into Self; no state change or operation."
+          ],
+          "commentDecision": "Added parameter and return-value documentation.",
+          "constraintsAndLifecycle": "Arguments are owned/value data; semantic consistency is checked by the App consumer, not this constructor."
+        },
+        {
+          "symbol": "ZrRuntimeClipboardResultV1 { target_surface, transfer_id, owner, outcome }",
+          "kind": "struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/clipboard.rs::ZrRuntimeClipboardResultV1",
+          "calls": [
+            "zircon_app/src/entry/runtime_entry_app/host_requests/clipboard/mod.rs creates a typed result after platform operation.",
+            "zircon_runtime/src/dynamic_api/session/events.rs::handle_clipboard_result checks transfer identity and encoded payload budget.",
+            "Runtime UI input routing matches surface, transfer ID, and owner."
+          ],
+          "implementations": [
+            "Serde derives encode the event payload."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Returned through ZrRuntimeEventV1::clipboard_result."
+          ],
+          "testsOrContract": [
+            "Clipboard contract test roundtrips typed outcome; body-budget test checks encoded read-text body bound."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Correlation fields identify the originating transfer and target node; outcome carries read text, write completion, or failure. Runtime rejects bounded-JSON decode failures and invalid transfer IDs; over-budget ReadText text becomes Failed{PayloadTooLarge} and is still dispatched for UI input matching."
+          ],
+          "commentDecision": "Added field, lifecycle, and constraint docs; preserved existing comment.",
+          "constraintsAndLifecycle": "Result constructor does not validate correlation; routing depends on pending UI transfer/surface state."
+        },
+        {
+          "symbol": "ZrRuntimeClipboardResultV1::new",
+          "kind": "constructor method",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/clipboard.rs::impl ZrRuntimeClipboardResultV1::new",
+          "calls": [
+            "App clipboard adapter builds a result for ZrRuntimeEventV1::clipboard_result."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "Serde event encoding occurs at event boundary, not in this function."
+          ],
+          "testsOrContract": [
+            "tests/clipboard.rs::clipboard_host_contract_roundtrips_surface_identity_and_typed_outcome"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Moves outcome and stores correlation values; does not send event or check pending request."
+          ],
+          "commentDecision": "Added parameter/return documentation.",
+          "constraintsAndLifecycle": "Owned result is later checked by Runtime transfer matching."
+        },
+        {
+          "symbol": "clipboard.rs::tests path module",
+          "kind": "test-module registration",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/clipboard.rs::#[cfg(test)] mod tests",
+          "calls": [
+            "Loads zircon_runtime_interface/src/runtime_api/host/tests/clipboard.rs only under cfg(test)."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[cfg(test)] and #[path] select the test-only module."
+          ],
+          "testsOrContract": [
+            "Two tests check typed JSON identity/outcome and worst-case control-character expansion against body budget."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Tests operate on serialized values/budget arithmetic; no OS clipboard is accessed."
+          ],
+          "commentDecision": "Recorded test registration and platform boundary.",
+          "constraintsAndLifecycle": "Test module is absent from normal library builds."
+        }
+      ],
+      "callerEvidence": [
+        "zircon_runtime/src/dynamic_api/session/state.rs::collect_host_requests",
+        "zircon_app/src/entry/runtime_entry_app/host_requests/clipboard/mod.rs",
+        "zircon_runtime/src/dynamic_api/session/events.rs::handle_clipboard_result",
+        "Runtime UI input routing matches surface/transfer/owner."
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/host/ui_action.rs",
+      "beforeSha256": "b3335c9f0ee2f591dc3abe6570b7edfcf4c872b6b00a710e5fab1a2094b72e37",
+      "afterSha256": "bce0953dec04cdd5980ab6c80790d4e2475df7aa50f3acfcab7cb06343f2435e",
+      "reviewedSha256": "bce0953dec04cdd5980ab6c80790d4e2475df7aa50f3acfcab7cb06343f2435e",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "objectEvidence": [
+        {
+          "symbol": "ui_action module",
+          "kind": "module",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_action.rs#1-17",
+          "calls": [
+            "RuntimeUiActionRequestQueue in zircon_runtime/src/dynamic_api/session/runtime_ui/action_requests.rs is the producer."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "Serde derives encode ABI value; host/mod.rs re-exports request."
+          ],
+          "testsOrContract": [
+            "tests/ui_action.rs has one secure-action serialization/Debug fixture."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Runtime producer collects delivered component events with template actions; App checks viewport and currently logs sampled unhandled actions."
+          ],
+          "commentDecision": "Added module boundary; retained existing English API docs.",
+          "constraintsAndLifecycle": "This type carries an opaque secure ref but does not resolve it or execute an action."
+        },
+        {
+          "symbol": "ZrRuntimeUiActionHostRequestV1 { target_viewport, target_surface, input_sequence, action_index, tree_id, target, invocation, secure_value }",
+          "kind": "struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_action.rs::ZrRuntimeUiActionHostRequestV1",
+          "calls": [
+            "zircon_runtime/src/dynamic_api/session/runtime_ui/action_requests.rs::RuntimeUiActionRequestQueue::record_result builds requests from delivered action events.",
+            "zircon_app/src/entry/runtime_entry_app/host_requests/ui_action.rs::report_unhandled_runtime_ui_action validates viewport and records sampled diagnostic."
+          ],
+          "implementations": [
+            "Serde Serialize/Deserialize derive remains the wire behavior; custom Debug is separate."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Producer validates secure reference tree/node identity and requires null invocation values when carrying the ref; rejected refs return for revocation."
+          ],
+          "testsOrContract": [
+            "secure_ui_action_delivery_serializes_identity_without_plaintext uses a null-value fixture; compared secret literal is not input, so this is not an arbitrary-payload sanitizer test."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Queue entry follows delivered component event with template action; action_index converts to u32 with u32::MAX fallback. Producer validates/revokes secure ref; public constructor/Deserialize bypass those checks."
+          ],
+          "commentDecision": "Added type and field docs; existing English docs and attributes preserved.",
+          "constraintsAndLifecycle": "Ordinary invocation payload remains serializable; only None secure_value is skipped by Serde. Producer invariants do not follow from direct construction."
+        },
+        {
+          "symbol": "ZrRuntimeUiActionHostRequestV1::new",
+          "kind": "constructor method",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_action.rs::impl ZrRuntimeUiActionHostRequestV1::new",
+          "calls": [
+            "Called by RuntimeUiActionRequestQueue::record_result after producer-side secure identity/payload checks."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "No FFI inside method; batch serialization downstream."
+          ],
+          "testsOrContract": [
+            "Secure action test exercises serialized DTO, not this method's enforcement of queue policy."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Moves invocation/ref and copies identity fields; returns ABI value without validation or external state."
+          ],
+          "commentDecision": "Added parameter, return, and producer-precondition docs.",
+          "constraintsAndLifecycle": "Owned invocation/ref live as long as request; constructor does not enforce queue restrictions."
+        },
+        {
+          "symbol": "fmt::Debug for ZrRuntimeUiActionHostRequestV1::fmt",
+          "kind": "trait implementation and formatting block",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_action.rs::impl fmt::Debug / fmt",
+          "calls": [
+            "App diagnostics format request; custom implementation lists route identity and invocation target ID."
+          ],
+          "implementations": [
+            "Implements std::fmt::Debug manually instead of deriving Debug."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Emits secure_value.is_some(), not contents; does not format invocation payload."
+          ],
+          "testsOrContract": [
+            "Fixture assertion covers only the test value; it does not prove all dynamic IDs or arbitrary payloads are hidden."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Formatter emits route identities and invocation.target_id(), secure-ref presence bool, and omits payload/reference body."
+          ],
+          "commentDecision": "Added private invariant comment with exact output boundary; old comments remain.",
+          "constraintsAndLifecycle": "Route IDs and action target ID remain visible; Debug is not general redaction or Serde policy."
+        },
+        {
+          "symbol": "ui_action.rs::tests path module",
+          "kind": "test-module registration",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_action.rs::#[cfg(test)] mod tests",
+          "calls": [
+            "Loads zircon_runtime_interface/src/runtime_api/host/tests/ui_action.rs under cfg(test)."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[cfg(test)]/#[path] only."
+          ],
+          "testsOrContract": [
+            "One test uses null payload and checks fixture identity serialization/Debug; its named secret is not in input."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Local construction/serialization/formatting only; no Runtime queue or secure resolver."
+          ],
+          "commentDecision": "Added test module limitation note.",
+          "constraintsAndLifecycle": "Test code is cfg(test)-only; no doctest was added."
+        }
+      ],
+      "callerEvidence": [
+        "zircon_runtime/src/dynamic_api/session/runtime_ui/action_requests.rs::RuntimeUiActionRequestQueue::record_result",
+        "zircon_app/src/entry/runtime_entry_app/host_requests/ui_action.rs::report_unhandled_runtime_ui_action",
+        "zircon_runtime/src/dynamic_api/session/state.rs::collect_host_requests"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs",
+      "beforeSha256": "3d529aa6508f6181292e72420e5d564ee183ccc230d7c77e1d735035139578f8",
+      "afterSha256": "7203bb4f680b8dfc902df09ce3061cff56a94de9323477b8b322b9cd1f8ce055",
+      "reviewedSha256": "7203bb4f680b8dfc902df09ce3061cff56a94de9323477b8b322b9cd1f8ce055",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "objectEvidence": [
+        {
+          "symbol": "ui_host_request module",
+          "kind": "module",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs#1-20",
+          "calls": [
+            "Runtime UI host effect projection originates at zircon_runtime/src/ui/surface/input/effect/host_request.rs::host_request_for_effect."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "Public types derive Serde and are re-exported through host/mod.rs/runtime_api/mod.rs."
+          ],
+          "testsOrContract": [
+            "Tests distinguish generic requests from dedicated IME/clipboard channels and check selected projections/JSON/Debug."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Module performs typed projection only; no OS operation runs here."
+          ],
+          "commentDecision": "Added module responsibility and dedicated-channel boundary; preserved existing English docs.",
+          "constraintsAndLifecycle": "Payload values remain serializable; consumer support is a separate App integration concern."
+        },
+        {
+          "symbol": "ZrRuntimeUiHostRequestV1 { target_viewport, target_surface, input_sequence, request_index, tree_id, effect_index, kind }",
+          "kind": "struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs::ZrRuntimeUiHostRequestV1",
+          "calls": [
+            "zircon_runtime/src/ui/surface/input/effect/host_request.rs::host_request_for_effect projects a handled reply effect.",
+            "zircon_runtime/src/dynamic_api/session/state.rs::collect_host_requests appends request to drain batch.",
+            "zircon_app/src/entry/runtime_entry_app/host_requests/ui_host_request.rs::report_unhandled_runtime_ui_host_request checks viewport and logs bounded diagnostics."
+          ],
+          "implementations": [
+            "Serde derives encode full variant; custom Debug formats selected outer fields."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Runtime queues request then passes through dynamic-session drain FFI; App does not execute the seven generic kinds."
+          ],
+          "testsOrContract": [
+            "tests/ui_host_request.rs covers identity projection, dedicated-channel exclusion, selected roundtrip/Debug behavior; not every variant."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Six identity fields preserve input/reply/effect context; kind owns operation data. Projection copies scalar IDs and clones popup/tooltip/link strings."
+          ],
+          "commentDecision": "Added member docs and exact Debug/consumer boundaries; kept old English comments.",
+          "constraintsAndLifecycle": "DTO checks no target tree ownership or node authorization; it can be directly constructed/deserialized."
+        },
+        {
+          "symbol": "ZrRuntimeUiHostRequestV1::from_dispatch_request",
+          "kind": "projection method",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs::impl ZrRuntimeUiHostRequestV1::from_dispatch_request",
+          "calls": [
+            "Used by host_request_for_effect for generic dispatch requests."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "No registration or side effect; returned request is queued and Serde encoded later."
+          ],
+          "testsOrContract": [
+            "generic_ui_host_request_maps_platform_reply_identity and text_service_requests_remain_with_their_dedicated_queues cover representative mapping/exclusions."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Calls kind projector; returns Some for generic kinds and None for InputMethod/Clipboard; moves/copies outer reply identity."
+          ],
+          "commentDecision": "Added parameters, result cases, and non-validation constraints; retained EXEMPT(GEN-Q7) and original source.",
+          "constraintsAndLifecycle": "Clones owned dynamic strings/link targets; no validation or platform API call."
+        },
+        {
+          "symbol": "fmt::Debug for ZrRuntimeUiHostRequestV1::fmt",
+          "kind": "trait implementation and formatting block",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs::impl fmt::Debug / fmt",
+          "calls": [
+            "Used by App sampled diagnostics."
+          ],
+          "implementations": [
+            "Manual Debug implementation; kind field is rendered through kind.as_str()."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Prints route IDs/tree, and static kind label; omits popup_id, tooltip_id, and link_target."
+          ],
+          "testsOrContract": [
+            "Debug roundtrip test checks selected fixture values."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Formatter emits only explicit fields; no operation or state mutation."
+          ],
+          "commentDecision": "Added private implementation comment enumerating omitted dynamic fields.",
+          "constraintsAndLifecycle": "Routing IDs remain visible; this is not full identifier hiding."
+        },
+        {
+          "symbol": "ZrRuntimeUiHostRequestKindV1 variants and fields { PointerLock(target, policy), PointerUnlock(policy), HighPrecisionPointer(target, enabled), Popup(kind, popup_id, anchor), Tooltip(kind, tooltip_id), DismissTransientUi(target, reason), ActivateLink(target, link_target) }",
+          "kind": "enum, all seven variants and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs::ZrRuntimeUiHostRequestKindV1",
+          "calls": [
+            "Projected from matching UiDispatchHostRequestKind variants in from_dispatch_request."
+          ],
+          "implementations": [
+            "Serde derives on nested payload."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "InputMethod/Clipboard excluded by conversion match. ActivateLink carries a rich-text link intent; App currently reports it unhandled."
+          ],
+          "testsOrContract": [
+            "tests/ui_host_request.rs covers PointerLock mapping, Clipboard exclusion, ActivateLink roundtrip; not exhaustive."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Fields carry only dispatch data: node/policy, enable flag, popup phase/id/anchor, tooltip phase/id, dismissal target/reason, or link target. Projection does not execute effect."
+          ],
+          "commentDecision": "Added docs for all variants and fields; ActivateLink wording now states carrier does not validate request origin.",
+          "constraintsAndLifecycle": "Popup/tooltip IDs/link target serialize but outer Debug omits them; optional anchor defaults None on missing JSON key and skips None; link_target uses JSON key href."
+        },
+        {
+          "symbol": "ZrRuntimeUiHostRequestKindV1::from_dispatch_request",
+          "kind": "projection method and match block",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs::impl ZrRuntimeUiHostRequestKindV1::from_dispatch_request",
+          "calls": [
+            "Called from ZrRuntimeUiHostRequestV1::from_dispatch_request in Runtime effect conversion."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "Exhaustive match is mapping implementation; no FFI."
+          ],
+          "testsOrContract": [
+            "Tests cover representative mappings and dedicated-channel exclusions."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "InputMethod and Clipboard return None; seven generic arms copy value fields and clone owned String/UiRichLinkTarget payload."
+          ],
+          "commentDecision": "Added argument, return, and non-validation docs.",
+          "constraintsAndLifecycle": "Projection checks no resource permission, node/tree membership, or platform capability."
+        },
+        {
+          "symbol": "ZrRuntimeUiHostRequestKindV1::as_str",
+          "kind": "diagnostic label method and match block",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs::impl ZrRuntimeUiHostRequestKindV1::as_str",
+          "calls": [
+            "Used by outer request Debug implementation."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "Total match maps all seven variants to static lowercase snake_case labels."
+          ],
+          "testsOrContract": [
+            "Debug fixture exercises selected labels; Serde enum encoding is a separate derive."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Pure match returns fixed labels; as_str is not consulted by Serde and is not the wire tag."
+          ],
+          "commentDecision": "Added method rustdoc describing return and diagnostic role.",
+          "constraintsAndLifecycle": "Returns &'static str; no allocation or state."
+        },
+        {
+          "symbol": "ui_host_request.rs::tests path module",
+          "kind": "test-module registration",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs::#[cfg(test)] mod tests",
+          "calls": [
+            "Loads zircon_runtime_interface/src/runtime_api/host/tests/ui_host_request.rs under cfg(test)."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[cfg(test)]/#[path] only."
+          ],
+          "testsOrContract": [
+            "Three tests cover representative identity projection, IME/clipboard exclusion, selected JSON/Debug behavior."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Tests inspect DTOs/JSON/Debug; they do not invoke OS operations."
+          ],
+          "commentDecision": "Recorded exact test path and limits.",
+          "constraintsAndLifecycle": "Tests are cfg(test)-only; no doctest added."
+        }
+      ],
+      "callerEvidence": [
+        "zircon_runtime/src/ui/surface/input/effect/host_request.rs::host_request_for_effect",
+        "zircon_runtime/src/dynamic_api/session/state.rs::collect_host_requests and prepare_host_request_output",
+        "zircon_app/src/entry/runtime_entry_app/host_requests/drain.rs::apply_runtime_host_requests",
+        "zircon_app/src/entry/runtime_entry_app/host_requests/ui_host_request.rs::report_unhandled_runtime_ui_host_request"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+      "beforeSha256": "d27a37cce6d77a6782a0fff4d271d744b08cee95d042d5c1a05e161dcdac6a6d",
+      "afterSha256": "3b382c0afb75eb4fd55edfad49b135bc009df016cc0da6cdc6fe454ace4e8fd0",
+      "reviewedSha256": "3b382c0afb75eb4fd55edfad49b135bc009df016cc0da6cdc6fe454ace4e8fd0",
+      "existingIssueTags": [],
+      "issueIds": [
+        "ZCA-HRQ-001",
+        "ZCA-HRQ-002"
+      ],
+      "objectEvidence": [
+        {
+          "symbol": "host_requests module",
+          "kind": "module",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs#1-28",
+          "calls": [
+            "zircon_runtime/src/dynamic_api/session/state.rs::collect_host_requests and prepare_host_request_output drive the host batch."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "DTOs derive Serde and are re-exported by host/mod.rs/runtime_api/mod.rs."
+          ],
+          "testsOrContract": [
+            "tests/host_requests.rs covers IME legacy defaults and scene URI lexical validation only."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "File contains two paths: batched platform requests and Gameplay scene-transition typed resource; latter is not a batch member."
+          ],
+          "commentDecision": "Added module-level separation and call boundary; old comments preserved.",
+          "constraintsAndLifecycle": "JSON payload and World resource paths have different owners and dispatch."
+        },
+        {
+          "symbol": "ZrRuntimeHostRequestBatchV1 { abi_version, requests }",
+          "kind": "struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeHostRequestBatchV1",
+          "calls": [
+            "Runtime session state collects and encodes pending pages; App RuntimeLibrary drain validates ABI and output budget."
+          ],
+          "implementations": [
+            "Serde derives define batch encoding."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Returned by Runtime host-request drain FFI; successful page commit removes page, failed output rollback retains pending requests."
+          ],
+          "testsOrContract": [
+            "No test in these files exercises FFI paging state machine; that contract is in Runtime/App drain callers."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Batch owns ABI version and ordered typed request vector; App validates version/budget at boundary."
+          ],
+          "commentDecision": "Added lifecycle, parameter, return, and boundary docs.",
+          "constraintsAndLifecycle": "Constructor does not validate version or JSON budget; page lifetime follows commit/rollback."
+        },
+        {
+          "symbol": "ZrRuntimeHostRequestBatchV1::{new, empty}",
+          "kind": "constructor methods",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::impl ZrRuntimeHostRequestBatchV1",
+          "calls": [
+            "Called by Runtime session batching code."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "No macro or direct FFI."
+          ],
+          "testsOrContract": [
+            "No constructor-specific tests; batch behavior belongs to drain integration."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "new stores supplied version/requests; empty stores version and an empty vector."
+          ],
+          "commentDecision": "Added concise method docs.",
+          "constraintsAndLifecycle": "Pure value constructors; no version check or dispatch."
+        },
+        {
+          "symbol": "ZrRuntimeHostRequestV1 variants { Ime, GamepadRumble, Cursor, Clipboard, UiAction, UiHost }",
+          "kind": "enum and all variants",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeHostRequestV1",
+          "calls": [
+            "Constructed by wrapper helpers and collected by state.rs::collect_host_requests; routed by App drain."
+          ],
+          "implementations": [
+            "Serde derive encodes selected variant."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Six variants are the exact host-request batch union; SceneTransition Request/Result are not variants."
+          ],
+          "testsOrContract": [
+            "Payload-specific tests exist in assigned test files; none exercises all six App actions."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "App executes IME, feature-enabled gamepad rumble, cursor, and clipboard; UiAction/UiHost currently validate viewport and record unhandled diagnostics."
+          ],
+          "commentDecision": "Added variant/lifecycle docs with current consumer limits.",
+          "constraintsAndLifecycle": "Enum carries data only; it does not perform platform action."
+        },
+        {
+          "symbol": "ZrRuntimeHostRequestV1::{ime, gamepad_rumble, cursor, clipboard, ui_action, ui_host}",
+          "kind": "six wrapper methods",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::impl ZrRuntimeHostRequestV1",
+          "calls": [
+            "Called by Runtime producers before collection."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "Pure enum constructors; no FFI or validation."
+          ],
+          "testsOrContract": [
+            "No dedicated test per wrapper; each directly selects its matching variant."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Each helper wraps one payload without changing it."
+          ],
+          "commentDecision": "Added one concise doc per helper.",
+          "constraintsAndLifecycle": "Moves payload; does not execute or validate it."
+        },
+        {
+          "symbol": "ZrRuntimeProjectSceneTransitionPolicyV1 { ReplaceActive }",
+          "kind": "policy enum and variant",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeProjectSceneTransitionPolicyV1",
+          "calls": [
+            "Gameplay producer currently uses ReplaceActive."
+          ],
+          "implementations": [
+            "Default derive selects ReplaceActive."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Carried in World resource request, not host batch."
+          ],
+          "testsOrContract": [
+            "URI tests do not cover policy execution."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Value states requested policy; declaration itself performs no state transition."
+          ],
+          "commentDecision": "Added docs scoped to producer-selected policy and delegated execution semantics.",
+          "constraintsAndLifecycle": "Whether scene loads and when completion occurs depend on a consumer not yet located."
+        },
+        {
+          "symbol": "ZrRuntimeProjectSceneTransitionRequestV1 { request_id, scene_uri, policy }",
+          "kind": "request struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeProjectSceneTransitionRequestV1",
+          "calls": [
+            "zircon_runtime/src/script/vm/gameplay_host/scene_transition.rs::request_scene_transition validates via try_new, then inserts request into current World resource."
+          ],
+          "implementations": [
+            "Serde Deserialize can construct without try_new."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Typed World resource, not a variant of ZrRuntimeHostRequestV1."
+          ],
+          "testsOrContract": [
+            "project_scene_transition_accepts_only_canonical_project_resource_uris checks lexical acceptance/rejection, not existence or execution."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Producer allocates per-World request ID and inserts successful request; no consumer/result writer located in this trace. TODO ZCA-HRQ-001 requests actual Gameplay invocation, repeated Runtime ticks, and an observable result path."
+          ],
+          "commentDecision": "Added field/lifecycle limits and specific TODO; preserved original scene URI comments.",
+          "constraintsAndLifecycle": "try_new checks lexical URI only, not ID uniqueness, resource existence, or execution; direct fields/Deserialize bypass it."
+        },
+        {
+          "symbol": "ZrRuntimeProjectSceneTransitionRequestV1::try_new; validate_project_scene_uri",
+          "kind": "constructor plus private validator and branch block",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::try_new; zircon_runtime_interface/src/runtime_api/host/validate_project_scene_uri",
+          "calls": [
+            "Located caller: Gameplay request_scene_transition; constructor errors propagate before request resource insertion."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "Deserialize bypasses validator; no FFI."
+          ],
+          "testsOrContract": [
+            "Scene URI test covers canonical res:// paths and malformed URI categories, not lookup."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Rejects missing scheme, empty path, and noncanonical segments/characters such as backslashes, empty/dot/dot-dot segments, query/fragment, surrounding whitespace, and controls; valid lexical path returns Ok."
+          ],
+          "commentDecision": "Added constructor docs and validator invariant comment.",
+          "constraintsAndLifecycle": "Moves URI into owned String; validator does not query registry or filesystem."
+        },
+        {
+          "symbol": "ZrRuntimeProjectSceneTransitionStatusV1 { Succeeded, Failed, Superseded, Rejected }",
+          "kind": "status enum and variants",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeProjectSceneTransitionStatusV1",
+          "calls": [
+            "Referenced as status field of ZrRuntimeProjectSceneTransitionResultV1."
+          ],
+          "implementations": [
+            "Serde derive."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "No consumer/result sender located in traced Gameplay path."
+          ],
+          "testsOrContract": [
+            "No test covers transitions/status outcomes."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Variants are status labels available to a result producer; declaration itself does not transition."
+          ],
+          "commentDecision": "Added descriptions without asserting a live state machine.",
+          "constraintsAndLifecycle": "Exact runtime timing/meaning depends on the unlocated consumer."
+        },
+        {
+          "symbol": "ZrRuntimeProjectSceneTransitionResultV1 { request_id, scene_uri, status, diagnostic }",
+          "kind": "result struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeProjectSceneTransitionResultV1",
+          "calls": [
+            "No result producer/delivery call located; result shape is declared here."
+          ],
+          "implementations": [
+            "Serde derives; diagnostic has default/skip_serializing_if attributes."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "No event or FFI send path found in producer trace."
+          ],
+          "testsOrContract": [
+            "Scene test validates request URI only."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Fields can correlate an eventual result and carry optional diagnostic; no constructor or automatic send exists."
+          ],
+          "commentDecision": "Added result DTO description with absence of autonomous behavior.",
+          "constraintsAndLifecycle": "Missing diagnostic deserializes to None and serializes omitted; no lifecycle consumer proven."
+        },
+        {
+          "symbol": "ZrRuntimeProjectSceneTransitionRequestErrorV1 { MissingResourceScheme, EmptyResourcePath, NonCanonicalResourcePath }",
+          "kind": "error enum and variants",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeProjectSceneTransitionRequestErrorV1",
+          "calls": [
+            "Produced by private validator and propagated by try_new."
+          ],
+          "implementations": [
+            "Implements thiserror::Error; variants supply display strings."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "No FFI."
+          ],
+          "testsOrContract": [
+            "Canonical URI test asserts constructor acceptance/rejection."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Error selection follows lexical validation branches; no resource lookup."
+          ],
+          "commentDecision": "Added variant docs aligned with implementation.",
+          "constraintsAndLifecycle": "Error values are Copy and contain no payload."
+        },
+        {
+          "symbol": "ZrRuntimeCursorHostRequestV1 { kind, grab_mode, position, value }",
+          "kind": "struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeCursorHostRequestV1",
+          "calls": [
+            "Runtime cursor producer converts manager state into helper-built requests; App maps them to Winit window API."
+          ],
+          "implementations": [
+            "Serde derives."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Collected as ZrRuntimeHostRequestV1::Cursor."
+          ],
+          "testsOrContract": [
+            "No dedicated cursor test in this batch."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "kind selects the payload; helpers align options. Direct/Serde values may omit required option, so App warns/skips that operation."
+          ],
+          "commentDecision": "Added type/field docs describing payload meanings and helper invariant.",
+          "constraintsAndLifecycle": "value is visibility for SetVisible or hit-test for SetHitTest; position is logical-window space and App rejects non-finite coordinates."
+        },
+        {
+          "symbol": "ZrRuntimeCursorHostRequestV1::{set_visible, set_grab_mode, set_hit_test, set_position}",
+          "kind": "four constructor helpers",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::impl ZrRuntimeCursorHostRequestV1",
+          "calls": [
+            "Called by Runtime cursor producer."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "No macro/FFI."
+          ],
+          "testsOrContract": [
+            "No direct helper-specific tests in this batch."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Each selects fixed kind and fills associated payload; App applies visibility, grab, hit-test, or logical position."
+          ],
+          "commentDecision": "Added parameter/effect docs to each helper.",
+          "constraintsAndLifecycle": "Pure constructors; App handles unsupported grab fallback and coordinate validation."
+        },
+        {
+          "symbol": "ZrRuntimeCursorHostRequestKindV1 { SetVisible, SetGrabMode, SetHitTest, SetPosition }; ZrRuntimeCursorGrabModeV1 { None, Confined, Locked }",
+          "kind": "two enums and all variants",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeCursorHostRequestKindV1; ZrRuntimeCursorGrabModeV1",
+          "calls": [
+            "Interpreted by App cursor routing."
+          ],
+          "implementations": [
+            "Serde derives."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Carried by Cursor request variant."
+          ],
+          "testsOrContract": [
+            "No dedicated cursor variant tests in this batch."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "First enum selects operation; second expresses requested grab mode. App attempts adjacent supported mode when preferred mode is unavailable."
+          ],
+          "commentDecision": "Added member descriptions for both enums.",
+          "constraintsAndLifecycle": "Platform support is determined during App execution; enum value does not guarantee success."
+        },
+        {
+          "symbol": "ZrRuntimeCursorPositionV1 { x, y } and new",
+          "kind": "struct, fields, constructor",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeCursorPositionV1",
+          "calls": [
+            "Consumed as Winit LogicalPosition by App cursor routing."
+          ],
+          "implementations": [
+            "Serde derives; f32 fields."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Used in Cursor::SetPosition payload."
+          ],
+          "testsOrContract": [
+            "No direct position test in this batch."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "new stores x/y; App validates finite values before applying."
+          ],
+          "commentDecision": "Added coordinate and parameter docs.",
+          "constraintsAndLifecycle": "Values are window-relative logical coordinates; adapter does not multiply by DPI."
+        },
+        {
+          "symbol": "ZrRuntimeGamepadRumbleRequestV1 { gamepad_id, kind, strong_motor, weak_motor, duration_millis }",
+          "kind": "struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeGamepadRumbleRequestV1",
+          "calls": [
+            "Runtime gamepad producer creates Add/Stop; App routes feature-enabled batch request."
+          ],
+          "implementations": [
+            "Serde derives; intensity fields are f32."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Wrapped in ZrRuntimeHostRequestV1::GamepadRumble."
+          ],
+          "testsOrContract": [
+            "No dedicated rumble test in this batch."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Runtime producer clamps Add source intensities before construction; Stop helper sets strengths and duration to zero."
+          ],
+          "commentDecision": "Added field/type docs.",
+          "constraintsAndLifecycle": "Public add constructor accepts raw floats without clamp; App execution may be feature-gated."
+        },
+        {
+          "symbol": "ZrRuntimeGamepadRumbleRequestV1::{add, stop}; ZrRuntimeGamepadRumbleRequestKindV1 { Add, Stop }",
+          "kind": "constructor methods and enum variants",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::impl ZrRuntimeGamepadRumbleRequestV1; ZrRuntimeGamepadRumbleRequestKindV1",
+          "calls": [
+            "Runtime producer chooses Add for effect and Stop for cancellation."
+          ],
+          "implementations": [
+            "Serde derive on kind."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Collected as GamepadRumble batch variant."
+          ],
+          "testsOrContract": [
+            "No direct rumble test in this batch."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "add stores supplied identity/intensities/duration and selects Add; stop stores device, zeros payload, selects Stop."
+          ],
+          "commentDecision": "Added method parameter/return and enum member docs.",
+          "constraintsAndLifecycle": "Only producer conversion is shown to clamp; manual add callers retain responsibility."
+        },
+        {
+          "symbol": "ZrRuntimeImeHostRequestV1 { kind, target_viewport, cursor_area, surrounding_text }",
+          "kind": "struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeImeHostRequestV1",
+          "calls": [
+            "zircon_runtime/src/dynamic_api/session/host_requests.rs::runtime_ime_host_request creates kind payload and binds viewport.",
+            "App routing checks target viewport."
+          ],
+          "implementations": [
+            "Serde default for target_viewport preserves legacy payload compatibility."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Collected as ZrRuntimeHostRequestV1::Ime."
+          ],
+          "testsOrContract": [
+            "tests/host_requests.rs covers viewport and legacy missing-target decode."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "enable/disable/set_cursor_area/set_surrounding_text create unbound values; Runtime producer then calls with_target_viewport. App only allows missing target to map to default viewport."
+          ],
+          "commentDecision": "Added fields, lifecycle, and caller docs.",
+          "constraintsAndLifecycle": "Option payloads are kind-specific; missing required values cause App warning/skip; None is not arbitrary-window routing."
+        },
+        {
+          "symbol": "ZrRuntimeImeHostRequestV1::{enable, disable, set_cursor_area, set_surrounding_text, with_target_viewport}",
+          "kind": "five constructor/builder methods",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::impl ZrRuntimeImeHostRequestV1",
+          "calls": [
+            "Called by Runtime IME conversion; with_target_viewport applied after variant construction."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "No FFI."
+          ],
+          "testsOrContract": [
+            "IME tests cover explicit viewport and legacy defaults."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Four constructors set kind/payload while leaving target None; builder sets viewport and returns updated Self."
+          ],
+          "commentDecision": "Added per-method lifecycle and builder parameter docs.",
+          "constraintsAndLifecycle": "Surrounding String is owned; caret/range offsets are UTF-8 bytes and constructors do not validate."
+        },
+        {
+          "symbol": "ZrRuntimeImeHostRequestKindV1 { Enable, Disable, SetCursorArea, SetSurroundingText }",
+          "kind": "enum and all variants",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeImeHostRequestKindV1",
+          "calls": [
+            "Selected by helpers and matched by App adapter."
+          ],
+          "implementations": [
+            "Serde derive."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Carried in Ime request batch variant."
+          ],
+          "testsOrContract": [
+            "IME tests cover serialization/default payload compatibility, not all platform behavior."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Kind selects which optional payload the App adapter reads."
+          ],
+          "commentDecision": "Added descriptions for all operations.",
+          "constraintsAndLifecycle": "Enum construction itself causes no platform side effect."
+        },
+        {
+          "symbol": "ZrRuntimeImeCoordinateSpaceV1 { WindowLogical }",
+          "kind": "enum and variant",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeImeCoordinateSpaceV1",
+          "calls": [
+            "Used by ZrRuntimeImeCursorAreaV1; App converts directly to Winit logical position/size."
+          ],
+          "implementations": [
+            "Default selects WindowLogical; Serde default covers old cursor-area JSON."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "No direct FFI."
+          ],
+          "testsOrContract": [
+            "legacy_ime_cursor_area_defaults_to_window_logical_coordinates asserts missing-field fallback."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Coordinate-space label identifies window logical basis; App does not multiply by DPI."
+          ],
+          "commentDecision": "Added variant contract and retained existing English comment.",
+          "constraintsAndLifecycle": "Only WindowLogical exists in this version; no physical-pixel conversion is implied."
+        },
+        {
+          "symbol": "ZrRuntimeImeCursorAreaV1 { x, y, width, height, coordinate_space }; new",
+          "kind": "struct, fields, constructor",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeImeCursorAreaV1",
+          "calls": [
+            "Runtime producer maps internal cursor area into value; App maps it to Winit/native candidate geometry."
+          ],
+          "implementations": [
+            "Serde coordinate_space defaults."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Passed as cursor_area in Ime request."
+          ],
+          "testsOrContract": [
+            "Tests assert explicit and legacy logical coordinates."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "new stores logical rectangle; App rejects non-finite values. Ordinary Winit update permits zero width/height; native candidate path requires finite/nonnegative width and positive height."
+          ],
+          "commentDecision": "Added field docs for coordinate and both consumer constraints.",
+          "constraintsAndLifecycle": "Window-relative logical pixels; constructor performs no validation."
+        },
+        {
+          "symbol": "ZrRuntimeImeSurroundingTextV1 { value, cursor, anchor, composition_range }",
+          "kind": "struct and fields",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeImeSurroundingTextV1",
+          "calls": [
+            "Runtime producer bounds text and maps optional range.",
+            "App request.rs SetSurroundingText currently supplies converted value/cursor/anchor to Winit."
+          ],
+          "implementations": [
+            "Serde defaults composition_range to None and skips it when None."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Payload of Ime::SetSurroundingText."
+          ],
+          "testsOrContract": [
+            "legacy_ime_surrounding_text_defaults_to_no_composition_range checks missing-key compatibility; no integration test checks platform forwarding."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Offsets are UTF-8 bytes into value. Runtime carries optional range; TODO ZCA-HRQ-002 records App V1 adapter question without claiming definite loss."
+          ],
+          "commentDecision": "Added field/method docs and specific TODO; preserved old comments.",
+          "constraintsAndLifecycle": "Constructor does not validate offsets or UTF-8 boundaries; bounded Runtime conversion clips text to configured byte cap and character boundaries."
+        },
+        {
+          "symbol": "ZrRuntimeImeSurroundingTextV1::{new, with_composition_range}",
+          "kind": "constructor and builder methods",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::impl ZrRuntimeImeSurroundingTextV1",
+          "calls": [
+            "Called by runtime_ime_host_request after bounded_ime_surrounding_text conversion."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "No FFI."
+          ],
+          "testsOrContract": [
+            "Legacy test asserts absent composition range defaults to None; no direct invalid-boundary test."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "new stores owned text and caret offsets; builder replaces optional range and returns Self."
+          ],
+          "commentDecision": "Added parameter/return and validation-limit docs.",
+          "constraintsAndLifecycle": "Offsets/ranges are UTF-8 byte positions; no bounds/order/character-boundary checks."
+        },
+        {
+          "symbol": "ZrRuntimeImeTextRangeV1 { start, end }; new",
+          "kind": "struct, fields, constructor",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::ZrRuntimeImeTextRangeV1",
+          "calls": [
+            "Constructed by Runtime producer while mapping internal optional composition range."
+          ],
+          "implementations": [
+            "Serde derives."
+          ],
+          "macroOrRegistrationOrFfi": [
+            "Nested optional field of surrounding-text request."
+          ],
+          "testsOrContract": [
+            "No direct range-boundary test in this batch."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "new stores start/end; no ordering, string-length, or character-boundary validation."
+          ],
+          "commentDecision": "Added field and constructor constraints.",
+          "constraintsAndLifecycle": "Offsets refer to UTF-8 bytes in parent surrounding-text value."
+        },
+        {
+          "symbol": "host_requests.rs::tests path module",
+          "kind": "test-module registration",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs::#[cfg(test)] mod tests",
+          "calls": [
+            "Loads zircon_runtime_interface/src/runtime_api/host/tests/host_requests.rs under cfg(test)."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[cfg(test)]/#[path] only."
+          ],
+          "testsOrContract": [
+            "Five tests cover IME viewport/legacy defaults, coordinate-space default, missing composition range, and scene URI lexical canonicality; no test consumes scene resource or checks result."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Tests operate on DTO serialization/construction; no scene loading or platform IME."
+          ],
+          "commentDecision": "Added test-scope note distinguishing URI validation from scene consumption.",
+          "constraintsAndLifecycle": "Tests are cfg(test)-only and were not run in this documentation pass."
+        }
+      ],
+      "callerEvidence": [
+        "zircon_runtime/src/dynamic_api/session/state.rs::collect_host_requests, prepare_host_request_output, commit/rollback",
+        "zircon_app/src/entry/runtime_library/runtime_session.rs::drain_host_requests validates ABI/output",
+        "zircon_app/src/entry/runtime_entry_app/host_requests/drain.rs::apply_runtime_host_requests",
+        "zircon_runtime/src/dynamic_api/session/host_requests.rs::runtime_ime_host_request",
+        "zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs::apply_runtime_ime_host_request",
+        "zircon_runtime/src/script/vm/gameplay_host/scene_transition.rs::request_scene_transition; no result consumer identified"
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/host/tests/clipboard.rs",
+      "beforeSha256": "025dc6e85a9526c29b243dcbc471fb42b5c4f58d734ea933c77228ce012aabc1",
+      "afterSha256": "586351589bbd23da305d19ad71e883da080635bf408c4c12f119aef4afa4b6fc",
+      "reviewedSha256": "586351589bbd23da305d19ad71e883da080635bf408c4c12f119aef4afa4b6fc",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "objectEvidence": [
+        {
+          "symbol": "clipboard test module; clipboard_host_contract_roundtrips_surface_identity_and_typed_outcome; clipboard_body_budget_fits_worst_case_json_control_character_expansion",
+          "kind": "test module and two test functions",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/tests/clipboard.rs",
+          "calls": [
+            "Exercises request/result DTOs from zircon_runtime_interface/src/runtime_api/host/clipboard.rs."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test] functions; no production macro/FFI."
+          ],
+          "testsOrContract": [
+            "First checks JSON roundtrip of surface/transfer identity and typed outcome; second checks worst-case control-character expansion against encoded-body budget."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Local DTO serialization and budget arithmetic only; no OS clipboard access."
+          ],
+          "commentDecision": "Added module sentence with exact test contract/platform boundary.",
+          "constraintsAndLifecycle": "Tests inspected but not executed; no executable assertions changed."
+        }
+      ],
+      "callerEvidence": [
+        "Included by clipboard.rs only under cfg(test)."
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/host/tests/ui_action.rs",
+      "beforeSha256": "d096246ebdc12f700b5c2ddf4327d559bebd60090bad07a81965366c23854dd3",
+      "afterSha256": "0db8cb68621daf5d696ea6090fdf4216ac0fba98f3bf2d7c53c083aa78760635",
+      "reviewedSha256": "0db8cb68621daf5d696ea6090fdf4216ac0fba98f3bf2d7c53c083aa78760635",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "objectEvidence": [
+        {
+          "symbol": "secure_ui_action_delivery_serializes_identity_without_plaintext",
+          "kind": "test function",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/tests/ui_action.rs::secure_ui_action_delivery_serializes_identity_without_plaintext",
+          "calls": [
+            "Builds ZrRuntimeUiActionHostRequestV1 and inspects JSON/Debug."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test] only."
+          ],
+          "testsOrContract": [
+            "Fixture uses UiValue::Null payload; compared secret is not in input. This is fixture-specific and does not prove arbitrary payload is rejected or sanitized."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Local value construction/serialization/formatting; no Runtime queue or secure resolver."
+          ],
+          "commentDecision": "Added module-level contract limitation.",
+          "constraintsAndLifecycle": "Production secure-ref guarantee comes from RuntimeUiActionRequestQueue, not this test; inspected but not run."
+        }
+      ],
+      "callerEvidence": [
+        "zircon_runtime/src/dynamic_api/session/runtime_ui/action_requests.rs::RuntimeUiActionRequestQueue validates producer path.",
+        "The test file does not invoke that queue."
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/host/tests/ui_host_request.rs",
+      "beforeSha256": "390a2bb073c8e852bc1a6409447244e97b4f54e887e2701fd012b13e2e20cc0e",
+      "afterSha256": "acc269748fd8c10b513592dad1352c7d3899a43dca044d35a30b96abbd97565b",
+      "reviewedSha256": "acc269748fd8c10b513592dad1352c7d3899a43dca044d35a30b96abbd97565b",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "objectEvidence": [
+        {
+          "symbol": "generic_ui_host_request_maps_platform_reply_identity",
+          "kind": "test function",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/tests/ui_host_request.rs::generic_ui_host_request_maps_platform_reply_identity",
+          "calls": [
+            "Calls ZrRuntimeUiHostRequestV1::from_dispatch_request."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test] only."
+          ],
+          "testsOrContract": [
+            "Checks selected reply identity and representative PointerLock mapping."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Local projection assertions; no App platform action."
+          ],
+          "commentDecision": "Module overview records representative scope.",
+          "constraintsAndLifecycle": "Not a seven-variant exhaustive test."
+        },
+        {
+          "symbol": "text_service_requests_remain_with_their_dedicated_queues",
+          "kind": "test function",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/tests/ui_host_request.rs::text_service_requests_remain_with_their_dedicated_queues",
+          "calls": [
+            "Passes InputMethod and Clipboard to projection."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test] only."
+          ],
+          "testsOrContract": [
+            "Asserts generic projection returns None for the two dedicated kinds."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Local enum mapping assertions."
+          ],
+          "commentDecision": "Recorded in module-level test scope.",
+          "constraintsAndLifecycle": "Does not exercise dedicated queues."
+        },
+        {
+          "symbol": "generic_ui_host_request_round_trips_without_debugging_dynamic_content",
+          "kind": "test function",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/tests/ui_host_request.rs::generic_ui_host_request_round_trips_without_debugging_dynamic_content",
+          "calls": [
+            "Serializes representative Popup/ActivateLink data and formats outer Debug."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test] only."
+          ],
+          "testsOrContract": [
+            "Checks JSON roundtrip and selected Debug omissions for fixture dynamic content."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "No UI dispatch/resource resolution/platform operation."
+          ],
+          "commentDecision": "Module doc clarifies selected variants are not exhaustive.",
+          "constraintsAndLifecycle": "Does not prove all dynamic IDs are hidden; route identities remain in Debug."
+        }
+      ],
+      "callerEvidence": [
+        "Included by ui_host_request.rs under cfg(test).",
+        "Runtime producer is host_request_for_effect; App handler reports unhandled generic requests."
+      ]
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/host/tests/host_requests.rs",
+      "beforeSha256": "0f2823e4b14edb979aec1a8502e79e8bed5e40b24f80661de4057f588d1da1df",
+      "afterSha256": "c2fb76c4b06bbb10ffc090f18b2636bb9739839043bc654ef1e2ee6f3fd51cc0",
+      "reviewedSha256": "c2fb76c4b06bbb10ffc090f18b2636bb9739839043bc654ef1e2ee6f3fd51cc0",
+      "existingIssueTags": [],
+      "issueIds": [],
+      "objectEvidence": [
+        {
+          "symbol": "IME tests { ime_host_request_keeps_its_viewport_and_logical_cursor_space, ime_host_request_decodes_legacy_payload_without_a_viewport_target, legacy_ime_cursor_area_defaults_to_window_logical_coordinates, legacy_ime_surrounding_text_defaults_to_no_composition_range }",
+          "kind": "four test functions",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/tests/host_requests.rs",
+          "calls": [
+            "Use public IME DTO constructors and Serde compatibility defaults."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test] only."
+          ],
+          "testsOrContract": [
+            "Assert explicit viewport/logical values and legacy missing-field defaults for target, coordinate space, and composition range."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "DTO/JSON only; no App/Winit adapter or composition range integration."
+          ],
+          "commentDecision": "Module-level note identifies compatibility scope.",
+          "constraintsAndLifecycle": "Inspected, not executed; these tests do not establish end-to-end behavior."
+        },
+        {
+          "symbol": "project_scene_transition_accepts_only_canonical_project_resource_uris",
+          "kind": "test function",
+          "definition": "zircon_runtime_interface/src/runtime_api/host/tests/host_requests.rs::project_scene_transition_accepts_only_canonical_project_resource_uris",
+          "calls": [
+            "Calls ZrRuntimeProjectSceneTransitionRequestV1::try_new."
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test] only."
+          ],
+          "testsOrContract": [
+            "Asserts accepted/rejected lexical URI forms; does not query assets, consume World resource, load scene, or emit result."
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Local constructor assertions only."
+          ],
+          "commentDecision": "Added explicit scope note; assertions preserved.",
+          "constraintsAndLifecycle": "Provides no evidence that scene consumer is connected."
+        }
+      ],
+      "callerEvidence": [
+        "Included by host_requests.rs under cfg(test).",
+        "URI/legacy defaults are construction/serialization contracts, not integration coverage."
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "id": "ZCA-HRQ-001",
+      "kind": "TODO",
+      "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+      "symbol": "ZrRuntimeProjectSceneTransitionRequestV1; request_scene_transition producer",
+      "trigger": "Gameplay producer successfully constructs a request and inserts it into World resource; confirm its path through subsequent Runtime ticks.",
+      "observableImpact": "Evidence does not identify when the request is consumed or how a result becomes observable; no runtime defect or missing consumer is asserted.",
+      "evidence": [
+        "zircon_runtime/src/script/vm/gameplay_host/scene_transition.rs::request_scene_transition inserts the validated request resource.",
+        "tests/host_requests.rs::project_scene_transition_accepts_only_canonical_project_resource_uris validates lexical acceptance only.",
+        "Request/Result are not variants of ZrRuntimeHostRequestV1; no consumer/result writer was located in the traced path."
+      ],
+      "evidenceGap": "A consumer may be registered through another World/resource or scheduler path; the search/test evidence does not establish that none exists.",
+      "nextAction": "Invoke a real Gameplay request, advance repeated Runtime ticks, and observe resource consumption plus result path; inspect the typed resource registration/scheduler entry that owns follow-up.",
+      "sourceTag": "TODO: [ZCA-HRQ-001]",
+      "reviewedSha256": "3b382c0afb75eb4fd55edfad49b135bc009df016cc0da6cdc6fe454ace4e8fd0",
+      "independentReview": null,
+      "status": "awaiting-independent-review"
+    },
+    {
+      "id": "ZCA-HRQ-002",
+      "kind": "TODO",
+      "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+      "symbol": "ZrRuntimeImeSurroundingTextV1::composition_range; App V1 SetSurroundingText adapter",
+      "trigger": "Runtime producer maps an optional internal composition range into the V1 request and App applies SetSurroundingText.",
+      "observableImpact": "Current App V1 adapter forwards value/cursor/anchor only; whether the range is reserved for another host/version or should be passed through is unresolved, so definite loss or unsupported-platform behavior is not claimed.",
+      "evidence": [
+        "zircon_runtime/src/dynamic_api/session/host_requests.rs#34-44::runtime_ime_host_request carries the optional range.",
+        "zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs#41-54::apply_runtime_ime_host_request converts and supplies value/cursor/anchor to Winit.",
+        "Both paths' current SHA256 values are recorded in sourcePins."
+      ],
+      "evidenceGap": "The intended consumer contract for this optional range across host versions has not been established.",
+      "nextAction": "Trace generated request through platform adaptation and Runtime IME event return; confirm reserved-vs-forwarded intent and add deliberate integration coverage for the chosen contract.",
+      "sourceTag": "TODO: [ZCA-HRQ-002]",
+      "reviewedSha256": "3b382c0afb75eb4fd55edfad49b135bc009df016cc0da6cdc6fe454ace4e8fd0",
+      "independentReview": null,
+      "status": "awaiting-independent-review"
+    }
+  ],
+  "validation": {
+    "rustfmt": {
+      "command": "rustfmt --check --edition 2021 --config skip_children=true <the nine exact files listed under files>",
+      "version": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+      "exitCode": 0,
+      "files": [
+        "zircon_runtime_interface/src/runtime_api/host/mod.rs",
+        "zircon_runtime_interface/src/runtime_api/host/clipboard.rs",
+        "zircon_runtime_interface/src/runtime_api/host/ui_action.rs",
+        "zircon_runtime_interface/src/runtime_api/host/ui_host_request.rs",
+        "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "zircon_runtime_interface/src/runtime_api/host/tests/clipboard.rs",
+        "zircon_runtime_interface/src/runtime_api/host/tests/ui_action.rs",
+        "zircon_runtime_interface/src/runtime_api/host/tests/ui_host_request.rs",
+        "zircon_runtime_interface/src/runtime_api/host/tests/host_requests.rs"
+      ]
+    },
+    "diffCheck": {
+      "command": "git diff --check -- <the nine exact files listed under files>",
+      "exitCode": 0,
+      "diagnostics": "No whitespace errors. Git emitted CRLF conversion warnings while reading diff; physical initial/final files remain LF."
+    },
+    "commentOnlyDiff": {
+      "command": "git diff --unified=0 -- <nine exact scoped files>, parsed for non-comment source changes; git diff --numstat -- <nine exact scoped files>",
+      "exitCode": 0,
+      "result": "Parser found zero added/removed non-comment lines and zero removed comment lines. Numstat reports 238 additions and 9 removed blank lines in host_requests.rs during this batch's doc consolidation; all other paths are additions only. The original English IME coordinate comment is preserved alongside Chinese explanation; no declarations, executable code, attributes, strings, or assertions changed."
+    },
+    "physicalLineEndings": "Final nine files have zero CRLF sequences; LF counts match physical line counts. Initial physical layouts were LF-only per coverage ledger. Hashes bind physical bytes.",
+    "testsAndBuild": "No Cargo/build/generated-code/test process was run; this batch changes comments only.",
+    "ownerLineBudget": {
+      "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+      "physicalLineCount": 632,
+      "maximum": 700,
+      "ruleReference": "zircon_runtime_interface/src/tests/boundary.rs child-file list includes host/host_requests.rs at line 93; count includes comments and blank lines.",
+      "status": "passed"
+    }
+  },
+  "independentReview": null,
+  "commit": null
+}

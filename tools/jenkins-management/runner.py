@@ -17,13 +17,30 @@ import time
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}\Z")
 WORKTREE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,159}\Z")
 SHA = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
+SOURCE_EVIDENCE_MAX_BYTES = 64 * 1024**2
+# Windows' legacy MAX_PATH is 260, and Git for Windows 2.31 does not honor
+# core.longpaths on every code path.  Measured on this host: `git add` succeeds
+# at an absolute length of 258 and fails from 260 upward, while the checkout
+# performed by `git worktree add` tolerates longer names.  Because the index
+# write is what a later patch or commit needs, the budget is pinned to the
+# stricter, measured limit.
+MANAGED_PATH_BUDGET = 259
+# git reports checkout progress on stderr as carriage-return updates.  Keeping a
+# plain tail lets thousands of "Updating files: N%" frames push the actual
+# "fatal:" line out of the window, turning a precise diagnosis into an opaque
+# interruption.
+GIT_PROGRESS = re.compile(r"^(?:Updating files|Checking out files|Receiving objects|"
+                          r"Resolving deltas|remote:|Counting objects|Compressing objects)")
 ACTIONS = {"create-branch", "create-worktree", "prepare-merge", "apply-patch",
-           "commit-worktree", "release-worktree", "validate", "generate", "submit-flow"}
-GIT_ACTIONS = {"create-branch", "create-worktree", "prepare-merge", "apply-patch", "commit-worktree", "release-worktree"}
+           "commit-worktree", "release-worktree", "recover-worktree", "validate", "generate",
+           "prepare-flow", "submit-flow"}
+GIT_ACTIONS = {"create-branch", "create-worktree", "prepare-merge", "apply-patch", "commit-worktree",
+               "release-worktree", "recover-worktree"}
 AUTH = {"create-branch": "implementation", "create-worktree": "implementation",
         "prepare-merge": "implementation", "generate": "implementation",
         "apply-patch": "implementation", "commit-worktree": "commit", "release-worktree": "gc",
-        "validate": "validation", "submit-flow": "validation"}
+        "recover-worktree": "gc", "validate": "validation", "prepare-flow": "validation",
+        "submit-flow": "validation"}
 
 
 def encoded(value):
@@ -33,6 +50,52 @@ def encoded(value):
 
 def sha(value):
     return hashlib.sha256(value).hexdigest()
+
+
+def stderr_tail(raw, *, limit=3000):
+    """Keep the diagnosable part of git stderr.
+
+    Checkout writes carriage-return progress frames, so a plain tail can be
+    entirely 'Updating files: N%' and hide the fatal line.  Progress frames are
+    dropped first; the remaining real lines keep their own bounded window.
+    """
+    text = raw.decode("utf-8", "replace") if isinstance(raw, (bytes, bytearray)) else str(raw)
+    lines = [line for line in re.split(r"[\r\n]", text) if line and not GIT_PROGRESS.match(line)]
+    joined = "\n".join(lines).strip()
+    if not joined:
+        return text[-limit:]
+    return joined[-limit:]
+
+
+def managed_path_budget(root, deepest_file, deepest_dir):
+    """Report whether a managed path plus its deepest entries fits MAX_PATH.
+
+    Checkout creates directories as well as files, and the observed failure was
+    a directory creation, so both measurements participate in the budget.
+    """
+    budget = len(str(root)) + 1 + max(deepest_file, deepest_dir)
+    return budget <= MANAGED_PATH_BUDGET, budget
+
+
+def deepest_tracked_paths(root):
+    """Longest repository-relative file and directory Git would check out here.
+
+    Raw bytes are used so a non-UTF-8 name cannot abort the measurement; the
+    comparison only needs character counts.
+    """
+    command = ["git", "-c", "core.longpaths=true", "-C", str(root), "ls-files", "-z"]
+    completed = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    if completed.returncode:
+        raise ValueError(stderr_tail(completed.stderr))
+    files, directories = 0, 0
+    for item in completed.stdout.split(b"\0"):
+        if not item:
+            continue
+        files = max(files, len(item))
+        parts = item.split(b"/")
+        for index in range(1, len(parts)):
+            directories = max(directories, len(b"/".join(parts[:index])))
+    return files, directories
 
 
 def source_component(source):
@@ -72,6 +135,41 @@ class EngineSourceInputMismatch(SourceInputMismatch):
         self.sourceComponents = {"source": component}
         self.diagnostics = {"expectedEngineSourceDigest": expected, "actualEngineSourceDigest": actual,
                             "sourceComponents": self.sourceComponents}
+
+
+class ManagedPathBudget(ValueError):
+    """Refuse a worktree checkout that cannot fit the Windows path budget.
+
+    Git's own MAX_PATH handling is unreliable on 2.31 for directory creation,
+    so a long checkout half-applies and is then reported as an opaque
+    interruption.  Failing before the first write keeps the operation
+    diagnosable and leaves no partial worktree behind.
+    """
+
+    code = "managed_path_budget_exceeded"
+
+    def __init__(self, message, *, details=None):
+        super().__init__(message)
+        self.details = details or {}
+        self.retryable = False
+
+
+class WorktreeConflict(ValueError):
+    """Report a worktree reference whose existing state cannot be reused.
+
+    A repeated ``create-worktree`` used to fail with a bare "worktree exists",
+    which reads the same whether the caller should simply adopt the worktree it
+    already owns or whether a genuinely different operation collides.  The
+    reason code distinguishes the two so the caller never has to guess.
+    """
+
+    code = "managed_worktree_conflict"
+
+    def __init__(self, message, *, reason, details=None):
+        super().__init__(message)
+        self.reason = reason
+        self.details = details or {}
+        self.retryable = False
 
 
 def input_changes(before, after, limit=128):
@@ -130,6 +228,11 @@ def validation_inputs_verified(result, request=None):
 
 def plain(path):
     path = Path(path).absolute()
+    # The ordinary entry already refuses parent traversal; this side must match
+    # it, because a ".." segment resolves against the caller's cwd and would
+    # otherwise let a control path escape the repository it was scoped to.
+    if ".." in Path(path).parts:
+        raise ValueError("Physical paths cannot contain parent traversal")
     for part in (path, *path.parents):
         if part.exists() or part.is_symlink():
             if part.is_symlink() or getattr(part.lstat(), "st_file_attributes", 0) & 0x400:
@@ -185,6 +288,72 @@ def native_terminal_proof(native, native_ref):
             "activeProcesses": active, "stdoutEof": stdout_eof, "stderrEof": stderr_eof,
             "childrenGone": children_gone, "complete": complete, "nativeEvidence": native_ref,
             "executableEvidence": "trusted-launch-argument", "nativeImageQueryClaimed": False}
+
+
+
+def read_reference(reference, *, expected_path=None, max_bytes=8 * 1024**2):
+    """Read bounded immutable evidence; a hash is required before interpreting it."""
+    if (not isinstance(reference, dict) or set(reference) != {"path", "sha256"}
+            or not isinstance(reference["sha256"], str)
+            or not re.fullmatch(r"[0-9a-f]{64}", reference["sha256"])):
+        raise ValueError("An exact immutable evidence reference is required")
+    path = plain(reference["path"])
+    if expected_path is not None and path != plain(expected_path):
+        raise ValueError("Evidence escaped its original operation/step")
+    if (type(max_bytes) is not int or not 1 <= max_bytes <= SOURCE_EVIDENCE_MAX_BYTES
+            or not path.is_file() or path.stat().st_size > max_bytes):
+        raise ValueError("Bounded immutable JSON evidence is unavailable")
+    raw = path.read_bytes()
+    if sha(raw) != reference["sha256"]:
+        raise ValueError("Immutable evidence bytes changed")
+    def pairs(items):
+        value = {}
+        for key, item in items:
+            if key in value:
+                raise ValueError("Duplicate evidence fields")
+            value[key] = item
+        return value
+    value = json.loads(raw, object_pairs_hook=pairs)
+    if not isinstance(value, dict) or path.read_bytes() != raw:
+        raise ValueError("Evidence changed during observation")
+    return value
+
+
+class ReconciledBatchPreparation:
+    """Replay only the exact, durably unlaunched materialization intent.
+
+    The helper's insert-only execution guard remains the default. This adapter
+    consumes that one guard/insert after reconciling the existing identical row;
+    every preparation journal, CAS byte and physical inventory check still runs.
+    It never deletes, replaces or conceals a launched execution.
+    """
+    def __init__(self, state, owner):
+        self.state, self.owner, self.guard = state, owner, True
+
+    def get(self, domain, key, **kwargs):
+        row = self.state.get(domain, key, **kwargs)
+        if domain == "execution" and key == self.owner and self.guard:
+            self.guard = False
+            if (not row or row["payload"].get("status") != "preparing"
+                    or row["payload"].get("kind") != "management_owned_cargo"
+                    or self.state.get("execution_launch", key, **kwargs)
+                    or self.state.get("execution_host", key, **kwargs)
+                    or any(item["payload"].get("executionId") == key
+                           for item in self.state.list("native_job", **kwargs))):
+                raise ValueError("Interrupted materialization is not durably unlaunched")
+            return None
+        return row
+
+    def put(self, domain, key, payload, expected_version=None, **kwargs):
+        if domain == "execution" and key == self.owner and expected_version == 0:
+            row = self.state.get(domain, key, **kwargs)
+            if not row or row["payload"] != payload:
+                raise ValueError("Original unlaunched materialization identity changed")
+            return row
+        return self.state.put(domain, key, payload, expected_version=expected_version, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self.state, name)
 
 
 def source_helper():
@@ -301,7 +470,7 @@ class Management:
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 timeout=1800 if args[:2] == ('worktree', 'add') else 600, check=False, env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
         if check and result.returncode:
-            raise ValueError(result.stderr.decode("utf-8", "replace")[-3000:])
+            raise ValueError(stderr_tail(result.stderr))
         return result
 
     def text(self, root, *args):
@@ -383,15 +552,19 @@ class Management:
         print("[management] Input capture complete: " + str(root), flush=True)
         return {**value, "sourceDigest": sha(encoded(value))}
 
-    def validation_source(self, *, payload=None, observation_errors=None):
+    def validation_root(self, *, payload=None):
         payload = self.payload if payload is None else payload
         view = payload.get("sourceView", "worktree")
         if view == "worktree":
-            _record, root = self.wt(payload["worktreeId"])
-        elif view == "checkout" and not payload.get("worktreeId"):
-            root = plain(self.repo)
-        else:
-            raise ValueError("Unsupported validation source view")
+            return self.wt(payload["worktreeId"])[1]
+        if view == "checkout" and not payload.get("worktreeId"):
+            return plain(self.repo)
+        raise ValueError("Unsupported validation source view")
+
+    def validation_source(self, *, payload=None, observation_errors=None):
+        payload = self.payload if payload is None else payload
+        view = payload.get("sourceView", "worktree")
+        root = self.validation_root(payload=payload)
         requested = payload.get("externalRoots", [])
         canonical = plain(self.repo.parent / "zr_vm")
         if (not isinstance(requested, list) or len(requested) > 1
@@ -431,12 +604,25 @@ class Management:
         if len(reference) > 160 or reference.endswith("."):
             raise ValueError("Managed worktree name is too long")
         path = plain(self.worktrees / reference)
-        if path.exists() or self.state.get("management_worktree", reference):
-            raise ValueError("Worktree exists; observe the original operation")
         base = self.payload["baseHead"]
         if not isinstance(base, str) or not SHA.fullmatch(base):
             raise ValueError("An immutable base commit is required")
+        # Resolve before the reuse branch: a recorded row stores the resolved
+        # commit, so comparing it against the caller's raw spelling would report
+        # a false drift whenever the two spellings differ.
         base = self.text(self.repo, "rev-parse", base + "^{commit}")
+        existing = self.state.get("management_worktree", reference)
+        if existing or path.exists():
+            return self.existing_worktree(reference, path, existing, base, merge=merge)
+        deepest_file, deepest_dir = deepest_tracked_paths(self.repo)
+        fits, budget = managed_path_budget(path, deepest_file, deepest_dir)
+        if not fits:
+            raise ManagedPathBudget(
+                "Managed worktree path exceeds the Windows MAX_PATH budget; "
+                "shorten the session or worktree name before checkout",
+                details={"worktree": str(path), "requiredBudget": budget,
+                         "deepestFile": deepest_file, "deepestDir": deepest_dir,
+                         "limit": MANAGED_PATH_BUDGET})
         self.worktrees.mkdir(parents=True, exist_ok=True)
         branch = None if merge else "codex/jenkins/" + self.session + "/" + name
         args = ["worktree", "add", "--detach"] if merge else ["worktree", "add", "-b", branch]
@@ -447,6 +633,77 @@ class Management:
         self.state.put("management_worktree", reference, record, expected_version=0)
         return reference, path, record
 
+    def existing_worktree(self, reference, path, existing, base, *, merge):
+        """Reuse, adopt, or explicitly refuse a worktree that already exists.
+
+        A crashed or interrupted ``create-worktree`` leaves either a state row,
+        a physical directory, or both.  Rebinding must be decided from the real
+        Git identity rather than from path existence alone, because a stale
+        directory from an unrelated attempt has no .git and must never be
+        adopted silently.
+        """
+        name = reference.split("-", 1)[-1] if reference.startswith(self.session + "-") else reference
+        branch = None if merge else "codex/jenkins/" + self.session + "/" + name
+        if existing is not None:
+            value = existing["payload"]
+            same_request = (value.get("sessionId") == self.session
+                            and value.get("operationId") == self.operation
+                            and value.get("baseHead") == base
+                            and (value.get("branch") is None) == merge)
+            if same_request:
+                if plain(value["path"]) != path:
+                    raise WorktreeConflict(
+                        "Registered worktree path differs from its recorded location",
+                        reason="path_drift",
+                        details={"reference": reference, "recorded": str(value.get("path")),
+                                 "expected": str(path)})
+                return reference, path, value
+            raise WorktreeConflict(
+                "Worktree reference is bound to a different operation",
+                reason="reference_in_use",
+                details={"reference": reference, "recordedSession": value.get("sessionId"),
+                         "recordedBase": value.get("baseHead"), "expectedBase": base,
+                         "recordedOperation": value.get("operationId")})
+        # No state row: the directory is either a genuine Git worktree of this
+        # repository that a crashed operation never registered, or foreign bytes.
+        if not path.is_dir():
+            raise WorktreeConflict(
+                "An unregistered path blocks the managed worktree location",
+                reason="unregistered_path",
+                details={"reference": reference, "path": str(path)})
+        try:
+            common = plain(self.text(path, "rev-parse", "--path-format=absolute", "--git-common-dir"))
+        except ValueError as error:
+            raise WorktreeConflict(
+                "Existing directory is not a Git worktree of this repository",
+                reason="foreign_directory",
+                details={"reference": reference, "path": str(path), "detail": str(error)}) from error
+        # Ownership is decided before the commit is read: a directory that
+        # belongs elsewhere is never interrogated for its history.
+        if common != plain(self.repo / ".git"):
+            raise WorktreeConflict(
+                "Existing directory belongs to a different repository",
+                reason="foreign_repository",
+                details={"reference": reference, "path": str(path), "commonDir": str(common)})
+        try:
+            head = self.text(path, "rev-parse", "HEAD")
+        except ValueError as error:
+            raise WorktreeConflict(
+                "Existing directory has no readable HEAD",
+                reason="unreadable_head",
+                details={"reference": reference, "path": str(path), "detail": str(error)}) from error
+        if head != base:
+            raise WorktreeConflict(
+                "Unregistered worktree is checked out at a different commit",
+                reason="base_head_drift",
+                details={"reference": reference, "path": str(path), "head": head, "expectedBase": base})
+        record = {"status": "ready", "path": str(path), "branch": branch, "baseHead": base,
+                  "sessionId": self.session, "requestId": self.request, "operationId": self.operation,
+                  "ownedPaths": self.owned, "driverDigest": self.config["driverDigest"],
+                  "adopted": True}
+        self.state.put("management_worktree", reference, record, expected_version=0)
+        return reference, path, record
+
     def create_branch(self):
         name = identifier(self.payload["name"])
         base = self.payload["baseHead"]
@@ -454,8 +711,21 @@ class Management:
             raise ValueError("An immutable base commit is required")
         branch = "codex/jenkins/" + self.session + "/" + name
         head = self.text(self.repo, "rev-parse", base + "^{commit}")
+        # A repeated create-branch carries no state row, so the branch ref is
+        # the only record.  Reusing it when it already points at the requested
+        # commit makes the action retry-safe; pointing anywhere else is a real
+        # collision the caller must resolve rather than silently re-point.
+        probe = self.git(self.repo, "rev-parse", "--verify", "--quiet", "refs/heads/" + branch + "^{commit}", check=False)
+        if not probe.returncode:
+            current = probe.stdout.decode("utf-8", "strict").strip()
+            if current == head:
+                return {"status": "complete", "branch": branch, "head": head, "reused": True}
+            raise WorktreeConflict(
+                "Branch already exists at a different commit",
+                reason="branch_diverged",
+                details={"branch": branch, "current": current, "expected": head})
         self.git(self.repo, "branch", "--", branch, head)
-        return {"status": "complete", "branch": branch, "head": head}
+        return {"status": "complete", "branch": branch, "head": head, "reused": False}
 
     def prepare_merge(self):
         values = self.payload.get("inputs")
@@ -838,8 +1108,173 @@ class Management:
         return {"status": "complete", "worktreeId": worktree_id,
                 "patchReference": reference, "afterHashes": after, "source": self.source(root) if capture else None}
 
+    def validation_delivery_inputs(self, original, result, captured):
+        """Keep the original execution input while observing the live owner."""
+        self.verify_declared_inputs(captured, original)
+        if result.get("validationInputPolicy") == "sealed-source":
+            root, _current, observation = self.validation_sealed_observation(captured, payload=original)
+            if (observation.get("originalEngineUnchanged") is not True
+                    or observation.get("dependencyCacheUnchanged") is not True):
+                raise ValueError("Validated engine or dependency cache changed before delivery")
+            return root, observation
+        root, current = self.validation_with_cache(payload=original)
+        if current != captured:
+            raise ValueError("Validated candidate or dependency closure changed before delivery")
+        return root, {"complete": True, "inputsUnchanged": True,
+                      "originalEngineUnchanged": True, "dependencyCacheUnchanged": True}
+
+    def validation_batch_delivery(self, key, operation, original, result, before, report, request):
+        """Consume every completed step without claiming, persisting or launching."""
+        from tools.jenkins.resources.paths import canonical_build_root
+        owner = "management-" + key
+        checkpoint = operation.get("batchCheckpoint", {})
+        digest = operation.get("inputDigest")
+        coverage = self.validation_batch(payload=original)["coverage"]
+        count = len(original["batch"]["recipes"])
+        launch_row, execution_row = self.state.get("execution_launch", owner), self.state.get("execution", owner)
+        launch = launch_row["payload"] if launch_row else {}
+        execution = execution_row["payload"] if execution_row else {}
+        claims = launch.get("stepClaims", [])
+        binding = {"schemaVersion": 1, "operationKey": key, "inputDigest": digest, "owner": owner}
+        if (not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)
+                or digest != sha(encoded({k: v for k, v in original.items() if k != "observationOnly"}))
+                or operation.get("requestId") != original.get("requestId")
+                or operation.get("operationId") != original.get("operationId")
+                or any(checkpoint.get(k) != v for k, v in binding.items())
+                or checkpoint.get("stage") != "complete" or checkpoint.get("allRecipesExecuted") is not True
+                or checkpoint.get("completedStepCount") != count or checkpoint.get("request") != result["request"]
+                or checkpoint.get("capturedSourceDigest") != before["sourceDigest"]
+                or checkpoint.get("sourceRoot") != before["sourceRoot"]
+                or checkpoint.get("executionRoot") != request["executionRoot"]
+                or checkpoint.get("coverageDigest") != sha(encoded(coverage))
+                or request.get("inputDigest") != digest or request.get("coverage") != coverage
+                or result.get("coverage") != coverage
+                or result.get("recipeCount") != count or result.get("completedRecipeCount") != count
+                or not isinstance(request.get("commands"), list) or len(request["commands"]) != count
+                or request.get("command") != request["commands"][0]
+                or not isinstance(request.get("stepEnvironmentDigests"), list)
+                or len(request["stepEnvironmentDigests"]) != count
+                or launch.get("batch") is not True or launch.get("status") != "terminal"
+                or launch.get("allRecipesExecuted") is not True
+                or launch.get("operationKey") != key or launch.get("inputDigest") != digest
+                or launch.get("requestId") != operation.get("requestId")
+                or launch.get("operationId") != operation.get("operationId")
+                or launch.get("sessionId") != self.session
+                or not isinstance(claims, list) or len(claims) != count
+                or any(not isinstance(claim, dict) or claim.get("ordinal") != ordinal
+                       or claim.get("status") != "complete" for ordinal, claim in enumerate(claims, 1))
+                or execution.get("batch") is not True or execution.get("status") != "passed"
+                or execution.get("sessionId") != self.session
+                or execution.get("batchReceipt") != checkpoint.get("receipt")
+                or execution.get("executionIdentity") != request.get("executionIdentity")
+                or result.get("executionIdentity") != request.get("executionIdentity")):
+            raise ValueError("Batch delivery lacks its complete original parent and ordered step coverage")
+        receipt = read_reference(checkpoint.get("receipt"), expected_path=report / "receipt.json")
+        envelope = {"operationKey": key, "requestId": operation["requestId"], "operationId": operation["operationId"],
+                    "sessionId": self.session, "driverDigest": original["driverDigest"],
+                    "runtimeOperationId": original["runtimeOperationId"]}
+        if result != {**receipt, **envelope}:
+            raise ValueError("Completed batch result differs from its original immutable receipt")
+        sealed = read_reference(checkpoint.get("sealed"), expected_path=report / "sealed-input.json",
+                                max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        prepared = read_reference(checkpoint.get("prepared"), expected_path=report / "preparation.json")
+        final = read_reference(checkpoint.get("finalObservation"), expected_path=report / "input-final.json",
+                               max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        prepared_input = request["preparedSource"]
+        if (sealed.get("capturedInputVerified") is not True
+                or sealed.get("sourceRoot") != before["sourceRoot"]
+                or sealed.get("capturedSourceDigest") != before["sourceDigest"]
+                or sealed.get("coverageDigest") != sha(encoded(coverage))
+                or sealed.get("sealedInputRef") != sha(encoded(sealed["sourceManifest"]))
+                or prepared != request["preparation"]
+                or prepared.get("physicalPath") != request["executionRoot"]
+                or prepared.get("sealedInputRef") != sealed["sealedInputRef"]
+                or prepared.get("sourceDigest") != sealed["sealedInputRef"]
+                or prepared.get("capturedSourceDigest") != before["sourceDigest"]
+                or prepared_input.get("sourceDigest") != sealed["sealedInputRef"]
+                or final.get("prepared") != prepared_input
+                or final.get("observation", {}).get("originalEngineUnchanged") is not True
+                or final.get("observation", {}).get("dependencyCacheUnchanged") is not True
+                or result.get("inputObservations") != {"afterPreparation": request["inputObservation"],
+                                                       "afterExecution": final["observation"]}
+                or result.get("inputsUnchanged") is not (before == final.get("after"))):
+            raise ValueError("Batch delivery differs from its original shared sealed input proofs")
+        reuse = original["batch"].get("reuseValidation")
+        if reuse is not None:
+            provenance = request.get("sourceProvenance", {})
+            if (provenance != checkpoint.get("sourceProvenance")
+                    or provenance.get("kind") != "validated-sealed-input"
+                    or any(provenance.get(name) != value for name, value in reuse.items())
+                    or provenance.get("capturedSourceDigest") != before["sourceDigest"]
+                    or request["inputObservation"].get("externalInputsObserved") is not False
+                    or final["observation"].get("externalInputsObserved") is not False
+                    or request["inputObservation"].get("inputsUnchanged") is not False
+                    or final["observation"].get("inputsUnchanged") is not False):
+                raise ValueError("Batch delivery lacks its exact explicit sealed donor provenance")
+            donor_report = report.parent / reuse["operationKey"]
+            donor_request = read_reference(provenance["requestRef"], expected_path=donor_report / "request.json",
+                                           max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+            donor_receipt = read_reference(reuse["receiptRef"], expected_path=donor_report / "receipt.json")
+            donor_reference = provenance.get("sealedInputRef")
+            donor_capture = self.state.get("management_source", reuse["operationKey"])
+            donor_row, current_row = (self.state.get("sealed_input", reference)
+                                      for reference in (donor_reference, sealed["sealedInputRef"]))
+            donor, current = (row["payload"] if row else {} for row in (donor_row, current_row))
+            donor_manifest = donor.get("sourceManifest", {})
+            manifest = sealed["sourceManifest"]
+            approved = canonical_build_root(self.build_root(payload=original))
+            if (not donor_capture or donor_capture["payload"] != before
+                    or sha(encoded({k: v for k, v in before.items() if k != "sourceDigest"})) != before["sourceDigest"]
+                    or donor_request.get("source") != before or donor_receipt.get("sourceDigest") != before["sourceDigest"]
+                    or donor_receipt.get("request") != provenance["requestRef"]
+                    or donor_request.get("preparation") != donor_receipt.get("preparation")
+                    or donor_receipt.get("preparation", {}).get("capturedSourceDigest") != before["sourceDigest"]
+                    or donor_receipt.get("preparation", {}).get("sealedInputRef") != donor_reference
+                    or any(donor_request.get("payload", {}).get(name) != original.get(name)
+                           for name in ("repositoryId", "sessionId", "worktreeId", "driverDigest", "runtimeOperationId"))
+                    or any(value.get("status") != "sealed" or value.get("repositoryId") != self.repo_id
+                           or value.get("buildRoot") != str(approved.path)
+                           or value.get("objectRoot") != str(approved.namespace())
+                           or value.get("manifest") != value.get("sourceManifest")
+                           for value in (donor, current))
+                    or donor.get("repositoryRoot") != current.get("repositoryRoot")
+                    or donor.get("sourceDigest") != donor_reference or sha(encoded(donor_manifest)) != donor_reference
+                    or donor.get("coverageDigest") != sha(encoded(donor.get("coverage")))
+                    or donor_manifest.get("validationCoverageDigest") != donor.get("coverageDigest")
+                    or current.get("sourceDigest") != sealed["sealedInputRef"]
+                    or current.get("sourceManifest") != manifest or current.get("coverage") != coverage
+                    or current.get("coverageDigest") != sha(encoded(coverage))
+                    or manifest.get("validationCoverageDigest") != current.get("coverageDigest")
+                    or {k: v for k, v in donor_manifest.items() if k != "validationCoverageDigest"}
+                       != {k: v for k, v in manifest.items() if k != "validationCoverageDigest"}):
+                raise ValueError("Donor and batch seals lack their independent coverage and identical complete captured CAS")
+            preparation = source_helper()
+            preparation.verify_sealed_capture(before["source"], manifest)
+            if len(manifest.get("external", [])) != len(before["externalRoots"]):
+                raise ValueError("Batch seal differs from the complete captured external closure")
+            for captured_external, external in zip(before["externalRoots"], manifest.get("external", [])):
+                if external.get("repositoryRoot") != captured_external["path"]:
+                    raise ValueError("Batch seal differs from its captured external root")
+                preparation.verify_sealed_capture(captured_external["source"], external["manifest"])
+        context = {"key": key, "payload": original, "inputDigest": digest, "requestId": operation["requestId"],
+                   "operationId": operation["operationId"], "report": report, "checkpoint": checkpoint}
+        proofs = [self.batch_step_proof(claim, context=context) for claim in claims]
+        steps = [proof[0] for proof in proofs]
+        native_refs, proof_ids = [proof[2] for proof in proofs], [proof[3] for proof in proofs]
+        if (any(step.get("status") != "passed" for step in steps) or steps != result.get("steps")
+                or proof_ids != result.get("nativeProofRefs") or native_refs[-1] != result["nativeTerminal"]
+                or launch.get("nativeProofRef") != proof_ids[-1]
+                or execution.get("nativeProofRef") != proof_ids[-1]
+                or execution.get("nativeTerminal") != native_refs[-1]):
+            raise ValueError("Every original batch Native and test result must be complete and successful")
+        return {"request": result["request"], "nativeTerminal": native_refs[-1],
+                "nativeProofRef": proof_ids[-1], "nativeTerminals": native_refs, "nativeProofRefs": proof_ids,
+                "stepReceipts": [claim["receipt"] for claim in claims], "batchReceipt": checkpoint["receipt"],
+                "sealedInputRef": sealed["sealedInputRef"], "finalObservation": checkpoint["finalObservation"],
+                "coverage": coverage, "sourceDigest": before["sourceDigest"]}
+
     def validation_delivery(self, key, worktree_id):
-        """Read one completed managed Cargo delivery and its original native proof."""
+        """Read a completed single or shared-batch delivery and all original proofs."""
         if not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key):
             raise ValueError("An exact completed validation operation key is required")
         row = self.state.get("management_operation", key)
@@ -854,41 +1289,39 @@ class Management:
                 or original.get("runtimeOperationId") != self.config["runtimeOperationId"]
                 or not captured or result.get("sourceDigest") != captured["payload"]["sourceDigest"]
                 or not validation_inputs_verified(result)):
-            raise ValueError("Worktree release requires an actual matching successful managed validation")
-        root, before = self.validation_with_cache(payload=original)
-        if before != captured["payload"]:
-            raise ValueError("Validated candidate or dependency closure changed before worktree release")
+            raise ValueError("Delivery requires an actual matching successful managed validation")
+        before = captured["payload"]
         from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
         approved = canonical_build_root(self.build_root(payload=original))
         report = physical_path_under(approved, approved.namespace() / "management/reports" / key)
-        documents = {}
-        for name, filename in (("request", "request.json"), ("nativeTerminal", "native-terminal.json")):
-            reference = result[name]
-            path = plain(reference["path"])
-            if path != report / filename:
-                raise ValueError("Validation delivery is outside its original managed report")
-            raw = path.read_bytes()
-            if sha(raw) != reference["sha256"]:
-                raise ValueError("Original validation delivery changed")
-            documents[name] = json.loads(raw)
-        request, native = documents["request"], documents["nativeTerminal"]
+        request = read_reference(result["request"], expected_path=report / "request.json",
+                                 max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
         execution_root = physical_path_under(approved, request["executionRoot"], allow_missing=False)
-        expected = native_terminal_proof(native, result["nativeTerminal"])
-        proof_id = "management-" + key + "-native"
-        native_row = self.state.get("native_job", proof_id)
-        proof = native_row["payload"] if native_row else {}
         if (request["payload"] != original or request["source"] != before
-                or request["command"] != native["command"] or plain(native["cwd"]) != execution_root
                 or result.get("executionRoot") != str(execution_root)
                 or request.get("preparation") != result.get("preparation")
                 or not validation_inputs_verified(result, request)
-                or native.get("rootExitCode") != 0 or expected["complete"] is not True
-                or proof.get("owner") != "management-" + key or proof.get("status") != "terminal"
-                or proof.get("nativeEvidence") != native or proof.get("completeProof") != expected
-                or proof.get("terminalProof") != expected):
-            raise ValueError("Validation lacks its original complete retained-Job termination proof")
-        return row, root, before, {"request": result["request"], "nativeTerminal": result["nativeTerminal"],
-                                  "nativeProofRef": proof_id, "sourceDigest": before["sourceDigest"]}
+                or ("batch" in original) != (result.get("batch") is True)):
+            raise ValueError("Validation differs from its original captured input and execution identity")
+        if "batch" in original:
+            delivery = self.validation_batch_delivery(key, operation, original, result, before, report, request)
+        else:
+            native = read_reference(result["nativeTerminal"], expected_path=report / "native-terminal.json")
+            expected = native_terminal_proof(native, result["nativeTerminal"])
+            proof_id = "management-" + key + "-native"
+            native_row = self.state.get("native_job", proof_id)
+            proof = native_row["payload"] if native_row else {}
+            if (request["command"] != native["command"] or plain(native["cwd"]) != execution_root
+                    or native.get("rootExitCode") != 0 or expected["complete"] is not True
+                    or proof.get("owner") != "management-" + key or proof.get("status") != "terminal"
+                    or proof.get("nativeEvidence") != native or proof.get("completeProof") != expected
+                    or proof.get("terminalProof") != expected):
+                raise ValueError("Validation lacks its original complete retained-Job termination proof")
+            delivery = {"request": result["request"], "nativeTerminal": result["nativeTerminal"],
+                        "nativeProofRef": proof_id, "sourceDigest": before["sourceDigest"]}
+        root, observation = self.validation_delivery_inputs(original, result, before)
+        delivery["deliveryObservation"] = observation
+        return row, root, before, delivery
 
     def worktree_release_inventory(self, root, source):
         """Admit every actual file, preserving ignored or otherwise unattributed bytes."""
@@ -1155,54 +1588,178 @@ class Management:
         result["artifactManifest"] = {"path": str(manifest_path), "sha256": sha(manifest_path.read_bytes())}
         return result
 
+    def recover_worktree(self):
+        """Close out a worktree whose owning operation died mid-flight.
+
+        A crashed process leaves either ``phase=running`` on the operation or
+        ``status=releasing`` on the worktree, and neither state can ever
+        advance because the process that would advance it is gone.  Recovery
+        is deliberately narrow: it never finishes the interrupted work, only
+        re-adjudicates the record against what is actually on disk, and it
+        requires proof that the original operation is no longer alive.
+        """
+        reference = self.payload["worktreeId"]
+        row = self.state.get("management_worktree", reference)
+        if not row:
+            raise ValueError("Recovery requires a registered managed worktree")
+        value = row["payload"]
+        if value.get("sessionId") != self.session:
+            raise ValueError("Worktree recovery belongs to another session")
+        path = plain(value["path"])
+        if path.parent != self.worktrees:
+            raise ValueError("Worktree escapes the managed directory")
+        operation_key = self.payload["operationKey"]
+        if not isinstance(operation_key, str) or not re.fullmatch(r"[0-9a-f]{64}", operation_key):
+            raise ValueError("Recovery requires the exact interrupted operation key")
+        operation = self.state.get("management_operation", operation_key)
+        if not operation:
+            raise ValueError("Interrupted management operation is unavailable")
+        operation_value = operation["payload"]
+        # create-worktree names its target with "name"; the other actions use
+        # "worktreeId".  Comparing both spellings keeps one check honest.
+        requested = operation_value.get("payload", {})
+        owned_targets = {value for value in
+                         (requested.get("worktreeId"), requested.get("name"),
+                          reference.split("-", 1)[-1] if reference.startswith(self.session + "-") else None)
+                         if value}
+        if operation_value.get("sessionId") != self.session or reference not in owned_targets:
+            raise ValueError("Recovery operation does not own this worktree")
+        self.scoped(value.get("ownedPaths", self.owned), "gc")
+        # The interrupted operation must be provably dead before its record is
+        # re-adjudicated; a live owner still holds the only correct outcome.
+        from tools.jenkins.state.locks import process_lock
+        lock = self.repo / ".jenkins/state/locks" / ("management-operation-" + operation_key + ".lock")
+        with process_lock(lock, timeout=0):
+            pass
+        # An owned Git step records its execution under "management-" + key.
+        owner = "management-" + operation_key
+        execution = self.state.get("execution", owner)
+        if execution and execution["payload"].get("status") == "running":
+            natives = [item for item in self.state.list("native_job")
+                       if item["payload"].get("owner") == owner]
+            if not any(item["payload"].get("status") == "terminal" for item in natives):
+                raise ValueError("Interrupted operation still has a running native process; stop it first")
+        present = path.is_dir()
+        git_identity = None
+        if present:
+            try:
+                git_identity = plain(self.text(path, "rev-parse", "--path-format=absolute", "--git-common-dir"))
+            except ValueError:
+                git_identity = None
+        if value.get("status") == "releasing":
+            if path.exists():
+                raise ValueError("Release already removed the worktree; finish the original release instead")
+            resolution = "released"
+        elif not present:
+            resolution = "absent"
+        elif git_identity == plain(self.repo / ".git"):
+            resolution = "ready"
+        else:
+            raise ValueError("A non-Git directory occupies the managed worktree path; remove it deliberately")
+        result = {"status": "recovered", "worktreeId": reference, "path": str(path),
+                  "previousWorktreeStatus": value.get("status"), "previousOperationPhase": operation_value.get("phase"),
+                  "resolution": resolution, "directoryPresent": present,
+                  "commitPerformed": False, "pushPerformed": False, "formalAcceptance": False}
+        with self.state.transaction() as connection:
+            record = {**value, "status": resolution, "recoveredFrom": value.get("status"),
+                      "recoveryOperationKey": self.key}
+            record.pop("releaseRequest", None)
+            self.state.put("management_worktree", reference, record,
+                           expected_version=row["version"], connection=connection)
+            finished = {**operation_value, "phase": "unknown", "recoveryResolution": resolution,
+                        "finishedAt": time.time()}
+            self.state.put("management_operation", operation_key, finished,
+                           expected_version=operation["version"], connection=connection)
+        return result
+
+    def prepare_flow(self):
+        """Register this managed worktree as the Flow chain's current source.
+
+        Management could create a worktree and Flow could consume a registered
+        current source, but nothing turned one into the other, so the two chains
+        never met.  This bridges them: the worktree supplies the bytes, the
+        canonical checkout supplies the identity, and the result is the payload
+        ``submit-flow`` already accepts, so no Flow-side contract changes.
+        """
+        record, root = self.wt(self.payload["worktreeId"])
+        # Import the module, not the function: a bound name cannot be replaced
+        # by a caller that needs to observe the registration it makes.
+        from tools.jenkins import current_source
+        from tools.jenkins.source import repository_id
+        identity_value = self.payload["flowIdentity"]
+        if not isinstance(identity_value, dict):
+            raise ValueError("A flow identity is required")
+        identity = {**identity_value, "repositoryId": repository_id(self.repo)}
+        if (identity.get("sessionId") != self.session
+                or identity.get("generation") not in (1, "1")):
+            raise ValueError("Flow identity must retain this session at generation 1")
+        captured = self.source(root)
+        # Flow refuses checkout control and compiler output as product input,
+        # and this repository tracks files under .jenkins and .codex, so an
+        # unfiltered closure always trips that guard.  Only the product source
+        # crosses the bridge.
+        control = {".git", ".codex", ".jenkins", ".opencode", "target"}
+        hashes = {name: checksum for name, checksum in captured["files"].items()
+                  if (checksum is None or isinstance(checksum, str))
+                  and name.split("/", 1)[0] not in control}
+        owned = [name for name in self.owned if name in hashes]
+        if not owned:
+            raise ValueError("Flow preparation needs at least one owned product source path; "
+                             "control paths are not product input")
+        if not any(checksum is not None for checksum in hashes.values()):
+            raise ValueError("Flow preparation requires at least one present source file")
+        tracked = set()
+        for raw in self.git(root, "ls-files", "--cached", "-z").stdout.split(b"\0"):
+            if raw:
+                tracked.add(raw.decode("utf-8", "strict"))
+        untracked = sorted(name for name, checksum in hashes.items()
+                           if checksum is not None and name not in tracked)
+        authored = self.payload.get("attemptId") or ("attempt-" + self.operation)
+        coverage = self.payload.get("coverage")
+        if not isinstance(coverage, dict):
+            raise ValueError("Flow preparation requires an explicit product coverage template")
+        registered = current_source.handle("register", {
+            "identity": {**identity, "attemptId": authored, "generation": 1,
+                         "stageImplementationDigest": self.config["driverDigest"]},
+            "baseHead": captured["head"],
+            "currentHashes": hashes,
+            "ownedPaths": owned,
+            "untrackedPaths": untracked,
+            "coverage": coverage,
+            "buildRoot": self.build_root(),
+            "sourceRoot": str(root),
+            "runtimeOperationId": self.config["runtimeOperationId"],
+            "externalInputs": [],
+        }, self.state, self.repo)
+        if registered.get("status") != "registered":
+            raise ValueError("Flow preparation did not register a current source: "
+                             + str(registered.get("reasonCode")))
+        reference = registered["currentSourceRef"]
+        return {"status": "prepared", "worktreeId": self.payload["worktreeId"],
+                "sourceRoot": str(root), "repositoryRoot": str(self.repo),
+                "repositoryId": identity["repositoryId"], "currentSourceRef": reference,
+                "baseHead": captured["head"], "sourceDigest": captured["sourceDigest"],
+                "flowPayload": {"identity": {**identity, "attemptId": authored, "generation": 1,
+                                             "stageImplementationDigest": self.config["driverDigest"]},
+                                "currentSourceRef": reference,
+                                "buildRoot": self.build_root(),
+                                "coverage": self.payload.get("coverage"),
+                                "authorization": self.payload.get("authorization"),
+                                "submissionRequestId": self.payload.get("submissionRequestId")},
+                "commitPerformed": False, "pushPerformed": False, "formalAcceptance": False}
+
     def commit_worktree(self):
         record, root = self.wt(self.payload["worktreeId"])
         expected = self.payload["expectedHead"]
         validation_key = self.payload["validationKey"]
         if not isinstance(validation_key, str) or not re.fullmatch(r"[0-9a-f]{64}", validation_key):
             raise ValueError("An exact management validation operation key is required")
-        validation = self.state.get("management_operation", validation_key)
-        captured = self.state.get("management_source", validation_key)
-        value = validation["payload"] if validation else {}
-        result = value.get("result", {})
-        original = value.get("payload", {})
-        if (value.get("phase") != "complete" or value.get("action") != "validate" or result.get("status") != "passed"
-                or value.get("sessionId") != self.session or original.get("repositoryId") != self.repo_id
-                or original.get("worktreeId") != self.payload["worktreeId"]
-                or original.get("sourceView", "worktree") != "worktree"
-                or original.get("driverDigest") != self.config["driverDigest"]
-                or original.get("runtimeOperationId") != self.config["runtimeOperationId"]):
-            raise ValueError("Commit lacks matching actual source/native validation")
-        # Compare exactly the validation snapshot, including its original cache
-        # and external dependency identities; a bare source() snapshot differs.
-        current_root, before = self.validation_with_cache(payload=original)
+        validation, current_root, before, delivery = self.validation_delivery(validation_key, self.payload["worktreeId"])
+        value = validation["payload"]
+        original, result = value["payload"], value["result"]
         engine = before["source"]
-        if (current_root != root or engine["head"] != expected or not captured or captured["payload"] != before
-                or result.get("sourceDigest") != before["sourceDigest"] or not validation_inputs_verified(result)):
-            raise ValueError("Validated worktree or dependency inputs changed before commit")
-        from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
-        approved = canonical_build_root(self.build_root(payload=original))
-        report = physical_path_under(approved, approved.namespace() / "management" / "reports" / validation_key)
-        facts = {}
-        for name, filename in (("nativeTerminal", "native-terminal.json"), ("request", "request.json")):
-            reference = result[name]
-            if plain(reference["path"]) != plain(report / filename):
-                raise ValueError("Validation evidence path differs")
-            raw = plain(reference["path"]).read_bytes()
-            if sha(raw) != reference["sha256"]:
-                raise ValueError("Validation evidence digest changed")
-            facts[name] = json.loads(raw)
-        native, request = facts["nativeTerminal"], facts["request"]
-        execution_root = physical_path_under(approved, request.get("executionRoot", str(root)), allow_missing=False)
-        if (request["source"] != before or request["payload"] != original
-                or native["command"] != request["command"] or plain(native["cwd"]) != execution_root
-                or result.get("executionRoot", str(root)) != str(execution_root)
-                or result.get("preparedInputsUnchanged") is not True
-                or request.get("preparation") != result.get("preparation")
-                or not validation_inputs_verified(result, request)
-                or native["rootExitCode"] != 0
-                or native_terminal_proof(native, result["nativeTerminal"])["complete"] is not True):
-            raise ValueError("Original native validation is not complete and successful")
+        if current_root != root or engine["head"] != expected:
+            raise ValueError("Validated worktree or HEAD changed before commit")
         changes = set(p.decode("utf-8", "strict") for p in
                       self.git(root, "diff", "--name-only", "-z", "HEAD", "--").stdout.split(b"\0") if p)
         changes.update(p.decode("utf-8", "strict") for p in
@@ -1216,15 +1773,26 @@ class Management:
         if not isinstance(message, str) or not message.strip() or len(message.encode("utf-8")) > 4096 or "\0" in message:
             raise ValueError("A bounded commit message is required")
         message_path = plain(self.repo / ".jenkins/state/controls" / (self.key + ".commit-message.txt"))
-        with message_path.open("xb") as stream:
-            stream.write(message.encode("utf-8") + b"\n")
+        # "xb" made a retry fail on its own earlier write.  The message is a
+        # function of this operation key, so an identical file is the same
+        # intent repeated and is reused; different bytes are a real conflict.
+        payload = message.encode("utf-8") + b"\n"
+        if message_path.exists():
+            if message_path.read_bytes() != payload:
+                raise WorktreeConflict(
+                    "Commit message for this operation already differs",
+                    reason="commit_message_conflict",
+                    details={"path": str(message_path)})
+        else:
+            with message_path.open("xb") as stream:
+                stream.write(payload)
         main_head = self.text(self.repo, "rev-parse", "HEAD")
         self.git(root, "add", "--", *sorted(changes))
         staged_source = self.source(root)
         if staged_source["files"] != engine["files"] or staged_source["head"] != expected:
             raise ValueError("Validated worktree file bytes or HEAD changed before commit")
-        _same_root, current = self.validation_with_cache(payload=original)
-        if _same_root != root or current != before:
+        _same_root, commit_observation = self.validation_delivery_inputs(original, result, before)
+        if _same_root != root:
             raise ValueError("Validated source or dependencies changed during commit preparation")
         self.git(root, "-c", "commit.gpgSign=false", "commit", "--no-verify", "--no-gpg-sign", "--file", str(message_path))
         head = self.text(root, "rev-parse", "HEAD")
@@ -1237,6 +1805,7 @@ class Management:
         return {"status": "complete", "worktreeId": self.payload["worktreeId"], "head": head,
                 "tree": self.text(root, "rev-parse", "HEAD^{tree}"), "validationKey": validation_key,
                 "validatedSourceDigest": before["sourceDigest"], "nativeTerminal": result["nativeTerminal"],
+                "validationDelivery": delivery, "commitObservation": commit_observation,
                 "mainHeadBefore": main_head, "mainHeadAfter": main_head, "pushPerformed": False}
 
     def generate(self):
@@ -1300,6 +1869,761 @@ class Management:
         storage = getattr(configured, "storage", {})
         return str(canonical_build_root(explicit or storage.get("buildRoot", r"D:\cargo-targets")).path)
 
+
+    def validation_batch(self, *, payload=None):
+        payload = self.payload if payload is None else payload
+        batch = payload.get("batch")
+        fields = {"verb", "packages", "features", "profile", "offline", "noDefaultFeatures", "lib",
+                  "tests", "testFilter", "noRun", "allFeatures", "locked", "jobs", "testThreads",
+                  "bins", "allTests", "harnessFilters", "exact", "ignored", "nocapture"}
+        if (not isinstance(batch, dict)
+                or set(batch) - {"schemaVersion", "sharedSingleBatchRequired", "contractRef", "recipes", "stepEnvironments", "reuseValidation"}
+                or batch.get("schemaVersion") != 1 or batch.get("sharedSingleBatchRequired") is not True
+                or fields & set(payload)):
+            raise ValueError("An optional batch requires one shared input and no top-level single recipe")
+        reuse = batch.get("reuseValidation")
+        if "reuseValidation" in batch:
+            reference = reuse.get("receiptRef") if isinstance(reuse, dict) else None
+            if (not isinstance(reuse, dict) or set(reuse) != {"operationKey", "capturedSourceDigest", "receiptRef"}
+                    or any(not isinstance(reuse.get(name), str)
+                           or not re.fullmatch(r"[0-9a-f]{64}", reuse[name])
+                           for name in ("operationKey", "capturedSourceDigest"))
+                    or not isinstance(reference, dict) or set(reference) != {"path", "sha256"}
+                    or not isinstance(reference.get("path"), str) or not reference["path"]
+                    or len(reference["path"].encode("utf-8")) > 4096
+                    or not Path(reference["path"]).is_absolute()
+                    or any(c in reference["path"] for c in "\0\r\n")
+                    or not isinstance(reference.get("sha256"), str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", reference["sha256"])
+                    or payload.get("sourceView", "worktree") != "worktree" or not payload.get("worktreeId")
+                    or payload.get("expectedSourceDigest") != reuse["capturedSourceDigest"]):
+                raise ValueError("Sealed batch reuse requires exact donor, capture, receipt and explicit source pins")
+        contract_document = read_reference(batch.get("contractRef"))
+        contract = contract_document.get("originalCommandContract", contract_document)
+        originals = contract.get("semanticCommands")
+        commands = batch.get("recipes")
+        if (contract.get("sharedSingleBatchRequired") is not True
+                or not isinstance(commands, list) or not 1 <= len(commands) <= 64
+                or commands != originals or len(encoded(batch)) > 900 * 1024):
+            raise ValueError("Batch must preserve every complete original semantic command")
+        parser = getattr(self, "_batch_parser", None)
+        if parser is None:
+            path = plain(self.repo / "tools/jenkins-management/entry.py")
+            if sha(path.read_bytes()) != self.config["clientSources"]["tools/jenkins-management/entry.py"]:
+                raise ValueError("Pinned Cargo contract parser changed")
+            spec = importlib.util.spec_from_file_location("pinned_batch_cargo_contract", path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            parser = module.parse_cargo
+        common = {k: v for k, v in payload.items() if k != "batch"}
+        recipes, names = [], set()
+        for ordinal, original in enumerate(commands, 1):
+            if (not isinstance(original, dict) or original.get("ordinal") != ordinal
+                    or not isinstance(original.get("name"), str) or not ID.fullmatch(original["name"])
+                    or original["name"] in names
+                    or not isinstance(original.get("cargoArguments"), list)
+                    or not original["cargoArguments"] or len(original["cargoArguments"]) > 1536
+                    or any(not isinstance(v, str) or not v or any(c in v for c in "\0\r\n")
+                           for v in original["cargoArguments"])
+                    or type(original.get("ownedNativeTimeoutSeconds")) is not int
+                    or not 1 <= original["ownedNativeTimeoutSeconds"] <= 21600):
+                raise ValueError("Each original batch recipe needs its ordinal, name, complete argv and native deadline")
+            names.add(original["name"])
+            parsed = parser(original["cargoArguments"])
+            probe = object.__new__(Management)
+            probe.payload = {**common, **parsed}
+            recipe = probe.validation_recipe()
+            profile = original.get("profile")
+            if profile is not None and ({"debug": "dev", "dev": "dev", "release": "release"}.get(profile)
+                                        != recipe["profile"]):
+                raise ValueError("Original profile differs from its Cargo argv")
+            requested = original.get("targetDir")
+            if requested is not None:
+                if ("requestedTargetDir" in common and plain(requested) != plain(common["requestedTargetDir"])
+                        or self.build_root(payload={**common, "requestedTargetDir": requested})
+                           != self.build_root(payload=common)):
+                    raise ValueError("Every shared recipe must retain the same explicit physical target volume")
+            floor = original.get("minimumExpectedMatchedTests", 1)
+            if type(floor) is not int or not 1 <= floor <= 1000000:
+                raise ValueError("Executed test floors must be positive bounded counts")
+            for field, value in original.items():
+                if (field.startswith("requiredNamed") and field.endswith("Tests")
+                        or field in {"requiredTestBinaries", "requiredProducerMarkers"}):
+                    if (not isinstance(value, list) or len(value) > 4096
+                            or any(not isinstance(v, str) or not v or len(v.encode("utf-8")) > 2048
+                                   or "\0" in v for v in value)):
+                        raise ValueError("Required test, binary and producer evidence must be bounded lists")
+            recipes.append(recipe)
+        environments = batch.get("stepEnvironments", [{} for _ in recipes])
+        allowed_environment = {"ZR_RUNTIME03_STORE_MATRIX_OUTPUT", "ZR_RUNTIME03_STORE_MATRIX_CONTEXT_JSON",
+                               "ZIRCON_RUNTIME03_CONFIG_MATRIX_DIR"}
+        if (not isinstance(environments, list) or len(environments) != len(recipes)
+                or any(not isinstance(v, dict) or set(v) - allowed_environment
+                       or any(not isinstance(item, str) or not item or "\0" in item
+                              or len(item.encode("utf-8")) > 16384 for item in v.values()) for v in environments)):
+            raise ValueError("Batch context environment must preserve bounded explicit producer inputs")
+        for values in environments:
+            for name in ("ZR_RUNTIME03_STORE_MATRIX_OUTPUT", "ZIRCON_RUNTIME03_CONFIG_MATRIX_DIR"):
+                if name in values:
+                    from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
+                    approved = canonical_build_root(self.build_root(payload=common))
+                    physical_path_under(approved, values[name])
+        producer_contract = {k: v for k, v in contract.items() if k != "semanticCommands"}
+        if ("originalCommands" in contract and contract["originalCommands"] != len(commands)
+                or "totalProducerIdentities" in contract and
+                   contract["totalProducerIdentities"] != contract.get("preservedOriginalProducers", 0)
+                                                       + contract.get("previousRuntime03MatrixProducers", 0)):
+            raise ValueError("Original command/producer identity counts changed")
+        return {"recipes": recipes, "coverage": {"schemaVersion": 1, "sharedSingleBatchRequired": True,
+                "contractRef": batch["contractRef"], "recipes": commands, "producerContract": producer_contract},
+                "stepEnvironments": environments, "reuseValidation": reuse}
+
+    def batch_reused_input(self, reuse, expected_root):
+        """Read a proven donor; its tests never replace this batch's executions."""
+        if reuse["operationKey"] == self.key:
+            raise ValueError("A new batch cannot consume itself as a sealed donor")
+        validation, root, before, delivery = self.validation_delivery(reuse["operationKey"], self.payload["worktreeId"])
+        operation = validation["payload"]
+        original, result = operation["payload"], operation["result"]
+        from tools.jenkins.resources.paths import canonical_build_root
+        if (result.get("validationInputPolicy") != "sealed-source" or root != expected_root
+                or before["sourceDigest"] != reuse["capturedSourceDigest"]
+                or sha(encoded({k: v for k, v in before.items() if k != "sourceDigest"})) != before["sourceDigest"]
+                or canonical_build_root(self.build_root(payload=original)).path
+                   != canonical_build_root(self.build_root()).path):
+            raise ValueError("Sealed donor differs from the requested complete capture/worktree/output root")
+        receipt = read_reference(reuse["receiptRef"], expected_path=plain(delivery["request"]["path"]).parent / "receipt.json")
+        envelope = {"operationKey": reuse["operationKey"], "requestId": operation["requestId"],
+            "operationId": operation["operationId"], "sessionId": self.session,
+            "driverDigest": self.config["driverDigest"], "runtimeOperationId": self.config["runtimeOperationId"]}
+        if result != {**receipt, **envelope}:
+            raise ValueError("Donor receipt differs from its actual completed validation result")
+        self.verify_declared_inputs(before, self.payload)
+        provenance = {"kind": "validated-sealed-input", **reuse, "requestRef": delivery["request"],
+            "sealedInputRef": result["preparation"]["sealedInputRef"],
+            "nativeTerminals": delivery.get("nativeTerminals", [delivery["nativeTerminal"]]),
+            "nativeProofRefs": delivery.get("nativeProofRefs", [delivery["nativeProofRef"]])}
+        return before, provenance
+
+    def batch_checkpoint(self, **changes):
+        row = self.state.get("management_operation", self.key)
+        if not row or row["payload"].get("inputDigest") != self.input_digest:
+            raise ValueError("Batch checkpoint lacks its original parent operation")
+        checkpoint = row["payload"].get("batchCheckpoint", {})
+        binding = {"schemaVersion": 1, "operationKey": self.key, "inputDigest": self.input_digest,
+                   "owner": "management-" + self.key}
+        if checkpoint and any(checkpoint.get(k) != v for k, v in binding.items()):
+            raise ValueError("Batch checkpoint identity changed")
+        checkpoint = {**binding, **checkpoint, **changes}
+        if changes:
+            self.state.put("management_operation", self.key, {**row["payload"], "batchCheckpoint": checkpoint},
+                           expected_version=row["version"])
+        return checkpoint
+
+    def batch_pool(self, recipes, preparation, trusted, environment, root, cache):
+        cargo_configuration = {}
+        for name in (".cargo/config", ".cargo/config.toml"):
+            path = plain(root / name)
+            if path.is_file():
+                cargo_configuration[name] = sha(path.read_bytes())
+        keys = set()
+        for recipe in recipes:
+            compatibility = {**environment,
+                **({"cargoAllFeatures": True} if recipe["allFeatures"] else {}),
+                "sourceCargoConfiguration": cargo_configuration}
+            keys.add(preparation.preparation_key(self.repo_id, trusted, compatibility,
+                recipe["packages"], recipe["features"], recipe["profile"], recipe["noDefaultFeatures"],
+                cache, ["zr_vm"] if self.payload.get("externalRoots") else []))
+        configurations = sorted(keys)
+        pool = configurations[0] if len(configurations) == 1 else sha(encoded({"configurationSet": configurations}))
+        return pool, cargo_configuration
+
+    def batch_claims(self):
+        launch = self.state.get("execution_launch", "management-" + self.key)
+        if not launch:
+            return []
+        value = launch["payload"]
+        if (value.get("batch") is not True or value.get("operationKey") != self.key
+                or value.get("requestId") != self.request or value.get("operationId") != self.operation
+                or value.get("inputDigest") != self.input_digest):
+            raise ValueError("Batch launch history differs from the original parent")
+        claims = value.get("stepClaims", [])
+        if (not isinstance(claims, list) or len(claims) > len(self.payload["batch"]["recipes"])
+                or any(not isinstance(claim, dict) or claim.get("ordinal") != ordinal
+                       or claim.get("status") not in {"claimed", "complete"}
+                       for ordinal, claim in enumerate(claims, 1))):
+            raise ValueError("Original batch launch prefix changed")
+        return claims
+
+    def batch_step_proof(self, claim, *, persist=False, context=None):
+        """Reconcile real step proofs; an explicit delivery context is read-only."""
+        if context is None:
+            key, payload, digest = self.key, self.payload, self.input_digest
+            request_id, operation_id = self.request, self.operation
+            report_root, checkpoint = self.outputs() / "reports" / key, self.batch_checkpoint()
+        else:
+            if persist:
+                raise ValueError("Delivery may only read original batch proofs")
+            key, payload, digest = context["key"], context["payload"], context["inputDigest"]
+            request_id, operation_id = context["requestId"], context["operationId"]
+            report_root, checkpoint = context["report"], context["checkpoint"]
+        ordinal = claim["ordinal"]
+        owner = "management-" + key
+        report = report_root / "steps" / ("%04d" % ordinal)
+        request = read_reference(claim["request"], expected_path=report / "request.json")
+        parent_request = read_reference(checkpoint["request"], expected_path=report.parent.parent / "request.json",
+                                        max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        if (parent_request.get("inputDigest") != digest
+                or {k: v for k, v in parent_request["payload"].items() if k != "observationOnly"}
+                   != {k: v for k, v in payload.items() if k != "observationOnly"}
+                or request.get("command") != parent_request["commands"][ordinal - 1]
+                or request.get("cwd") != parent_request["executionRoot"]
+                or request.get("temporaryEnvironment") != parent_request["temporaryEnvironment"]
+                or request.get("parentRequest") != checkpoint["request"]
+                or request.get("inputDigest") != digest or request.get("ordinal") != ordinal
+                or request.get("command") != claim["command"] or request.get("cwd") != claim["cwd"]
+                or request.get("recipe") != payload["batch"]["recipes"][ordinal - 1]
+                or request.get("recipe") != parent_request["coverage"]["recipes"][ordinal - 1]
+                or request.get("timeoutSeconds") != request["recipe"]["ownedNativeTimeoutSeconds"]
+                or request.get("sealedInputRef") != parent_request["preparation"]["sealedInputRef"]
+                or request.get("environmentDigest") != parent_request["stepEnvironmentDigests"][ordinal - 1]
+                or request.get("taskScratch") != parent_request["taskScratch"]):
+            raise ValueError("Step request differs from its complete original shared input")
+        native_path = plain(report / "native-terminal.json")
+        raw = native_path.read_bytes()
+        native_ref = {"path": str(native_path), "sha256": sha(raw)}
+        native = read_reference(native_ref, expected_path=native_path)
+        proof = native_terminal_proof(native, native_ref)
+        if (proof["complete"] is not True or native["command"] != claim["command"]
+                or native["cwd"] != claim["cwd"]):
+            raise ValueError("Original step Native/Job/double-EOF proof is incomplete")
+        started_path = plain(report / "started.json")
+        started_raw = started_path.read_bytes()
+        started_ref = {"path": str(started_path), "sha256": sha(started_raw)}
+        started = read_reference(started_ref, expected_path=started_path)
+        if any(started.get(k) != native[k] for k in ("command", "cwd", "pid", "creationTime")):
+            raise ValueError("Original launched PID/birth differs from terminal evidence")
+        proof_id = owner + "-step-%04d-native" % ordinal
+        value = {"owner": owner, "executionId": owner, "role": "management_owned_cargo",
+                 "batchStep": ordinal, "status": "terminal", "terminalProof": proof, "completeProof": proof,
+                 "nativeEvidence": native, "pid": native["pid"], "creationTime": native["creationTime"],
+                 "birthToken": native["creationTime"], "executable": proof["identity"]["executable"],
+                 "commandDigest": proof["identity"]["commandDigest"], "requestId": request_id,
+                 "operationId": operation_id, "taskScratch": request["taskScratch"],
+                 "environmentDigest": request["environmentDigest"], "stepRequest": claim["request"],
+                 "sourceDigest": request["sealedInputRef"], "formalAcceptance": False}
+        existing = self.state.get("native_job", proof_id)
+        if existing and existing["payload"] != value:
+            raise ValueError("Original per-step Native record changed")
+        result = self.batch_step_evidence(request["recipe"], report, native, native_ref,
+                                          target=report_root.parent.parent / "pools" / checkpoint["pool"] / "target")
+        result.update(request=claim["request"], started=started_ref, nativeProofRef=proof_id,
+                      inputDigest=digest, sealedInputRef=request["sealedInputRef"],
+                      parentRequest=checkpoint["request"], environmentDigest=request["environmentDigest"],
+                      formalAcceptance=False, m8Accepted=False, performanceAccepted=False, productsAccepted=False)
+        receipt_path = report / "receipt.json"
+        if receipt_path.exists():
+            receipt_ref = {"path": str(receipt_path), "sha256": sha(receipt_path.read_bytes())}
+            if read_reference(receipt_ref, expected_path=receipt_path) != result:
+                raise ValueError("Original step receipt or log evidence changed")
+        elif persist:
+            receipt_ref = write_json(receipt_path, result)
+        else:
+            receipt_ref = None
+        if claim.get("status") == "complete":
+            if (not existing or receipt_ref != claim.get("receipt") or native_ref != claim.get("nativeTerminal")
+                    or claim.get("nativeProofRef") != proof_id):
+                raise ValueError("Completed step checkpoint lacks its actual original evidence")
+        if persist:
+            if not existing:
+                self.state.put("native_job", proof_id, value, expected_version=0)
+            launch = self.state.get("execution_launch", owner)
+            claims = launch["payload"]["stepClaims"]
+            if len(claims) < ordinal or claims[ordinal - 1] != claim:
+                raise ValueError("Original step claim changed during reconciliation")
+            complete = {**claim, "status": "complete", "receipt": receipt_ref,
+                        "nativeTerminal": native_ref, "nativeProofRef": proof_id}
+            claims = [*claims[:ordinal - 1], complete, *claims[ordinal:]]
+            if complete != claim:
+                self.state.put("execution_launch", owner, {**launch["payload"], "stepClaims": claims,
+                               "status": "between-steps"}, expected_version=launch["version"])
+            self.batch_checkpoint(stage="running", completedStepCount=ordinal)
+        return result, native, native_ref, proof_id
+
+    def batch_recovery_ready(self):
+        """Read-only admission for an explicit resume, including interrupted real steps."""
+        try:
+            self.validation_batch()
+            checkpoint = self.batch_checkpoint()
+            if checkpoint.get("stage") == "complete":
+                return bool(checkpoint.get("receipt"))
+            for claim in self.batch_claims():
+                self.batch_step_proof(claim)
+            owner = "management-" + self.key
+            execution = self.state.get("execution", owner)
+            if (self.state.get("execution_host", owner)
+                    or not self.batch_claims() and any(row["payload"].get("executionId") == owner
+                        or row["payload"].get("owner") == owner for row in self.state.list("native_job"))):
+                return False
+            if execution and not self.batch_claims() and not checkpoint.get("prepared"):
+                return (execution["payload"].get("status") == "preparing"
+                        and not self.state.get("execution_host", "management-" + self.key))
+            return True
+        except (ValueError, OSError, KeyError, TypeError):
+            return False
+
+
+    def batch_step_evidence(self, original, report, native, native_ref, *, target=None):
+        """Keep compiled, executed, ignored and failed evidence distinct."""
+        logs, texts = {}, {}
+        for name in ("stdout", "stderr"):
+            path = plain(report / (name + ".bin"))
+            raw = path.read_bytes()
+            logs[name] = {"path": str(path), "sha256": sha(raw), "bytes": len(raw)}
+            texts[name] = raw.decode("utf-8", errors="replace")
+            if path.read_bytes() != raw:
+                raise ValueError("Terminal step log changed during reconciliation")
+        cases, pending, summaries, binaries, compiled, artifacts = [], [], [], set(), {}, []
+        build_finished, fresh = False, 0
+        target = plain(target if target is not None else self.outputs() / "pools" / self.batch_checkpoint()["pool"] / "target")
+        for line in texts["stdout"].splitlines():
+            try:
+                event = json.loads(line)
+            except ValueError:
+                event = None
+            if isinstance(event, dict):
+                if event.get("reason") == "build-finished":
+                    build_finished = event.get("success") is True
+                if event.get("reason") == "compiler-artifact":
+                    fresh += int(event.get("fresh") is True)
+                    if event.get("executable"):
+                        compiled[str(plain(event["executable"]))] = event.get("target", {}).get("name")
+                    for name in event.get("filenames", []):
+                        artifact = plain(name)
+                        if not (artifact.is_relative_to(target) or artifact.is_relative_to(target.parent / "build")):
+                            raise ValueError("Batch compiler artifact escaped its shared pool")
+                        # Historical per-step evidence must survive later rebuilds
+                        # of the same Cargo artifact. Its path is an artifact fact,
+                        # not a mutable-byte input to checkpoint reconciliation.
+                        artifacts.append(str(artifact))
+                continue
+            match = re.match(r"^test (\S+) \.\.\. (.*)$", line)
+            if match:
+                name, tail = match.groups()
+                status = re.fullmatch(r"(ok|FAILED|ignored)(?:, .*)?", tail.strip())
+                if status:
+                    cases.append({"name": name, "status": status.group(1)})
+                else:
+                    pending.append(name)
+            elif line.strip() in {"ok", "FAILED", "ignored"} and len(pending) == 1:
+                cases.append({"name": pending.pop(), "status": line.strip()})
+            summary = re.search(r"test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored;", line)
+            if summary:
+                summaries.append({"status": summary.group(1), "passed": int(summary.group(2)),
+                                  "failed": int(summary.group(3)), "ignored": int(summary.group(4))})
+        for match in re.finditer(r"Running [^\r\n]*\(([^()\r\n]+)\)", texts["stderr"]):
+            executable = str(plain(match.group(1)))
+            if executable in compiled and compiled[executable]:
+                binaries.add(compiled[executable])
+        passed = [v["name"] for v in cases if v["status"] == "ok"]
+        failed = [v["name"] for v in cases if v["status"] == "FAILED"]
+        ignored = [v["name"] for v in cases if v["status"] == "ignored"]
+        required = []
+        for field, values in original.items():
+            if field.startswith("requiredNamed") and field.endswith("Tests"):
+                required += values
+        missing_names = [name for name in required if not any(name in actual for actual in passed)]
+        missing_binaries = [name for name in original.get("requiredTestBinaries", []) if name not in binaries]
+        text = texts["stdout"] + "\n" + texts["stderr"]
+        missing_markers = [marker for marker in original.get("requiredProducerMarkers", []) if marker not in text]
+        arguments = original["cargoArguments"]
+        execution_required = arguments[0] == "test" and "--no-run" not in arguments
+        floor = original.get("minimumExpectedMatchedTests", 1)
+        counted = sum(value["passed"] for value in summaries)
+        evidence_complete = (build_finished and not failed and not pending and not missing_names
+            and not missing_binaries and not missing_markers
+            and (not execution_required or bool(summaries) and len(passed) >= floor and counted == len(passed)
+                 and all(value["status"] == "ok" and value["failed"] == 0 for value in summaries)))
+        return {"status": "passed" if native["rootExitCode"] == 0 and evidence_complete else "failed",
+                "ordinal": original["ordinal"], "name": original["name"], "recipe": original,
+                "originalCargoArguments": arguments, "command": native["command"],
+                "timeoutSeconds": original["ownedNativeTimeoutSeconds"], "nativeTerminal": native_ref,
+                "rootExitCode": native["rootExitCode"], "logs": logs, "buildFinished": build_finished,
+                "executionRequired": execution_required, "compileOnly": not execution_required,
+                "passedTestCount": len(passed), "failedTestCount": len(failed), "ignoredTestCount": len(ignored),
+                "passedTests": passed, "failedTests": failed, "ignoredTests": ignored,
+                "testSummaries": summaries, "minimumExpectedMatchedTests": floor if execution_required else None,
+                "unsettledTestNames": pending, "executedTestBinaries": sorted(binaries),
+                "missingNamedTests": missing_names, "missingTestBinaries": missing_binaries,
+                "missingProducerMarkers": missing_markers, "testEvidenceComplete": evidence_complete,
+                "artifactPaths": sorted(set(artifacts)), "cargoFreshArtifactCount": fresh}
+
+    def claim_batch_step(self, ordinal, command, root, request_ref):
+        owner = "management-" + self.key
+        with self.state.transaction() as connection:
+            execution = self.state.get("execution", owner, connection=connection)
+            intent = self.state.get("management_prelaunch", owner, connection=connection)
+            launch = self.state.get("execution_launch", owner, connection=connection)
+            previous = self.batch_claims()
+            reservation = self.state.get("resource_reservation", intent["payload"]["reservationKey"],
+                                         connection=connection) if intent else None
+            hold = self.state.get("pool_writer_hold", intent["payload"]["preparationKey"],
+                                  connection=connection) if intent else None
+            if (not execution or not intent or not reservation or not hold
+                    or execution["payload"].get("reservationKey") != intent["payload"]["reservationKey"]
+                    or reservation["payload"].get("status") != "active"
+                    or hold["payload"].get("status") != "active" or hold["payload"].get("owner") != owner
+                    or hold["payload"].get("reservationKey") != reservation["key"]
+                    or self.state.get("execution_host", owner, connection=connection)
+                    or ordinal != len(previous) + 1 or any(v.get("status") != "complete" for v in previous)
+                    or not launch and intent["payload"].get("status") != "unlaunched"):
+                raise ValueError("Batch step lacks its exact continuously protected parent admission")
+            claim = {"ordinal": ordinal, "status": "claimed", "command": command, "cwd": str(root),
+                     "request": request_ref}
+            value = {**intent["payload"], "batch": True, "inputDigest": self.input_digest,
+                     "status": "claimed", "ownedNativeLaunchClaimed": True,
+                     "currentStep": ordinal, "stepClaims": [*previous, claim],
+                     "command": command, "cwd": str(root), "request": request_ref}
+            self.state.put("execution_launch", owner, value,
+                           expected_version=launch["version"] if launch else 0, connection=connection)
+            if not launch:
+                self.state.put("management_prelaunch", owner, {**intent["payload"], "status": "claimed",
+                               "ownedNativeLaunchClaimed": True, "batch": True},
+                               expected_version=intent["version"], connection=connection)
+            self.state.put("execution", owner, {**execution["payload"], "status": "running",
+                           "launchClaimed": True, "batch": True, "command": command,
+                           "currentStep": ordinal}, expected_version=execution["version"], connection=connection)
+        return claim
+
+    def batch_failure_release(self, error):
+        admission = getattr(self, "_validation_admission", None)
+        if not admission:
+            return None
+        resources, owner, writer, reservation = admission
+        claims = self.batch_claims()
+        if not claims:
+            return self.validation_failure_release(error, single_only=True)
+        try:
+            proofs = [self.batch_step_proof(claim, persist=True) for claim in claims]
+        except (ValueError, OSError, KeyError, TypeError):
+            return None
+        proof_id = proofs[-1][3]
+        released = resources.release(reservation, writer_key=writer, native_proof_ref=proof_id)
+        launch, execution = self.state.get("execution_launch", owner), self.state.get("execution", owner)
+        self.state.put("execution_launch", owner, {**launch["payload"], "status": "terminal",
+                       "nativeProofRef": proof_id, "batchAborted": True}, expected_version=launch["version"])
+        self.state.put("execution", owner, {**execution["payload"], "status": "failed",
+                       "nativeProofRef": proof_id, "batchAborted": True}, expected_version=execution["version"])
+        return {"kind": "actual-batch-step-terminals", "nativeProofRefs": [value[3] for value in proofs],
+                "reservationKey": reservation, "released": released}
+
+
+    def validate_batch(self):
+        from tools.jenkins.resources.capacity import Capacity, ResourceManager
+        from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
+        from tools.jenkins.workflow.planning import _environment_policy
+        from tools.jenkins.contracts import JenkinsError
+        batch = self.validation_batch()
+        recipes, coverage = batch["recipes"], batch["coverage"]
+        reuse = batch["reuseValidation"]
+        observe = self.validation_sealed_observation if reuse is not None else self.validation_observation
+        checkpoint = self.batch_checkpoint()
+        owner = "management-" + self.key
+        build_root = self.build_root()
+        approved = canonical_build_root(build_root)
+        output, report = self.outputs(), self.outputs() / "reports" / self.key
+        root = plain(self.repo) if self.payload["sourceView"] == "checkout" else self.wt(self.payload["worktreeId"])[1]
+        policy = self.state.get("resource_policy", "default")["payload"]
+        resources = ResourceManager(self.state, Capacity(policy["cpuBudget"], policy["memoryBudget"], policy["diskBudget"]))
+        parallelism = max(max(recipe["jobs"], recipe["testThreads"] if recipe["verb"] == "test"
+                             and not recipe["noRun"] else 1) for recipe in recipes)
+        amount = Capacity(parallelism, 2 * parallelism * 1024**3, 4 * 1024**3)
+        environment, trusted, _policy_file = _environment_policy(self.state, self.repo)
+        preparation = source_helper()
+        cache_fact = self.dependency_cache()
+        pool, cargo_configuration = self.batch_pool(recipes, preparation, trusted, environment, root, cache_fact)
+        writer, reservation_key = "management-pool-" + pool, owner + ":" + owner
+        target = physical_path_under(approved, output / "pools" / pool / "target")
+        execution_root = physical_path_under(approved, target.parent / "inputs/source")
+        binding = {"pool": pool, "writer": writer, "reservationKey": reservation_key,
+                   "sourceRoot": str(root), "buildRoot": build_root, "executionRoot": str(execution_root),
+                   "report": str(report), "coverageDigest": sha(encoded(coverage))}
+        if checkpoint.get("pool") and any(checkpoint.get(k) != v for k, v in binding.items()):
+            raise ValueError("Original shared batch preparation/configuration/volume changed")
+        self.batch_checkpoint(**binding)
+        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        spec = importlib.util.spec_from_file_location("jenkins_managed_batch_cargo", helper_path)
+        helper = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(helper)
+        for tool in ("cargo", "rustc"):
+            if sha(plain(trusted[tool + "Path"]).read_bytes()) != trusted[tool + "Sha256"]:
+                raise ValueError("Trusted compiler executable changed")
+        intent = self.state.get("management_prelaunch", owner)
+        if intent:
+            original_intent = intent["payload"]
+            if any(original_intent.get(k) != v for k, v in {
+                    "operationKey": self.key, "requestId": self.request, "operationId": self.operation,
+                    "sessionId": self.session, "preparationKey": writer, "reservationKey": reservation_key,
+                    "sourceRoot": str(root), "report": str(report)}.items()):
+                raise ValueError("Original batch admission intent changed")
+            self._validation_admission = (resources, owner, writer, reservation_key)
+        else:
+            self.begin_validation_intent(resources, owner, writer, root, report)
+        admitted = self.state.get("resource_reservation", reservation_key)
+        if checkpoint.get("stage") == "complete":
+            result = read_reference(checkpoint["receipt"], expected_path=report / "receipt.json")
+            proofs = [self.batch_step_proof(claim) for claim in self.batch_claims()]
+            if admitted and admitted["payload"].get("status") == "active":
+                resources.release(reservation_key, writer_key=writer, native_proof_ref=proofs[-1][3])
+            return result
+        if not admitted or admitted["payload"].get("status") != "active":
+            if self.batch_claims() or self.state.get("execution", owner):
+                raise ValueError("Existing batch must reconcile its original protected reservation")
+            resources.queue(owner, request_id=owner, amount=amount, build_root=build_root,
+                            heavy_writer=True, writer_key=writer)
+            # A resource wait performs no complete source capture or CAS walk,
+            # and the existing Groovy loop sleeps outside its node allocation.
+            if helper.free_bytes(approved.path) < policy.get("diskReserveBytes", 35 * 1024**3) + amount.disk_bytes:
+                return {"status": "waiting", "reasonCode": "resource_capacity", "buildRoot": build_root,
+                        "formalAcceptance": False, "m8Accepted": False}
+            _inventory, generation = resources.scan_inventory(build_root)
+            try:
+                admitted = resources.admit(owner, amount, inventory_generation=generation, writer_key=writer,
+                    request_id=owner, build_root=build_root, heavy_writer=True)
+            except JenkinsError as error:
+                if error.retryable or error.code in {"pool_writer_active", "pool_cache_maintenance_active"}:
+                    return {"status": "waiting", "reasonCode": error.code, "buildRoot": build_root,
+                            "formalAcceptance": False, "m8Accepted": False}
+                raise
+            if admitted is None:
+                return {"status": "waiting", "reasonCode": "resource_capacity", "buildRoot": build_root,
+                        "formalAcceptance": False, "m8Accepted": False}
+        hold = self.state.get("pool_writer_hold", writer)
+        if (admitted["payload"].get("owner") != owner or admitted["payload"].get("buildRoot") != build_root
+                or not hold or hold["payload"].get("owner") != owner or hold["payload"].get("status") != "active"
+                or hold["payload"].get("reservationKey") != admitted["key"]):
+            raise ValueError("Shared batch lost its exact physical reservation/writer")
+        captured = self.state.get("management_source", self.key)
+        if reuse is not None:
+            before, provenance = self.batch_reused_input(reuse, root)
+            if (captured and captured["payload"] != before
+                    or checkpoint.get("sourceProvenance") not in (None, provenance)):
+                raise ValueError("Original explicitly reused input or its donor provenance changed")
+            if not captured:
+                self.state.put("management_source", self.key, before, expected_version=0)
+            self.batch_checkpoint(sourceProvenance=provenance)
+        elif captured:
+            before = captured["payload"]
+            if (before["sourceRoot"] != str(root)
+                    or sha(encoded({k: v for k, v in before.items() if k != "sourceDigest"})) != before["sourceDigest"]):
+                raise ValueError("Original complete batch source capture changed")
+            self.verify_declared_inputs(before, self.payload)
+        else:
+            root, before = self.validation_with_cache()
+            self.state.put("management_source", self.key, before, expected_version=0)
+        captured_configuration = {path: value for path, value in before["source"]["files"].items()
+                                  if path.casefold() in {".cargo/config", ".cargo/config.toml"} and value is not None}
+        if before["dependencyCache"] != cache_fact or captured_configuration != cargo_configuration:
+            raise ValueError("Captured Cargo/cache configuration differs from its shared pool")
+        self.batch_checkpoint(capturedSourceDigest=before["sourceDigest"])
+        cache, scratch = plain(before["dependencyCache"]["home"]), plain(report / "tmp")
+        environment.setdefault("SYSTEMROOT", os.environ.get("SYSTEMROOT", r"C:\Windows"))
+        environment.update({"CARGO_TARGET_DIR": str(target), "CARGO_BUILD_BUILD_DIR": str(target.parent / "build"),
+            "CARGO_HOME": str(cache), "TEMP": str(scratch), "TMP": str(scratch), "TMPDIR": str(scratch),
+            "RUSTC": trusted["rustcPath"], "RUSTC_WRAPPER": "", "RUSTC_WORKSPACE_WRAPPER": "",
+            "PYTHONDONTWRITEBYTECODE": "1", "CARGO_ENCODED_RUSTFLAGS": "", "RUSTFLAGS": "", "RUSTDOCFLAGS": ""})
+        commands, environments = [], []
+        for ordinal, recipe in enumerate(recipes):
+            raw = list(self.payload["batch"]["recipes"][ordinal]["cargoArguments"])
+            separator = raw.index("--") if "--" in raw else len(raw)
+            controls = ["--message-format=json"]
+            if not any(v == "--jobs" or v.startswith("--jobs=") or v.startswith("-j") for v in raw[:separator]):
+                controls += ["--jobs", str(recipe["jobs"])]
+            command = helper.prepare_command([*raw[:separator], *controls, *raw[separator:]], target,
+                                              locked=recipe["locked"])
+            command[0] = trusted["cargoPath"]
+            commands.append(command)
+            environments.append({**environment, "CARGO_NET_OFFLINE": "true" if recipe["offline"] else "false",
+                                 **batch["stepEnvironments"][ordinal]})
+        environment_digests = [sha(encoded(value)) for value in environments]
+        execution_identity = sha(encoded({"sourceDigest": before["sourceDigest"], "commands": commands,
+            "cwd": str(execution_root), "environmentDigests": environment_digests, "coverage": coverage,
+            "driverDigest": self.config["driverDigest"], "runtimeOperationId": self.config["runtimeOperationId"]}))
+        outputs = {"build": target.parent, "cache": cache, "reports": report, "tmp": scratch,
+                   "source": execution_root, "sourceObjects": approved.namespace() / "inputs"}
+        self.artifact_manifest(root, outputs)
+        for path in (target, target.parent / "build", cache):
+            path.mkdir(parents=True, exist_ok=True)
+        scratch_record = self.state.get("management_task_scratch", self.key)
+        if scratch_record:
+            scratch_path = report / "tmp-generation.json"
+            task_scratch = {"path": str(scratch_path), "sha256": sha(scratch_path.read_bytes())}
+            if (read_reference(task_scratch, expected_path=scratch_path) != scratch_record["payload"]
+                    or scratch_record["payload"].get("environmentDigest") != environment_digests[0]
+                    or scratch_record["payload"].get("status") != "owned"):
+                raise ValueError("Original shared TEMP generation requires reconciliation")
+        else:
+            task_scratch = self.task_tmp(environment=environments[0])
+        self.artifact_manifest(root, outputs, task_scratch=task_scratch)
+        checkpoint = self.batch_checkpoint()
+        sealed_path = report / "sealed-input.json"
+        if sealed_path.exists():
+            sealed_ref = {"path": str(sealed_path), "sha256": sha(sealed_path.read_bytes())}
+            sealed = read_reference(sealed_ref, expected_path=sealed_path, max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+        else:
+            sealed = preparation.seal_source(self.state, source_root=root, snapshot=before,
+                repository_root=self.repo, repository_id=self.repo_id, session_id=self.session,
+                owner=owner, approved=approved, coverage=coverage)
+            sealed_ref = write_json(sealed_path, sealed)
+        if (checkpoint.get("sealed") not in (None, sealed_ref) or sealed.get("capturedInputVerified") is not True
+                or sealed["capturedSourceDigest"] != before["sourceDigest"]
+                or sealed["coverageDigest"] != sha(encoded(coverage))
+                or sealed["sealedInputRef"] != sha(encoded(sealed["sourceManifest"]))):
+            raise ValueError("Original aggregate shared seal identity changed")
+        self.batch_checkpoint(sealed=sealed_ref)
+        prepared_path = report / "preparation.json"
+        if prepared_path.exists():
+            prepared_ref = {"path": str(prepared_path), "sha256": sha(prepared_path.read_bytes())}
+            prepared = read_reference(prepared_ref, expected_path=prepared_path)
+        else:
+            current_execution = self.state.get("execution", owner)
+            materialization_state = (ReconciledBatchPreparation(self.state, owner) if current_execution else self.state)
+            prepared = preparation.materialize_source(materialization_state, approved=approved, owner=owner,
+                preparation_key_value=writer, source_path=execution_root, reservation_key=admitted["key"],
+                sealed=sealed, identity={"repositoryId": self.repo_id, "sessionId": self.session,
+                    "requestId": self.request, "operationId": self.operation, "driverDigest": self.config["driverDigest"],
+                    "runtimeOperationId": self.config["runtimeOperationId"]},
+                command=commands[0], environment_digest=environment_digests[0])
+            prepared_ref = write_json(prepared_path, prepared)
+        if (checkpoint.get("prepared") not in (None, prepared_ref)
+                or prepared["sealedInputRef"] != sealed["sealedInputRef"]
+                or prepared["sourceDigest"] != sealed["sealedInputRef"]
+                or prepared["capturedSourceDigest"] != before["sourceDigest"]
+                or prepared["physicalPath"] != str(execution_root)):
+            raise ValueError("Original materialized shared input identity changed")
+        self.batch_checkpoint(prepared=prepared_ref)
+        checkpoint = self.batch_checkpoint()
+        if checkpoint.get("finalObservation"):
+            final_observation = read_reference(checkpoint["finalObservation"], expected_path=report / "input-final.json",
+                                               max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+            request_ref = checkpoint["request"]
+            request_document = read_reference(request_ref, expected_path=report / "request.json",
+                                              max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+            prepared_before = request_document["preparedSource"]
+            preparation_observation = request_document["inputObservation"]
+        else:
+            prepared_before = preparation.verify_source(sealed["sourceManifest"], execution_root, approved)
+            if prepared_before["sourceDigest"] != sealed["sealedInputRef"]:
+                raise ValueError("Complete execution input differs from its shared seal")
+            observed_root, _observed, preparation_observation = observe(before)
+            if (observed_root != root or preparation_observation["originalEngineUnchanged"] is not True
+                    or preparation_observation["dependencyCacheUnchanged"] is not True):
+                raise ValueError("Original engine/cache changed before shared batch execution")
+            parent_request = {"payload": self.payload, "inputDigest": self.input_digest, "source": before,
+                "sourceRoot": str(root), "executionRoot": str(execution_root), "command": commands[0],
+                "commands": commands, "target": str(target), "resource": amount.__dict__, "coverage": coverage,
+                "preparation": prepared, "sourceSealing": sealed["metrics"], "preparedSource": prepared_before,
+                "validationInputPolicy": "sealed-source", "capturedInputVerified": True,
+                "inputObservation": preparation_observation, "executionIdentity": execution_identity,
+                "taskScratch": task_scratch, "environmentDigest": environment_digests[0],
+                "stepEnvironmentDigests": environment_digests,
+                "temporaryEnvironment": {k: environment[k] for k in ("TEMP", "TMP", "TMPDIR")}}
+            if reuse is not None:
+                parent_request["sourceProvenance"] = provenance
+            if checkpoint.get("request"):
+                request_ref = checkpoint["request"]
+                original_request = read_reference(request_ref, expected_path=report / "request.json",
+                                              max_bytes=SOURCE_EVIDENCE_MAX_BYTES)
+                # A resume rechecks current engine/cache and prepared bytes, but
+                # preserves the original (possibly changed foreign) observation.
+                for key in ("payload", "inputDigest", "commands", "preparation", "preparedSource",
+                            "executionIdentity", "stepEnvironmentDigests", "taskScratch", "coverage"):
+                    if original_request[key] != parent_request[key]:
+                        raise ValueError("Original complete batch request changed during resume")
+                if original_request.get("sourceProvenance") != parent_request.get("sourceProvenance"):
+                    raise ValueError("Original sealed donor provenance changed during resume")
+                preparation_observation = original_request["inputObservation"]
+            else:
+                request_ref = write_json(report / "request.json", parent_request)
+            self.batch_checkpoint(request=request_ref, stage="prepared")
+        completed = []
+        for ordinal, original in enumerate(self.payload["batch"]["recipes"], 1):
+            claims = self.batch_claims()
+            if len(claims) >= ordinal:
+                result, _native, _native_ref, _proof_id = self.batch_step_proof(claims[ordinal - 1], persist=True)
+            else:
+                if checkpoint.get("finalObservation"):
+                    raise ValueError("Final input proof cannot precede an unexecuted original recipe")
+                step_report = report / "steps" / ("%04d" % ordinal)
+                step_request = {"parentRequest": request_ref, "inputDigest": self.input_digest,
+                    "ordinal": ordinal, "recipe": original, "command": commands[ordinal - 1], "cwd": str(execution_root),
+                    "timeoutSeconds": original["ownedNativeTimeoutSeconds"], "taskScratch": task_scratch,
+                    "sealedInputRef": sealed["sealedInputRef"], "environmentDigest": environment_digests[ordinal - 1],
+                    "temporaryEnvironment": {k: environment[k] for k in ("TEMP", "TMP", "TMPDIR")}}
+                step_ref = write_json(step_report / "request.json", step_request)
+                claim = self.claim_batch_step(ordinal, commands[ordinal - 1], execution_root, step_ref)
+                native = helper._run_owned_command(commands[ordinal - 1], execution_root,
+                    environments[ordinal - 1], step_report, original["ownedNativeTimeoutSeconds"])
+                write_json(step_report / "native-terminal.json", native)
+                result, _native, _native_ref, _proof_id = self.batch_step_proof(claim, persist=True)
+            completed.append(result)
+        # Full source and prepared-byte checks occur once before and once after
+        # the complete contiguous sequence, never once for every recipe.
+        if not checkpoint.get("finalObservation"):
+            input_error, prepared_error = None, None
+            try:
+                observed_root, after, completion_observation = observe(before)
+                if observed_root != root:
+                    raise ValueError("Shared batch source root changed")
+            except Exception as error:
+                after, input_error = None, str(error)
+                completion_observation = {"originalEngineUnchanged": False, "dependencyCacheUnchanged": False,
+                                          "inputsUnchanged": False, "captureError": str(error)}
+            try:
+                prepared_after = preparation.verify_source(sealed["sourceManifest"], execution_root, approved)
+            except Exception as error:
+                prepared_after, prepared_error = None, str(error)
+            final_observation = {"after": after, "observation": completion_observation,
+                                 "prepared": prepared_after, "inputError": input_error,
+                                 "preparedError": prepared_error}
+            final_ref = write_json(report / "input-final.json", final_observation)
+            self.batch_checkpoint(finalObservation=final_ref, stage="closed", allRecipesExecuted=True)
+        proof = {"validationInputPolicy": "sealed-source", "capturedInputVerified": True,
+            "originalEngineUnchanged": preparation_observation["originalEngineUnchanged"] is True
+                                      and final_observation["observation"]["originalEngineUnchanged"] is True,
+            "dependencyCacheUnchanged": preparation_observation["dependencyCacheUnchanged"] is True
+                                       and final_observation["observation"]["dependencyCacheUnchanged"] is True,
+            "inputsUnchanged": before == final_observation["after"],
+            "preparedInputsUnchanged": prepared_before == final_observation["prepared"]}
+        last = self.batch_step_proof(self.batch_claims()[-1])
+        task_cache = self.task_tmp(native=last[1], native_ref=last[2], proof_id=last[3])
+        status = "passed" if all(step["status"] == "passed" for step in completed) and validation_inputs_verified(proof) else "failed"
+        result = {"status": status, "batch": True, "request": request_ref, "steps": completed,
+            "recipeCount": len(recipes), "completedRecipeCount": len(completed), "coverage": coverage,
+            "nativeProofRefs": [value["nativeProofRef"] for value in completed], "nativeTerminal": last[2],
+            "sourceDigest": before["sourceDigest"], "sourceRoot": str(root), "executionRoot": str(execution_root),
+            "preparation": prepared, "sourceSealing": sealed["metrics"], "executionIdentity": execution_identity,
+            "inputObservations": {"afterPreparation": preparation_observation,
+                                  "afterExecution": final_observation["observation"]}, **proof,
+            "inputError": final_observation["inputError"], "preparedInputError": final_observation["preparedError"],
+            "target": str(target), "requestedTargetDir": self.payload.get("requestedTargetDir"),
+            "actualTargetDir": str(target), "targetPolicy": "managed-compatibility-pool",
+            "taskScratch": task_scratch, "postTaskCache": task_cache, "formalAcceptance": False,
+            "m8Accepted": False, "performanceAccepted": False, "productsAccepted": False}
+        result["artifactManifest"] = self.artifact_manifest(root, outputs, native=last[1],
+            task_scratch=task_scratch, task_cache=task_cache)
+        receipt_ref = write_json(report / "receipt.json", result)
+        execution, launch = self.state.get("execution", owner), self.state.get("execution_launch", owner)
+        self.state.put("execution", owner, {**execution["payload"], "status": status, **proof,
+            "batch": True, "nativeProofRef": last[3], "nativeTerminal": last[2],
+            "batchReceipt": receipt_ref, "executionIdentity": execution_identity}, expected_version=execution["version"])
+        self.state.put("execution_launch", owner, {**launch["payload"], "status": "terminal",
+            "nativeProofRef": last[3], "allRecipesExecuted": True}, expected_version=launch["version"])
+        self.batch_checkpoint(stage="complete", receipt=receipt_ref, allRecipesExecuted=True)
+        resources.release(admitted["key"], writer_key=writer, native_proof_ref=last[3])
+        return result
+
+
     def validation_recipe(self):
         allowed = {"action", "repositoryId", "sessionId", "requestId", "operationId", "driverDigest",
                    "runtimeOperationId", "ownedPaths", "observationOnly", "sourceView", "worktreeId",
@@ -1307,7 +2631,8 @@ class Management:
                    "verb", "offline", "noDefaultFeatures", "lib", "tests", "testFilter", "noRun",
                    "allFeatures", "locked", "jobs", "testThreads", "requestedTargetDir",
                    "expectedSourceDigest", "expectedEngineSourceDigest", "externalCapturePolicy",
-                   "sourceHashes", "dependencyHashes"}
+                   "sourceHashes", "dependencyHashes", "bins", "allTests", "harnessFilters",
+                   "exact", "ignored", "nocapture"}
         if set(self.payload) - allowed:
             raise ValueError("Unsupported Cargo fields: " + ", ".join(sorted(set(self.payload) - allowed)))
         if {"externalCapturePolicy", "expectedEngineSourceDigest"} & set(self.payload):
@@ -1340,7 +2665,23 @@ class Management:
                 or verb != "test" and (options["noRun"] or test_filter is not None or "testThreads" in self.payload)
                 or options["noRun"] and test_filter is not None):
             raise ValueError("Unsupported Cargo jobs/test execution controls")
+        extra = {name: self.payload[name] for name in ("bins", "allTests", "exact", "ignored", "nocapture")
+                 if name in self.payload}
+        filters = self.payload.get("harnessFilters", [])
+        if (any(type(value) is not bool for value in extra.values())
+                or not isinstance(filters, list) or len(filters) > 512
+                or any(not isinstance(value, str) or not value or value.startswith("-")
+                       or len(value.encode("utf-8")) > 256 or any(c in value for c in "\0\r\n")
+                       for value in filters)
+                or verb != "test" and (filters or any(extra.get(k) for k in ("exact", "ignored", "nocapture")))
+                or options["noRun"] and (filters or any(extra.get(k) for k in ("exact", "ignored", "nocapture")))):
+            raise ValueError("Unsupported Cargo targets or harness selectors")
+        if "harnessFilters" in self.payload:
+            extra["harnessFilters"] = filters
         command = [verb, "--jobs", str(jobs), "--message-format=json"]
+        for name, flag in (("bins", "--bins"), ("allTests", "--tests")):
+            if extra.get(name):
+                command.append(flag)
         for name, flag in (("locked", "--locked"), ("offline", "--offline"),
                            ("noDefaultFeatures", "--no-default-features"), ("lib", "--lib"),
                            ("allFeatures", "--all-features"), ("noRun", "--no-run")):
@@ -1358,9 +2699,13 @@ class Management:
             if test_filter is not None:
                 command.append(test_filter)
             command += ["--", "--test-threads", str(threads)]
+            for name, flag in (("exact", "--exact"), ("ignored", "--ignored"), ("nocapture", "--nocapture")):
+                if extra.get(name):
+                    command.append(flag)
+            command += filters
         return {"verb": verb, "profile": profile, "packages": packages, "features": features,
                 "tests": tests, "testFilter": test_filter, "jobs": jobs, "testThreads": threads,
-                **options, "command": command}
+                **options, **extra, "command": command}
 
     def verify_declared_engine(self, engine, payload):
         expected = payload.get("expectedEngineSourceDigest")
@@ -1439,7 +2784,9 @@ class Management:
             self.state.put("execution", owner, {**execution["payload"], "status": "running",
                            "launchClaimed": True}, expected_version=execution["version"], connection=connection)
 
-    def validation_failure_release(self, error):
+    def validation_failure_release(self, error, *, single_only=False):
+        if "batch" in self.payload and not single_only:
+            return self.batch_failure_release(error)
         admission = getattr(self, "_validation_admission", None)
         if not admission:
             return None
@@ -1494,8 +2841,14 @@ class Management:
 
     def validate(self):
         try:
-            return self.validate_prepared()
+            return self.validate_batch() if "batch" in self.payload else self.validate_prepared()
         except Exception as error:
+            if ("batch" in self.payload and not self.batch_claims()
+                    and (getattr(error, "errno", None) == 28 or getattr(error, "winerror", None) in {39, 112}
+                         or getattr(error, "code", None) in {"source_storage_budget", "source_quota_exceeded"})):
+                return {"status": "waiting", "reasonCode": "source_storage_budget", "message": str(error),
+                        "buildRoot": self.build_root(), "originalReservationRetained": True,
+                        "formalAcceptance": False, "m8Accepted": False}
             evidence = self.validation_failure_release(error)
             if evidence is None:
                 raise
@@ -1530,6 +2883,23 @@ class Management:
             value["cleanup"] = {"receipt": task_cache.get("receipt"), "status": task_cache["status"],
                                 "deleted_files": task_cache["removedFileCount"],
                                 "deleted_bytes": task_cache["reclaimedBytes"]}
+        if "batch" in self.payload:
+            claims = self.batch_claims()
+            value["batch"] = {"contractRef": self.payload["batch"]["contractRef"],
+                              "expectedRecipeCount": len(self.payload["batch"]["recipes"]),
+                              "steps": claims, "sharedWriter": self.batch_checkpoint().get("writer")}
+            value["processes"] = []
+            for claim in claims:
+                proof = self.state.get("native_job", claim.get("nativeProofRef", ""))
+                if proof:
+                    actual = proof["payload"]
+                    value["processes"].append({"pid": actual["pid"], "creationTime": actual["creationTime"],
+                        "command": actual["nativeEvidence"]["command"], "ordinal": claim["ordinal"],
+                        "nativeProofRef": claim["nativeProofRef"],
+                        "native_terminal": actual.get("completeProof", {}).get("complete") is True})
+                else:
+                    value["processes"].append({"ordinal": claim["ordinal"], "command": claim["command"],
+                                               "native_terminal": False, "status": "unproven"})
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(encoded(value) + b"\n")
         return {"path": str(path), "sha256": sha(path.read_bytes())}
@@ -1573,7 +2943,29 @@ class Management:
             scratch_ref = {"path": str(path.parent / "tmp-generation.json"), "sha256": sha(scratch_bytes)}
             if json.loads(scratch_bytes) != record:
                 raise ValueError("Prelaunch TEMP manifest changed")
-            if plain(native_ref["path"]) != path.parent / "native-terminal.json":
+            expected_native_path = path.parent / "native-terminal.json"
+            expected_proof_id = "management-" + self.key + "-native"
+            expected_environment_digest = record["environmentDigest"]
+            if "batch" in self.payload:
+                checkpoint = self.batch_checkpoint()
+                claims = self.batch_claims()
+                if (checkpoint.get("allRecipesExecuted") is not True
+                        or checkpoint.get("stage") not in {"closed", "complete"}
+                        or len(claims) != len(self.payload["batch"]["recipes"])
+                        or any(value.get("status") != "complete" for value in claims)):
+                    raise ValueError("Shared TEMP remains protected until every batch phase has real terminal evidence")
+                phases = [self.batch_step_proof(value) for value in claims]
+                last = phases[-1]
+                if (last[1] != native or last[2] != native_ref or last[3] != proof_id):
+                    raise ValueError("Shared TEMP release differs from the actual last completed step")
+                expected_native_path, expected_proof_id = plain(last[2]["path"]), last[3]
+                step_request = read_reference(claims[-1]["request"])
+                if (step_request["taskScratch"] != scratch_ref
+                        or any(step_request["temporaryEnvironment"].get(k) != str(path)
+                               for k in ("TEMP", "TMP", "TMPDIR"))):
+                    raise ValueError("Batch step TEMP differs from the exclusive shared generation")
+                expected_environment_digest = step_request["environmentDigest"]
+            if plain(native_ref["path"]) != expected_native_path:
                 raise ValueError("Native evidence is outside the original task report")
             evidence = plain(native_ref["path"]).read_bytes()
             proof = self.state.get("native_job", proof_id)["payload"]
@@ -1581,14 +2973,14 @@ class Management:
                 raise ValueError("Original native evidence bytes changed")
             expected_proof = native_terminal_proof(json.loads(evidence), native_ref)
             tree = native["processTree"]
-            if (proof_id != "management-" + self.key + "-native" or proof["nativeEvidence"] != native
+            if (proof_id != expected_proof_id or proof["nativeEvidence"] != native
                     or proof.get("owner") != "management-" + self.key or proof.get("role") != "management_owned_cargo"
                     or proof.get("requestId") != self.request or proof.get("operationId") != self.operation
                     or proof.get("pid") != native["pid"] or proof.get("creationTime") != native["creationTime"]
                     or proof.get("birthToken") != native["creationTime"]
                     or proof.get("executable") != expected_proof["identity"]["executable"]
                     or proof.get("commandDigest") != expected_proof["identity"]["commandDigest"]
-                    or proof.get("taskScratch") != scratch_ref or proof.get("environmentDigest") != record["environmentDigest"]
+                    or proof.get("taskScratch") != scratch_ref or proof.get("environmentDigest") != expected_environment_digest
                     or proof.get("status") != "terminal" or expected_proof["complete"] is not True
                     or proof.get("completeProof") != expected_proof or proof.get("terminalProof") != expected_proof
                     or not all(tree.get(k) is True for k in ("terminal", "pipeEOF", "nativeWaiterJoined"))
@@ -1651,6 +3043,21 @@ class Management:
         before = {**value, "sourceDigest": sha(encoded(value))}
         self.verify_declared_inputs(before, self.payload if payload is None else payload)
         return root, before
+
+    def validation_sealed_observation(self, before, *, payload=None):
+        """Recheck owned engine/cache without observing mutable foreign sources."""
+        payload = self.payload if payload is None else payload
+        root = self.validation_root(payload=payload)
+        engine, cache = self.source(root, payload=payload), self.dependency_cache(payload=payload)
+        observation = {"complete": False, "observationPolicy": "sealed-engine-cache",
+            "engineAndCacheObserved": True, "sourceDigest": None, "inputsUnchanged": False,
+            "originalEngineUnchanged": (str(root) == before["sourceRoot"]
+                and payload.get("sourceView", "worktree") == before["sourceView"] and engine == before["source"]),
+            "dependencyCacheUnchanged": cache == before["dependencyCache"],
+            "engineSourceDigest": engine["sourceDigest"], "dependencyCacheDigest": sha(encoded(cache)),
+            "externalInputsObserved": False, "externalInputsUnchanged": None,
+            "externalInputErrors": [], "inputChanges": None, "sourceComponents": None}
+        return root, None, observation
 
     def validation_observation(self, before, *, payload=None):
         """Observe live inputs without making the foreign checkout an execution dependency."""
@@ -1903,6 +3310,10 @@ class Management:
             return self.apply_patch()
         if self.action == "release-worktree":
             return self.release_worktree()
+        if self.action == "recover-worktree":
+            return self.recover_worktree()
+        if self.action == "prepare-flow":
+            return self.prepare_flow()
         if self.action == "commit-worktree":
             return self.commit_worktree()
         if self.action == "generate":
@@ -1938,10 +3349,11 @@ class Management:
                 previous = self.existing_result(row)
                 if row["payload"]["phase"] == "complete":
                     return previous
-                if row["payload"]["phase"] != "waiting":
+                if (row["payload"]["phase"] != "waiting"
+                        and not ("batch" in self.payload and self.batch_recovery_ready())):
                     return {"status": "unknown", "reasonCode": "original_operation_requires_reconciliation",
                             "operation": row["payload"], "formalAcceptance": False}
-            record = {"requestId": self.request, "operationId": self.operation,
+            record = {**(row["payload"] if row else {}), "requestId": self.request, "operationId": self.operation,
                       "sessionId": self.session, "action": self.action, "inputDigest": self.input_digest,
                       "phase": "running", "startedAt": time.time(), "payload": self.payload}
             self.state.put("management_operation", self.key, record, expected_version=row["version"] if row else 0)
@@ -1963,7 +3375,7 @@ class Management:
                       "operationId": self.operation, "sessionId": self.session,
                       "driverDigest": self.config["driverDigest"], "runtimeOperationId": self.config["runtimeOperationId"]}
             current = self.state.get("management_operation", self.key)
-            finished = {**record, "phase": "waiting" if result["status"] == "waiting" else
+            finished = {**record, **current["payload"], "phase": "waiting" if result["status"] == "waiting" else
                         "unknown" if result["status"] == "unknown" else "complete", "result": result,
                         "formalAcceptance": False, "finishedAt": time.time()}
             self.state.put("management_operation", self.key, finished, expected_version=current["version"])

@@ -16,7 +16,9 @@ mod startup_worklist;
 mod store_parts;
 #[path = "../../cluster_cull/traversal.rs"]
 mod traversal;
-// BUG: [CR-VIRTUAL-GEOMETRY-0009] 此模块未挂载 ../../tests/cluster_cull_mod.rs，导致其中 child_decision、hierarchy、startup、traversal 测试不会编译或运行；证据为当前模块声明与 ../../tests/cluster_cull_mod.rs 的子模块声明。
+#[cfg(test)]
+#[path = "../../tests/cluster_cull_mod.rs"]
+mod tests;
 
 pub(in crate::virtual_geometry::renderer) use output::VirtualGeometryNodeAndClusterCullPassOutput;
 pub(in crate::virtual_geometry::renderer) use store_parts::VirtualGeometryNodeAndClusterCullPassStoreParts;

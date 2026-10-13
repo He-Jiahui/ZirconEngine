@@ -4,7 +4,7 @@ status: open
 created_at: 2026-08-24
 summary_slug: rhi-wgpu-diagnostics-current-source-compile-blocker
 origin_plan: docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md
-fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
 origin_child_dir: docs/plans/zircon_runtime/frameworks/01
 fixing_child_dir: docs/plans/optimize/zircon_runtime/90
 plan_link_mode: child_record_only
@@ -28,7 +28,7 @@ Canonical fixing-plan artifact; Frameworks01 remains the originating product-bui
 
 - 来源计划：`docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md`
 - 来源执行切片：M1 `zr_math` physical hard cut product build
-- 修复责任计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md`
+- 修复责任计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md`
 - 交接原因：Frameworks01 的新 math/Interface 层已经通过 focused gates，并在 Runtime build 中
   编译完成；产品编译随后停止在 4 个不属于 Frameworks01 的 WGPU diagnostics/resource
   validation blobs。

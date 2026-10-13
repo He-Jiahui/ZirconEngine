@@ -38,20 +38,76 @@ fn http_url_is_loopback(url: &str) -> bool {
         .is_some_and(|host| matches!(host.as_str(), "localhost" | "127.0.0.1" | "::1" | "[::1]"))
 }
 
-// BUG: [CR-PLUGIN-NET-0008] 按冒号拆 host 会把 IPv6 字面量截成 '['，无法识别 ::1 的 loopback 例外或匹配其 pin。
 fn http_url_host(url: &str) -> Option<String> {
     let authority = url
         .strip_prefix("http://")
         .or_else(|| url.strip_prefix("https://"))
-        .map(|rest| rest.split('/').next().unwrap_or_default())?;
-    Some(
-        authority
-            .rsplit_once('@')
-            .map(|(_, host)| host)
-            .unwrap_or(authority)
-            .split(':')
-            .next()
-            .unwrap_or_default()
-            .to_string(),
-    )
+        .map(|rest| rest.split(['/', '?', '#']).next().unwrap_or_default())?;
+    let authority = authority.rsplit_once('@').map_or(authority, |(_, host)| host);
+    let host = if let Some(bracketed) = authority.strip_prefix('[') {
+        let (host, suffix) = bracketed.split_once(']')?;
+        if !suffix.is_empty() {
+            let port = suffix.strip_prefix(':')?;
+            if port.is_empty() || !port.chars().all(|character| character.is_ascii_digit()) {
+                return None;
+            }
+        }
+        host
+    } else {
+        if let Some((host, port)) = authority.rsplit_once(':') {
+            if port.is_empty() || !port.chars().all(|character| character.is_ascii_digit()) {
+                return None;
+            }
+            host
+        } else {
+            authority
+        }
+    };
+    (!host.is_empty()).then(|| host.to_string())
+}
+
+#[cfg(test)]
+mod host_tests {
+    use super::{http_url_host, http_url_is_loopback, validate_http_security_policy};
+    use zircon_runtime::core::framework::net::{
+        NetError, NetHttpMethod, NetHttpRequestDescriptor, NetRequestId, NetSecurityPolicy,
+    };
+
+    #[test]
+    fn parses_bracketed_ipv6_host_with_or_without_port() {
+        assert_eq!(http_url_host("https://[::1]/health"), Some("::1".to_string()));
+        assert_eq!(
+            http_url_host("https://[2001:db8::1]:8443/health"),
+            Some("2001:db8::1".to_string())
+        );
+        assert!(http_url_host("https://[::1:8443/health").is_none());
+        assert!(http_url_host("https://[::1]:/health").is_none());
+    }
+
+    #[test]
+    fn bracketed_ipv6_loopback_is_recognized() {
+        assert!(http_url_is_loopback("http://[::1]/health"));
+        assert!(http_url_is_loopback("http://[::1]:8080/health"));
+        assert!(!http_url_is_loopback("http://[2001:db8::1]/health"));
+    }
+
+    #[test]
+    fn ipv6_certificate_pin_is_checked_against_the_full_host() {
+        let mut request = NetHttpRequestDescriptor::new(
+            NetRequestId::new(1),
+            NetHttpMethod::Get,
+            "https://[::1]/health",
+        );
+        request.security = NetSecurityPolicy::production_tls()
+            .with_certificate_pin("::1", "sha256/example");
+
+        assert_eq!(validate_http_security_policy(&request), Ok(()));
+        request.security.certificate_pins.clear();
+        assert_eq!(
+            validate_http_security_policy(&request),
+            Err(NetError::SecurityPolicyViolation {
+                reason: "HTTP certificate pinning has no configured pin for host: ::1".to_string(),
+            })
+        );
+    }
 }

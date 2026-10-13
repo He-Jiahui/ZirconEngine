@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::borrow::Cow;
+use std::collections::{hash_map::Entry, HashMap};
 use std::sync::Arc;
 
 use super::{SystemParamAccess, SystemParamConflictKind, SystemStage};
@@ -9,6 +10,7 @@ pub struct ScheduleConflictGraph {
     nodes: Vec<ScheduleConflictNode>,
     edges: Vec<ScheduleConflictEdge>,
     node_indices_by_system_id: HashMap<String, usize>,
+    duplicate_node_indices_by_system_id: HashMap<String, Vec<usize>>,
     conflict_edge_indices_by_node: Vec<Vec<usize>>,
     conflict_node_adjacency: Vec<Vec<usize>>,
 }
@@ -63,8 +65,7 @@ pub enum ScheduleConflictNodeKind {
 }
 
 impl ScheduleConflictGraph {
-    // BUG: [CR-SCENE-ECS-0005] 公开构造器接受重复 system_id，索引仅保留末项；edges 可报告冲突而 systems_conflict 返回 false。
-    /// 从已验证唯一 ID 的系统节点构建诊断和并行批次；调用方应保持节点的阶段执行顺序。
+    /// 按阶段执行顺序构建诊断和保守并行批次；同名节点的查询包含全部匹配节点。
     pub fn from_nodes(nodes: impl IntoIterator<Item = ScheduleConflictNode>) -> Self {
         let node_iter = nodes.into_iter();
         let (lower_bound, _) = node_iter.size_hint();
@@ -84,6 +85,8 @@ impl ScheduleConflictGraph {
                 nodes,
                 edges: Vec::new(),
                 node_indices_by_system_id: graph_inputs.node_indices_by_system_id,
+                duplicate_node_indices_by_system_id: graph_inputs
+                    .duplicate_node_indices_by_system_id,
                 conflict_edge_indices_by_node,
                 conflict_node_adjacency,
             };
@@ -139,6 +142,7 @@ impl ScheduleConflictGraph {
             nodes,
             edges,
             node_indices_by_system_id: graph_inputs.node_indices_by_system_id,
+            duplicate_node_indices_by_system_id: graph_inputs.duplicate_node_indices_by_system_id,
             conflict_edge_indices_by_node,
             conflict_node_adjacency,
         }
@@ -157,23 +161,36 @@ impl ScheduleConflictGraph {
     }
 
     pub fn systems_conflict(&self, left_system_id: &str, right_system_id: &str) -> bool {
-        let Some(left_index) = self.node_indices_by_system_id.get(left_system_id) else {
-            return false;
-        };
-        let Some(right_index) = self.node_indices_by_system_id.get(right_system_id) else {
-            return false;
-        };
-
-        self.node_indices_conflict(*left_index, *right_index)
+        self.node_indices_for_system_id(left_system_id)
+            .iter()
+            .any(|left| {
+                self.node_indices_for_system_id(right_system_id)
+                    .iter()
+                    .any(|right| self.node_indices_conflict(*left, *right))
+            })
     }
 
     pub fn conflicts_for<'graph>(
         &'graph self,
         system_id: &'graph str,
     ) -> impl Iterator<Item = &'graph ScheduleConflictEdge> + 'graph {
-        let edge_indices = match self.node_indices_by_system_id.get(system_id) {
-            Some(node_index) => self.conflict_edge_indices_by_node[*node_index].as_slice(),
-            None => &[],
+        let edge_indices = if self
+            .duplicate_node_indices_by_system_id
+            .contains_key(system_id)
+        {
+            let mut indices = self
+                .node_indices_for_system_id(system_id)
+                .iter()
+                .flat_map(|index| self.conflict_edge_indices_by_node[*index].iter().copied())
+                .collect::<Vec<_>>();
+            indices.sort_unstable();
+            indices.dedup();
+            Cow::Owned(indices)
+        } else {
+            Cow::Borrowed(match self.node_indices_by_system_id.get(system_id) {
+                Some(index) => self.conflict_edge_indices_by_node[*index].as_slice(),
+                None => &[],
+            })
         };
         ScheduleConflictEdges::new(self, edge_indices)
     }
@@ -198,6 +215,7 @@ impl ScheduleConflictGraph {
             if let Some(batch) = batches.last_mut() {
                 let can_extend_last_batch = batch.stage == node.stage
                     && !batch.has_barrier
+                    && !batch.system_ids().iter().any(|id| id == &node.system_id)
                     && !self.node_indices_conflict_with_any(batch.node_indices(), node_index);
                 if can_extend_last_batch {
                     batch.push_system(node.system_id.clone(), node_index);
@@ -224,6 +242,15 @@ impl ScheduleConflictGraph {
         neighbors.binary_search(&right_index).is_ok()
     }
 
+    fn node_indices_for_system_id(&self, system_id: &str) -> &[usize] {
+        if let Some(indices) = self.duplicate_node_indices_by_system_id.get(system_id) {
+            return indices;
+        }
+        self.node_indices_by_system_id
+            .get(system_id)
+            .map_or(&[], std::slice::from_ref)
+    }
+
     fn node_indices_conflict_with_any(&self, node_indices: &[usize], right_index: usize) -> bool {
         let Some(neighbors) = self.conflict_node_adjacency.get(right_index) else {
             return false;
@@ -235,12 +262,12 @@ impl ScheduleConflictGraph {
 
 struct ScheduleConflictEdges<'graph> {
     graph: &'graph ScheduleConflictGraph,
-    edge_indices: &'graph [usize],
+    edge_indices: Cow<'graph, [usize]>,
     next_index: usize,
 }
 
 impl<'graph> ScheduleConflictEdges<'graph> {
-    fn new(graph: &'graph ScheduleConflictGraph, edge_indices: &'graph [usize]) -> Self {
+    fn new(graph: &'graph ScheduleConflictGraph, edge_indices: Cow<'graph, [usize]>) -> Self {
         Self {
             graph,
             edge_indices,
@@ -264,16 +291,28 @@ impl<'graph> Iterator for ScheduleConflictEdges<'graph> {
 
 struct ScheduleConflictGraphInputs {
     node_indices_by_system_id: HashMap<String, usize>,
+    duplicate_node_indices_by_system_id: HashMap<String, Vec<usize>>,
     node_counts_by_stage: [usize; SystemStage::COUNT],
     non_barrier_node_counts_by_stage: [usize; SystemStage::COUNT],
 }
 
 fn schedule_conflict_graph_inputs(nodes: &[ScheduleConflictNode]) -> ScheduleConflictGraphInputs {
     let mut node_indices_by_system_id = HashMap::with_capacity(nodes.len());
+    let mut duplicate_node_indices_by_system_id: HashMap<String, Vec<usize>> = HashMap::new();
     let mut node_counts_by_stage = [0_usize; SystemStage::COUNT];
     let mut non_barrier_node_counts_by_stage = [0_usize; SystemStage::COUNT];
     for (index, node) in nodes.iter().enumerate() {
-        node_indices_by_system_id.insert(node.system_id.clone(), index);
+        match node_indices_by_system_id.entry(node.system_id.clone()) {
+            Entry::Vacant(entry) => {
+                entry.insert(index);
+            }
+            Entry::Occupied(entry) => {
+                duplicate_node_indices_by_system_id
+                    .entry(node.system_id.clone())
+                    .or_insert_with(|| vec![*entry.get()])
+                    .push(index);
+            }
+        }
         let stage_index = node.stage.rank();
         node_counts_by_stage[stage_index] += 1;
         if !node.is_barrier() {
@@ -282,6 +321,7 @@ fn schedule_conflict_graph_inputs(nodes: &[ScheduleConflictNode]) -> ScheduleCon
     }
     ScheduleConflictGraphInputs {
         node_indices_by_system_id,
+        duplicate_node_indices_by_system_id,
         node_counts_by_stage,
         non_barrier_node_counts_by_stage,
     }
@@ -530,3 +570,7 @@ impl ScheduleParallelBatchSystems {
 #[cfg(test)]
 #[path = "tests/schedule_conflict_graph_performance_tests.rs"]
 mod performance_tests;
+
+#[cfg(test)]
+#[path = "tests/schedule_conflict_graph_duplicates.rs"]
+mod duplicate_tests;

@@ -105,10 +105,8 @@ fn spill_file_count_is_bounded_per_attempt_before_directory_allocation() {
 }
 
 fn test_root(label: &str) -> std::path::PathBuf {
-    std::env::current_dir()
-        .expect("test working directory")
-        .join(format!(
-            "target/canonical-spool-tests/{}-{label}",
-            std::process::id()
-        ))
+    std::env::temp_dir().join(format!(
+        "zircon-canonical-spool-tests-{}-{label}",
+        std::process::id()
+    ))
 }

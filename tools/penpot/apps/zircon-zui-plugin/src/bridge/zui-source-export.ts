@@ -239,6 +239,7 @@ function collectSourceIdentities(
 ): ZuiSourceExportIdentity[] {
   const shapes = new Map(snapshot.shapes.map((shape) => [shape.nodeId, shape]));
   const result: ZuiSourceExportIdentity[] = [];
+  let generatedShapeCount = 0;
   for (const [exportNodeId, node] of Object.entries(baselineProjection.nodes ?? {})) {
     const shape = shapes.get(exportNodeId);
     const sourcePath =
@@ -252,6 +253,19 @@ function collectSourceIdentities(
       : typeof node.control_id === 'string'
         ? node.control_id
         : null;
+    // Prepared-only separators have no authored target. They must still have
+    // a captured shape, and any edit to them is rejected by collectProjectionEdits.
+    const generatedStructure = node.component === 'Separator' &&
+      node.props?.['penpot_generated_host_structure'] === true &&
+      node['penpot_review_source_path'] === undefined &&
+      node['penpot_review_source_node_id'] === undefined &&
+      node['penpot_review_instance_path'] === undefined &&
+      shape?.sourcePath === undefined && shape?.sourceNodeId === undefined &&
+      shape?.instancePath === undefined;
+    if (shape && generatedStructure) {
+      generatedShapeCount += 1;
+      continue;
+    }
     if (!sourcePath || !sourceNodeId || !instancePath || !shape)
       throw new Error(
         `Host projection node ${exportNodeId} has no captured source ownership identity; re-import its source provenance.`,
@@ -266,7 +280,7 @@ function collectSourceIdentities(
       instancePath,
     });
   }
-  if (shapes.size !== result.length)
+  if (shapes.size !== result.length + generatedShapeCount)
     throw new Error(
       'Penpot semantic shape identity map does not match the host projection node set; re-import the host before exporting.',
     );

@@ -67,6 +67,210 @@ def snapshot(root, head):
 
 
 class OrdinaryFlowTests(unittest.TestCase):
+    @contextmanager
+    def _sealed_reuse_fixture(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-sealed-reuse-") as temporary:
+            root, state = Path(temporary), MemoryState()
+            repo, dependency, namespace = root / "repository", root / "zr_vm", root / "namespace"
+            repo.mkdir()
+            dependency.mkdir()
+            (repo / "owned.rs").write_bytes(b"owned source\n")
+            (repo / "sibling.rs").write_bytes(b"complete engine closure\n")
+            (dependency / "vm.rs").write_bytes(b"complete dependency closure\n")
+            engine = snapshot(repo, "a" * 40)
+            engine["files"]["deleted.rs"] = None
+            engine_value = {name: value for name, value in engine.items() if name != "sourceDigest"}
+            engine["sourceDigest"] = preparation.digest(engine_value)
+            value = {"sourceView": "worktree", "sourceRoot": str(repo), "source": engine,
+                     "externalRoots": [{"path": str(dependency), "source": snapshot(dependency, "b" * 40)}],
+                     "dependencyCache": {"home": str(namespace / "cargo-home"), "configSha256": {}}}
+            before = {**value, "sourceDigest": preparation.digest(value)}
+            approved = SimpleNamespace(path=root, namespace=lambda: namespace)
+            producer_key, producer_session = "a" * 64, "producer-session"
+            producer = "management-" + producer_key
+            arguments = {"source_root": repo, "snapshot": before, "repository_root": repo,
+                         "repository_id": "repository", "session_id": producer_session, "owner": producer,
+                         "approved": approved, "coverage": {"packages": ["first-package"], "profile": "dev"}}
+            physical = lambda approved, path, **kwargs: Path(path)
+            with patch("tools.jenkins.source._check_object_store_domain"), \
+                    patch("tools.jenkins.source._git_base_tree", return_value={}), \
+                    patch("tools.jenkins.resources.paths.canonical_build_root", side_effect=lambda value:
+                          SimpleNamespace(path=Path(value), namespace=lambda: Path(value) / "namespace")), \
+                    patch("tools.jenkins.resources.paths.physical_path_under", side_effect=physical), \
+                    patch("tools.jenkins.workflow.pools.physical_path_under", side_effect=physical):
+                first = preparation.seal_source(state, **arguments)
+                state.put("management_source", producer_key, before, expected_version=0)
+                state.put("execution", producer, {"kind": "management_owned_cargo", "status": "running",
+                    "repositoryId": "repository", "sessionId": producer_session, "sourceRoot": str(repo),
+                    "capturedSourceDigest": before["sourceDigest"], "sealedInputRef": first["sealedInputRef"],
+                    "sourceDigest": first["sealedInputRef"]}, expected_version=0)
+                yield {"state": state, "arguments": arguments, "first": first, "repo": repo,
+                       "dependency": dependency, "namespace": namespace, "producer": producer,
+                       "producerKey": producer_key}
+
+    def test_same_capture_reuses_sealed_bytes_for_new_consumers_and_coverage_without_changing_history(self):
+        from tools.jenkins import source as formal_source
+        with self._sealed_reuse_fixture() as fixture:
+            state, arguments, first = fixture["state"], fixture["arguments"], fixture["first"]
+            history = copy.deepcopy(state.rows)
+            store = fixture["namespace"] / "inputs/objects"
+            objects = {path.name: path.read_bytes() for path in store.iterdir()}
+            with patch.object(formal_source, "seal_candidate",
+                              side_effect=AssertionError("Same capture must reuse its verified CAS")):
+                same = preparation.seal_source(state, **{**arguments,
+                    "session_id": "consumer-session", "owner": "management-" + "b" * 64})
+                changed = preparation.seal_source(state, **{**arguments,
+                    "session_id": "consumer-session", "owner": "management-" + "c" * 64,
+                    "coverage": {"packages": ["second-package"], "profile": "test"}})
+            self.assertFalse(first["metrics"]["reused"])
+            self.assertIsNone(first["metrics"]["reusedSealedInputRef"])
+            self.assertEqual(first["sealedInputRef"], same["sealedInputRef"])
+            self.assertNotEqual(first["sealedInputRef"], changed["sealedInputRef"])
+            for result in (same, changed):
+                self.assertTrue(result["metrics"]["reused"])
+                self.assertEqual(first["sealedInputRef"], result["metrics"]["reusedSealedInputRef"])
+                self.assertTrue(result["capturedInputVerified"])
+                self.assertEqual(arguments["snapshot"]["sourceDigest"], result["capturedSourceDigest"])
+                preparation.verify_sealed_capture(arguments["snapshot"]["source"], result["sourceManifest"])
+                preparation.verify_sealed_capture(arguments["snapshot"]["externalRoots"][0]["source"],
+                                                  result["sourceManifest"]["external"][0]["manifest"])
+            for key, record in history.items():
+                self.assertEqual(record, state.rows[key])
+            self.assertEqual("running", state.get("execution", fixture["producer"])["payload"]["status"])
+            self.assertEqual(1, len(state.list("execution")))
+            self.assertEqual(2, len(state.list("sealed_input")))
+            self.assertEqual(objects, {path.name: path.read_bytes() for path in store.iterdir()})
+            for owner, result in (("management-" + "b" * 64, same), ("management-" + "c" * 64, changed)):
+                consumer = formal_source.require_sealed_consumer(state, repository_id_value="repository",
+                    session_id="consumer-session", owner=owner, source_digest=result["sealedInputRef"],
+                    manifest_digest=result["sealedInputRef"])
+                self.assertEqual(owner, consumer["payload"]["owner"])
+            changed_record = state.get("sealed_input", changed["sealedInputRef"])["payload"]
+            self.assertEqual({"packages": ["second-package"], "profile": "test"}, changed_record["coverage"])
+            self.assertEqual(preparation.digest(changed_record["coverage"]), changed_record["coverageDigest"])
+            self.assertEqual(changed_record["coverageDigest"],
+                             changed_record["sourceManifest"]["validationCoverageDigest"])
+            self.assertEqual([], state.list("acceptance"))
+
+    def test_changed_complete_capture_uses_original_external_first_sealing(self):
+        from tools.jenkins import source as formal_source
+        for case in ("engine-bytes", "external-bytes", "capture-metadata", "approved-root"):
+            with self.subTest(case=case), self._sealed_reuse_fixture() as fixture:
+                state, arguments = fixture["state"], fixture["arguments"]
+                history = copy.deepcopy(state.rows)
+                before = copy.deepcopy(arguments["snapshot"])
+                if case == "engine-bytes":
+                    (fixture["repo"] / "owned.rs").write_bytes(b"changed engine\n")
+                    before["source"] = snapshot(fixture["repo"], "a" * 40)
+                    before["source"]["files"]["deleted.rs"] = None
+                elif case == "external-bytes":
+                    (fixture["dependency"] / "vm.rs").write_bytes(b"changed dependency\n")
+                    before["externalRoots"][0]["source"] = snapshot(fixture["dependency"], "b" * 40)
+                elif case == "approved-root":
+                    selected_root = arguments["approved"].path / "second-build-root"
+                    selected_namespace = selected_root / "namespace"
+                    arguments = {**arguments, "approved": SimpleNamespace(
+                        path=selected_root, namespace=lambda: selected_namespace)}
+                else:
+                    # The byte inventory stays identical, but the full Git
+                    # capture is a different input and cannot use old provenance.
+                    before["source"]["diffSha256"] = "d" * 64
+                engine_value = {name: value for name, value in before["source"].items() if name != "sourceDigest"}
+                before["source"]["sourceDigest"] = preparation.digest(engine_value)
+                value = {name: item for name, item in before.items() if name != "sourceDigest"}
+                before["sourceDigest"] = preparation.digest(value)
+                real_seal, order = formal_source.seal_candidate, []
+                def seal(path, claims, **kwargs):
+                    order.append(Path(path))
+                    return real_seal(path, claims, **kwargs)
+                with patch.object(formal_source, "seal_candidate", side_effect=seal):
+                    result = preparation.seal_source(state, **{**arguments, "snapshot": before,
+                        "session_id": "consumer-session", "owner": "management-" + "b" * 64})
+                self.assertEqual([fixture["dependency"], fixture["repo"]], order)
+                self.assertFalse(result["metrics"]["reused"])
+                self.assertIsNone(result["metrics"]["reusedSealedInputRef"])
+                self.assertEqual(before["sourceDigest"], result["capturedSourceDigest"])
+                if case == "approved-root":
+                    self.assertEqual(fixture["arguments"]["snapshot"], before)
+                    self.assertEqual(fixture["arguments"]["coverage"], arguments["coverage"])
+                    self.assertNotEqual(fixture["first"]["sealedInputRef"], result["sealedInputRef"])
+                    record = state.get("sealed_input", result["sealedInputRef"])["payload"]
+                    self.assertEqual(str(selected_root), record["buildRoot"])
+                    self.assertEqual(str(selected_namespace), record["objectRoot"])
+                    self.assertEqual(str(selected_namespace), record["sourceManifest"]["selectedObjectNamespace"])
+                    state.put("management_source", "b" * 64, before, expected_version=0)
+                    state.put("execution", "management-" + "b" * 64, {
+                        "kind": "management_owned_cargo", "status": "preparing", "repositoryId": "repository",
+                        "sessionId": "consumer-session", "sourceRoot": str(fixture["repo"]),
+                        "capturedSourceDigest": before["sourceDigest"], "sealedInputRef": result["sealedInputRef"],
+                        "sourceDigest": result["sealedInputRef"]}, expected_version=0)
+                    with patch.object(formal_source, "seal_candidate",
+                                      side_effect=AssertionError("Selected namespace must remain reusable")):
+                        reused = preparation.seal_source(state, **{**arguments, "snapshot": before,
+                            "session_id": "next-session", "owner": "management-" + "c" * 64})
+                    self.assertTrue(reused["metrics"]["reused"])
+                    self.assertEqual(result["sealedInputRef"], reused["sealedInputRef"])
+                preparation.verify_sealed_capture(before["source"], result["sourceManifest"])
+                preparation.verify_sealed_capture(before["externalRoots"][0]["source"],
+                                                  result["sourceManifest"]["external"][0]["manifest"])
+                for key, record in history.items():
+                    self.assertEqual(record, state.rows[key])
+
+    def test_corrupt_matching_sealed_input_or_producer_rejects_before_new_metadata(self):
+        from tools.jenkins import source as formal_source
+        from tools.jenkins.contracts import JenkinsError
+        for case in ("engine-object", "external-object", "manifest", "producer-binding",
+                     "producer-capture", "object-namespace", "manifest-namespace", "foreign-collision"):
+            with self.subTest(case=case), self._sealed_reuse_fixture() as fixture:
+                state, arguments, first = fixture["state"], fixture["arguments"], fixture["first"]
+                sealed_record = state.rows[("sealed_input", first["sealedInputRef"])]["payload"]
+                manifest = sealed_record["sourceManifest"]
+                if case in {"engine-object", "external-object"}:
+                    entries = (manifest["entries"] if case == "engine-object"
+                               else manifest["external"][0]["manifest"]["entries"])
+                    entry = next(item for item in entries if item["status"] == "present")
+                    (fixture["namespace"] / "inputs/objects" / entry["objectDigest"]).write_bytes(b"corrupt\n")
+                elif case == "manifest":
+                    manifest["validationCoverageDigest"] = "e" * 64
+                elif case == "manifest-namespace":
+                    manifest["selectedObjectNamespace"] = str(fixture["namespace"] / "wrong")
+                    reference = preparation.digest(manifest)
+                    row = state.rows.pop(("sealed_input", first["sealedInputRef"]))
+                    row["key"], row["payload"]["sourceDigest"] = reference, reference
+                    state.rows[("sealed_input", reference)] = row
+                    producer = state.rows[("execution", fixture["producer"])]["payload"]
+                    producer["sourceDigest"] = producer["sealedInputRef"] = reference
+                    consumer_key = next(key for key in state.rows if key[0] == "sealed_consumer")
+                    state.rows.pop(consumer_key)
+                    formal_source.register_sealed_consumer(state, repository_id_value="repository",
+                        session_id=arguments["session_id"], owner=fixture["producer"],
+                        source_digest=reference, manifest_digest=reference)
+                elif case == "foreign-collision":
+                    manifest["validationCoverageDigest"] = "e" * 64
+                    selected_root = arguments["approved"].path / "second-build-root"
+                    arguments = {**arguments, "approved": SimpleNamespace(
+                        path=selected_root, namespace=lambda: selected_root / "namespace")}
+                elif case == "producer-binding":
+                    consumer_key = next(key for key in state.rows if key[0] == "sealed_consumer")
+                    state.rows.pop(consumer_key)
+                elif case == "producer-capture":
+                    state.rows[("management_source", fixture["producerKey"])]["payload"]["dependencyCache"]["home"] += "-changed"
+                else:
+                    sealed_record["objectRoot"] = str(fixture["namespace"].parent / "foreign-namespace")
+                damaged = copy.deepcopy(state.rows)
+                seal_patch = (patch.object(formal_source, "seal_candidate", wraps=formal_source.seal_candidate)
+                              if case == "foreign-collision" else patch.object(formal_source, "seal_candidate",
+                                  side_effect=AssertionError("Corrupt matching input must not be resealed")))
+                with seal_patch as seal, self.assertRaises((ValueError, JenkinsError)):
+                    preparation.seal_source(state, **{**arguments, "session_id": "consumer-session",
+                        "owner": "management-" + "b" * 64,
+                        "coverage": (arguments["coverage"] if case == "foreign-collision"
+                                     else {"packages": ["second-package"], "profile": "test"})})
+                if case == "foreign-collision":
+                    self.assertEqual([fixture["dependency"], fixture["repo"]],
+                                     [Path(call.args[0]) for call in seal.call_args_list])
+                self.assertEqual(damaged, state.rows)
+
     def test_preparation_identity_shares_producers_and_separates_build_configuration(self):
         args = ["repository", {"cargoSha256": "a" * 64, "rustcSha256": "b" * 64},
                 {"PATH": "fixed", "CARGO_BUILD_TARGET": "x86_64-pc-windows-msvc"},
@@ -604,13 +808,16 @@ class OrdinaryFlowTests(unittest.TestCase):
                     management.prepare_merge()
             management.new_worktree.assert_not_called()
 
-    def test_commit_matches_full_cached_snapshot_and_actual_prepared_native_cwd(self):
+    def test_sealed_commit_matches_original_capture_and_actual_prepared_native_cwd(self):
         self.commit_contract()
 
-    def test_admission_commit_and_delivery_require_the_actual_full_dependency_closure(self):
+    def test_admission_delivery_keeps_original_sealed_closure_and_observes_foreign_drift(self):
         self.commit_contract(admission=True)
 
-    def commit_contract(self, *, admission=False):
+    def test_legacy_unsealed_delivery_keeps_strict_full_dependency_comparison(self):
+        self.commit_contract(sealed=False)
+
+    def commit_contract(self, *, admission=False, sealed=True):
         with tempfile.TemporaryDirectory(prefix="ordinary-commit-contract-") as temporary:
             root = Path(temporary)
             repo, worktree, namespace = root / "repository", root / "worktree", root / "namespace"
@@ -652,6 +859,9 @@ class OrdinaryFlowTests(unittest.TestCase):
                        "validationInputPolicy": "sealed-source", "capturedInputVerified": True,
                        "preparedSource": {"sourceDigest": prepared["sealedInputRef"]},
                        "inputObservation": {"originalEngineUnchanged": True, "dependencyCacheUnchanged": True}}
+            if not sealed:
+                for field in ("validationInputPolicy", "capturedInputVerified"):
+                    request.pop(field)
             request_ref = runner.write_json(report / "request.json", request)
             native_ref = runner.write_json(report / "native-terminal.json", native)
             result = {"status": "passed", "sourceDigest": before["sourceDigest"], "inputsUnchanged": False,
@@ -659,6 +869,14 @@ class OrdinaryFlowTests(unittest.TestCase):
                       "originalEngineUnchanged": True, "dependencyCacheUnchanged": True,
                       "preparedInputsUnchanged": True, "executionRoot": str(execution_root),
                       "preparation": prepared, "request": request_ref, "nativeTerminal": native_ref}
+            if not sealed:
+                for field in ("validationInputPolicy", "capturedInputVerified"):
+                    result.pop(field)
+                result["inputsUnchanged"] = True
+            terminal = runner.native_terminal_proof(native, native_ref)
+            state.put("native_job", "management-" + key + "-native", {
+                "owner": "management-" + key, "status": "terminal", "nativeEvidence": native,
+                "completeProof": terminal, "terminalProof": terminal})
             state.put("management_operation", key, {"phase": "complete", "action": "validate",
                       "sessionId": "author", "payload": original, "result": result})
             state.put("management_source", key, before)
@@ -675,31 +893,70 @@ class OrdinaryFlowTests(unittest.TestCase):
             management.dependency_cache = Mock(return_value=copy.deepcopy(before["dependencyCache"]))
             management.validation_with_cache = Mock(wraps=lambda **kwargs:
                 runner.Management.validation_with_cache(management, **kwargs))
-            management.source = lambda path: copy.deepcopy(engine)
+            management.validation_observation = Mock(wraps=lambda *args, **kwargs:
+                runner.Management.validation_observation(management, *args, **kwargs))
+            management.validation_sealed_observation = Mock(wraps=lambda *args, **kwargs:
+                runner.Management.validation_sealed_observation(management, *args, **kwargs))
+            management.source = Mock(return_value=copy.deepcopy(engine))
             management.git = Mock(side_effect=lambda path, *args, **kwargs:
                 SimpleNamespace(stdout=b"owned.rs\0" if args[0] == "diff" else b"", returncode=0))
             management.text = lambda path, *args: ("b" * 40 if path == worktree else base)
             changed = copy.deepcopy(before)
             changed["externalRoots"][0]["source"]["files"]["vm.rs"] = runner.sha(b"foreign input")
             management.validation_source.return_value = (worktree, changed)
-            mismatch = ValueError if admission else runner.SourceInputMismatch
-            with self.assertRaises(mismatch):
-                management.commit_worktree()
-            with self.assertRaises(mismatch):
-                management.validation_delivery(key, "owned")
-            management.git.assert_not_called()
-            management.validation_source.return_value = (worktree, copy.deepcopy(before))
-            management.validation_with_cache.reset_mock()
             approved = SimpleNamespace(path=root, namespace=lambda: namespace)
             with patch("tools.jenkins.resources.paths.canonical_build_root", return_value=approved), \
                     patch("tools.jenkins.resources.paths.physical_path_under",
                           side_effect=lambda approved, path, **kwargs: Path(path)):
+                if sealed:
+                    unchanged_state = copy.deepcopy(state.rows)
+                    _row, actual_root, captured, delivery = management.validation_delivery(key, "owned")
+                    self.assertEqual(worktree, actual_root)
+                    self.assertEqual(before, captured)
+                    self.assertFalse(delivery["deliveryObservation"]["inputsUnchanged"])
+                    self.assertIsNone(delivery["deliveryObservation"]["externalInputsUnchanged"])
+                    self.assertFalse(delivery["deliveryObservation"]["externalInputsObserved"])
+                    self.assertEqual(unchanged_state, state.rows)
+                    changed_engine = copy.deepcopy(changed)
+                    changed_engine["source"]["files"]["owned.rs"] = runner.sha(b"later owned edit")
+                    management.source.return_value = changed_engine["source"]
+                    with self.assertRaises(ValueError):
+                        management.validation_delivery(key, "owned")
+                    with self.assertRaises(ValueError):
+                        management.commit_worktree()
+                    management.source.return_value = copy.deepcopy(engine)
+                    management.dependency_cache.return_value = {**before["dependencyCache"], "configSha256": {"config": "f" * 64}}
+                    with self.assertRaises(ValueError):
+                        management.validation_delivery(key, "owned")
+                    with self.assertRaises(ValueError):
+                        management.commit_worktree()
+                    management.dependency_cache.return_value = copy.deepcopy(before["dependencyCache"])
+                else:
+                    with self.assertRaises(runner.SourceInputMismatch):
+                        management.commit_worktree()
+                    with self.assertRaises(runner.SourceInputMismatch):
+                        management.validation_delivery(key, "owned")
+                    management.validation_source.return_value = (worktree, copy.deepcopy(before))
+                management.git.assert_not_called()
+                management.validation_with_cache.reset_mock()
+                management.validation_observation.reset_mock()
+                management.validation_sealed_observation.reset_mock()
                 committed = management.commit_worktree()
             self.assertEqual("complete", committed["status"])
             self.assertEqual(before["sourceDigest"], committed["validatedSourceDigest"])
-            self.assertEqual(2, management.validation_with_cache.call_count)
-            for call in management.validation_with_cache.call_args_list:
-                self.assertEqual(original, call.kwargs["payload"])
+            self.assertEqual("management-" + key + "-native", committed["validationDelivery"]["nativeProofRef"])
+            if sealed:
+                management.validation_with_cache.assert_not_called()
+                management.validation_observation.assert_not_called()
+                self.assertEqual(2, management.validation_sealed_observation.call_count)
+                self.assertFalse(committed["commitObservation"]["inputsUnchanged"])
+                for call in management.validation_sealed_observation.call_args_list:
+                    self.assertEqual(before, call.args[0])
+                    self.assertEqual(original, call.kwargs["payload"])
+            else:
+                self.assertEqual(2, management.validation_with_cache.call_count)
+                for call in management.validation_with_cache.call_args_list:
+                    self.assertEqual(original, call.kwargs["payload"])
             self.assertIn(("repository", "author", "commit", ("owned.rs",)), state.authorizations)
 
 
@@ -711,6 +968,7 @@ class OrdinaryFlowTests(unittest.TestCase):
             management.repo, management.state, management.repo_id = root, state, "repository"
             management.session, management.key = "author", "3" * 64
             management.request, management.operation = "request", "operation"
+            management.payload = {}
             management.config = {"driverDigest": "d" * 64, "runtimeOperationId": "runtime"}
             resources = ResourceManager(state, Capacity(8, 32 * 1024**3, 64 * 1024**3))
             owner, writer = "management-" + management.key, "shared-writer"
@@ -894,6 +1152,804 @@ class OrdinaryFlowTests(unittest.TestCase):
                 self.assertEqual(expected_child["head"], actual_child["head"])
                 self.assertEqual(expected_child["diffSha256"], actual_child["diffSha256"])
                 self.assertNotEqual(expected_child["filesDigest"], actual_child["filesDigest"])
+
+    def _batch_source_manifest(self, before, coverage, repository_id):
+        return {"schemaVersion": 1, "repositoryId": repository_id, "preparationKind": "current-source",
+                "baseHead": before["source"]["head"], "declaredDependencies": [], "external": [],
+                "validationCoverageDigest": runner.sha(runner.encoded(coverage)),
+                "entries": [{"path": path, "sha256": checksum, "objectDigest": checksum,
+                             "status": "present" if checksum is not None else "deleted", "size": 0}
+                            for path, checksum in sorted(before["source"]["files"].items())]}
+
+    @contextmanager
+    def _batch_fixture(self, *, large_capture=False):
+        """Synthetic Windows evidence exercises the batch broker, never Cargo."""
+        with tempfile.TemporaryDirectory(prefix="ordinary-shared-batch-") as temporary:
+            root, state = Path(temporary), MemoryState()
+            repo, namespace = root / "repository", root / "namespace"
+            repo.mkdir()
+            (repo / "owned.rs").write_bytes(b"synthetic owned input\n")
+            helper_path = repo / "tools/dev/local_cargo.py"
+            helper_path.parent.mkdir(parents=True)
+            helper_path.write_bytes(b"synthetic pinned helper")
+            tool = root / "cargo.exe"
+            tool.write_bytes(b"synthetic trusted executable")
+            recipes = [
+                {"name": "check", "ordinal": 1, "cargoArguments": ["check", "-p", "zr_math", "--locked", "--offline"],
+                 "ownedNativeTimeoutSeconds": 7200},
+                {"name": "compile-tests", "ordinal": 2,
+                 "cargoArguments": ["test", "-p", "zr_math", "--no-run", "--locked", "--offline"],
+                 "ownedNativeTimeoutSeconds": 7200},
+                {"name": "run-tests", "ordinal": 3,
+                 "cargoArguments": ["test", "-p", "zr_math", "--lib", "--locked", "--offline"],
+                 "ownedNativeTimeoutSeconds": 10800, "minimumExpectedMatchedTests": 2,
+                 "requiredNamedFixtureTests": ["fixture::first", "fixture::second"],
+                 "requiredTestBinaries": ["synthetic_binary"]},
+            ]
+            contract_ref = runner.write_json(root / "contract.json", {
+                "schemaVersion": 1, "sharedSingleBatchRequired": True, "semanticCommands": recipes})
+            actor = runner.Management.__new__(runner.Management)
+            actor.repo, actor.state, actor.repo_id = repo, state, "repository"
+            actor.session, actor.request, actor.operation = "author", "request", "operation"
+            actor.action, actor.query, actor.owned = "validate", False, ["owned.rs"]
+            actor.key = "b" * 64
+            actor.config = {"driverDigest": "d" * 64, "runtimeOperationId": "runtime",
+                            "clientSources": {"tools/dev/local_cargo.py": runner.sha(helper_path.read_bytes())}}
+            actor.payload = {"action": "validate", "repositoryId": actor.repo_id, "sessionId": actor.session,
+                "requestId": actor.request, "operationId": actor.operation, "ownedPaths": actor.owned,
+                "driverDigest": actor.config["driverDigest"], "runtimeOperationId": "runtime",
+                "sourceView": "worktree", "worktreeId": "owned", "buildRoot": str(root),
+                "externalRoots": [], "batch": {"schemaVersion": 1, "sharedSingleBatchRequired": True,
+                                              "contractRef": contract_ref, "recipes": recipes}}
+            actor.input_digest = runner.sha(runner.encoded(actor.payload))
+            actor._batch_parser = entry.parse_cargo
+            actor.wt = Mock(return_value=({}, repo))
+            actor.build_root = Mock(return_value=str(root))
+            actor.outputs = Mock(return_value=namespace / "management")
+            approved = SimpleNamespace(path=root, namespace=lambda: namespace, volume_identity="synthetic-volume")
+            cache = {"home": str(namespace / "cargo-home"), "configSha256": {}}
+            engine = snapshot(repo, "a" * 40)
+            if large_capture:
+                checksum = runner.sha(b"synthetic declared source bytes; no source tree")
+                engine["files"].update({f"fixture/large-evidence/source-inventory/bounded-reader/{n:06d}.rs": checksum
+                                        for n in range(65000)})
+                engine["diffSha256"] = runner.sha(runner.encoded(engine["files"]))
+                engine["sourceDigest"] = runner.sha(runner.encoded({k: v for k, v in engine.items() if k != "sourceDigest"}))
+            capture_value = {"sourceView": "worktree", "sourceRoot": str(repo),
+                             "source": engine, "externalRoots": [], "dependencyCache": cache}
+            before = {**capture_value, "sourceDigest": runner.sha(runner.encoded(capture_value))}
+            actor.validation_with_cache = Mock(return_value=(repo, before))
+            actor.dependency_cache = Mock(return_value=cache)
+            observation = {"originalEngineUnchanged": True, "dependencyCacheUnchanged": True,
+                           "inputsUnchanged": True, "externalInputsUnchanged": True}
+            actor.validation_observation = Mock(return_value=(repo, before, observation))
+            actor.artifact_manifest = Mock(return_value={"path": str(root / "artifacts.json"), "sha256": "a" * 64})
+            owner = "management-" + actor.key
+            state.put("resource_policy", "default", {"cpuBudget": 8, "memoryBudget": 32 * 1024**3,
+                      "diskBudget": 64 * 1024**3, "diskReserveBytes": 35 * 1024**3})
+            state.put("management_operation", actor.key, {"inputDigest": actor.input_digest, "phase": "waiting",
+                      "payload": actor.payload, "requestId": actor.request, "operationId": actor.operation})
+            resources = SimpleNamespace(queue=Mock(), scan_inventory=Mock(return_value=({}, "inventory")),
+                                        admit=Mock(), release=Mock(), release_unlaunched=Mock())
+            def admit(*args, **kwargs):
+                key = owner + ":" + owner
+                reservation = state.put("resource_reservation", key, {
+                    "owner": owner, "status": "active", "buildRoot": str(root)})
+                state.put("pool_writer_hold", kwargs["writer_key"], {
+                    "owner": owner, "status": "active", "reservationKey": key})
+                return reservation
+            resources.admit.side_effect = admit
+            def release(key, **kwargs):
+                self.assertEqual(3, len(actor.batch_claims()))
+                self.assertTrue(all(claim["status"] == "complete" for claim in actor.batch_claims()))
+                row = state.get("resource_reservation", key)
+                if row["payload"]["status"] == "released":
+                    return False
+                state.put("resource_reservation", key, {**row["payload"], "status": "released"})
+                hold = state.get("pool_writer_hold", kwargs["writer_key"])
+                state.put("pool_writer_hold", kwargs["writer_key"], {**hold["payload"], "status": "released"})
+                return True
+            resources.release.side_effect = release
+            def scratch(*, environment=None, **kwargs):
+                report = actor.outputs() / "reports" / actor.key
+                if environment is not None:
+                    value = {"environmentDigest": runner.sha(runner.encoded(environment)), "status": "owned"}
+                    state.put("management_task_scratch", actor.key, value)
+                    return runner.write_json(report / "tmp-generation.json", value)
+                self.assertFalse(resources.release.called)
+                self.assertEqual("closed", actor.batch_checkpoint()["stage"])
+                self.assertEqual(3, len(actor.batch_claims()))
+                return {"status": "complete", "removedFileCount": 0, "reclaimedBytes": 0, "receipt": None}
+            actor.task_tmp = Mock(side_effect=scratch)
+            preparation_helper = SimpleNamespace(
+                preparation_key=Mock(return_value="c" * 64), seal_source=Mock(),
+                materialize_source=Mock(), verify_source=Mock(),
+                verify_sealed_capture=preparation.verify_sealed_capture)
+            def seal(_state, **kwargs):
+                manifest = self._batch_source_manifest(before, kwargs["coverage"], actor.repo_id)
+                reference = runner.sha(runner.encoded(manifest))
+                record = {"status": "sealed", "repositoryRoot": str(repo), "repositoryId": actor.repo_id,
+                    "sourceDigest": reference, "sourceManifest": manifest, "manifest": manifest,
+                    "objectRoot": str(namespace), "buildRoot": str(root), "coverage": kwargs["coverage"],
+                    "coverageDigest": manifest["validationCoverageDigest"]}
+                old = state.get("sealed_input", reference)
+                if old:
+                    self.assertEqual(record, old["payload"])
+                else:
+                    state.put("sealed_input", reference, record, expected_version=0)
+                sealed = {"sourceManifest": manifest, "sealedInputRef": reference,
+                    "sourceRoot": str(repo), "capturedSourceDigest": before["sourceDigest"],
+                    "capturedInputVerified": True, "coverageDigest": manifest["validationCoverageDigest"],
+                    "metrics": {"reused": True, "fixture": True}}
+                return sealed
+            preparation_helper.seal_source.side_effect = seal
+            def materialize(_state, **kwargs):
+                state.put("execution", owner, {"kind": "management_owned_cargo", "status": "preparing",
+                    "reservationKey": kwargs["reservation_key"], "preparationKey": kwargs["preparation_key_value"],
+                    "command": kwargs["command"], "sessionId": actor.session})
+                value = {"physicalPath": str(kwargs["source_path"]), "sourceDigest": kwargs["sealed"]["sealedInputRef"],
+                    "sealedInputRef": kwargs["sealed"]["sealedInputRef"],
+                    "capturedSourceDigest": before["sourceDigest"], "reused": True, "changedFileCount": 0}
+                return value
+            preparation_helper.materialize_source.side_effect = materialize
+            preparation_helper.verify_source.side_effect = lambda manifest, path, approved: {
+                "sourceDigest": runner.sha(runner.encoded(manifest)), "fileCount": 2, "filesDigest": "f" * 64}
+            local = SimpleNamespace(free_bytes=Mock(return_value=100 * 1024**3),
+                prepare_command=Mock(side_effect=lambda args, target, **kwargs: ["cargo", *args, "--target-dir", str(target)]),
+                _run_owned_command=Mock())
+            options = {"failedOrdinal": None, "zeroOrdinal": None, "incompleteOrdinal": None}
+            launches = []
+            def native(command, cwd, environment, report, timeout):
+                ordinal = int(report.name)
+                launches.append(ordinal)
+                self.assertEqual("active", state.get("pool_writer_hold", actor.batch_checkpoint()["writer"])["payload"]["status"])
+                self.assertEqual(recipes[ordinal - 1]["ownedNativeTimeoutSeconds"], timeout)
+                executable = actor.outputs() / "pools" / actor.batch_checkpoint()["pool"] / "target/synthetic_binary.exe"
+                stdout = [json.dumps({"reason": "compiler-artifact", "target": {"name": "synthetic_binary"},
+                    "executable": str(executable), "filenames": [str(executable)], "fresh": ordinal != 1}),
+                    json.dumps({"reason": "build-finished", "success": True})]
+                running = command[1] == "test" and "--no-run" not in command
+                if running:
+                    cases = [] if options["zeroOrdinal"] == ordinal else ["fixture::first", "fixture::second"]
+                    stdout += ["running %d tests" % len(cases)]
+                    stdout += ["test " + name + " ... ok" for name in cases]
+                    stdout += ["test result: ok. %d passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;" % len(cases)]
+                (report / "stdout.bin").write_text("\n".join(stdout) + "\n", encoding="utf-8")
+                (report / "stderr.bin").write_text("Running unittests owned.rs (" + str(executable) + ")\n"
+                                                  if running else "", encoding="utf-8")
+                value = {"command": command, "cwd": str(cwd), "pid": 100 + ordinal,
+                    "creationTime": "13400000000000000" + str(ordinal),
+                    "rootExitCode": 1 if options["failedOrdinal"] == ordinal else 0, "terminalErrors": [],
+                    "processTree": {"scope": "retained-windows-job", "terminal": True,
+                        "nativeWaiterJoined": True, "pipeEOF": True, "readersFinished": True,
+                        "pipes": {"stdout": {"eof": True}, "stderr": {"eof": options["incompleteOrdinal"] != ordinal}}},
+                    "nativeJobEvidence": {"errors": [], "records": {
+                        "afterTerminal": {"activeProcesses": 0}, "afterClose": {"activeProcesses": 0}}}}
+                runner.write_json(report / "started.json", {k: value[k] for k in ("command", "cwd", "pid", "creationTime")})
+                return value
+            local._run_owned_command.side_effect = native
+            trusted = {"cargoPath": str(tool), "rustcPath": str(tool),
+                       "cargoSha256": runner.sha(tool.read_bytes()), "rustcSha256": runner.sha(tool.read_bytes())}
+            physical = lambda approved, value, **kwargs: Path(value)
+            spec = SimpleNamespace(loader=Mock())
+            @contextmanager
+            def lock(*args, **kwargs):
+                yield
+            with patch("tools.jenkins.resources.capacity.ResourceManager", return_value=resources), \
+                    patch("tools.jenkins.resources.paths.canonical_build_root", return_value=approved), \
+                    patch("tools.jenkins.resources.paths.physical_path_under", side_effect=physical), \
+                    patch("tools.jenkins.workflow.planning._environment_policy", return_value=({}, trusted, root / "policy")), \
+                    patch("tools.jenkins.state.locks.process_lock", side_effect=lock), \
+                    patch.object(runner, "source_helper", return_value=preparation_helper), \
+                    patch.object(runner.importlib.util, "spec_from_file_location", return_value=spec), \
+                    patch.object(runner.importlib.util, "module_from_spec", return_value=local):
+                yield {"actor": actor, "state": state, "resources": resources, "preparation": preparation_helper,
+                       "local": local, "launches": launches, "options": options, "before": before, "recipes": recipes}
+
+    def test_batch_preserves_all_original_commands_producers_selectors_and_single_identity(self):
+        path = ROOT / ".jenkins/state/records-queue/archive/8cb75329f06f6fe219e1641ac3a7b0fb53135fd40b7f7a463d5deff9eb4452a6/runtime-editor-optimize-batch-handoff-01a0df1a-20261012-v1.json"
+        raw = path.read_bytes()
+        self.assertEqual("ad1ce1a11b8aa9abfe985cf100d968db64c9f9a99c8a068398e8e7fa3e72bcc3", runner.sha(raw))
+        original = json.loads(raw)["originalCommandContract"]
+        actor = runner.Management.__new__(runner.Management)
+        actor._batch_parser = entry.parse_cargo
+        actor.build_root = Mock(return_value=r"E:\cargo-targets")
+        actor.payload = {"sourceView": "worktree", "worktreeId": "input", "buildRoot": r"E:\cargo-targets",
+            "batch": {"schemaVersion": 1, "sharedSingleBatchRequired": True,
+                      "contractRef": {"path": str(path), "sha256": runner.sha(raw)},
+                      "recipes": copy.deepcopy(original["semanticCommands"])}}
+        batch = actor.validation_batch()
+        self.assertEqual(original["semanticCommands"], batch["coverage"]["recipes"])
+        self.assertEqual(15, len(batch["recipes"]))
+        self.assertEqual(16, batch["coverage"]["producerContract"]["totalProducerIdentities"])
+        self.assertEqual(111600, sum(value["ownedNativeTimeoutSeconds"] for value in batch["coverage"]["recipes"]))
+        self.assertTrue(batch["recipes"][0]["lib"] and batch["recipes"][0]["bins"] and batch["recipes"][0]["allTests"])
+        self.assertTrue(batch["recipes"][8]["ignored"] and batch["recipes"][8]["nocapture"])
+        self.assertGreater(len(batch["recipes"][1]["harnessFilters"]), 1)
+        self.assertTrue(batch["recipes"][9]["exact"])
+        actor.payload = {"verb": "check", "packages": ["zr_math"]}
+        single = actor.validation_recipe()
+        expected = {"verb": "check", "profile": "dev", "packages": ["zr_math"], "features": [], "tests": [],
+            "testFilter": None, "jobs": 1, "testThreads": 1, "offline": False, "noDefaultFeatures": False,
+            "lib": False, "noRun": False, "allFeatures": False, "locked": True,
+            "command": ["check", "--jobs", "1", "--message-format=json", "--locked", "--package", "zr_math"]}
+        self.assertEqual(expected, single)
+        self.assertEqual(runner.sha(runner.encoded(expected)), runner.sha(runner.encoded(single)))
+        self.assertNotIn("harnessFilters", entry.parse_cargo(["check", "-p", "zr_math"]))
+
+    def test_batch_shared_capture_seal_pool_and_native_sequence_retains_actual_each_step(self):
+        with self._batch_fixture() as f:
+            result = f["actor"].run()
+            self.assertEqual("passed", result["status"])
+            self.assertEqual([1, 2, 3], f["launches"])
+            f["actor"].validation_with_cache.assert_called_once()
+            f["preparation"].seal_source.assert_called_once()
+            f["preparation"].materialize_source.assert_called_once()
+            self.assertEqual(2, f["preparation"].verify_source.call_count)
+            self.assertEqual(2, f["actor"].validation_observation.call_count)
+            self.assertEqual("c" * 64, f["actor"].batch_checkpoint()["pool"])
+            self.assertEqual(3, len(f["state"].list("native_job")))
+            self.assertEqual(2, result["steps"][-1]["passedTestCount"])
+            self.assertTrue(result["steps"][1]["compileOnly"])
+            self.assertTrue(all(row["payload"]["completeProof"]["complete"] for row in f["state"].list("native_job")))
+            self.assertEqual("complete", f["actor"].batch_checkpoint()["stage"])
+            self.assertFalse(result["formalAcceptance"] or result["performanceAccepted"] or result["productsAccepted"])
+            again = f["actor"].run()
+            self.assertEqual(result, again)
+            self.assertEqual([1, 2, 3], f["launches"])
+
+    def _batch_delivery_consumer(self, fixture):
+        actor, state, before = fixture["actor"], fixture["state"], fixture["before"]
+        consumer = runner.Management.__new__(runner.Management)
+        consumer.repo = actor.repo.parent / "delivery-repository"
+        (consumer.repo / ".jenkins/state/controls").mkdir(parents=True)
+        consumer.state, consumer.repo_id, consumer.session = state, actor.repo_id, actor.session
+        consumer.config, consumer.owned = actor.config, actor.owned
+        consumer.key, consumer.request, consumer.operation = "e" * 64, "delivery-request", "delivery-operation"
+        consumer._batch_parser, consumer.build_root = entry.parse_cargo, actor.build_root
+        record = {"status": "ready", "sessionId": actor.session}
+        state.put("management_worktree", "owned", record)
+        consumer.wt = Mock(return_value=(record, actor.repo))
+        consumer.payload = {"worktreeId": "owned", "validationKey": actor.key, "expectedHead": before["source"]["head"],
+                            "message": "Synthetic complete batch delivery"}
+        consumer.validation_source = Mock(return_value=(actor.repo, copy.deepcopy(before)))
+        consumer.dependency_cache = Mock(return_value=copy.deepcopy(before["dependencyCache"]))
+        consumer.source = Mock(return_value=copy.deepcopy(before["source"]))
+        consumer.git = Mock(side_effect=lambda path, *args, **kwargs:
+            SimpleNamespace(stdout=b"owned.rs\0" if args[0] == "diff" else b"", returncode=0))
+        consumer.text = lambda path, *args: "f" * 40 if path == actor.repo else before["source"]["head"]
+        return consumer
+
+    def test_batch_delivery_reads_all_steps_and_commit_uses_the_same_original_proofs(self):
+        with self._batch_fixture() as f:
+            result = f["actor"].run()
+            consumer = self._batch_delivery_consumer(f)
+            original_state = copy.deepcopy(f["state"].rows)
+            _row, root, captured, delivery = consumer.validation_delivery(f["actor"].key, "owned")
+            self.assertEqual(f["actor"].repo, root)
+            self.assertEqual(f["before"], captured)
+            self.assertEqual(result["nativeProofRefs"], delivery["nativeProofRefs"])
+            self.assertEqual([step["nativeTerminal"] for step in result["steps"]], delivery["nativeTerminals"])
+            self.assertEqual(3, len(delivery["stepReceipts"]))
+            self.assertEqual(original_state, f["state"].rows)
+            committed = consumer.commit_worktree()
+            self.assertEqual("complete", committed["status"])
+            self.assertEqual(result["nativeProofRefs"], committed["validationDelivery"]["nativeProofRefs"])
+            self.assertEqual(result["sourceDigest"], committed["validatedSourceDigest"])
+            self.assertEqual([1, 2, 3], f["launches"])
+            self.assertEqual(3, f["local"]._run_owned_command.call_count)
+            self.assertIn(("repository", "author", "commit", ("owned.rs",)), f["state"].authorizations)
+            self.assertFalse(result["formalAcceptance"] or result["performanceAccepted"] or result["productsAccepted"])
+
+    def test_batch_consumers_reject_missing_middle_native_or_eof_without_replay(self):
+        for missing in ("native", "stderr-eof"):
+            with self.subTest(missing=missing), self._batch_fixture() as f:
+                f["actor"].run()
+                consumer = self._batch_delivery_consumer(f)
+                middle = f["actor"].batch_claims()[1]
+                path = Path(middle["nativeTerminal"]["path"])
+                if missing == "native":
+                    path.unlink()
+                else:
+                    native = json.loads(path.read_bytes())
+                    native["processTree"]["pipes"]["stderr"]["eof"] = False
+                    path.write_bytes(runner.encoded(native) + b"\n")
+                original_state = copy.deepcopy(f["state"].rows)
+                with self.assertRaises((ValueError, OSError)):
+                    consumer.validation_delivery(f["actor"].key, "owned")
+                with self.assertRaises((ValueError, OSError)):
+                    consumer.commit_worktree()
+                consumer.git.assert_not_called()
+                self.assertEqual(original_state, f["state"].rows)
+                self.assertEqual([1, 2, 3], f["launches"])
+                self.assertEqual(3, f["local"]._run_owned_command.call_count)
+
+    def _batch_sealed_donor(self, fixture):
+        """Retain an independent successful single-recipe donor and exact receipt."""
+        actor, state, before = fixture["actor"], fixture["state"], fixture["before"]
+        key = "1" * 64
+        original = {**{k: v for k, v in actor.payload.items() if k != "batch"},
+                    "requestId": "donor-request", "operationId": "donor-operation",
+                    "verb": "test", "packages": ["zr_math"], "lib": True,
+                    "expectedSourceDigest": before["sourceDigest"]}
+        target = actor.outputs() / "pools" / ("c" * 64) / "target"
+        execution_root = target.parent / "inputs/source"
+        probe = runner.Management.__new__(runner.Management)
+        probe.payload = original
+        donor_coverage = {name: value for name, value in probe.validation_recipe().items() if name not in {"verb", "command"}}
+        manifest = self._batch_source_manifest(before, donor_coverage, actor.repo_id)
+        sealed_ref = runner.sha(runner.encoded(manifest))
+        state.put("sealed_input", sealed_ref, {"status": "sealed", "repositoryRoot": str(actor.repo),
+            "repositoryId": actor.repo_id, "sourceDigest": sealed_ref, "sourceManifest": manifest, "manifest": manifest,
+            "objectRoot": str(actor.outputs().parent), "buildRoot": actor.build_root(),
+            "coverage": donor_coverage, "coverageDigest": manifest["validationCoverageDigest"]}, expected_version=0)
+        prepared = {"physicalPath": str(execution_root), "sealedInputRef": sealed_ref,
+                    "sourceDigest": sealed_ref, "capturedSourceDigest": before["sourceDigest"]}
+        native = {"command": [str(actor.repo.parent / "cargo.exe"), "test", "--lib", "--locked"],
+            "cwd": str(execution_root), "pid": 901, "creationTime": "134000000000000901", "rootExitCode": 0,
+            "terminalErrors": [], "processTree": {"scope": "retained-windows-job", "terminal": True,
+                "nativeWaiterJoined": True, "pipeEOF": True, "readersFinished": True,
+                "pipes": {"stdout": {"eof": True}, "stderr": {"eof": True}}},
+            "nativeJobEvidence": {"errors": [], "records": {
+                "afterTerminal": {"activeProcesses": 0}, "afterClose": {"activeProcesses": 0}}}}
+        report = actor.outputs() / "reports" / key
+        request = {"payload": original, "source": before, "executionRoot": str(execution_root),
+            "command": native["command"], "preparation": prepared,
+            "preparedSource": {"sourceDigest": sealed_ref}, "validationInputPolicy": "sealed-source",
+            "capturedInputVerified": True, "inputObservation": {
+                "originalEngineUnchanged": True, "dependencyCacheUnchanged": True}}
+        request_ref = runner.write_json(report / "request.json", request)
+        native_ref = runner.write_json(report / "native-terminal.json", native)
+        result = {"status": "passed", "sourceDigest": before["sourceDigest"], "executionRoot": str(execution_root),
+            "validationInputPolicy": "sealed-source", "capturedInputVerified": True,
+            "originalEngineUnchanged": True, "dependencyCacheUnchanged": True,
+            "inputsUnchanged": False, "preparedInputsUnchanged": True, "preparation": prepared,
+            "request": request_ref, "nativeTerminal": native_ref, "formalAcceptance": False}
+        receipt_ref = runner.write_json(report / "receipt.json", result)
+        proof = runner.native_terminal_proof(native, native_ref)
+        state.put("native_job", "management-" + key + "-native", {"owner": "management-" + key,
+                  "status": "terminal", "nativeEvidence": native, "completeProof": proof, "terminalProof": proof})
+        envelope = {"operationKey": key, "requestId": original["requestId"], "operationId": original["operationId"],
+                    "sessionId": actor.session, "driverDigest": actor.config["driverDigest"],
+                    "runtimeOperationId": actor.config["runtimeOperationId"]}
+        state.put("management_operation", key, {"phase": "complete", "action": "validate",
+            "sessionId": actor.session, "requestId": original["requestId"], "operationId": original["operationId"],
+            "payload": original, "result": {**result, **envelope}})
+        state.put("management_source", key, before)
+        return {"operationKey": key, "capturedSourceDigest": before["sourceDigest"], "receiptRef": receipt_ref}
+
+    def _batch_explicit_reuse(self, fixture, reuse):
+        actor, state, before = fixture["actor"], fixture["state"], fixture["before"]
+        actor.payload["batch"]["reuseValidation"] = reuse
+        actor.payload["expectedSourceDigest"] = reuse["capturedSourceDigest"]
+        actor.input_digest = runner.sha(runner.encoded(actor.payload))
+        row = state.get("management_operation", actor.key)
+        state.put("management_operation", actor.key, {
+            **row["payload"], "payload": actor.payload, "inputDigest": actor.input_digest},
+            expected_version=row["version"])
+        actor.source = Mock(return_value=copy.deepcopy(before["source"]))
+        actor.validation_with_cache = Mock(side_effect=AssertionError("Explicit donor must not recapture live external"))
+        actor.validation_source = Mock(side_effect=AssertionError("Mutable external traversal is outside sealed reuse"))
+        actor.validation_observation = Mock(side_effect=AssertionError("Explicit reuse needs only engine/cache observation"))
+        actor.validation_sealed_observation = Mock(wraps=lambda *args, **kwargs:
+            runner.Management.validation_sealed_observation(actor, *args, **kwargs))
+
+    def test_explicit_sealed_batch_reuse_binds_old_receipt_and_runs_all_new_recipes(self):
+        with self._batch_fixture(large_capture=True) as f:
+            reuse = self._batch_sealed_donor(f)
+            donor_rows = {pair: copy.deepcopy(row) for pair, row in f["state"].rows.items()
+                          if pair[0] == "sealed_input" or pair[1] == reuse["operationKey"]
+                          or pair[1] == "management-" + reuse["operationKey"] + "-native"}
+            self._batch_explicit_reuse(f, reuse)
+            probe = runner.Management.__new__(runner.Management)
+            probe.payload, probe.repo, probe.config = f["actor"].payload, f["actor"].repo, f["actor"].config
+            probe._batch_parser, probe.build_root = entry.parse_cargo, f["actor"].build_root
+            self.assertEqual(reuse, probe.validation_batch()["reuseValidation"])
+            self.assertFalse(hasattr(probe, "state"))
+            single = runner.Management.__new__(runner.Management)
+            single.payload = {"verb": "check", "packages": ["zr_math"], "reuseValidation": reuse}
+            with self.assertRaises(ValueError):
+                single.validation_recipe()
+            result = f["actor"].run()
+            self.assertEqual("passed", result["status"])
+            self.assertEqual([1, 2, 3], f["launches"])
+            self.assertEqual(f["before"], f["state"].get("management_source", f["actor"].key)["payload"])
+            request = json.loads(Path(result["request"]["path"]).read_bytes())
+            donor_request = f["state"].get("management_operation", reuse["operationKey"])["payload"]["result"]["request"]
+            for reference in (donor_request, result["request"], f["actor"].batch_checkpoint()["sealed"]):
+                self.assertGreater(Path(reference["path"]).stat().st_size, 8 * 1024**2)
+                self.assertLess(Path(reference["path"]).stat().st_size, runner.SOURCE_EVIDENCE_MAX_BYTES)
+                with self.assertRaises(ValueError):
+                    runner.read_reference(reference)
+            provenance = request["sourceProvenance"]
+            self.assertEqual(provenance, f["actor"].batch_checkpoint()["sourceProvenance"])
+            self.assertNotEqual(f["before"]["sourceDigest"], request["preparation"]["sealedInputRef"])
+            self.assertNotEqual(provenance["sealedInputRef"], request["preparation"]["sealedInputRef"])
+            donor = f["state"].get("sealed_input", provenance["sealedInputRef"])["payload"]
+            current = f["state"].get("sealed_input", request["preparation"]["sealedInputRef"])["payload"]
+            self.assertNotEqual(donor["coverageDigest"], current["coverageDigest"])
+            self.assertEqual({k: v for k, v in donor["sourceManifest"].items() if k != "validationCoverageDigest"},
+                             {k: v for k, v in current["sourceManifest"].items() if k != "validationCoverageDigest"})
+            self.assertEqual(reuse["operationKey"], provenance["operationKey"])
+            self.assertEqual(reuse["receiptRef"], provenance["receiptRef"])
+            self.assertEqual(f["before"]["sourceDigest"], provenance["capturedSourceDigest"])
+            self.assertNotIn("management-" + reuse["operationKey"] + "-native", result["nativeProofRefs"])
+            for pair, original in donor_rows.items():
+                self.assertEqual(original, f["state"].rows[pair])
+            actor = f["actor"]
+            actor.validation_with_cache.assert_not_called()
+            actor.validation_source.assert_not_called()
+            actor.validation_observation.assert_not_called()
+            self.assertEqual(3, actor.validation_sealed_observation.call_count)
+            f["preparation"].seal_source.assert_called_once()
+            call = f["preparation"].seal_source.call_args.kwargs
+            self.assertEqual(f["before"], call["snapshot"])
+            self.assertEqual("management-" + actor.key, call["owner"])
+            self.assertEqual(f["recipes"], call["coverage"]["recipes"])
+            self.assertEqual(provenance, request["sourceProvenance"])
+            for observation in result["inputObservations"].values():
+                self.assertTrue(observation["originalEngineUnchanged"])
+                self.assertTrue(observation["dependencyCacheUnchanged"])
+                self.assertFalse(observation["externalInputsObserved"])
+                self.assertIsNone(observation["externalInputsUnchanged"])
+            self.assertFalse(result["inputsUnchanged"])
+            consumer = self._batch_delivery_consumer(f)
+            _row, _root, captured, delivery = consumer.validation_delivery(actor.key, "owned")
+            self.assertEqual(f["before"], captured)
+            self.assertEqual(result["nativeProofRefs"], delivery["nativeProofRefs"])
+            self.assertFalse(delivery["deliveryObservation"]["externalInputsObserved"])
+            self.assertFalse(result["formalAcceptance"] or result["performanceAccepted"] or result["productsAccepted"])
+
+    def test_explicit_batch_reuse_rejects_bad_donor_receipt_capture_engine_or_cache_before_native(self):
+        for mismatch in ("receipt", "capture", "engine", "cache"):
+            with self.subTest(mismatch=mismatch), self._batch_fixture() as f:
+                reuse = self._batch_sealed_donor(f)
+                if mismatch == "receipt":
+                    reuse["receiptRef"] = {**reuse["receiptRef"], "sha256": "0" * 64}
+                elif mismatch == "capture":
+                    reuse["capturedSourceDigest"] = "0" * 64
+                self._batch_explicit_reuse(f, reuse)
+                actor = f["actor"]
+                if mismatch == "engine":
+                    engine = copy.deepcopy(f["before"]["source"])
+                    engine["files"]["owned.rs"] = runner.sha(b"later engine edit")
+                    actor.source.return_value = engine
+                elif mismatch == "cache":
+                    actor.dependency_cache.return_value = {**f["before"]["dependencyCache"], "configSha256": {"config": "0" * 64}}
+                with self.assertRaises(ValueError):
+                    actor.validate_batch()
+                self.assertIsNone(f["state"].get("management_source", actor.key))
+                self.assertEqual([], f["launches"])
+                f["preparation"].seal_source.assert_not_called()
+                f["preparation"].materialize_source.assert_not_called()
+
+    def test_batch_capacity_wait_recovers_same_parent_and_volume_without_source_walk(self):
+        with self._batch_fixture() as f:
+            actor = f["actor"]
+            f["local"].free_bytes.return_value = 1
+            result = actor.run()
+            self.assertEqual("waiting", result["status"])
+            self.assertEqual(actor.payload["buildRoot"], result["buildRoot"])
+            self.assertEqual([], f["launches"])
+            actor.validation_with_cache.assert_not_called()
+            f["preparation"].seal_source.assert_not_called()
+            f["resources"].admit.assert_not_called()
+            digest, key, payload = actor.input_digest, actor.key, copy.deepcopy(actor.payload)
+            f["local"].free_bytes.return_value = 100 * 1024**3
+            self.assertEqual("passed", actor.run()["status"])
+            self.assertEqual((digest, key, payload), (actor.input_digest, actor.key, actor.payload))
+            self.assertEqual([1, 2, 3], f["launches"])
+
+    def test_batch_resume_reconciles_real_step_files_without_native_replay_and_unknown_eof_stays_held(self):
+        with self._batch_fixture() as f:
+            actor, original = f["actor"], f["actor"].batch_step_proof
+            def interrupted(claim, *, persist=False):
+                if claim["ordinal"] == 1 and persist:
+                    raise RuntimeError("Synthetic interruption after actual terminal bytes")
+                return original(claim, persist=persist)
+            with patch.object(actor, "batch_step_proof", side_effect=interrupted):
+                self.assertEqual("unknown", actor.run()["status"])
+            self.assertEqual([1], f["launches"])
+            self.assertTrue(actor.batch_recovery_ready())
+            self.assertEqual("prepared", actor.batch_checkpoint()["stage"])
+            self.assertEqual("passed", actor.run()["status"])
+            self.assertEqual([1, 2, 3], f["launches"])
+            actor.validation_with_cache.assert_called_once()
+            f["preparation"].seal_source.assert_called_once()
+            f["preparation"].materialize_source.assert_called_once()
+        with self._batch_fixture() as f:
+            f["options"]["incompleteOrdinal"] = 1
+            self.assertEqual("unknown", f["actor"].run()["status"])
+            self.assertFalse(f["actor"].batch_recovery_ready())
+            self.assertEqual("unknown", f["actor"].run()["status"])
+            self.assertEqual([1], f["launches"])
+            f["resources"].release.assert_not_called()
+            self.assertEqual("active", f["state"].get("pool_writer_hold", f["actor"].batch_checkpoint()["writer"])["payload"]["status"])
+
+    def test_batch_zero_matching_and_failed_early_steps_cannot_be_overwritten_by_later_success(self):
+        for option, ordinal in (("zeroOrdinal", 3), ("failedOrdinal", 1)):
+            with self.subTest(option=option), self._batch_fixture() as f:
+                f["options"][option] = ordinal
+                result = f["actor"].run()
+                self.assertEqual("failed", result["status"])
+                self.assertEqual("failed", result["steps"][ordinal - 1]["status"])
+                self.assertEqual([1, 2, 3], f["launches"])
+                if option == "zeroOrdinal":
+                    self.assertEqual(0, result["steps"][-1]["passedTestCount"])
+                    self.assertFalse(result["steps"][-1]["testEvidenceComplete"])
+                else:
+                    self.assertEqual("passed", result["steps"][-1]["status"])
+                self.assertFalse(result["formalAcceptance"] or result["m8Accepted"]
+                                 or result["performanceAccepted"] or result["productsAccepted"])
+                f["resources"].release.assert_called_once()
+
+
+class WorktreeLifecycleTests(unittest.TestCase):
+    """Contracts for path budgeting, worktree adoption, and traversal refusal."""
+
+    def _management(self, temporary, *, session="s", operation="o", owned=("owned.txt",)):
+        repo = Path(temporary) / "repository"
+        worktrees = repo / ".jenkins/worktrees"
+        worktrees.mkdir(parents=True)
+        management = runner.Management.__new__(runner.Management)
+        management.repo, management.worktrees = repo, worktrees
+        management.state, management.repo_id = MemoryState(), "repository"
+        management.session, management.request, management.operation = session, "r", operation
+        management.owned = list(owned)
+        management.config = {"driverDigest": "d" * 64, "runtimeOperationId": "runtime"}
+        management.payload = {"name": "task", "baseHead": "a" * 40}
+        return management, worktrees, management.state
+
+    def test_deep_checkout_is_refused_before_any_git_write(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-budget-") as temporary:
+            management, worktrees, _state = self._management(temporary)
+            management.text = lambda path, *args: "a" * 40
+            calls = []
+            management.git = lambda path, *args, **kwargs: calls.append(args) or SimpleNamespace(stdout=b"", returncode=0)
+            with patch.object(runner, "deepest_tracked_paths", return_value=(210, 200)):
+                with self.assertRaises(runner.ManagedPathBudget) as caught:
+                    management.new_worktree()
+            self.assertEqual("managed_path_budget_exceeded", caught.exception.code)
+            self.assertEqual([], calls, "budget must be decided before Git touches the disk")
+            self.assertFalse((worktrees / ("s-task")).exists())
+
+    def test_repeated_create_worktree_with_same_identity_reuses_its_record(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-idempotent-") as temporary:
+            management, worktrees, state = self._management(temporary)
+            management.text = lambda path, *args: "a" * 40
+            added = []
+
+            def git(path, *args, **kwargs):
+                added.append(args)
+                (worktrees / "s-task").mkdir(parents=True, exist_ok=True)
+                return SimpleNamespace(stdout=b"", returncode=0)
+
+            management.git = git
+            with patch.object(runner, "deepest_tracked_paths", return_value=(10, 10)):
+                first = management.new_worktree()
+                second = management.new_worktree()
+            self.assertEqual(first[0], second[0])
+            self.assertEqual(first[2]["baseHead"], second[2]["baseHead"])
+            self.assertEqual(1, len(added), "the second call must not add a second worktree")
+            self.assertEqual(("worktree", "add"), added[0][:2])
+
+    def test_reference_bound_to_another_operation_reports_a_reason_code(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-conflict-") as temporary:
+            management, worktrees, state = self._management(temporary)
+            management.text = lambda path, *args: "a" * 40
+            (worktrees / "s-task").mkdir(parents=True)
+            state.put("management_worktree", "s-task", {
+                "status": "ready", "path": str(worktrees / "s-task"), "branch": None,
+                "baseHead": "b" * 40, "sessionId": "s", "operationId": "other",
+                "ownedPaths": ["owned.txt"], "driverDigest": "d" * 64})
+            with self.assertRaises(runner.WorktreeConflict) as caught:
+                management.new_worktree()
+            self.assertEqual("reference_in_use", caught.exception.reason)
+            self.assertEqual("other", caught.exception.details["recordedOperation"])
+
+    def test_unregistered_directory_is_adopted_only_when_git_identity_matches(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-adopt-") as temporary:
+            management, worktrees, _state = self._management(temporary)
+            (worktrees / "s-task").mkdir(parents=True)
+
+            def own_repository(path, *args):
+                # The base commit resolves first, then adoption compares the
+                # physical Git identity of the directory that already exists.
+                if args[:1] == ("rev-parse",) and args[1].endswith("^{commit}"):
+                    return "a" * 40
+                if "--git-common-dir" in args:
+                    return str(management.repo / ".git")
+                if args[:2] == ("rev-parse", "HEAD"):
+                    return "a" * 40
+                raise AssertionError("Unexpected read while adopting: " + repr(args))
+
+            management.text = own_repository
+            adopted = management.new_worktree()
+            self.assertTrue(adopted[2]["adopted"])
+
+            foreign = runner.Management.__new__(runner.Management)
+            foreign.repo, foreign.worktrees = management.repo, worktrees
+            foreign.state, foreign.repo_id = MemoryState(), "repository"
+            foreign.session, foreign.request, foreign.operation = "s", "r", "o"
+            foreign.owned = ["owned.txt"]
+            foreign.config = {"driverDigest": "d" * 64, "runtimeOperationId": "runtime"}
+            foreign.payload = {"name": "second", "baseHead": "a" * 40}
+
+            def other_repository(path, *args):
+                if args[:1] == ("rev-parse",) and args[1].endswith("^{commit}"):
+                    return "a" * 40
+                if "--git-common-dir" in args:
+                    return "C:\\somewhere\\else\\.git"
+                raise AssertionError("Unexpected read for a foreign directory: " + repr(args))
+
+            foreign.text = other_repository
+            (worktrees / "s-second").mkdir(parents=True)
+            with self.assertRaises(runner.WorktreeConflict) as caught:
+                foreign.new_worktree()
+            self.assertEqual("foreign_repository", caught.exception.reason)
+
+    def test_physical_paths_refuse_parent_traversal(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-traversal-") as temporary:
+            with self.assertRaises(ValueError):
+                runner.plain(Path(temporary) / ".." / "escape")
+            self.assertTrue(runner.plain(Path(temporary)).is_absolute())
+
+
+class WorktreeRecoveryTests(unittest.TestCase):
+    """A dead owner must be recoverable without certifying the work it never finished."""
+
+    KEY = "a" * 64
+
+    def _fixture(self, temporary, *, worktree_status="releasing", operation_phase="running",
+                 session="s", operation_session="s", present=False, common_dir=None):
+        repo = Path(temporary) / "repository"
+        worktrees = repo / ".jenkins/worktrees"
+        worktrees.mkdir(parents=True)
+        path = worktrees / "s-task"
+        if present:
+            path.mkdir(parents=True)
+        state = MemoryState()
+        state.put("management_worktree", "s-task", {
+            "status": worktree_status, "path": str(path), "branch": None, "baseHead": "b" * 40,
+            "sessionId": "s", "ownedPaths": ["owned.txt"], "driverDigest": "d" * 64,
+            "releaseOperationKey": self.KEY, "releaseRequest": {"stale": True}})
+        state.put("management_operation", self.KEY, {
+            "phase": operation_phase, "action": "release-worktree", "sessionId": operation_session,
+            "payload": {"worktreeId": "s-task"}, "requestId": "r", "operationId": "o"})
+        management = runner.Management.__new__(runner.Management)
+        management.repo, management.worktrees = repo, worktrees
+        management.state, management.repo_id = state, "repository"
+        management.session, management.request, management.operation = session, "r", "o"
+        management.owned = ["owned.txt"]
+        management.config = {"driverDigest": "d" * 64, "runtimeOperationId": "runtime"}
+        management.key = "f" * 64
+        management.payload = {"worktreeId": "s-task", "operationKey": self.KEY}
+        management.text = lambda target, *args: (
+            common_dir if "--git-common-dir" in args else "b" * 40)
+        return management, state, path
+
+    def test_releasing_without_a_directory_resolves_to_released(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-recover-released-") as temporary:
+            management, state, _path = self._fixture(temporary)
+            result = management.recover_worktree()
+            self.assertEqual("released", result["resolution"])
+            self.assertEqual("releasing", result["previousWorktreeStatus"])
+            self.assertFalse(result["directoryPresent"])
+            self.assertFalse(result["formalAcceptance"] or result["commitPerformed"])
+            record = state.get("management_worktree", "s-task")["payload"]
+            self.assertEqual("released", record["status"])
+            self.assertNotIn("releaseRequest", record)
+            self.assertEqual("unknown", state.get("management_operation", self.KEY)["payload"]["phase"])
+
+    def test_present_directory_owned_by_this_repository_resolves_to_ready(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-recover-ready-") as temporary:
+            repo = Path(temporary) / "repository"
+            management, state, _path = self._fixture(
+                temporary, worktree_status="ready", operation_phase="running",
+                present=True, common_dir=str(repo / ".git"))
+            result = management.recover_worktree()
+            self.assertEqual("ready", result["resolution"])
+            self.assertTrue(result["directoryPresent"])
+            self.assertEqual("ready", state.get("management_worktree", "s-task")["payload"]["status"])
+
+    def test_foreign_directory_and_foreign_operation_are_both_refused(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-recover-refuse-") as temporary:
+            management, state, _path = self._fixture(
+                temporary, worktree_status="ready", present=True,
+                common_dir=str(Path(temporary) / "elsewhere" / ".git"))
+            with self.assertRaises(ValueError):
+                management.recover_worktree()
+            self.assertEqual("ready", state.get("management_worktree", "s-task")["payload"]["status"],
+                             "a refused recovery must not move the record")
+
+        with tempfile.TemporaryDirectory(prefix="ordinary-recover-session-") as temporary:
+            management, _state, _path = self._fixture(temporary, operation_session="other")
+            with self.assertRaises(ValueError):
+                management.recover_worktree()
+
+    def test_recovery_never_claims_the_interrupted_work_was_completed(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-recover-honest-") as temporary:
+            management, _state, _path = self._fixture(temporary)
+            result = management.recover_worktree()
+            for key in ("formalAcceptance", "commitPerformed", "pushPerformed"):
+                self.assertFalse(result[key])
+            self.assertNotIn("nativeTerminal", result)
+
+
+class FlowBridgeTests(unittest.TestCase):
+    """The management chain must hand Flow a product-only current source."""
+
+    def _fixture(self, temporary, *, files, tracked, owned):
+        repo = Path(temporary) / "repository"
+        worktrees = repo / ".jenkins/worktrees"
+        worktrees.mkdir(parents=True)
+        root = worktrees / "s-task"
+        root.mkdir()
+        management = runner.Management.__new__(runner.Management)
+        management.repo, management.worktrees = repo, worktrees
+        management.state, management.repo_id = MemoryState(), "repository"
+        management.session, management.request, management.operation = "s", "r", "o"
+        management.owned = list(owned)
+        management.config = {"driverDigest": "d" * 64, "runtimeOperationId": "runtime"}
+        management.payload = {
+            "worktreeId": "s-task",
+            "flowIdentity": {"sessionId": "s", "requestId": "r", "generation": 1},
+            "coverage": {"template": "editor_product_development",
+                         "requiredTests": ["some::case"], "noDefaultFeatures": True}}
+        management.wt = lambda reference, **kwargs: ({"path": str(root), "sessionId": "s"}, root)
+        management.source = lambda target, **kwargs: {
+            "head": "a" * 40, "files": dict(files), "diffSha256": "b" * 64, "sourceDigest": "c" * 64}
+        management.git = lambda target, *args, **kwargs: SimpleNamespace(
+            stdout=b"".join(name.encode() + b"\0" for name in sorted(tracked)))
+        management.build_root = lambda **kwargs: r"E:\cargo-targets"
+        return management
+
+    def test_flow_preparation_excludes_checkout_control_from_product_input(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-flow-bridge-") as temporary:
+            management = self._fixture(
+                temporary,
+                files={".jenkins/README.md": "1" * 64, ".codex/note.md": "2" * 64,
+                       "src/main.rs": "3" * 64, "src/new.rs": "4" * 64},
+                tracked={"src/main.rs"},
+                owned=["src/main.rs", ".jenkins/README.md"])
+            seen = {}
+
+            def capture(action, payload, state, repo_root, **kwargs):
+                seen.update(payload)
+                self.assertEqual("register", action)
+                return {"status": "registered", "currentSourceRef": "e" * 64}
+
+            import tools.jenkins.current_source as current_source_module
+            with patch.object(current_source_module, "handle", side_effect=capture):
+                result = management.prepare_flow()
+
+            self.assertEqual({"src/main.rs": "3" * 64, "src/new.rs": "4" * 64},
+                             seen["currentHashes"], "checkout control must not become product input")
+            self.assertEqual(["src/main.rs"], seen["ownedPaths"],
+                             "a control owned path cannot be handed to Flow as owned product source")
+            self.assertEqual(["src/new.rs"], seen["untrackedPaths"])
+            self.assertEqual(str(management.worktrees / "s-task"), seen["sourceRoot"])
+            self.assertEqual("e" * 64, result["currentSourceRef"])
+            self.assertEqual("prepared", result["status"])
+            self.assertFalse(result["formalAcceptance"] or result["commitPerformed"])
+
+    def test_flow_preparation_refuses_when_only_control_paths_are_owned(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-flow-control-only-") as temporary:
+            management = self._fixture(
+                temporary, files={".jenkins/README.md": "1" * 64},
+                tracked={".jenkins/README.md"}, owned=[".jenkins/README.md"])
+            with self.assertRaisesRegex(ValueError, "owned product source"):
+                management.prepare_flow()
+
+    def test_flow_preparation_requires_an_explicit_coverage_template(self):
+        with tempfile.TemporaryDirectory(prefix="ordinary-flow-coverage-") as temporary:
+            management = self._fixture(
+                temporary, files={"src/main.rs": "3" * 64},
+                tracked={"src/main.rs"}, owned=["src/main.rs"])
+            management.payload.pop("coverage")
+            with self.assertRaisesRegex(ValueError, "coverage template"):
+                management.prepare_flow()
+
 
 if __name__ == "__main__":
     unittest.main()

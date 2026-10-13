@@ -2,7 +2,7 @@
 
 - Date: 2026-08-21
 - Owner: `optimize-plugins17-hot-inheritance-r1-01a00797-20260821`
-- Source plan: `docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster-product-integration-review.md`, supporting NVG-P1-023 and NVG-P1-046
+- Source plan: `docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster.md`, supporting NVG-P1-023 and NVG-P1-046
 - Status: implementation and focused static validation complete; managed release timing queued
 
 ## Problem

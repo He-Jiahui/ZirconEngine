@@ -70,6 +70,12 @@ fn diagnostic_paths_registered() {
     record_net_diagnostics(&runtime.handle(), 7, &diagnostics);
 
     let snapshot = runtime.diagnostic_store_snapshot();
+    let outbound_series = snapshot
+        .series
+        .iter()
+        .find(|series| series.path.as_str() == NET_DIAGNOSTIC_OUTBOUND_BYTES)
+        .expect("outbound diagnostics should be recorded");
+    assert_eq!(outbound_series.history.last().unwrap().frame_index, 7);
     assert!(NET_DIAGNOSTIC_PATHS.contains(&NET_DIAGNOSTIC_OUTBOUND_BYTES));
     assert_series(
         &snapshot,
@@ -163,6 +169,38 @@ fn net_runtime_diagnostics_count_listeners_by_transport() {
     assert_eq!(diagnostics.open_tcp_listeners, 0);
     assert_eq!(diagnostics.open_http_listeners, 0);
     assert_eq!(diagnostics.open_websocket_listeners, 0);
+}
+
+#[test]
+fn event_ingress_preserves_large_backlogs_and_bounds_manager_queue() {
+    let net = DefaultNetManager::default();
+    const EVENT_COUNT: usize = 5_000;
+    for index in 0..EVENT_COUNT {
+        net.register_http_route(
+            zircon_runtime::core::framework::net::NetHttpRouteDescriptor::new(
+                format!("/event-{index}"),
+                [zircon_runtime::core::framework::net::NetHttpMethod::Get],
+            ),
+            NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, Vec::new()),
+        )
+        .unwrap();
+    }
+
+    for _ in 0..20 {
+        assert_eq!(net.diagnostics().queued_events, EVENT_COUNT);
+    }
+    assert_eq!(net.manager_event_queue_len_for_test(), 4_096);
+
+    let mut delivered = Vec::new();
+    loop {
+        let batch = net.drain_events(4_096);
+        if batch.is_empty() {
+            break;
+        }
+        delivered.extend(batch);
+    }
+    assert_eq!(delivered.len(), EVENT_COUNT);
+    assert_eq!(net.diagnostics().queued_events, 0);
 }
 
 #[test]

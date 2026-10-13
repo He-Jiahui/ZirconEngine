@@ -1,3 +1,5 @@
+//! 剪贴板 ABI 的 JSON 往返与编码预算契约测试；不调用平台剪贴板实现。
+
 use super::*;
 use crate::ui::dispatch::{
     UiClipboardRequestKind, UiClipboardTransferIntent, UiClipboardTransferOutcome,

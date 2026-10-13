@@ -13,7 +13,7 @@ supersedes_currentness_of:
 related_runtime_owners:
   - docs/plans/optimize/zircon_runtime/05-scene-ecs-world-lifecycle-review.md
   - docs/plans/optimize/zircon_runtime/40-save-game-checkpoint-slot-participant-capture-serialization-migration-platform-cloud-async-network-scalability-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/99u-runtime-dynamic-scene-asset-reload-event-generation-reconciliation-stage-apply-instance-replacement-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99u-runtime-dynamic-scene-asset-reload-event-generation-reconciliation-stage-apply-instance-replacement.md
   - docs/plans/optimize/zircon_runtime/99v-runtime-dynamic-scene-session-archive-slot-capture-restore-path-merge-retention-durability-product-integration-current-source-review.md
 related_editor_owners:
   - docs/plans/optimize/zircon_editor/02-document-transaction-save-autosave-recovery-review.md

@@ -9,6 +9,8 @@ use crate::poison_recovery::lock_recover;
 
 use super::DefaultNetManager;
 
+const DIAGNOSTICS_INGRESS_BUDGET: usize = 256;
+
 impl DefaultNetManager {
     pub(in crate::service_types) fn backend_name_impl(&self) -> String {
         let mut name = "tokio-net".to_string();
@@ -28,8 +30,8 @@ impl DefaultNetManager {
     }
 
     pub(in crate::service_types) fn diagnostics_impl(&self) -> NetDiagnostics {
-        // BUG: [CR-PLUGIN-NET-0002] 诊断先以 usize::MAX 搬运 ingress，可超过 scene 的 256 条发布预算；主 VecDeque 没有容量约束。
-        self.state.poll_worker_ingress(usize::MAX);
+        self.state
+            .poll_worker_ingress(DIAGNOSTICS_INGRESS_BUDGET);
         let (outbound_bytes, inbound_bytes, last_observed_latency_ms) =
             self.state.diagnostic_counters();
         NetDiagnostics {
@@ -45,7 +47,7 @@ impl DefaultNetManager {
             open_tcp_connections: lock_recover(&self.state.tcp_connections).len(),
             open_http_routes: lock_recover(&self.state.http_routes).len(),
             open_websocket_connections: lock_recover(&self.state.websocket_connections).len(),
-            queued_events: lock_recover(&self.state.events).len(),
+            queued_events: self.state.queued_event_count(),
         }
     }
 }

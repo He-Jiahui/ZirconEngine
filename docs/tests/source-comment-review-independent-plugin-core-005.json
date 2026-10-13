@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "plugin-core-005",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "reviewer": "/root",
+  "checkout": "E:/Git/ZirconEngine",
+  "assignmentBaseHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "status": "independently-reviewed-awaiting-coordinator",
+  "agentEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-plugin-core-005.json",
+    "sha256": "85e4b5c02fe6785b80c6eb519fc7d7630b4621c3da16fe46f8578c2ab201d0f0",
+    "bytes": 449081,
+    "sectionsReviewed": ["files", "contractGroups", "callerEvidence", "physicalCommentOnlyProof", "coverageSummary", "validation", "sharedReviewLimits", "compilerFacingDocumentation"]
+  },
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/plugin_api.rs",
+      "initialSha256": "c18c61b30a589fc1cc6d12750db7288efa2ed61e443e01ee885af04571735d8e",
+      "reviewedSha256": "a8f5c3b60af26d2abdc119757e9a82fd6bd1f879b87a8b2f40c5693fcf41e01f",
+      "contractGroups": ["PCG-01", "PCG-02", "PCG-03", "PCG-04", "PCG-05", "PCG-06", "PCG-07", "PCG-08", "PCG-09", "PCG-10", "PCG-11", "PCG-12", "PCG-13", "PCG-14", "PCG-15"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/plugin_events.rs",
+      "initialSha256": "9f5c351cadf84e2dc8422768724955500000a8b9f0a9597d0739f1bb60f705ba",
+      "reviewedSha256": "9f42b6b36e40c651e212772724e630840b10f9fd646d966adb5f1fb65f66bf79",
+      "contractGroups": ["PCG-16", "PCG-17"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/plugin_diagnostics.rs",
+      "initialSha256": "bc71c12a6477049a6e22eca78a2d69ea5ae71737eafb1d851ed9c995abf945a4",
+      "reviewedSha256": "b561dde2445f5575dc0c25f962350b46f8da5251d69bfac18e1209d1994cfff5",
+      "contractGroups": ["PCG-18", "PCG-19"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/plugin_api_contracts.rs",
+      "initialSha256": "f91991802231ac406553f427a6b17c71c851cd4e0f78732de1a1bf7801cb994e",
+      "reviewedSha256": "9b97d60eb3b4aff610c9aa40ec97e06e093ad764cc3b3699a58e493557d30502",
+      "contractGroups": ["PCG-20"]
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/plugin_diagnostics.rs",
+      "initialSha256": "bf7b6964f79ddd6f7ce1cbe64fabe7028ce6c7ec0ce64d76f3d6e2eaa5997623",
+      "reviewedSha256": "58361f056cec670bb9d49cf16478d8806003bd634671210fcb686949c3882b72",
+      "contractGroups": ["PCG-21"]
+    }
+  ],
+  "independentFindings": [
+    {
+      "subject": "共享 ABI 与实际原生 SDK 的边界",
+      "evidenceIds": ["ROOT", "SDKLOADER", "SDKLAYOUT", "LAYOUTTEST"],
+      "finding": "共享入口类型返回 ZrPluginEntryReportV1；实际 NativePluginEntryFnV3 使用独立宿主表及带 layout_epoch 的报告。入口符号同名不证明两套布局兼容。全仓引用证据未找到共享快照表的生产调度器，注释没有宣称已经接通。"
+    },
+    {
+      "subject": "宿主表、同步注册和后续执行的不同期限",
+      "evidenceIds": ["REGSCOPE", "REGISTER", "DECODE", "CTX", "CTXLEASE", "REGTEST", "POLICYTEST"],
+      "finding": "主审独立读取 V4 注册 scope 与 ECS 适配器。V1 复制名称、集合及依赖，采用保守 World 访问；V4 先检查描述头和访问声明，再验证访问计划及授权。两者执行闭包保留 invoke/user_data，传空 payload 并忽略返回状态。组件路径只消费 type_id/display_name；宿主表复制不延长 scope 或回调代码期限。原有生命周期风险未被宣布解决。"
+    },
+    {
+      "subject": "桥接表的真实提供者与分派路径",
+      "evidenceIds": ["BRIDGE", "LIVEBRIDGE", "CTX", "CTXLEASE"],
+      "finding": "真实类型是 NativeHostBridgeCallScope。V3 表只开放 bridge.call；实际回调取得上下文及 pin，检查接口启用和方法存在，取得可选库世代 lease 后同步执行。V4 注册 scope 与桥接 scope 的句柄不混用。主审纠正过自己的类型名误述，最终证据使用实际定义。"
+    },
+    {
+      "subject": "声音事件的双层状态和借用诊断",
+      "evidenceIds": ["SOUNDREQUEST", "SOUNDCALL", "SOUNDSTATUS", "SOUNDREGISTER", "SOUNDTESTOK", "SOUNDTESTFAIL", "CAPTURE", "FAILCALL"],
+      "finding": "请求从 delivery 借用字段。执行器先判断外层调用状态，再检查结果版本，最后判断内层业务状态；失败夹具明确展示外层 Ok、内层 Error。status_detail 有界读取并复制诊断，提供方内存须持续可读到复制结束。测试静态回调不证明生产卸载 pin，旧 TODO 保留。"
+    },
+    {
+      "subject": "诊断与测试的实际契约",
+      "evidenceIds": ["EDITORCAT", "EDITORREPORT", "EDITORTEST", "DIAGTEST", "LAYOUTTEST", "HARNESS", "CONTRACT"],
+      "finding": "Editor 在声明能力缺席时创建拥有文本的诊断，报告仅因 Error 失败。布局测试检查当前 64 位布局，不执行真实注册或快照。ignored 性能夹具的预热、非空 P95 样本及计时前复制已经阅读，未执行或宣称性能通过。"
+    }
+  ],
+  "coverage": {
+    "files": 5,
+    "agentObjectGroups": 121,
+    "enumeratedFieldAndVariantMembers": 102,
+    "functions": 35,
+    "functionAndNestedStatementBlocks": 62,
+    "contractGroups": 21,
+    "countInterpretation": "分组及成员清单用于导航；覆盖依据是对象、语句块和实际调用上下文证据，计数本身不代表完成全仓。"
+  },
+  "independentChecks": {
+    "physicalBytesAndLexicalCheck": {
+      "rootExecCell": 32,
+      "sourceBaseline": "逐份读取 git --no-optional-locks show 5a547d4e… 原始 blob；每份 SHA 精确等于分配时物理 initialSha256",
+      "method": "逐行 byte SequenceMatcher 只允许独立注释/空行插入；调用既有 Jenkins Rust lexer，仅排除明确 doc_comment_spans 后比较非文档代码 token",
+      "allFiveOriginalByteLinesAndEolsPreserved": true,
+      "insertedCommentOrBlankLines": 306,
+      "nonDocumentCodeTokensEqual": true,
+      "compilerFacingTokensEqual": false,
+      "newLineSensitiveOrSourceEmbeddingMacros": false,
+      "newRustcDirectiveComments": false,
+      "formalDocumentationAndMacroValidation": "pending; 新增文档属性可能被 compiler/derive/procedural macros 观察，不能强制 comments_only 分类"
+    },
+    "changeGuard": {
+      "rootExecCell": 33,
+      "command": ".jenkins/runtime/python/python.exe -B .codex/skills/zircon-change-guard/scripts/change_guard.py --json patch --git --base 5a547d4e2727d27ddf99578f548efb7e6d19d915 --path <exact five paths>",
+      "status": "passed",
+      "writeGrantCheck": true,
+      "errors": 0,
+      "warnings": 0,
+      "suppressed": 0,
+      "patchDigest": "48012ef2b165445518eb4224f4e8bc7e567197a5b98e68b7b411896c5955a569"
+    },
+    "currentHashBindings": {
+      "rootExecCell": 39,
+      "sourcePinsMatching": 5,
+      "callerPinsMatching": 27,
+      "callerPinsTotal": 27,
+      "mismatches": [],
+      "agentEvidencePinMatching": true,
+      "method": "当前物理文件 SHA 与 agentEvidence 的 currentSha256/observedSha256 逐项比较"
+    },
+    "formatting": {
+      "status": "passed; reuse unchanged final-source evidence",
+      "edition": "2021; interface package uses workspace edition",
+      "scope": "exact five owned files; rustfmt --check --config skip_children=true",
+      "evidence": "agentEvidence.validation.rustfmt; exec cells 22, 26, 28 with terminal exit 0",
+      "rootRerun": false
+    },
+    "diffWhitespace": "passed; agent exact-path git diff --check receipts bind final hashes",
+    "issueConsistency": {"sourceTags": [], "newIssueIds": [], "wholeRepositoryConsistency": false},
+    "cargoOrPerformanceTestsRunByRoot": false
+  },
+  "handoffRequirements": {
+    "formalValidation": "pending: supported Jenkins parsing/formatting/documentation recipe and hash-bound receipt",
+    "stageCommit": "pending: exact frozen source/evidence attribution, commit-time index lock diagnosis, preserved foreign staged work and validation gates",
+    "attachedWeComNotification": "authorized by user; pending actual coordinator execution and receipt",
+    "pushAuthorized": false,
+    "originalRequestId": "source-comment-audit-20261012",
+    "attempt": 1,
+    "originalIntakeBuild": 25,
+    "sourceCopiesAllowed": false
+  },
+  "artifactLifecycle": {"ownGeneratedProducts": 0, "ownBuildProcesses": 0, "ownTemporaryFiles": 0, "releasedBytes": 0, "taskManifest": "pending Jenkins generation; no lifecycle closeout asserted"},
+  "formalAcceptance": false,
+  "wholeRepositoryComplete": false
+}

@@ -3,7 +3,7 @@ status: in_progress
 review_date: 2026-09-05
 plan_sources:
   - docs/plans/astra/layouts/01-responsive-layout.md
-  - docs/plans/optimize/zircon_editor/193-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/193-editor-scene-viewport-layout-split-view-orthographic-quadrant-maximize-link-sync-slot-focus-toolbar-persistence-performance.md
 ---
 
 # Editor 原生最小尺寸与布局恢复

@@ -1,11 +1,16 @@
 //! ReflectTypePath 构造与 wire 反序列化共用此校验：Rust 路径使用 ::，VM 路径使用 .，插件键另遵循小写 ASCII 语法。
 use super::super::ReflectError;
 
+/// 完整 Rust 或 VM 类型路径允许的最大 UTF-8 字节数。
 pub const MAX_REFLECT_TYPE_PATH_BYTES: usize = 512;
+/// 短类型名允许的最大 UTF-8 字节数。
 pub const MAX_REFLECT_SHORT_TYPE_PATH_BYTES: usize = 128;
+/// 模块路径允许的最大 UTF-8 字节数。
 pub const MAX_REFLECT_MODULE_PATH_BYTES: usize = 384;
+/// 插件归属键允许的最大 UTF-8 字节数。
 pub const MAX_REFLECT_PLUGIN_ID_BYTES: usize = 128;
 
+/// 校验完整路径的长度、规范 ASCII 文本，以及互斥的 Rust/VM 分隔符语法。
 pub(in crate::reflect) fn validate_type_path(type_path: &str) -> Result<(), ReflectError> {
     validate_length(
         type_path,
@@ -15,6 +20,7 @@ pub(in crate::reflect) fn validate_type_path(type_path: &str) -> Result<(), Refl
     )?;
     validate_canonical_text(type_path, "type path", type_path)?;
 
+    // 先拒绝混用分隔符，再选定唯一语法，避免同一路径被两套规则不同解释。
     let has_rust_separator = type_path.contains("::");
     let has_vm_separator = type_path.contains('.');
     if has_rust_separator && has_vm_separator {
@@ -41,6 +47,7 @@ pub(in crate::reflect) fn validate_type_path(type_path: &str) -> Result<(), Refl
     Ok(())
 }
 
+/// 短名必须是单个 ASCII 标识符，并与完整路径的末段完全一致。
 pub(super) fn validate_short_type_path(
     type_path: &str,
     short_type_path: &str,
@@ -70,6 +77,7 @@ pub(super) fn validate_short_type_path(
     Ok(())
 }
 
+/// 模块路径只允许作为完整路径的严格前缀；未限定类型没有可附加的模块段。
 pub(super) fn validate_module_path(type_path: &str, module_path: &str) -> Result<(), ReflectError> {
     validate_length(
         module_path,
@@ -94,6 +102,7 @@ pub(super) fn validate_module_path(type_path: &str, module_path: &str) -> Result
     Ok(())
 }
 
+/// 插件键要求小写 ASCII 字符；首字符为字母或数字，其余可含 `_`、`-`、`.`。
 pub(super) fn validate_plugin_id(type_path: &str, plugin_id: &str) -> Result<(), ReflectError> {
     validate_length(
         plugin_id,
@@ -122,6 +131,7 @@ pub(super) fn validate_plugin_id(type_path: &str, plugin_id: &str) -> Result<(),
     Ok(())
 }
 
+// `str::len` 返回 UTF-8 字节数，与公开的 wire 长度常量单位一致。
 fn validate_length(
     value: &str,
     field: &str,
@@ -137,6 +147,7 @@ fn validate_length(
     Ok(())
 }
 
+// 路径分段规则使用 ASCII；先统一拒绝空文本、首尾空白和非 ASCII 输入。
 fn validate_canonical_text(value: &str, field: &str, type_path: &str) -> Result<(), ReflectError> {
     if value.is_empty() {
         return Err(invalid_type_path(
@@ -159,6 +170,7 @@ fn validate_canonical_text(value: &str, field: &str, type_path: &str) -> Result<
     Ok(())
 }
 
+// Rust 类型路径采用 ASCII 标识符子集 `[A-Za-z_][A-Za-z0-9_]*`。
 fn is_identifier(segment: &str) -> bool {
     let mut bytes = segment.bytes();
     let Some(first) = bytes.next() else {
@@ -168,6 +180,7 @@ fn is_identifier(segment: &str) -> bool {
         && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
 }
 
+// VM 路径允许命名空间段含连字符，但终端类型名仍要求严格标识符。
 fn validate_vm_type_path(type_path: &str) -> bool {
     let mut segments = type_path.split('.').peekable();
     while let Some(segment) = segments.next() {
@@ -181,6 +194,7 @@ fn validate_vm_type_path(type_path: &str) -> bool {
     false
 }
 
+// VM 命名空间段首字符为字母、数字或下划线，后续还可使用连字符。
 fn is_vm_namespace_segment(segment: &str) -> bool {
     let mut bytes = segment.bytes();
     let Some(first) = bytes.next() else {
@@ -190,6 +204,7 @@ fn is_vm_namespace_segment(segment: &str) -> bool {
         && bytes.all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
 }
 
+// 从已选定的 Rust `::` 或 VM `.` 语法中取最后一个类型名段。
 fn terminal_segment(type_path: &str) -> &str {
     if type_path.contains("::") {
         type_path.rsplit("::").next().unwrap_or(type_path)
@@ -198,6 +213,7 @@ fn terminal_segment(type_path: &str) -> &str {
     }
 }
 
+// 去掉完整路径的终端类型名，得到可选模块前缀；单段路径没有模块前缀。
 fn module_prefix(type_path: &str) -> Option<&str> {
     if type_path.contains("::") {
         type_path.rsplit_once("::").map(|(prefix, _)| prefix)
@@ -206,6 +222,7 @@ fn module_prefix(type_path: &str) -> Option<&str> {
     }
 }
 
+// 所有校验失败都使用同一结构化错误，并保留原始完整路径和具体原因。
 fn invalid_type_path(type_path: &str, reason: impl Into<String>) -> ReflectError {
     ReflectError::InvalidTypePath {
         type_path: type_path.to_string(),

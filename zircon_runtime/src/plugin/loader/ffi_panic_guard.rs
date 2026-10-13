@@ -34,7 +34,6 @@ pub(super) fn catch_native_plugin_output_sink_panic(
     })
 }
 
-// BUG: [CR-PLUGIN-NATIVE-0101] 回调以带 panic 的 Drop 值作为 panic payload 时，`Err(_)` 离开匹配臂会再次 panic，越过 FFI 防护；证据：仓外 rustc 双层 catch_unwind 复现及本函数的 payload 丢弃路径。
 fn catch_native_ffi_panic<Status>(
     call: impl FnOnce() -> Status,
     panic_status: impl FnOnce() -> Status,
@@ -42,7 +41,14 @@ fn catch_native_ffi_panic<Status>(
     // 这里只转换可展开的 Rust panic；不会回滚已写入的注册、日志或输出状态，返回码不代表事务恢复。
     match catch_unwind(AssertUnwindSafe(call)) {
         Ok(status) => status,
-        Err(_) => panic_status(),
+        Err(payload) => {
+            // A payload destructor may panic too. Catch that unwind and forget
+            // its payload, keeping this FFI boundary recoverable.
+            if let Err(secondary_payload) = catch_unwind(AssertUnwindSafe(|| drop(payload))) {
+                std::mem::forget(secondary_payload);
+            }
+            panic_status()
+        }
     }
 }
 

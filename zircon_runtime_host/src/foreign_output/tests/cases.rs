@@ -21,13 +21,17 @@ use zircon_runtime_interface::{
 
 const RELEASE_DIAGNOSTIC: &[u8] = b"test allocation is still in use";
 const CALL_DIAGNOSTIC: &[u8] = b"test call failed";
+// 由自定义 Deserialize 探针记录预检是否过早进入业务反序列化。
 static BUSINESS_DESERIALIZE_CALLS: AtomicUsize = AtomicUsize::new(0);
+// 由 ProfileControlResponse 包装探针记录类型化 DTO 是否在预检前已被构造。
 static PROFILE_RESPONSE_DESERIALIZE_CALLS: AtomicUsize = AtomicUsize::new(0);
 
+/// 记录业务反序列化是否被调用的测试 DTO。
 #[derive(Debug)]
 struct BusinessDeserializeProbe;
 
 impl<'de> Deserialize<'de> for BusinessDeserializeProbe {
+    /// 先计数，再跳过输入，以便测试断言预检失败时 DTO decoder 尚未运行。
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -38,10 +42,12 @@ impl<'de> Deserialize<'de> for BusinessDeserializeProbe {
     }
 }
 
+/// 以 Interface profile DTO 解码结果作为调用探针。
 #[derive(Debug)]
 struct ProfileResponseDeserializeProbe;
 
 impl<'de> Deserialize<'de> for ProfileResponseDeserializeProbe {
+    /// 计数后实际反序列化 ProfileControlResponse，保持探针输入契约真实。
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -53,6 +59,7 @@ impl<'de> Deserialize<'de> for ProfileResponseDeserializeProbe {
 }
 
 #[test]
+/// 深层 JSON 图在通用预检阶段被拒绝，业务 Deserialize 探针仍为零。
 fn bounded_decode_preflights_the_json_graph_before_business_deserialization() {
     BUSINESS_DESERIALIZE_CALLS.store(0, Ordering::SeqCst);
     let budget = RuntimeForeignOutputBudget::new(1024, 2, Duration::from_secs(1));
@@ -69,15 +76,22 @@ fn bounded_decode_preflights_the_json_graph_before_business_deserialization() {
     assert_eq!(BUSINESS_DESERIALIZE_CALLS.load(Ordering::SeqCst), 0);
 }
 
+/// 测试 provider registry 保存输出字节至 release callback 执行。
 struct TestAllocation {
+    /// 使 ABI 返回的 data 指针在 release 前保持有效。
     _bytes: Box<[u8]>,
+    /// 可选地记录该测试 allocation 的释放次数。
     releases: Option<Arc<AtomicUsize>>,
+    /// 是否模拟释放回调返回失败状态。
     reject_release: bool,
 }
 
+// 每项 fixture 分配的稳定 ID 用来验证 exactly-once release。
 static NEXT_ALLOCATION_ID: AtomicU64 = AtomicU64::new(1);
+// 模拟 provider 在调用者释放之前拥有结果缓冲区。
 static TEST_ALLOCATIONS: OnceLock<Mutex<HashMap<u64, TestAllocation>>> = OnceLock::new();
 
+/// 模拟 Runtime 按分配 ID 释放 Host 持有的测试输出。
 unsafe extern "C" fn release_test_output(
     _session: ZrRuntimeSessionHandle,
     allocation: ZrRuntimeAllocationId,
@@ -101,11 +115,14 @@ unsafe extern "C" fn release_test_output(
     }
 }
 
+/// 将测试 session 与 fixture release callback 绑定。
 fn test_releaser() -> RuntimeOwnedOutputReleaser {
     // The fixture registry and callback remain live for the complete test process.
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     unsafe { RuntimeOwnedOutputReleaser::new(ZrRuntimeSessionHandle::new(1), release_test_output) }
 }
 
+/// 注册字节 owner 并构造指向它的 ABI 结果 DTO。
 fn owned_output(
     bytes: impl Into<Vec<u8>>,
     releases: Arc<AtomicUsize>,
@@ -135,29 +152,36 @@ fn owned_output(
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
+/// 用于验证 JSON 解码路径的小型 typed payload。
 struct TestPayload {
     values: Vec<u64>,
 }
 
 #[derive(Debug, Deserialize)]
+/// 性能样本使用的 256 项 JSON payload。
 struct BenchmarkPayload {
     values: Vec<u32>,
 }
 
+/// 通过真实测试释放实现记录独立性能 allocation 的释放。
 unsafe extern "C" fn release_benchmark_output(
     session: ZrRuntimeSessionHandle,
     allocation: ZrRuntimeAllocationId,
 ) -> ZrStatus {
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     unsafe { release_test_output(session, allocation) }
 }
 
+/// 为整个性能样本共享有效的测试 provider 回调。
 fn benchmark_releaser() -> RuntimeOwnedOutputReleaser {
     // The fixture registry and callback remain live for the complete benchmark.
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     unsafe {
         RuntimeOwnedOutputReleaser::new(ZrRuntimeSessionHandle::new(1), release_benchmark_output)
     }
 }
 
+/// 将性能样本字节保存在 registry 并返回其 ABI 描述。
 fn benchmark_output(bytes: Vec<u8>) -> ZrOwnedResultV2 {
     let bytes = bytes.into_boxed_slice();
     let data = bytes.as_ptr();
@@ -182,10 +206,12 @@ fn benchmark_output(bytes: Vec<u8>) -> ZrOwnedResultV2 {
     }
 }
 
+/// 使用固定 25ms 时限建立边界测试预算。
 fn test_budget(max_bytes: usize, max_items: usize) -> RuntimeForeignOutputBudget {
     RuntimeForeignOutputBudget::new(max_bytes, max_items, Duration::from_millis(25))
 }
 
+/// 构造含指定文件数并可追加未知字段的 profile JSON。
 fn profile_files_payload(file_count: usize, extra_fields: &str) -> Vec<u8> {
     let mut files = String::with_capacity(file_count.saturating_mul(3));
     for index in 0..file_count {
@@ -198,6 +224,7 @@ fn profile_files_payload(file_count: usize, extra_fields: &str) -> Vec<u8> {
         .into_bytes()
 }
 
+/// 构造含指定 hotspot hints 数并可追加未知字段的 profile JSON。
 fn profile_hotspot_hints_payload(hint_count: usize, extra_fields: &str) -> Vec<u8> {
     let mut hints = String::with_capacity(hint_count.saturating_mul(3));
     for index in 0..hint_count {
@@ -213,6 +240,7 @@ fn profile_hotspot_hints_payload(hint_count: usize, extra_fields: &str) -> Vec<u
 }
 
 #[test]
+/// 确认 WorldQueryResult 每种 Interface 变体都映射为预期预算项数。
 fn world_query_item_count_covers_every_result_variant() {
     use std::collections::BTreeMap;
 
@@ -301,9 +329,11 @@ fn world_query_item_count_covers_every_result_variant() {
 }
 
 #[test]
+/// 成功路径解码后只释放一次、递增接受指标且不熔断 session。
 fn bounded_json_acceptance_releases_once_and_records_metrics() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let payload = unsafe {
         state
             .decode_json(
@@ -335,9 +365,11 @@ fn bounded_json_acceptance_releases_once_and_records_metrics() {
 }
 
 #[test]
+/// 字节超限先清理分配，再熔断并阻断其后的类别与 session 调用。
 fn oversized_output_releases_then_fuses_every_session_call() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let error = unsafe {
         state
             .decode_json::<TestPayload, _>(
@@ -372,9 +404,11 @@ fn oversized_output_releases_then_fuses_every_session_call() {
 }
 
 #[test]
+/// 在预算明确允许时将规范空结果接受为 None 且不调用 release。
 fn canonical_empty_pages_are_accepted_without_release() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let decoded = unsafe {
         state
             .decode_json::<Vec<u64>, _>(
@@ -395,9 +429,11 @@ fn canonical_empty_pages_are_accepted_without_release() {
 }
 
 #[test]
+/// 释放失败覆盖已解析值，保留 cleanup 诊断并熔断状态。
 fn release_failure_preserves_cleanup_diagnostic_and_fuses_session() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let error = unsafe {
         state
             .decode_json(
@@ -421,10 +457,12 @@ fn release_failure_preserves_cleanup_diagnostic_and_fuses_session() {
 }
 
 #[test]
+/// 同时验证 Interface 最大嵌套深度与解码/业务校验的总时间预算。
 fn nesting_and_total_decode_time_are_both_bounded() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
     let nested = format!("{}0{}", "[".repeat(129), "]".repeat(129));
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let depth_error = unsafe {
         state
             .decode_json::<serde_json::Value, _>(
@@ -445,6 +483,7 @@ fn nesting_and_total_decode_time_are_both_bounded() {
 
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let time_error = unsafe {
         state
             .decode_json(
@@ -466,9 +505,11 @@ fn nesting_and_total_decode_time_are_both_bounded() {
 }
 
 #[test]
+/// 不可表示的 Instant 截止时刻必须释放输出、熔断并返回错误而不 panic。
 fn unrepresentable_decode_deadline_releases_once_and_fuses_without_unwinding() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let attempt = std::panic::catch_unwind(|| unsafe {
         state.decode_json::<TestPayload, _>(
             owned_output(br#"{"values":[1]}"#.to_vec(), releases.clone(), false),
@@ -501,10 +542,12 @@ fn unrepresentable_decode_deadline_releases_once_and_fuses_without_unwinding() {
 }
 
 #[test]
+/// `files` 恰好达到专用类型化上限时接受 profile 响应。
 fn profile_files_preflight_accepts_the_exact_typed_limit() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
     let file_limit = PROFILE_RESPONSE_OUTPUT_BUDGET.max_items.saturating_sub(1);
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let response = unsafe {
         state.decode_json::<ProfileControlResponse, &'static str>(
             owned_output(
@@ -529,11 +572,13 @@ fn profile_files_preflight_accepts_the_exact_typed_limit() {
 }
 
 #[test]
+/// profile 文件数超过上限一项时，在构造业务 DTO 前拒绝并释放输出。
 fn profile_files_preflight_rejects_limit_plus_one_before_typed_allocation() {
     BUSINESS_DESERIALIZE_CALLS.store(0, Ordering::SeqCst);
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
     let file_limit = PROFILE_RESPONSE_OUTPUT_BUDGET.max_items.saturating_sub(1);
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let error = unsafe {
         state.decode_json::<BusinessDeserializeProbe, &'static str>(
             owned_output(
@@ -560,6 +605,7 @@ fn profile_files_preflight_rejects_limit_plus_one_before_typed_allocation() {
 }
 
 #[test]
+/// 未知嵌套字段里的同名 files 与大标量不套用 profile files 集合计数。
 fn profile_files_preflight_ignores_nested_names_and_large_scalar_fields() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
@@ -567,6 +613,7 @@ fn profile_files_preflight_ignores_nested_names_and_large_scalar_fields() {
         .preflight_profile_files();
     let large_unknown = "x".repeat(64 * 1024);
     let extra = format!(",\"future\":{{\"files\":[0,1,2,3],\"large\":\"{large_unknown}\"}}");
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let response = unsafe {
         state.decode_json::<ProfileControlResponse, &'static str>(
             owned_output(profile_files_payload(0, &extra), releases.clone(), false),
@@ -587,12 +634,14 @@ fn profile_files_preflight_ignores_nested_names_and_large_scalar_fields() {
 }
 
 #[test]
+/// hotspot hints 越过类型化项预算时在 DTO 反序列化前拒绝。
 fn profile_hotspot_hints_preflight_rejects_before_typed_deserialization() {
     PROFILE_RESPONSE_DESERIALIZE_CALLS.store(0, Ordering::SeqCst);
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
     let budget =
         RuntimeForeignOutputBudget::new(2_048, 3, Duration::from_secs(1)).preflight_profile_files();
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let error = unsafe {
         state.decode_json::<ProfileResponseDeserializeProbe, &'static str>(
             owned_output(
@@ -617,12 +666,14 @@ fn profile_hotspot_hints_preflight_rejects_before_typed_deserialization() {
 }
 
 #[test]
+/// hints 达到边界时接受，并忽略未知字段内的同名嵌套集合。
 fn profile_hotspot_hints_preflight_accepts_typed_boundary_and_ignores_unknown_nesting() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
     let budget =
         RuntimeForeignOutputBudget::new(2_048, 3, Duration::from_secs(1)).preflight_profile_files();
     let extra = ",\"future\":{\"hotspot_report\":{\"hints\":[0,1,2,3]}}";
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let response = unsafe {
         state.decode_json::<ProfileControlResponse, &'static str>(
             owned_output(
@@ -647,6 +698,7 @@ fn profile_hotspot_hints_preflight_accepts_typed_boundary_and_ignores_unknown_ne
 }
 
 #[test]
+/// profile 多类已知集合共享一个总预算而非分别获得独立上限。
 fn profile_collections_share_one_preflight_item_budget() {
     use zircon_runtime_interface::HotspotReport;
 
@@ -662,6 +714,7 @@ fn profile_collections_share_one_preflight_item_budget() {
     let budget =
         RuntimeForeignOutputBudget::new(2_048, 3, Duration::from_secs(1)).preflight_profile_files();
 
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let error = unsafe {
         state.decode_json::<ProfileResponseDeserializeProbe, &'static str>(
             owned_output(encoded, releases.clone(), false),
@@ -682,6 +735,7 @@ fn profile_collections_share_one_preflight_item_budget() {
 }
 
 #[test]
+/// 在 typed profile DTO 构造前限制快照中的嵌套集合。
 fn profile_snapshot_collection_preflights_before_typed_deserialization() {
     use zircon_runtime_interface::ProfileSnapshot;
 
@@ -696,6 +750,7 @@ fn profile_snapshot_collection_preflights_before_typed_deserialization() {
     let budget =
         RuntimeForeignOutputBudget::new(2_048, 1, Duration::from_secs(1)).preflight_profile_files();
 
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let error = unsafe {
         state.decode_json::<ProfileResponseDeserializeProbe, &'static str>(
             owned_output(encoded, releases.clone(), false),
@@ -716,6 +771,7 @@ fn profile_snapshot_collection_preflights_before_typed_deserialization() {
 }
 
 #[test]
+/// Interface DTO 的 positional 序列形式同样受 profile 集合预检约束。
 fn positional_profile_collections_preflight_before_typed_deserialization() {
     PROFILE_RESPONSE_DESERIALIZE_CALLS.store(0, Ordering::SeqCst);
     let releases = Arc::new(AtomicUsize::new(0));
@@ -728,6 +784,7 @@ fn positional_profile_collections_preflight_before_typed_deserialization() {
     let budget =
         RuntimeForeignOutputBudget::new(1_024, 3, Duration::from_secs(1)).preflight_profile_files();
 
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let error = unsafe {
         state.decode_json::<ProfileResponseDeserializeProbe, &'static str>(
             owned_output(encoded.to_vec(), releases.clone(), false),
@@ -748,6 +805,7 @@ fn positional_profile_collections_preflight_before_typed_deserialization() {
 }
 
 #[test]
+/// positional profile 数据在类型化预算边界上与 object 形式得到等价 DTO。
 fn positional_profile_collections_accept_typed_boundary_with_object_parity() {
     use zircon_runtime_interface::HotspotReport;
 
@@ -768,6 +826,7 @@ fn positional_profile_collections_accept_typed_boundary_with_object_parity() {
     let budget =
         RuntimeForeignOutputBudget::new(1_024, 3, Duration::from_secs(1)).preflight_profile_files();
 
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let response = unsafe {
         state.decode_json::<ProfileControlResponse, &'static str>(
             owned_output(encoded.to_vec(), releases.clone(), false),
@@ -788,6 +847,7 @@ fn positional_profile_collections_accept_typed_boundary_with_object_parity() {
 }
 
 #[test]
+/// positional 嵌套快照和诊断序列的子集合会计入同一 profile 项数。
 fn positional_snapshot_and_diagnostic_series_preflight_nested_items() {
     use zircon_runtime_interface::{
         ProfileRecorderRetentionSnapshot, ProfileSnapshot, RuntimeInputDiagnosticsSnapshot,
@@ -855,6 +915,7 @@ fn positional_snapshot_and_diagnostic_series_preflight_nested_items() {
     let budget =
         RuntimeForeignOutputBudget::new(4_096, 4, Duration::from_secs(1)).preflight_profile_files();
 
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let error = unsafe {
         state.decode_json::<ProfileResponseDeserializeProbe, &'static str>(
             owned_output(encoded, releases.clone(), false),
@@ -875,6 +936,7 @@ fn positional_snapshot_and_diagnostic_series_preflight_nested_items() {
 }
 
 #[test]
+/// 零项预算连 profile 响应外壳本身也会拒绝，并且尚未调用 DTO decoder。
 fn zero_profile_item_budget_rejects_the_envelope_before_typed_deserialization() {
     PROFILE_RESPONSE_DESERIALIZE_CALLS.store(0, Ordering::SeqCst);
     let releases = Arc::new(AtomicUsize::new(0));
@@ -882,6 +944,7 @@ fn zero_profile_item_budget_rejects_the_envelope_before_typed_deserialization() 
     let budget =
         RuntimeForeignOutputBudget::new(1_024, 0, Duration::from_secs(1)).preflight_profile_files();
 
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let error = unsafe {
         state.decode_json::<ProfileResponseDeserializeProbe, &'static str>(
             owned_output(profile_files_payload(0, ""), releases.clone(), false),
@@ -902,9 +965,11 @@ fn zero_profile_item_budget_rejects_the_envelope_before_typed_deserialization() 
 }
 
 #[test]
+/// 普通 Runtime 调用失败会释放返回输出，但不会仅因调用失败触发协议 fuse。
 fn ordinary_call_failure_releases_output_without_fusing_protocol() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let error = unsafe {
         state
             .ensure_call_succeeded(
@@ -928,6 +993,7 @@ fn ordinary_call_failure_releases_output_without_fusing_protocol() {
 }
 
 #[test]
+/// 在解码校验进行时提交并发协议违规，会阻止在途结果随后被接受。
 fn concurrent_protocol_rejection_prevents_inflight_acceptance() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = Arc::new(RuntimeForeignOutputState::default());
@@ -938,6 +1004,7 @@ fn concurrent_protocol_rejection_prevents_inflight_acceptance() {
     let decode_releases = releases.clone();
     let decode_entered = validation_entered.clone();
     let decode_may_finish = validation_may_finish.clone();
+    // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
     let decode = std::thread::spawn(move || unsafe {
         decode_state.decode_json(
             owned_output(br#"{"values":[1,2,3]}"#.to_vec(), decode_releases, false),
@@ -980,6 +1047,7 @@ fn concurrent_protocol_rejection_prevents_inflight_acceptance() {
 }
 
 #[test]
+/// 对共享 Host 请求预算执行 warmup/样本循环并核对计数和 P99 时限边界。
 fn foreign_output_decode_performance_acceptance() {
     const WARMUP_ITERATIONS: usize = 64;
     const MEASURED_ITERATIONS: usize = 2_000;
@@ -990,6 +1058,7 @@ fn foreign_output_decode_performance_acceptance() {
     .expect("serialize benchmark payload");
     let warmup = RuntimeForeignOutputState::default();
     for _ in 0..WARMUP_ITERATIONS {
+        // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
         let decoded = unsafe {
             warmup
                 .decode_json(
@@ -1011,6 +1080,7 @@ fn foreign_output_decode_performance_acceptance() {
     for _ in 0..MEASURED_ITERATIONS {
         let output = benchmark_output(payload.clone());
         let started = Instant::now();
+        // SAFETY: 测试夹具绑定仍存活的 registry callback/session；非空输出字节由 registry 持有至释放，规范空输出不读取指针且不调用释放回调。
         let decoded = unsafe {
             state
                 .decode_json(
@@ -1058,6 +1128,7 @@ fn foreign_output_decode_performance_acceptance() {
 }
 
 #[test]
+/// 每类共享 Host 预算的字节、条目、耗时、空页和嵌套值来自 Interface 常量。
 fn foreign_output_policies_derive_from_interface_limits() {
     let policies = [
         (
@@ -1101,6 +1172,7 @@ fn foreign_output_policies_derive_from_interface_limits() {
     }
 }
 
+/// 按样本数和请求百分位数选择排序后的纳秒值。
 fn percentile_nanoseconds(samples: &[u128], percentile: usize) -> u128 {
     let rank = samples
         .len()

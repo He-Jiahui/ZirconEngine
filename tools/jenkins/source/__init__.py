@@ -234,9 +234,16 @@ def _freeze_mapping(value: Any) -> Any:
 
 
 def seal_manifest(repository_root: str | Path, claims: Iterable[PathClaim], *, base_head: str | None = None,
-                  external_inputs: Iterable[Mapping[str, Any]] = ()) -> SealedManifest:
-    """Capture a stable manifest after claims and recheck it before returning."""
-    root = Path(repository_root).absolute()
+                  external_inputs: Iterable[Mapping[str, Any]] = (),
+                  source_root: str | Path | None = None) -> SealedManifest:
+    """Capture a stable manifest after claims and recheck it before returning.
+
+    ``repository_root`` carries identity and ``source_root`` carries the bytes.
+    They differ only when the source is a worktree of the same repository, which
+    lets one repository seal from a second checkout without inventing a second
+    repository identity.
+    """
+    root = Path(source_root if source_root is not None else repository_root).absolute()
     claims = sorted(list(claims), key=lambda claim: claim.path)
     if not claims:
         raise JenkinsError("empty_source_scope", "cannot seal an empty source scope")
@@ -477,9 +484,17 @@ def _check_object_store_domain(object_root: str | Path) -> None:
 def seal_candidate(repository_root: str | Path, claims: Iterable[PathClaim], *,
                    object_root: str | Path, base_head: str | None = None,
                    declared_dependencies: Iterable[str | Path] = (),
-                   external_inputs: Iterable[Mapping[str, Any]] = ()) -> SealedManifest:
-    """Seal candidate bytes into a content-addressed input object store."""
+                   external_inputs: Iterable[Mapping[str, Any]] = (),
+                   source_root: str | Path | None = None) -> SealedManifest:
+    """Seal candidate bytes into a content-addressed input object store.
+
+    ``repository_root`` supplies the identity that the sealed manifest records
+    and the Git base tree it resolves against; ``source_root`` supplies the
+    bytes.  A worktree of the same repository may therefore be sealed without
+    re-labelling the content as a different repository.
+    """
     root = Path(repository_root).absolute()
+    content = Path(source_root if source_root is not None else repository_root).absolute()
     object_root = Path(object_root).absolute()
     _check_object_store_domain(object_root)
     claims = list(claims)
@@ -487,16 +502,17 @@ def seal_candidate(repository_root: str | Path, claims: Iterable[PathClaim], *,
     all_paths = {claim.path: claim for claim in claims}
     for path in dependency_paths:
         if path not in all_paths:
-            all_paths[path] = PathClaim(path, "dependency", 0, _before_hash(root, path), 0)
+            all_paths[path] = PathClaim(path, "dependency", 0, _before_hash(content, path), 0)
     claims = list(all_paths.values())
     base_tree = _git_base_tree(root, base_head)
-    sealed = seal_manifest(root, claims, base_head=base_head, external_inputs=external_inputs)
+    sealed = seal_manifest(root, claims, base_head=base_head, external_inputs=external_inputs,
+                           source_root=content)
     entries: list[dict[str, Any]] = []
     objects = object_root / "inputs" / "objects"
     for entry in sealed.entries:
         item = dict(entry)
         if item["status"] == "present":
-            source = _path_for(root, item["path"])
+            source = _path_for(content, item["path"])
             # ``seal_manifest`` captured and rechecked the source snapshot.  Do
             # not let the second read below silently publish bytes from a
             # concurrent edit (including an ABA edit): the object digest must
@@ -511,7 +527,7 @@ def seal_candidate(repository_root: str | Path, claims: Iterable[PathClaim], *,
             else:
                 data = json.dumps(item, sort_keys=True).encode()
                 checksum = hashlib.sha256(data).hexdigest()
-                if _before_hash(root, item["path"]) != item["sha256"]:
+                if _before_hash(content, item["path"]) != item["sha256"]:
                     raise JenkinsError("source_changed", "source changed while candidate was sealed",
                                        retryable=True, details={"path": item["path"]})
             destination = objects / checksum
@@ -522,7 +538,7 @@ def seal_candidate(repository_root: str | Path, claims: Iterable[PathClaim], *,
             # Verify the original claim after the object write as well.  This
             # closes the window where the source changes after the second read
             # and prevents a manifest/object pair with different identities.
-            if _before_hash(root, item["path"]) != item["sha256"]:
+            if _before_hash(content, item["path"]) != item["sha256"]:
                 raise JenkinsError("source_changed", "source changed before candidate finalization",
                                    retryable=True, details={"path": item["path"]})
             item["objectDigest"] = checksum

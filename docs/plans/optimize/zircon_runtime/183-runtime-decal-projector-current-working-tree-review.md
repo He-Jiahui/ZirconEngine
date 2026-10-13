@@ -7,7 +7,7 @@ baseline_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 verification_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_runtime/99zw-runtime-decal-projector-material-domain-dbuffer-gbuffer-forward-receiver-culling-batching-atlas-streaming-temporal-rt-scalability-editor-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/35-decal-projector-material-domain-dbuffer-gbuffer-forward-receiver-culling-batching-atlas-streaming-temporal-rt-scalability-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/35-decal-projector-material-domain-dbuffer-gbuffer-forward-receiver-culling-batching-atlas-streaming-temporal-rt-scalability.md
 related_editor_owner:
   - docs/plans/optimize/zircon_editor/243-editor-decal-projector-current-working-tree-review.md
 related_code:

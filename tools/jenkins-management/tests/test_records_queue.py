@@ -2,7 +2,8 @@
 import importlib.util
 from pathlib import Path
 import unittest
-from contextlib import nullcontext
+from contextlib import ExitStack, nullcontext
+import copy
 import json
 from unittest.mock import patch, Mock
 
@@ -133,6 +134,243 @@ class IntakeTests(unittest.TestCase):
             self.assertEqual(result['deletedBytes'], 7)
             write.assert_called_once()
             execute.assert_not_called()
+
+
+class InstallCase:
+    """In-memory installer transport and immutable evidence, with no real writes."""
+    def __init__(self, subject, q, *, same_source=False, same_runtime=False):
+        self.subject, self.q = subject, q
+        self.repo = Path('E:/Git/ZirconEngine')
+        self.script_name = 'records_queue.py' if subject.JOB == q.JOB else 'records_followup.py'
+        self.template_name = 'zircon-records.groovy' if subject.JOB == q.JOB else 'zircon-records-followup.groovy'
+        self.template = ("def repo = '@@REPO@@'\ndef python = '@@PYTHON@@'\n"
+                         "def script = '@@SCRIPT@@'\ndef sourceSha = '@@SOURCE_SHA@@'\n"
+                         "node('zircon-windows-agent') {}\n").encode()
+        self.raw = {name: ('current-' + name).encode() for name in subject.SOURCES}
+        self.raw[self.template_name] = self.template.replace(b'\n', b'\r\n')
+        self.context = {'repo': self.repo, 'config': {'driverDigest': '2' * 64,
+                        'runtimeOperationId': 'start-current'}, 'manager': Mock()}
+        self.manager = self.context['manager']
+        self.manager.base_url = 'http://127.0.0.1:18080'
+        self.api = Mock()
+        self.api.capability.return_value = self.context
+        self.old = {'schemaVersion': 1, 'job': subject.JOB, 'repositoryRoot': str(self.repo),
+                    'driverDigest': self.context['config']['driverDigest'] if same_runtime else '1' * 64,
+                    'runtimeOperationId': self.context['config']['runtimeOperationId'] if same_runtime else 'start-old',
+                    'sources': {name: q.sha(raw) for name, raw in self.raw.items()},
+                    'intakeOnlyAcceptance': True, 'formalAcceptance': False}
+        self.old['sources'][self.template_name] = q.sha(self.template)
+        if not same_source:
+            self.old['sources'][self.script_name] = q.sha(b'previous-owned-script')
+        source = self.template.decode()
+        for name, value in {'REPO': str(self.repo),
+                'PYTHON': str(self.repo / '.jenkins/runtime/python/python.exe'),
+                'SCRIPT': str(subject.HERE / self.script_name),
+                'SOURCE_SHA': self.old['sources'][self.script_name]}.items():
+            source = source.replace('@@' + name + '@@', value.replace('\\', '/'))
+        self.old_source = self.current_source = source
+        self.installed_path = self.repo / '.jenkins/state/records-queue'
+        if subject.JOB != q.JOB:
+            self.installed_path /= 'followups'
+        self.installed_path /= 'installed.json'
+        self.events, self.history, self.published = [], None, None
+        self.builds = [{'building': False, 'result': 'ABORTED'}]
+        self.items = []
+        self.sandbox = 'true'
+        self.post_reconciles = True
+        self.reads = {}
+        self.refresh_previous()
+
+    def refresh_previous(self):
+        self.pin = self.q.sha(self.q.encoded(self.old))
+
+    def xml(self):
+        return ("<flow-definition><definition "
+                "class='org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition'><script>" +
+                self.q.escape(self.current_source) + "</script><sandbox>" + self.sandbox +
+                "</sandbox></definition></flow-definition>").encode()
+
+    def request(self, endpoint, *, method='GET', data=None, **kwargs):
+        if method == 'POST':
+            if endpoint != 'job/' + self.subject.JOB + '/config.xml':
+                raise AssertionError('Unexpected mutation: ' + endpoint)
+            self.events.append('post')
+            import xml.etree.ElementTree as ET
+            self.current_source = ET.fromstring(data).findtext('definition/script')
+            if not self.post_reconciles:
+                self.current_source += '\nforeign change'
+            return 200, b''
+        if endpoint == 'job/' + self.subject.JOB + '/config.xml':
+            return 200, self.xml()
+        if endpoint == 'job/' + self.subject.JOB + '/api/json?tree=builds[building,result]':
+            return 200, self.q.encoded({'builds': self.builds})
+        if endpoint == 'queue/api/json?tree=items[task[name,url]]':
+            return 200, self.q.encoded({'items': self.items})
+        if endpoint == 'crumbIssuer/api/json':
+            return 200, b'{"crumbRequestField":"crumb","crumb":"test"}'
+        raise AssertionError('Unexpected read: ' + endpoint)
+
+    def fingerprint(self, path):
+        name = Path(path).relative_to(self.subject.HERE).as_posix()
+        self.reads[name] = self.reads.get(name, 0) + 1
+        raw = self.raw[name]
+        return {'sha256': self.q.sha(raw)}, raw
+
+    def read_json(self, path):
+        if Path(path) != self.installed_path:
+            raise AssertionError('Unexpected evidence read: ' + str(path))
+        return copy.deepcopy(self.old), {'sha256': self.pin}
+
+    def write_once(self, path, raw):
+        if Path(path) != self.installed_path.parent / 'install-history' / (self.pin + '.json'):
+            raise AssertionError('Unexpected immutable write: ' + str(path))
+        self.events.append('history')
+        self.history = json.loads(raw)
+
+    def publish(self, path, value):
+        if Path(path) != self.installed_path:
+            raise AssertionError('Unexpected metadata write: ' + str(path))
+        self.events.append('publish')
+        self.published = copy.deepcopy(value)
+
+    def run(self, *, rebind_runtime=False, **overrides):
+        options = {'upgrade_from': self.pin, 'expected_job_script_sha256':
+                   self.q.sha(self.current_source.encode()), 'rebind_runtime': rebind_runtime}
+        options.update(overrides)
+        self.manager._request.side_effect = self.request
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(self.q, 'fingerprint', side_effect=self.fingerprint))
+            stack.enter_context(patch.object(self.q, 'read_json', side_effect=self.read_json))
+            stack.enter_context(patch.object(self.q, 'write_once', side_effect=self.write_once))
+            stack.enter_context(patch.object(Path, 'exists', new=lambda path: path == self.installed_path))
+            stack.enter_context(patch('tools.jenkins.state.atomic.atomic_json', side_effect=self.publish))
+            if self.subject is self.q:
+                stack.enter_context(patch.object(self.q, 'entry', return_value=self.api))
+            else:
+                current = {'repositoryRoot': str(self.repo), **self.context['config']}
+                stack.enter_context(patch.object(self.q, 'binding', return_value=(self.api, self.context, current)))
+            return self.subject.install(self.repo, **options)
+
+
+class RuntimeRebindTests(unittest.TestCase):
+    def test_default_rejects_cross_runtime_and_metadata_only_replacement(self):
+        for same_source in (False, True):
+            with self.subTest(same_source=same_source):
+                case = InstallCase(queue, queue, same_source=same_source)
+                with self.assertRaisesRegex(ValueError, '--rebind-runtime'):
+                    case.run()
+                self.assertEqual(case.events, [])
+
+    def test_explicit_exact_pins_rebind_and_preserve_original_history(self):
+        case = InstallCase(queue, queue)
+        result = case.run(rebind_runtime=True)
+        self.assertEqual(case.events, ['history', 'post', 'publish'])
+        self.assertEqual(case.history['previous'], case.old)
+        self.assertEqual(case.history['previousInstallationSha256'], case.pin)
+        self.assertEqual(case.history['previousJobScriptSha256'], queue.sha(case.old_source.encode()))
+        self.assertTrue(case.history['runtimeRebound'])
+        self.assertEqual(case.history['next'], result)
+        self.assertEqual(case.published, result)
+        self.assertEqual(result['driverDigest'], case.context['config']['driverDigest'])
+        self.assertEqual(result['runtimeOperationId'], case.context['config']['runtimeOperationId'])
+        self.assertEqual(result['sources'][case.template_name], queue.sha(case.raw[case.template_name]))
+        self.assertNotEqual(result['sources'][case.template_name], case.old['sources'][case.template_name])
+        self.assertFalse(result['formalAcceptance'])
+
+    def test_same_runtime_upgrade_retains_default_exact_pin_route(self):
+        case = InstallCase(queue, queue, same_runtime=True)
+        case.run()
+        self.assertEqual(case.events, ['history', 'post', 'publish'])
+        self.assertFalse(case.history['runtimeRebound'])
+
+    def test_stale_prior_or_job_script_pins_reject_before_history(self):
+        for override in ({'upgrade_from': '3' * 64}, {'expected_job_script_sha256': '4' * 64}):
+            with self.subTest(override=override):
+                case = InstallCase(queue, queue)
+                with self.assertRaises(ValueError):
+                    case.run(rebind_runtime=True, **override)
+                self.assertEqual(case.events, [])
+
+    def test_foreign_owner_inventory_and_lexical_template_changes_reject(self):
+        for mismatch in ('job', 'repositoryRoot', 'sourceInventory', 'template', 'jobScript', 'sandbox'):
+            with self.subTest(mismatch=mismatch):
+                case = InstallCase(queue, queue)
+                if mismatch == 'job':
+                    case.old['job'] = 'foreign-job'
+                elif mismatch == 'repositoryRoot':
+                    case.old['repositoryRoot'] = 'E:/Git/Foreign'
+                elif mismatch == 'sourceInventory':
+                    case.old['sources']['foreign.py'] = '5' * 64
+                elif mismatch == 'template':
+                    case.raw[case.template_name] += b'foreign-code\n'
+                elif mismatch == 'jobScript':
+                    case.current_source += '\nforeign-code'
+                else:
+                    case.sandbox = 'false'
+                case.refresh_previous()
+                with self.assertRaises(ValueError):
+                    case.run(rebind_runtime=True)
+                self.assertEqual(case.events, [])
+
+    def test_nonterminal_build_and_queued_work_reject_before_history(self):
+        for observation in ('building', 'unknownResult', 'queuedName', 'queuedUrl', 'unknownTask'):
+            with self.subTest(observation=observation):
+                case = InstallCase(queue, queue)
+                if observation == 'building':
+                    case.builds = [{'building': True, 'result': None}]
+                elif observation == 'unknownResult':
+                    case.builds = [{'building': False, 'result': None}]
+                elif observation == 'queuedName':
+                    case.items = [{'task': {'name': queue.JOB, 'url': case.manager.base_url + '/other/'}}]
+                elif observation == 'queuedUrl':
+                    case.items = [{'task': {'name': 'other', 'url': case.manager.base_url + '/job/' + queue.JOB + '/'}}]
+                else:
+                    case.items = [{'task': None}]
+                with self.assertRaises(ValueError):
+                    case.run(rebind_runtime=True)
+                self.assertEqual(case.events, [])
+
+    def test_source_or_runtime_changes_during_preflight_reject_before_history(self):
+        for changed in ('source', 'health', 'runtime'):
+            with self.subTest(changed=changed):
+                case = InstallCase(queue, queue)
+                if changed == 'source':
+                    original = case.fingerprint
+                    def fingerprint(path):
+                        pin, raw = original(path)
+                        if Path(path).name == case.script_name and case.reads[case.script_name] > 1:
+                            return {'sha256': queue.sha(b'foreign-source')}, b'foreign-source'
+                        return pin, raw
+                    case.fingerprint = fingerprint
+                elif changed == 'health':
+                    case.api.capability.side_effect = [case.context, ValueError('runtime no longer healthy')]
+                else:
+                    other = {**case.context, 'config': {**case.context['config'], 'runtimeOperationId': 'start-other'}}
+                    case.api.capability.side_effect = [case.context, other]
+                with self.assertRaises(ValueError):
+                    case.run(rebind_runtime=True)
+                self.assertEqual(case.events, [])
+
+    def test_post_unknown_or_changed_config_cannot_publish_installation(self):
+        for unknown in (True, False):
+            with self.subTest(unknown=unknown):
+                case = InstallCase(queue, queue)
+                if unknown:
+                    original = case.request
+                    def request(endpoint, **kwargs):
+                        if kwargs.get('method') == 'POST':
+                            case.events.append('post')
+                            raise TimeoutError('unknown acknowledgement')
+                        return original(endpoint, **kwargs)
+                    case.request = request
+                    expected = TimeoutError
+                else:
+                    case.post_reconciles = False
+                    expected = ValueError
+                with self.assertRaises(expected):
+                    case.run(rebind_runtime=True)
+                self.assertEqual(case.events, ['history', 'post'])
+                self.assertIsNone(case.published)
 
 
 if __name__ == '__main__':

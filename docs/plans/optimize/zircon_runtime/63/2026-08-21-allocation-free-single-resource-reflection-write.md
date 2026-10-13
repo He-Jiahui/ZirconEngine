@@ -2,7 +2,7 @@
 
 - Date: 2026-08-21
 - Owner: `optimize-runtime63-single-resource-write-r1-01a00797-20260821`
-- Source plan: `docs/plans/optimize/zircon_runtime/63-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor-product-integration-review.md`, RSR-P1-045
+- Source plan: `docs/plans/optimize/zircon_runtime/63-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md`, RSR-P1-045
 - Status: implementation complete; combined managed validation pending
 
 ## Problem

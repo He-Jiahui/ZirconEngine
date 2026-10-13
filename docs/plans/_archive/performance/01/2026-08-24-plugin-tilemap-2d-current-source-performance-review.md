@@ -10,7 +10,7 @@ scope:
 status: static_complete_shared_source_preserved_dynamic_pending
 canonical_owners:
   - docs/plans/optimize/zircon_plugins/06-first-party-plugin-source-editor-runtime-dist-catalog-profile-capability-closure-review.md
-  - docs/plans/optimize/zircon_runtime/99e-runtime-sprite2d-canvas2d-sprite-atlas-tileset-tilemap-batching-sorting-lighting-physics-streaming-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99e-runtime-sprite2d-canvas2d-sprite-atlas-tileset-tilemap-batching-sorting-lighting-physics-streaming.md
   - docs/plans/optimize/zircon_editor/34-sprite-atlas-tileset-tilemap-canvas-2d-animation-collision-preview-authoring-review.md
 references:
   - dev/UnrealEngine/Engine/Plugins/2D/Paper2D/Source/Paper2D/Private/PaperTileMap.cpp

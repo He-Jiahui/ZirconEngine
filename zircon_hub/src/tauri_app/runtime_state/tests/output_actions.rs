@@ -519,6 +519,7 @@ fn session_with_output_history(
     config.settings.default_build_output_dir =
         output_dir.parent().unwrap_or(output_dir).to_path_buf();
     config.action_history.push(HubActionRecord {
+        id: crate::state::new_action_record_id(),
         finished_unix_ms: 42,
         action: HubActionKind::PackageProject,
         status: HubActionStatus::Success,

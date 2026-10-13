@@ -105,14 +105,23 @@ impl ResourceRegistration {
     }
 }
 
-// BUG: [CR-PLUGIN-BOUNDARY-0102] 工厂以析构时 panic 的自定义 payload 触发 panic 时，本函数返回前丢弃 payload 又会 panic，`apply_to_world` 不再返回资源错误；证据：`catch_unwind` 的 Err 经 factory_panic 到此处。
 fn panic_payload_message(payload: Box<dyn std::any::Any + Send>) -> String {
-    if let Some(message) = payload.downcast_ref::<&str>() {
+    let message = if let Some(message) = payload.downcast_ref::<&str>() {
         (*message).to_owned()
     } else if let Some(message) = payload.downcast_ref::<String>() {
         message.clone()
     } else {
         "non-string panic payload".to_owned()
+    };
+    match catch_unwind(AssertUnwindSafe(|| drop(payload))) {
+        Ok(()) => message,
+        Err(secondary_payload) => {
+            // The payload's destructor panicked too. Keep the original factory
+            // failure recoverable and intentionally leak only this secondary
+            // panic payload so its destructor cannot unwind again.
+            std::mem::forget(secondary_payload);
+            format!("{message}; panic payload destructor panicked")
+        }
     }
 }
 

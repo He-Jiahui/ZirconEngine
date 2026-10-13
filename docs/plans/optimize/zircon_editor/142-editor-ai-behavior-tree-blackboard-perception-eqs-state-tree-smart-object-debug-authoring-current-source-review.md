@@ -10,7 +10,7 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/89-editor-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-debug-authoring-product-integration-current-source-review.md
 related_runtime_owner:
   - docs/plans/optimize/zircon_runtime/08f-ai-behavior-tree-blackboard-perception-runtime-review.md
-  - docs/plans/optimize/zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor.md
 related_plugin_owner:
   - docs/plans/optimize/zircon_plugins/15-first-party-ai-source-runtime-editor-dist-catalog-behavior-tree-blackboard-perception-eqs-product-integration-review.md
   - docs/plans/zircon_plugins/06-ai.md

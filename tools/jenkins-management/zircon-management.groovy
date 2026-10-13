@@ -50,9 +50,13 @@ for (int poll = 0; poll < 240; poll++) {
             def inputPath = "${repository}/.jenkins/state/controls/management-${params.OPERATION_ID}.${env.BUILD_NUMBER}.${poll}.json"
             def outputPath = "${repository}/.jenkins/state/controls/management-${params.OPERATION_ID}.${env.BUILD_NUMBER}.${poll}.response.json"
             writeFile(file: inputPath, text: JsonOutput.toJson(input), encoding: 'UTF-8')
-            def status = bat(returnStatus: true, script:
-                "\"${python}\" -B -X utf8 \"${capsule}/runner.py\" --capsule \"${capsule}\" " +
-                "--input-file \"${inputPath}\" --output-file \"${outputPath}\"")
+            def status
+            // The exact request lives in the control file, not the child environment.
+            withEnv(['INPUT_JSON=']) {
+                status = bat(returnStatus: true, script:
+                    "\"${python}\" -B -X utf8 \"${capsule}/runner.py\" --capsule \"${capsule}\" " +
+                    "--input-file \"${inputPath}\" --output-file \"${outputPath}\"")
+            }
             if (!fileExists(outputPath)) error("Pinned management runner rejected the control; exit ${status}")
             result = parseJson(readFile(file: outputPath, encoding: 'UTF-8'))
             def receiptName = "management-${params.OPERATION_ID}.${env.BUILD_NUMBER}.receipt.json"

@@ -19,6 +19,14 @@ TEMPLATES = {
     "module_unit": ("patch", "syntax", "format", "build", "unit_test", "acceptance", "commit", "notify", "gc"),
     "cross_module": ("patch", "syntax", "format", "build", "unit_test", "integration_test", "acceptance", "commit", "notify", "gc"),
     "failure_repair": ("patch", "syntax", "format", "build", "unit_test", "regression_test", "acceptance", "commit", "notify", "gc"),
+    # Templates above are recorded history: a workflow's dagDigest is the digest
+    # of its stage list, so inserting a stage would invalidate every accepted
+    # record that used them.  Review therefore arrives as new template names
+    # rather than as an edit to the existing ones.
+    "comments_only_review": ("patch", "syntax", "format", "review", "acceptance", "commit"),
+    "module_unit_review": ("patch", "syntax", "format", "review", "build", "unit_test", "acceptance", "commit", "notify", "gc"),
+    "cross_module_review": ("patch", "syntax", "format", "review", "build", "unit_test", "integration_test", "acceptance", "commit", "notify", "gc"),
+    "failure_repair_review": ("patch", "syntax", "format", "review", "build", "unit_test", "regression_test", "acceptance", "commit", "notify", "gc"),
     "cache_maintenance": ("gc",),
     "editor_product_development": ("source", "package_check", "build", "unit_test", "editor_exe", "runtime_dll", "package", "acceptance"),
     "editor_product_shipping": ("source", "package_check", "build", "unit_test", "editor_exe", "runtime_dll", "package", "acceptance"),

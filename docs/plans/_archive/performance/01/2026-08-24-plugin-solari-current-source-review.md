@@ -6,7 +6,7 @@ scope:
 status: static_complete_product_and_dynamic_pending
 canonical_owners:
   - docs/plans/optimize/zircon_plugins/04-rendering-umbrella-feature-bundles-solari-native-provider-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/98-runtime-hybrid-global-illumination-scene-representation-surface-cache-global-sdf-screen-probe-radiance-cache.md
 references:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenSceneRendering.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Lumen/LumenSurfaceCache.cpp

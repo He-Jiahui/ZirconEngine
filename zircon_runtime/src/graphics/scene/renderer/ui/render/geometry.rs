@@ -256,9 +256,10 @@ pub(in crate::graphics::scene::scene_renderer::ui) fn frame_to_scissor(
 ) -> Option<ScreenSpaceUiScissor> {
     let x = frame.x.max(0.0).floor() as u32;
     let y = frame.y.max(0.0).floor() as u32;
-    // BUG: [CR-SCENE-UI-0004] 小数起点与宽度独立取整会缩短右/下边界；例如 x=0.75、宽=1 得到 [0,1)，漏掉应覆盖的像素列 1。
-    let width = frame.width.max(0.0).ceil() as u32;
-    let height = frame.height.max(0.0).ceil() as u32;
+    let right = frame.right().max(0.0).ceil() as u32;
+    let bottom = frame.bottom().max(0.0).ceil() as u32;
+    let width = right.saturating_sub(x);
+    let height = bottom.saturating_sub(y);
     (width > 0 && height > 0).then_some(ScreenSpaceUiScissor {
         x,
         y,

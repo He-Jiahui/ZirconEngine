@@ -291,6 +291,7 @@ impl HubRuntimeSession {
         let command_line = install_command_line(&package_request, &device_root);
         let log_excerpt = install_log_excerpt(&project_name, &install_report);
         self.record_action_and_persist(HubActionRecord {
+            id: crate::state::new_action_record_id(),
             finished_unix_ms: crate::projects::now_unix_ms(),
             action: HubActionKind::InstallProject,
             status: HubActionStatus::Success,
@@ -320,6 +321,7 @@ impl HubRuntimeSession {
         );
         let log_excerpt = package_log_excerpt(&project_name, report);
         self.record_action_and_persist(HubActionRecord {
+            id: crate::state::new_action_record_id(),
             finished_unix_ms: crate::projects::now_unix_ms(),
             action: HubActionKind::PackageProject,
             status: HubActionStatus::Success,
@@ -343,6 +345,7 @@ impl HubRuntimeSession {
         output_dir: Option<PathBuf>,
     ) -> Result<(), HubError> {
         self.record_action_and_persist(HubActionRecord {
+            id: crate::state::new_action_record_id(),
             finished_unix_ms: crate::projects::now_unix_ms(),
             action,
             status: HubActionStatus::Failed,

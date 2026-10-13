@@ -22,7 +22,7 @@ related_plans:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md
   - docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md
-  - docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event.md
 status: static_complete_dynamic_pending
 ---
 

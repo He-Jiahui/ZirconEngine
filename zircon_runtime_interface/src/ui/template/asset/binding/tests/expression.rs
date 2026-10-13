@@ -149,14 +149,14 @@ fn runtime_interface03_batch25_early_token_admission_release_benchmark() {
         let measure_unbounded = || {
             let started = Instant::now();
             for _ in 0..LOOKUP_COUNT {
-                black_box(tokenize_with_budget_unbounded_scan(black_box(&input)));
+                let _ = black_box(tokenize_with_budget_unbounded_scan(black_box(&input)));
             }
             started.elapsed().as_nanos()
         };
         let measure_early = || {
             let started = Instant::now();
             for _ in 0..LOOKUP_COUNT {
-                black_box(tokenize_with_budget(black_box(&input)));
+                let _ = black_box(tokenize_with_budget(black_box(&input)));
             }
             started.elapsed().as_nanos()
         };
@@ -382,7 +382,7 @@ fn runtime_interface03_batch28_stack_float_arguments_release_benchmark() {
             let started = Instant::now();
             for _ in 0..LOOKUP_COUNT {
                 allocating_parser.index = 0;
-                black_box(
+                let _ = black_box(
                     allocating_parser.expect_float_arguments_allocating::<4>(black_box("vec4")),
                 );
             }
@@ -392,7 +392,7 @@ fn runtime_interface03_batch28_stack_float_arguments_release_benchmark() {
             let started = Instant::now();
             for _ in 0..LOOKUP_COUNT {
                 stack_parser.index = 0;
-                black_box(stack_parser.expect_float_arguments::<4>(black_box("vec4")));
+                let _ = black_box(stack_parser.expect_float_arguments::<4>(black_box("vec4")));
             }
             started.elapsed().as_nanos()
         };

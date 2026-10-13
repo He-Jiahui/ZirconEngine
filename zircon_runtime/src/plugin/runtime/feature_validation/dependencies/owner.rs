@@ -1,3 +1,4 @@
+use crate::builtin::RuntimePluginId;
 use crate::plugin::PluginFeatureDependency;
 
 /// 返回该行对主依赖总数的贡献；归属错误仍计入数量，供最终检查区分两类问题。
@@ -9,12 +10,36 @@ pub(super) fn validate_runtime_plugin_feature_primary_dependency_owner(
     if !dependency.primary {
         return 0;
     }
-    // BUG: [CR-PLUGIN-VALIDATION-0100] owner 为 sound、主依赖为 audio 时，目录别名判定接受它，但这里追加归属错误，注册报告随后失败；证据：目录的 alias_owner 回归与扩展合并对诊断的致命处理。
-    if dependency.plugin_id != owner_plugin_id {
+    let owner_matches = RuntimePluginId::parse_key(&dependency.plugin_id)
+        .zip(RuntimePluginId::parse_key(owner_plugin_id))
+        .is_some_and(|(dependency_id, owner_id)| dependency_id == owner_id);
+    if !owner_matches {
         diagnostics.push(format!(
             "runtime plugin feature manifest primary dependency `{}` must point to owner_plugin_id `{}`",
             dependency.plugin_id, owner_plugin_id
         ));
     }
     1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_runtime_plugin_feature_primary_dependency_owner;
+    use crate::plugin::PluginFeatureDependency;
+
+    #[test]
+    fn primary_owner_alias_matches_canonical_plugin_identity() {
+        let dependency = PluginFeatureDependency::primary("audio", "audio.mix");
+        let mut diagnostics = Vec::new();
+
+        assert_eq!(
+            validate_runtime_plugin_feature_primary_dependency_owner(
+                &dependency,
+                "sound",
+                &mut diagnostics,
+            ),
+            1
+        );
+        assert!(diagnostics.is_empty());
+    }
 }

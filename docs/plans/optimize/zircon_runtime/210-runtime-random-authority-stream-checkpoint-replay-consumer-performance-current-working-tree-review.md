@@ -14,7 +14,7 @@ coordination_tracking: skipped_by_user_request
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_runtime/102-runtime-random-authority-stream-checkpoint-replay-consumer-performance-current-source-review.md
 related_reports:
-  - docs/plans/optimize/zircon_runtime/209-runtime-support-crates-contracts-math-resource-rhi-wgpu-workspace-boundary-device-lifecycle-product-integration-current-working-tree-review.md
+  - docs/plans/optimize/zircon_runtime/209-runtime-support-crates-contracts-math-resource-rhi-wgpu-workspace-boundary-device-lifecycle-product-integration.md
   - docs/plans/optimize/zircon_runtime/22-time-clock-domain-fixed-step-determinism-rng-replay-scheduling-review.md
   - docs/plans/optimize/zircon_runtime/08f-ai-behavior-tree-blackboard-perception-runtime-review.md
   - docs/plans/optimize/zircon_runtime/26-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-review.md

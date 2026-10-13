@@ -16,6 +16,7 @@ mod output;
 use self::json_string::{write_json_display, write_json_string, write_json_string_preaccounted};
 use self::output::OutputBudget;
 pub(super) use self::output::{CountingWriter, COPY_BUFFER_BYTES};
+#[cfg(test)]
 pub(in crate::serialization) use self::output::{
     MAX_CANONICAL_NESTING_DEPTH, MAX_CANONICAL_OBJECT_ENTRIES,
 };

@@ -18,6 +18,7 @@ from .platform_bundle_arguments import (
     resolve_platform_bundle_path,
     resolve_user_path,
 )
+from .profile_name import valid_export_profile_name
 from .platform_bundle_materialize import (
     materialize_platform_bundle,
     remove_platform_bundle_dir,
@@ -59,6 +60,9 @@ REPORT_FILE_NAME = "report.json"
 
 def run_platform_bundle(args: argparse.Namespace) -> int:
     out_root = resolve_user_path(args.out)
+    if not valid_export_profile_name(args.profile):
+        print("diagnostic=PlatformBundle profile must contain only ASCII letters, digits, '_' or '-'")
+        return 2
     input_diagnostics = platform_bundle_argument_diagnostics(args)
     diagnostics: list[str] = list(input_diagnostics)
     repo_root = (
@@ -240,6 +244,8 @@ def run_platform_bundle(args: argparse.Namespace) -> int:
         if not remove_platform_bundle_dir(
             "stale PlatformBundle profile bundle",
             bundle_dir,
+            out_root,
+            args.profile,
             diagnostics,
         ):
             diagnostics.append("bundle copy skipped because stale profile bundle cleanup failed")
@@ -321,6 +327,8 @@ def run_platform_bundle(args: argparse.Namespace) -> int:
                 remove_platform_bundle_dir(
                     "partial PlatformBundle profile bundle",
                     bundle_dir,
+                    out_root,
+                    args.profile,
                     diagnostics,
                 )
             copied_host = None
@@ -369,6 +377,8 @@ def run_platform_bundle(args: argparse.Namespace) -> int:
                 remove_platform_bundle_dir(
                     "partial PlatformBundle profile bundle",
                     bundle_dir,
+                    out_root,
+                    args.profile,
                     diagnostics,
                 )
             bundle_manifest = None
@@ -377,6 +387,8 @@ def run_platform_bundle(args: argparse.Namespace) -> int:
             remove_platform_bundle_dir(
                 "partial PlatformBundle profile bundle",
                 bundle_dir,
+                out_root,
+                args.profile,
                 diagnostics,
             )
         bundle_manifest = None

@@ -51,10 +51,10 @@ const EXPECTED_VIEW_SURFACES: [&str; 41] = [
     "editor/unreal/level_editor_window.zui",
     "editor/workbench_activity_rail.zui",
     "editor/unreal/components/dock_header.zui",
-    "editor/workbench_menu_chrome.zui",
+    "editor/unreal/components/host_menu_bar.zui",
     "editor/workbench_menu_popup.zui",
-    "editor/workbench_page_chrome.zui",
-    "editor/workbench_status_bar.zui",
+    "editor/unreal/components/host_page_tabs.zui",
+    "editor/unreal/components/host_status_bar.zui",
 ];
 
 #[test]

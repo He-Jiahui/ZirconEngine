@@ -9,7 +9,7 @@ verification_head: 9963f8eb72e2d725d2536eb50b393b30387a1ffa
 verification_epoch: 2026-09-01-current-working-tree
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_runtime/168-runtime-audio-sound-current-working-tree-device-streaming-mixer-spatial-automation-review.md
-  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor.md
 related_code:
   - zircon_runtime/src/core/framework/audio
   - zircon_runtime/src/core/framework/sound
@@ -27,7 +27,7 @@ related_code:
   - zircon_app
 plan_sources:
   - docs/plans/optimize/zircon_runtime/08b-audio-runtime-review.md
-  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor.md
   - docs/plans/optimize/zircon_runtime/168-runtime-audio-sound-current-working-tree-device-streaming-mixer-spatial-automation-review.md
   - docs/plans/optimize/zircon_plugins/11-first-party-sound-source-runtime-editor-dist-catalog-mixer-spatial-reverb-timeline-product-integration-review.md
   - docs/plans/optimize/zircon_editor/17-sound-audio-clip-mixer-routing-effect-spatial-acoustic-timeline-authoring-review.md

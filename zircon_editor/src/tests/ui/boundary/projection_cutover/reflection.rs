@@ -5,11 +5,11 @@ use super::*;
 #[test]
 fn workbench_main_interface_entries_are_template_backed_and_reflected() {
     let shared_chrome_assets = [
-        "/assets/ui/editor/workbench_menu_chrome.zui",
+        "/assets/ui/editor/unreal/components/host_menu_bar.zui",
         "/assets/ui/editor/workbench_menu_popup.zui",
-        "/assets/ui/editor/workbench_page_chrome.zui",
+        "/assets/ui/editor/unreal/components/host_page_tabs.zui",
         "/assets/ui/editor/unreal/components/dock_header.zui",
-        "/assets/ui/editor/workbench_status_bar.zui",
+        "/assets/ui/editor/unreal/components/host_status_bar.zui",
         "/assets/ui/editor/workbench_activity_rail.zui",
     ];
     for asset in shared_chrome_assets {

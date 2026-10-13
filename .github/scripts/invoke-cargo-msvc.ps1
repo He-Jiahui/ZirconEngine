@@ -1,0 +1,75 @@
+param(
+    [switch]$RequireMatchingTests,
+    [Parameter(Mandatory = $true, Position = 0)]
+    [string]$Executable,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$ExecutableArguments
+)
+
+$ErrorActionPreference = 'Stop'
+if ($ExecutableArguments.Count -eq 0) {
+    throw 'Pass command arguments after the executable.'
+}
+
+$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+if (-not (Test-Path -LiteralPath $vswhere -PathType Leaf)) {
+    throw 'Visual Studio Installer vswhere.exe was not found on this CI runner.'
+}
+$installation = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($installation)) {
+    throw 'No Visual Studio installation with x64 C++ build tools is available.'
+}
+$devCommand = Join-Path $installation 'Common7\Tools\VsDevCmd.bat'
+if (-not (Test-Path -LiteralPath $devCommand -PathType Leaf)) {
+    throw "Visual Studio developer command environment is missing: $devCommand"
+}
+
+$environmentCommand = 'call "' + $devCommand + '" -arch=amd64 >nul && set'
+$environmentLines = & $env:ComSpec /d /s /c $environmentCommand
+if ($LASTEXITCODE -ne 0) {
+    throw 'VsDevCmd.bat failed to initialize the x64 MSVC environment.'
+}
+foreach ($line in $environmentLines) {
+    $separator = $line.IndexOf('=')
+    if ($separator -le 0) { continue }
+    $name = $line.Substring(0, $separator)
+    $value = $line.Substring($separator + 1)
+    if ($name -match '^=[A-Za-z]:$') { continue }
+    Set-Item -Path "Env:$name" -Value $value
+}
+
+if ($RequireMatchingTests) {
+    $listArguments = @($ExecutableArguments) + @('--', '--list')
+    $listing = & $Executable @listArguments 2>&1
+    $listExitCode = $LASTEXITCODE
+    $listing | ForEach-Object { Write-Output ([string]$_) }
+    if ($listExitCode -ne 0) {
+        exit $listExitCode
+    }
+    $matchingTests = @(
+        $listing | Where-Object { ([string]$_) -match '^\s*\S.*: test$' }
+    )
+    if ($matchingTests.Count -eq 0) {
+        throw 'The requested Cargo test filter matched zero tests; refusing a vacuous CI pass.'
+    }
+    Write-Output "Verified $($matchingTests.Count) matching test(s); executing them now."
+
+    $testOutput = & $Executable @ExecutableArguments 2>&1
+    $testExitCode = $LASTEXITCODE
+    $testOutput | ForEach-Object { Write-Output ([string]$_) }
+    if ($testExitCode -ne 0) {
+        exit $testExitCode
+    }
+    $passedSummary = @(
+        $testOutput | Where-Object {
+            ([string]$_) -match '(?i)test result: ok\.\s+([1-9][0-9]*) passed;'
+        }
+    )
+    if ($passedSummary.Count -eq 0) {
+        throw 'The filtered Cargo test run completed without any passed tests.'
+    }
+    exit 0
+}
+
+& $Executable @ExecutableArguments
+exit $LASTEXITCODE

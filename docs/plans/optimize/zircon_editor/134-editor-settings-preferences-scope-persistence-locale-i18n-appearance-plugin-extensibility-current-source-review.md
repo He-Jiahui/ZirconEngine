@@ -78,7 +78,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/133-editor-logging-diagnostic-journal-output-console-status-routing-retention-export-current-source-review.md
   - docs/plans/optimize/zircon_runtime/45-preference-settings-scope-storage-overlay-bounded-io-generation-fence-durability-migration-multi-process-product-integration-review.md
   - docs/plans/optimize/zircon_runtime/73-runtime-ui-style-theme-token-cascade-selector-pseudo-state-invalidation-transition-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/83-runtime-localization-internationalization-locale-culture-message-format-plural-number-date-string-table-resource-fallback-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/83-runtime-localization-internationalization-locale-culture-message-format-plural-number-date-string-table-resource-fallback.md
   - docs/plans/zircon_editor/editor/17/failure-2026-07-30-editor-settings-persistence-and-hot-projection.md
   - docs/plans/zircon_editor/editor/06/failure-2026-08-05-settings-page-localization-contract-hardcut.md
   - docs/plans/zircon_editor/editor/12/failure-2026-08-05-plugin-settings-page-localization-contract.md

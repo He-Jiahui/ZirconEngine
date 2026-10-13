@@ -38,7 +38,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/113-editor-spline-path-road-river-decal-brush-geometry-current-source-review.md
   - docs/plans/optimize/zircon_editor/160-editor-spline-path-road-river-decal-brush-geometry-current-source-review.md
   - docs/plans/optimize/zircon_runtime/99zw-runtime-decal-projector-material-domain-dbuffer-gbuffer-forward-receiver-culling-batching-atlas-streaming-temporal-rt-scalability-editor-product-integration-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/99zr-runtime-water-ocean-lake-river-surface-wave-fft-shallow-water-rendering-underwater-buoyancy-query-physics-navigation-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zr-runtime-water-ocean-lake-river-surface-wave-fft-shallow-water-rendering-underwater-buoyancy-query-physics-navigation-editor.md
   - docs/plans/optimize/zircon_runtime/99zq-runtime-terrain-landscape-heightfield-clipmap-quadtree-lod-material-layer-virtual-texture-foliage-world-partition-physics-navigation-editor-product-integration-current-source-review.md
   - docs/plans/optimize/zircon_editor/138-editor-terrain-landscape-foliage-scatter-world-partition-level-streaming-authoring-current-source-review.md
 reference_engines:

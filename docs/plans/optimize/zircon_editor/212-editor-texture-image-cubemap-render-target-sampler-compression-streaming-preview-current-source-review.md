@@ -15,7 +15,7 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/109-editor-texture-image-cubemap-render-target-sampler-compression-streaming-preview-current-source-review.md
   - docs/plans/optimize/zircon_editor/156-editor-texture-image-cubemap-render-target-sampler-compression-streaming-preview-current-source-review.md
 related_runtime_owner:
-  - docs/plans/optimize/zircon_runtime/92-runtime-texture-image-cubemap-array-volume-format-sampler-mip-compression-upload-streaming-residency-budget-eviction-virtual-texture-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/92-runtime-texture-image-cubemap-array-volume-format-sampler-mip-compression-upload-streaming-residency-budget-eviction-virtual-texture.md
 related_failures:
   - docs/plans/zircon_editor/editor/09/failure-2026-07-17-editor-asset-catalog-full-rebuild-and-preview-lock.md
   - docs/plans/optimize/zircon_runtime/90/failure-2026-08-28-rhi-upload-batch-payload-owner-lifetime.md

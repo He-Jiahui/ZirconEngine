@@ -11,10 +11,7 @@ impl HubRuntimeSession {
         &mut self,
         record: HubActionRecord,
     ) -> Result<(), HubError> {
-        self.config.action_history.insert(0, record);
-        self.config
-            .action_history
-            .truncate(crate::state::ACTION_HISTORY_LIMIT);
+        crate::state::push_action_record(&mut self.config.action_history, record);
         self.persist()
     }
 

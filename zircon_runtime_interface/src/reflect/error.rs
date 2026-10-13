@@ -9,82 +9,136 @@ use crate::world_sync::LifecycleTargetChange;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum ReflectError {
+    /// 生命周期回调替换了当前操作所依赖的目标，调用端应停止旧目标上的后续工作。
     LifecycleTargetReplaced {
+        /// 被取消操作的描述文本。
         operation: String,
+        /// 发生替换的 World 或 Schedule 目标。
         target: LifecycleTargetChange,
     },
+    /// 类型路径未通过共享路径语法校验。
     InvalidTypePath {
+        /// 无效的输入路径。
         type_path: String,
+        /// 校验器给出的失败原因。
         reason: String,
     },
+    /// 请求路径未找到已接纳的类型注册。
     UnknownType {
+        /// 未找到注册的类型路径。
         type_path: String,
     },
+    /// 仅凭短类型路径无法唯一确定注册项。
     AmbiguousShortTypePath {
+        /// 发生冲突的短路径。
         short_type_path: String,
     },
+    /// 注册目录拒绝重复的完整类型路径。
     DuplicateTypePath {
+        /// 已占用的类型路径。
         type_path: String,
     },
+    /// 目标组件类型没有可执行读写的组件适配器。
     NoComponentAdapter {
+        /// 缺少适配器的类型路径。
         type_path: String,
     },
+    /// 目标资源类型没有可执行读写的资源适配器。
     NoResourceAdapter {
+        /// 缺少适配器的类型路径。
         type_path: String,
     },
+    /// 组件地址引用的实体不存在。
     MissingEntity {
+        /// 未找到的实体标识。
         entity: u64,
     },
+    /// 实体存在，但不含请求类型的组件。
     MissingComponent {
+        /// 组件所在实体。
         entity: u64,
+        /// 未找到的组件类型路径。
         type_path: String,
     },
+    /// 请求移除的组件被声明为不可移除。
     NonRemovableComponent {
+        /// 不允许移除的组件类型路径。
         type_path: String,
     },
+    /// 资源地址引用的注册资源当前不存在。
     MissingResource {
+        /// 未找到的资源类型路径。
         type_path: String,
     },
+    /// 类型注册中没有可由请求解析的字段。
     UnknownField {
+        /// 字段所属类型。
         type_path: String,
+        /// 请求或适配器报告的字段名。
         field_name: String,
     },
+    /// 字段存在，但其元数据禁止编辑写入。
     NonEditableField {
+        /// 字段所属类型。
         type_path: String,
+        /// 不可编辑字段名。
         field_name: String,
     },
+    /// 输入反射值不能转换为字段声明的 Rust 值类型。
     TypeMismatch {
+        /// 字段所属类型。
         type_path: String,
+        /// 转换失败字段名。
         field_name: String,
+        /// 转换器要求的值类别或范围。
         expected: String,
+        /// 实际收到的值类别或范围。
         actual: String,
     },
+    /// 请求的源值与目标值组合没有已实现的转换。
     UnsupportedConversion {
+        /// 来源描述。
         source: String,
+        /// 目标描述。
         target: String,
     },
+    /// 操作要求的对象地址种类与收到的种类不一致。
     AddressKindMismatch {
+        /// 操作要求的地址种类。
         expected: String,
+        /// 实际收到的地址种类。
         actual: String,
     },
+    /// 类型注册未通过目录或运行时注册校验。
     InvalidRegistration {
+        /// 被拒绝注册的类型路径。
         type_path: String,
+        /// 注册校验失败原因。
         reason: String,
     },
+    /// 注册中的字段元数据未通过字段级校验。
     InvalidFieldRegistration {
+        /// 字段所属类型路径。
         type_path: String,
+        /// 无效字段名。
         field_name: String,
+        /// 字段校验失败原因。
         reason: String,
     },
+    /// 字段的反射值未满足运行时字段值约束。
     InvalidValue {
+        /// 字段所属类型路径。
         type_path: String,
+        /// 值无效字段名。
         field_name: String,
+        /// 值校验失败原因。
         reason: String,
     },
 }
 
 impl ReflectError {
     /// A callback retired the producer's target; callers must stop old-target work.
+    /// 返回生命周期取消变体中的替换目标；其它错误返回 `None`。
     pub fn lifecycle_target_change(&self) -> Option<LifecycleTargetChange> {
         match self {
             Self::LifecycleTargetReplaced { target, .. } => Some(*target),

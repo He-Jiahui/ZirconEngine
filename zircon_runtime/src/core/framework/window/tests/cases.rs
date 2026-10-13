@@ -68,6 +68,34 @@ fn window_resolution_clamps_zero_physical_size() {
 }
 
 #[test]
+fn window_resolution_deserialization_preserves_constructor_invariants() {
+    let resolution: WindowResolution = serde_json::from_value(serde_json::json!({
+        "physical_width": 0,
+        "physical_height": 0,
+        "scale_factor_override": 0.0,
+        "scale_factor": 0.0,
+    }))
+    .expect("resolution config should deserialize");
+
+    assert_eq!(resolution.physical_size(), UVec2::new(1, 1));
+    assert_eq!(resolution.base_scale_factor(), 1.0);
+    assert_eq!(resolution.scale_factor_override(), Some(1.0));
+    assert_eq!(resolution.logical_size(), [1.0, 1.0]);
+}
+
+#[test]
+fn window_resolution_deserialization_clamps_non_finite_and_subminimum_values() {
+    let resolution: WindowResolution = toml::from_str(
+        "physical_width = 0\nphysical_height = 0\nscale_factor_override = -2.0\nscale_factor = nan\n",
+    )
+    .expect("invalid floating point settings should normalize during deserialization");
+
+    assert_eq!(resolution.physical_size(), UVec2::new(1, 1));
+    assert_eq!(resolution.scale_factor_override(), Some(1.0));
+    assert_eq!(resolution.base_scale_factor(), 1.0);
+}
+
+#[test]
 fn window_resize_constraints_clamp_invalid_bounds() {
     let constraints = WindowResizeConstraints {
         min_width: 0.0,

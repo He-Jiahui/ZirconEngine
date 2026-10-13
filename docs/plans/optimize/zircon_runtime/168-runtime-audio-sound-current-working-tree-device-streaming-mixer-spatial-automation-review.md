@@ -8,7 +8,7 @@ baseline_epoch: 2026-08-30
 verification_head: working-tree
 verification_epoch: 2026-08-30
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor.md
   - docs/plans/optimize/zircon_runtime/08b-audio-runtime-review.md
   - docs/plans/optimize/zircon_plugins/11-first-party-sound-source-runtime-editor-dist-catalog-mixer-spatial-reverb-timeline-product-integration-review.md
 related_code:
@@ -25,7 +25,7 @@ related_code:
   - zircon_plugins/first_party_runtime_catalog
   - zircon_app/src/entry
 plan_sources:
-  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zn-runtime-audio-sound-clip-streaming-device-mixer-bus-effect-spatial-occlusion-reverb-timeline-event-voice-chat-editor.md
   - docs/plans/zircon_plugins/02-sound.md
   - docs/plans/zircon_plugins/02/failure-2026-07-19-kira-send-frame-capture-routing.md
 reference_engines:

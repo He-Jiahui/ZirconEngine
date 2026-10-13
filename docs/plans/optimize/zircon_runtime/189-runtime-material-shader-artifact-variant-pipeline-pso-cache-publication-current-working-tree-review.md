@@ -16,9 +16,9 @@ related_code:
   - zircon_plugins/rendering/features/shader_graph
 plan_sources:
   - docs/plans/optimize/zircon_runtime/09c-material-shader-pipeline-pso-review.md
-  - docs/plans/optimize/zircon_runtime/91-runtime-material-shader-module-graph-permutation-compiler-reflection-layout-pipeline-pso-cache-prewarm-hot-reload-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/91-runtime-material-shader-module-graph-permutation-compiler-reflection-layout-pipeline-pso-cache-prewarm-hot-reload.md
   - docs/plans/optimize/zircon_editor/137-editor-material-shader-graph-material-instance-vfx-particle-preview-compiler-diagnostics-authoring-current-source-review.md
-  - docs/plans/optimize/zircon_runtime/166-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/166-runtime-render-graph-builder-compiler-resource-lifetime-pass-culling-transient-aliasing-barrier-queue-scheduling-execution.md
   - docs/plans/optimize/zircon_runtime/188-runtime-asset-resource-lifecycle-locator-registry-load-cache-import-cook-current-working-tree-review.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/Shader.h

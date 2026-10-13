@@ -1,0 +1,1308 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "project-compatibility-005",
+  "owner": "/root/public_project",
+  "reviewModel": "gpt-6-luna",
+  "reviewEffort": "max",
+  "checkout": "E:/Git/ZirconEngine",
+  "baselineHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "scope": "仅写授权的10个兼容性源文件；调用方证据只读。",
+  "state": "awaiting-independent-review",
+  "objectEvidence": [
+    {
+      "id": "PROJ05-001",
+      "symbol": "engine_compatibility 模块边界、子模块与公开重导出",
+      "kind": "module-contract",
+      "members": [
+        "assessment",
+        "compatibility",
+        "directional_range",
+        "disposition",
+        "error",
+        "version",
+        "version_parse_error",
+        "assess_project_engine_compatibility",
+        "ProjectEngineCompatibility",
+        "ProjectEngineCompatibilityDisposition",
+        "ProjectEngineCompatibilityError",
+        "ProjectEngineVersion",
+        "ProjectEngineVersionParseError"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/mod.rs",
+          "symbol": "module docs, #[path] submodules, public reexports",
+          "kind": "module and exports"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/mod.rs",
+          "symbol": "engine_compatibility module and pub use list",
+          "relationship": "parent module exposes assessor and value types"
+        }
+      ],
+      "implementations": [
+        {
+          "symbols": [
+            "assessment",
+            "compatibility",
+            "directional_range",
+            "disposition",
+            "error",
+            "version",
+            "version_parse_error"
+          ],
+          "relationship": "file modules isolate the evaluator, data values, errors, and private range reducer"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "attribute": "#[path]",
+          "relationship": "module file mapping only; no runtime registration, code-generating macro, or FFI entry"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+          "relationship": "public assessment contract"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/tests/directional_range.rs",
+          "relationship": "private test file loaded under directional_range.rs cfg(test), not a direct crate::project::tests child"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "module declarations and exports",
+          "entry": "crate compiles the project interface",
+          "state": "implementation stays private while public values and evaluator are reexported",
+          "effect": "callers use crate::project without reaching comparator internals"
+        }
+      ],
+      "commentDecision": {
+        "action": "added a Chinese module overview and concrete caller/test paths",
+        "reason": "describes ownership and API boundary without restating module names"
+      },
+      "constraintsAndLifecycle": "The module has no runtime state and performs no activation; Editor and template admission callers consume the result."
+    },
+    {
+      "id": "PROJ05-002",
+      "symbol": "assess_project_engine_compatibility",
+      "kind": "public-function-and-control-flow",
+      "members": [
+        "requirement",
+        "running_engine",
+        "None branch",
+        "VersionReq::parse and error mapping",
+        "VersionReq::matches",
+        "direction classification fallback",
+        "ProjectEngineCompatibility construction"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs",
+          "symbol": "assess_project_engine_compatibility",
+          "kind": "pub fn"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_editor/src/core/project/project_preflight/preflight_receipt.rs",
+          "symbol": "ProjectPreflightReceipt::evaluate_engine_compatibility",
+          "relationship": "passes summary.engine_version_req and selected engine"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs",
+          "symbol": "ProjectTemplateDescriptor::assess_engine_compatibility",
+          "relationship": "passes built-in template requirement and creator engine"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/template_pack/receipt.rs",
+          "symbol": "ProjectTemplateReceipt::try_new",
+          "relationship": "rejects incompatible creator result before storing provenance"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "assess_project_engine_compatibility",
+          "relationship": "parses supplied Some text, checks semver match, asks private reducer for direction only on mismatch, then stores original input and engine in the result"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "relationship": "No FFI, registration, or code-generating macro; ordinary semver::VersionReq calls."
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+          "relationship": "five tests cover result identity, invalid input, directions, prerelease/empty ranges, and comparator boundaries"
+        },
+        {
+          "path": "zircon_editor/src/core/project/tests/preflight.rs",
+          "symbol": "project_preflight_exposes_the_engine_compatibility_receipt_without_runtime_activation",
+          "relationship": "checks compatible/incompatible receipt results and no runtime-created directories"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "None requirement",
+          "entry": "manifest has no engine requirement",
+          "state": "skips parsing and creates Compatible result with selected engine",
+          "effect": "returns a snapshot with no original requirement"
+        },
+        {
+          "block": "Some requirement parse",
+          "entry": "a requirement string is supplied",
+          "state": "VersionReq::parse either succeeds or maps the original string and semver error",
+          "effect": "parse failure returns InvalidRequirement"
+        },
+        {
+          "block": "match and fallback",
+          "entry": "parsed requirement",
+          "state": "a match yields Compatible; only a mismatch calls the range reducer",
+          "effect": "direction changes only the diagnostic category and cannot make an unproven range compatible"
+        },
+        {
+          "block": "result construction",
+          "entry": "requirement parsed and classified",
+          "state": "stores original text, the same selected engine, and disposition",
+          "effect": "caller receives a stable data snapshot"
+        }
+      ],
+      "commentDecision": {
+        "action": "preserved English/Chinese overview and added Chinese parameter, return, error, constraint, and caller sections",
+        "reason": "each claim follows the evaluator and its direct callers"
+      },
+      "constraintsAndLifecycle": "Some inputs, including empty text, follow semver parser semantics without a separate empty-string gate. None means absent requirement. Compatibility covers only the semver dimension and grants no activation authority."
+    },
+    {
+      "id": "PROJ05-003",
+      "symbol": "ProjectEngineCompatibility and its fields/accessors",
+      "kind": "type-implementation-fields",
+      "members": [
+        "ProjectEngineCompatibility",
+        "requirement",
+        "running_engine",
+        "disposition",
+        "impl ProjectEngineCompatibility",
+        "new",
+        "requirement()",
+        "running_engine()",
+        "disposition()",
+        "is_compatible()"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs",
+          "symbol": "ProjectEngineCompatibility",
+          "kind": "struct and impl"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs",
+          "symbol": "ProjectEngineCompatibility::new",
+          "relationship": "assessor stores evaluated inputs"
+        },
+        {
+          "path": "zircon_editor/src/core/project/authority/preflight.rs",
+          "symbol": "validate_launch_receipt",
+          "relationship": "checks returned compatibility, then separately checks identity and provider requirements"
+        }
+      ],
+      "implementations": [
+        {
+          "symbols": [
+            "new",
+            "requirement",
+            "running_engine",
+            "disposition",
+            "is_compatible"
+          ],
+          "relationship": "constructor stores values; accessors borrow/copy stored values; predicate delegates to disposition"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "derive": "Clone, Debug, PartialEq, Eq, Serialize, Deserialize"
+        },
+        {
+          "attribute": "#[serde(deny_unknown_fields)]",
+          "relationship": "rejects unknown map fields; deserialization can reconstruct data but cannot prove trust or admission"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+          "relationship": "constructs expected snapshot and asserts original requirement and running engine are preserved"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "new",
+          "entry": "assessor computed a result or same-crate test creates expected data",
+          "state": "stores all three supplied fields without recomputation",
+          "effect": "constructs a snapshot but performs no parse or policy check"
+        },
+        {
+          "block": "accessors",
+          "entry": "caller inspects result",
+          "state": "returns stored reference or copied enum",
+          "effect": "does not query current engine"
+        },
+        {
+          "block": "is_compatible",
+          "entry": "caller asks whether semver requirement was met",
+          "state": "delegates to disposition predicate",
+          "effect": "only Compatible returns true"
+        }
+      ],
+      "commentDecision": {
+        "action": "retained existing summary and added field, lifecycle, and deserialization boundary documentation",
+        "reason": "public value is data, not an activation capability"
+      },
+      "constraintsAndLifecycle": "Private fields do not make deserialization an authorization boundary; callers must validate input provenance and execute host admission policy."
+    },
+    {
+      "id": "PROJ05-004",
+      "symbol": "ProjectEngineCompatibilityDisposition and is_compatible",
+      "kind": "enum-and-method",
+      "members": [
+        "Compatible",
+        "ProjectRequiresNewerEngine",
+        "ProjectRequiresOlderEngine",
+        "Incompatible",
+        "is_compatible()"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/disposition.rs",
+          "symbol": "ProjectEngineCompatibilityDisposition",
+          "kind": "enum"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_editor/src/core/project/authority/preflight.rs",
+          "symbol": "validate_launch_receipt",
+          "relationship": "non-Compatible result rejects launch receipt"
+        },
+        {
+          "path": "zircon_editor/src/core/project/tests/preflight.rs",
+          "symbol": "preflight compatibility test",
+          "relationship": "asserts Compatible and Incompatible"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+          "relationship": "asserts every public direction category"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "is_compatible",
+          "relationship": "matches exactly Compatible"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "derive": "Serialize, Deserialize with snake_case names",
+          "relationship": "serde wire value; no FFI representation"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/tests/directional_range.rs",
+          "relationship": "caret upper-bound directions"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "is_compatible",
+          "entry": "any disposition variant",
+          "state": "matches only Compatible",
+          "effect": "directional and indeterminate variants return false"
+        }
+      ],
+      "commentDecision": {
+        "action": "added Chinese meanings for each variant and the predicate",
+        "reason": "direction labels are consumed by Editor diagnostics and admission"
+      },
+      "constraintsAndLifecycle": "Newer/older direction is emitted only when stable range bounds prove it; unknown direction remains Incompatible."
+    },
+    {
+      "id": "PROJ05-005",
+      "symbol": "ProjectEngineCompatibilityError::InvalidRequirement",
+      "kind": "error-enum-fields",
+      "members": [
+        "InvalidRequirement",
+        "requirement",
+        "source"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/error.rs",
+          "symbol": "ProjectEngineCompatibilityError",
+          "kind": "enum"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs",
+          "symbol": "VersionReq::parse map_err",
+          "relationship": "retains original Some input and semver source"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "InvalidRequirement",
+          "relationship": "distinct from a successfully parsed but directionally unknown result"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "derive": "thiserror::Error"
+        },
+        {
+          "attributes": "#[error] and #[source]",
+          "relationship": "format message and expose parser cause"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+          "relationship": "malformed range errors while indeterminate range returns Ok(Incompatible)"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "error variant construction",
+          "entry": "semver parser rejects supplied requirement",
+          "state": "stores original requirement and parser source",
+          "effect": "caller can report exact failed input and cause"
+        }
+      ],
+      "commentDecision": {
+        "action": "kept English summary, added Chinese summary, timing, and field meanings",
+        "reason": "separates syntax error from incompatibility classification"
+      },
+      "constraintsAndLifecycle": "Only parse failure enters this error; inability to prove update direction is a normal disposition."
+    },
+    {
+      "id": "PROJ05-006",
+      "symbol": "VersionBound, VersionRange, reducer, comparator helpers, and test wiring",
+      "kind": "algorithm-and-control-flow",
+      "members": [
+        "VersionBound.version",
+        "VersionBound.inclusive",
+        "VersionRange.minimum",
+        "VersionRange.maximum",
+        "intersect",
+        "is_empty",
+        "directional_disposition",
+        "classify_incompatible_requirement",
+        "comparator_range",
+        "comparator_version",
+        "exact_range",
+        "prefix_range",
+        "caret_range",
+        "greater_lower_bound",
+        "less_equal_upper_bound",
+        "next_major",
+        "next_minor",
+        "next_patch",
+        "stricter_minimum",
+        "stricter_maximum",
+        "cfg(test) mod tests"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs",
+          "symbol": "VersionBound, VersionRange, all listed private helpers",
+          "kind": "private algorithm"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs",
+          "symbol": "classify_incompatible_requirement",
+          "relationship": "called only after VersionReq::matches is false"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/tests/directional_range.rs",
+          "symbol": "private child tests",
+          "relationship": "directly tests range helper and deliberately bypasses public match step"
+        }
+      ],
+      "implementations": [
+        {
+          "symbols": [
+            "VersionRange::intersect",
+            "VersionRange::is_empty",
+            "VersionRange::directional_disposition",
+            "comparator_range",
+            "comparator_version",
+            "exact_range",
+            "prefix_range",
+            "caret_range",
+            "greater_lower_bound",
+            "less_equal_upper_bound",
+            "next_major",
+            "next_minor",
+            "next_patch",
+            "stricter_minimum",
+            "stricter_maximum"
+          ],
+          "relationship": "private stable-range representation, comparator expansion, intersection and direction proof"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "derive": "Clone, Debug, Default"
+        },
+        {
+          "attribute": "#[cfg(test)] and #[path = ../tests/directional_range.rs]",
+          "relationship": "test-only private module; no runtime registration, generated behavior, or FFI"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/directional_range.rs",
+          "relationship": "five caret precision cases and three checked-add overflow cases"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+          "relationship": "public exact/partial comparator and conservative-result contracts"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "intersection",
+          "entry": "two comparator ranges",
+          "state": "merge stricter bounds independently",
+          "effect": "represents conjunction"
+        },
+        {
+          "block": "empty check",
+          "entry": "intersected range",
+          "state": "None bound is unbounded; reversed endpoints are empty; equal endpoints require both inclusive",
+          "effect": "prevents direction from impossible range"
+        },
+        {
+          "block": "direction proof",
+          "entry": "nonmatching running version and stable range",
+          "state": "empty then below minimum then above maximum then unknown",
+          "effect": "newer/older only when full range proves one side"
+        },
+        {
+          "block": "prerelease guard",
+          "entry": "running version or any comparator has prerelease metadata",
+          "state": "returns before ordinary interval reduction",
+          "effect": "does not approximate semver prerelease admission"
+        },
+        {
+          "block": "comparator fold",
+          "entry": "stable requirement comparator list",
+          "state": "map and intersect; unsupported conversion or checked-add overflow propagates None",
+          "effect": "unknown bound becomes Incompatible"
+        },
+        {
+          "block": "operator conversion",
+          "entry": "Exact/Wildcard/Greater/GreaterEq/Less/LessEq/Tilde/Caret comparator",
+          "state": "produce singleton, prefix, strict/inclusive endpoint, tilde, or caret bounds at the declared precision; unknown op returns None",
+          "effect": "direction uses represented comparator range"
+        },
+        {
+          "block": "base and bound helpers",
+          "entry": "partial Comparator",
+          "state": "missing minor/patch default to zero; helpers choose next major/minor/patch by precision",
+          "effect": "preserves strictness through inclusive flag"
+        },
+        {
+          "block": "checked successors",
+          "entry": "boundary increment requested",
+          "state": "checked_add returns None on u64 overflow",
+          "effect": "overflow stops direction inference without wrapping"
+        },
+        {
+          "block": "stricter bounds",
+          "entry": "optional current and candidate endpoints",
+          "state": "select larger minimum/smaller maximum; equal endpoints combine inclusive with AND",
+          "effect": "retains the exact intersection"
+        },
+        {
+          "block": "cfg(test) wiring",
+          "entry": "unit test build",
+          "state": "loads sibling file as private child module",
+          "effect": "normal build surface is unchanged"
+        }
+      ],
+      "commentDecision": {
+        "action": "preserved existing reducer overview and added Chinese invariant/branch comments; did not add redundant translations to self-descriptive private test names",
+        "reason": "claims describe proven interval constraints and conservative fallbacks"
+      },
+      "constraintsAndLifecycle": "This helper only classifies an already nonmatching requirement. Missing endpoints are unbounded. Prerelease inputs, empty ranges, unsupported conversions, and checked_add overflow remain Incompatible."
+    },
+    {
+      "id": "PROJ05-007",
+      "symbol": "ProjectEngineVersion and Display/Serialize/Deserialize implementations",
+      "kind": "type-traits-and-methods",
+      "members": [
+        "ProjectEngineVersion.0",
+        "parse",
+        "as_semver",
+        "impl Display",
+        "Display::fmt",
+        "impl Serialize",
+        "Serialize::serialize",
+        "impl Deserialize",
+        "Deserialize::deserialize"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/version.rs",
+          "symbol": "ProjectEngineVersion",
+          "kind": "tuple struct and trait implementations"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_editor/src/core/project/authority/preflight.rs",
+          "symbol": "validate_launch_receipt",
+          "relationship": "parses CARGO_PKG_VERSION"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs",
+          "symbol": "as_semver",
+          "relationship": "borrows inner semver value for match/classification"
+        }
+      ],
+      "implementations": [
+        {
+          "symbols": [
+            "parse",
+            "as_semver",
+            "Display::fmt",
+            "Serialize::serialize",
+            "Deserialize::deserialize"
+          ],
+          "relationship": "parse constructs validated wrapper; display/serialize emit version text; deserialize reads text and reuses parse"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "relationship": "Manual serde trait implementations; no FFI layout or generated derive."
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+          "relationship": "asserts string wire form and serde roundtrip"
+        },
+        {
+          "path": "zircon_editor/src/core/project/authority/preflight.rs",
+          "relationship": "host version is parsed before evaluation"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "parse",
+          "entry": "host supplies text",
+          "state": "own original string, parse semver, store either Version or original plus source error",
+          "effect": "only parsed values construct wrapper"
+        },
+        {
+          "block": "as_semver",
+          "entry": "same-crate comparison",
+          "state": "borrows tuple field",
+          "effect": "no clone or cross-boundary semver exposure"
+        },
+        {
+          "block": "Display/Serialize",
+          "entry": "format or serialize a value",
+          "state": "delegate to semver display and serialize one string",
+          "effect": "serializer errors propagate"
+        },
+        {
+          "block": "Deserialize",
+          "entry": "serde supplies a string",
+          "state": "read String, call parse, map failure to serde data error",
+          "effect": "invalid wire text cannot construct wrapper"
+        }
+      ],
+      "commentDecision": {
+        "action": "preserved type summary and documented parser, wire format, and each trait implementation in Chinese",
+        "reason": "records actual validation and serialization boundaries"
+      },
+      "constraintsAndLifecycle": "Host chooses the running engine version; this wrapper validates supplied text and does not discover or update host version."
+    },
+    {
+      "id": "PROJ05-008",
+      "symbol": "ProjectEngineVersionParseError::Invalid",
+      "kind": "error-enum-fields",
+      "members": [
+        "Invalid",
+        "value",
+        "source"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs",
+          "symbol": "ProjectEngineVersionParseError",
+          "kind": "enum"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/version.rs",
+          "symbol": "ProjectEngineVersion::parse and Deserialize::deserialize",
+          "relationship": "parse stores invalid input and semver error; serde maps it to its data error"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "Invalid",
+          "relationship": "retains original version text and semver cause"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "derive": "thiserror::Error"
+        },
+        {
+          "attributes": "#[error] and #[source]",
+          "relationship": "provide error display and source chain"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+          "relationship": "valid parse and serde string roundtrip; invalid values follow the same parse path"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "Invalid construction",
+          "entry": "semver::Version::parse rejects host or wire text",
+          "state": "stores original value and parser source",
+          "effect": "preflight caller receives actionable parse failure"
+        }
+      ],
+      "commentDecision": {
+        "action": "preserved English text and added Chinese summary, timing, and field semantics",
+        "reason": "explains how parse failures reach preflight"
+      },
+      "constraintsAndLifecycle": "A failed input does not construct a ProjectEngineVersion; host propagates this error."
+    },
+    {
+      "id": "PROJ05-009",
+      "symbol": "engine_compatibility.rs public contract tests",
+      "kind": "tests-and-contract-blocks",
+      "members": [
+        "project_engine_compatibility_preserves_the_requirement_and_running_engine_identity",
+        "project_engine_compatibility_rejects_an_invalid_requirement_and_uses_canonical_version_wire",
+        "project_engine_compatibility_classifies_proven_newer_and_older_requirements",
+        "project_engine_compatibility_keeps_prerelease_and_empty_ranges_indeterminate",
+        "project_engine_compatibility_normalizes_exact_and_partial_comparator_boundaries"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+          "symbol": "five #[test] functions",
+          "kind": "unit tests"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs",
+          "symbol": "assess_project_engine_compatibility",
+          "relationship": "public entry under test"
+        }
+      ],
+      "implementations": [
+        {
+          "symbols": [
+            "five test bodies"
+          ],
+          "relationship": "assert snapshot identity, error/wire, direction, conservative fallback, and endpoints"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "attribute": "#[test]",
+          "relationship": "registers unit tests with Rust harness; no custom test macro"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_editor/src/core/project/tests/preflight.rs",
+          "relationship": "receipt-level compatible/incompatible result without runtime activation"
+        },
+        {
+          "path": "zircon_runtime_interface/src/project/tests/template_pack.rs",
+          "relationship": "template descriptor compatible/incompatible result"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "identity test",
+          "entry": "compatible and older-only requirements",
+          "state": "assess with fixed engine",
+          "effect": "assert requirement, engine and direction preserved"
+        },
+        {
+          "block": "parse/wire test",
+          "entry": "malformed range and valid version",
+          "state": "assert error then serde string roundtrip",
+          "effect": "locks parse and wire contract"
+        },
+        {
+          "block": "direction tests",
+          "entry": "range above or below engine",
+          "state": "assess each case",
+          "effect": "locks newer and older categories"
+        },
+        {
+          "block": "uncertainty test",
+          "entry": "prerelease engine and empty interval",
+          "state": "assessment cannot prove direction",
+          "effect": "assert Incompatible"
+        },
+        {
+          "block": "boundary test",
+          "entry": "exact version and strict partial comparator",
+          "state": "test versions on each side",
+          "effect": "locks inclusive/exclusive direction"
+        }
+      ],
+      "commentDecision": {
+        "action": "kept all assertions and added one Chinese contract summary per test",
+        "reason": "test names alone do not state the asserted observable contract"
+      },
+      "constraintsAndLifecycle": "Tests exercise data-only evaluation and do not activate projects."
+    },
+    {
+      "id": "PROJ05-010",
+      "symbol": "directional_range.rs private tests and classify helper",
+      "kind": "private-tests-and-helper",
+      "members": [
+        "existing module documentation",
+        "classify",
+        "caret_with_nonzero_major_has_a_next_major_upper_bound",
+        "caret_with_omitted_minor_still_has_a_next_major_upper_bound",
+        "caret_with_zero_major_and_nonzero_minor_has_a_next_minor_upper_bound",
+        "caret_with_zero_major_minor_and_patch_has_a_next_patch_upper_bound",
+        "caret_with_zero_major_minor_and_omitted_patch_has_a_next_minor_upper_bound",
+        "caret_with_maximum_major_is_indeterminate_when_its_upper_bound_overflows",
+        "caret_with_maximum_zero_major_minor_is_indeterminate_on_overflow",
+        "caret_with_maximum_zero_major_patch_is_indeterminate_on_overflow"
+      ],
+      "definition": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/directional_range.rs",
+          "symbol": "classify plus eight #[test] functions",
+          "kind": "private unit tests"
+        }
+      ],
+      "calls": [
+        {
+          "path": "zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs",
+          "symbol": "classify_incompatible_requirement and caret_range",
+          "relationship": "private child suite directly tests range helpers"
+        }
+      ],
+      "implementations": [
+        {
+          "symbol": "classify",
+          "relationship": "parses input with test expectations and calls private classifier directly"
+        }
+      ],
+      "macroOrRegistrationOrFfi": [
+        {
+          "attribute": "#[test]",
+          "relationship": "unit-test harness only; no generated test cases or FFI"
+        }
+      ],
+      "testsOrContract": [
+        {
+          "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+          "relationship": "public counterpart exercises normal VersionReq::matches path"
+        }
+      ],
+      "blockEntryAndStateAndEffect": [
+        {
+          "block": "classify helper",
+          "entry": "test provides range and running-version strings",
+          "state": "parse both then bypass public matching and call private reducer",
+          "effect": "isolates range behavior"
+        },
+        {
+          "block": "five caret cases",
+          "entry": "nonzero and zero-major precision combinations",
+          "state": "engine lies beyond computed caret upper bound",
+          "effect": "asserts expected older-engine direction"
+        },
+        {
+          "block": "three overflow cases",
+          "entry": "major/minor/patch at u64::MAX",
+          "state": "checked successor cannot be formed",
+          "effect": "asserts None rather than wraparound"
+        }
+      ],
+      "commentDecision": {
+        "action": "kept existing module comments; no duplicate prose added for self-descriptive private test names",
+        "reason": "existing module docs already explain direct-helper scope"
+      },
+      "constraintsAndLifecycle": "This private suite deliberately bypasses VersionReq::matches and supplements, but cannot replace, public evaluation tests."
+    }
+  ],
+  "callerEvidence": [
+    {
+      "id": "CALL-01",
+      "path": "zircon_runtime_interface/src/lib.rs",
+      "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b",
+      "symbol": "project public module export",
+      "relationship": "crate exposes project contracts"
+    },
+    {
+      "id": "CALL-02",
+      "path": "zircon_runtime_interface/src/project/mod.rs",
+      "sha256": "597addb153d0c537568f0e18d3043dfabd90e745a786cb477ccd1cb6d9f0c23a",
+      "symbol": "engine_compatibility module and reexports",
+      "relationship": "exposes evaluator and value types"
+    },
+    {
+      "id": "CALL-03",
+      "path": "zircon_runtime_interface/src/project/manifest_summary/parse.rs",
+      "sha256": "88ddd9f9c55c2811cf74c8f67c879c74805ad3ca1b46c21072acb9d28157a239",
+      "symbol": "SummaryDocument validation and validate_engine_version_req",
+      "relationship": "parses supplied requirement before summary admission; None passes through"
+    },
+    {
+      "id": "CALL-04",
+      "path": "zircon_editor/src/core/project/project_preflight/preflight_receipt.rs",
+      "sha256": "b9af148d5d48b1f24fc7543cc275e15136566ab46707a4e80fbf61ac7261e705",
+      "symbol": "ProjectPreflightReceipt::evaluate_engine_compatibility",
+      "relationship": "forwards summary requirement and selected engine"
+    },
+    {
+      "id": "CALL-05",
+      "path": "zircon_editor/src/core/project/authority/preflight.rs",
+      "sha256": "afb02082f190df3477319d86c7e816dd6e8806280c0317d225118ebe692f6cde",
+      "symbol": "validate_launch_receipt",
+      "relationship": "checks migration, engine disposition, identity, and provider requirements in sequence"
+    },
+    {
+      "id": "CALL-06",
+      "path": "zircon_runtime_interface/src/project/template_pack/descriptor.rs",
+      "sha256": "6f8ff52e973d2de3d9931dbb80ead297198f5db29ec452450ad79a872b5fa10c",
+      "symbol": "ProjectTemplateDescriptor::assess_engine_compatibility",
+      "relationship": "passes template requirement to shared assessor"
+    },
+    {
+      "id": "CALL-07",
+      "path": "zircon_runtime_interface/src/project/template_pack/receipt.rs",
+      "sha256": "2308a0d5b502a9ba09089d4ce012ec989374271c714d48fdf68af6972a665927",
+      "symbol": "ProjectTemplateReceipt::try_new",
+      "relationship": "refuses an incompatible creator before receipt construction"
+    },
+    {
+      "id": "CALL-08",
+      "path": "zircon_runtime_interface/src/project/tests/template_pack.rs",
+      "sha256": "79c1c13d78440f2308c53d8ae1b44a036b87b0dae683732ab6df04e590101bb5",
+      "symbol": "template descriptor compatibility assertions",
+      "relationship": "tests compatible and incompatible engine values",
+      "worktreeStatus": "M (preexisting staged change; read-only, owner not established)"
+    },
+    {
+      "id": "CALL-09",
+      "path": "zircon_editor/src/core/project/tests/preflight.rs",
+      "sha256": "678194c06912b8a62c325ba878c56d425c6a2de092de7aa0080ab18030ffa038",
+      "symbol": "project_preflight_exposes_the_engine_compatibility_receipt_without_runtime_activation",
+      "relationship": "tests receipt result and absence of runtime-created directories"
+    }
+  ],
+  "files": [
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/assessment.rs",
+      "language": "Rust",
+      "classification": "first-party source",
+      "beforeSha256": "41addd6a747103a111633b78d8df0f5b3be51c7462141a8ad458b28c3702c6ab",
+      "afterSha256": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd",
+      "beforeLines": 37,
+      "afterLines": 55,
+      "insertedCommentOrBlankLines": 18,
+      "reviewedSha256": "25fa976cb288e05cd5bc1811bc759e1a4fc5ac612c29fef4c8eaf64d555fbdbd",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ05-002"
+      ],
+      "callerEvidence": [
+        "CALL-04",
+        "CALL-06",
+        "CALL-07",
+        "CALL-09"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "format": "passed",
+        "commentOnly": "passed",
+        "diffWhitespace": "passed",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/compatibility.rs",
+      "language": "Rust",
+      "classification": "first-party source",
+      "beforeSha256": "b6294f438635a05c81bb4a374c7bf758158961cd268967396f2ba32c4c7dc875",
+      "afterSha256": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b",
+      "beforeLines": 44,
+      "afterLines": 69,
+      "insertedCommentOrBlankLines": 25,
+      "reviewedSha256": "8934f34b29312189dbd4e339e3bd3c76f6dfa47e65ecb6bf4715e2db29fe558b",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ05-003"
+      ],
+      "callerEvidence": [
+        "CALL-04",
+        "CALL-05",
+        "CALL-09"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "format": "passed",
+        "commentOnly": "passed",
+        "diffWhitespace": "passed",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/directional_range.rs",
+      "language": "Rust",
+      "classification": "first-party source",
+      "beforeSha256": "c479d66433dc8cdeea4108cb5ea0e967c70e5eb272b6eb7105f060abf391c4dd",
+      "afterSha256": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889",
+      "beforeLines": 276,
+      "afterLines": 323,
+      "insertedCommentOrBlankLines": 47,
+      "reviewedSha256": "341d714baff8be5f3581381752bc8bcd3967651e48c2e234f2dc9f6ae7bcc889",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ05-006"
+      ],
+      "callerEvidence": [
+        "CALL-04",
+        "CALL-06",
+        "CALL-07"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "format": "passed",
+        "commentOnly": "passed",
+        "diffWhitespace": "passed",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/disposition.rs",
+      "language": "Rust",
+      "classification": "first-party source",
+      "beforeSha256": "951f32f2961e78ccae557d0d7d96f50b5b651214fe8919dfc182652956dd5519",
+      "afterSha256": "7a9d5a2b7b09d94b2bd3c9b49d1804a8e775f55428afc054db97f17c30497abc",
+      "beforeLines": 19,
+      "afterLines": 34,
+      "insertedCommentOrBlankLines": 15,
+      "reviewedSha256": "7a9d5a2b7b09d94b2bd3c9b49d1804a8e775f55428afc054db97f17c30497abc",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ05-004"
+      ],
+      "callerEvidence": [
+        "CALL-05",
+        "CALL-09"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "format": "passed",
+        "commentOnly": "passed",
+        "diffWhitespace": "passed",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/error.rs",
+      "language": "Rust",
+      "classification": "first-party source",
+      "beforeSha256": "385612ca3f52e76d0e303978abc506682dee84eafe172e9c7bf16a859c98e532",
+      "afterSha256": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb",
+      "beforeLines": 12,
+      "afterLines": 22,
+      "insertedCommentOrBlankLines": 10,
+      "reviewedSha256": "1bfd73bae433700252b1e97dbce7d4f1eda899546aaed07255270e10e99fc3bb",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ05-005"
+      ],
+      "callerEvidence": [
+        "CALL-04",
+        "CALL-06",
+        "CALL-07"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "format": "passed",
+        "commentOnly": "passed",
+        "diffWhitespace": "passed",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/mod.rs",
+      "language": "Rust",
+      "classification": "first-party source",
+      "beforeSha256": "9c3ec597207598738a8ccd5ed42ca68f5945bcbe36f979033254b7a02dba3c61",
+      "afterSha256": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5",
+      "beforeLines": 21,
+      "afterLines": 25,
+      "insertedCommentOrBlankLines": 4,
+      "reviewedSha256": "05e1e64be9ce5a2c7716bff719fccfc257828d2d28678f165f89ff4879ff36a5",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ05-001"
+      ],
+      "callerEvidence": [
+        "CALL-02"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "format": "passed",
+        "commentOnly": "passed",
+        "diffWhitespace": "passed",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/version.rs",
+      "language": "Rust",
+      "classification": "first-party source",
+      "beforeSha256": "9cfbb0e9e1cf35b73182c805466e0569afb7d4b8e0a7238f23e5fbc7395e48e2",
+      "afterSha256": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a",
+      "beforeLines": 47,
+      "afterLines": 74,
+      "insertedCommentOrBlankLines": 27,
+      "reviewedSha256": "45a548f0207f34e8d0225fe210df9e16e4639228ba65dbd23d01ac683bef732a",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ05-007"
+      ],
+      "callerEvidence": [
+        "CALL-05",
+        "CALL-09"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "format": "passed",
+        "commentOnly": "passed",
+        "diffWhitespace": "passed",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/engine_compatibility/version_parse_error.rs",
+      "language": "Rust",
+      "classification": "first-party source",
+      "beforeSha256": "57a293798df385dfe6c249bdde6480013f8e7ff7d07864f86bf559a35d3730f6",
+      "afterSha256": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee",
+      "beforeLines": 12,
+      "afterLines": 22,
+      "insertedCommentOrBlankLines": 10,
+      "reviewedSha256": "3a1974ae67398de227a3954de21241c30446dd5f2d858c206ad6eba7b3cfb5ee",
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ05-008"
+      ],
+      "callerEvidence": [
+        "CALL-05",
+        "CALL-09"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "format": "passed",
+        "commentOnly": "passed",
+        "diffWhitespace": "passed",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      }
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/engine_compatibility.rs",
+      "language": "Rust",
+      "classification": "first-party test source",
+      "beforeSha256": "5b15f17701c8b9db6958092a8622eb362b483e9811ae598fffc9a31e439e0eca",
+      "afterSha256": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c",
+      "beforeLines": 113,
+      "afterLines": 121,
+      "insertedCommentOrBlankLines": 8,
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ05-009"
+      ],
+      "callerEvidence": [
+        "CALL-04",
+        "CALL-06",
+        "CALL-07",
+        "CALL-09"
+      ],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "format": "passed",
+        "commentOnly": "passed",
+        "diffWhitespace": "passed",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "reviewedSha256": "5fd0675b02840483a7aae303822411932882ed86a850ba0ce09f6fdb1631a40c"
+    },
+    {
+      "path": "zircon_runtime_interface/src/project/tests/directional_range.rs",
+      "language": "Rust",
+      "classification": "first-party test source",
+      "beforeSha256": "10fd4caac570863568a901ba388b8cfca1779b794e1acef149e383796740e9d4",
+      "afterSha256": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09",
+      "beforeLines": 74,
+      "afterLines": 75,
+      "insertedCommentOrBlankLines": 1,
+      "state": "awaiting-independent-review",
+      "objectEvidence": [
+        "PROJ05-010"
+      ],
+      "callerEvidence": [],
+      "existingIssueTags": [],
+      "issueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "pending"
+      },
+      "validation": {
+        "format": "passed",
+        "commentOnly": "passed",
+        "diffWhitespace": "passed",
+        "formalCoordinator": "pending"
+      },
+      "commit": {
+        "status": "pending",
+        "sha": null
+      },
+      "reviewedSha256": "8e8ee2e1f5b5657bb0567712f3f59053b6986362dc1114c7fcdc88809f561b09"
+    }
+  ],
+  "issues": [],
+  "independentReview": {
+    "reviewer": "/root",
+    "status": "pending"
+  },
+  "validation": {
+    "format": "passed: rustfmt --edition 2021 --config skip_children=true --check on all 10 authorized source paths (workspace edition).",
+    "commentOnly": "passed: scoped diff contains documentation comments and blank lines, including comment relocations and one wording refinement; zero executable-code changes.",
+    "diffWhitespace": "passed: git --no-optional-locks diff --check on all 10 authorized source paths; no whitespace errors (only LF-to-CRLF advisory warnings).",
+    "formalCoordinator": "pending; no build or tests run for this comment-only batch"
+  },
+  "commit": {
+    "status": "pending",
+    "sha": null
+  },
+  "notes": [
+    "All 10 source paths were clean and matched their before SHA256 immediately before editing.",
+    "The private directional_range.rs test file was added by explicit reviewer authorization after the initial 9-file assignment.",
+    "No preexisting or new TODO/BUG/SAFETY tags were found in assigned paths; no issue records were created.",
+    "zircon_runtime_interface/src/project/tests/template_pack.rs is a dirty read-only caller path; its current hash/status is recorded above and it was not edited."
+  ],
+  "objectGroupCount": 10,
+  "objectGroupNote": "按逻辑审查组计数；每组的 members 列举组内实际类型、函数、字段或测试符号，组数不等同于文件数。"
+}

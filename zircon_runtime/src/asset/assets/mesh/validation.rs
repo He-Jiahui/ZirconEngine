@@ -8,6 +8,11 @@ use crate::core::framework::render::RenderMeshTopology;
 pub enum MeshValidationError {
     MissingPositionAttribute,
     InvalidPositionAttributeFormat,
+    NonFinitePosition {
+        vertex_index: usize,
+        axis: usize,
+    },
+    InvalidPositionBounds,
     InvalidAttributeFormat {
         attribute: String,
         expected: &'static str,
@@ -67,6 +72,13 @@ impl fmt::Display for MeshValidationError {
                     formatter,
                     "mesh position attribute must use float32x3 values"
                 )
+            }
+            Self::NonFinitePosition { vertex_index, axis } => write!(
+                formatter,
+                "mesh position at vertex {vertex_index} axis {axis} is not finite"
+            ),
+            Self::InvalidPositionBounds => {
+                write!(formatter, "mesh positions produce non-finite bounds")
             }
             Self::InvalidAttributeFormat {
                 attribute,

@@ -4,7 +4,7 @@
 //! 启用 `native-host` 时提供的当前具体求值器 `InputActionEvaluator` 在构造或替换映射时编译代际，服务默认实现返回映射克隆供调用方编辑。
 //! 编辑完成后需显式安装新映射；独立克隆和此前返回的状态不会被同步改写。
 //! 上下文优先级维护配置次序，默认求值还结合启用位和本次活动列表。名称均按精确字符串比较。
-//! 公开向量及反序列化允许绕过辅助方法的去重、排序和空绑定过滤，调用方应按配置用途检查这些条件。
+//! 公开向量仍可直接构造；反序列化会过滤无按钮且无轴来源的空绑定。
 //! 参见 [`InputActionMap::add_context`]、[`InputActionMap::bind`] 与 [`InputActionMap::bindings_for_action`]。
 use std::cmp::Ordering;
 
@@ -21,7 +21,7 @@ use super::{InputAction, InputActionContext, InputBinding};
 /// [`Self::new`] 和派生 `Default` 都创建三个空向量。动作与上下文各自以 id 精确匹配，大小写、空白与空字符串原样参与比较。
 /// [`Self::add_action`] 与 [`Self::add_context`] 只在对应向量没有同名项时加入；同名添加保留原内容。
 /// 上下文按优先级降序、id 升序排列；重复上下文的提前返回不修复原有未排序列表，也不更新启用位。
-/// 公开字段与派生反序列化保留输入值，没有自动执行这些辅助方法。只有 contexts 字段标注缺失时使用默认值。
+/// 公开字段允许直接构造未整理值；反序列化保留动作/上下文次序，仅过滤无来源的空绑定。缺失 contexts 使用默认值。
 ///
 /// # 顺序与求值边界
 /// 动作与绑定保留存储顺序，绑定可重复，也可引用尚未声明的动作。
@@ -39,6 +39,7 @@ use super::{InputAction, InputActionContext, InputBinding};
 /// # 参考
 /// 参见 [`super::InputAction`]、[`super::InputActionContext`]、[`super::InputBinding`]、[`super::InputActionManager`] 与 [`super::InputActionManager::set_action_map`]。
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(from = "RawInputActionMap")]
 pub struct InputActionMap {
     /// 拥有显式声明的命名上下文及其优先级和启用位。
     ///
@@ -67,7 +68,7 @@ pub struct InputActionMap {
     /// 按存储顺序拥有动作名称到物理按钮及轴的绑定条目。
     ///
     /// [`Self::bind`] 仅排除按钮和轴都为空的条目，其余条目原样追加，允许重复或尚未声明的动作名称。
-    /// 直接写入和反序列化不经过该过滤；使用当前默认求值器前应检查空条目，否则空绑定可被解释为持续按住。
+    /// 直接写入仍可绕过该过滤；反序列化会丢弃空条目，求值器也会忽略直接构造的空绑定。
     /// 当前默认编译器保留每个动作匹配条目的源顺序；等幅值合并保留先到的值，因此顺序可影响模拟输出的符号。
     ///
     /// # 所有权与生命周期
@@ -76,6 +77,28 @@ pub struct InputActionMap {
     /// # 参考
     /// 参见 [`Self::bind`]、[`Self::clear_bindings`]、[`Self::bindings_for_action`] 与 [`super::InputActionManager`]。
     pub bindings: Vec<InputBinding>,
+}
+
+#[derive(Deserialize)]
+struct RawInputActionMap {
+    #[serde(default)]
+    contexts: Vec<InputActionContext>,
+    actions: Vec<InputAction>,
+    bindings: Vec<InputBinding>,
+}
+
+impl From<RawInputActionMap> for InputActionMap {
+    fn from(raw: RawInputActionMap) -> Self {
+        Self {
+            contexts: raw.contexts,
+            actions: raw.actions,
+            bindings: raw
+                .bindings
+                .into_iter()
+                .filter(|binding| !binding.is_empty())
+                .collect(),
+        }
+    }
 }
 
 impl InputActionMap {
@@ -211,7 +234,7 @@ impl InputActionMap {
     /// 返回同一映射的 `&mut Self`，不报告是否追加，也不返回名称验证结果。
     ///
     /// # 调用时机与生命周期
-    /// 构建或重绑定时使用；保留存储顺序，允许重复绑定和未知动作名。公开字段及反序列化不经过此入口，外部空条目需另行检查。返回引用借用 self，条目所有权由映射保存；默认求值器须显式安装新表。
+    /// 构建或重绑定时使用；保留存储顺序，允许重复绑定和未知动作名。公开字段可绕过空值过滤；反序列化单独过滤无按钮且无轴来源的绑定。返回引用借用 self，条目所有权由映射保存；默认求值器须显式安装新表。
     ///
     /// # 参考
     /// 参见 [`super::InputBinding::is_empty`]、[`Self::with_binding`] 与 [`Self::bindings_for_action`]。

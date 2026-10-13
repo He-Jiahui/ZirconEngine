@@ -44,7 +44,6 @@ mod path_transfer;
 mod query;
 #[path = "reports/mod.rs"]
 mod reports;
-#[path = "restore/mod.rs"]
 mod restore;
 #[path = "retention/mod.rs"]
 mod retention;

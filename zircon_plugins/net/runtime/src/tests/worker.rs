@@ -50,3 +50,22 @@ fn worker_root_only_mounts_named_behavior_owners() {
         );
     }
 }
+
+#[test]
+fn worker_lifecycle_events_survive_backlogs_larger_than_former_ingress_limit() {
+    let net = DefaultNetManager::default();
+    const EVENT_COUNT: usize = 1_200;
+    let sockets = (0..EVENT_COUNT)
+        .map(|_| net.bind_udp(&NetEndpoint::new("127.0.0.1", 0)).unwrap())
+        .collect::<Vec<_>>();
+
+    let events = net.drain_events(EVENT_COUNT);
+
+    assert_eq!(events.len(), EVENT_COUNT);
+    for socket in sockets {
+        net.close_socket(socket).unwrap();
+    }
+    assert_eq!(net.drain_events(EVENT_COUNT).len(), EVENT_COUNT);
+    assert_eq!(net.diagnostics().queued_events, 0);
+    net.shutdown_worker_result_for_tests().unwrap();
+}

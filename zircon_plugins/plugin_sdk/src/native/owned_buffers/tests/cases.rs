@@ -1,6 +1,6 @@
 //! Regression drafts exercise the safe authoritative registry/release core.
 //! No test invokes the unsafe public free function with an invalid descriptor.
-use super::registry::{lock_registry, Registry};
+use super::registry::{Registry, lock_registry};
 use super::*;
 use std::num::NonZeroU64;
 use std::sync::{Arc, Barrier, Mutex};
@@ -208,13 +208,15 @@ fn poisoned_mutex_retains_owner_and_does_not_recycle_id() {
         .register(b"poison survivor".to_vec())
         .unwrap();
     std::thread::scope(|scope| {
-        assert!(scope
-            .spawn(|| {
-                let _guard = registry.lock().unwrap();
-                panic!("controlled lock poison without registry mutation");
-            })
-            .join()
-            .is_err());
+        assert!(
+            scope
+                .spawn(|| {
+                    let _guard = registry.lock().unwrap();
+                    panic!("controlled lock poison without registry mutation");
+                })
+                .join()
+                .is_err()
+        );
     });
     assert!(registry.is_poisoned());
     let bytes = { lock_registry(&registry).consume(buffer) }.unwrap();

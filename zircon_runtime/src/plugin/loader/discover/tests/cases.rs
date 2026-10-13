@@ -388,6 +388,60 @@ fn failed_incremental_parse_keeps_the_last_good_snapshot() {
 }
 
 #[test]
+fn incremental_manifest_repair_retires_the_full_scan_parse_diagnostic() {
+    let root = TempDiscoveryRoot::new("incremental-diagnostic-repair");
+    root.write_manifest("weather", "weather");
+    let broken = root.path().join("broken").join("plugin.toml");
+    fs::create_dir_all(broken.parent().expect("manifest parent"))
+        .expect("create broken package directory");
+    fs::write(&broken, "id = [").expect("write invalid manifest");
+
+    let first = NativePluginLoader.discover(root.path());
+    assert!(first.diagnostics().iter().any(|diagnostic| {
+        diagnostic.contains("failed to parse native plugin manifest")
+            && diagnostic.contains("broken")
+    }));
+
+    let repaired = root.write_manifest("broken", "repaired");
+    let refreshed = NativePluginLoader.refresh_discovery_manifest(root.path(), &repaired);
+
+    assert!(plugin_ids(&refreshed).contains(&"repaired"));
+    assert!(!refreshed.diagnostics().iter().any(|diagnostic| {
+        diagnostic.contains("failed to parse native plugin manifest")
+            && diagnostic.contains("broken")
+    }));
+}
+
+#[test]
+fn incremental_manifest_removal_retires_the_full_scan_parse_diagnostic() {
+    let root = TempDiscoveryRoot::new("incremental-diagnostic-removal");
+    root.write_manifest("weather", "weather");
+    let broken_dir = root.path().join("broken");
+    fs::create_dir_all(&broken_dir).expect("create broken package directory");
+    fs::write(broken_dir.join("plugin.toml"), "id = [").expect("write invalid manifest");
+
+    let first = NativePluginLoader.discover(root.path());
+    assert!(first.diagnostics().iter().any(|diagnostic| {
+        diagnostic.contains("failed to parse native plugin manifest")
+            && diagnostic.contains("broken")
+    }));
+
+    fs::remove_dir_all(&broken_dir).expect("remove broken package directory");
+    let refreshed = NativePluginLoader.remove_discovered_path(root.path(), &broken_dir);
+
+    assert!(
+        !refreshed.diagnostics().iter().any(|diagnostic| {
+            diagnostic.contains("failed to parse native plugin manifest")
+                && diagnostic.contains("broken")
+        }),
+        "removal of {} should retire its parse diagnostic; remaining diagnostics: {:?}",
+        broken_dir.display(),
+        refreshed.diagnostics()
+    );
+    assert_eq!(plugin_ids(&refreshed), vec!["weather"]);
+}
+
+#[test]
 fn notification_outside_the_root_falls_back_to_a_bounded_full_scan() {
     let root = TempDiscoveryRoot::new("outside-notification");
     root.write_manifest("weather", "weather");
@@ -527,6 +581,34 @@ fn recursive_discovery_does_not_follow_directory_symlinks() {
 
     assert_eq!(plugin_ids(&report), vec!["weather"]);
     assert!(report
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.contains("symbolic link")));
+}
+
+#[cfg(unix)]
+#[test]
+fn incremental_manifest_refresh_falls_back_for_symlink_to_outside_manifest() {
+    use std::os::unix::fs::symlink;
+
+    let root = TempDiscoveryRoot::new("symlink-manifest-notification");
+    let outside = TempDiscoveryRoot::new("symlink-manifest-outside");
+    root.write_manifest("safe", "safe");
+    let outside_manifest = outside.write_manifest("foreign", "foreign");
+    let link_package = root.path().join("linked");
+    fs::create_dir_all(&link_package).expect("create linked package directory");
+    let linked_manifest = link_package.join("plugin.toml");
+    symlink(&outside_manifest, &linked_manifest).expect("link outside manifest into root");
+
+    NativePluginLoader.discover(root.path());
+    let refreshed = NativePluginLoader.refresh_discovery_manifest(root.path(), &linked_manifest);
+    let metrics = super::authority::discovery_authority()
+        .metrics(root.path())
+        .expect("fallback scan metrics");
+
+    assert_eq!(plugin_ids(&refreshed), vec!["safe"]);
+    assert!(metrics.enumerated_directories > 0);
+    assert!(refreshed
         .diagnostics()
         .iter()
         .any(|diagnostic| diagnostic.contains("symbolic link")));

@@ -5,51 +5,51 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKBENCH_WINDOW = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/windows/workbench_window.zui"
+    "zircon_editor/assets/ui/editor/unreal/level_editor_window.zui"
 )
 STATUS_BAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/workbench/shell/"
-    "workbench_status_bar.zui"
+    "zircon_editor/assets/ui/editor/unreal/components/"
+    "host_status_bar.zui"
 )
 DIVIDER = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/primitives/data/"
-    "workbench_divider.zui"
+    "divider.zui"
 )
 DRAG_OVERLAY = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/"
-    "workbench_drag_overlay.zui"
+    "zircon_editor/assets/ui/editor/workbench/primitives/feedback/"
+    "drag_overlay.zui"
 )
 SLIDER = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/"
-    "workbench_slider.zui"
+    "slider.zui"
 )
 RANGE_SLIDER = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/"
-    "workbench_range_slider.zui"
+    "zircon_editor/assets/ui/editor/workbench/primitives/inputs/"
+    "range_slider.zui"
 )
 PROGRESS_BAR = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/"
-    "workbench_progress_bar.zui"
+    "zircon_editor/assets/ui/editor/workbench/primitives/feedback/"
+    "progress_bar.zui"
 )
 SKELETON = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/"
-    "workbench_skeleton.zui"
+    "zircon_editor/assets/ui/editor/workbench/primitives/feedback/"
+    "skeleton.zui"
 )
 DROPDOWN = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/"
-    "workbench_dropdown.zui"
+    "zircon_editor/assets/ui/editor/workbench/primitives/inputs/"
+    "dropdown.zui"
 )
 BUTTON = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/"
-    "workbench_button.zui"
+    "button.zui"
 )
 CHIP = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/"
-    "workbench_chip.zui"
+    "chip.zui"
 )
 ICON_BUTTON = REPO_ROOT / (
-    "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/"
-    "workbench_icon_button.zui"
+    "zircon_editor/assets/ui/editor/workbench/primitives/inputs/"
+    "icon_button.zui"
 )
 ACTIVITY_DRAWER_WINDOW = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/workbench/shell/"
@@ -62,7 +62,7 @@ HOST_SURFACE_DOCUMENTS = tuple(
 INDEPENDENT_SURFACE_ROOTS = tuple(
     (REPO_ROOT / path, root_node)
     for path, root_node in (
-        ("zircon_editor/assets/ui/editor/host/workbench_shell.zui", "host"),
+        ("zircon_editor/assets/ui/editor/unreal/editor_shell.zui", "host"),
         ("zircon_editor/assets/ui/editor/host/editor_main_frame.zui", "root"),
         (
             "zircon_editor/assets/ui/editor/host/floating_window_source.zui",
@@ -88,7 +88,7 @@ INDEPENDENT_SURFACE_ROOTS = tuple(
             "ui_asset_editor_root",
         ),
         (
-            "zircon_editor/assets/ui/editor/workbench_menu_chrome.zui",
+            "zircon_editor/assets/ui/editor/unreal/components/host_menu_bar.zui",
             "workbench_menu_chrome_root",
         ),
         (
@@ -96,15 +96,15 @@ INDEPENDENT_SURFACE_ROOTS = tuple(
             "workbench_menu_popup_root",
         ),
         (
-            "zircon_editor/assets/ui/editor/workbench_dock_header.zui",
+            "zircon_editor/assets/ui/editor/unreal/components/dock_header.zui",
             "dock_header_root",
         ),
         (
-            "zircon_editor/assets/ui/editor/workbench_page_chrome.zui",
+            "zircon_editor/assets/ui/editor/unreal/components/host_page_tabs.zui",
             "workbench_page_chrome_root",
         ),
         (
-            "zircon_editor/assets/ui/editor/workbench_status_bar.zui",
+            "zircon_editor/assets/ui/editor/unreal/components/host_status_bar.zui",
             "workbench_status_bar_root",
         ),
         (
@@ -125,23 +125,23 @@ RUNTIME_POLICY_BOUNDARY_FILES = tuple(
 )
 NATIVE_SLIDER_CONTEXT = REPO_ROOT / (
     "zircon_editor/src/ui/retained/contract/paint/"
-    "template_sliders/commands/context.rs"
+    "sliders/commands/context.rs"
 )
 NATIVE_FRACTIONAL_CONTROL_GEOMETRY_FILES = tuple(
     REPO_ROOT / path
     for path in (
         "zircon_editor/src/ui/retained/contract/paint/"
-        "template_buttons/geometry.rs",
+        "buttons/geometry.rs",
         "zircon_editor/src/ui/retained/contract/paint/"
-        "template_dropdowns/geometry.rs",
+        "dropdowns/geometry.rs",
         "zircon_editor/src/ui/retained/contract/paint/"
-        "template_fields/geometry.rs",
+        "fields/geometry.rs",
         "zircon_editor/src/ui/retained/contract/paint/"
-        "template_fields/search.rs",
+        "fields/search.rs",
         "zircon_editor/src/ui/retained/contract/paint/"
-        "material_primitives/text_field/geometry.rs",
+        "primitives/text_field/geometry.rs",
         "zircon_editor/src/ui/retained/contract/paint/"
-        "template_chips/geometry.rs",
+        "chips/geometry.rs",
     )
 )
 
@@ -177,7 +177,7 @@ class EditorZuiPixelSnappingPolicyContractTests(unittest.TestCase):
             workbench["nodes"]["root"]["pixel_snapping"], "disabled"
         )
         self.assertEqual(
-            status_bar["nodes"]["status_bar"]["pixel_snapping"],
+            status_bar["nodes"]["workbench_status_bar_separator"]["pixel_snapping"],
             "snap_to_pixel",
         )
         self.assertEqual(
@@ -209,11 +209,11 @@ class EditorZuiPixelSnappingPolicyContractTests(unittest.TestCase):
 
         for path, separator_node in (
             (
-                REPO_ROOT / "zircon_editor/assets/ui/editor/workbench_menu_chrome.zui",
+                REPO_ROOT / "zircon_editor/assets/ui/editor/unreal/components/host_menu_bar.zui",
                 "workbench_menu_separator",
             ),
             (
-                REPO_ROOT / "zircon_editor/assets/ui/editor/workbench_status_bar.zui",
+                REPO_ROOT / "zircon_editor/assets/ui/editor/unreal/components/host_status_bar.zui",
                 "workbench_status_bar_separator",
             ),
         ):

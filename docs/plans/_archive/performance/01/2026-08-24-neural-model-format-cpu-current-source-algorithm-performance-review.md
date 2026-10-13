@@ -8,7 +8,7 @@ scope:
 status: static_complete_dynamic_pending
 canonical_owners:
   - docs/plans/optimize/zircon_plugins/02-neural-model-onnx-inference-post-process-editor-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/64-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/64-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation.md
 references:
   - dev/UnrealEngine/Engine/Source/Runtime/NNE/Private/NNEModelData.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/NNE/Public/NNERuntime.h

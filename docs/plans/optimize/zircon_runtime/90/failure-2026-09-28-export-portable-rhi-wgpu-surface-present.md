@@ -4,7 +4,7 @@ status: open
 created_at: 2026-09-28
 summary_slug: export-portable-rhi-wgpu-surface-present
 origin_plan: docs/plans/zircon_plugins/09-export-publishing.md
-fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
 origin_child_dir: docs/plans/zircon_plugins/09
 fixing_child_dir: docs/plans/optimize/zircon_runtime/90
 plan_link_mode: child_record_only
@@ -25,7 +25,7 @@ tests:
 
 - 来源计划：docs/plans/zircon_plugins/09-export-publishing.md
 - 来源执行切片：Plugins09 WOC mobile/browser generated host real-surface and presented-frame acceptance
-- 修复责任计划：docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+- 修复责任计划：docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
 - 交接原因：The lowest production RHI/WGPU backend has no Android, iOS or browser native target creation or presentation path.
 
 - Origin: Plugins09 generated mobile/browser host acceptance, recorded in `docs/plans/zircon_plugins/09/failure-2026-07-17-woc-mobile-browser-host-noop.md`.

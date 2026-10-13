@@ -264,7 +264,12 @@ def release_accepted_claims(state, payload, *, identity, issuer_driver_digest):
                   "Native required tests differ from authoritative source coverage")
             evidence.extend(rows)
         else:
-            _need(flow["template"] == "comments_only" and required == ["patch", "syntax", "format"],
+            # The light DAG gained a review stage under a new template name, so
+            # the no-compiler-proof set is exactly its own declared stage list
+            # rather than one hardcoded historical spelling.
+            light_required = [s for s in stages if s not in {"acceptance", "commit", "notify", "gc"}]
+            _need(flow["template"] in {"comments_only", "comments_only_review"}
+                  and required == light_required,
                   "Only the comments-only light DAG can omit compiler proof")
         last = None
         for stage in required:

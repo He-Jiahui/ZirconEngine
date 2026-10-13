@@ -1,0 +1,493 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "status": "partial; prior source drift remains unresolved; three current TODOs recorded pending final batch hashes",
+  "issues": [
+    {
+      "id": "CR-REFLECT-0001",
+      "kind": "TODO",
+      "path": "zircon_reflect_derive/src/attributes.rs",
+      "symbol": "parse_container_attributes::field branch",
+      "trigger": "虚拟字段name或value_type_path为Some但空/非trim文本。",
+      "observableImpact": "宏存在性检查不拒绝这些文本；后续schema/类型目录接纳拒绝。是否须提前到宏期报错仍待契约确认。",
+      "evidence": [
+        "attributes.rs:163-170只检查Some。",
+        "collect_virtual_fields/build_reflected_field不对这两项作完整文本验证。",
+        "schema_catalog/admission.rs:208-238校验字段键。",
+        "type_registry.rs:333-345校验schema及声明类型；declared_value_type.rs:47-59拒绝空/非trim。"
+      ],
+      "evidenceGap": "本批11个derive用例不含空/空白虚拟值输入，也没有证据规定错误必须出现在宏展开阶段。",
+      "nextAction": "确定错误时机契约；分别补宏展开与运行时注册的空/空白虚拟配置用例。",
+      "sourceTag": {
+        "path": "zircon_reflect_derive/src/attributes.rs",
+        "line": 102,
+        "text": "// TODO: [CR-REFLECT-0001] 确认虚拟字段空名称或值路径是否应在宏期拒绝；当前只查 Some，下一步补充展开与注册测试。",
+        "status": "present-on-changed-source; revalidation-pending",
+        "currentPresent": true,
+        "previousLine": 164
+      },
+      "reviewedSha256": "88c2d9963f1d60c69340dcaddb334fb028913b0e8c587c954bf829a7541ec3ca",
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "revalidated-as-open-TODO"
+      },
+      "status": "historical-tag-present; current source snapshot revalidation pending",
+      "provenance": {
+        "originalId": "CR-REFLECT-0001",
+        "legacyEvidence": "docs/_data/source-comment-audit/round-02/coverage/public_sdk_reflect.jsonl"
+      },
+      "lastObservedSourceSha256": "4503633a08a87af090b92d16639804344c6f787fb11bae076245bef366214eb8",
+      "sourceSnapshotMismatchEvidence": {
+        "path": "docs/tests/source-comment-review-assigned-source-drift-20261013.json",
+        "sha256": "c594a23dde4b4ba225861ba183290fa4657a8b381b18370efee3ff018427bc02",
+        "bytes": 47652
+      }
+    },
+    {
+      "id": "ZCA-ABI-001",
+      "kind": "TODO",
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+      "symbol": "runtime_host_api_v1_pointer_rejects_misalignment_before_dereference",
+      "trigger": "测试在只有 u8 对齐保证的数组基址上 add(1)，再断言偏移地址不是 ZrHostApiV1 对齐；语言层面没有保证数组基址的模数。",
+      "observableImpact": "若某次合法数组基址在目标对齐模数下为 align-1，add(1) 会形成对齐地址，现有 assert_ne! 可先失败。没有本任务运行复现，不能登记为已发生 BUG。",
+      "evidence": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+          "symbol": "runtime_host_api_v1_pointer_rejects_misalignment_before_dereference",
+          "relationship": "u8 数组、add(1) 和 assert_ne! 的完整本地路径",
+          "line": 65,
+          "sha256": "2f1728a66e5d7363247a35e93215a044faab502e899a23ef71aee757a3802ada"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+          "symbol": "validate_runtime_host_api_v1_pointer",
+          "relationship": "空值和未对齐早返回均在 dereference 前；当前用例 assert_ne! 通过后才调用此函数",
+          "line": 92,
+          "sha256": "fa2d76cdaedce3762ccaf63a0d937246b28eb9a050b0e1b9b5fbc6997c86b555"
+        }
+      ],
+      "evidenceGap": "尚未观察到形成对齐地址的真实测试运行；没有显式 storage 对齐保证支撑固定偏移1的普遍性。",
+      "nextAction": "由授权修复任务使用显式对齐 storage，或按实际基址选择已证明未对齐的偏移；再由 Jenkins 运行此精确用例，保留 assert 与错误变体核对。",
+      "sourceTag": {
+        "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+        "line": 66,
+        "text": "// TODO: [ZCA-ABI-001] 字节数组只保证一字节对齐，偏移一不能普遍保证目标地址未对齐。",
+        "status": "missing-after-unknown-external-source-rewrite",
+        "currentPresent": false
+      },
+      "reviewedSha256": "2f1728a66e5d7363247a35e93215a044faab502e899a23ef71aee757a3802ada",
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed-as-open-TODO",
+        "evidence": "docs/tests/source-comment-review-independent-core-001-clear11.json"
+      },
+      "status": "stale-source-tag-missing; ownership reconciliation pending",
+      "lastObservedSourceSha256": "6f37e0d1a914cc2faa8c9c157f6ee8e465b505cd670d89dfe6a01bb55447ae08",
+      "sourceSnapshotMismatchEvidence": {
+        "path": "docs/tests/source-comment-review-assigned-source-drift-20261013.json",
+        "sha256": "c594a23dde4b4ba225861ba183290fa4657a8b381b18370efee3ff018427bc02",
+        "bytes": 47652
+      }
+    },
+    {
+      "id": "ZCA-HST-001",
+      "kind": "BUG",
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "symbol": "RuntimeForeignOutputState::ensure_call_succeeded (None, None) match arm",
+      "trigger": "在新建且没有其他并发拒绝的 Host state 上，接收同一仍存活 provider/session 的失败 ZrStatus，其 diagnostics 指向仍存活且可读的 4097 个初始化字节；output 为 ZrOwnedResultV2::empty()，releaser 绑定该 provider/session。checked_slice(4096) 在创建切片前以 LimitExceeds 拒绝诊断长度，from_status 返回 ProtocolViolation。空输出 ownership validation 与 release 都成功，进入 (None,None)。该输入满足 unsafe API 的内存/生命周期前提；不使用无效指针。",
+      "observableImpact": "该分支只增加 call_failures 并返回 ProtocolViolation，不调用 reject；protocol_failed、protocol_failures、rejected_payloads 不变。Host 的 ensure_available/ensure_session_available 后续仍返回 Ok。App operation 调用用 ? 传播，RuntimeLibraryError 映射只改错误类别；Editor gateway 同样传播并映射为 GatewayError::Protocol；这些调用方没有二次 reject。",
+      "evidence": [
+        "zircon_runtime_host/src/foreign_output/error.rs::from_status -> ZrByteSlice::checked_slice(ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1)，Interface buffer.rs 将该上限定义为 4*1024，先检查形状、地址空间和上限再构造借用切片。",
+        "zircon_runtime_host/src/foreign_output/owned_buffer.rs::validate_owned_result 对 canonical empty 返回 Ok(0)；release_owned_result 对 output.is_empty() 直接 Ok(())，不调用回调。",
+        "state.rs::ensure_call_succeeded 在 (None,None) 返回 call_error；只有其他分支 self.reject。Baseline 同文件的 session fuse 在 reject path 设置，普通 RuntimeCall 正常 output/release 测试明确不 fuse。",
+        "App zircon_app/src/entry/runtime_library/runtime_session/operation.rs 和 runtime_library_error.rs；Editor zircon_editor/src/core/gateway/session/gateway.rs 与 core/gateway/error.rs：状态错误经 ?/From 映射，没有拒绝入口。",
+        "可静态复现状态及后续 availability 结果；未新增或执行 Cargo 测试。"
+      ],
+      "evidenceGap": "未宣称当前 Runtime 内部 producer 实际会产生超限 status diagnostics；静态控制流反例基于满足调用者 unsafe 契约的可读 live buffer。",
+      "nextAction": "保留 BUG 注释与可证明路径；由后续获授权行为修复任务处理错误分类与 fuse，并验证可读超限诊断、empty output 及后续 availability。本任务不修改程序行为。",
+      "sourceTag": {
+        "path": "zircon_runtime_host/src/foreign_output/state.rs",
+        "line": 149,
+        "text": "// BUG: [ZCA-HST-001] 若失败 status 带有可读但超过 diagnostics 上限的字节，from_status",
+        "continuationLines": [
+          "// 返回 ProtocolViolation；对规范 empty output，validate 与 release 均成功，因此此臂只返回错误，",
+          "// 不调用 reject，protocol_failed/rejected/protocol_failures 保持不变，后续 availability 仍通过。",
+          "// 可用无并发 fuse 的新 state、同一存活 provider/session、4097 个存活初始化诊断字节、规范 empty",
+          "// output 和匹配 releaser 静态复现；checked_slice(4096) 在构造切片前拒绝，无需无效指针。",
+          "// App/Editor 的调用方仅传播/映射错误，不补做 reject；此处不声称 Runtime 当前 producer 会生成该输入。"
+        ],
+        "status": "missing-after-unknown-external-source-rewrite",
+        "currentPresent": false
+      },
+      "reviewedSha256": "a3ef8bd62a0c6d664c3391bcb87c428738cd5223d0f66ec07818eef125d75d6b",
+      "independentReview": {
+        "reviewers": [
+          "/root",
+          "/root/core_contracts"
+        ],
+        "status": "passed-static-contract-review",
+        "evidence": "已独立读取 Host 分支、Interface buffer 检查、App/Editor 传播路径及既有普通 RuntimeCall/fuse 测试契约。"
+      },
+      "status": "stale-source-tag-missing; ownership reconciliation pending",
+      "lastObservedSourceSha256": "95cca9ac23a0b2da2ddd2b3843bad116c0c0f75c46be3d516e6634f9cacb1b84",
+      "sourceSnapshotMismatchEvidence": {
+        "path": "docs/tests/source-comment-review-assigned-source-drift-20261013.json",
+        "sha256": "c594a23dde4b4ba225861ba183290fa4657a8b381b18370efee3ff018427bc02",
+        "bytes": 47652
+      }
+    },
+    {
+      "id": "ZCA-HRQ-001",
+      "kind": "TODO",
+      "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+      "symbol": "ZrRuntimeProjectSceneTransitionRequestV1",
+      "trigger": "Gameplay host 在 World 写入场景切换 request resource 并返回请求 ID；后续资源消费与 typed result 出口尚未找到。",
+      "observableImpact": "当前审查不能确认意图提交后如何加载场景及回传结果；没有完整运行触发证据，未标记失败或 BUG。",
+      "evidence": [
+        {
+          "path": "zircon_runtime/src/script/vm/gameplay_host/scene_transition.rs",
+          "line": 18,
+          "symbol": "impl SceneResource for ZrRuntimeProjectSceneTransitionRequestV1",
+          "sha256": "02d47e01e3681642ad5893b3d7ee396541bdc376a21c8a792820b1e554acf179",
+          "relationship": "这里只实现 typed resource 标记；不能据此推定自动调度。"
+        },
+        {
+          "path": "zircon_runtime/src/script/vm/gameplay_host/scene_transition.rs",
+          "line": 20,
+          "symbol": "request_scene_transition",
+          "sha256": "02d47e01e3681642ad5893b3d7ee396541bdc376a21c8a792820b1e554acf179",
+          "relationship": "35–39完成 URI构造，40–49推进序号并插入资源，54返回 ID；函数中没有读取/执行/结果回传。"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+          "line": 1,
+          "symbol": "host request module / scene DTO",
+          "sha256": "c85e52ed28ef3b852fce10169bdff59e59e58e6d7620836271fb7757daae64bd",
+          "relationship": "场景 request/result 不在六变体 host batch 中；同名搜索只定位生产、定义和构造测试。"
+        }
+      ],
+      "evidenceGap": "尚未定位包括宏/注册/typed resource路径在内的真实消费与结果回传入口；producer现有模块注释说最终执行，注释本身不能证明消费链。可能是预留契约，也可能尚未接线。",
+      "nextAction": "核对实际Gameplay导出到Runtime tick的注册/调用路径，确定预留或实现约定；由后续验证连续推进tick，观察request消费与结果出口。",
+      "batchId": "host-requests-003",
+      "sourceTag": {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "line": 139,
+        "text": "/// TODO: [ZCA-HRQ-001] 目前追踪只确认 Gameplay producer 将此值插入 World resource，尚未定位读取该资源并生成",
+        "followingCommentLines": [
+          "/// [`ZrRuntimeProjectSceneTransitionResultV1`] 的消费/回传入口；需确认这是预留契约还是遗漏接线。",
+          "/// 下一步用实际 Gameplay 调用连续推进 Runtime tick，验证 request 被消费且存在可观察的 result 出口。"
+        ],
+        "status": "observed-on-assigned-in-progress-source; final hash reconciliation pending",
+        "currentPresent": true,
+        "observedSha256": "c85e52ed28ef3b852fce10169bdff59e59e58e6d7620836271fb7757daae64bd",
+        "observedAtUtc": "2026-10-13T08:00:11.775369+00:00"
+      },
+      "lastObservedSourceSha256": "c85e52ed28ef3b852fce10169bdff59e59e58e6d7620836271fb7757daae64bd",
+      "reviewedSha256": null,
+      "status": "open-TODO; source batch in progress; final reconciliation pending",
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "intent-gap-and-evidence-independently-reviewed; final batch pending",
+        "actualEvidenceReceipt": {
+          "execCell": "66",
+          "chunkId": "e89ae3",
+          "exitCode": 0
+        }
+      }
+    },
+    {
+      "id": "ZCA-HRQ-002",
+      "kind": "TODO",
+      "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+      "symbol": "ZrRuntimeImeSurroundingTextV1::composition_range",
+      "trigger": "Runtime producer 会将内部可选 composition range放入V1载体，当前App的SetSurroundingText converter只使用value/cursor/anchor。",
+      "observableImpact": "当前App V1这一路转换不使用该字段；是否应由此平台转交、或留给其他host/version仍无完整契约证据。",
+      "evidence": [
+        {
+          "path": "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+          "line": 34,
+          "symbol": "runtime_ime_host_request::SetSurroundingText",
+          "sha256": "cb84dd06c26cd9fe5207d0a05bc4e1fdda2de54e10f9d176b23e729631b3f30d",
+          "relationship": "34–44在有界文本后搬运可选范围至public DTO。"
+        },
+        {
+          "path": "zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs",
+          "line": 41,
+          "symbol": "apply_runtime_ime_host_request::SetSurroundingText",
+          "sha256": "aaf8ef269a332a64f2c511cb36b4f7ef19cb0942ad0b49fc4f670975889e1159",
+          "relationship": "41–54通过runtime_ime_surrounding_text生成ImeRequestData。"
+        },
+        {
+          "path": "zircon_app/src/entry/runtime_entry_app/host_requests/ime/surrounding_text.rs",
+          "line": 11,
+          "symbol": "runtime_ime_surrounding_text",
+          "sha256": "027310453d27aca41a5169aa2ab2739c4af5e66e23580bce69bdcf7d844b85d2",
+          "relationship": "11–21只把value/cursor/anchor交给ImeSurroundingText::new；不读取composition_range。"
+        }
+      ],
+      "evidenceGap": "未确认其他host/版本使用该范围或本平台须转交的要求；不能据这一路代码宣称所有Winit/platform均不支持或发生必然输入丢失。",
+      "nextAction": "核对request生成→平台适配→Runtime回传及IME v2协商的集成契约，明确该可选字段的消费职责并选择相应验证。",
+      "batchId": "host-requests-003",
+      "sourceTag": {
+        "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+        "line": 652,
+        "text": "    /// TODO: [ZCA-HRQ-002] Runtime producer 会把内部 surrounding text 中的可选范围搬运到此字段，但当前 App V1 `SetSurroundingText` adapter",
+        "followingCommentLines": [
+          "    /// 只向 Winit 传 `value`、`cursor`、`anchor`。确认此字段供其他 host/version 使用，还是本平台应转交；",
+          "    /// 下一步核对生成 request → 平台适配 → Runtime 回传的集成契约。"
+        ],
+        "status": "observed-on-assigned-in-progress-source; final hash reconciliation pending",
+        "currentPresent": true,
+        "observedSha256": "c85e52ed28ef3b852fce10169bdff59e59e58e6d7620836271fb7757daae64bd",
+        "observedAtUtc": "2026-10-13T08:00:11.775369+00:00"
+      },
+      "lastObservedSourceSha256": "c85e52ed28ef3b852fce10169bdff59e59e58e6d7620836271fb7757daae64bd",
+      "reviewedSha256": null,
+      "status": "open-TODO; source batch in progress; final reconciliation pending",
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "intent-gap-and-evidence-independently-reviewed; final batch pending",
+        "actualEvidenceReceipt": {
+          "execCell": "66",
+          "chunkId": "e89ae3",
+          "exitCode": 0
+        }
+      }
+    },
+    {
+      "id": "ZCA-OPS-001",
+      "kind": "TODO",
+      "path": "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+      "symbol": "PartialEq for ZrRuntimePluginEventDeliveryV1::eq",
+      "trigger": "五项信封身份相等后，比较路径将public Box<RawValue>重新解析成serde_json::Value，并用expect处理解析结果。",
+      "observableImpact": "合法raw JSON与当前Value数值/递归限制的可表示性是不同前提；是否存在真实可构造输入使此eq失败尚待验证。",
+      "evidence": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+          "line": 148,
+          "symbol": "PartialEq::eq",
+          "sha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be",
+          "relationship": "身份短路后对两段RawValue执行from_str::<Value>().expect；比较会构造Value树。"
+        },
+        {
+          "path": "zircon_runtime_interface/src/tests/contracts.rs",
+          "line": 863,
+          "symbol": "plugin_event_mirror_contract_preserves_session_schema_sequence_and_payload",
+          "sha256": "0f133efc5fae499f54cbaa96200000ca30643cd2f9e19b2c8c375439c6fffd52",
+          "relationship": "864–918只验证普通Value生成载荷及空白差异，920–927验证缺省backlog；不覆盖数值/深度重解析边界。"
+        }
+      ],
+      "evidenceGap": "当前serde_json版本/features、RawValue可接受的候选数值/深度及Runtime公共直接构造的消费预算尚未完整确认；未做Rust隔离复现、没有完整生产触发链。",
+      "nextAction": "由后续Jenkins验证核对serde_json版本/feature和消费预算，隔离检查非Value可表示数值、深嵌套RawValue进入eq的路径；有证明后再判定是否BUG。",
+      "batchId": "core-operations-004",
+      "sourceTag": {
+        "path": "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+        "line": 156,
+        "text": "            // TODO: [ZCA-OPS-001] RawValue 的合法 raw JSON 不等于 Value 的数值/递归限制可表示性；",
+        "followingCommentLines": [
+          "            // 当前证据只覆盖普通 Value 产物和空白差异，公共直接构造是否满足重解析前提待确认。",
+          "            // 下一步由 Jenkins 核对当前 serde_json 版本/feature 与 Runtime 消费预算，并隔离验证",
+          "            // 非 Value 可表示数值和深嵌套 RawValue 的 eq 路径；目前无实际复现或完整生产触发链。"
+        ],
+        "status": "observed-on-assigned-in-progress-source; final hash reconciliation pending",
+        "currentPresent": true,
+        "observedSha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be",
+        "observedAtUtc": "2026-10-13T08:00:11.775369+00:00"
+      },
+      "lastObservedSourceSha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be",
+      "reviewedSha256": null,
+      "status": "open-TODO; source batch in progress; final reconciliation pending",
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "intent-gap-and-evidence-independently-reviewed; final batch pending",
+        "actualEvidenceReceipt": {
+          "execCell": "66",
+          "chunkId": "e89ae3",
+          "exitCode": 0
+        }
+      }
+    }
+  ],
+  "historicalTagInventory": "pending complete first-party inventory",
+  "consistencyVerification": {
+    "scope": "79 assigned sources only",
+    "status": "failed-current-source-snapshot-mismatch",
+    "sourceTagIds": [
+      "CR-REFLECT-0001"
+    ],
+    "missingCurrentTaskIds": [
+      "ZCA-ABI-001",
+      "ZCA-HST-001"
+    ],
+    "observation": {
+      "path": "docs/tests/source-comment-review-assigned-source-drift-20261013.json",
+      "sha256": "c594a23dde4b4ba225861ba183290fa4657a8b381b18370efee3ff018427bc02",
+      "bytes": 47652
+    },
+    "wholeRepository": "pending complete first-party inventory"
+  },
+  "historicalIssues": [
+    {
+      "id": "ZCA-ABI-002",
+      "kind": "BUG",
+      "path": "zircon_runtime_interface/src/tests/boundary.rs",
+      "symbol": "runtime_api_surface_stays_folder_backed_by_abi_owner",
+      "trigger": "OWNER 清单含 session/ime_composition_capability_v2.rs，但当前 src/runtime_api/session 的真实文件名为 ime_compose_capability_v2.rs；collector 把该真实文件收进 actual 集合。",
+      "observableImpact": "当前 expected/actual 集合必不相等：expected 多出 ime_composition_capability_v2.rs，actual 多出 ime_compose_capability_v2.rs；原 assert_eq! 若执行必失败。程序或测试行为未修复。",
+      "evidence": [
+        {
+          "path": "zircon_runtime_interface/src/tests/boundary.rs",
+          "symbol": "EXPECTED_RUNTIME_API_OWNER_PATHS / collect_runtime_api_owner_sources / runtime_api_surface_stays_folder_backed_by_abi_owner",
+          "relationship": "从清单值、只排除 tests/、mod.rs 和 *_tests 的 collector 到 actual/expected 集合 assert_eq! 的完整静态路径",
+          "sha256": "04089983c82ef7168560d9610225d61fd6fdc9ae6073d95fb67249008d10187e"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/mod.rs",
+          "symbol": "#[path = ime_compose_capability_v2.rs] mod ime_composition_capability_v2",
+          "relationship": "生产模块属性确认真实文件绑定",
+          "line": 12,
+          "sha256": "a962c1677e7e648d078d63e9d8647c4b42230e0a7c5a0ff07ea43968d5b8b6bc"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/ime_compose_capability_v2.rs",
+          "symbol": "source file",
+          "relationship": "当前实际文件存在并进入 collector；期望拼写的文件在该目录不存在",
+          "sha256": "57d720c44be3628b1d3f4649c45aeb62a9fc9027927ef6a29cc36090d3f39a3c"
+        },
+        {
+          "method": "只读 Python 按真实 collector 规则枚举路径并比较常量集合",
+          "expectedOnly": [
+            "session/ime_composition_capability_v2.rs"
+          ],
+          "actualOnly": [
+            "session/ime_compose_capability_v2.rs"
+          ],
+          "result": "deterministic mismatch; Rust test not executed"
+        }
+      ],
+      "evidenceGap": "静态失败路径和实盘源文件已证明；Jenkins/Cargo 的正式执行回执尚未取得。",
+      "nextAction": "核对外部改动归属、真实授权与针对性修复验证；本任务未恢复标签、未修改或验收外部程序修复。",
+      "sourceTag": {
+        "path": "zircon_runtime_interface/src/tests/boundary.rs",
+        "line": 814,
+        "text": "// BUG: [ZCA-ABI-002] 清单要求 session/ime_composition_capability_v2.rs，实际归属文件为",
+        "status": "removed-by-external-source-change"
+      },
+      "reviewedSha256": "04089983c82ef7168560d9610225d61fd6fdc9ae6073d95fb67249008d10187e",
+      "independentReview": "主审独立完整阅读 collector 的全部排除规则和断言、session/mod.rs 与真实文件，已接受静态 BUG 证据；formal validation pending。",
+      "status": "historical-static-proof-external-source-and-tag-changed",
+      "currentSourceTagPresent": false,
+      "historicalEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-001.json",
+        "sha256": "00cf249ff6909d9666ec3b99724533bc677cb2250eed73665a79e2bbdd489f01"
+      },
+      "currentObservedSourceSha256": "f3fdc26ba1170c459bbc7eecb2f0b7c1cf0911daec1fd9f757008bb7f5e275fd"
+    },
+    {
+      "id": "ZCA-ABI-003",
+      "kind": "BUG",
+      "path": "zircon_runtime_interface/src/tests/boundary.rs",
+      "symbol": "production_source_does_not_include_or_import_implementation_crates",
+      "trigger": "production_rust_sources 将 src/lib.rs 纳入；without_cfg_test_items 只剥识别到测试属性所属项，lib.rs 的生产 #[path 属性保留，而 FORBIDDEN_SOURCE_NEEDLES 明确包含 #[path。",
+      "observableImpact": "src/lib.rs 的 #[path 会形成至少一条 violations，四类已审例外均不允许该路径/禁词组合，因此最终 violations.is_empty() 的原 assert! 若执行必失败。原程序和断言保持。",
+      "evidence": [
+        {
+          "path": "zircon_runtime_interface/src/tests/boundary.rs",
+          "symbol": "production_rust_sources / collect_rust_sources / without_cfg_test_items / FORBIDDEN_SOURCE_NEEDLES / production_source_does_not_include_or_import_implementation_crates",
+          "relationship": "实际文件收集→只剥 test item→全文禁词查找→四类 precise exceptions→violations→空集断言的完整静态路径",
+          "sha256": "04089983c82ef7168560d9610225d61fd6fdc9ae6073d95fb67249008d10187e"
+        },
+        {
+          "path": "zircon_runtime_interface/src/lib.rs",
+          "symbol": "production #[path] attributes",
+          "relationship": "生产模块路径属性真实存在，首条在第 6 行；非 cfg(test) 所属项",
+          "line": 6,
+          "sha256": "5f1f782d3ddcc241252bc49519fc1b8ad458d718e7539404e72e720375e0bf7b"
+        },
+        {
+          "method": "只读静态逐分支跟踪；主审独立核对 production collector 与 without_cfg_test_items 最后一段",
+          "result": "至少 src/lib.rs + #[path 会保留并被拒绝；未执行 Rust 用例"
+        }
+      ],
+      "evidenceGap": "源码和控制流足以证明当前断言失败；正式 Jenkins/Cargo 执行回执仍 pending。",
+      "nextAction": "核对外部改动归属、真实授权与针对性修复验证；本任务未恢复标签、未修改或验收外部程序修复。",
+      "sourceTag": {
+        "path": "zircon_runtime_interface/src/tests/boundary.rs",
+        "line": 172,
+        "text": "// BUG: [ZCA-ABI-003] 遍历包含 lib.rs，其生产模块路径属性保留在过滤结果中。",
+        "status": "removed-by-external-source-change"
+      },
+      "reviewedSha256": "04089983c82ef7168560d9610225d61fd6fdc9ae6073d95fb67249008d10187e",
+      "independentReview": "主审独立阅读完整 production collector、test item 过滤、lib.rs 生产路径属性及四类精确例外，已接受静态 BUG 证据；formal validation pending。",
+      "status": "historical-static-proof-external-source-and-tag-changed",
+      "currentSourceTagPresent": false,
+      "historicalEvidence": {
+        "path": "docs/tests/source-comment-review-evidence-core-001.json",
+        "sha256": "00cf249ff6909d9666ec3b99724533bc677cb2250eed73665a79e2bbdd489f01"
+      },
+      "currentObservedSourceSha256": "f3fdc26ba1170c459bbc7eecb2f0b7c1cf0911daec1fd9f757008bb7f5e275fd"
+    }
+  ],
+  "lastRootReconciliationUtc": "2026-10-13T08:00:11.775369+00:00",
+  "consistencyHistory": [
+    {
+      "scope": "reflection_review-001 + core_contracts-001-clear11 + independently confirmed Host issue site; not Host whole-batch acceptance",
+      "status": "passed-current-scoped-tags",
+      "sourcePaths": [
+        "zircon_reflect_derive/src/attributes.rs",
+        "zircon_reflect_derive/src/derive.rs",
+        "zircon_reflect_derive/src/fields.rs",
+        "zircon_reflect_derive/src/lib.rs",
+        "zircon_reflect_derive/src/tests/cases.rs",
+        "zircon_runtime_interface/src/buffer.rs",
+        "zircon_runtime_interface/src/handles.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/api_shape.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/mod.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/tests/api_table.rs",
+        "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+        "zircon_runtime_interface/src/status.rs",
+        "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+        "zircon_runtime_interface/src/version.rs",
+        "zircon_runtime_host/src/foreign_output/state.rs"
+      ],
+      "sourceTagIds": [
+        "CR-REFLECT-0001",
+        "ZCA-ABI-001",
+        "ZCA-HST-001"
+      ],
+      "newIssueIds": [
+        "ZCA-ABI-001",
+        "ZCA-HST-001"
+      ],
+      "wholeRepository": "pending complete first-party inventory"
+    },
+    {
+      "scope": "new assigned host/operation TODO markers only",
+      "status": "current markers observed; final batch hashes and prior held tags pending",
+      "observedAtUtc": "2026-10-13T08:00:11.775369+00:00",
+      "sourceTagIds": [
+        "ZCA-HRQ-001",
+        "ZCA-HRQ-002",
+        "ZCA-OPS-001"
+      ],
+      "sourcePins": [
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+          "sha256": "c85e52ed28ef3b852fce10169bdff59e59e58e6d7620836271fb7757daae64bd"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/host/host_requests.rs",
+          "sha256": "c85e52ed28ef3b852fce10169bdff59e59e58e6d7620836271fb7757daae64bd"
+        },
+        {
+          "path": "zircon_runtime_interface/src/runtime_api/session/plugin_event_mirror.rs",
+          "sha256": "a2d1c53720742b7841e48a6f0cad63f635d8ce8bc715df71655f02dc880221be"
+        }
+      ],
+      "wholeRepository": false,
+      "priorConsistencyVerificationPreserved": true
+    }
+  ]
+}

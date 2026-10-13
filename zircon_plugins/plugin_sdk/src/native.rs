@@ -375,8 +375,13 @@ pub type NativePluginHostReadyFnV3 = fn(*const NativePluginHostFunctionTableV3);
 #[repr(transparent)]
 pub struct NativePluginStatic<T>(T);
 
-// SAFETY: Implementations are restricted to immutable ABI tables whose raw pointers are data, not
-// shared Rust ownership. The private trait prevents downstream crates from expanding this set.
+/// Marker for ABI value types that may be stored in a process-wide static wrapper.
+///
+/// # Safety
+/// Implementors must not permit mutation through a shared reference after
+/// publication, and must contain only fields whose `Sync` behavior is valid
+/// for shared access to the containing static. Raw ABI pointers are treated as
+/// opaque data here; their validity is governed by the ABI contract.
 unsafe trait NativePluginStaticValue {}
 
 // SAFETY: These carrier values are generated once, never mutated, and only exposed by shared
@@ -388,7 +393,8 @@ unsafe impl NativePluginStaticValue for NativePluginBridgeMethodTableV3 {}
 unsafe impl NativePluginStaticValue for NativePluginBridgeMethodV3 {}
 unsafe impl<T: NativePluginStaticValue, const N: usize> NativePluginStaticValue for [T; N] {}
 
-// SAFETY: NativePluginStaticValue is a closed set of audited immutable ABI carriers.
+// SAFETY: Implementations are restricted to immutable ABI tables whose raw pointers are data, not
+// shared Rust ownership. The private trait prevents downstream crates from expanding this set.
 unsafe impl<T: NativePluginStaticValue> Sync for NativePluginStatic<T> {}
 
 impl<T> NativePluginStatic<T> {
@@ -431,22 +437,28 @@ impl NativePluginEntryPointV3 {
         }
     }
 
-    pub fn entry_report(
+    ///
+    /// # Safety
+    ///
+    /// `host_functions` must point to a readable, properly aligned host table.
+    /// Its strings and callback pointers must remain valid for the duration of
+    /// this call, including any `on_host_ready` callback invocation.
+    pub unsafe fn entry_report(
         &self,
         host_functions: *const NativePluginHostFunctionTableV3,
     ) -> *const NativePluginEntryReportV3 {
         let has_capability_constraints =
             !self.required_capabilities.is_empty() || !self.denied_capabilities.is_empty();
-        let host_is_compatible =
-            has_capability_constraints && host_functions_v3_are_compatible(host_functions);
+        let host_is_compatible = has_capability_constraints
+            && unsafe { host_functions_v3_are_compatible(host_functions) };
         let supports_required = self.required_capabilities.is_empty()
             || (host_is_compatible
-                && self.required_capabilities.iter().all(|capability| {
+                && self.required_capabilities.iter().all(|capability| unsafe {
                     host_supports_capability_with_compatible_host_v3(host_functions, capability)
                 }));
         let supports_denied = supports_required
             && host_is_compatible
-            && self.denied_capabilities.iter().any(|capability| {
+            && self.denied_capabilities.iter().any(|capability| unsafe {
                 host_supports_capability_with_compatible_host_v3(host_functions, capability)
             });
         if supports_required && !supports_denied {
@@ -578,50 +590,80 @@ where
     let result = catch_unwind(AssertUnwindSafe(callback));
     match result {
         Ok(status) => status,
-        Err(_) => callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_PANIC, panic_diagnostics),
+        Err(payload) => {
+            drop_panic_payload_safely(payload);
+            callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_PANIC, panic_diagnostics)
+        }
+    }
+}
+
+fn drop_panic_payload_safely(payload: Box<dyn std::any::Any + Send>) {
+    if let Err(secondary_payload) = catch_unwind(AssertUnwindSafe(|| drop(payload))) {
+        // A payload destructor can panic too. Forget only that secondary
+        // payload so a third unwind cannot escape this panic boundary.
+        std::mem::forget(secondary_payload);
     }
 }
 
 /// 只有宿主 ABI 兼容且列表中的每项能力都获授时才返回 true；空列表为 true。
-pub fn host_supports_all_capabilities_v3(
+///
+/// # Safety
+/// `host_functions` must be null or point to a readable, aligned host table;
+/// its C strings and callbacks must satisfy the ABI contract for this call.
+pub unsafe fn host_supports_all_capabilities_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capabilities: &[&str],
 ) -> bool {
     if capabilities.is_empty() {
         return true;
     }
-    if !host_functions_v3_are_compatible(host_functions) {
+    if !unsafe { host_functions_v3_are_compatible(host_functions) } {
         return false;
     }
-    capabilities.iter().all(|capability| {
+    capabilities.iter().all(|capability| unsafe {
         host_supports_capability_with_compatible_host_v3(host_functions, capability)
     })
 }
 
 /// 检查宿主是否授予列表中的至少一项能力；空列表返回 false。
-pub fn host_supports_any_capability_v3(
+///
+/// # Safety
+/// `host_functions` must be null or point to a readable, aligned host table;
+/// its C strings and callbacks must satisfy the ABI contract for this call.
+pub unsafe fn host_supports_any_capability_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capabilities: &[&str],
 ) -> bool {
-    if capabilities.is_empty() || !host_functions_v3_are_compatible(host_functions) {
+    if capabilities.is_empty() || !unsafe { host_functions_v3_are_compatible(host_functions) } {
         return false;
     }
-    capabilities.iter().any(|capability| {
+    capabilities.iter().any(|capability| unsafe {
         host_supports_capability_with_compatible_host_v3(host_functions, capability)
     })
 }
 
 /// 检查一个能力是否由版本兼容的宿主授予。
-pub fn host_supports_capability_v3(
+///
+/// Calling this raw-pointer API requires an explicit unsafe boundary:
+///
+/// ```compile_fail
+/// use zircon_plugin_sdk::native::host_supports_capability_v3;
+/// let _ = host_supports_capability_v3(std::ptr::null(), "runtime.example");
+/// ```
+///
+/// # Safety
+/// `host_functions` must be null or point to a readable, aligned host table;
+/// its C strings and callbacks must satisfy the ABI contract for this call.
+pub unsafe fn host_supports_capability_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capability: &str,
 ) -> bool {
-    host_functions_v3_are_compatible(host_functions)
-        && host_supports_capability_with_compatible_host_v3(host_functions, capability)
+    let host_is_compatible = unsafe { host_functions_v3_are_compatible(host_functions) };
+    host_is_compatible
+        && (unsafe { host_supports_capability_with_compatible_host_v3(host_functions, capability) })
 }
 
-// BUG: [CR-R02-public_sdk_reflect-0001] 安全公开入口会把原始宿主表指针传入此处；仅拒绝 null 后仍直接解引用，无效非空指针可由安全 Rust 调用触发未定义行为。
-fn host_functions_v3_are_compatible(
+unsafe fn host_functions_v3_are_compatible(
     host_functions: *const NativePluginHostFunctionTableV3,
 ) -> bool {
     if host_functions.is_null() {
@@ -641,7 +683,7 @@ fn host_functions_v3_are_compatible(
     true
 }
 
-fn host_supports_capability_with_compatible_host_v3(
+unsafe fn host_supports_capability_with_compatible_host_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capability: &str,
 ) -> bool {
@@ -653,20 +695,33 @@ fn host_supports_capability_with_compatible_host_v3(
         return unsafe { host_has_capability(host_functions, capability.as_ptr()) }
             == ZIRCON_NATIVE_PLUGIN_STATUS_OK;
     }
-    capability_list_contains(host_functions.granted_capabilities, capability)
+    unsafe { capability_list_contains(host_functions.granted_capabilities, capability) }
 }
 
 /// 在宿主提供的 NUL 终止能力串中查找以换行、逗号或分号分隔的能力名。
-pub fn capability_list_contains(capabilities: *const std::ffi::c_char, capability: &str) -> bool {
+///
+/// Calling this raw-pointer API requires an explicit unsafe boundary:
+///
+/// ```compile_fail
+/// use zircon_plugin_sdk::native::capability_list_contains;
+/// let _ = capability_list_contains(std::ptr::null(), "runtime.example");
+/// ```
+///
+/// # Safety
+/// `capabilities` must be null or point to a readable NUL-terminated C string
+/// that remains valid for this call.
+pub unsafe fn capability_list_contains(
+    capabilities: *const std::ffi::c_char,
+    capability: &str,
+) -> bool {
     if capabilities.is_null() {
         return false;
     }
-    // BUG: [CR-R02-public_sdk_reflect-0002] 此安全函数只过滤 null；非空悬空或未终止 C 字符串会令 from_ptr 越界读取。
     let Ok(capabilities) = unsafe { CStr::from_ptr(capabilities) }.to_str() else {
         return false;
     };
     capabilities
-        .split(|character| matches!(character, '\n' | ',' | ';'))
+        .split(['\n', ',', ';'])
         .map(str::trim)
         .any(|entry| entry == capability)
 }
@@ -685,7 +740,7 @@ macro_rules! export_native_plugin_descriptor_v3 {
 
 /// Internal implementation for downstream exported entry macros.
 /// Ordinary unwind panics produce the existing V3 null-entry failure.
-/// panic=abort, foreign faults and panicking payload destructors cannot be recovered.
+/// panic=abort and foreign faults cannot be recovered.
 #[doc(hidden)]
 pub fn catch_native_entry_panic_v3<F>(entry: F) -> *const NativePluginEntryReportV3
 where
@@ -696,10 +751,8 @@ where
         Err(payload) => {
             // Arbitrary panic_any payload destructors can panic again. Dispose
             // without allowing a second unwind across the extern-C boundary.
-            match catch_unwind(AssertUnwindSafe(|| drop(payload))) {
-                Ok(()) => std::ptr::null(),
-                Err(_secondary_payload) => std::process::abort(),
-            }
+            drop_panic_payload_safely(payload);
+            std::ptr::null()
         }
     }
 }
@@ -709,10 +762,15 @@ where
 macro_rules! export_native_plugin_entry_v3 {
     ($entry_fn:ident, $entry_point:expr) => {
         #[no_mangle]
-        pub extern "C" fn $entry_fn(
+        ///
+        /// # Safety
+        ///
+        /// `host_functions` must point to a readable, properly aligned V3 host
+        /// table whose strings and callbacks remain valid for this call.
+        pub unsafe extern "C" fn $entry_fn(
             host_functions: *const $crate::native::NativePluginHostFunctionTableV3,
         ) -> *const $crate::native::NativePluginEntryReportV3 {
-            $crate::native::catch_native_entry_panic_v3(|| {
+            $crate::native::catch_native_entry_panic_v3(|| unsafe {
                 ($entry_point).entry_report(host_functions)
             })
         }

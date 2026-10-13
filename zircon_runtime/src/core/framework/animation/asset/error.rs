@@ -73,6 +73,8 @@ pub enum AnimationAssetError {
         expected: &'static str,
         actual: &'static str,
     },
+    #[error("invalid animation skeleton hierarchy: {reason}")]
+    InvalidSkeletonHierarchy { reason: String },
     #[error("animation asset reference uuid `{value}` is invalid: {source}")]
     InvalidReferenceUuid {
         value: String,

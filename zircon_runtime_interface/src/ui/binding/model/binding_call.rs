@@ -26,6 +26,7 @@ impl UiBindingCall {
         self.arguments.get(index)
     }
 
+    #[cfg(test)]
     pub(crate) fn native_repr(&self) -> String {
         let mut output = String::with_capacity(self.symbol.len() + 2);
         self.native_repr_into(&mut output);

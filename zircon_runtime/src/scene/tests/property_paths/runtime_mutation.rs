@@ -222,6 +222,120 @@ fn world_resolves_entity_paths_and_mutates_component_properties() {
 }
 
 #[test]
+fn world_property_writes_reject_unrepresentable_or_overflowing_values_atomically() {
+    let mut world = World::new();
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    let original_render_mask = world
+        .get::<crate::scene::components::RenderLayerMask>(entity)
+        .expect("spawned mesh has its default render-layer component")
+        .0;
+
+    let morph_index_path =
+        ComponentPropertyPath::parse(&format!("MeshRenderer.morph_weights.{}", usize::MAX))
+            .unwrap();
+    let error = world
+        .set_property(entity, &morph_index_path, ScenePropertyValue::Scalar(0.5))
+        .expect_err("usize::MAX cannot be converted to a vector length");
+    assert!(matches!(
+        error,
+        crate::scene::SceneError::InvalidPropertyIndex { .. }
+    ));
+    assert!(world
+        .get::<MeshRenderer>(entity)
+        .unwrap()
+        .morph_weights
+        .is_empty());
+
+    let render_layer_path = ComponentPropertyPath::parse("RenderLayer.mask").unwrap();
+    let error = world
+        .set_property(
+            entity,
+            &render_layer_path,
+            ScenePropertyValue::Unsigned(u64::from(u32::MAX) + 1),
+        )
+        .expect_err("u64 values outside u32 must be rejected");
+    assert!(matches!(
+        error,
+        crate::scene::SceneError::PropertyTypeMismatch { .. }
+    ));
+    assert_eq!(
+        world
+            .get::<crate::scene::components::RenderLayerMask>(entity)
+            .expect("rejected property write must preserve the render-layer component")
+            .0,
+        original_render_mask
+    );
+}
+
+#[test]
+fn world_optional_physics_property_errors_do_not_materialize_defaults() {
+    let mut world = World::new();
+    let entity = world
+        .spawn_node(NodeKind::Mesh)
+        .expect("test scene spawn should succeed");
+    world
+        .set_collider(
+            entity,
+            Some(crate::scene::components::ColliderComponent::default()),
+        )
+        .unwrap();
+    world
+        .set_joint(
+            entity,
+            Some(crate::scene::components::JointComponent::default()),
+        )
+        .unwrap();
+
+    let bad_override_path =
+        ComponentPropertyPath::parse("Collider.material_override.unknown").unwrap();
+    assert!(world
+        .set_property(entity, &bad_override_path, ScenePropertyValue::Scalar(0.5),)
+        .is_err());
+    assert!(world
+        .get::<crate::scene::components::ColliderComponent>(entity)
+        .unwrap()
+        .material_override
+        .is_none());
+
+    let invalid_override_path =
+        ComponentPropertyPath::parse("Collider.material_override.static_friction").unwrap();
+    assert!(world
+        .set_property(
+            entity,
+            &invalid_override_path,
+            ScenePropertyValue::String("invalid".to_string()),
+        )
+        .is_err());
+    assert!(world
+        .get::<crate::scene::components::ColliderComponent>(entity)
+        .unwrap()
+        .material_override
+        .is_none());
+
+    let unknown_limit_path = ComponentPropertyPath::parse("Joint.limits.unknown").unwrap();
+    assert!(world
+        .set_property(entity, &unknown_limit_path, ScenePropertyValue::Scalar(1.0),)
+        .is_err());
+    assert!(world
+        .get::<crate::scene::components::JointComponent>(entity)
+        .unwrap()
+        .limits
+        .is_none());
+
+    let default_limit_path = ComponentPropertyPath::parse("Joint.limits.min").unwrap();
+    assert!(!world
+        .set_property(entity, &default_limit_path, ScenePropertyValue::Scalar(0.0),)
+        .unwrap());
+    assert!(world
+        .get::<crate::scene::components::JointComponent>(entity)
+        .unwrap()
+        .limits
+        .is_none());
+}
+
+#[test]
 fn world_entity_paths_suffix_duplicate_sibling_names() {
     let mut world = World::empty();
     let root = world

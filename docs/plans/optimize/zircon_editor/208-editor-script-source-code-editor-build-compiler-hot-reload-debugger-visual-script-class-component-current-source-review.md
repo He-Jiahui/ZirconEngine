@@ -37,7 +37,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/07-script-plugin-runtime-review.md
   - docs/plans/optimize/zircon_runtime/21-zr-language-parser-type-system-semir-bytecode-package-loader-vm-runtime-review.md
   - docs/plans/optimize/zircon_plugins/16-first-party-zr-vm-language-source-runtime-dist-catalog-reflection-callsite-host-interface-gc-hot-reload-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/99l-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99l-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md
   - docs/plans/zircon_editor/editor/13-script-compilation-management.md
   - docs/plans/performance/01/2026-08-16-editor-core-script-build-generation-current-architecture-review.md
   - docs/plans/optimize/zircon_editor/31/2026-08-25-watch-budget-accounting.md

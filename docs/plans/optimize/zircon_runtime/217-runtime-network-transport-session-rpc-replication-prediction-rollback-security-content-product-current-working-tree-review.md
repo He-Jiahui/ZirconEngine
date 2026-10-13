@@ -5,16 +5,16 @@ report_id: Runtime217
 review_date: 2026-09-01
 baseline_head: 9963f8eb72e2d725d2536eb50b393b30387a1ffa
 canonical_ledger_owner:
-  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor.md
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_runtime/173-runtime-network-current-working-tree-authority-transport-session-rpc-replication-editor-boundary-review.md
-  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zo-runtime-network-transport-socket-tls-http-websocket-reliable-udp-session-rpc-replication-prediction-rollback-content-download-editor.md
 related_editor_owner:
   - docs/plans/optimize/zircon_editor/233-editor-network-current-working-tree-authoring-profiler-multiplayer-boundary-review.md
 related_cross_domain_reviews:
-  - docs/plans/optimize/zircon_runtime/192-runtime-task-execution-job-scheduler-task-graph-worker-domain-scope-cancellation-deadline-shutdown-diagnostics-product-adoption-current-working-tree-review.md
+  - docs/plans/optimize/zircon_runtime/192-runtime-task-execution-job-scheduler-task-graph-worker-domain-scope-cancellation-deadline-shutdown-diagnostics-product-adoption.md
   - docs/plans/optimize/zircon_runtime/194-runtime-event-message-observer-bus-world-mirror-abi-ingress-delivery-lifecycle-current-working-tree-review.md
-  - docs/plans/optimize/zircon_runtime/195-runtime-failure-contract-error-taxonomy-panic-containment-health-recovery-shutdown-crash-abi-product-integration-current-working-tree-review.md
+  - docs/plans/optimize/zircon_runtime/195-runtime-failure-contract-error-taxonomy-panic-containment-health-recovery-shutdown-crash-abi-product-integration.md
   - docs/plans/optimize/zircon_runtime/199-runtime-plugin-profile-catalog-provider-resolution-current-working-tree-review.md
   - docs/plans/optimize/zircon_runtime/208-runtime-product-build-export-profile-build-plan-platform-host-cross-compilation-package-launch-handoff-current-working-tree-review.md
   - docs/plans/optimize/zircon_runtime/215-runtime-stable-identity-handle-generation-owner-epoch-stale-reference-exhaustion-current-working-tree-review.md

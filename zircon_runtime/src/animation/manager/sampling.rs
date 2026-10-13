@@ -57,11 +57,7 @@ pub(super) fn real_array_is_finite<const N: usize>(value: &[Real; N]) -> bool {
 }
 
 pub(super) fn quaternion_array_is_normalizable(value: &[Real; 4]) -> bool {
-    value
-        .iter()
-        .map(|component| component * component)
-        .sum::<Real>()
-        > Real::EPSILON
+    quaternion_sample_properties(value).1
 }
 
 pub(super) fn sample_vec3(value: &AnimationChannelValueAsset) -> AnimationResult<Vec3> {
@@ -83,10 +79,9 @@ pub(super) fn sample_vec3(value: &AnimationChannelValueAsset) -> AnimationResult
 pub(super) fn sample_quaternion(value: &AnimationChannelValueAsset) -> AnimationResult<Quat> {
     match value {
         AnimationChannelValueAsset::Quaternion(value) => {
-            // BUG: [CR-ANIMATION-0002] 分量有限但平方和溢出时仍被判为可归一化，随后归一化产生零四元数；证据：1e20f32 分量、quaternion_sample_properties 与 glam 0.32.1 Vec4::normalize。
             let (finite, normalizable) = quaternion_sample_properties(value);
             if finite && normalizable {
-                Ok(Quat::from_array(*value).normalize())
+                Ok(normalize_finite_quaternion(*value))
             } else if finite {
                 Err(AnimationError::ZeroLengthQuaternionSample)
             } else {
@@ -104,12 +99,35 @@ pub(super) fn sample_quaternion(value: &AnimationChannelValueAsset) -> Animation
 
 fn quaternion_sample_properties(value: &[Real; 4]) -> (bool, bool) {
     let mut finite = true;
-    let mut squared_length = 0.0;
+    let mut max_component: Real = 0.0;
     for component in value {
         finite &= component.is_finite();
-        squared_length += component * component;
+        max_component = max_component.max(component.abs());
     }
-    (finite, squared_length > Real::EPSILON)
+    if !finite || max_component == 0.0 {
+        return (finite, false);
+    }
+
+    let scaled_squared_length = value
+        .iter()
+        .map(|component| {
+            let scaled = component / max_component;
+            scaled * scaled
+        })
+        .sum::<Real>();
+    // Compare the actual norm to the existing EPSILON threshold without
+    // squaring max_component, which can overflow for finite inputs.
+    let minimum_component = (Real::EPSILON / scaled_squared_length).sqrt();
+    (true, max_component > minimum_component)
+}
+
+fn normalize_finite_quaternion(value: [Real; 4]) -> Quat {
+    let max_component = value
+        .iter()
+        .map(|component| component.abs())
+        .fold(0.0, Real::max);
+    let scaled = value.map(|component| component / max_component);
+    Quat::from_array(scaled).normalize()
 }
 
 fn animation_channel_value_kind(value: &AnimationChannelValueAsset) -> &'static str {

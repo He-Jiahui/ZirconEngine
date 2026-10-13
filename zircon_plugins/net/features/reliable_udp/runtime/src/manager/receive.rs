@@ -18,13 +18,13 @@ impl NetReliableUdpRuntimeManager {
             .state
             .lock()
             .expect("net reliable UDP state mutex poisoned");
-        // BUG: [CR-PLUGIN-NET-0019] 完成窗口内重复包没有 ACK；首次 ACK 丢失且序号未淘汰时，重发可耗尽上限并断开。
         if state.completed_inbound_sequences.contains(&packet.sequence) {
             return ReliableDatagramReceiveReport::new(
                 packet.sequence,
                 packet.channel,
                 ReliableDatagramReceiveStatus::DuplicateFragment,
-            );
+            )
+            .with_ack(ReliableDatagramAck::new(packet.sequence));
         }
         if packet.fragment_count == 0 || packet.fragment_index >= packet.fragment_count {
             return ReliableDatagramReceiveReport::new(

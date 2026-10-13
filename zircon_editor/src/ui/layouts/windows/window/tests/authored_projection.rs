@@ -1,16 +1,16 @@
 use super::*;
 
 #[test]
-fn authored_chrome_assets_use_workbench_typography_baseline() {
+fn authored_chrome_assets_use_unreal_starship_typography_baseline() {
     const BODY: &str = "font_size = 13.333333";
     const CAPTION: &str = "font_size = 10.666667";
     let menu = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/assets/ui/editor/workbench_menu_chrome.zui"
+        "/assets/ui/editor/unreal/components/host_menu_bar.zui"
     ));
     let page = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/assets/ui/editor/workbench_page_chrome.zui"
+        "/assets/ui/editor/unreal/components/host_page_tabs.zui"
     ));
     let dock = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -18,15 +18,25 @@ fn authored_chrome_assets_use_workbench_typography_baseline() {
     ));
     let status = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/assets/ui/editor/workbench_status_bar.zui"
+        "/assets/ui/editor/unreal/components/host_status_bar.zui"
     ));
 
+    for (source, resource_id) in [
+        (menu, "res://ui/editor/unreal/components/host_menu_bar.zui"),
+        (page, "res://ui/editor/unreal/components/host_page_tabs.zui"),
+        (status, "res://ui/editor/unreal/components/host_status_bar.zui"),
+    ] {
+        assert!(source.contains(resource_id));
+        assert!(source.contains("res://ui/editor/unreal/starship.zui"));
+        assert!(!source.contains("editor_workbench_strict.zui"));
+        assert!(!source.contains("classes = [\"workbench-"));
+    }
     assert_eq!(menu.matches(BODY).count(), 7);
     assert_eq!(page.matches(BODY).count(), 3);
     assert_eq!(page.matches(CAPTION).count(), 1);
     assert_eq!(dock.matches("font_size = \"$unreal_font_size\"").count(), 3);
     assert_eq!(dock.matches("font_size = \"$unreal_font_small_size\"").count(), 1);
-    assert_eq!(status.matches(BODY).count(), 3);
+    assert_eq!(status.matches(CAPTION).count(), 3);
     assert!(status.contains("height = { min = 16.0, preferred = 16.0, max = 16.0"));
 }
 
@@ -773,7 +783,7 @@ fn status_bar_nodes_project_text_overrides_from_flat_asset() {
     assert_eq!(node(&nodes, STATUS_VIEWPORT_CONTROL_ID).text, "1920 x 1080");
     assert_eq!(
         node(&nodes, STATUS_PRIMARY_CONTROL_ID).font_size,
-        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+        EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
     );
     assert!(
         maybe_node(&nodes, "WorkbenchStatusBarRoot").is_some(),

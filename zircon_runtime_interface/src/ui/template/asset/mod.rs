@@ -1,3 +1,6 @@
+//! UI 模板资产在接口 crate 中共享的源文档、扁平原型、绑定语法和样式选择器契约。
+//!
+//! Runtime loader 和 compiler 消费这些数据形状，编辑器也通过 `ui::template` 重导出的公共类型构造及检查资产。
 #[path = "action_policy/mod.rs"]
 mod action_policy;
 #[path = "binding/mod.rs"]

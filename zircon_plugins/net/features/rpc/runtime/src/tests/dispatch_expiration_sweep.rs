@@ -25,6 +25,7 @@ fn expiration_sweep_removes_only_timed_out_requests() {
                 .with_request(expired_request)
                 .with_timeout_ms(1),
                 started_at: now - Duration::from_millis(10),
+                handler_executing: false,
             },
         );
         state.pending_requests.insert(
@@ -38,6 +39,7 @@ fn expiration_sweep_removes_only_timed_out_requests() {
                 .with_request(live_request)
                 .with_timeout_ms(60_000),
                 started_at: now,
+                handler_executing: false,
             },
         );
     }

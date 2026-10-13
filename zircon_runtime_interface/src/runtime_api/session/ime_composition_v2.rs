@@ -7,9 +7,13 @@ use crate::ui::dispatch::{
     UiImePreeditClause, UiImePreeditClauseError, UiImePreeditClauseKind, UiTextByteRange,
 };
 
+/// 固定头部的四字节魔数，编码时原样写入并在解码时先行比较。
 pub const ZR_RUNTIME_IME_COMPOSITION_V2_MAGIC: [u8; 4] = *b"ZIME";
+/// 当前组合载荷格式的 schema 编号。
 pub const ZR_RUNTIME_IME_COMPOSITION_V2_SCHEMA: u16 = 2;
+/// 固定头部字节数；所有头部偏移均按该布局读取。
 pub const ZR_RUNTIME_IME_COMPOSITION_V2_HEADER_BYTES: usize = 52;
+/// 每个预编辑分段记录的固定字节数。
 pub const ZR_RUNTIME_IME_COMPOSITION_V2_CLAUSE_BYTES: usize = 12;
 /// 单个组合载荷最多包含的样式分段数；完整载荷仍须满足事件总字节预算。
 /// 分段表按每项 12 字节计入同一预算，不能因数量未超限而跳过总长度检查。
@@ -102,8 +106,11 @@ impl TryFrom<u16> for ZrRuntimeImeCompositionOperationV2 {
 /// 参见 [`ZrRuntimeImeCompositionV2::encode`]、[`ZrRuntimeImeCompositionV2::decode`]。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ZrRuntimeImeCompositionContextV2 {
+    /// 宿主窗口生命周期代数；编解码只要求非零，当前值由会话路由核对。
     pub window_generation: u64,
+    /// 宿主焦点代数；编解码只要求非零，是否仍匹配由会话路由核对。
     pub focus_generation: u64,
+    /// 本次组合生命周期代数；编解码只要求非零，活动状态由会话路由核对。
     pub composition_generation: u64,
 }
 
@@ -136,11 +143,17 @@ impl ZrRuntimeImeCompositionContextV2 {
 /// [`UiImePreeditClause::validate_preedit_payload`]。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ZrRuntimeImeCompositionV2 {
+    /// 本次载荷操作；其允许字段组合由 validate 在编码前和解码后检查。
     pub operation: ZrRuntimeImeCompositionOperationV2,
+    /// 随载荷携带的窗口、焦点和组合代数值，不替代运行时的新旧检查。
     pub context: ZrRuntimeImeCompositionContextV2,
+    /// 本次操作拥有的 UTF-8 文本；游标与分段范围均以其字节位置计。
     pub text: String,
+    /// 预编辑文本内的可选 UTF-8 字节范围；提交和取消操作不携带此值。
     pub cursor_range: Option<UiTextByteRange>,
+    /// 按文本顺序描述预编辑样式的拥有型分段列表。
     pub clauses: Vec<UiImePreeditClause>,
+    /// 区分属性未提供与属性已提供但列表为空；提交和取消要求不可用。
     pub clause_availability: ZrRuntimeImePreeditClauseAvailabilityV2,
 }
 
@@ -425,6 +438,7 @@ fn read_u16(bytes: &[u8], offset: usize) -> Result<u16, ZrRuntimeImeCompositionV
     Ok(u16::from_le_bytes([field[0], field[1]]))
 }
 
+/// 按偏移读取小端 u32；短区间或偏移加宽度溢出分别返回截断或溢出错误。
 fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, ZrRuntimeImeCompositionV2Error> {
     let end = offset
         .checked_add(4)
@@ -435,6 +449,7 @@ fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, ZrRuntimeImeCompositionV
     Ok(u32::from_le_bytes([field[0], field[1], field[2], field[3]]))
 }
 
+/// 按偏移读取小端 u64；逐字节解码，不要求输入地址满足整数对齐。
 fn read_u64(bytes: &[u8], offset: usize) -> Result<u64, ZrRuntimeImeCompositionV2Error> {
     let end = offset
         .checked_add(8)

@@ -2,7 +2,7 @@
 doc_type: milestone-detail
 status: implemented_pending_validation
 plan_sources:
-  - docs/plans/optimize/zircon_editor/75-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/75-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization.md
   - docs/plans/optimize/zircon_editor/75/2026-09-14-ruler-capacity.md
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 related_records:

@@ -23,7 +23,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters/callbacks.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
 plan_sources:
-  - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world.md
   - docs/plans/optimize/zircon_editor/60/2026-09-27-hierarchy-native-input-owner.md
 tests:
   - zircon_editor/src/tests/host/retained_window/native_host_contract/native_capture_pointer_owner.rs

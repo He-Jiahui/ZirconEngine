@@ -1,5 +1,5 @@
 //! 注册 RPC 描述符、schema validator 与 handler，供调用准入检查和同步处理。
-//! handler 在状态锁外执行，validator 当前仍在锁内执行，重入风险见 CR-PLUGIN-NET-0017；替换时的版本一致性需另行约定。
+//! 用户 validator 与 handler 均在状态锁外执行；准入会在回锁后核验 descriptor 和 validator 版本。
 
 use std::sync::Arc;
 

@@ -25,7 +25,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/204-runtime-filesystem-resource-io-path-atomic-transaction-recovery-security-current-working-tree-review.md
   - docs/plans/optimize/zircon_runtime/25-filesystem-path-uri-vfs-mount-watch-sandbox-atomic-io-review.md
   - docs/plans/optimize/zircon_editor/247-editor-scene-world-authoring-play-hierarchy-document-current-working-tree-review.md
-  - docs/plans/optimize/zircon_editor/256-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation-current-working-tree-review.md
+  - docs/plans/optimize/zircon_editor/256-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation.md
   - docs/plans/optimize/zircon_editor/265-editor-settings-preferences-project-settings-scope-schema-overlay-persistence-migration-restart-plugin-window-current-working-tree-review.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/GenericPlatform/GenericPlatformFile.h
@@ -49,7 +49,7 @@ source_recheck_required: true
 > 工作树基线：`630d66c362013e3b5b72f97362ad56fc54ff6d8c`；只读复核共享工作树，不回退其他变更。
 > 审查性质：current-working-tree source review + refactor plan；不修改生产 Rust/Cargo/ABI/test/UI 代码。
 > 排除范围：Tooling；未运行 Cargo、Editor 动态流程、真实 crash/fault/multi-process/scale/soak/benchmark，也未查询、轮询、等待或实时跟踪协调器。
-> Runtime 边界：[Runtime204](../zircon_runtime/204-runtime-filesystem-resource-io-path-atomic-transaction-recovery-security-current-working-tree-review.md)；相关 Editor：[Editor247](247-editor-scene-world-authoring-play-hierarchy-document-current-working-tree-review.md)、[Editor256](256-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation-current-working-tree-review.md)、[Editor265](265-editor-settings-preferences-project-settings-scope-schema-overlay-persistence-migration-restart-plugin-window-current-working-tree-review.md)
+> Runtime 边界：[Runtime204](../zircon_runtime/204-runtime-filesystem-resource-io-path-atomic-transaction-recovery-security-current-working-tree-review.md)；相关 Editor：[Editor247](247-editor-scene-world-authoring-play-hierarchy-document-current-working-tree-review.md)、[Editor256](256-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation.md)、[Editor265](265-editor-settings-preferences-project-settings-scope-schema-overlay-persistence-migration-restart-plugin-window-current-working-tree-review.md)
 
 ## 1. 结论
 

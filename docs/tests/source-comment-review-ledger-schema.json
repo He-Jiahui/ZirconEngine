@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "coverageRequiredFields": ["path", "language", "classification", "initialSha256", "currentSha256", "reviewedSha256", "state", "owner", "batchId", "objectEvidence", "callerEvidence", "existingIssueTags", "issueIds", "independentReview", "validation", "commit"],
+  "coverageStates": ["pending", "assigned", "reviewing", "awaiting-independent-review", "awaiting-validation", "awaiting-commit", "accepted", "waiting-foreign-owner", "read-only", "stale", "failed", "classification-pending"],
+  "issueRequiredFields": ["id", "kind", "path", "symbol", "trigger", "observableImpact", "evidence", "evidenceGap", "nextAction", "sourceTag", "reviewedSha256", "independentReview", "status"],
+  "inventoryRequiredFields": ["checkout", "head", "trackedAndUntrackedInputs", "enumerationErrors", "excludedWithReasons", "classificationPending", "files"],
+  "objectEvidenceRequiredFields": ["symbol", "kind", "definition", "calls", "implementations", "macroOrRegistrationOrFfi", "testsOrContract", "blockEntryAndStateAndEffect", "commentDecision", "constraintsAndLifecycle"],
+  "rules": [
+    "SHA256 binds physical file bytes; after an external edit the accepted entry becomes stale until affected evidence is rechecked.",
+    "Inventory enumeration is not object review. Assigned/reviewing files remain incomplete until independent review, validation and authorized coordinator commit receipts apply.",
+    "Record every declaration and relevant block. A group may share a proven contract only when its member symbols are enumerated.",
+    "Issues use unique ZCA-<assigned prefix>-NNN identifiers; source tags and issue entries must match exactly.",
+    "Preserve existing issue tags as historical entries without falsely asserting they were confirmed by this task.",
+    "Read-only and waiting paths remain pending completion requirements. Exclusion requires evidence of third-party, generated, cache, binary or pure-data status.",
+    "Do not store whole-file source copies in ledgers or evidence. References, scoped patches and hashes are sufficient."
+  ]
+}

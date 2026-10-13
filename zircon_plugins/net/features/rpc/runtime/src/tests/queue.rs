@@ -196,11 +196,11 @@ fn rpc_feature_manager_marks_expired_queued_rpc_timed_out_without_handler_call()
 }
 
 #[test]
-fn rpc_feature_manager_marks_slow_queued_handler_timed_out_without_response_payload() {
+fn rpc_feature_manager_returns_slow_queued_handler_result_after_deadline() {
     let rpc = NetRpcRuntimeManager::with_max_queue_depth(4);
     let session = complete_joined_session(&rpc, "queued-timeout-player");
     rpc.register_rpc_handler(RpcDescriptor::command("chat.slow_queue"), |_| {
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(150));
         Ok(b"late".to_vec())
     })
     .unwrap();
@@ -210,18 +210,18 @@ fn rpc_feature_manager_marks_slow_queued_handler_timed_out_without_response_payl
         RpcInvocationDescriptor::new("chat.slow_queue", RpcDirection::ClientToServer, Vec::new())
             .with_source_session(session)
             .with_request(request)
-            .with_timeout_ms(10),
+            .with_timeout_ms(100),
         RpcPeerRole::Client,
     );
 
     assert_eq!(queued.status, RpcDispatchStatus::Queued);
     let drained = rpc.drain_rpc_queue(4);
     assert_eq!(drained.len(), 1);
-    assert_eq!(drained[0].status, RpcDispatchStatus::TimedOut);
-    assert_eq!(drained[0].response_payload, None);
+    assert_eq!(drained[0].status, RpcDispatchStatus::Accepted);
+    assert_eq!(drained[0].response_payload, Some(b"late".to_vec()));
     assert_eq!(
         drained[0].diagnostic.as_deref(),
-        Some("RPC handler exceeded invocation timeout")
+        Some("RPC handler completed after its deadline; synchronous execution was not cancelled")
     );
     assert!(rpc.pending_request(request).is_none());
 }

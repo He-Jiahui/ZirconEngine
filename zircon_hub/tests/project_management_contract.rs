@@ -214,6 +214,7 @@ fn hub_config_repair_normalizes_registries_before_projection() {
 
     for index in 0..20 {
         config.action_history.push(HubActionRecord {
+            id: String::new(),
             finished_unix_ms: index,
             action: HubActionKind::OpenEditor,
             status: HubActionStatus::Success,

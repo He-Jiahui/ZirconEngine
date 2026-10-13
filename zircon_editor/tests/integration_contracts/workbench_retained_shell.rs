@@ -54,7 +54,7 @@ fn workbench_shell_assets_replace_deleted_shell_sources() {
             ] as &[_],
         ),
         (
-            "assets/ui/editor/workbench_menu_chrome.zui",
+            "assets/ui/editor/unreal/components/host_menu_bar.zui",
             &["WorkbenchMenuBarRoot", "MenuSlot0"],
         ),
         (
@@ -66,7 +66,7 @@ fn workbench_shell_assets_replace_deleted_shell_sources() {
             &["ActivityRailPanel", "ActivityRailButton0"],
         ),
         (
-            "assets/ui/editor/workbench_status_bar.zui",
+            "assets/ui/editor/unreal/components/host_status_bar.zui",
             &["WorkbenchStatusBarRoot", "StatusViewportLabel"],
         ),
     ] {

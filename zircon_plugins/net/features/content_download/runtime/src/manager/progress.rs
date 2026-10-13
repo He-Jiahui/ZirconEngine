@@ -13,6 +13,9 @@ impl NetContentDownloadRuntimeManager {
     ) -> Option<NetDownloadProgress> {
         let mut state = self.state();
         let progress = state.progress.get_mut(&download)?;
+        if progress.status == NetDownloadStatus::Cancelled {
+            return Some(progress.clone());
+        }
         progress.status = NetDownloadStatus::Failed;
         progress.diagnostic = Some(diagnostic);
         Some(progress.clone())
@@ -31,6 +34,13 @@ impl NetContentDownloadRuntimeManager {
             .iter()
             .find(|chunk| chunk.id == chunk_id)?
             .clone();
+        if state
+            .progress
+            .get(&download)
+            .is_some_and(|progress| progress.status == NetDownloadStatus::Cancelled)
+        {
+            return state.progress.get(&download).cloned();
+        }
         let cache_hits = state.cache_hits.entry(download).or_default();
         if !cache_hits.iter().any(|id| id == chunk_id) {
             cache_hits.push(chunk_id.to_string());
@@ -65,6 +75,9 @@ impl NetContentDownloadRuntimeManager {
             .find(|chunk| chunk.id == chunk_id)?
             .clone();
         let progress = state.progress.get_mut(&download)?;
+        if progress.status == NetDownloadStatus::Cancelled {
+            return Some(progress.clone());
+        }
         if chunk.content_hash != *actual_content_hash {
             progress.status = NetDownloadStatus::Failed;
             progress.diagnostic = Some(format!("chunk hash mismatch: {chunk_id}"));
@@ -88,7 +101,6 @@ impl NetContentDownloadRuntimeManager {
         self.state().progress.get(&download).cloned()
     }
 
-    // BUG: [CR-PLUGIN-NET-0011] 只改状态；next_attempt/fetch_next_chunk 无取消门禁，后续调用可把 Cancelled 覆写为 Complete。
     pub fn cancel_download(&self, download: NetDownloadId) -> Option<NetDownloadProgress> {
         let mut state = self.state();
         let progress = state.progress.get_mut(&download)?;

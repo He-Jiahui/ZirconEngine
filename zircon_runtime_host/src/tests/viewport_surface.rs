@@ -4,6 +4,7 @@ use super::ViewportSurfaceBindings;
 use zircon_runtime_interface::ZrRuntimeViewportHandle;
 
 #[test]
+/// rebind 失败时保留 Runtime 原先已发布的 viewport 绑定。
 fn failed_rebind_restores_the_previous_viewport_surface_binding() {
     let viewport = ZrRuntimeViewportHandle::new(7);
     let bindings = ViewportSurfaceBindings::default();
@@ -21,6 +22,7 @@ fn failed_rebind_restores_the_previous_viewport_surface_binding() {
 }
 
 #[test]
+/// teardown 枚举视口时以 raw handle 升序返回，结果不受插入顺序影响。
 fn bound_viewports_are_released_in_stable_handle_order() {
     let bindings = ViewportSurfaceBindings::default();
     let first = ZrRuntimeViewportHandle::new(21);
@@ -39,6 +41,7 @@ fn bound_viewports_are_released_in_stable_handle_order() {
 }
 
 #[test]
+/// bind token 在途期间拒绝同一视口的 release 和第二个 bind。
 fn in_flight_binding_rejects_a_concurrent_release() {
     let viewport = ZrRuntimeViewportHandle::new(4);
     let bindings = ViewportSurfaceBindings::default();
@@ -64,6 +67,7 @@ fn in_flight_binding_rejects_a_concurrent_release() {
 }
 
 #[test]
+/// release ABI 失败后恢复已发布绑定，以便调用方重试。
 fn failed_release_restores_the_viewport_surface_binding_for_retry() {
     let viewport = ZrRuntimeViewportHandle::new(12);
     let bindings = ViewportSurfaceBindings::default();
@@ -86,6 +90,7 @@ fn failed_release_restores_the_viewport_surface_binding_for_retry() {
 }
 
 #[test]
+/// 丢弃尚未完成的首次 bind token 会移除预约并允许重新绑定。
 fn abandoned_binding_reservation_is_rolled_back() {
     let viewport = ZrRuntimeViewportHandle::new(9);
     let bindings = ViewportSurfaceBindings::default();
@@ -100,6 +105,7 @@ fn abandoned_binding_reservation_is_rolled_back() {
 }
 
 #[test]
+/// 丢弃尚未完成的 release token 会恢复原先已发布绑定。
 fn abandoned_release_reservation_restores_the_published_binding() {
     let viewport = ZrRuntimeViewportHandle::new(10);
     let bindings = ViewportSurfaceBindings::default();
@@ -118,6 +124,7 @@ fn abandoned_release_reservation_restores_the_published_binding() {
 }
 
 #[test]
+/// release token 在途时拒绝并发 rebind，失败完成后仍保留绑定。
 fn in_flight_release_rejects_a_concurrent_rebind() {
     let viewport = ZrRuntimeViewportHandle::new(13);
     let bindings = ViewportSurfaceBindings::default();
@@ -141,6 +148,7 @@ fn in_flight_release_rejects_a_concurrent_rebind() {
 }
 
 #[test]
+/// 两个共享同一 Arc 的 owner 观察到一致的绑定与解绑状态。
 fn shared_owners_observe_the_same_viewport_lifecycle() {
     let viewport = ZrRuntimeViewportHandle::new(14);
     let session_bindings = Arc::new(ViewportSurfaceBindings::default());

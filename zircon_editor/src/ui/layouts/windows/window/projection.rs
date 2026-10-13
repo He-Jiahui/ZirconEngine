@@ -37,12 +37,12 @@ mod page_tabs;
 #[path = "projection/status_bar.rs"]
 mod status_bar;
 
-pub(super) const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.zui";
+pub(super) const MENU_CHROME_ASSET: &str = "/assets/ui/editor/unreal/components/host_menu_bar.zui";
 #[cfg(test)]
 const MENU_POPUP_ASSET: &str = "/assets/ui/editor/workbench_menu_popup.zui";
-const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/workbench_page_chrome.zui";
+const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/unreal/components/host_page_tabs.zui";
 const DOCK_HEADER_ASSET: &str = "/assets/ui/editor/unreal/components/dock_header.zui";
-const STATUS_BAR_ASSET: &str = "/assets/ui/editor/workbench_status_bar.zui";
+const STATUS_BAR_ASSET: &str = "/assets/ui/editor/unreal/components/host_status_bar.zui";
 const ACTIVITY_RAIL_ASSET: &str = "/assets/ui/editor/workbench_activity_rail.zui";
 
 const MENU_SLOT_PREFIX: &str = "MenuSlot";
@@ -84,7 +84,7 @@ const DOCK_HEADER_HEIGHT_PX: f32 = 31.0;
 const CHROME_TAB_HEIGHT_INSET_PX: f32 = 4.0;
 
 fn fallback_chrome_control_radius() -> f32 {
-    EditorControlTokens::workbench_dense().small_radius
+    0.0
 }
 
 #[derive(Clone)]

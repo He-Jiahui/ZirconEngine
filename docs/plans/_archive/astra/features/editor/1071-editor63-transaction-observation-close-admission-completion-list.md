@@ -5,7 +5,7 @@ validation_status: no_cargo_or_tests_executed
 performance_status: product_save_close_and_release_gates_pending
 date: 2026-10-01
 plan_sources:
-  - docs/plans/optimize/zircon_editor/63-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/63-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation.md
 ---
 
 # Editor1071 / Editor63 · Observation 与 close decision 完成列表

@@ -26,3 +26,12 @@ source-freeze-pending、正式覆盖及提交/通知授权缺口保持开放。�
 本入口的独立工作只包括交接生命周期。它不授权提交、推送、发布、外部通知、
 源码副本或新的 compiler target。后续正式请求仍须带原身份、当前源码哈希、
 完整 compiler seal、相应命令/features/覆盖及合法盘根输出。
+
+同一原任务的补充消息使用 `records_followup.py` 的固定
+`zircon-records-followup` job；它只附加 metadata，不提交新的 Native 请求。
+`install` 不修改正在等待的 `zircon-records` job 或其固定源码。`submit` 要求
+原任务、原输入 digest 和原身份完全吻合；未知交付不重复发送。Jenkins 在原
+任务的同一排他锁下将归档、回应位置/hash 和补充待办写入 State，再通过精确
+路径/hash 清理收件文件。原 `records_queue_task.supplements` 和
+`records_queue_followup` 可检索回应；此 job 的 SUCCESS 仅表示补充受理与清理，
+不能表示生成、源码审查、验证或提交已经完成。

@@ -21,16 +21,18 @@ CLIENT_SOURCES = frozenset({
 CAPABILITY = {"enabled": True, "actions": ["validate"],
               "formalAcceptance": False, "m8Accepted": False}
 ACTIONS = {"create-branch", "create-worktree", "prepare-merge", "apply-patch",
-           "commit-worktree", "release-worktree", "validate", "generate", "submit-flow"}
+           "commit-worktree", "release-worktree", "recover-worktree", "validate", "generate",
+           "prepare-flow", "submit-flow"}
 AUTH = {name: "implementation" for name in ACTIONS}
-AUTH.update({"validate": "validation", "submit-flow": "validation", "commit-worktree": "commit",
-             "release-worktree": "gc"})
+AUTH.update({"validate": "validation", "submit-flow": "validation", "prepare-flow": "validation",
+             "commit-worktree": "commit", "release-worktree": "gc", "recover-worktree": "gc"})
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}\Z")
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 RECIPE_FIELDS = frozenset({
     "verb", "packages", "features", "profile", "offline", "noDefaultFeatures",
     "allFeatures", "locked", "jobs", "lib", "tests", "testFilter", "noRun", "testThreads",
-    "buildRoot", "requestedTargetDir",
+    "buildRoot", "requestedTargetDir", "bins", "allTests", "harnessFilters",
+    "exact", "ignored", "nocapture",
 })
 
 
@@ -127,7 +129,7 @@ def capability(repo):
     # this client process to the sealed runtime before boot imports its tools.
     # boot verifies every driver file before any driver module is imported.
     for name in tuple(sys.modules):
-        if name == "tools.jenkins" or name.startswith("tools.jenkins."):
+        if name == "tools" or name == "tools.jenkins" or name.startswith("tools.jenkins."):
             del sys.modules[name]
     verified, bound_repo, manager = module.boot(capsule)
     require(verified == config and bound_repo == repo, "Capsule boot changed its binding")
@@ -185,7 +187,8 @@ def parse_cargo(arguments):
               "offline": False, "noDefaultFeatures": False, "allFeatures": False,
               "locked": True, "jobs": 1, "lib": False, "tests": [], "noRun": False}
     flags = {"--offline": "offline", "--no-default-features": "noDefaultFeatures",
-             "--all-features": "allFeatures", "--locked": "locked", "--lib": "lib", "--no-run": "noRun"}
+             "--all-features": "allFeatures", "--locked": "locked", "--lib": "lib", "--no-run": "noRun",
+             "--bins": "bins", "--tests": "allTests"}
     options = {"-p": "packages", "--package": "packages", "--features": "features", "-F": "features",
                "--profile": "profile", "-j": "jobs", "--jobs": "jobs", "--test": "tests"}
     seen, after, index = set(), False, 0
@@ -200,6 +203,19 @@ def parse_cargo(arguments):
             token = token[:2] + "=" + token[2:]
         key, equal, inline = token.partition("=")
         if after:
+            harness_flags = {"--exact": "exact", "--ignored": "ignored", "--nocapture": "nocapture"}
+            if token in harness_flags:
+                field = harness_flags[token]
+                require(field not in seen, "Repeated test harness flag: " + token)
+                recipe[field] = True; seen.add(field)
+                continue
+            if not token.startswith("-"):
+                require(token and len(token.encode("utf-8")) <= 256
+                        and not any(c in token for c in "\0\r\n"), "Invalid harness filter")
+                filters = recipe.setdefault("harnessFilters", [])
+                require(len(filters) < 512 and token not in filters, "Repeated or excessive harness filters")
+                filters.append(token)
+                continue
             require(key == "--test-threads", "Unsupported test harness argument: " + token)
             if not equal:
                 require(index < len(args), "--test-threads requires a value")
@@ -249,7 +265,7 @@ def parse_cargo(arguments):
     require(not (recipe["allFeatures"] and recipe["features"]), "--all-features cannot be mixed with --features")
     require(recipe["verb"] == "test" or not (recipe["noRun"] or "testFilter" in recipe),
             "Test selectors require cargo test")
-    require(not (recipe["noRun"] and "testThreads" in seen), "--no-run cannot use test harness arguments")
+    require(not (recipe["noRun"] and after), "--no-run cannot use test harness arguments")
     if recipe["verb"] == "test":
         recipe.setdefault("testThreads", 1)
     require(not (recipe["allFeatures"] and recipe["noDefaultFeatures"]),
@@ -317,7 +333,9 @@ def input_payload(context, payload, *, identity=None, recipe=None, target_dir=No
         require(value.get(name) == context["config"][name], "Original request differs from installed " + name)
     authorize(context["repo"], value)
     if value["action"] == "validate":
-        if recipe:
+        if "batch" in value:
+            require(recipe is None, "A batch cannot be combined with a single Cargo adapter recipe")
+        elif recipe:
             for name, expected in recipe.items():
                 require(name not in value or value[name] == expected, "Input differs from Cargo option: " + name)
                 value[name] = expected
@@ -330,8 +348,11 @@ def input_payload(context, payload, *, identity=None, recipe=None, target_dir=No
                 require(plain(value[name]) == Path(expected), "Input differs from explicit output option: " + name)
             value[name] = expected
         validator = object.__new__(context["module"].Management)
-        validator.payload = value
-        validator.validation_recipe()
+        validator.payload, validator.repo, validator.config = value, context["repo"], context["config"]
+        if "batch" in value:
+            validator.validation_batch()
+        else:
+            validator.validation_recipe()
         require(value.get("sourceView") in {"checkout", "worktree"}, "An explicit sourceView is required")
         if value["sourceView"] == "checkout":
             require(not value.get("worktreeId") and value.get("externalRoots") == [str(plain(context["repo"].parent / "zr_vm"))],
@@ -341,7 +362,75 @@ def input_payload(context, payload, *, identity=None, recipe=None, target_dir=No
     return value
 
 
-def submit_payload(context, payload, *, query_only=False, dry_run=False):
+
+def resume_delivery(context, payload, marker, original, operation, input_digest):
+    """Prove the last exact Jenkins delivery terminal before one explicit retry."""
+    require("batch" in payload and operation is not None,
+            "Only a durably checkpointed batch can resume its original delivery")
+    repo, manager = context["repo"], context["manager"]
+    deliveries = sorted(marker.parent.glob(marker.stem + ".resume-*.json"))
+    require(len(deliveries) < 64, "Original resume delivery bound reached")
+    previous_path = deliveries[-1] if deliveries else marker
+    previous, previous_raw = document(previous_path)
+    require(previous.get("payload") == payload and previous.get("inputDigest") == input_digest
+            and previous.get("phase") == "submitted", "Unknown original delivery must be reconciled before resume")
+    queue = previous.get("queueUrl")
+    prefix = manager.base_url.rstrip("/") + "/queue/item/"
+    require(isinstance(queue, str) and queue.startswith(prefix)
+            and re.fullmatch(r"\d+/?", queue[len(prefix):]), "Original Jenkins queue identity is unavailable")
+    queue_id = int(queue[len(prefix):].strip("/"))
+    status, raw = manager._request("queue/item/" + str(queue_id) + "/api/json")
+    if status == 404:
+        # Jenkins expires left queue items. Reconcile the same queue ID against
+        # a bounded build inventory; absence or ambiguity still forbids POST.
+        status, raw = manager._request("job/zircon-management/api/json?tree=builds[number,url,queueId]{0,128}")
+        require(status == 200, "Original queue needs explicit terminal reconciliation")
+        candidates = [v for v in json.loads(raw).get("builds", []) if v.get("queueId") == queue_id]
+        require(len(candidates) == 1, "Original expired queue lacks one exact build")
+        queued = {"id": queue_id, "executable": candidates[0]}
+    else:
+        require(status == 200, "Original queue needs explicit terminal reconciliation")
+        queued = json.loads(raw)
+    require(queued.get("id") == queue_id and queued.get("cancelled") is not True,
+            "Original executable delivery identity is unavailable")
+    executable = queued.get("executable", {})
+    number = executable.get("number")
+    require(type(number) is int and number > 0
+            and executable.get("url") == manager.base_url.rstrip("/") + "/job/zircon-management/" + str(number) + "/",
+            "Original queue lacks its exact management build")
+    status, raw = manager._request("job/zircon-management/" + str(number) + "/api/json")
+    require(status == 200, "Original build cannot be observed")
+    build = json.loads(raw)
+    parameters = [action["parameters"] for action in build.get("actions", [])
+                  if isinstance(action, dict) and isinstance(action.get("parameters"), list)]
+    require(build.get("building") is False and build.get("queueId") == queue_id
+            and build.get("result") in {"SUCCESS", "FAILURE", "ABORTED", "UNSTABLE", "NOT_BUILT"}
+            and len(parameters) == 1, "Original management delivery is not proven terminal")
+    observed = {value["name"]: value.get("value") for value in parameters[0]}
+    expected = {"SESSION_ID": payload["sessionId"], "REQUEST_ID": payload["requestId"],
+                "OPERATION_ID": payload["operationId"], "ACTION": payload["action"],
+                "EXPECTED_DRIVER_DIGEST": payload["driverDigest"],
+                "RUNTIME_OPERATION_ID": payload["runtimeOperationId"]}
+    require(all(observed.get(k) == v for k, v in expected.items())
+            and observed.get("QUERY_ONLY") in (False, "false")
+            and json.loads(observed.get("INPUT_JSON", "null")) == payload,
+            "Original terminal build used different input/source/runtime")
+    from tools.jenkins.state import State
+    actor = object.__new__(context["module"].Management)
+    actor.config, actor.repo, actor.manager, actor.payload = context["config"], repo, manager, payload
+    actor.repo_id, actor.session, actor.request, actor.operation = (
+        payload["repositoryId"], payload["sessionId"], payload["requestId"], payload["operationId"])
+    actor.key, actor.input_digest, actor.owned = operation["key"], input_digest, payload["ownedPaths"]
+    actor.state = object.__new__(State)
+    actor.state.path = repo / ".jenkins/state/coordination.sqlite3"
+    actor.state.connect = lambda: connection(repo)
+    require(actor.batch_recovery_ready(), "Original batch has an unproven Native/EOF or preparation claim")
+    destination = marker.with_name(marker.stem + ".resume-%04d.json" % (len(deliveries) + 1))
+    return destination, {"resumeOf": {"path": str(previous_path), "sha256": sha(previous_raw)},
+                         "previousQueueUrl": queue, "previousBuild": number}
+
+
+def submit_payload(context, payload, *, query_only=False, dry_run=False, resume_original=False):
     repo, manager = context["repo"], context["manager"]
     captured_components = None
     operation_key = sha(encoded({name: payload[name] for name in ("repositoryId", "sessionId", "requestId", "operationId")}))
@@ -361,7 +450,9 @@ def submit_payload(context, payload, *, query_only=False, dry_run=False):
         return {"status": "pending", "reasonCode": "original_delivery_input_unavailable" if old else "original_operation_missing",
                 "requestId": payload["requestId"], "operationId": payload["operationId"],
                 "resubmitted": False, "formalAcceptance": False, "m8Accepted": False}
-    elif payload["action"] == "validate":
+    elif payload["action"] == "validate" and "batch" not in payload:
+        # Batch capture belongs to the one admitted Jenkins parent. Legacy
+        # single recipes retain their original strict pre-submit semantics.
         # Admission requests bind the owned engine and let the queued Jenkins
         # actor select and seal the complete external closure. A supplied full
         # digest retains its original strict pre-submit capture semantics.
@@ -376,13 +467,17 @@ def submit_payload(context, payload, *, query_only=False, dry_run=False):
                 "requestId": payload["requestId"], "operationId": payload["operationId"],
                 "driverDigest": payload["driverDigest"], "runtimeOperationId": payload["runtimeOperationId"],
                 "inputDigest": input_digest, "formalAcceptance": False, "m8Accepted": False}
+    resume_fact = None
     if existing:
         value = existing["payload"]
         require(value.get("inputDigest") == input_digest, "Original operation input differs")
-        return {**envelope, "status": "observed" if value["phase"] == "complete" else "pending",
-                "phase": value["phase"], "result": value.get("result"),
-                "resubmitted": False}
-    if old:
+        if not resume_original or query_only or value["phase"] == "complete":
+            return {**envelope, "status": "observed" if value["phase"] == "complete" else "pending",
+                    "phase": value["phase"], "result": value.get("result"), "resubmitted": False}
+    if resume_original and not query_only:
+        require(old is not None and existing is not None, "Original durable delivery/operation is required to resume")
+        marker, resume_fact = resume_delivery(context, payload, marker, old, existing, input_digest)
+    if old and resume_fact is None:
         require(old.get("inputDigest", input_digest) == input_digest, "Original delivery input differs")
         return {**envelope, "status": "pending", "phase": old["phase"], "queueUrl": old.get("queueUrl"),
                 "reasonCode": "original_delivery_requires_reconciliation", "resubmitted": False,
@@ -400,6 +495,9 @@ def submit_payload(context, payload, *, query_only=False, dry_run=False):
                   "RUNTIME_OPERATION_ID": payload["runtimeOperationId"], "QUERY_ONLY": "false"}
     body = urllib.parse.urlencode(parameters).encode("ascii")
     saved = {**envelope, "payload": payload, "bodyDigest": sha(body), "phase": "dispatching", "queueUrl": None}
+    if resume_fact is not None:
+        require(old.get("bodyDigest") == sha(body), "Original delivery body changed")
+        saved.update(resume_fact)
     if captured_components is not None:
         saved["sourceComponents"] = captured_components
     # Retain one durable delivery claim before HTTP. A lost acknowledgement is
@@ -429,18 +527,18 @@ def submit_payload(context, payload, *, query_only=False, dry_run=False):
     with marker.open("wb") as stream:
         stream.write(encoded(saved) + b"\n"); stream.flush(); os.fsync(stream.fileno())
     return {**envelope, "status": "submitted" if saved["phase"] == "submitted" else "pending",
-            "phase": saved["phase"], "queueUrl": saved["queueUrl"], "resubmitted": False,
+            "phase": saved["phase"], "queueUrl": saved["queueUrl"], "resubmitted": resume_fact is not None,
             "nextAction": "Query this same identity", "targetPolicy": "managed-compatibility-pool",
             "buildRoot": payload.get("buildRoot"), "requestedTargetDir": payload.get("requestedTargetDir"),
             "actualTargetDir": None}
 
 
 def dispatch(repo, payload, *, identity=None, recipe=None, target_dir=None, build_root=None,
-             query_only=False, dry_run=False):
+             query_only=False, dry_run=False, resume_original=False):
     context = capability(repo)
     value = input_payload(context, payload, identity=identity, recipe=recipe,
                           target_dir=target_dir, build_root=build_root)
-    return submit_payload(context, value, query_only=query_only, dry_run=dry_run)
+    return submit_payload(context, value, query_only=query_only, dry_run=dry_run, resume_original=resume_original)
 
 
 def cargo_entry(repo, arguments, *, identity_file=None, target_dir=None, build_root=None,
@@ -485,6 +583,7 @@ def main(argv=None):
             sub.add_argument("cargo_args", nargs=argparse.REMAINDER)
         elif command == "submit":
             sub.add_argument("--input-file", required=True)
+            sub.add_argument("--resume-original", action="store_true")
             for name in ("session-id", "request-id", "operation-id", "action"):
                 sub.add_argument("--" + name, required=True)
             sub.add_argument("--query-only", action="store_true")
@@ -506,7 +605,8 @@ def main(argv=None):
             payload, _raw = document(args.input_file)
             identity = {"sessionId": args.session_id, "requestId": args.request_id,
                         "operationId": args.operation_id, "action": args.action}
-            result = dispatch(args.repo_root, payload, identity=identity, query_only=args.query_only)
+            result = dispatch(args.repo_root, payload, identity=identity, query_only=args.query_only,
+                              resume_original=args.resume_original)
         print(encoded(result).decode())
         return 2 if result["status"] == "pending" else 0
     except Exception as error:

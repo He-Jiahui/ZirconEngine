@@ -3,7 +3,7 @@ use crate::handles::ZrRuntimeViewportHandle;
 
 use super::super::constants::*;
 use super::events::ZrRuntimeEventV1;
-use super::viewport::{ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1};
+use super::viewport::ZrRuntimeViewportMetricsV1;
 
 /// 将宿主侧的翻译原因与标准 ABI 事件成对传递；调用者仍按 event 的 kind 解码其负载。
 #[derive(Clone, Copy, Debug, PartialEq)]

@@ -18,12 +18,11 @@ struct Runtime195SecondResource;
 
 impl SceneResource for Runtime195SecondResource {}
 
-// BUG: [CR-PLUGIN-BOUNDARY-0103] 本测试把带 `.plugin` 后缀的模块名当作资源 owner，但资源注册只接受以 `.runtime` 结尾的模块名；首次资源注册即失败；证据：register/resource_registration.rs 的 owner 校验。
 #[test]
 fn optimization_batch_20260826ez_runtime195_capacity_preserves_world_extension_plan() {
     let mut registry = RuntimeExtensionRegistry::default();
     let owner = registry
-        .intern_plugin_module("runtime195.plugin")
+        .intern_plugin_module("runtime195.runtime")
         .expect("test owner");
     registry
         .register_resource(owner, Runtime195FirstResource::default)

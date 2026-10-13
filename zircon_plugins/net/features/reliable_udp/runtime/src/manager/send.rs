@@ -26,7 +26,23 @@ impl NetReliableUdpRuntimeManager {
         }
 
         let sequence = state.next_sequence;
-        state.next_sequence += 1;
+        let Some(next_sequence) = sequence.checked_add(1) else {
+            return ReliableDatagramSendReport::new(
+                ReliableDatagramSendStatus::SequenceWindowFull,
+                Vec::new(),
+            );
+        };
+        if state
+            .outbound
+            .iter()
+            .any(|packet| packet.sequence as u16 == sequence as u16)
+        {
+            return ReliableDatagramSendReport::new(
+                ReliableDatagramSendStatus::SequenceWindowFull,
+                Vec::new(),
+            );
+        }
+        state.next_sequence = next_sequence;
         let packets = if payload.len() <= mtu {
             vec![ReliableDatagramPacket::new(sequence, channel, payload)]
         } else {

@@ -6,7 +6,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/237/2026-08-28-borrowed-command-palette-window-query.md
   - docs/plans/optimize/zircon_editor/13-layout-profile-workspace-state-docking-tab-window-restore-migration-review.md
   - docs/plans/optimize/zircon_editor/120/2026-08-26-circular-progress-topology-front-hit.md
-  - docs/plans/optimize/zircon_editor/184-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/184-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation.md
   - docs/plans/optimize/zircon_editor/06/2026-08-26-single-pass-native-load-state-classification.md
 related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md

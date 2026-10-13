@@ -1681,9 +1681,9 @@ fn runtime_frame_request_and_frame_carry_size_and_owned_rgba() {
 #[test]
 fn ui_mod_is_not_runtime_source_path_inclusion() {
     let ui_mod_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/mod.rs");
-    let ui_mod = std::fs::read_to_string(ui_mod_path).expect("read interface ui root");
+    let ui_mod = std::fs::read_to_string(&ui_mod_path).expect("read interface ui root");
 
-    assert!(!ui_mod.contains("#[path ="));
+    assert!(super::boundary::local_module_path_violations(&ui_mod_path, &ui_mod).is_empty());
     assert!(!ui_mod.contains("zircon_runtime/src/ui"));
 }
 

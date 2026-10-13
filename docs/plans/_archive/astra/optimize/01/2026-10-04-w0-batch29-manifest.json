@@ -122,17 +122,17 @@
       "sha256": "56c92ca96b3a52fa5bc1d2d463d0a32cfab8aab73b5ea54fef776354815e45c4"
     },
     {
-      "report_path": "docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster-product-integration-review.md",
+      "report_path": "docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster.md",
       "bytes": 40361,
       "sha256": "f9259378956c12169248f34981950050fdcc4dbc7c3a85c2580512cd1d2f63ea"
     },
     {
-      "report_path": "docs/plans/optimize/zircon_plugins/18-first-party-texture-source-importer-runtime-editor-dist-catalog-image-cubemap-array-volume-compression-streaming-product-integration-review.md",
+      "report_path": "docs/plans/optimize/zircon_plugins/18-first-party-texture-source-importer-runtime-editor-dist-catalog-image-cubemap-array-volume-compression-streaming.md",
       "bytes": 34451,
       "sha256": "5ee03b23773c1464116348cd8bcc98f7a2ca14d70cf378b9d407667a14b1d662"
     },
     {
-      "report_path": "docs/plans/optimize/zircon_plugins/19-first-party-hybrid-gi-source-runtime-editor-dist-catalog-scene-representation-surface-cache-global-sdf-radiance-cache-probe-trace-denoise-product-integration-review.md",
+      "report_path": "docs/plans/optimize/zircon_plugins/19-first-party-hybrid-gi-source-runtime-editor-dist-catalog-scene-representation-surface-cache-global-sdf-radiance-cache-probe-trace-denoise.md",
       "bytes": 45007,
       "sha256": "b529253aa380b3cf00344c1066a1b4920ccf103611b5bd6fbaba5e9b6bb14d48"
     },

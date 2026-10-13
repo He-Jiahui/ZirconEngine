@@ -14,7 +14,7 @@ class Frameworks06CiToolchainContractTests(unittest.TestCase):
         workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(
             encoding="utf-8"
         )
-        runner = (REPO_ROOT / "tools" / "check_conventions.py").read_text(
+        runner = (REPO_ROOT / "tools" / "audits" / "check_conventions.py").read_text(
             encoding="utf-8"
         )
         rust_job_match = re.search(
@@ -42,7 +42,7 @@ class Frameworks06CiToolchainContractTests(unittest.TestCase):
         )
         self.assertEqual(
             rust_job.count(
-                "python -m unittest "
+                "python -B -m unittest "
                 "tools.tests.test_check_conventions "
                 "tools.tests.test_frameworks_06_ci_toolchain_contract -v"
             ),

@@ -10,7 +10,7 @@ references:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/LightGridInjection.cpp
   - dev/UnrealEngine/Engine/Shaders/Private/LightGridInjection.usf
   - docs/plans/optimize/zircon_runtime/09e-direct-lighting-clustered-shadow-review.md
-  - docs/plans/optimize/zircon_runtime/95-runtime-direct-lighting-photometry-light-grid-clustered-forward-plus-shadow-atlas-cascade-point-spot-rect-cookie-ies-submission-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/95-runtime-direct-lighting-photometry-light-grid-clustered-forward-plus-shadow-atlas-cascade-point-spot-rect-cookie-ies-submission.md
 ---
 
 # Light Grid Projection Correctness

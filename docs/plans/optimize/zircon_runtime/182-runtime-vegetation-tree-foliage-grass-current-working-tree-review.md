@@ -6,7 +6,7 @@ review_date: 2026-08-30
 baseline_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 verification_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_runtime/99zv-runtime-vegetation-tree-foliage-grass-species-instancing-wind-animation-billboard-impostor-lod-streaming-scalability-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zv-runtime-vegetation-tree-foliage-grass-species-instancing-wind-animation-billboard-impostor-lod-streaming-scalability-editor.md
   - docs/plans/optimize/zircon_runtime/34-vegetation-tree-foliage-grass-species-instancing-wind-animation-billboard-impostor-lod-streaming-scalability-product-integration-review.md
 related_editor_owner:
   - docs/plans/optimize/zircon_editor/242-editor-vegetation-tree-foliage-grass-current-working-tree-review.md

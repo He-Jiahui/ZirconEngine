@@ -1,3 +1,9 @@
+//! Runtime 到平台宿主的请求 ABI 及对应的完成结果。
+//!
+//! `ZrRuntimeHostRequestV1` 的六种变体组成动态会话 drain 的批次；UI 的 IME/clipboard 事务保留
+//! 专用载体，通用 UI effect 则走 `UiHost`。同文件导出的 Gameplay 场景切换意图是 World resource，
+//! 不属于该六变体批次。
+
 #[path = "clipboard.rs"]
 mod clipboard;
 #[path = "host_requests.rs"]

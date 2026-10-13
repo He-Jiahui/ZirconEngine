@@ -546,9 +546,19 @@ fn collect_generation(
             &work,
             payload,
             shared.budget.max_candidates,
+            shared.budget.max_scratch_bytes,
+            shared.budget.max_diagnostics,
         )
         .map_err(Arc::new)?,
-        _ => NativePluginDiscoverySnapshot::from_payload(root, input, generation, payload),
+        _ => NativePluginDiscoverySnapshot::from_payload(
+            root,
+            input,
+            generation,
+            payload,
+            shared.budget.max_scratch_bytes,
+            shared.budget.max_diagnostics,
+        )
+        .map_err(Arc::new)?,
     };
     Ok(Arc::new(snapshot))
 }

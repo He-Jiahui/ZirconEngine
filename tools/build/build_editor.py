@@ -517,7 +517,7 @@ def main(argv: list[str] | None = None) -> int:
         source_digest = inventory_digest(before)
         if args.source_snapshot and source_digest != args.source_snapshot_digest.lower():
             raise ValueError('SourceSnapshotDigest differs from the actual input inventory')
-        root = Path('D:/cargo-targets/zircon-local')
+        root = Path('E:/cargo-targets/zircon-local')
         target = output_path(args.target_dir or root / 'windows' / ('editor-' + args.cargo_profile) / 'target')
         if args.ephemeral:
             target = output_path(target.parent / ('ephemeral-' + uuid.uuid4().hex) / 'target')

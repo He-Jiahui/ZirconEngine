@@ -5,7 +5,7 @@ failure_scope: cross_plan
 created_at: 2026-08-29
 summary_slug: validation-copy-missing-copy-command-resource
 origin_plan: docs/plans/optimize/zircon_runtime/07-script-plugin-runtime-review.md
-fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md
+fixing_plan: docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md
 origin_child_dir: docs/plans/optimize/zircon_runtime/07
 fixing_child_dir: docs/plans/optimize/zircon_runtime/90
 plan_link_mode: child_record_only
@@ -26,7 +26,7 @@ tests:
 - 来源计划：`docs/plans/optimize/zircon_runtime/07-script-plugin-runtime-review.md`
 - 来源执行切片：Runtime07 three-slice managed validation ticket
   `f6268d8516e34299995f2032e34d6b15`
-- 修复责任计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss-product-integration-current-source-review.md`
+- 修复责任计划：`docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md`
 - 交接原因：Runtime90 owns `zr_rhi_wgpu` command validation, its test-only deterministic
   execution contract, and the active parent-to-child copy-command split.
 

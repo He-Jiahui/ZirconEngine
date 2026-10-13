@@ -1,3 +1,7 @@
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc, Barrier,
+};
 use std::thread;
 use std::time::Duration;
 
@@ -171,17 +175,20 @@ fn rpc_feature_manager_expires_correlated_pending_requests() {
 }
 
 #[test]
-fn rpc_feature_manager_marks_slow_handler_timed_out_without_response_payload() {
+fn rpc_feature_manager_returns_late_sync_handler_result_without_retryable_timeout() {
     let rpc = net_rpc_runtime_manager();
     let session = complete_joined_session(&rpc, "timeout-player");
-    rpc.register_rpc_handler(RpcDescriptor::command("chat.slow"), |_| {
+    let effects = Arc::new(AtomicUsize::new(0));
+    let handler_effects = effects.clone();
+    rpc.register_rpc_handler(RpcDescriptor::command("chat.slow"), move |_| {
+        handler_effects.fetch_add(1, Ordering::SeqCst);
         thread::sleep(Duration::from_millis(50));
         Ok(b"late".to_vec())
     })
     .unwrap();
 
     let request = NetRequestId::new(91);
-    let timed_out = rpc.invoke_rpc(
+    let completed = rpc.invoke_rpc(
         RpcInvocationDescriptor::new("chat.slow", RpcDirection::ClientToServer, Vec::new())
             .with_source_session(session)
             .with_request(request)
@@ -189,17 +196,18 @@ fn rpc_feature_manager_marks_slow_handler_timed_out_without_response_payload() {
         RpcPeerRole::Client,
     );
 
-    assert_eq!(timed_out.status, RpcDispatchStatus::TimedOut);
-    assert_eq!(timed_out.response_payload, None);
+    assert_eq!(completed.status, RpcDispatchStatus::Accepted);
+    assert_eq!(completed.response_payload, Some(b"late".to_vec()));
     assert_eq!(
-        timed_out.diagnostic.as_deref(),
-        Some("RPC handler exceeded invocation timeout")
+        completed.diagnostic.as_deref(),
+        Some("RPC handler completed after its deadline; synchronous execution was not cancelled")
     );
+    assert_eq!(effects.load(Ordering::SeqCst), 1);
     assert!(rpc.pending_request(request).is_none());
 }
 
 #[test]
-fn request_response_timeout_fires() {
+fn slow_request_response_returns_committed_result_after_deadline() {
     let rpc = net_rpc_runtime_manager();
     let session = complete_joined_session(&rpc, "request-timeout-player");
     rpc.register_rpc_handler(RpcDescriptor::command("chat.request_timeout"), |_| {
@@ -209,7 +217,7 @@ fn request_response_timeout_fires() {
     .unwrap();
 
     let request = NetRequestId::new(191);
-    let timed_out = rpc.invoke_rpc(
+    let completed = rpc.invoke_rpc(
         RpcInvocationDescriptor::new(
             "chat.request_timeout",
             RpcDirection::ClientToServer,
@@ -221,8 +229,215 @@ fn request_response_timeout_fires() {
         RpcPeerRole::Client,
     );
 
-    assert_eq!(timed_out.status, RpcDispatchStatus::TimedOut);
-    assert_eq!(timed_out.request, Some(request));
-    assert_eq!(timed_out.response_payload, None);
+    assert_eq!(completed.status, RpcDispatchStatus::Accepted);
+    assert_eq!(completed.request, Some(request));
+    assert_eq!(completed.response_payload, Some(b"late".to_vec()));
+    assert!(rpc.pending_request(request).is_none());
+}
+
+#[test]
+fn schema_validator_can_reenter_manager_without_deadlocking() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "reentrant-validator-player");
+    rpc.register_rpc(
+        RpcDescriptor::command("chat.reentrant").with_payload_schema("schema://chat/reentrant.v1"),
+    )
+    .unwrap();
+    let callback_manager = rpc.clone();
+    rpc.register_schema_validator("schema://chat/reentrant.v1", move |_| {
+        assert!(callback_manager.rpc_descriptor("chat.reentrant").is_some());
+        callback_manager
+            .register_rpc(RpcDescriptor::command("chat.other"))
+            .unwrap();
+        true
+    });
+
+    let report = rpc.dispatch_rpc(
+        RpcInvocationDescriptor::new("chat.reentrant", RpcDirection::ClientToServer, Vec::new())
+            .with_source_session(session),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(report.status, RpcDispatchStatus::Accepted);
+}
+
+#[test]
+fn schema_validator_policy_replacement_invalidates_admission_snapshot() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "replaced-validator-player");
+    let effects = Arc::new(AtomicUsize::new(0));
+    let handler_effects = effects.clone();
+    rpc.register_rpc_handler(
+        RpcDescriptor::command("chat.replace").with_payload_schema("schema://chat/replace.v1"),
+        move |_| {
+            handler_effects.fetch_add(1, Ordering::SeqCst);
+            Ok(Vec::new())
+        },
+    )
+    .unwrap();
+    let callback_manager = rpc.clone();
+    rpc.register_schema_validator("schema://chat/replace.v1", move |_| {
+        callback_manager
+            .register_rpc(RpcDescriptor::command("chat.replace"))
+            .unwrap();
+        true
+    });
+
+    let report = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new("chat.replace", RpcDirection::ClientToServer, Vec::new())
+            .with_source_session(session),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(report.status, RpcDispatchStatus::SessionUnavailable);
+    assert_eq!(
+        report.diagnostic.as_deref(),
+        Some("RPC admission policy changed during validation")
+    );
+    assert_eq!(effects.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn schema_validator_session_change_is_rechecked_before_handler_admission() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "changed-session-player");
+    rpc.register_rpc(
+        RpcDescriptor::command("chat.close_during_validation")
+            .with_payload_schema("schema://chat/close.v1"),
+    )
+    .unwrap();
+    let callback_manager = rpc.clone();
+    rpc.register_schema_validator("schema://chat/close.v1", move |_| {
+        callback_manager.close_session(session).unwrap();
+        true
+    });
+
+    let report = rpc.dispatch_rpc(
+        RpcInvocationDescriptor::new(
+            "chat.close_during_validation",
+            RpcDirection::ClientToServer,
+            Vec::new(),
+        )
+        .with_source_session(session),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(report.status, RpcDispatchStatus::SessionUnavailable);
+    assert_eq!(
+        report.diagnostic.as_deref(),
+        Some("source session is closed")
+    );
+}
+
+#[test]
+fn handler_replacement_during_validation_invalidates_execution_snapshot() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "replaced-handler-player");
+    let calls = Arc::new(AtomicUsize::new(0));
+    let original_calls = calls.clone();
+    let descriptor = RpcDescriptor::command("chat.handler_epoch")
+        .with_payload_schema("schema://chat/handler_epoch.v1");
+    rpc.register_rpc_handler(descriptor.clone(), move |_| {
+        original_calls.fetch_add(1, Ordering::SeqCst);
+        Ok(b"original".to_vec())
+    })
+    .unwrap();
+
+    let entered = Arc::new(Barrier::new(2));
+    let release = Arc::new(Barrier::new(2));
+    let validator_entered = entered.clone();
+    let validator_release = release.clone();
+    rpc.register_schema_validator("schema://chat/handler_epoch.v1", move |_| {
+        validator_entered.wait();
+        validator_release.wait();
+        true
+    });
+
+    let worker_manager = rpc.clone();
+    let worker = thread::spawn(move || {
+        worker_manager.invoke_rpc(
+            RpcInvocationDescriptor::new(
+                "chat.handler_epoch",
+                RpcDirection::ClientToServer,
+                Vec::new(),
+            )
+            .with_source_session(session),
+            RpcPeerRole::Client,
+        )
+    });
+    entered.wait();
+    let replacement_calls = calls.clone();
+    rpc.register_rpc_handler(descriptor, move |_| {
+        replacement_calls.fetch_add(100, Ordering::SeqCst);
+        Ok(b"replacement".to_vec())
+    })
+    .unwrap();
+    release.wait();
+
+    let report = worker.join().unwrap();
+    assert_eq!(report.status, RpcDispatchStatus::SessionUnavailable);
+    assert_eq!(
+        report.diagnostic.as_deref(),
+        Some("RPC admission policy changed during validation")
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn pending_handler_is_not_expired_while_sync_handler_is_running() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "active-handler-player");
+    let entered = Arc::new(Barrier::new(2));
+    let release = Arc::new(Barrier::new(2));
+    let handler_entered = entered.clone();
+    let handler_release = release.clone();
+    rpc.register_rpc_handler(RpcDescriptor::command("chat.active"), move |_| {
+        handler_entered.wait();
+        handler_release.wait();
+        Ok(Vec::new())
+    })
+    .unwrap();
+
+    let worker_manager = rpc.clone();
+    let worker = thread::spawn(move || {
+        worker_manager.invoke_rpc(
+            RpcInvocationDescriptor::new("chat.active", RpcDirection::ClientToServer, Vec::new())
+                .with_source_session(session)
+                .with_request(NetRequestId::new(192))
+                .with_timeout_ms(1),
+            RpcPeerRole::Client,
+        )
+    });
+    entered.wait();
+
+    let expired = rpc.expire_pending_requests();
+    let remains_pending = rpc.pending_request(NetRequestId::new(192)).is_some();
+
+    release.wait();
+    let report = worker.join().unwrap();
+    assert!(expired.is_empty());
+    assert!(remains_pending);
+    assert_eq!(report.status, RpcDispatchStatus::Accepted);
+    assert!(rpc.pending_request(NetRequestId::new(192)).is_none());
+}
+
+#[test]
+fn pending_request_guard_cleans_up_after_handler_panics() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "panic-handler-player");
+    rpc.register_rpc_handler(
+        RpcDescriptor::command("chat.panic"),
+        |_| -> Result<Vec<u8>, String> { panic!("intentional handler panic") },
+    )
+    .unwrap();
+    let request = NetRequestId::new(193);
+
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        rpc.invoke_rpc(
+            RpcInvocationDescriptor::new("chat.panic", RpcDirection::ClientToServer, Vec::new())
+                .with_source_session(session)
+                .with_request(request),
+            RpcPeerRole::Client,
+        )
+    }));
+
+    assert!(result.is_err());
     assert!(rpc.pending_request(request).is_none());
 }

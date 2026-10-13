@@ -70,6 +70,54 @@ fn net_runtime_dispatches_dynamic_http_route_handler() {
 }
 
 #[test]
+fn remote_http_request_cannot_match_a_local_route_by_path_only() {
+    let net = DefaultNetManager::default();
+    net.register_http_route(
+        NetHttpRouteDescriptor::new("/health", [NetHttpMethod::Get]),
+        NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, b"local".to_vec()),
+    )
+    .unwrap();
+
+    let result = net.send_http_request(NetHttpRequestDescriptor::new(
+        NetRequestId::new(7),
+        NetHttpMethod::Get,
+        "http://remote.example/health",
+    ));
+
+    assert_eq!(
+        result.unwrap_err(),
+        NetError::ProtocolUnavailable {
+            capability: "runtime.feature.net.http".to_string(),
+        }
+    );
+}
+
+#[test]
+fn security_constrained_loopback_request_does_not_bypass_http_backend() {
+    let net = DefaultNetManager::default();
+    net.register_http_route(
+        NetHttpRouteDescriptor::new("/health", [NetHttpMethod::Get]),
+        NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, b"local".to_vec()),
+    )
+    .unwrap();
+    let mut request = NetHttpRequestDescriptor::new(
+        NetRequestId::new(8),
+        NetHttpMethod::Get,
+        "http://127.0.0.1/health",
+    );
+    request.security = zircon_runtime::core::framework::net::NetSecurityPolicy::production_tls();
+
+    let result = net.send_http_request(request);
+
+    assert_eq!(
+        result.unwrap_err(),
+        NetError::ProtocolUnavailable {
+            capability: "runtime.feature.net.http".to_string(),
+        }
+    );
+}
+
+#[test]
 fn dynamic_http_handler_can_reenter_manager_without_route_registry_deadlock() {
     let net = DefaultNetManager::default();
     let callback_net = net.clone();

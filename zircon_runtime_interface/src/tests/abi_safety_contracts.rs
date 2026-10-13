@@ -1,7 +1,14 @@
+//! 固定函数表清单、字段顺序、显式 C 布局和保守的版本迁移规则。
+//!
+//! 本模块读取接口源码、导出与加载代码以及架构文档，通过约定文本检查发现契约漂移。
+//! 这些扫描不是完整 Rust 解析器，也不证明外来指针可读、回调有效或跨库释放正确。
+//! 生产源码遍历跳过测试目录；合成源码用例则检验扫描器自身的正反分支。
+
 use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
+/// 已冻结的函数表来源与名称；发现的新版本也必须进入独立审查清单。
 const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
     (
         "src/runtime_api/abi/api_table.rs",
@@ -23,6 +30,7 @@ const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
         ],
     ),
 ];
+/// 每个表的总字段数，含版本和尺寸表头；字段变化须先审版本策略。
 const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
     ("src/runtime_api/abi/api_table.rs", "ZrHostApiV1", 4),
     ("src/runtime_api/abi/api_table.rs", "ZrRuntimeApiV8", 28),
@@ -37,6 +45,7 @@ const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
     ("src/plugin_api.rs", "ZrPluginStateSnapshotApiV1", 4),
     ("src/plugin_api.rs", "ZrPluginApiV1", 4),
 ];
+/// V8 除表头外的槽位顺序；集合相同但顺序改变仍应失败。
 const RUNTIME_API_V8_SESSION_OPERATION_FIELDS: &[&str] = &[
     "create_session",
     "destroy_session",
@@ -65,9 +74,11 @@ const RUNTIME_API_V8_SESSION_OPERATION_FIELDS: &[&str] = &[
     "poll_viewport_pick",
     "cancel_viewport_pick",
 ];
+/// 行首公开声明中禁止的动态对象或 Rust 所有权包装文本。
 const FORBIDDEN_PUBLIC_SIGNATURE_NEEDLES: &[&str] = &["Box<dyn", "Rc<", "Arc<dyn", "impl Trait"];
 
 #[test]
+/// 所有已登记表具有本地 C 布局标记，且源码发现的版本集合与清单完全一致。
 fn function_table_structs_are_all_repr_c() {
     let expected = expected_function_table_names();
     let mut discovered = BTreeSet::new();
@@ -90,6 +101,7 @@ fn function_table_structs_are_all_repr_c() {
 }
 
 #[test]
+/// 在生产源文件的公开声明行中收集禁用导出形式，并一次报告全部命中。
 fn interface_public_signatures_stay_free_of_dynamic_object_exports() {
     let mut violations = Vec::new();
 
@@ -106,6 +118,7 @@ fn interface_public_signatures_stay_free_of_dynamic_object_exports() {
 }
 
 #[test]
+/// 总字段数与冻结清单一致，防止未审查的增删逃过名称清单核对。
 fn function_table_field_counts_match_runtime_10_inventory() {
     for &(source_path, table_name, expected_field_count) in FUNCTION_TABLE_FIELD_COUNTS {
         let source = read_manifest_source(source_path);
@@ -121,6 +134,7 @@ fn function_table_field_counts_match_runtime_10_inventory() {
 
 // 逐项比较字段名与顺序；字段重排同样改变 C ABI 形状，须先审版本兼容策略。
 #[test]
+/// 去掉两个表头后仍按声明顺序核对全部会话操作槽。
 fn runtime_api_session_operation_surface_matches_inventory() {
     let source = read_manifest_source("src/runtime_api/abi/api_table.rs");
     let v8_fields = discover_struct_fields(
@@ -143,6 +157,7 @@ fn runtime_api_session_operation_surface_matches_inventory() {
 }
 
 #[test]
+/// 启动 DTO 的字段顺序和原始判别值保持显式布局，不在表面导出隐式枚举表示。
 fn runtime_play_startup_dtos_keep_explicit_c_layout_and_raw_kind() {
     let session_source = read_manifest_source("src/runtime_api/session/session.rs");
     let demand_source = read_manifest_source("src/runtime_api/frame/frame_demand.rs");
@@ -205,6 +220,7 @@ fn runtime_play_startup_dtos_keep_explicit_c_layout_and_raw_kind() {
 }
 
 #[test]
+/// 旧表族不能在接口、Runtime 导出或 App 加载路径中以任何已列名称残留。
 fn runtime_table_v2_export_and_loader_fallback_stay_hard_deleted() {
     let sources = [
         (
@@ -267,6 +283,7 @@ fn runtime_table_v2_export_and_loader_fallback_stay_hard_deleted() {
         "ZIRCON_RUNTIME_API_VERSION_V6",
         "RuntimeApi::V6",
     ];
+    // 对列出的整份源码搜索，注释也参与；不能靠注释保留已退役的完整标识符。
     let violations = sources
         .iter()
         .flat_map(|(path, source)| {
@@ -284,6 +301,7 @@ fn runtime_table_v2_export_and_loader_fallback_stay_hard_deleted() {
 }
 
 #[test]
+/// 架构文档、DTO 常量和 InterfaceSpec 生成入口共同保留同版本禁止改形状的规则。
 fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
     let convergence_doc = read_repo_file("docs/architecture/runtime-interface-convergence.md");
     let version_source = read_manifest_source("src/version.rs");
@@ -321,6 +339,7 @@ fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
 }
 
 #[test]
+/// 数字版本后缀均可被发现；没有数字或带元数据后缀的名称不计作函数表。
 fn function_table_discovery_includes_current_and_future_versions() {
     let source = r#"
 pub struct ZrSyntheticApiV1 {}
@@ -348,6 +367,7 @@ pub struct ZrSyntheticApiV8Metadata {}
 }
 
 #[test]
+/// 缺少当前声明自己的 C 布局标记时，布局守卫必须触发可捕获的断言失败。
 fn repr_c_guard_fails_on_missing_local_attribute() {
     let source = r#"
 #[derive(Clone, Copy, Debug)]
@@ -366,6 +386,7 @@ pub struct ZrSyntheticApiV1 {
 }
 
 #[test]
+/// 合成公开动态回调产生一个违规项，相同私有行不进入公开签名扫描。
 fn public_signature_guard_fails_on_dynamic_object_export() {
     let source = r#"
 pub fn leak_callback(callback: Box<dyn FnOnce()>) {}
@@ -378,6 +399,10 @@ fn private_callback(callback: Box<dyn FnOnce()>) {}
     assert!(violations[0].contains("Box<dyn"));
 }
 
+/// 断言 `name` 的布局标记位于其前一个公开结构声明之后。
+///
+/// `source_path` 仅用于报错；找不到声明或对应标记时 panic。
+/// 此检查依赖具体源码写法，不对属性条件求值。
 fn assert_repr_c_before_struct(source: &str, source_path: &str, name: &str) {
     let struct_needle = format!("pub struct {name} ");
     let struct_index = source.find(&struct_needle).unwrap_or_else(|| {
@@ -395,6 +420,9 @@ fn assert_repr_c_before_struct(source: &str, source_path: &str, name: &str) {
     );
 }
 
+/// 返回行首公开结构声明中带纯数字版本后缀的 API 名称集合。
+///
+/// `source` 是完整文本；不解析展开后的宏或跨行声明，集合仅服务本模块的清单守卫。
 fn discover_api_struct_names(source: &str) -> BTreeSet<String> {
     source
         .lines()
@@ -409,6 +437,10 @@ fn discover_api_struct_names(source: &str) -> BTreeSet<String> {
         .collect()
 }
 
+/// 按源码顺序返回 `name` 的逐行公开字段名。
+///
+/// `source_path` 提供失败位置；缺失声明、字段体或字段类型时 panic。
+/// 独占一行的结束括号终止扫描，不能用此结果验证实际字段类型。
 fn discover_struct_fields(source: &str, source_path: &str, name: &str) -> Vec<String> {
     let struct_needle = format!("pub struct {name} ");
     let struct_index = source.find(&struct_needle).unwrap_or_else(|| {
@@ -440,6 +472,9 @@ fn discover_struct_fields(source: &str, source_path: &str, name: &str) -> Vec<St
     fields
 }
 
+/// 返回公开声明行命中禁用文本的位置列表。
+///
+/// `source_path` 只用于相对路径诊断；扫描仅看行首公开声明，不连接多行签名。
 fn forbidden_public_signature_violations(source_path: &Path, source: &str) -> Vec<String> {
     let mut violations = Vec::new();
 
@@ -462,6 +497,7 @@ fn forbidden_public_signature_violations(source_path: &Path, source: &str) -> Ve
     violations
 }
 
+/// 将来源清单的全部表名合并成集合，供发现结果进行精确比较。
 fn expected_function_table_names() -> BTreeSet<String> {
     FUNCTION_TABLE_SOURCES
         .iter()
@@ -469,16 +505,19 @@ fn expected_function_table_names() -> BTreeSet<String> {
         .collect()
 }
 
+/// 读取相对接口 crate 根目录的 UTF-8 源文件；读取失败直接终止测试。
 fn read_manifest_source(path: &str) -> String {
     std::fs::read_to_string(manifest_dir().join(path)).expect("read ABI source")
 }
 
+/// 读取相对仓库根目录的文档或调用方源码；失败信息保留路径和底层错误。
 fn read_repo_file(path: &str) -> String {
     std::fs::read_to_string(repo_root().join(path)).unwrap_or_else(|error| {
         panic!("expected to read {path}: {error}");
     })
 }
 
+/// 遍历接口源码目录并返回非测试目录内的 Rust 路径；不排序、不读文件内容。
 fn production_rust_sources() -> Vec<PathBuf> {
     let source_root = manifest_dir().join("src");
     let mut sources = Vec::new();
@@ -486,6 +525,9 @@ fn production_rust_sources() -> Vec<PathBuf> {
     sources
 }
 
+/// 递归追加 `path` 下的 Rust 文件，唯一目录排除项是命名为 tests 的目录。
+///
+/// `sources` 保留遍历顺序；此版本不按文件名后缀过滤，目录或条目读取失败时 panic。
 fn collect_rust_sources(path: &Path, sources: &mut Vec<PathBuf>) {
     for entry in std::fs::read_dir(path).expect("read interface source directory") {
         let entry = entry.expect("read interface source entry");
@@ -507,10 +549,12 @@ fn collect_rust_sources(path: &Path, sources: &mut Vec<PathBuf>) {
     }
 }
 
+/// 返回编译时记录的接口 crate 根路径，避免测试依赖进程当前目录。
 fn manifest_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
+/// 返回接口 crate 根的父目录；仓库布局缺少父目录时断言失败。
 fn repo_root() -> PathBuf {
     manifest_dir()
         .parent()
@@ -518,6 +562,7 @@ fn repo_root() -> PathBuf {
         .to_path_buf()
 }
 
+/// 将 crate 内路径变为相对路径用于诊断；无法去掉前缀时保留输入。
 fn relative_to_manifest(path: &Path) -> PathBuf {
     path.strip_prefix(manifest_dir())
         .unwrap_or(path)

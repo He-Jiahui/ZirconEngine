@@ -7,7 +7,7 @@ baseline_head: 369ddacdd48498beaccc436a5c712d258c4b20d9
 observed_head: 471bb732e3683fd7c12d7b69a9e85a22048efcba
 baseline_epoch: 380
 supersedes:
-  - docs/plans/optimize/zircon_runtime/38-gameplay-framework-game-instance-world-context-level-game-mode-game-state-local-player-controller-pawn-possession-spawn-travel-network-save-scalability-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/38-gameplay-framework-game-instance-world-context-level-game-mode-game-state-local-player-controller-pawn-possession-spawn-travel-network.md
 related_code:
   - zircon_runtime/src/core/framework/scene
   - zircon_runtime/src/scene/level_system.rs
@@ -44,7 +44,7 @@ tests:
   - zircon_runtime/src/core/framework/net/tests.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards
 plan_sources:
-  - docs/plans/optimize/zircon_runtime/38-gameplay-framework-game-instance-world-context-level-game-mode-game-state-local-player-controller-pawn-possession-spawn-travel-network-save-scalability-product-integration-review.md
+  - docs/plans/optimize/zircon_runtime/38-gameplay-framework-game-instance-world-context-level-game-mode-game-state-local-player-controller-pawn-possession-spawn-travel-network.md
   - docs/plans/optimize/zircon_runtime/05-scene-ecs-world-lifecycle-review.md
   - docs/plans/optimize/zircon_runtime/08e-network-runtime-review.md
   - docs/plans/optimize/zircon_runtime/37-camera-endpoint-director-rig-controller-blend-shake-cinematic-cut-history-multiview-network-save-scalability-product-integration-review.md

@@ -5,7 +5,7 @@ failure_scope: cross_plan
 created_at: 2026-08-25
 summary_slug: ui-srgb-coverage-and-native-drop-order
 origin_plan: docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md
-fixing_plan: docs/plans/optimize/zircon_runtime/79-runtime-ui-renderer-display-list-paint-order-clip-transform-opacity-atlas-text-glyph-batch-wgpu-submit-product-integration-current-source-review.md
+fixing_plan: docs/plans/optimize/zircon_runtime/79-runtime-ui-renderer-display-list-paint-order-clip-transform-opacity-atlas-text-glyph-batch-wgpu-submit.md
 origin_child_dir: docs/plans/zircon_runtime/frameworks/01
 fixing_child_dir: docs/plans/optimize/zircon_runtime/79
 plan_link_mode: child_record_only
@@ -31,7 +31,7 @@ resolved_at: 2026-09-05
 
 - 来源计划：`docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md`
 - 来源执行切片：Frameworks01 RHI/WGPU production integration failure convergence
-- 修复责任计划：`docs/plans/optimize/zircon_runtime/79-runtime-ui-renderer-display-list-paint-order-clip-transform-opacity-atlas-text-glyph-batch-wgpu-submit-product-integration-current-source-review.md`
+- 修复责任计划：`docs/plans/optimize/zircon_runtime/79-runtime-ui-renderer-display-list-paint-order-clip-transform-opacity-atlas-text-glyph-batch-wgpu-submit.md`
 - 交接原因：失败位于 Runtime79 M7 的 SDR/sRGB/linear/alpha 与 native surface 生命周期边界；Frameworks01 只负责证明通用 RHI device/submission owner 的最低共享层已恢复，不能改写 UI renderer 的颜色夹具或 surface owner。
 
 ## 失败现象与复现证据

@@ -279,7 +279,7 @@ fn editor_ui_toml_assets_are_the_host_chrome_authority() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     for (relative, markers) in [
         (
-            "assets/ui/editor/workbench_menu_chrome.zui",
+            "assets/ui/editor/unreal/components/host_menu_bar.zui",
             &["WorkbenchMenuBarRoot", "MenuSlot0", "MenuSlot5"][..],
         ),
         (
@@ -291,7 +291,7 @@ fn editor_ui_toml_assets_are_the_host_chrome_authority() {
             ][..],
         ),
         (
-            "assets/ui/editor/workbench_status_bar.zui",
+            "assets/ui/editor/unreal/components/host_status_bar.zui",
             &["WorkbenchStatusBar", "StatusPrimary", "ViewportLabel"][..],
         ),
         (

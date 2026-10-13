@@ -128,8 +128,9 @@ impl DefaultNetManager {
     ) -> Result<NetHttpResponseDescriptor, NetError> {
         let outbound_bytes = request.body.len();
         let path = crate::http::path_from_http_url(&request.url);
-        // BUG: [CR-PLUGIN-NET-0004] 仅按 path 和显式端口区分目标，远端无端口 URL 可误命中本地路由并绕过 HTTP 后端安全策略。
-        let local_route = if !crate::http::url_has_explicit_port(&request.url) {
+        let local_route = if is_unsecured_loopback_request(&request)
+            && !crate::http::url_has_explicit_port(&request.url)
+        {
             lock_or_error(&self.state.http_routes, NetSharedState::HttpRoutes)?
                 .values()
                 .find(|entry| {
@@ -156,6 +157,37 @@ impl DefaultNetManager {
             .record_latency_ms(started_at.elapsed().as_millis() as u64);
         Ok(response)
     }
+}
+
+fn is_unsecured_loopback_request(request: &NetHttpRequestDescriptor) -> bool {
+    let Some(authority) = request.url.strip_prefix("http://") else {
+        return false;
+    };
+    let authority = authority
+        .split(['/', '?', '#'])
+        .next()
+        .unwrap_or_default();
+    if authority.contains('@') {
+        return false;
+    }
+    let host = if let Some(bracketed) = authority.strip_prefix('[') {
+        let Some((host, suffix)) = bracketed.split_once(']') else {
+            return false;
+        };
+        if !suffix.is_empty() {
+            return false;
+        }
+        host
+    } else {
+        authority
+    };
+    if !matches!(host.to_ascii_lowercase().as_str(), "localhost" | "127.0.0.1" | "::1") {
+        return false;
+    }
+    let security = &request.security;
+    !security.certificate_pinning
+        && !security.has_certificate_roots()
+        && (!security.tls_required || security.allow_insecure_loopback)
 }
 
 fn dispatch_local_http_route(

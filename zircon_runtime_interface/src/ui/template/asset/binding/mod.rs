@@ -1,3 +1,7 @@
+//! UI 资产绑定的共享契约入口。
+//!
+//! schema 模块约束跨资产名称，target 模块定义缺值和写入端点，expression 模块定义有预算的源语法；
+//! 本模块将这些类型作为 `ui::template` 的一部分统一重导出。
 #[path = "diagnostic.rs"]
 mod diagnostic;
 #[path = "expression.rs"]

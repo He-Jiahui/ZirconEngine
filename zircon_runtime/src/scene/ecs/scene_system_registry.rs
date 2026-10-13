@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, fmt};
 
-use serde::{Deserialize, Serialize};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 #[path = "scene_system_registry/executable_returns.rs"]
 mod executable_returns;
@@ -21,9 +21,8 @@ use super::{
     WorldlessSystemParam,
 };
 
-// BUG: [CR-SCENE-ECS-0003] 反序列化直接填充 systems，绕过 register_system 的唯一 ID 校验；重复 ID 会使日程按 ID 解析目标时产生歧义。
 /// 场景日程中的系统注册表；内建描述可序列化，原生与运行时系统仅在当前进程持有。
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 #[serde(transparent)]
 pub struct SceneSystemRegistry {
     systems: Vec<SceneSystemDescriptor>,
@@ -38,6 +37,26 @@ pub struct SceneSystemRegistry {
     #[serde(skip, default)]
     executable_returns: ExecutableReturns,
 }
+
+impl<'de> Deserialize<'de> for SceneSystemRegistry {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let descriptors = Vec::<SceneSystemDescriptor>::deserialize(deserializer)?;
+        let mut registry = Self::new();
+        for descriptor in descriptors {
+            registry
+                .register_system(descriptor)
+                .map_err(D::Error::custom)?;
+        }
+        Ok(registry)
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/schedule_definition_validation.rs"]
+mod definition_validation_tests;
 
 impl SceneSystemRegistry {
     pub fn new() -> Self {

@@ -22,6 +22,8 @@ use crate::worker::NetWorker;
 use crate::worker::NetWorkerShutdownReport;
 use crate::HttpRuntimeBackend;
 
+pub const NET_RUNTIME_EVENT_QUEUE_CAPACITY: usize = 4_096;
+
 #[derive(Debug)]
 pub(crate) struct ManagedUdpSocket {
     pub(crate) local_endpoint: NetEndpoint,
@@ -106,7 +108,7 @@ impl NetRuntimeState {
     }
 
     pub(crate) fn push_event(&self, event: NetEvent) {
-        lock_recover(&self.events).push_back(event);
+        self.worker.enqueue_event(event);
     }
 
     pub(crate) fn record_outbound_bytes(&self, bytes: usize) {
@@ -138,15 +140,19 @@ impl NetRuntimeState {
     }
 
     pub(crate) fn poll_worker_ingress(&self, max_events: usize) -> usize {
-        let events = self.worker.drain_ingress(max_events);
+        let mut queue = lock_recover(&self.events);
+        let available = NET_RUNTIME_EVENT_QUEUE_CAPACITY.saturating_sub(queue.len());
+        let events = self.worker.drain_ingress(max_events.min(available));
         let count = events.len();
         if count == 0 {
             return 0;
         }
-
-        let mut queue = lock_recover(&self.events);
         queue.extend(events);
         count
+    }
+
+    pub(crate) fn queued_event_count(&self) -> usize {
+        lock_recover(&self.events).len() + self.worker.pending_ingress_count()
     }
 
     #[cfg(test)]

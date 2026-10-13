@@ -61,7 +61,7 @@ impl Registry {
 
     pub(super) fn consume(&mut self, buffer: NativePluginOwnedByteBufferV3) -> Option<Vec<u8>> {
         let bytes = self.allocations.get(&buffer.owner_token)?;
-        if bytes.as_ptr() as usize != buffer.data as usize
+        if !std::ptr::eq(bytes.as_ptr(), buffer.data)
             || bytes.len() != buffer.len
             || bytes.capacity() != buffer.capacity
         {

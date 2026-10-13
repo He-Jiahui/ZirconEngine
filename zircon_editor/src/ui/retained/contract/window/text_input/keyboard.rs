@@ -11,6 +11,7 @@ use zircon_runtime_interface::ui::dispatch::UiKeyboardInputEvent;
 
 use super::super::UiHostWindow;
 use crate::core::commands::EditorKeyChord;
+use crate::ui::retained_host::host_contract::native_keyboard::active_popup_keyboard_target_for_ui;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use consumed::native_keyboard_event_consumed;
 use popup::{dispatch_popup_keyboard_fallback, popup_enter_is_owned};
@@ -71,6 +72,9 @@ impl UiHostWindow {
             return NativePointerDispatchResult::idle();
         }
         let text_focus_was_active = self.text_input_focus_active();
+        let popup_keyboard_is_owned = !text_focus_was_active
+            && event.state == ElementState::Pressed
+            && active_popup_keyboard_target_for_ui(self).is_some();
         let popup_enter_is_owned = !text_focus_was_active && popup_enter_is_owned(self, event);
         let modifiers = keyboard.as_ref().map(|input| &input.metadata.modifiers);
         let control = modifiers.is_some_and(|modifiers| modifiers.control);
@@ -96,7 +100,7 @@ impl UiHostWindow {
         } else {
             self.dispatch_focused_key_event(event, popup_enter_is_owned)
         };
-        if !popup_enter_is_owned
+        if !popup_keyboard_is_owned
             && !(text_focus_was_active
                 && event.state == ElementState::Pressed
                 && control

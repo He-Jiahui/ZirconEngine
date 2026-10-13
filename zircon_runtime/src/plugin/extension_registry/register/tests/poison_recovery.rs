@@ -204,3 +204,58 @@ fn resource_factory_panic_is_reported_without_partial_world_mutation() {
     );
     assert_eq!(attempts.load(Ordering::SeqCst), 2);
 }
+
+#[test]
+fn resource_factory_with_panicking_payload_destructor_still_returns_error() {
+    static SECONDARY_DROPS: AtomicUsize = AtomicUsize::new(0);
+    struct SecondaryPayload;
+    impl Drop for SecondaryPayload {
+        fn drop(&mut self) {
+            SECONDARY_DROPS.fetch_add(1, Ordering::SeqCst);
+            panic!("secondary resource panic payload destructor");
+        }
+    }
+    struct PrimaryPayload;
+    impl Drop for PrimaryPayload {
+        fn drop(&mut self) {
+            std::panic::panic_any(SecondaryPayload);
+        }
+    }
+    SECONDARY_DROPS.store(0, Ordering::SeqCst);
+    let attempts = Arc::new(AtomicUsize::new(0));
+    let mut registry = super::RuntimeExtensionRegistry::default();
+    let owner = registry
+        .intern_plugin_module("resource_payload.runtime")
+        .expect("resource owner should be interned");
+    let factory_attempts = Arc::clone(&attempts);
+    registry
+        .register_resource(owner, move || {
+            if factory_attempts.fetch_add(1, Ordering::SeqCst) == 0 {
+                std::panic::panic_any(PrimaryPayload);
+            }
+            RecoveredResource(3)
+        })
+        .expect("resource registration should succeed");
+
+    let mut first_world = World::new();
+    let error = registry
+        .apply_to_world(&mut first_world)
+        .expect_err("factory panic should return a world registration error");
+    assert!(matches!(
+        error,
+        crate::plugin::RuntimeExtensionRegistryError::WorldRegistration(message)
+            if message.contains("panic payload destructor panicked")
+    ));
+    assert_eq!(SECONDARY_DROPS.load(Ordering::SeqCst), 0);
+    assert!(!first_world.contains_resource::<RecoveredResource>());
+
+    let mut second_world = World::new();
+    registry
+        .apply_to_world(&mut second_world)
+        .expect("factory remains retryable after payload destructor panic");
+    assert_eq!(
+        second_world.get_resource::<RecoveredResource>(),
+        Some(&RecoveredResource(3))
+    );
+    assert_eq!(attempts.load(Ordering::SeqCst), 2);
+}

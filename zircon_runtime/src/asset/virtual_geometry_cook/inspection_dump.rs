@@ -272,27 +272,27 @@ fn write_page(
             payload.len() % 4
         ),
     );
-    // BUG: [CR-ASSET-COOK-0005] 仅含页头但条目数为 u32 最大值的载荷会触发数十亿次短条目输出；循环未受实际字数限制；证据：下方范围读取失败后仍持续写入诊断文本。
-    for item_index in 0..item_count {
+    let available_item_count =
+        words.len().saturating_sub(PAYLOAD_HEADER_WORD_COUNT) / PAYLOAD_ITEM_WORD_COUNT;
+    if available_item_count < item_count {
+        write_line(
+            dump,
+            format_args!(
+                "payload_items page_id={} status=truncated declared_count={} available_count={}",
+                header.page_id, item_count, available_item_count
+            ),
+        );
+    }
+    for item_index in 0..item_count.min(available_item_count) {
         let base = PAYLOAD_HEADER_WORD_COUNT + item_index * PAYLOAD_ITEM_WORD_COUNT;
-        let item = words.get(base..base + PAYLOAD_ITEM_WORD_COUNT);
-        if let Some(item) = item {
-            write_line(
-                dump,
-                format_args!(
-                    "payload_item page_id={} item_index={} node_id={} cluster_id={} triangle_start={} triangle_count={}",
-                    header.page_id, item_index, item[0], item[1], item[2], item[3]
-                ),
-            );
-        } else {
-            write_line(
-                dump,
-                format_args!(
-                    "payload_item page_id={} item_index={} status=short",
-                    header.page_id, item_index
-                ),
-            );
-        }
+        let item = &words[base..base + PAYLOAD_ITEM_WORD_COUNT];
+        write_line(
+            dump,
+            format_args!(
+                "payload_item page_id={} item_index={} node_id={} cluster_id={} triangle_start={} triangle_count={}",
+                header.page_id, item_index, item[0], item[1], item[2], item[3]
+            ),
+        );
     }
 }
 

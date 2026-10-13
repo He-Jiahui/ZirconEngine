@@ -1,3 +1,8 @@
+//! Schema 身份在动态输入与持久 wire 数据间共用的命名语法契约。
+//!
+//! 这些用例覆盖静态构造、拥有型反序列化、规范 round-trip、片段边界和字节上限，防止读写
+//! 两端对 schema 身份采用不同解释。
+
 use super::super::{SchemaId, SchemaIdError, MAX_SCHEMA_ID_BYTES};
 
 #[test]

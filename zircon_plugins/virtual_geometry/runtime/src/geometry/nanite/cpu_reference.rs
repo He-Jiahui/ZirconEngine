@@ -185,6 +185,16 @@ pub(crate) struct VirtualGeometryCpuReferenceFrame {
     resident_pages: BTreeSet<u32>,
     page_sizes: BTreeMap<u32, u64>,
     page_dependencies: BTreeMap<u32, (Option<u32>, Vec<u32>)>,
+    asset_validation_issues: Vec<VirtualGeometryCpuReferenceAssetValidationIssue>,
+    hierarchy_cycle_node_ids: Vec<u32>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct VirtualGeometryCpuReferenceAssetValidationIssue {
+    pub(crate) node_id: u32,
+    pub(crate) cluster_start: u32,
+    pub(crate) cluster_count: u32,
+    pub(crate) available_cluster_headers: usize,
 }
 
 impl VirtualGeometryCpuReferenceFrame {
@@ -223,6 +233,16 @@ impl VirtualGeometryCpuReferenceFrame {
     pub(crate) fn page_dependencies(&self) -> &BTreeMap<u32, (Option<u32>, Vec<u32>)> {
         &self.page_dependencies
     }
+
+    pub(crate) fn asset_validation_issues(
+        &self,
+    ) -> &[VirtualGeometryCpuReferenceAssetValidationIssue] {
+        &self.asset_validation_issues
+    }
+
+    pub(crate) fn hierarchy_cycle_node_ids(&self) -> &[u32] {
+        &self.hierarchy_cycle_node_ids
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -233,7 +253,6 @@ struct VirtualGeometryCpuReferenceTraversalState {
 }
 
 impl VirtualGeometryCpuReferenceFrame {
-    // BUG: [CR-VIRTUAL-GEOMETRY-0005] 可达层级子节点环没有访问去重；显式根范围进入环后栈持续回填，模型提取无法返回。
     pub(crate) fn from_asset(
         entity: EntityId,
         asset: &VirtualGeometryAsset,
@@ -259,16 +278,42 @@ impl VirtualGeometryCpuReferenceFrame {
         let mut stack = root_node_ids(asset, &nodes_by_id)
             .into_iter()
             .rev()
-            .map(|node_id| (node_id, 0_u32))
+            .map(|node_id| (node_id, 0_u32, false))
             .collect::<Vec<_>>();
+        let mut visited_node_ids = HashSet::with_capacity(nodes_by_id.len());
+        let mut active_node_ids = HashSet::with_capacity(nodes_by_id.len());
+        let mut hierarchy_cycle_node_ids = BTreeSet::new();
+        let mut asset_validation_issues = Vec::new();
 
-        while let Some((node_id, depth)) = stack.pop() {
+        while let Some((node_id, depth, exiting)) = stack.pop() {
+            if exiting {
+                active_node_ids.remove(&node_id);
+                continue;
+            }
+            if active_node_ids.contains(&node_id) {
+                hierarchy_cycle_node_ids.insert(node_id);
+                continue;
+            }
+            if !visited_node_ids.insert(node_id) {
+                continue;
+            }
             let Some(node) = nodes_by_id.get(&node_id).copied() else {
                 continue;
             };
+            active_node_ids.insert(node_id);
             let child_ids = node.child_node_ids.clone();
-            let cluster_headers =
-                cluster_headers_for_node(asset, node.cluster_start, node.cluster_count);
+            let cluster_headers = match cluster_headers_for_node(
+                asset,
+                node.node_id,
+                node.cluster_start,
+                node.cluster_count,
+            ) {
+                Ok(headers) => headers,
+                Err(issue) => {
+                    asset_validation_issues.push(issue);
+                    Vec::new()
+                }
+            };
             if visit_node(&mut traversal, node, depth, &cluster_headers) {
                 for (cluster_index, cluster) in cluster_headers.iter().enumerate() {
                     store_cluster(
@@ -282,11 +327,13 @@ impl VirtualGeometryCpuReferenceFrame {
                         &resident_page_index,
                     );
                 }
+                active_node_ids.remove(&node_id);
                 continue;
             }
 
+            stack.push((node_id, depth, true));
             for child_id in child_ids.into_iter().rev() {
-                stack.push((child_id, depth.saturating_add(1)));
+                stack.push((child_id, depth.saturating_add(1), false));
             }
         }
 
@@ -306,6 +353,8 @@ impl VirtualGeometryCpuReferenceFrame {
             resident_pages,
             page_sizes,
             page_dependencies,
+            asset_validation_issues,
+            hierarchy_cycle_node_ids: hierarchy_cycle_node_ids.into_iter().collect(),
         }
     }
 
@@ -515,17 +564,30 @@ fn root_node_ids(
     root_ids
 }
 
-// BUG: [CR-VIRTUAL-GEOMETRY-0007] 作者给出的 cluster_start 超过 header 长度时只收紧 end，后续 [start..end] 会越界 panic。
 fn cluster_headers_for_node(
     asset: &VirtualGeometryAsset,
+    node_id: u32,
     cluster_start: u32,
     cluster_count: u32,
-) -> Vec<VirtualGeometryClusterHeaderAsset> {
-    let start = cluster_start as usize;
-    let end = start
-        .saturating_add(cluster_count as usize)
-        .min(asset.cluster_headers.len());
-    asset.cluster_headers[start..end].to_vec()
+) -> Result<Vec<VirtualGeometryClusterHeaderAsset>, VirtualGeometryCpuReferenceAssetValidationIssue>
+{
+    let available_cluster_headers = asset.cluster_headers.len();
+    let valid_range = usize::try_from(cluster_start)
+        .ok()
+        .zip(usize::try_from(cluster_count).ok())
+        .and_then(|(start, count)| start.checked_add(count).map(|end| (start, end)))
+        .filter(|(start, end)| {
+            *start <= available_cluster_headers && *end <= available_cluster_headers
+        });
+    let Some((start, end)) = valid_range else {
+        return Err(VirtualGeometryCpuReferenceAssetValidationIssue {
+            node_id,
+            cluster_start,
+            cluster_count,
+            available_cluster_headers,
+        });
+    };
+    Ok(asset.cluster_headers[start..end].to_vec())
 }
 
 fn build_page_cluster_map(asset: &VirtualGeometryAsset) -> BTreeMap<u32, Vec<u32>> {

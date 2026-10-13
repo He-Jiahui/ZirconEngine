@@ -6,7 +6,7 @@ review_date: 2026-08-30
 baseline_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 verification_head: 248b1d484a16f3826933ddb12ad0c75f0ae06223
 supersedes_currentness_of:
-  - docs/plans/optimize/zircon_runtime/99zt-runtime-hair-groom-fur-strand-source-binding-simulation-rendering-lighting-shadow-lod-streaming-scalability-editor-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99zt-runtime-hair-groom-fur-strand-source-binding-simulation-rendering-lighting-shadow-lod-streaming-scalability-editor.md
   - docs/plans/optimize/zircon_runtime/32-hair-groom-fur-strand-source-binding-simulation-rendering-lighting-shadow-lod-streaming-scalability-product-integration-review.md
 related_editor_owner:
   - docs/plans/optimize/zircon_editor/240-editor-hair-groom-fur-strand-current-working-tree-review.md

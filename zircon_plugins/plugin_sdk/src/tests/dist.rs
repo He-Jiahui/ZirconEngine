@@ -105,7 +105,9 @@ fn dist_plugin_one_file_export_compiles() {
         host_diagnostic: None,
     };
 
-    let report = dist_helper_runtime_entry_v3(&host);
+    // SAFETY: the borrowed host table, granted capability C string and callback
+    // remain valid throughout the synchronous entry call.
+    let report = unsafe { dist_helper_runtime_entry_v3(&host) };
     assert!(!report.is_null());
     let report = unsafe { &*report };
     assert!(!report.behavior.is_null());

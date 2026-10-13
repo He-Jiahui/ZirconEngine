@@ -60,6 +60,7 @@ pub(super) enum RuntimePluginAvailabilityReason {
     MissingCatalog,
     TargetUnsupported(RuntimeTargetMode),
     Externalized,
+    Deprecated,
     Stub,
     BelowMinimum(PluginMaturity),
     Linked,
@@ -188,11 +189,10 @@ impl RuntimePluginAvailabilityReason {
             }
             Self::MissingCatalog => "plugin is missing from runtime catalog".to_string(),
             Self::TargetUnsupported(target) => format!("target {target:?} is not supported"),
-            // BUG: [CR-PLUGIN-BOUNDARY-0302] 即使同包 linked 提供者已传入，
-            // 此处仍称未提供注册；外置分类在提供者查询前即返回。
             Self::Externalized => {
                 "plugin runtime is externalized and no linked registration was supplied".to_string()
             }
+            Self::Deprecated => "plugin catalog entry is deprecated".to_string(),
             Self::Stub => "plugin catalog entry is a stub".to_string(),
             Self::BelowMinimum(minimum) => {
                 format!("plugin maturity {maturity:?} is below profile minimum {minimum:?}")

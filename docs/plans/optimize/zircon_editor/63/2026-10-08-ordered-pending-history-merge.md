@@ -1,6 +1,6 @@
 # Editor63：有序合并 pending history
 
-对应[原优化计划](../63-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation-product-integration-current-source-review.md)。生产代码已接入，原生测试与性能门槛仍开放。
+对应[原优化计划](../63-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation.md)。生产代码已接入，原生测试与性能门槛仍开放。
 
 ## 已接入的修复
 

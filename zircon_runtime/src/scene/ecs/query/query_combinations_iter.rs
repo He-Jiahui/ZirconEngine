@@ -251,12 +251,37 @@ pub(crate) fn combination_count(entity_count: usize, group_size: usize) -> usize
     let mut denominator = 1;
     while denominator <= group_size {
         let numerator = entity_count - denominator + 1;
-        // BUG: [CR-ECS-COMBINATION-COUNT-0001] 64 位 C(67,30) 可表示，但第 24 步先乘溢出并返回 MAX；末组索引不再前进，next 仍按错误计数重复返回末组，len 也沿用该计数。
-        let Some(next_count) = count.checked_mul(numerator) else {
+        // The product may exceed usize even when the binomial coefficient fits.
+        // Both factors fit usize, so u128 holds their product on supported targets.
+        let next_count = (count as u128 * numerator as u128) / denominator as u128;
+        let Ok(next_count) = usize::try_from(next_count) else {
             return usize::MAX;
         };
-        count = next_count / denominator;
+        count = next_count;
         denominator += 1;
     }
     count
+}
+
+#[cfg(test)]
+mod count_tests {
+    use super::combination_count;
+
+    #[test]
+    fn intermediate_product_does_not_saturate_representable_counts() {
+        assert_eq!(combination_count(33, 15), 1_037_158_320);
+        assert_eq!(combination_count(33, 18), 1_037_158_320);
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(combination_count(67, 30), 9_989_690_752_182_277_136);
+    }
+
+    #[test]
+    fn combinations_cover_zero_impossible_and_overflowing_counts() {
+        assert_eq!(combination_count(0, 0), 1);
+        assert_eq!(combination_count(4, 0), 1);
+        assert_eq!(combination_count(4, 4), 1);
+        assert_eq!(combination_count(4, 5), 0);
+        assert_eq!(combination_count(usize::MAX, 1), usize::MAX);
+        assert_eq!(combination_count(usize::MAX, 2), usize::MAX);
+    }
 }

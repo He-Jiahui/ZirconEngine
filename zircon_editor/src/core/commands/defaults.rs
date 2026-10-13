@@ -276,7 +276,7 @@ fn append_runtime_commands(commands: &mut Vec<EditorCommandDescriptor>) {
             "play",
             &[],
             EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode),
-            Some("F5"),
+            Some("Alt+P"),
             WhenClause::All(vec![
                 WhenClause::ProjectOpen,
                 WhenClause::PlayMode(PlayModePredicate::Edit),
@@ -304,7 +304,7 @@ fn append_runtime_commands(commands: &mut Vec<EditorCommandDescriptor>) {
             "play",
             &[],
             EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode),
-            Some("Shift+F5"),
+            Some("Esc"),
             WhenClause::Any(vec![
                 WhenClause::PlayMode(PlayModePredicate::Playing),
                 WhenClause::PlayMode(PlayModePredicate::CleanupFailed),

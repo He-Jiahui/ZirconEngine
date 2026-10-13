@@ -156,5 +156,64 @@ class WorkflowClassificationTests(unittest.TestCase):
         self.assertEqual(result["kind"], "blocked")
 
 
+class ReviewStageTests(unittest.TestCase):
+    """Review must cover each registered language and leave history intact."""
+
+    def test_each_registered_language_reports_its_own_tool(self):
+        from tools.jenkins.workflow.syntax import review_receipt
+        cases = (("a.py", "def f():\n    return 1\n", "ast.parse"),
+                 ("a.json", '{"k": 1}', "json.loads"),
+                 ("a.toml", 'k = "v"\n', "tomllib.loads"))
+        for path, text, tool in cases:
+            with self.subTest(path=path):
+                receipt = review_receipt(path, text)
+                self.assertEqual("passed", receipt["status"])
+                self.assertEqual("review", receipt["kind"])
+                self.assertEqual(tool, receipt["tool"])
+                self.assertEqual(path, receipt["path"])
+
+    def test_a_broken_file_is_rejected_rather_than_reported_as_reviewed(self):
+        from tools.jenkins.workflow.syntax import review_receipt
+        from tools.jenkins.contracts import JenkinsError
+        for path, text, code in (("a.py", "def f(:\n", "python_syntax_error"),
+                                 ("a.json", '{"k": }', "json_syntax_error"),
+                                 ("a.toml", "k = \n", "toml_syntax_error")):
+            with self.subTest(path=path):
+                with self.assertRaises(JenkinsError) as caught:
+                    review_receipt(path, text)
+                self.assertEqual(code, caught.exception.code)
+
+    def test_unregistered_language_is_refused(self):
+        from tools.jenkins.workflow.syntax import review_receipt
+        from tools.jenkins.contracts import JenkinsError
+        with self.assertRaises(JenkinsError) as caught:
+            review_receipt("a.bin", "bytes")
+        self.assertEqual("review_language_unsupported", caught.exception.code)
+
+    def test_review_is_a_light_stage(self):
+        from tools.jenkins.validation.receipts import HEAVY_STAGES, LIGHT_STAGES
+        self.assertIn("review", LIGHT_STAGES)
+        self.assertNotIn("review", HEAVY_STAGES)
+
+    def test_existing_templates_keep_their_recorded_digest(self):
+        """A workflow's dagDigest is its stage list, so history must not move."""
+        from tools.jenkins.contracts import digest
+        from tools.jenkins.workflow.orchestrator import TEMPLATES
+        recorded = {"comments_only": "b08e67e4e9a1", "module_unit": "b67ee7bc9572",
+                    "cross_module": "72f14d5afaf9", "failure_repair": "28c149dd0dba"}
+        for template, prefix in recorded.items():
+            with self.subTest(template=template):
+                self.assertTrue(digest(list(TEMPLATES[template])).startswith(prefix),
+                                "accepted history depends on this exact stage list")
+
+    def test_review_templates_are_new_names_not_edited_ones(self):
+        from tools.jenkins.workflow.orchestrator import TEMPLATES
+        for name in ("comments_only_review", "module_unit_review",
+                     "cross_module_review", "failure_repair_review"):
+            self.assertIn(name, TEMPLATES)
+            self.assertIn("review", TEMPLATES[name])
+            self.assertLess(TEMPLATES[name].index("review"), TEMPLATES[name].index("acceptance"))
+
+
 if __name__ == "__main__":
     unittest.main()

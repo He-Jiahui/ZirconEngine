@@ -56,6 +56,70 @@ fn visit_node_records_visit_order_and_cluster_ids() {
 }
 
 #[test]
+fn malformed_cluster_range_is_reported_without_slicing_out_of_bounds() {
+    let asset = VirtualGeometryAsset {
+        hierarchy_buffer: vec![VirtualGeometryHierarchyNodeAsset {
+            node_id: 7,
+            parent_node_id: None,
+            child_node_ids: Vec::new(),
+            cluster_start: 2,
+            cluster_count: 1,
+            page_id: 44,
+            mip_level: 6,
+            bounds_center: [0.0; 3],
+            bounds_radius: 1.0,
+            screen_space_error: 0.25,
+        }],
+        cluster_headers: Vec::new(),
+        ..VirtualGeometryAsset::default()
+    };
+
+    let frame = VirtualGeometryCpuReferenceFrame::from_asset(77, &asset, &[], Default::default());
+    assert_eq!(frame.asset_validation_issues().len(), 1);
+    assert_eq!(frame.asset_validation_issues()[0].node_id, 7);
+    assert_eq!(frame.asset_validation_issues()[0].cluster_start, 2);
+    assert_eq!(frame.asset_validation_issues()[0].cluster_count, 1);
+    assert!(frame.leaf_clusters().is_empty());
+}
+
+#[test]
+fn reachable_hierarchy_child_cycle_is_reported_and_terminates() {
+    let asset = VirtualGeometryAsset {
+        hierarchy_buffer: vec![
+            VirtualGeometryHierarchyNodeAsset {
+                node_id: 1,
+                parent_node_id: None,
+                child_node_ids: vec![2],
+                cluster_start: 0,
+                cluster_count: 0,
+                page_id: 1,
+                mip_level: 0,
+                bounds_center: [0.0; 3],
+                bounds_radius: 0.0,
+                screen_space_error: 0.0,
+            },
+            VirtualGeometryHierarchyNodeAsset {
+                node_id: 2,
+                parent_node_id: Some(1),
+                child_node_ids: vec![1],
+                cluster_start: 0,
+                cluster_count: 0,
+                page_id: 2,
+                mip_level: 0,
+                bounds_center: [0.0; 3],
+                bounds_radius: 0.0,
+                screen_space_error: 0.0,
+            },
+        ],
+        ..VirtualGeometryAsset::default()
+    };
+
+    let frame = VirtualGeometryCpuReferenceFrame::from_asset(77, &asset, &[], Default::default());
+    assert_eq!(frame.visited_nodes().len(), 2);
+    assert_eq!(frame.hierarchy_cycle_node_ids(), &[1]);
+}
+
+#[test]
 fn store_cluster_keeps_all_leafs_and_selects_only_resident_matching_mip() {
     let mut traversal = VirtualGeometryCpuReferenceTraversalState::default();
     let config = VirtualGeometryCpuReferenceConfig::new(VirtualGeometryDebugConfig::new(

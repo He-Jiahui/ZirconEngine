@@ -2,6 +2,9 @@
 mod declarations;
 #[path = "extract_registration.rs"]
 mod extract_registration;
+#[cfg(test)]
+#[path = "../tests/geometry_execution_stats.rs"]
+mod geometry_execution_stats;
 #[path = "nanite/mod.rs"]
 mod nanite;
 #[path = "../normalized_page_table_entries.rs"]
@@ -12,6 +15,9 @@ mod pending_completion;
 mod plan_ingestion;
 #[path = "prepare_frame/mod.rs"]
 mod prepare_frame;
+#[cfg(test)]
+#[path = "../tests/product_order.rs"]
+mod product_order;
 #[path = "renderer/mod.rs"]
 mod renderer;
 #[path = "residency_management/mod.rs"]
@@ -27,11 +33,11 @@ mod virtual_geometry_imported_extract;
 #[path = "../tests/virtual_geometry_nanite_cpu.rs"]
 mod virtual_geometry_nanite_cpu;
 #[cfg(test)]
+#[path = "../tests/virtual_geometry_node_and.rs"]
+mod virtual_geometry_node_and;
+#[cfg(test)]
 #[path = "../tests/virtual_geometry_render.rs"]
 mod virtual_geometry_render_framework_stats;
-#[cfg(test)]
-#[path = "../tests/virtual_geometry_renderer.rs"]
-mod virtual_geometry_renderer_test_promotion_guard;
 #[cfg(test)]
 #[path = "../tests/unified_indirect_cpu.rs"]
 mod virtual_geometry_unified_indirect_cpu;

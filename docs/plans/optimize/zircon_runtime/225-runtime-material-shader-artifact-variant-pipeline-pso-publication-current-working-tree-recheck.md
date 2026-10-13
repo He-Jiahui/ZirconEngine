@@ -20,7 +20,7 @@ related_code:
   - zircon_runtime/src/bin/zircon_shader_prewarm
 plan_sources:
   - docs/plans/optimize/zircon_runtime/09c-material-shader-pipeline-pso-review.md
-  - docs/plans/optimize/zircon_runtime/91-runtime-material-shader-module-graph-permutation-compiler-reflection-layout-pipeline-pso-cache-prewarm-hot-reload-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/91-runtime-material-shader-module-graph-permutation-compiler-reflection-layout-pipeline-pso-cache-prewarm-hot-reload.md
   - docs/plans/optimize/zircon_runtime/189-runtime-material-shader-artifact-variant-pipeline-pso-cache-publication-current-working-tree-review.md
   - docs/plans/optimize/zircon_runtime/224-runtime-resource-authority-asset-residency-current-working-tree-review.md
   - docs/plans/optimize/zircon_editor/249-editor-material-shader-graph-instance-toolkit-preview-compiler-current-working-tree-review.md

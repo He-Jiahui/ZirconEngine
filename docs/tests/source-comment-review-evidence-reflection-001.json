@@ -1,0 +1,2065 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "reflection_review-001",
+  "checkout": "E:\\Git\\ZirconEngine",
+  "baseHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "reviewer": "/root/reflection_review",
+  "model": "gpt-6-luna",
+  "effort": "max",
+  "canonicalWriter": "/root",
+  "agentDelivery": "五个结构化证据分片和终态检查/哈希由collaboration消息交付，root在自身获授权的canonical路径落盘。",
+  "state": "awaiting-validation",
+  "files": [
+    {
+      "path": "zircon_reflect_derive/src/attributes.rs",
+      "beforeSha256": "575a2bfb2f2567ee1c16cb6dbb18c22421151e3ed7355340e31805aca3092453",
+      "afterSha256": "88c2d9963f1d60c69340dcaddb334fb028913b0e8c587c954bf829a7541ec3ca",
+      "objectEvidence": [
+        {
+          "symbol": "attributes.rs module",
+          "kind": "module",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 1
+          },
+          "calls": [
+            "Rust derive 属性；camera.rs:8、lighting.rs:4",
+            "zircon_runtime_interface/src/reflect/zr_reflect.rs:5-25",
+            "zircon_runtime/src/scene/reflect/derived/component_adapter.rs:96-170",
+            "zircon_runtime/src/scene/reflect/type_registry.rs:322-345、schema_catalog/admission.rs:208-238"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "编译期proc-macro私有实现；实际入口lib.rs"
+          ],
+          "testsOrContract": [
+            "完整声明/成员/生成方法及测试逐组列于后续对象证据"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "属性输入→局部解析/组合校验→编译期配置；完整字段文本留后续注册接纳。"
+          ],
+          "commentDecision": "添加模块职责与边界；保留原有注释。",
+          "constraintsAndLifecycle": "中间值仅在本次展开内存在；生成代码遵循公开反射契约。"
+        },
+        {
+          "symbol": "SerializationKind",
+          "members": [
+            "None",
+            "Value",
+            "Json",
+            "ResourceHandle",
+            "EntityReference"
+          ],
+          "kind": "enum",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 9
+          },
+          "calls": [
+            "容器属性通过 parse_serialization 选定策略，再由 serialization_tokens 投影为注册表达式。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "cases::derive_round_trips_reflect_type_info 检查 Value；其余映射由穷尽 match 证明，未声称测试覆盖全部变体。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Default 选择 Value；None 仅影响未显式覆盖的 serializable 缺省。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "SerializationKind::default",
+          "members": [],
+          "kind": "trait-impl",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 22
+          },
+          "calls": [
+            "ContainerAttributes 派生 Default 时使用，返回 Value。"
+          ],
+          "implementations": [
+            "zircon_runtime_interface::reflect::ZrReflect 或 SerializationKind::Default"
+          ],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "Default 实现及 derive 的 serializable 缺省分支。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "单一返回，无外部状态；注册构造器接受显式策略，不提供默认策略。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "ScriptVisibilityKind",
+          "members": [
+            "Private",
+            "Public"
+          ],
+          "kind": "enum",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 31
+          },
+          "calls": [
+            "容器解析 private/public，经 script_visibility_tokens 写入注册表达式。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "cases::derive_round_trips_reflect_type_info 和 derive_preserves_enum_shape_without_inventing_fields。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "Private 为 #[default]，Public 仅在显式选择时生成。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "ContainerAttributes",
+          "members": [
+            "component",
+            "resource",
+            "type_path",
+            "identity",
+            "display_name",
+            "serializable",
+            "editor_visible",
+            "remote_visible",
+            "script_visibility",
+            "serialization",
+            "virtual_fields"
+          ],
+          "kind": "struct",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 44
+          },
+          "calls": [
+            "parse_container_attributes 创建，derive_zr_reflect_impl 消费；virtual_fields 转入 collect_virtual_fields。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "容器正反用例、derive 注册表达式及 ReflectTypeRegistration 的显式构造参数。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "只在一次编译期展开内存在；互斥角色与身份键先校验，完整注册仍须接纳。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "FieldAttributes",
+          "members": [
+            "skip",
+            "name",
+            "identity",
+            "aliases",
+            "value_type_path",
+            "editor_hint",
+            "readonly",
+            "serializable",
+            "editor_visible",
+            "read",
+            "write"
+          ],
+          "kind": "struct",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 74
+          },
+          "calls": [
+            "parse_field_attributes 和容器 field(...) 共用 parse_field_meta；实体/虚拟收集器归一化。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "round-trip、虚拟字段、身份键、重复字段测试；readonly+write 冲突没有专门负向测试。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "编译期配置；readonly 与 write 互斥；虚拟字段要求名称、类型路径、读访问器及可写时的写访问器。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "parse_container_attributes",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 118
+          },
+          "calls": [
+            "derive_zr_reflect_impl 在选择类型形状前调用。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "退役键/角色冲突/虚拟字段/身份测试；空虚拟名称和路径的报错时机仍为 CR-REFLECT-0001。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "非目标属性被忽略；同名属性累积；嵌套 field 先解析和局部校验再追加；角色/身份末尾统一检查。解析错误返回 syn::Error 并转编译诊断。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "parse_field_attributes",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 231
+          },
+          "calls": [
+            "collect_fields 对每个实体字段调用，返回供归一化消费的配置。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "canonical identity、round-trip 与自定义虚拟字段测试；无独立 parser harness。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "逐键合并后检查跨键约束；错误向派生入口传播，没有运行时状态。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "parse_field_meta",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 247
+          },
+          "calls": [
+            "容器虚拟属性及实体字段解析共用同一键集合。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "输入配置正反用例；读写签名由生成表达式和 trait 约束建立。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "每个分支更新配置或返回解析错误；组合校验由外层调用 validate_field_attributes。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "validate_field_attributes",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 280
+          },
+          "calls": [
+            "容器 field 分支和 parse_field_attributes 在元数据合并后调用。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "identity 负例；readonly+write 只有代码拒绝分支证明，本批无专门负向用例。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "拒绝 readonly+write，identity 必须非空且已经 trim；成功不修改配置。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "literal helpers",
+          "members": [
+            "parse_string",
+            "parse_bool",
+            "parse_path"
+          ],
+          "kind": "fn-group",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 301
+          },
+          "calls": [
+            "parse_container_attributes/parse_field_meta 分别解码字符串、布尔和字符串中的 syn::Path。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "配置测试间接消费结果；未声称每个语法错误均有测试。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "错误沿 syn::Result 返回；不保存引用或影响外部状态。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "parse_serialization",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/attributes.rs",
+            "line": 317
+          },
+          "calls": [
+            "容器 parser 调用；五种文本映射到 SerializationKind 再用于 token builder。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "映射源码和有效配置展开；本批未专测所有策略。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "仅支持穷尽 match 中的五种值，未知值产生源位置诊断。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "lib.rs::derive_zr_reflect",
+          "caller": "Rust derive 属性；camera.rs:8、lighting.rs:4",
+          "reason": "编译期生成静态反射注册与字段访问实现",
+          "constraint": "无泛型、非union；默认读写成员满足ZrReflectValue，自动写成员满足PartialEq。"
+        },
+        {
+          "definition": "derive.rs::generated trait methods",
+          "caller": "zircon_runtime_interface/src/reflect/zr_reflect.rs:5-25",
+          "reason": "名称/当前slot访问和注册metadata的共享契约",
+          "constraint": "slot只匹配当前schema，持久引用使用稳定ID；写入bool报告是否变化。"
+        },
+        {
+          "definition": "generated write/read accessors",
+          "caller": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs:96-170",
+          "reason": "桥接ECS组件和公开反射接口；克隆预检并按变化bool提交",
+          "constraint": "先clone；false不commit；错误不commit；batch累计变化后再commit。"
+        },
+        {
+          "definition": "registration metadata",
+          "caller": "zircon_runtime/src/scene/reflect/type_registry.rs:322-345、schema_catalog/admission.rs:208-238",
+          "reason": "注册时接纳完整字段文本及声明值类型",
+          "constraint": "空/非trim字段键和类型路径会在后续接纳拒绝，宏阶段存在性检查并不证明完整metadata有效。"
+        },
+        {
+          "definition": "derive output",
+          "caller": "zircon_reflect_derive/src/tests/cases.rs:8-261",
+          "reason": "11个单元测试检查生成token文本或syn诊断",
+          "constraint": "不是展开实现编译测试，不能替代runtime真实derive测试。"
+        },
+        {
+          "definition": "compiled derive behavior",
+          "caller": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs:10-80",
+          "reason": "实际Health类型注册/读写/readonly与no-op契约",
+          "constraint": "只读证据；本任务未运行这些Cargo测试。"
+        }
+      ],
+      "existingIssueTags": [
+        {
+          "id": "CR-REFLECT-0001",
+          "kind": "TODO",
+          "line": 164,
+          "text": "// TODO: [CR-REFLECT-0001] 确认虚拟字段空名称或值路径是否应在宏期拒绝；当前只查 Some，下一步补充展开与注册测试。",
+          "status": "retained-historical-revalidated"
+        }
+      ],
+      "newIssueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed",
+        "method": "完整新增diff逐条阅读；直接读取字段表达式、trait、公开构造签名、schema接纳、实际producer、adapter和全部11单测；最终物理SHA独立读取一致。",
+        "corrections": [
+          "原有入口首句和历史TODO已恢复原文。",
+          "生成器文档补参数/返回/槽位边界。",
+          "macro配置缺省Value与注册构造器显式接受策略分别说明。",
+          "公开文档私有实现参考改为普通代码标识。",
+          "测试没有泛型/union/readonly+write负例，证据不声称已覆盖。",
+          "注册构造器疑似签名冲突经完整quote核对排除，不登记BUG。"
+        ],
+        "dependencySha256": {
+          "Cargo.toml": "2b8fbbd523ce4f6416a15215aaf37769ef6fda653fe1a8a930b88add66d69f0a",
+          "zircon_reflect_derive/Cargo.toml": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+          "zircon_runtime_interface/src/reflect/zr_reflect.rs": "33c6efbdf918c01d01bc6dbe7ec6b598b9ec364b875789adf9e823f88cab3880",
+          "zircon_runtime_interface/src/reflect/zr_reflect_value.rs": "2b0c6c483ef4c65fef3cb07df18e77111a8a27678d08103634b412a16c9cad3d",
+          "zircon_runtime_interface/src/reflect/mod.rs": "72a59e28efd6e10928a52e9bdd3aafc6f97e0ac16cf0fa5ae731d3b68187271f",
+          "zircon_runtime_interface/src/reflect/type_registration.rs": "a8d142773ef07f576276e528453038337283fc968dca4e1e595041657e52cc92",
+          "zircon_runtime_interface/src/reflect/field_info.rs": "79a0a95fed5fcb4ac6413a7e2c062d8321d0a6d94ff94054f3e0813f63f1ce92",
+          "zircon_runtime_interface/src/reflect/field_id.rs": "1a3ddd48564662bd79c42d3369da418e5fd582678d172303805a48193faa6466",
+          "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs": "5a8e9d050236db49a2a8fc61e3abb49624884a5476444aa3c9a28d44d8a83225",
+          "zircon_runtime/src/scene/reflect/derived/component_adapter.rs": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+          "zircon_runtime/src/scene/reflect/type_registry.rs": "2fa88aa63872b836b2622a8674d25b5681f1b80b75823a374b400d019a86b829",
+          "zircon_runtime/src/scene/reflect/declared_value_type.rs": "fbbbfa73265e90ae0045ffbdf785b84ad7e30883ce7e4673e4605ef3007fdb52",
+          "zircon_runtime/src/scene/reflect/derived/tests/cases.rs": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+          "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs": "69447c0b6b87977013f8dc0955f0337a45cc151b6ef08e06cc3c68e5db883161",
+          "zircon_runtime/src/scene/components/scene/camera.rs": "802aff4efbecc504f6e45927089bca0f72a8004b4ea5e86a68bd20a26f07058b",
+          "zircon_runtime/src/scene/components/scene/lighting.rs": "cb929cb0ba992d6bd6c96180fe246bd1cca7043531770e32b64e93e7fc2f680c"
+        }
+      },
+      "validation": {
+        "commentOnly": {
+          "status": "passed",
+          "evidence": "主审逐条阅读完整diff；317条新增、0删除，新增仅文档/普通注释或空行，未插入字符串载荷；原文及原有注释按序保留。初始物理SHA与Git基线一致，前后均LF且无BOM。"
+        },
+        "format": {
+          "status": "passed",
+          "tool": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+          "edition": "2021",
+          "config": "skip_children=true",
+          "provider": "/root/reflection_review 实际命令结果，主审复核最终文件hash",
+          "commands": [
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/attributes.rs",
+                "zircon_reflect_derive/src/derive.rs",
+                "zircon_reflect_derive/src/fields.rs",
+                "zircon_reflect_derive/src/lib.rs",
+                "zircon_reflect_derive/src/tests/cases.rs"
+              ],
+              "exitCode": 0,
+              "output": ""
+            },
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/lib.rs"
+              ],
+              "exitCode": 0,
+              "afterSha256": "31e209a24fa7db918698e3728ccecd3e20a4e0cd08ff428b8fd468fbfcb9976b",
+              "output": ""
+            },
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/attributes.rs"
+              ],
+              "exitCode": 0,
+              "afterSha256": "88c2d9963f1d60c69340dcaddb334fb028913b0e8c587c954bf829a7541ec3ca",
+              "output": ""
+            }
+          ]
+        },
+        "diffWhitespace": {
+          "status": "passed",
+          "provider": "agent",
+          "command": "git diff --check -- <five assigned paths>",
+          "exitCode": 0,
+          "note": "Git 的 LF→CRLF 工作树提示不是文件内容修改或失败。"
+        },
+        "formalCoordinator": {
+          "status": "pending",
+          "requestId": "source-comment-audit-20261012",
+          "controlPath": ".jenkins/state/records-queue/controls/source-comment-audit-20261012.25.json",
+          "receipt": null,
+          "reason": "当前已核验正式动作仅validate；本批格式/解析/精确提交对应正式票据尚无。未将intake、归档或旧pending状态视为通过。"
+        },
+        "cargoTests": {
+          "status": "not-run",
+          "reason": "纯注释批次不例行宽泛Cargo测试；若正式流程要求特定门槛，待真实票据。"
+        }
+      }
+    },
+    {
+      "path": "zircon_reflect_derive/src/derive.rs",
+      "beforeSha256": "4bb705ee58d2d776026636c25b0ff5ae29c7d28884298dfb399a23e2478cd1a0",
+      "afterSha256": "95d9f00e7f85f0a141731536b9c4d55b9ca6261b2911c34898922a91a02506ca",
+      "objectEvidence": [
+        {
+          "symbol": "derive.rs module",
+          "kind": "module",
+          "definition": {
+            "path": "zircon_reflect_derive/src/derive.rs",
+            "line": 1
+          },
+          "calls": [
+            "Rust derive 属性；camera.rs:8、lighting.rs:4",
+            "zircon_runtime_interface/src/reflect/zr_reflect.rs:5-25",
+            "zircon_runtime/src/scene/reflect/derived/component_adapter.rs:96-170",
+            "zircon_runtime/src/scene/reflect/type_registry.rs:322-345、schema_catalog/admission.rs:208-238"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "编译期proc-macro私有实现；实际入口lib.rs"
+          ],
+          "testsOrContract": [
+            "完整声明/成员/生成方法及测试逐组列于后续对象证据"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "语法树→字段顺序统一→quote五组trait方法；语法错误转诊断。"
+          ],
+          "commentDecision": "添加模块职责与边界；保留原有注释。",
+          "constraintsAndLifecycle": "中间值仅在本次展开内存在；生成代码遵循公开反射契约。"
+        },
+        {
+          "symbol": "derive_zr_reflect_impl",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/derive.rs",
+            "line": 34
+          },
+          "calls": [
+            "公开 derive_zr_reflect 解析语法树后调用。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "11 个 cases 验证输出/错误；泛型和 union 拒绝仅由分支证明，没有本批专门用例。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "先拒绝泛型、解析身份与属性；结构体过滤实体字段、枚举不生成普通变体字段、union 拒绝；追加虚拟字段后统一验证名字并生成五组表达式。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "generated ZrReflect impl",
+          "members": [
+            "reflect_type_registration",
+            "read_reflected_field",
+            "write_reflected_field",
+            "read_reflected_field_by_slot",
+            "write_reflected_field_by_slot"
+          ],
+          "kind": "generated-trait-impl",
+          "definition": {
+            "path": "zircon_reflect_derive/src/derive.rs",
+            "line": 113
+          },
+          "calls": [
+            "运行时注册入口与 component_adapter 的按名/按槽位访问调用展开的方法。"
+          ],
+          "implementations": [
+            "zircon_runtime_interface::reflect::ZrReflect 或 SerializationKind::Default"
+          ],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "reflect/zr_reflect.rs；runtime derived/tests/cases.rs；adapter clone→调用→false 不提交/true commit。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "注册构造参数匹配公开 ReflectTypeRegistration；读取分支借用组件，写入返回变化 bool；未命中产生 UnknownField，只读产生 NonEditableField；槽位受当前注册顺序约束。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "validate_unique_field_names",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/derive.rs",
+            "line": 216
+          },
+          "calls": [
+            "实体字段 skip 过滤并追加虚拟字段后，任何字段表达式生成前调用。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "derive_rejects_duplicate_reflected_field_names。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "BTreeSet 纳入首次规范名，重复时返回 syn::Error；共享实体/虚拟命名空间。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "registration enum projection",
+          "members": [
+            "serialization_tokens",
+            "script_visibility_tokens"
+          ],
+          "kind": "fn-group",
+          "definition": {
+            "path": "zircon_reflect_derive/src/derive.rs",
+            "line": 233
+          },
+          "calls": [
+            "主流程生成注册方法时分别映射策略与可见级别。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "Value/Public/Private 输出断言；其他变体由 match 代码证明。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "无状态穷尽映射；返回全限定公开枚举路径 token，不执行运行时注册。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "lib.rs::derive_zr_reflect",
+          "caller": "Rust derive 属性；camera.rs:8、lighting.rs:4",
+          "reason": "编译期生成静态反射注册与字段访问实现",
+          "constraint": "无泛型、非union；默认读写成员满足ZrReflectValue，自动写成员满足PartialEq。"
+        },
+        {
+          "definition": "derive.rs::generated trait methods",
+          "caller": "zircon_runtime_interface/src/reflect/zr_reflect.rs:5-25",
+          "reason": "名称/当前slot访问和注册metadata的共享契约",
+          "constraint": "slot只匹配当前schema，持久引用使用稳定ID；写入bool报告是否变化。"
+        },
+        {
+          "definition": "generated write/read accessors",
+          "caller": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs:96-170",
+          "reason": "桥接ECS组件和公开反射接口；克隆预检并按变化bool提交",
+          "constraint": "先clone；false不commit；错误不commit；batch累计变化后再commit。"
+        },
+        {
+          "definition": "registration metadata",
+          "caller": "zircon_runtime/src/scene/reflect/type_registry.rs:322-345、schema_catalog/admission.rs:208-238",
+          "reason": "注册时接纳完整字段文本及声明值类型",
+          "constraint": "空/非trim字段键和类型路径会在后续接纳拒绝，宏阶段存在性检查并不证明完整metadata有效。"
+        },
+        {
+          "definition": "derive output",
+          "caller": "zircon_reflect_derive/src/tests/cases.rs:8-261",
+          "reason": "11个单元测试检查生成token文本或syn诊断",
+          "constraint": "不是展开实现编译测试，不能替代runtime真实derive测试。"
+        },
+        {
+          "definition": "compiled derive behavior",
+          "caller": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs:10-80",
+          "reason": "实际Health类型注册/读写/readonly与no-op契约",
+          "constraint": "只读证据；本任务未运行这些Cargo测试。"
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed",
+        "method": "完整新增diff逐条阅读；直接读取字段表达式、trait、公开构造签名、schema接纳、实际producer、adapter和全部11单测；最终物理SHA独立读取一致。",
+        "corrections": [
+          "原有入口首句和历史TODO已恢复原文。",
+          "生成器文档补参数/返回/槽位边界。",
+          "macro配置缺省Value与注册构造器显式接受策略分别说明。",
+          "公开文档私有实现参考改为普通代码标识。",
+          "测试没有泛型/union/readonly+write负例，证据不声称已覆盖。",
+          "注册构造器疑似签名冲突经完整quote核对排除，不登记BUG。"
+        ],
+        "dependencySha256": {
+          "Cargo.toml": "2b8fbbd523ce4f6416a15215aaf37769ef6fda653fe1a8a930b88add66d69f0a",
+          "zircon_reflect_derive/Cargo.toml": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+          "zircon_runtime_interface/src/reflect/zr_reflect.rs": "33c6efbdf918c01d01bc6dbe7ec6b598b9ec364b875789adf9e823f88cab3880",
+          "zircon_runtime_interface/src/reflect/zr_reflect_value.rs": "2b0c6c483ef4c65fef3cb07df18e77111a8a27678d08103634b412a16c9cad3d",
+          "zircon_runtime_interface/src/reflect/mod.rs": "72a59e28efd6e10928a52e9bdd3aafc6f97e0ac16cf0fa5ae731d3b68187271f",
+          "zircon_runtime_interface/src/reflect/type_registration.rs": "a8d142773ef07f576276e528453038337283fc968dca4e1e595041657e52cc92",
+          "zircon_runtime_interface/src/reflect/field_info.rs": "79a0a95fed5fcb4ac6413a7e2c062d8321d0a6d94ff94054f3e0813f63f1ce92",
+          "zircon_runtime_interface/src/reflect/field_id.rs": "1a3ddd48564662bd79c42d3369da418e5fd582678d172303805a48193faa6466",
+          "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs": "5a8e9d050236db49a2a8fc61e3abb49624884a5476444aa3c9a28d44d8a83225",
+          "zircon_runtime/src/scene/reflect/derived/component_adapter.rs": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+          "zircon_runtime/src/scene/reflect/type_registry.rs": "2fa88aa63872b836b2622a8674d25b5681f1b80b75823a374b400d019a86b829",
+          "zircon_runtime/src/scene/reflect/declared_value_type.rs": "fbbbfa73265e90ae0045ffbdf785b84ad7e30883ce7e4673e4605ef3007fdb52",
+          "zircon_runtime/src/scene/reflect/derived/tests/cases.rs": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+          "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs": "69447c0b6b87977013f8dc0955f0337a45cc151b6ef08e06cc3c68e5db883161",
+          "zircon_runtime/src/scene/components/scene/camera.rs": "802aff4efbecc504f6e45927089bca0f72a8004b4ea5e86a68bd20a26f07058b",
+          "zircon_runtime/src/scene/components/scene/lighting.rs": "cb929cb0ba992d6bd6c96180fe246bd1cca7043531770e32b64e93e7fc2f680c"
+        }
+      },
+      "validation": {
+        "commentOnly": {
+          "status": "passed",
+          "evidence": "主审逐条阅读完整diff；317条新增、0删除，新增仅文档/普通注释或空行，未插入字符串载荷；原文及原有注释按序保留。初始物理SHA与Git基线一致，前后均LF且无BOM。"
+        },
+        "format": {
+          "status": "passed",
+          "tool": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+          "edition": "2021",
+          "config": "skip_children=true",
+          "provider": "/root/reflection_review 实际命令结果，主审复核最终文件hash",
+          "commands": [
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/attributes.rs",
+                "zircon_reflect_derive/src/derive.rs",
+                "zircon_reflect_derive/src/fields.rs",
+                "zircon_reflect_derive/src/lib.rs",
+                "zircon_reflect_derive/src/tests/cases.rs"
+              ],
+              "exitCode": 0,
+              "output": ""
+            },
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/lib.rs"
+              ],
+              "exitCode": 0,
+              "afterSha256": "31e209a24fa7db918698e3728ccecd3e20a4e0cd08ff428b8fd468fbfcb9976b",
+              "output": ""
+            },
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/attributes.rs"
+              ],
+              "exitCode": 0,
+              "afterSha256": "88c2d9963f1d60c69340dcaddb334fb028913b0e8c587c954bf829a7541ec3ca",
+              "output": ""
+            }
+          ]
+        },
+        "diffWhitespace": {
+          "status": "passed",
+          "provider": "agent",
+          "command": "git diff --check -- <five assigned paths>",
+          "exitCode": 0,
+          "note": "Git 的 LF→CRLF 工作树提示不是文件内容修改或失败。"
+        },
+        "formalCoordinator": {
+          "status": "pending",
+          "requestId": "source-comment-audit-20261012",
+          "controlPath": ".jenkins/state/records-queue/controls/source-comment-audit-20261012.25.json",
+          "receipt": null,
+          "reason": "当前已核验正式动作仅validate；本批格式/解析/精确提交对应正式票据尚无。未将intake、归档或旧pending状态视为通过。"
+        },
+        "cargoTests": {
+          "status": "not-run",
+          "reason": "纯注释批次不例行宽泛Cargo测试；若正式流程要求特定门槛，待真实票据。"
+        }
+      }
+    },
+    {
+      "path": "zircon_reflect_derive/src/fields.rs",
+      "beforeSha256": "058b377bdfe313fd0bf9f52c09d6111fd0d2f5356a29e69e5f8e39d77043b307",
+      "afterSha256": "5d8afec34026cdaa3e2b70709bbe5c3a98d3e7373b0134c063649c5e85c19eba",
+      "objectEvidence": [
+        {
+          "symbol": "fields.rs module",
+          "kind": "module",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 1
+          },
+          "calls": [
+            "Rust derive 属性；camera.rs:8、lighting.rs:4",
+            "zircon_runtime_interface/src/reflect/zr_reflect.rs:5-25",
+            "zircon_runtime/src/scene/reflect/derived/component_adapter.rs:96-170",
+            "zircon_runtime/src/scene/reflect/type_registry.rs:322-345、schema_catalog/admission.rs:208-238"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "编译期proc-macro私有实现；实际入口lib.rs"
+          ],
+          "testsOrContract": [
+            "完整声明/成员/生成方法及测试逐组列于后续对象证据"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "实体/虚拟配置→规范字段→元数据及名称/槽位读取写入表达式。"
+          ],
+          "commentDecision": "添加模块职责与边界；保留原有注释。",
+          "constraintsAndLifecycle": "中间值仅在本次展开内存在；生成代码遵循公开反射契约。"
+        },
+        {
+          "symbol": "ReflectedField",
+          "members": [
+            "name",
+            "identity",
+            "aliases",
+            "member",
+            "ty",
+            "value_type_path",
+            "editor_hint",
+            "readonly",
+            "serializable",
+            "editor_visible",
+            "read",
+            "write"
+          ],
+          "kind": "struct",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 16
+          },
+          "calls": [
+            "两个收集器归一化后，metadata/name/slot builders 共享同一序列。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "字段 token 生成、元数据及虚拟字段测试。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "实体 member/ty 成对存在；虚拟字段二者皆无并依赖回调；只在本次编译期构造中存在。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "collect_virtual_fields",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 59
+          },
+          "calls": [
+            "derive 在实体字段之后消费容器 virtual_fields 并追加规范记录。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "derive_expands_virtual_fields_through_custom_accessors；CR-REFLECT-0001 的存在性与文本校验分层。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "取必填名称/类型路径，缺失时返回错误；调用 build_reflected_field，member/ty 为 None；上游解析器保证回调配置。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "collect_fields",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 99
+          },
+          "calls": [
+            "derive 的 struct 分支逐字段解析属性后调用 reflected_field。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "未知类型、递归列表、平台整数与虚拟字段 skip 用例。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "skip 不进入输出；源 tuple index 保留，结果 slot 顺序压紧；错误短路到宏入口。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "field_info_tokens",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 128
+          },
+          "calls": [
+            "derive 为共享规范序列每项生成注册元数据表达式。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "ReflectFieldId::from_stable_keys、ReflectFieldInfo::new 与 round-trip 输出。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "稳定 ID 使用 owner_identity 与 field.identity；别名/可编辑/序列化/可见性写入公开 ReflectFieldInfo；不分配槽位。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "name and slot read builders",
+          "members": [
+            "read_arm_tokens",
+            "read_slot_arm_tokens"
+          ],
+          "kind": "fn-group",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 173
+          },
+          "calls": [
+            "derive 生成按规范名和当前 slot 的两个读取 match；运行时 adapter 调用对应 trait 方法。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "虚拟回调展开、runtime Health 读取、zr_reflect.rs 槽位契约。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "自定义读回调优先；否则 member/ty 成对存在并调用 ZrReflectValue；缺失访问器产生编译错误 token。slot 是规范序列零基 u32 字面量，不能跨 schema 持久化。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "name and slot write builders",
+          "members": [
+            "write_arm_tokens",
+            "write_slot_arm_tokens"
+          ],
+          "kind": "fn-group",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 242
+          },
+          "calls": [
+            "derive 构造两个写 match；adapter 克隆组件并使用返回 bool 决定是否提交。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "虚拟可写/只读展开、runtime Health true/false/readonly，以及 adapter 各写入口。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "readonly 首先拒绝；custom write 优先；默认转换失败不赋值，相等返回 false，否则赋值并 true。自动写成员需 ZrReflectValue+PartialEq。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "slot_literal",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 344
+          },
+          "calls": [
+            "read_slot_arm_tokens/write_slot_arm_tokens 使用规范序列索引。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "round-trip 的 0u32/1u32 检查与 trait slot 契约。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "usize 索引生成带 u32 后缀整数 token；一致顺序和当前 schema 是前提。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "reflected_field",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 351
+          },
+          "calls": [
+            "collect_fields 对未跳过的源字段调用。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "未知类型、平台整数、列表类型测试；当前源码名/路径拒绝分支。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "选择具名/原 tuple 成员；拒绝空名称与空显式类型路径，未知类型要求显式路径；源 index 与结果 slot 分开。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "build_reflected_field",
+          "members": [],
+          "kind": "fn",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 399
+          },
+          "calls": [
+            "实体与虚拟收集器共用规范记录构造。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "round-trip/virtual metadata 及公开 editor hint 枚举。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "identity 缺省 name；显式 editor_hint 优先，否则推导并验证支持集；可序列化/可见缺省 true；返回记录不注册类型。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "value type and editor hint inference",
+          "members": [
+            "infer_value_type_path",
+            "infer_list_value_type_path",
+            "inferred_editor_hint",
+            "parse_editor_hint"
+          ],
+          "kind": "fn-group",
+          "definition": {
+            "path": "zircon_reflect_derive/src/fields.rs",
+            "line": 432
+          },
+          "calls": [
+            "reflected_field/build_reflected_field 在无覆盖属性时推导类型和提示。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "列表正反例、未知类型/平台整数负例；hint 支持集由当前匹配分支证明。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "只匹配支持的路径末段；Vec 恰有一个可递归类型参数；未知/非路径返回 None；未知提示返回 syn::Error；不做 Rust 别名解析。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "lib.rs::derive_zr_reflect",
+          "caller": "Rust derive 属性；camera.rs:8、lighting.rs:4",
+          "reason": "编译期生成静态反射注册与字段访问实现",
+          "constraint": "无泛型、非union；默认读写成员满足ZrReflectValue，自动写成员满足PartialEq。"
+        },
+        {
+          "definition": "derive.rs::generated trait methods",
+          "caller": "zircon_runtime_interface/src/reflect/zr_reflect.rs:5-25",
+          "reason": "名称/当前slot访问和注册metadata的共享契约",
+          "constraint": "slot只匹配当前schema，持久引用使用稳定ID；写入bool报告是否变化。"
+        },
+        {
+          "definition": "generated write/read accessors",
+          "caller": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs:96-170",
+          "reason": "桥接ECS组件和公开反射接口；克隆预检并按变化bool提交",
+          "constraint": "先clone；false不commit；错误不commit；batch累计变化后再commit。"
+        },
+        {
+          "definition": "registration metadata",
+          "caller": "zircon_runtime/src/scene/reflect/type_registry.rs:322-345、schema_catalog/admission.rs:208-238",
+          "reason": "注册时接纳完整字段文本及声明值类型",
+          "constraint": "空/非trim字段键和类型路径会在后续接纳拒绝，宏阶段存在性检查并不证明完整metadata有效。"
+        },
+        {
+          "definition": "derive output",
+          "caller": "zircon_reflect_derive/src/tests/cases.rs:8-261",
+          "reason": "11个单元测试检查生成token文本或syn诊断",
+          "constraint": "不是展开实现编译测试，不能替代runtime真实derive测试。"
+        },
+        {
+          "definition": "compiled derive behavior",
+          "caller": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs:10-80",
+          "reason": "实际Health类型注册/读写/readonly与no-op契约",
+          "constraint": "只读证据；本任务未运行这些Cargo测试。"
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed",
+        "method": "完整新增diff逐条阅读；直接读取字段表达式、trait、公开构造签名、schema接纳、实际producer、adapter和全部11单测；最终物理SHA独立读取一致。",
+        "corrections": [
+          "原有入口首句和历史TODO已恢复原文。",
+          "生成器文档补参数/返回/槽位边界。",
+          "macro配置缺省Value与注册构造器显式接受策略分别说明。",
+          "公开文档私有实现参考改为普通代码标识。",
+          "测试没有泛型/union/readonly+write负例，证据不声称已覆盖。",
+          "注册构造器疑似签名冲突经完整quote核对排除，不登记BUG。"
+        ],
+        "dependencySha256": {
+          "Cargo.toml": "2b8fbbd523ce4f6416a15215aaf37769ef6fda653fe1a8a930b88add66d69f0a",
+          "zircon_reflect_derive/Cargo.toml": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+          "zircon_runtime_interface/src/reflect/zr_reflect.rs": "33c6efbdf918c01d01bc6dbe7ec6b598b9ec364b875789adf9e823f88cab3880",
+          "zircon_runtime_interface/src/reflect/zr_reflect_value.rs": "2b0c6c483ef4c65fef3cb07df18e77111a8a27678d08103634b412a16c9cad3d",
+          "zircon_runtime_interface/src/reflect/mod.rs": "72a59e28efd6e10928a52e9bdd3aafc6f97e0ac16cf0fa5ae731d3b68187271f",
+          "zircon_runtime_interface/src/reflect/type_registration.rs": "a8d142773ef07f576276e528453038337283fc968dca4e1e595041657e52cc92",
+          "zircon_runtime_interface/src/reflect/field_info.rs": "79a0a95fed5fcb4ac6413a7e2c062d8321d0a6d94ff94054f3e0813f63f1ce92",
+          "zircon_runtime_interface/src/reflect/field_id.rs": "1a3ddd48564662bd79c42d3369da418e5fd582678d172303805a48193faa6466",
+          "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs": "5a8e9d050236db49a2a8fc61e3abb49624884a5476444aa3c9a28d44d8a83225",
+          "zircon_runtime/src/scene/reflect/derived/component_adapter.rs": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+          "zircon_runtime/src/scene/reflect/type_registry.rs": "2fa88aa63872b836b2622a8674d25b5681f1b80b75823a374b400d019a86b829",
+          "zircon_runtime/src/scene/reflect/declared_value_type.rs": "fbbbfa73265e90ae0045ffbdf785b84ad7e30883ce7e4673e4605ef3007fdb52",
+          "zircon_runtime/src/scene/reflect/derived/tests/cases.rs": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+          "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs": "69447c0b6b87977013f8dc0955f0337a45cc151b6ef08e06cc3c68e5db883161",
+          "zircon_runtime/src/scene/components/scene/camera.rs": "802aff4efbecc504f6e45927089bca0f72a8004b4ea5e86a68bd20a26f07058b",
+          "zircon_runtime/src/scene/components/scene/lighting.rs": "cb929cb0ba992d6bd6c96180fe246bd1cca7043531770e32b64e93e7fc2f680c"
+        }
+      },
+      "validation": {
+        "commentOnly": {
+          "status": "passed",
+          "evidence": "主审逐条阅读完整diff；317条新增、0删除，新增仅文档/普通注释或空行，未插入字符串载荷；原文及原有注释按序保留。初始物理SHA与Git基线一致，前后均LF且无BOM。"
+        },
+        "format": {
+          "status": "passed",
+          "tool": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+          "edition": "2021",
+          "config": "skip_children=true",
+          "provider": "/root/reflection_review 实际命令结果，主审复核最终文件hash",
+          "commands": [
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/attributes.rs",
+                "zircon_reflect_derive/src/derive.rs",
+                "zircon_reflect_derive/src/fields.rs",
+                "zircon_reflect_derive/src/lib.rs",
+                "zircon_reflect_derive/src/tests/cases.rs"
+              ],
+              "exitCode": 0,
+              "output": ""
+            },
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/lib.rs"
+              ],
+              "exitCode": 0,
+              "afterSha256": "31e209a24fa7db918698e3728ccecd3e20a4e0cd08ff428b8fd468fbfcb9976b",
+              "output": ""
+            },
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/attributes.rs"
+              ],
+              "exitCode": 0,
+              "afterSha256": "88c2d9963f1d60c69340dcaddb334fb028913b0e8c587c954bf829a7541ec3ca",
+              "output": ""
+            }
+          ]
+        },
+        "diffWhitespace": {
+          "status": "passed",
+          "provider": "agent",
+          "command": "git diff --check -- <five assigned paths>",
+          "exitCode": 0,
+          "note": "Git 的 LF→CRLF 工作树提示不是文件内容修改或失败。"
+        },
+        "formalCoordinator": {
+          "status": "pending",
+          "requestId": "source-comment-audit-20261012",
+          "controlPath": ".jenkins/state/records-queue/controls/source-comment-audit-20261012.25.json",
+          "receipt": null,
+          "reason": "当前已核验正式动作仅validate；本批格式/解析/精确提交对应正式票据尚无。未将intake、归档或旧pending状态视为通过。"
+        },
+        "cargoTests": {
+          "status": "not-run",
+          "reason": "纯注释批次不例行宽泛Cargo测试；若正式流程要求特定门槛，待真实票据。"
+        }
+      }
+    },
+    {
+      "path": "zircon_reflect_derive/src/lib.rs",
+      "beforeSha256": "8d44292a0d8407b0b39c11d7aaa9f4a067b1e8b2d1f7fff6909faa9e57099f59",
+      "afterSha256": "31e209a24fa7db918698e3728ccecd3e20a4e0cd08ff428b8fd468fbfcb9976b",
+      "objectEvidence": [
+        {
+          "symbol": "crate module assembly",
+          "members": [
+            "attributes",
+            "derive",
+            "fields",
+            "tests"
+          ],
+          "kind": "module-group",
+          "definition": {
+            "path": "zircon_reflect_derive/src/lib.rs",
+            "line": 1
+          },
+          "calls": [
+            "crate root 通过路径模块装配私有实现，tests 仅 cfg(test)。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "源码模块装配与 Cargo proc-macro 配置。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "只有 proc-macro 入口导出给使用方；实现模块不是外部公开 API。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        },
+        {
+          "symbol": "derive_zr_reflect",
+          "members": [],
+          "kind": "proc-macro",
+          "definition": {
+            "path": "zircon_reflect_derive/src/lib.rs",
+            "line": 37
+          },
+          "calls": [
+            "Rust #[derive(ZrReflect)] 入口；Camera/lighting 等实际 producer 和 runtime Health 测试使用。"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "proc-macro parse→normalize→quote；无此模块自身 FFI 入口"
+          ],
+          "testsOrContract": [
+            "内部 cases 检查表达式；runtime 真 derive 类型消费 trait；公开私有实现参考使用普通代码标识。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "parse_macro_input! 解析后调用 derive 实现器，syn 错误转 compile_error；返回实现与目标类型编译，无运行时副作用。"
+          ],
+          "commentDecision": "补充职责/调用边界；关键生成器有参数、返回、约束、生命周期与参考。保留旧注释。",
+          "constraintsAndLifecycle": "仅编译期中间对象；生成的方法在运行时依公开反射契约调用，具体约束与状态见上述证据。"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "lib.rs::derive_zr_reflect",
+          "caller": "Rust derive 属性；camera.rs:8、lighting.rs:4",
+          "reason": "编译期生成静态反射注册与字段访问实现",
+          "constraint": "无泛型、非union；默认读写成员满足ZrReflectValue，自动写成员满足PartialEq。"
+        },
+        {
+          "definition": "derive.rs::generated trait methods",
+          "caller": "zircon_runtime_interface/src/reflect/zr_reflect.rs:5-25",
+          "reason": "名称/当前slot访问和注册metadata的共享契约",
+          "constraint": "slot只匹配当前schema，持久引用使用稳定ID；写入bool报告是否变化。"
+        },
+        {
+          "definition": "generated write/read accessors",
+          "caller": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs:96-170",
+          "reason": "桥接ECS组件和公开反射接口；克隆预检并按变化bool提交",
+          "constraint": "先clone；false不commit；错误不commit；batch累计变化后再commit。"
+        },
+        {
+          "definition": "registration metadata",
+          "caller": "zircon_runtime/src/scene/reflect/type_registry.rs:322-345、schema_catalog/admission.rs:208-238",
+          "reason": "注册时接纳完整字段文本及声明值类型",
+          "constraint": "空/非trim字段键和类型路径会在后续接纳拒绝，宏阶段存在性检查并不证明完整metadata有效。"
+        },
+        {
+          "definition": "derive output",
+          "caller": "zircon_reflect_derive/src/tests/cases.rs:8-261",
+          "reason": "11个单元测试检查生成token文本或syn诊断",
+          "constraint": "不是展开实现编译测试，不能替代runtime真实derive测试。"
+        },
+        {
+          "definition": "compiled derive behavior",
+          "caller": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs:10-80",
+          "reason": "实际Health类型注册/读写/readonly与no-op契约",
+          "constraint": "只读证据；本任务未运行这些Cargo测试。"
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed",
+        "method": "完整新增diff逐条阅读；直接读取字段表达式、trait、公开构造签名、schema接纳、实际producer、adapter和全部11单测；最终物理SHA独立读取一致。",
+        "corrections": [
+          "原有入口首句和历史TODO已恢复原文。",
+          "生成器文档补参数/返回/槽位边界。",
+          "macro配置缺省Value与注册构造器显式接受策略分别说明。",
+          "公开文档私有实现参考改为普通代码标识。",
+          "测试没有泛型/union/readonly+write负例，证据不声称已覆盖。",
+          "注册构造器疑似签名冲突经完整quote核对排除，不登记BUG。"
+        ],
+        "dependencySha256": {
+          "Cargo.toml": "2b8fbbd523ce4f6416a15215aaf37769ef6fda653fe1a8a930b88add66d69f0a",
+          "zircon_reflect_derive/Cargo.toml": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+          "zircon_runtime_interface/src/reflect/zr_reflect.rs": "33c6efbdf918c01d01bc6dbe7ec6b598b9ec364b875789adf9e823f88cab3880",
+          "zircon_runtime_interface/src/reflect/zr_reflect_value.rs": "2b0c6c483ef4c65fef3cb07df18e77111a8a27678d08103634b412a16c9cad3d",
+          "zircon_runtime_interface/src/reflect/mod.rs": "72a59e28efd6e10928a52e9bdd3aafc6f97e0ac16cf0fa5ae731d3b68187271f",
+          "zircon_runtime_interface/src/reflect/type_registration.rs": "a8d142773ef07f576276e528453038337283fc968dca4e1e595041657e52cc92",
+          "zircon_runtime_interface/src/reflect/field_info.rs": "79a0a95fed5fcb4ac6413a7e2c062d8321d0a6d94ff94054f3e0813f63f1ce92",
+          "zircon_runtime_interface/src/reflect/field_id.rs": "1a3ddd48564662bd79c42d3369da418e5fd582678d172303805a48193faa6466",
+          "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs": "5a8e9d050236db49a2a8fc61e3abb49624884a5476444aa3c9a28d44d8a83225",
+          "zircon_runtime/src/scene/reflect/derived/component_adapter.rs": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+          "zircon_runtime/src/scene/reflect/type_registry.rs": "2fa88aa63872b836b2622a8674d25b5681f1b80b75823a374b400d019a86b829",
+          "zircon_runtime/src/scene/reflect/declared_value_type.rs": "fbbbfa73265e90ae0045ffbdf785b84ad7e30883ce7e4673e4605ef3007fdb52",
+          "zircon_runtime/src/scene/reflect/derived/tests/cases.rs": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+          "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs": "69447c0b6b87977013f8dc0955f0337a45cc151b6ef08e06cc3c68e5db883161",
+          "zircon_runtime/src/scene/components/scene/camera.rs": "802aff4efbecc504f6e45927089bca0f72a8004b4ea5e86a68bd20a26f07058b",
+          "zircon_runtime/src/scene/components/scene/lighting.rs": "cb929cb0ba992d6bd6c96180fe246bd1cca7043531770e32b64e93e7fc2f680c"
+        }
+      },
+      "validation": {
+        "commentOnly": {
+          "status": "passed",
+          "evidence": "主审逐条阅读完整diff；317条新增、0删除，新增仅文档/普通注释或空行，未插入字符串载荷；原文及原有注释按序保留。初始物理SHA与Git基线一致，前后均LF且无BOM。"
+        },
+        "format": {
+          "status": "passed",
+          "tool": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+          "edition": "2021",
+          "config": "skip_children=true",
+          "provider": "/root/reflection_review 实际命令结果，主审复核最终文件hash",
+          "commands": [
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/attributes.rs",
+                "zircon_reflect_derive/src/derive.rs",
+                "zircon_reflect_derive/src/fields.rs",
+                "zircon_reflect_derive/src/lib.rs",
+                "zircon_reflect_derive/src/tests/cases.rs"
+              ],
+              "exitCode": 0,
+              "output": ""
+            },
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/lib.rs"
+              ],
+              "exitCode": 0,
+              "afterSha256": "31e209a24fa7db918698e3728ccecd3e20a4e0cd08ff428b8fd468fbfcb9976b",
+              "output": ""
+            },
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/attributes.rs"
+              ],
+              "exitCode": 0,
+              "afterSha256": "88c2d9963f1d60c69340dcaddb334fb028913b0e8c587c954bf829a7541ec3ca",
+              "output": ""
+            }
+          ]
+        },
+        "diffWhitespace": {
+          "status": "passed",
+          "provider": "agent",
+          "command": "git diff --check -- <five assigned paths>",
+          "exitCode": 0,
+          "note": "Git 的 LF→CRLF 工作树提示不是文件内容修改或失败。"
+        },
+        "formalCoordinator": {
+          "status": "pending",
+          "requestId": "source-comment-audit-20261012",
+          "controlPath": ".jenkins/state/records-queue/controls/source-comment-audit-20261012.25.json",
+          "receipt": null,
+          "reason": "当前已核验正式动作仅validate；本批格式/解析/精确提交对应正式票据尚无。未将intake、归档或旧pending状态视为通过。"
+        },
+        "cargoTests": {
+          "status": "not-run",
+          "reason": "纯注释批次不例行宽泛Cargo测试；若正式流程要求特定门槛，待真实票据。"
+        }
+      }
+    },
+    {
+      "path": "zircon_reflect_derive/src/tests/cases.rs",
+      "beforeSha256": "b5a8806033ba2de71cf4ecbf7929dde314af37a6c800e50c5c887eec76e9ea15",
+      "afterSha256": "66630d854f70b9797abd332f802998e429631463b5fb64ec2e96bab9c5021671",
+      "objectEvidence": [
+        {
+          "symbol": "test module",
+          "kind": "module",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 1
+          },
+          "calls": [
+            "通过cfg(test)从lib.rs装配"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "syn::parse_quote!/parse_str 构造语法输入，未注册实际 runtime"
+          ],
+          "testsOrContract": [
+            "11个测试完整枚举于下；不声称这些用例编译展开后的实现"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "各用例只构造输入、展开字符串或诊断；无运行时外部状态。"
+          ],
+          "commentDecision": "新增模块边界和每个测试的具体目的。",
+          "constraintsAndLifecycle": "临时语法树和展开字符串随测试结束释放。"
+        },
+        {
+          "symbol": "derive_round_trips_reflect_type_info",
+          "members": [
+            "Health.current",
+            "Health.maximum"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 8
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "显式身份、别名、组件角色、脚本可见性；输出注册、读写方法与0/1槽位。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        },
+        {
+          "symbol": "derive_rejects_non_canonical_stable_identity_keys",
+          "members": [
+            "type_input::Health.current",
+            "field_input::Health.current"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 53
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "类型/字段 identity 分别含首尾空白，期望 canonical-key 错误。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        },
+        {
+          "symbol": "derive_rejects_retired_plugin_owned_projection",
+          "members": [
+            "Invalid.value"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 77
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "退役 plugin_owned 键产生 unknown type attribute 诊断。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        },
+        {
+          "symbol": "derive_preserves_enum_shape_without_inventing_fields",
+          "members": [
+            "GameplayState::Idle",
+            "GameplayState::Running"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 95
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "enum 输出 Enum 类型形状、空字段序列及 Private。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        },
+        {
+          "symbol": "derive_rejects_conflicting_component_and_resource_flags",
+          "members": [
+            "Invalid.value"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 115
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "同时 component/resource，期望角色互斥诊断。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        },
+        {
+          "symbol": "derive_rejects_unknown_field_type_without_explicit_value_path",
+          "members": [
+            "UnknownFieldType.value"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 133
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "未认识的 Rust 类型无显式路径，期望 value_type_path 诊断。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        },
+        {
+          "symbol": "derive_infers_typed_list_value_paths",
+          "members": [
+            "TypedLists.names",
+            "TypedLists.weights"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 150
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "Vec<String>/Vec<Vec<f32>> 输出递归 List 路径。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        },
+        {
+          "symbol": "derive_requires_an_explicit_path_for_unknown_list_elements",
+          "members": [
+            "UnknownListElement.values"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 168
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "未知列表元素无显式路径，拒绝自动推断。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        },
+        {
+          "symbol": "derive_expands_virtual_fields_through_custom_accessors",
+          "members": [
+            "LocalTransform.transform",
+            "virtual translation",
+            "virtual rotation"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 185
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "skip 实体字段；虚拟 read/write/readonly 表达式生成正确，不引用 self.transform。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        },
+        {
+          "symbol": "derive_rejects_duplicate_reflected_field_names",
+          "members": [
+            "DuplicateField.value",
+            "virtual value"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 223
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "实体与虚拟字段同名，期望共享命名空间重复诊断。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        },
+        {
+          "symbol": "derive_requires_explicit_accessors_for_platform_sized_integers",
+          "members": [
+            "formatted PlatformSized.value: isize",
+            "formatted PlatformSized.value: usize"
+          ],
+          "kind": "test-fn-and-input-declarations",
+          "definition": {
+            "path": "zircon_reflect_derive/src/tests/cases.rs",
+            "line": 249
+          },
+          "calls": [
+            "crate::derive::derive_zr_reflect_impl；输入仅为syn语法树"
+          ],
+          "implementations": [],
+          "macroOrRegistrationOrFfi": [
+            "#[test]；syn::parse_quote!/parse_str；测试输入内的声明不作为Rust运行时类型编译"
+          ],
+          "testsOrContract": [
+            "循环解析两种平台整数，均要求显式值类型路径。"
+          ],
+          "blockEntryAndStateAndEffect": [
+            "创建有效/无效输入→调用展开器→断言token字符串或syn错误；平台整数用例循环两种字段类型。"
+          ],
+          "commentDecision": "新增一行具体测试契约；断言、字符串、输入结构全部保留。",
+          "constraintsAndLifecycle": "本批无泛型/union/readonly+write冲突的专门负例，无空虚拟值输入；不把源码检查分支当成已运行用例。"
+        }
+      ],
+      "callerEvidence": [
+        {
+          "definition": "lib.rs::derive_zr_reflect",
+          "caller": "Rust derive 属性；camera.rs:8、lighting.rs:4",
+          "reason": "编译期生成静态反射注册与字段访问实现",
+          "constraint": "无泛型、非union；默认读写成员满足ZrReflectValue，自动写成员满足PartialEq。"
+        },
+        {
+          "definition": "derive.rs::generated trait methods",
+          "caller": "zircon_runtime_interface/src/reflect/zr_reflect.rs:5-25",
+          "reason": "名称/当前slot访问和注册metadata的共享契约",
+          "constraint": "slot只匹配当前schema，持久引用使用稳定ID；写入bool报告是否变化。"
+        },
+        {
+          "definition": "generated write/read accessors",
+          "caller": "zircon_runtime/src/scene/reflect/derived/component_adapter.rs:96-170",
+          "reason": "桥接ECS组件和公开反射接口；克隆预检并按变化bool提交",
+          "constraint": "先clone；false不commit；错误不commit；batch累计变化后再commit。"
+        },
+        {
+          "definition": "registration metadata",
+          "caller": "zircon_runtime/src/scene/reflect/type_registry.rs:322-345、schema_catalog/admission.rs:208-238",
+          "reason": "注册时接纳完整字段文本及声明值类型",
+          "constraint": "空/非trim字段键和类型路径会在后续接纳拒绝，宏阶段存在性检查并不证明完整metadata有效。"
+        },
+        {
+          "definition": "derive output",
+          "caller": "zircon_reflect_derive/src/tests/cases.rs:8-261",
+          "reason": "11个单元测试检查生成token文本或syn诊断",
+          "constraint": "不是展开实现编译测试，不能替代runtime真实derive测试。"
+        },
+        {
+          "definition": "compiled derive behavior",
+          "caller": "zircon_runtime/src/scene/reflect/derived/tests/cases.rs:10-80",
+          "reason": "实际Health类型注册/读写/readonly与no-op契约",
+          "constraint": "只读证据；本任务未运行这些Cargo测试。"
+        }
+      ],
+      "existingIssueTags": [],
+      "newIssueIds": [],
+      "independentReview": {
+        "reviewer": "/root",
+        "status": "passed",
+        "method": "完整新增diff逐条阅读；直接读取字段表达式、trait、公开构造签名、schema接纳、实际producer、adapter和全部11单测；最终物理SHA独立读取一致。",
+        "corrections": [
+          "原有入口首句和历史TODO已恢复原文。",
+          "生成器文档补参数/返回/槽位边界。",
+          "macro配置缺省Value与注册构造器显式接受策略分别说明。",
+          "公开文档私有实现参考改为普通代码标识。",
+          "测试没有泛型/union/readonly+write负例，证据不声称已覆盖。",
+          "注册构造器疑似签名冲突经完整quote核对排除，不登记BUG。"
+        ],
+        "dependencySha256": {
+          "Cargo.toml": "2b8fbbd523ce4f6416a15215aaf37769ef6fda653fe1a8a930b88add66d69f0a",
+          "zircon_reflect_derive/Cargo.toml": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+          "zircon_runtime_interface/src/reflect/zr_reflect.rs": "33c6efbdf918c01d01bc6dbe7ec6b598b9ec364b875789adf9e823f88cab3880",
+          "zircon_runtime_interface/src/reflect/zr_reflect_value.rs": "2b0c6c483ef4c65fef3cb07df18e77111a8a27678d08103634b412a16c9cad3d",
+          "zircon_runtime_interface/src/reflect/mod.rs": "72a59e28efd6e10928a52e9bdd3aafc6f97e0ac16cf0fa5ae731d3b68187271f",
+          "zircon_runtime_interface/src/reflect/type_registration.rs": "a8d142773ef07f576276e528453038337283fc968dca4e1e595041657e52cc92",
+          "zircon_runtime_interface/src/reflect/field_info.rs": "79a0a95fed5fcb4ac6413a7e2c062d8321d0a6d94ff94054f3e0813f63f1ce92",
+          "zircon_runtime_interface/src/reflect/field_id.rs": "1a3ddd48564662bd79c42d3369da418e5fd582678d172303805a48193faa6466",
+          "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs": "5a8e9d050236db49a2a8fc61e3abb49624884a5476444aa3c9a28d44d8a83225",
+          "zircon_runtime/src/scene/reflect/derived/component_adapter.rs": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+          "zircon_runtime/src/scene/reflect/type_registry.rs": "2fa88aa63872b836b2622a8674d25b5681f1b80b75823a374b400d019a86b829",
+          "zircon_runtime/src/scene/reflect/declared_value_type.rs": "fbbbfa73265e90ae0045ffbdf785b84ad7e30883ce7e4673e4605ef3007fdb52",
+          "zircon_runtime/src/scene/reflect/derived/tests/cases.rs": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+          "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs": "69447c0b6b87977013f8dc0955f0337a45cc151b6ef08e06cc3c68e5db883161",
+          "zircon_runtime/src/scene/components/scene/camera.rs": "802aff4efbecc504f6e45927089bca0f72a8004b4ea5e86a68bd20a26f07058b",
+          "zircon_runtime/src/scene/components/scene/lighting.rs": "cb929cb0ba992d6bd6c96180fe246bd1cca7043531770e32b64e93e7fc2f680c"
+        }
+      },
+      "validation": {
+        "commentOnly": {
+          "status": "passed",
+          "evidence": "主审逐条阅读完整diff；317条新增、0删除，新增仅文档/普通注释或空行，未插入字符串载荷；原文及原有注释按序保留。初始物理SHA与Git基线一致，前后均LF且无BOM。"
+        },
+        "format": {
+          "status": "passed",
+          "tool": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+          "edition": "2021",
+          "config": "skip_children=true",
+          "provider": "/root/reflection_review 实际命令结果，主审复核最终文件hash",
+          "commands": [
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/attributes.rs",
+                "zircon_reflect_derive/src/derive.rs",
+                "zircon_reflect_derive/src/fields.rs",
+                "zircon_reflect_derive/src/lib.rs",
+                "zircon_reflect_derive/src/tests/cases.rs"
+              ],
+              "exitCode": 0,
+              "output": ""
+            },
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/lib.rs"
+              ],
+              "exitCode": 0,
+              "afterSha256": "31e209a24fa7db918698e3728ccecd3e20a4e0cd08ff428b8fd468fbfcb9976b",
+              "output": ""
+            },
+            {
+              "argv": [
+                "rustfmt",
+                "--edition",
+                "2021",
+                "--config",
+                "skip_children=true",
+                "--check",
+                "zircon_reflect_derive/src/attributes.rs"
+              ],
+              "exitCode": 0,
+              "afterSha256": "88c2d9963f1d60c69340dcaddb334fb028913b0e8c587c954bf829a7541ec3ca",
+              "output": ""
+            }
+          ]
+        },
+        "diffWhitespace": {
+          "status": "passed",
+          "provider": "agent",
+          "command": "git diff --check -- <five assigned paths>",
+          "exitCode": 0,
+          "note": "Git 的 LF→CRLF 工作树提示不是文件内容修改或失败。"
+        },
+        "formalCoordinator": {
+          "status": "pending",
+          "requestId": "source-comment-audit-20261012",
+          "controlPath": ".jenkins/state/records-queue/controls/source-comment-audit-20261012.25.json",
+          "receipt": null,
+          "reason": "当前已核验正式动作仅validate；本批格式/解析/精确提交对应正式票据尚无。未将intake、归档或旧pending状态视为通过。"
+        },
+        "cargoTests": {
+          "status": "not-run",
+          "reason": "纯注释批次不例行宽泛Cargo测试；若正式流程要求特定门槛，待真实票据。"
+        }
+      }
+    }
+  ],
+  "validation": {
+    "commentOnly": {
+      "status": "passed",
+      "evidence": "主审逐条阅读完整diff；317条新增、0删除，新增仅文档/普通注释或空行，未插入字符串载荷；原文及原有注释按序保留。初始物理SHA与Git基线一致，前后均LF且无BOM。"
+    },
+    "format": {
+      "status": "passed",
+      "tool": "rustfmt 1.8.0-stable (e408947bfd 2026-03-25)",
+      "edition": "2021",
+      "config": "skip_children=true",
+      "provider": "/root/reflection_review 实际命令结果，主审复核最终文件hash",
+      "commands": [
+        {
+          "argv": [
+            "rustfmt",
+            "--edition",
+            "2021",
+            "--config",
+            "skip_children=true",
+            "--check",
+            "zircon_reflect_derive/src/attributes.rs",
+            "zircon_reflect_derive/src/derive.rs",
+            "zircon_reflect_derive/src/fields.rs",
+            "zircon_reflect_derive/src/lib.rs",
+            "zircon_reflect_derive/src/tests/cases.rs"
+          ],
+          "exitCode": 0,
+          "output": ""
+        },
+        {
+          "argv": [
+            "rustfmt",
+            "--edition",
+            "2021",
+            "--config",
+            "skip_children=true",
+            "--check",
+            "zircon_reflect_derive/src/lib.rs"
+          ],
+          "exitCode": 0,
+          "afterSha256": "31e209a24fa7db918698e3728ccecd3e20a4e0cd08ff428b8fd468fbfcb9976b",
+          "output": ""
+        },
+        {
+          "argv": [
+            "rustfmt",
+            "--edition",
+            "2021",
+            "--config",
+            "skip_children=true",
+            "--check",
+            "zircon_reflect_derive/src/attributes.rs"
+          ],
+          "exitCode": 0,
+          "afterSha256": "88c2d9963f1d60c69340dcaddb334fb028913b0e8c587c954bf829a7541ec3ca",
+          "output": ""
+        }
+      ]
+    },
+    "diffWhitespace": {
+      "status": "passed",
+      "provider": "agent",
+      "command": "git diff --check -- <five assigned paths>",
+      "exitCode": 0,
+      "note": "Git 的 LF→CRLF 工作树提示不是文件内容修改或失败。"
+    },
+    "formalCoordinator": {
+      "status": "pending",
+      "requestId": "source-comment-audit-20261012",
+      "controlPath": ".jenkins/state/records-queue/controls/source-comment-audit-20261012.25.json",
+      "receipt": null,
+      "reason": "当前已核验正式动作仅validate；本批格式/解析/精确提交对应正式票据尚无。未将intake、归档或旧pending状态视为通过。"
+    },
+    "cargoTests": {
+      "status": "not-run",
+      "reason": "纯注释批次不例行宽泛Cargo测试；若正式流程要求特定门槛，待真实票据。"
+    }
+  },
+  "independentReview": {
+    "reviewer": "/root",
+    "status": "passed",
+    "method": "完整新增diff逐条阅读；直接读取字段表达式、trait、公开构造签名、schema接纳、实际producer、adapter和全部11单测；最终物理SHA独立读取一致。",
+    "corrections": [
+      "原有入口首句和历史TODO已恢复原文。",
+      "生成器文档补参数/返回/槽位边界。",
+      "macro配置缺省Value与注册构造器显式接受策略分别说明。",
+      "公开文档私有实现参考改为普通代码标识。",
+      "测试没有泛型/union/readonly+write负例，证据不声称已覆盖。",
+      "注册构造器疑似签名冲突经完整quote核对排除，不登记BUG。"
+    ],
+    "dependencySha256": {
+      "Cargo.toml": "2b8fbbd523ce4f6416a15215aaf37769ef6fda653fe1a8a930b88add66d69f0a",
+      "zircon_reflect_derive/Cargo.toml": "3c3b964a4d6d40e3a9579b7367bff13b304067207404d3d2f779d55f5d0c571d",
+      "zircon_runtime_interface/src/reflect/zr_reflect.rs": "33c6efbdf918c01d01bc6dbe7ec6b598b9ec364b875789adf9e823f88cab3880",
+      "zircon_runtime_interface/src/reflect/zr_reflect_value.rs": "2b0c6c483ef4c65fef3cb07df18e77111a8a27678d08103634b412a16c9cad3d",
+      "zircon_runtime_interface/src/reflect/mod.rs": "72a59e28efd6e10928a52e9bdd3aafc6f97e0ac16cf0fa5ae731d3b68187271f",
+      "zircon_runtime_interface/src/reflect/type_registration.rs": "a8d142773ef07f576276e528453038337283fc968dca4e1e595041657e52cc92",
+      "zircon_runtime_interface/src/reflect/field_info.rs": "79a0a95fed5fcb4ac6413a7e2c062d8321d0a6d94ff94054f3e0813f63f1ce92",
+      "zircon_runtime_interface/src/reflect/field_id.rs": "1a3ddd48564662bd79c42d3369da418e5fd582678d172303805a48193faa6466",
+      "zircon_runtime_interface/src/reflect/schema_catalog/admission.rs": "5a8e9d050236db49a2a8fc61e3abb49624884a5476444aa3c9a28d44d8a83225",
+      "zircon_runtime/src/scene/reflect/derived/component_adapter.rs": "480b276676248f078269654808b52f79f0d8df9ffa0fe1a80428f48c234db461",
+      "zircon_runtime/src/scene/reflect/type_registry.rs": "2fa88aa63872b836b2622a8674d25b5681f1b80b75823a374b400d019a86b829",
+      "zircon_runtime/src/scene/reflect/declared_value_type.rs": "fbbbfa73265e90ae0045ffbdf785b84ad7e30883ce7e4673e4605ef3007fdb52",
+      "zircon_runtime/src/scene/reflect/derived/tests/cases.rs": "506d0d0ada1d8779590a3ca7be3849636ae2a1b5ac5ccd5fb61306ebe2bb4acc",
+      "zircon_runtime/src/scene/tests/ecs_reflect/structure.rs": "69447c0b6b87977013f8dc0955f0337a45cc151b6ef08e06cc3c68e5db883161",
+      "zircon_runtime/src/scene/components/scene/camera.rs": "802aff4efbecc504f6e45927089bca0f72a8004b4ea5e86a68bd20a26f07058b",
+      "zircon_runtime/src/scene/components/scene/lighting.rs": "cb929cb0ba992d6bd6c96180fe246bd1cca7043531770e32b64e93e7fc2f680c"
+    }
+  },
+  "legacyEvidence": {
+    "path": "docs/_data/source-comment-audit/round-02/coverage/public_sdk_reflect.jsonl",
+    "initialHashMatchedPaths": [
+      "zircon_reflect_derive/src/attributes.rs",
+      "zircon_reflect_derive/src/derive.rs",
+      "zircon_reflect_derive/src/fields.rs"
+    ],
+    "reviewer": "public_sdk_reflect",
+    "reviewedAt": "2026-09-30T12:04:09Z",
+    "originalReviewer": "root-eol-restoration-and-comments-review",
+    "originalReviewedAt": "2026-09-27T10:14:50Z",
+    "limitations": [
+      "lib.rs旧记录hash不匹配当前初始hash。",
+      "当前tests/cases.rs只可关联旧tests.rs同内容候选，未按同路径接受。",
+      "旧记录缺调用方hash，现行输入另行绑定。",
+      "旧coordinator/提交状态pending，不继承接受结果或退役租约流程。"
+    ]
+  },
+  "commit": {
+    "status": "pending",
+    "sha": null,
+    "exactPaths": [
+      "zircon_reflect_derive/src/attributes.rs",
+      "zircon_reflect_derive/src/derive.rs",
+      "zircon_reflect_derive/src/fields.rs",
+      "zircon_reflect_derive/src/lib.rs",
+      "zircon_reflect_derive/src/tests/cases.rs",
+      "docs/tests/source-comment-review-evidence-reflection-001.json"
+    ],
+    "notificationReceipt": null
+  }
+}

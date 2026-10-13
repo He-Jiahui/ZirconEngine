@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "batchId": "core_contracts-001-clear11",
+  "reviewer": "/root",
+  "checkout": "E:/Git/ZirconEngine",
+  "baselineHead": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+  "reviewedAtUtc": "2026-10-13T02:09:37Z",
+  "state": "stale",
+  "agentEvidence": {
+    "path": "docs/tests/source-comment-review-evidence-core-001-clear11.json",
+    "sha256": "4a66e1ea05994c18111488aae62b85dc1faaad49c6d7ebe463dc8bc0afefce3d",
+    "retainedUnmodified": false,
+    "previousPhysicalSha256": "6bf37ca2dd15665ced79ef42459ca25d844127292448ec27cc64f0ff55a662f0",
+    "normalizedTextMatchesPreviouslyReviewedEvidence": true
+  },
+  "sourcePins": [
+    {
+      "path": "zircon_runtime_interface/src/buffer.rs",
+      "sha256": "4b58a1cdd6ce17ebcbf50b394fb5cbfb1bee40e5279339f1848723106f6d7631"
+    },
+    {
+      "path": "zircon_runtime_interface/src/handles.rs",
+      "sha256": "96095dfd681abc7e2ee61c78e1434019c90e10165130090527e65c025fcad5ea"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/api_shape.rs",
+      "sha256": "8ee41b220f2ee4789faa3b434af9d65f88758e013d6e3eaa26e11527206125cb"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+      "sha256": "fa2d76cdaedce3762ccaf63a0d937246b28eb9a050b0e1b9b5fbc6997c86b555"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/mod.rs",
+      "sha256": "05b0ca372fa5911cea13eb04437b36cdaa1d45b71b5cc3410cb87852855bda32"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs",
+      "sha256": "3d92b8a3e73ab084125199d0070342c8e48a5493bbb660e9a71e6c086eb2eb59"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/api_table.rs",
+      "sha256": "af93149dab8e088b14dafc63375fc5974e4602eb66952ba4eb284f1c0e48e71f"
+    },
+    {
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+      "sha256": "2f1728a66e5d7363247a35e93215a044faab502e899a23ef71aee757a3802ada"
+    },
+    {
+      "path": "zircon_runtime_interface/src/status.rs",
+      "sha256": "b21401fec3ca1e727ee9ba4d46a8aab0531996062e8cc3de2f8f59da96f48885"
+    },
+    {
+      "path": "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+      "sha256": "cb3c12f25e55dc388c17d82b4e11f800976d6213bd2a4febb7c36cd72790c9da"
+    },
+    {
+      "path": "zircon_runtime_interface/src/version.rs",
+      "sha256": "2fd76ee48b7ec0ae8dbee43fec8aa1b9e001cc2a4cda839d7b29cc694960dbc3"
+    }
+  ],
+  "independentReview": {
+    "status": "passed-for-historical-source-pins; stale-for-current-checkout",
+    "sourceReview": "主审独立完整阅读原批源码、精确差异、消费者及测试契约，逐组复核现 clear11 的 67 组对象证据；缩批保留对象与上一冻结版本相同。buffer 的最终 SAFETY 修订另行核对。",
+    "definitionCoverage": {
+      "indexedDefinitions": 175,
+      "additionalInlineOrTupleFields": 18,
+      "moduleUnits": 11,
+      "total": 204,
+      "groups": 67
+    },
+    "additionalFieldReview": "核对 ZrByteSliceError 的三个 usize 载荷、四种 handle 的 u64 元组字段、两种 API shape 错误的八个 expected/actual 字段、MisalignedPointer 的 address/expected_alignment 及 Shape 的错误载荷，共 18 处实际定义。",
+    "callAndLifecycleReview": [
+      "字节与拥有结果描述符只校验可验证的形状；分配可读、初始化、借用期间不变及有效期由 unsafe 调用者与同一提供者负责。非空拥有结果的释放权不可复制。",
+      "句柄为 ABI 标识；有效性、所属 session 与实际对象存活不能由构造值或非零数值证明。",
+      "API shape 值检查版本与字节数；指针入口先拒绝空值和未对齐地址，再在 unsafe 前提下读取 shape。形状检查不证明函数指针或外部分配存活。",
+      "status 的消息字节与拥有结果生命周期分开；消息须在提供者有效期间读取。错误文本与代码的用途和成功/失败条件按实际消费者核对。",
+      "ABI 安全测试中的宏展开、载荷构造、指针、字段顺序与全文守卫路径已读；未将源码契约检查或只读枚举冒充 Rust 测试运行。",
+      "版本常量与 ABI 导出适配关系按加载方核对；未增加旧 ABI 支持或改变公共导出。"
+    ],
+    "issueIds": [
+      "ZCA-ABI-001"
+    ],
+    "issueDecision": "固定偏移一的 u8 夹具没有普遍未对齐保证；尚无实际失败运行，维持 TODO。"
+  },
+  "validation": {
+    "physicalAndCommentDiff": {
+      "reviewer": "/root",
+      "exitCode": 0,
+      "nativeChunkId": "ddd4d9",
+      "files": 11,
+      "beforeHashesMatchBaseline": true,
+      "finalHashesMatchAgentEvidence": true,
+      "oldSourceLinesRetainedInOrder": true,
+      "insertions": 289,
+      "deletions": 0,
+      "onlyStandaloneRustCommentsOrBlankLines": true,
+      "method": "git --no-optional-locks show baseline:path 与当前物理字节 SHA256；逐文件 SequenceMatcher 检查所有非 equal 区间。只有 insert 区间，且新增行均为空白或独立 // 注释。"
+    },
+    "evidenceSchema": {
+      "exitCode": 0,
+      "nativeChunkId": "ddd4d9",
+      "records": 67,
+      "missingRequiredFields": []
+    },
+    "rustfmt": {
+      "status": "passed-local-structural-check",
+      "edition": "2021",
+      "skipChildren": true,
+      "source": "冻结 canonical evidence 中实际 exit 0 的原定向检查；本批十个文件 SHA 未变，buffer 最后注释修改后单独重查 exit 0。",
+      "formalCoordinatorReceipt": "pending"
+    },
+    "diffWhitespace": {
+      "status": "passed-local-structural-check",
+      "exitCode": 0,
+      "scope": "exact 11 current source paths",
+      "evidence": "agentEvidence#/validation/diffCheck"
+    },
+    "changeGuard": {
+      "status": "passed-static-check",
+      "reviewer": "/root",
+      "exitCode": 0,
+      "nativeSessionId": 57369,
+      "mode": "patch",
+      "version": 2,
+      "base": "5a547d4e2727d27ddf99578f548efb7e6d19d915",
+      "patchDigest": "9f353b452ea9f4bd383776e45251266a2e0d0171c2901d86320516499ad75a75",
+      "exactPathCount": 11,
+      "writeGrantCheck": true,
+      "contributor": false,
+      "errors": 0,
+      "warnings": 0,
+      "findings": [],
+      "markerLimit": "此 guard 的 markers 规则未覆盖 ZCA 编号；其空集合不替代源码与问题账本的标签核对。",
+      "formalAcceptance": false
+    },
+    "cargoExecuted": false,
+    "generatedSlotAcceptance": "pending if required by actual coordinator contract",
+    "formalCoordinator": "pending installed matching format/parser/comment-diff entry and receipt"
+  },
+  "excludedForeignPaths": [
+    "zircon_runtime_interface/src/tests/boundary.rs",
+    "zircon_runtime_interface/src/tests/runtime_owned_result.rs",
+    "zircon_runtime_interface/src/runtime_api/abi/api_table.rs"
+  ],
+  "foreignChangePolicy": "三份外部非注释修改保留，等待真实 owner 交接；历史 002/003 标签移除不恢复、不宣称程序修复已由本任务验收。",
+  "commit": {
+    "status": "pending Jenkins authorized exact-source stage receipt",
+    "sha": null,
+    "wecomReceipt": null,
+    "pushAuthorized": false
+  },
+  "artifactLifecycle": {
+    "kind": "authored canonical review metadata",
+    "temporarySourceCopies": 0,
+    "temporaryHelpers": 0,
+    "buildProductsCreated": 0,
+    "freedBytes": 0,
+    "jenkinsCloseout": "pending"
+  },
+  "wholeRepositoryCompletion": false,
+  "sourceSnapshotMismatch": {
+    "observedAtUtc": "2026-10-13T02:37:19.972417+00:00",
+    "observation": {
+      "path": "docs/tests/source-comment-review-assigned-source-drift-20261013.json",
+      "sha256": "c594a23dde4b4ba225861ba183290fa4657a8b381b18370efee3ff018427bc02",
+      "bytes": 47652
+    },
+    "currentSourceValid": false,
+    "sources": [
+      {
+        "path": "zircon_runtime_interface/src/buffer.rs",
+        "currentSha256": "fff56d028302c18a59adcdceafab472195493933525d0ee0fe278ace77e9e857",
+        "previousReviewedSha256": "4b58a1cdd6ce17ebcbf50b394fb5cbfb1bee40e5279339f1848723106f6d7631"
+      },
+      {
+        "path": "zircon_runtime_interface/src/handles.rs",
+        "currentSha256": "5757d28b4f924700801c3168912dadd8e3db36c975b7c89383a259f5d962a538",
+        "previousReviewedSha256": "96095dfd681abc7e2ee61c78e1434019c90e10165130090527e65c025fcad5ea"
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/abi/api_shape.rs",
+        "currentSha256": "25ec481385105f648d984572cc6b1cfc57b287d5af89392b6648bd28c3bfa62d",
+        "previousReviewedSha256": "8ee41b220f2ee4789faa3b434af9d65f88758e013d6e3eaa26e11527206125cb"
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/abi/host_api_shape.rs",
+        "currentSha256": "f37d7dd8869e951b62a3c69c075ed6c551d8bcb6d1469b5d6f5e421e3ead0c0a",
+        "previousReviewedSha256": "fa2d76cdaedce3762ccaf63a0d937246b28eb9a050b0e1b9b5fbc6997c86b555"
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/abi/mod.rs",
+        "currentSha256": "cdb0c43c101bb0d2ff2b05b86870d7c770c6a5f15bb27245bc93b1ea322321a1",
+        "previousReviewedSha256": "05b0ca372fa5911cea13eb04437b36cdaa1d45b71b5cc3410cb87852855bda32"
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/abi/tests/api_shape_tests.rs",
+        "currentSha256": "11a427de6770ac08f563b2d07a29730d709f62ddf1afe4f666e911ff9b102fe5",
+        "previousReviewedSha256": "3d92b8a3e73ab084125199d0070342c8e48a5493bbb660e9a71e6c086eb2eb59"
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/abi/tests/api_table.rs",
+        "currentSha256": "abffecdc03588e26e04440ea051b63143b0850b90abb5f585e4125b7fd9225ec",
+        "previousReviewedSha256": "af93149dab8e088b14dafc63375fc5974e4602eb66952ba4eb284f1c0e48e71f"
+      },
+      {
+        "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+        "currentSha256": "6f37e0d1a914cc2faa8c9c157f6ee8e465b505cd670d89dfe6a01bb55447ae08",
+        "previousReviewedSha256": "2f1728a66e5d7363247a35e93215a044faab502e899a23ef71aee757a3802ada"
+      },
+      {
+        "path": "zircon_runtime_interface/src/status.rs",
+        "currentSha256": "5bafe66b99553f38f0235df6d17266de600f5feea07c232ec293509cd78c85ca",
+        "previousReviewedSha256": "b21401fec3ca1e727ee9ba4d46a8aab0531996062e8cc3de2f8f59da96f48885"
+      },
+      {
+        "path": "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+        "currentSha256": "fe9c4af7072de612b5bc02a2c6f76c5de0f3a9ae953725a7485fa38827e8b5a2",
+        "previousReviewedSha256": "cb3c12f25e55dc388c17d82b4e11f800976d6213bd2a4febb7c36cd72790c9da"
+      },
+      {
+        "path": "zircon_runtime_interface/src/version.rs",
+        "currentSha256": "4dea10a7bb239a4534e88e7aedf3e5652943e9c7b818352031a44a42a7627f95",
+        "previousReviewedSha256": "2fd76ee48b7ec0ae8dbee43fec8aa1b9e001cc2a4cda839d7b29cc694960dbc3"
+      }
+    ],
+    "ownerReconciliation": "pending",
+    "validationReceiptsApplyOnlyToOldSourcePins": true
+  }
+}

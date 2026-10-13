@@ -17,7 +17,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/11/failure-2026-08-23-task-terminal-delivery-bounded-dispatch.md
   - docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md
   - docs/plans/optimize/zircon_runtime/59-runtime-task-execution-job-scheduler-handle-dependency-cancellation-thread-budget-timer-shutdown-diagnostics-product-integration-review.md
-  - docs/plans/optimize/zircon_runtime/99o-runtime-task-execution-job-scheduler-handle-dependency-cancellation-thread-budget-timer-shutdown-diagnostics-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99o-runtime-task-execution-job-scheduler-handle-dependency-cancellation-thread-budget-timer-shutdown-diagnostics.md
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/ParallelFor.h
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/TaskConcurrencyLimiter.h

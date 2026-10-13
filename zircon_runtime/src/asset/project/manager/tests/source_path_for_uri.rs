@@ -28,10 +28,19 @@ fn existing_project_source_rechecks_reparse_target_before_world_save() {
     let project = ProjectManager::open(&root).expect("open project before mutation");
     let asset_root = paths.asset_root(&RelPath::project_assets());
     fs::create_dir_all(&outside).expect("create outside target");
+    fs::create_dir_all(outside.join("scenes")).expect("create outside scene directory");
+    fs::write(outside.join("scenes/escape.scene.toml"), "outside")
+        .expect("create outside scene target");
     fs::remove_dir_all(&asset_root).expect("remove original asset root");
     std::os::windows::fs::symlink_dir(&outside, &asset_root).expect("create test reparse point");
 
     let uri = AssetUri::parse("res://scenes/escape.scene.toml").unwrap();
+    let direct_error = project
+        .resolve_source_path_for_uri(&uri)
+        .expect_err("physical URI resolution must reject a reparse target outside the root");
+    assert!(direct_error
+        .to_string()
+        .contains("outside registered asset roots"));
     let error = project
         .resolve_existing_or_primary_project_source_path_for_uri(&uri)
         .expect_err("reparse target outside the registered root must be rejected");

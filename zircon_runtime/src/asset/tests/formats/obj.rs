@@ -94,6 +94,31 @@ fn obj_decode_reports_typed_scalar_parse_error_source() {
 }
 
 #[test]
+fn obj_decode_rejects_non_finite_position_uv_and_normal_scalars_with_source_lines() {
+    let cases = [
+        ("v NaN 0.0 0.0\n", "vertex x", "NaN"),
+        ("vt 0.0 inf\n", "uv v", "inf"),
+        ("vn 0.0 0.0 -inf\n", "normal z", "-inf"),
+    ];
+    for (index, (document, expected_label, expected_value)) in cases.into_iter().enumerate() {
+        let root = unique_temp_project_root(&format!("obj_nonfinite_scalar_{index}"));
+        fs::create_dir_all(&root).unwrap();
+        let path = root.join("invalid.obj");
+        fs::write(&path, document).unwrap();
+        let path_string = path.to_string_lossy().to_string();
+
+        let error = decode_obj_file(&path_string).expect_err("non-finite OBJ scalar must fail");
+
+        assert!(matches!(
+            error,
+            ObjDecodeError::NonFiniteScalar { path: actual_path, line: 1, label, value }
+                if actual_path == path_string && label == expected_label && value == expected_value
+        ));
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
+#[test]
 fn obj_face_parser_does_not_collect_a_second_token_buffer() {
     let source = include_str!("../../formats/obj/decode_obj_file.rs");
 

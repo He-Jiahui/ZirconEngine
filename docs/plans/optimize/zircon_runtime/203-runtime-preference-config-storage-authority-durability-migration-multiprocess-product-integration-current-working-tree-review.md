@@ -4,7 +4,7 @@
 > 工作树基线：`5ffc4945095a6fc734bcbb2e632958026350b760`；`git status --porcelain=v1 -uno` 有 8,394 项，本文不回退、不覆盖共享工作树中的其他改动
 > 审查性质：current-working-tree source review + refactor plan；只写文档，不修改生产 Rust/Cargo/ABI/test/UI 代码
 > 排除范围：Tooling；未查询、轮询、等待或实时跟踪协调器
-> 前置文档：[Runtime45](45-preference-settings-scope-storage-overlay-bounded-io-generation-fence-durability-migration-multi-process-product-integration-review.md)、[Runtime99zi](99zi-runtime-preference-settings-scope-storage-overlay-bounded-io-generation-fence-durability-migration-multi-process-product-integration-current-source-review.md)、[Editor265](../zircon_editor/265-editor-settings-preferences-project-settings-scope-schema-overlay-persistence-migration-restart-plugin-window-current-working-tree-review.md)
+> 前置文档：[Runtime45](45-preference-settings-scope-storage-overlay-bounded-io-generation-fence-durability-migration-multi-process-product-integration-review.md)、[Runtime99zi](99zi-runtime-preference-settings-scope-storage-overlay-bounded-io-generation-fence-durability-migration-multi-process.md)、[Editor265](../zircon_editor/265-editor-settings-preferences-project-settings-scope-schema-overlay-persistence-migration-restart-plugin-window-current-working-tree-review.md)
 
 ## 1. 结论
 

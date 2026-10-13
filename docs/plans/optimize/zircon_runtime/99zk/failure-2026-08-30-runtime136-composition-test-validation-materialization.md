@@ -4,7 +4,7 @@ status: open
 created_at: 2026-08-30
 summary_slug: runtime136-composition-test-validation-materialization
 origin_plan: docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md
-fixing_plan: docs/plans/optimize/zircon_runtime/99zk-runtime-builtin-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report-product-integration-current-source-review.md
+fixing_plan: docs/plans/optimize/zircon_runtime/99zk-runtime-builtin-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report.md
 origin_child_dir: docs/plans/optimize/zircon_runtime/02
 fixing_child_dir: docs/plans/optimize/zircon_runtime/99zk
 plan_link_mode: child_record_only
@@ -23,7 +23,7 @@ tests:
 
 - 来源计划：`docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md`
 - 来源执行切片：aggregate Runtime/Editor Release validation for optimization batches 501-504 and 506-512
-- 修复责任计划：`docs/plans/optimize/zircon_runtime/99zk-runtime-builtin-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report-product-integration-current-source-review.md`
+- 修复责任计划：`docs/plans/optimize/zircon_runtime/99zk-runtime-builtin-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report.md`
 - 交接原因：the missing compile-time resource contains Runtime136 composition compiler regressions and `runtime136.*` fixtures, below Runtime02 optimization ownership.
 
 ## 失败现象与复现证据

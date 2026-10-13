@@ -10,7 +10,7 @@ scope:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/**/*tests.rs
 status: static_complete_dynamic_pending
 canonical_owners:
-  - docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster-product-integration-review.md
+  - docs/plans/optimize/zircon_plugins/17-first-party-virtual-geometry-source-runtime-editor-dist-catalog-asset-cook-cluster-page-streaming-culling-raster.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md
   - docs/plans/optimize/zircon_runtime/09d-render-asset-streaming-residency-review.md
 references:

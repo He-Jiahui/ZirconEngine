@@ -57,15 +57,17 @@ Tooling
 
 | 优先级 | 问题与根因假设 | owner | 当前证据 | 最小验收 |
 |---|---|---|---|---|
-| P0 | `00` current-source Runtime -> Editor -> App 编译门未在同一指纹上闭合；旧请求/历史 receipt 不能替代当前编译 | `docs/plans/mvp/00` + 最早报错的 Runtime owner | 23:32 UTC 独立 Runtime package check exit 0，53 个选定文件及 17,871 个观察输入前后一致。随后共享输入变化；新 libtest 编译在 Interface build script 报错，已做局部修正，重新验证中。测试和 Editor/App 仍开放 | Windows 独立本地 package check；保护其他构建和原生锁；错误按最低 owner 向上收敛 |
+| P0 | `00` current-source Runtime -> Editor -> App 编译门未在同一指纹上闭合；旧请求/历史 receipt 不能替代当前编译 | `docs/plans/mvp/00` + 最早报错的 Runtime owner | 23:32 UTC Runtime check及53叶/17,871输入稳定记录保留为历史；后续共享输入已变。当前六叶App/Input切片通过格式/静态guard，native intake与直接checkout执行门仍开放，见7.41–7.44；没有当前批次Cargo结果 | 原生受管实际checkout package编译与聚焦行为回归；完整输入/产物身份、合法路径授权和进程终态对应，错误按最低owner向上收敛 |
 | P0 | Event/Message writer 可以同时持有同一 Store 的完整可变引用，异类型 writer 缺少 typed channel ownership | Runtime event/message owner | 17-path typed owner/grant 实现与 7 项行为回归已冻结，独立源码审查未发现剩余具体阻断；23:32 UTC 生产代码 check 通过，测试目标、行为与别名模型验证待执行 | typed grant；observer 顺序、空批次、Message 延迟创建、retention 与唯一释放回归 |
 | P1 | App host-request 链存在多次 Vec drain、编码/解码和逐帧重复预算工作，且 tick 与 drain 顺序需要真实产品证据 | App entry / Runtime10 | `performance/pending.md` 的 App 行；静态调用链已读，尚无 current product trace | 同一 fixture 记录 queue count、bytes、alloc、wait；稳定空批次工作为零且语义不变 |
-| P1（静态、待复现） | 项目文件提交的 `RecoveryDeferred` 成功 outcome 通过资源同步回调；PAM 先替换 active/source paths/watchers 并发布事件，最后 `ensure_durable` 才转普通 Err，返回状态未明确表达已经发布的新代际 | Runtime04：PAM 复合激活事务 + ProjectManager 持久化 owner | 7.39；Luna 根因阅读、Sol 独立复核及 Root 对真实 publication 回调确认，无故障执行或数据丢失证据 | A→B 提交点同步失败，核对 active/root/resource generation/watcher/events 和恢复后的磁盘；区分 CleanupDeferred 成功。优先在发布前判定持久性，候选磁盘 journal 显式待恢复，不冒充磁盘回滚；同 root 重开另验 |
+| P1（静态、待复现） | 项目文件提交的 `RecoveryDeferred` 成功 outcome 通过资源同步回调；当前 PAM 调用者在 publication 后才以 `ensure_durable` 转 Err。磁盘结果与 active/resource generation 的处置责任需要统一 | Runtime04：PAM 复合激活事务 + ProjectManager 持久化 owner | 7.39–7.40；Root 重新读取当前 resource publication，Luna 重新读取迁移后的 `assets/open_project.rs` imports 与生产方法，顺序风险仍存在；无故障执行或数据丢失证据 | A→B 与同 root 重开分别验证。发布前分类持久性；同 root 须隔离旧 active 对已变化磁盘的写入，恢复后重新对齐 generation。仅 Active journal 回滚，AllCommitted 恢复保留新目标；CleanupDeferred 仍为成功。真实故障 seam、资源、watcher、事件和重开均需验收 |
 | P2（静态、待复现） | 创建失败后的 `cleanup_failed_transaction_staging` 调用 `remove_transaction_path`，忽略删除错误，无法向调用方报告本次 staging 的遗留路径与次级清理失败 | Editor01/Runtime04：ProjectAuthority 创建事务 | 7.39；Root 与 Luna 读取实际错误路径，保护原目录的 ownership guard 已确认；没有动态残留或原数据损坏证据 | 发布前失败并令本次 staging 删除失败；原目标不变，主错误保留，遗留路径与 cleanup error 可恢复；不能删除外来目录 |
 | P1 | ECS/scene/render extract 仍存在多套 generation、World/DTO clone 与 per-view 重建路径 | Runtime03/07/08/10/11、Render04/07/12/17 | `2026-08-15-world-ecs-frame-extract-current-architecture-review.md`；静态 E2/E3 | 单一 commit/extract generation；稳定帧无 full clone/rebuild；F2/F4 像素和编辑行为不变 |
 | P1 | Render graph 以全量 `previous -> pass` 串行链、裸 handle、锁内 compile 和逐帧 lint 扫描限制并行并制造重复工作 | Render01/02/17、Runtime11 | `2026-08-15-render-graph-current-architecture-review.md`；源模型未实测 | versioned handles、编译锁外发布、可并行 ready width、稳定帧 lint allocation 为零；RenderDoc current MVP capture |
 | P1 | Editor jobs/gateway 与 Runtime TaskGraph 存在并行调度权威；callback/World lock、同步 wait 和终止 generation 不统一 | Editor01/12/14、Runtime06/10/11 | `performance/pending.md` editor jobs/gateway closures；静态 E2 | 一个 task authority、bounded lease/deadline、callback 锁外、F4 save/reopen 和 shutdown fault injection |
 | P2 | catalog/插件入口、source-shape tests、重复 DTO/兼容路径增加维护分支和 false-green 风险 | Plugin/ABI、Tooling、各最低 owner | 现有 review/pending 条目；未完成动态 parity | 删除前覆盖 feature/registration/reflection/ABI；行为/复杂度测试替代源码字符串测试 |
+| P1（静态、待复现） | 最后Graph owner消失后，accepted submission的弱pool失效；prelaunch与dispatcher runner spawn都可能在终态/retire补偿前unwind | Runtime11/Core：TaskPoolSubmission、CallbackDispatcher、JobScheduler与Scope的共同寿命契约 | [当前关闭阅读](2026-10-13-shutdown-ownership-current-audit.md)第8节；公开Graph Drop不等待，scope/node无强Graph或Drop补偿，保留handle的wait无graph失效出口。dispatcher callback catch不覆盖runner spawn。与CR-RUNTIME-TASKS-0001策略TODO分开待证，无动态复现 | 使用真实Graph/Scope、受控依赖与保留handle，验证observer delivery、dependent终态/queued retirement、实际join和timeout重试；确定两非取消policy契约后再选修复，不能只检查不崩溃 |
+
 
 ## 3. 阶段与进入条件
 
@@ -669,7 +671,7 @@ E 空闲实际观察为 `216464470016` 字节，35 GiB 门槛已满足，正式 
 
 ### 7.38 用户指定的 records 任务消息已写入，等待接收回执（2026-10-12 UTC）
 
-用户明确指定通过 `E:/Git/ZirconEngine/.jenkins/records` 留存消息，Root 已写入并读回核验[本任务消息](../../../.jenkins/records/engine-audit-20261009-01a12097-to-jenkins-01a0f6e1.md)：SHA256 `ccfeb8c1fe2e04209f8e4e878494ff54d437b136db065b8d9c1e9d8d539cf142`，5965 字节。接收方为 `codex://threads/01a0f6e1-e9a8-7b92-aed8-5220c71a9c43`，消息 ID 为 `engine-audit-20261009-01a12097-m1-handoff-20261012`。写入前再次核对六个当前源码叶及既有 outbox 正文的准确哈希；消息包含受管验证参数、实际执行三例的要求、配置 family 和物理 E 输出约束。该文件建立新的本地传递状态，取代 7.37 的“仅有未发送 outbox”状态。
+用户明确指定通过 `E:/Git/ZirconEngine/.jenkins/records` 留存消息，Root 已写入并读回核验[本任务原消息（现存归档）](../../../.jenkins/state/records-queue/archive/8cb75329f06f6fe219e1641ac3a7b0fb53135fd40b7f7a463d5deff9eb4452a6/engine-audit-20261009-01a12097-to-jenkins-01a0f6e1.md)：SHA256 `ccfeb8c1fe2e04209f8e4e878494ff54d437b136db065b8d9c1e9d8d539cf142`，5965 字节。接收方为 `codex://threads/01a0f6e1-e9a8-7b92-aed8-5220c71a9c43`，消息 ID 为 `engine-audit-20261009-01a12097-m1-handoff-20261012`。写入前再次核对六个当时源码叶及既有 outbox 正文的准确哈希；消息包含受管验证参数、实际执行三例的要求、配置 family 和物理 E 输出约束。该文件建立新的本地传递状态，取代 7.37 的“仅有未发送 outbox”状态。其后授权与外部归档状态见 7.41，不更改原消息字节。
 
 任务 artifacts.json 在创建消息前登记其 owner、路径、依赖、哈希和保留条件，当前登记为 revision 3，SHA256 `2620cc09b47cd2dad8086fea672f979dce7f6c885c507524b09c5f4030bc5313`，20140 字节。旧 revision 2 的精确 17374 字节另存于同 reports 目录的 `artifacts-registration-r2.json`，保留原 SHA256 `c7841e7e35e1c0645a0844104d375b083ff954e6c50c6b228803eca07a7634e5`；旧失败控制仍绑定该历史内容，不更改旧 approval/contract。本轮保存的是任务元数据与消息，没有源码副本、构建或采样产物。
 
@@ -720,3 +722,131 @@ Runtime preview/shipping main 的创建失败发生在 RuntimeEntryApp 构造前
 | `zircon_editor/src/ui/retained_host/app/callback_wiring.rs` | Sol 全文 1–26；只委派 host_shell/pane_surface | `e073eb0612312d3418810d8e8bf3405f7c97421afbe647f286180b49afb1501c` |
 
 本组 reader 已真实终态；有界未读项为 host rollback、Play 的 host_shell/pane_surface handler、runtime_shutdown、Factory 测试以及底层提交点故障映射。没有运行 unit/fault/product，也没有当前 DLL unload、性能或模块接受。本任务 records 目录仍只有发送消息，没有接收 ACK；六叶 M1 切片与其 Native 批次继续待验收，其他任务/历史证据保持，释放0字节，清理active。
+
+### 7.40 恢复责任、产品错误处理及当前路径复核（2026-10-13 UTC）
+
+本节归档上一组有界阅读，并区分随后共享 checkout 的变化。Root 当前观察 HEAD 为 `5a547d4e2727d27ddf99578f548efb7e6d19d915`；此前入口审查并不证明该提交或全树通过验证。部分 UI、资产和测试文件已迁移，Root 未执行这些迁移，也未回退其他会话内容。下表中的“复用”仅表示重新查找当前路径并确认字节哈希与实际阅读时一致；不同哈希另列本次真实阅读范围，不将文件哈希核对记作正文阅读。
+
+Play 的成功 lease、失败创建的 retained native owner、主 Editor Session 和 scene snapshot 有不同的关闭责任。已读 Factory 返回 `Result<lease, String>`，将 typed 创建错误的诊断投影为字符串；其十行测试只约束源码字符串，不能证明 native 恢复成功或调用不阻塞。已读失败 Enter 分支恢复 Shell Edit 后返回错误，没有把该创建失败 owner 转交 backend；Controller 的非 Playing poll 不变化，event pump 也没有仅因失败创建 pending 而重试的路径。该根因继续并入 CR-APP-ENTRY-0003，未新增重复 native 泄漏结论。
+
+Root 保留的后续契约方案是由 typed 创建失败携带 opaque recovery owner，交给 backend 持有并显式 retire；scene cleanup 和该 native owner 都达到终态后才能解除 pending，并允许下一次创建。恢复必须保留原创建线程和库生命周期，持续失败不得丢 owner。若仍保持 String 接口，必须有每次调用独立的 handoff 身份；共享 factory pending slot 不能在并发调用下配对错误。该方案尚未实施；Factory、App adapter、Embedded backend、Controller/report、菜单/停机消费者及两处产品 composition 需同一窗口迁移，真实 DLL、exact-once、线程和 quiescence 仍需动态验证。
+
+已读 pane callback 经 dispatcher 返回 effects/error；错误被投影到 status line，并按规则生成有限期 toast、提交 pending UI projection，不在该 handler 中关闭 host。当前复核确认这一 error 分支仍存在。Rc/RefCell callback 链没有显示任意线程转发，但框架的实际 callback 线程仍未验证；dispatcher 的最终命令映射与失败后恢复按钮是否可达也未闭合。UI toast 或 scene cleanup 都不能替代 native owner 的终态证据。
+
+Host activation rollback 已读链先关闭 runtime owner、清空资产投影并重启 watcher；全部 terminal 后才释放 admission guard，失败保留 RecoveryRequired 隔离。Welcome 正常关闭路径可以进入 workbench，但本次 rollback 叶没有显示 Welcome 恢复，上层错误处理仍未读。资产 deactivation 的 projection 来自 runtime generation，清空 projection 和发布空 catalog 不构成另一份项目权威，也不等于 worker quiescence。
+
+磁盘恢复的精确分支修正了后续验收设计：`RestoreOriginal` 只对 Active journal 回滚；AllCommitted、Cleanup 等阶段走清理并保留新目标。任一 rollback 错误必须保留证据；`recover_project_generation` 的 Ok 只说明恢复调用成功，不能据此宣布旧 generation 被还原。同 root 的候选提交若改变当前 active 对应磁盘，即使把 durability 判定移到 publication 前，旧 active 仍可能过期；最低 owner 必须隔离该 root 的新写入，恢复后重新对齐内存和磁盘。物理独立的 A→B 切换另验旧 A 未被扰动。
+
+`FailCommitPointSync` 的已读 test cfg seam 在真实 `record_commit_point` 返回后改写局部 outcome 为 PublishedWithoutSync；它没有把故障送入实际磁盘同步，也未在该位置修改 journal phase。现有测试的 deferred outcome、新目标与保留 journal 断言不能证明 Windows 同步失败或重启回滚。真实 PAM 一次性 prepared commit 故障和 journal phase 检查仍待执行，不以 manager-only helper 或现有 source guard 代替。
+
+当前 Root 已重新读取迁移后的 `resource_publication` 两个 commit 方法：`commit_files()?` 之后安装 source paths 并调用 project-state callback，再提交 resource reservation，没有 publication 前的 durability 分类。Luna 对当前 `assets/open_project.rs` 的 imports 和唯一生产方法 19–92 已读到终态：58–69 提交文件并安装项目与 watcher，随后发布 generation 和处理 watcher，90 行才执行 `ensure_durable`。该方法在错误返回前没有补偿上述 publication；根因顺序仍有当前静态依据，同 root 实际触发仍属待复现条件。当前 full-generation test helper 仍先安装 candidate 再 `ensure_durable`；恢复入口新增的 owner-lock 注释不改变 Active/AllCommitted 的分支。F1 保持只读。
+
+| 当前 checkout 叶 | 实际正文覆盖或复用范围 | SHA256 |
+|---|---|---|
+| `zircon_app/src/entry/entry_runner/editor/tests/play_session_factory.rs` | Sol 全文 1–10，当前同字节 | `c3783807dbb7dd4b7cbf61027929801b75ae794fe7d0a7e5523177872838170e` |
+| `zircon_editor/src/ui/retained/app/runtime_shutdown.rs` | Sol 全文 1–22，当前同字节 | `a14ae097ea2d8505fae70845e56c31d7b677ce7c370cf742980ac5075af7b481` |
+| `zircon_editor/src/ui/host/editor_host_event_controller/runtime_shutdown.rs` | Sol 全文 1–470，当前同字节 | `5535de63de8d1dba54a217e4a2cf0f6b9d5b4e70f2ba80ba8b2cc851ae99f758` |
+| `zircon_editor/src/core/play/embedded_backend/session_contract.rs` | Sol 全文 1–51，当前同字节 | `f12564bf867da40f06a18eb5eceeafd7bd51a439b36cd5ea6201123ba4058667` |
+| `zircon_editor/src/core/play/backend/report.rs` | Sol 全文 1–109，当前同字节 | `3c48a9c37d7cc6379acfead26b53a829e2f6d615c96a096416672bce67900cf4` |
+| `zircon_editor/src/core/play/controller/runtime_ownership.rs` | Sol 全文 1–230，当前同字节 | `2acf9f193a9c4e1cc195a95022a7a3c708c604f1ad1b7d26f901fb90334f4e5d` |
+| `zircon_editor/src/ui/host/editor_event_execution/menu_action.rs` | Sol 1–28、272–591、752–797，当前同字节 | `a61e0c3b93c0154c384f0f29a7502eff07fe8192a37c782f2c4c74798435bf68` |
+| `zircon_editor/src/ui/retained/app/callback_wiring/host_shell/runtime.rs` | Luna 全文 1–96，当前同字节 | `abe94b9ec52def1e76456a09c3a3bb1ba51c355c5a4eaef274d91201a8601a88` |
+| `zircon_editor/src/ui/retained/app/callback_wiring/pane_surface/pane_controls.rs` | Luna 全文 1–69，当前同字节 | `b43a2e3159a1f856acc74111586511fd232615a6dc399db6bc6c65dc4847f25a` |
+| `zircon_editor/src/ui/retained/app/pane_surface_actions/click.rs` | Luna 全文 1–146，当前同字节 | `65192c9851ce62c7175409c680faf5e5f3cc114023b057f0919465b996291ab3` |
+| `zircon_editor/src/ui/retained/app/pane_surface_actions/surface/control.rs` | Luna 全文 1–73，当前同字节 | `89eca410b575f123774fe6c9fb9e0b19ce90f1b78e8104fe3cdc8b1ef01e2764` |
+| `zircon_editor/src/ui/retained/app/host_lifecycle/recompute/viewport_surfaces.rs` | Luna 全文 1–47，当前同字节 | `538f599dc2df83d06a7510be3f507dc0c1d196dc5377b7cf47b6a385345cafee` |
+| `zircon_editor/src/ui/host/project_access.rs` | Luna 21–75、121–159、483–626，当前同字节 | `38def9cd56fd366d94f63754d43b279e7d048d9a5976388f6b793e44af0705eb` |
+| `zircon_editor/src/ui/host/startup/welcome_page.rs` | Luna 全文 1–49，当前同字节 | `9709ce402bc351b7005bfec1dda37ac664235819884808965be9f49f879c4b0e` |
+| `zircon_editor/src/ui/host/assets/manager/assets/project_deactivation.rs` | Luna 全文 1–71，当前同字节 | `15b6674b4c513751fe776b8a0e94a413cdb3e269fd3a502903f1953e366ec2a7` |
+| `zircon_runtime/crates/zr_resource/src/io/transaction/recovery/policy.rs` | Luna 全文 1–35，当前同字节 | `d18c059c3bb7e880619e2ae5b55d54e5280c1ee0fdbee829e561ffd8eb516cc9` |
+| `zircon_runtime/crates/zr_resource/src/io/transaction/recovery/replay.rs` | Luna 全文 1–120，当前同字节 | `02bae8bb548e595db8b90d6118780182bfc135a7f01a49ec02b7b93a05399673` |
+| `zircon_runtime/crates/zr_resource/src/io/transaction/schema.rs` | Sol 全文 1–380，当前同字节 | `27be80a3a195335e391119a1deefa3f352ab6d5ea26e1255fd0442c677d55eb8` |
+| `zircon_runtime/crates/zr_resource/src/io/transaction/commit.rs` | Sol 1–60、63–157、159–185、219–255、257–308，当前同字节 | `1b8bf9eaee25b9ff258e0cccac90a33670dc9b96b3391505372d4367bf2df6c8` |
+| `zircon_runtime/crates/zr_resource/src/io/transaction/engine.rs` | Sol 1–284，当前同字节 | `66e449587bc86a0e50c8e39f2fd1182689accd02f7b34ede2ac6ebb9fe5739c3` |
+| `zircon_runtime/src/asset/pipeline/manager/assets/resource_publication.rs` | Root 当前 200–230、450–505；历史全读不提升当前全读 | `2dcc849548979429c4ae6b7b01474fab17c8c9fe5d6e617e025b6198e4ac2967` |
+| `zircon_runtime/src/asset/pipeline/manager/assets/open_project.rs` | Luna 当前 1–93，imports 与唯一方法 19–92 | `36a53891b3023454bebaea32f4f6f3b827c341091128daba01e3862ca83b8c89` |
+| `zircon_runtime/src/asset/project/manager/durable_transaction.rs` | Root 当前 65–94、171–180、265–303、310–335 | `01804a739e64a93d6a9df48d068e72b56c5803921719083d60393279cca29f3f` |
+| `zircon_runtime/src/asset/project/manager/scan_and_import/full_generation.rs` | Root 当前 78–112、402–468、548–565、676–756 | `a1ed02e88c6015f72cd1da34e3fc3f14e99cac068618723841cacb73461c0222` |
+| `zircon_runtime/crates/zr_resource/src/io/transaction/recovery/mod.rs` | Root 当前全文 1–84 | `c6a87c9eccee8db1624fa34933bb46729203d727f97a95cdebcfe82678be1d70` |
+| `zircon_editor/src/ui/retained/app/callback_wiring/host_shell.rs` | Root 当前全文 1–26 | `129db901f78b77a036d372622ee9896f3b29f370af005a0898f0c5c81d28e418` |
+| `zircon_editor/src/ui/retained/app/callback_wiring/pane_surface.rs` | Root 当前全文 1–40 | `73c88964ba45e0bb8de0f44488f8eb6eb38d084ea6c13fa0d8e1ae707af82f76` |
+| `zircon_editor/src/ui/retained/app/host_lifecycle/dispatch_effects.rs` | Root 当前 25–95 | `bf184dbef0186afec3c1c62da0c54f3eba24f37ba7fa090fcc61a6dfb36c2ab2` |
+| `zircon_editor/src/ui/editor_host_event_controller/runtime_event_consumers.rs` | Root 当前 140–215 | `4d92f715182b984f92c762e1d6f73590176df0d905296e15963a50322cda164f` |
+
+历史还读到 editor_manager 150–165、editor_ui_host 31–72、旧 host/mod 1–40、旧 default asset-manager mod 1–114、controller 322–369 和 engine/tests/cases 740–793；其中旧 mod 与 cases 已变化，未作为本轮当前覆盖。上述内容与既有 7.39 覆盖共同保存，不把 include_str 测试、历史分支或目前未读的 discovery/evidence/validation/record_commit_point 算作故障执行。当前 Native、产品、性能、F1 实施和整模块接受均未增加；保留已登记产物，释放 0 字节，任务和清理保持 active。
+
+### 7.41 当前路径切片完成格式与静态检查，Jenkins 补充消息已核验（2026-10-13 UTC）
+
+[补充消息](../../../.jenkins/records/engine-audit-20261009-01a12097-current-source-r2-to-jenkins-01a0f6e1.md)已写入用户指定目录并读回核验，SHA256 `e1538d9546b8150c6561e72ab69c29a5288addd459b7a2c7c2f7cbcb473c6781`，10122 B。消息复用原任务、Root/Jenkins chat 和合法 validation 授权，要求正常入口执行当前受影响批次；不新建授权申请、借 actor 或重发旧 job。Root 在最终登记时重新核对六个消息指纹，全部匹配，观察 HEAD 仍为 `5a547d4e2727d27ddf99578f548efb7e6d19d915`；Root 无 Git 写操作。
+
+原消息与[授权回复](../../../.jenkins/state/records-queue/archive/8cb75329f06f6fe219e1641ac3a7b0fb53135fd40b7f7a463d5deff9eb4452a6/engine-audit-20261009-01a12097-response-01a0f6e1.json)均由外部 records queue 归档，Root 再次读取确认原字节未变。回复 SHA256 `29e49b61bcc39a06ce1a83b5131c1456b7509aa6c7f1b55c2af2b47c23c6ada7`，7944 B，其 completed 属授权操作，`handoffConsumed=false` 且 build/tests pending。grant 的 SHA256 为 `dcc732f63066ca2381bd9230448a675a188ff133eaedf686ea19286e9b9ba00c`，session 为 `engine-audit-01a12097-validation-20261012`、operation 为 `auth-engine-audit-scoped-validation-20261012`。这项证据替代此前“未收到合法授权回复”的当前状态；新补充消息 ACK、正式 request/attempt 与 native 终态仍待返回，归档不算编译。
+
+三个 Input 消费者迁到 `zircon_runtime/src/tests/contracts/structure/test_size/input_manager.rs`、`contracts/input_stack/inventory/behavior_anchors.rs`、`contracts/input_stack/contracts.rs`，内容分别仍为 `5ba5dfe8...`、`fbd5a18c...`、`e889e780...`。迁移属于共享 checkout 现有修改，Root 没有恢复旧路径。原 grant 仍列旧路径，已明确要求合法 owner 更新范围。App fixture 的一处六参数调用经 Root 按 rustfmt 合并，实际 SHA256 变为 `0fd942d28d86219f5f9575024c30dacbae710f1f20d06fc2b794c54fc177e80a`、26105 B、712行；该修改仅格式变化，旧 `f263bc47...` 作为历史保留。
+
+直接安装的 stable rustfmt 1.8.0（SHA256 `0491ddaa5d29cbbfc85c1a112358b8f2c7306a7d2a6d8acc81f8829025844a67`）对六个当前路径的 `--check --edition 2021` terminal exit 0，检查前后源码不变。第一次检查定位到 fixture 排版；修正后一次重试遇到三个旧路径已迁移，随后使用实际路径通过。`zircon-change-guard` v2 patch/git 对相同六叶、base `be024246003fe3309e33302c39641c2d408b5507` terminal exit 0，errors/warnings/suppressed均0，patchDigest `a31780f2ff3aad91350a6be348f26dd42a855c53c9d4134df34bfc621030d407`。该比较包含其他会话的路径迁移，不是 Root 独占 patch 或 Rust 类型/行为证据。
+
+三路 Luna 只读复核已终态：budget 消费者实际清单23=5/12/2/4，五个父子文件行数19/303/759/86/494，实际 focus 名仍存在；其测试只锁总数，未逐文件锁分布。inventory 的20个锚点全对应实际fn，全文46行；contracts 的六个静态字符串和九个 include 路径已核对，真实 loaded-Level 动态行为仍待执行。budget 与 contracts 的终态再次哈希命令未成功启动，不能声称助手前后哈希验证；Root 最终六叶实际哈希重读匹配提供本轮当前 pin。实际测试过滤器、App三例及完整 `dynamic-api,platform-winit` 条件已写入消息，要求返回实际编入/执行数量。
+
+所选 driver digest 仍为 `121af96cb9d4e5dce3f3e830373203952324f380aa4b0ed9493f16ee783d4ecf`，cargo/runtime acceptance均false。已有 runner 阅读显示 sourceView选择捕获源，但 executionRoot/Cargo cwd另设；Sol 当前核验 `paths.py` 117–130，namespace为 `<ApprovedBuildRoot.path>/zircon-local/zircon-jenkins`，故选中物理E根时位于Root grant内，撤回仅据目录字符串怀疑其必在grant外的候选判断。实际选中根/TMP和 materialize_source 正文尚未核验，读取在启动前遭 spawn_ready 拒绝；不据方法名断言复制。本次未提交 job，消息要求 owner 提供实际checkout执行能力、物理输出和完整 engine/external compiler seal，再走已授权的普通入口。
+
+创建消息前 artifacts.json revision4 已登记路径、owner、依赖和保留条件；精确历史revision3另存 `artifacts-registration-r3.json`，SHA256 `2620cc09b47cd2dad8086fea672f979dce7f6c885c507524b09c5f4030bc5313`，20140 B。最终登记 SHA256 `fd1906a2f282b66958a2fe1cfcba5af74c83e75e20db5695d2fa4fd5dd6b83ec`，27117 B；[传递状态](../../../.codex/outbox/engine-audit-20261009-01a12097/delivery-state.json) SHA256 `8c5d17da53f916a3c11ef24be82d61d125a088803f23b2345e3528b26ed728f5`，9011 B。原消息 posting timestamp 已保留为 historical 字段，新消息文件创建时间为2026-10-13T03:52:30.892847Z，独立于读回核验时间。最终元数据命令已按原 live session 等到 exit0/EOF，未重启未知进程。
+
+E盘最近观察195392757760 B空闲，35GiB门槛满足但launch重查。本轮未创建构建、采样或源码副本，Root释放0 B；供给、历史元数据/失败证据、共享cache和未知归属保留。当前切片Native命令/测试=0，00、F0–F5、捕获能力、前后各五次性能、Physics供给与整模块接受继续开放，已验收账本不增，任务及清理active。后续优先完成正常入口的当前编译和三例回归，再依最低共享错误继续实施。
+
+### 7.42 已确认所选 provider 的执行目录缺口，补充 capability 交接（2026-10-13 UTC）
+
+7.41 的 materialize_source 正文未读状态已由当前实际阅读替代：Sol 全读方法149–271后，Root也重读相同范围并核对前后字节一致。`source_preparation.py` SHA256 为 `e9f8895ebfb539d3133fca472243ca67e957265eedfbfb006a0b4c8353e94389`，17111 B；所在胶囊为 `ebf37f0ce8b1d86ee00f647f58b5337f49461b5ca35db8e8d58521c28ea5d459`。Root同期重新核对 driver、runner 与 paths.py，均仍匹配7.41绑定的源状态。
+
+该方法168行验证入参source_path，179–186行组装池内目标；210–218行在digest和inventory相符时复用该池，230–244行对池内相对路径更新，259–269行记录准备状态并返回physicalPath。结合已读runner的1717–1718行execution_root、1767–1778行调用和1806行Cargo cwd，当前所选路线实际编译准备池，没有直接编译`E:/Git/ZirconEngine`。`sourceView=checkout`只选择捕获输入。底层`pools._atomic_copy`未读，尚未判断复制字节还是链接；执行目录缺口的结论不依赖该区别。Root没有执行此路线或生成源码副本。
+
+[capability补充消息](../../../.jenkins/records/engine-audit-20261009-01a12097-execution-capability-r3-to-jenkins-01a0f6e1.md)已按用户授权写入records并回读核验，SHA256 `ef4f696fe9224d57d7bef6b03208b632a3585bb834a08fe679f84a26e07c85ea`，6358 B，创建时间2026-10-13T04:42:47.949725Z。原R2消息保持原字节；本消息补充已核实的能力差异，复用原合法validation授权并要求owner更新三个实际消费者路径，不新建授权申请或借用身份。接收确认、普通入口identity、实际checkout能力与正式request/attempt仍待返回。
+
+Root/Sol的接入建议是由Jenkins owner在维护源中提供明确的实际checkout执行模式，保留输入选择语义，跳过源码对象和源码树落盘，同时完成元数据指纹、完整engine/external compiler seal、实际输入稳定性和输出路径核验；变更须按正常流程形成新胶囊与digest，既有安装胶囊保持。实际Cargo cwd、授权principal/session、工具链与配置、全部物理输出、进程终态及正式receipt必须彼此对应。普通入口无法保证稳定输入时保留待执行，不退回源码副本或私有local Cargo。namespace拼接已核对，选中物理根、TMP/TEMP和子进程输出仍需launch检查。
+
+创建补充消息前，artifacts.json revision5已登记准确路径、归属、依赖和保留条件；原revision4元数据按精确27117 B保留在`E:/cargo-targets/zircon-local/reports/engine-audit-20261009-01a12097/artifacts-registration-r4.json`，SHA256 `fd1906a2f282b66958a2fe1cfcba5af74c83e75e20db5695d2fa4fd5dd6b83ec`。本轮观察的可变registry为`bf7a72f7b0f40e999fb9a040f97faba4fa3de9aa4eff60175aef5dd63bdd86d3`／31766 B，传递状态为`2aaf0b48296d92806699b104b961fda5e3a1d5f6aabcffdea50b25a89fc54077`／10546 B；其中actualCheckoutCapability.verified继续false，独立字段只确认正文阅读和所选cwd缺口，不表示direct模式通过。
+
+当前暴露工具清单中没有RenderDoc、Tracy、GPU timestamp或WPR调用入口；这是本聊天工具面的观察，不能据此断言已安装程序或外部服务失效，实际连接与产品捕获仍未验收。三路Luna已转到生产shutdown、TaskGraph和App终止/retained-owner链的限定只读审查，按实际正文覆盖记录，不以新的符号清单增加已验收模块。本轮Native命令/测试、产品与性能样本仍为0，已验收账本不增，实际释放0 B，任务及清理active。
+
+### 7.43 两份records回复已关联，纠正management安装指针与原请求状态（2026-10-13 UTC）
+
+Root实际读回[R2回复](../../../.jenkins/records/engine-audit-20261009-01a12097-current-source-r2-response-01a0f6e1.json)和[R3回复](../../../.jenkins/records/engine-audit-20261009-01a12097-execution-capability-r3-response-01a0f6e1.json)，前后字节一致，SHA256分别为`1495c710cf4b614f1fe470dfe2081876edac662c5370634498c20d669c67f8b7`／22014 B、`9c23edc56abe7ab79a73aee677765d9097c205c62205fa2f49fa498d3593f6e7`／15191 B。task、inReplyTo、messagePin都匹配Root已发原字节。两份补充消息已有records关联回复，旧ACK pending仅保留为历史；回复均`parentIntakeAccepted=true`、`intakeAccepted=false`、`formalAcceptance=false`，没有新增native request或测试执行。文件关联不等于直接chat工具送达或原生接纳。
+
+Root此前只复核driver与旧胶囊文件，没有核对management安装指针，错误地把`ebf37f0c...`称为当前；这项归属已纠正，原R3消息按历史字节保留。当前`management/installed.json`实际SHA256为`ae5360fb034c00b9a5cc3152fa5e817b201294f2d2cb230a6590f21b0ad24a0b`／515 B，选择胶囊`7936cd765025fd4f56347f418238f1a06eca50c8bb59500e4fcaa23a91027123`，driver仍为`121af96c...`。安装指针的formal/m8 acceptance仍false，不能以相同driver digest推定相同management实现。
+
+Root重新读当前runner的1972–1982、2114–2129、2188–2201、2749–2762、2805–2818、2836–2848，以及当前source_preparation的283–308、378–391，并核验前后指纹。runner为`1fdced599ba866d80660238962ac26434682715733ecb391246dbe9171142211`／212747 B／3037行，preparation为`60957489b67488d364d0b7b44d436feb4e753e0709129980a51471dd5dc7d98e`／26753 B／435行。单命令与batch分别在2755、1977行设pool `inputs/source`，在2810、2121行materialize，再在2843、2195行作为实际native cwd执行；当前仍有直接checkout能力缺口。旧胶囊正文证据保持历史范围，不冒充当前全读。回复另报告driver内`pools.py`166–179为字节复制，Root未重读该callee，仅按owner证据归属，不新增执行结论。
+
+回复保留原`engine-audit-20261012-app-compile-a1`和`engine-audit-20261012-app-cleanup-a1`引用、原receiver build31及此前失败历史；owner观察两native operation记录均不存在，formal端口未连接，terminal/EOF未证明，并列出7个入口/receiver/followup指纹差异。原请求引用不等于已运行Cargo，Root没有重发、换ID、重启服务、修改私有状态或终止未知进程。三迁移路径grant仍旧，合法identity、完整compiler seal、实际owner的无写入时段、provider能力和原runtime正常恢复继续开放。本通知及六路径validation授权没有新增provider维护或发布权限。
+
+可变传递状态和registry已按实际回复更新：本轮观察SHA256为`62b51b62dcba8ed1fc918cfc538b48fc635e02e2ad5ae71ea76e74cd11b0bf0b`／16987 B与`c8950c3d24b8a48b450f565bb0d5c3b0d070c82ccefa5f8e850659399cc0b01c`／43036 B，revision5；两回复作为外部owner产物登记保留，没有声明Root创建、预登记或删除归属。当前Root native命令/测试、采样=0，所有MVP/模块/产品/性能接受未增加，已登记供给及失败/共享/未知产物保留，Root释放0 B，任务及清理active。
+
+### 7.44 当前关闭责任图与正文覆盖已形成，追加范围已独立复核（2026-10-13 UTC）
+
+[关闭责任与源码阅读记录](2026-10-13-shutdown-ownership-current-audit.md)已写入既有performance计划。初次46个生产叶全文/8856行、3个部分叶、2个测试叶全文/383行的记录，由独立Luna核对51个完整文件pin，未发现阻断；初版文档为`56b9689d277e493d332b09d70e49d983c514b0123be932becebaa40a36374997`／21839 B／167行。Root落实图示建议，将未追完的App/interface边界改为虚线，并单列创建失败内部owner。后续11个生产叶全文和3个新增部分叶另表登记，累积57个生产叶全文/11104行、6个部分叶/624个不重复正文行。追加切片`36c4da3331946d239b432fd1f851d5a3c4e57921295e44dccd0b4898feb64dd0`／30841 B／214行已由独立Luna复核：65个源码pin、阅读计数与owner边界匹配，无阻断finding；Root独立结构核验相同计数。测试仍为正文阅读，当前package、模块和全引擎均未验收。后续正文需另记范围与独立复核，不能沿用本切片的结论。
+
+已核实Core停用的Stopping→admission关闭→guard drain→module cleanup→unload→锁外retire顺序；cleanup helper仅委托trait，Asset默认cleanup不主动停watcher。watcher worker退出和ServiceEntry失效细节仍未读，不把Stopping ledger等同所有原实例保留。ABI actor使用同一Core pool，一个owner worker；FFI只有成功才发布handle。failed-startup未完成清理会abort，普通catch_unwind不能转为status；已发布handle的destroy失败则保留原slot/owner重试。slot没有已证generation字段，code-owner Arc也不证明实际DLL保活。
+
+TaskGraph的owner-lifetime候选缩小到accepted work/runner的共同submission窗口：Node/handle无graph失效终态补偿，dispatcher逐callback catch不包runner spawn，terminal与observer delivery/Scope retire分开。已找回CR-RUNTIME-TASKS-0001准确历史JSONL，只是两非取消policy保证的open TODO；候选未并入该根因，尚无真实复现或实施。Windows readiness探测不消费或join线程，其他平台is_finished不能保证TLS阻塞时的硬期限；实际日志worker及外层调用仍待覆盖。
+
+本轮E盘只读观察约173.976 GiB可用，已解除此前35 GiB磁盘门槛。重新读回management安装指针仍为7.43的`ae5360fb...`／515 B，选择7936cd76胶囊；实际checkout能力和原请求正常恢复仍开放，没有新job或原生执行。源文档创建前已登记同任务artifact manifest revision6，历史指纹`fc88d214...`／44565 B；本轮复用manifest，未复制源码、未增构建/采样目录或临时脚本，Root释放0 B。goal/清理active，已验收账本不增。
+
+### 7.45 磁盘与阅读状态已通过records补充，最新provider实现待核（2026-10-13 UTC）
+
+[R4补充消息](../../../.jenkins/records/engine-audit-20261009-01a12097-current-state-r4-to-jenkins-01a0f6e1.md)在artifact manifest revision7预登记后创建，Root读回SHA256 `3ebaf4b7d7c0a6a60d0fd8fabaacf2c7909b0cc59478ff30b437bbe945fc6d4f`／5507 B；六个App/Input当前叶再次逐项匹配R2。消息创建时E盘约168.887 GiB可用，35 GiB门槛满足；保留原a1 compile/cleanup及receiver build31引用，没有新job、请求ID或private Cargo。当前R4关联回复尚待观察，文件落地不等于直接chat送达或native接纳。manifest本次读回`69283a7e...`／56468 B，传递状态`2577509c...`／18192 B；原R2/R3及两回复原字节保留。
+
+最新installed指针为`3fc149fbb3e4b5497154dbdc910bfbc6b0786e5a27af9d282e7e816c1e26990e`／515 B，选择`84d4483275346a28ce92551b07101a3b51373720ae03afa6b62f6c1d88471f15`胶囊，formal acceptance仍false。7.43/7.44的7936实现与缺口仅绑定当时版本；Sol正在只读新selected的single/batch执行路径，当前不能断言它支持或不支持实际checkout。三迁移scope、合法identity、完整input seal、无写入时段、真实target/temp与原runtime正常恢复继续由对应owner对账，不因安装指针变化自动通过。
+
+M1已核已安装RenderDoc 1.44、WPR/WPA文件；仓库config前后pin为`b31490a9954ca9cc2c89d006ef98e8b019b2ea1c64114f03500db9c09af031d9`／10583 B，Python splitlines计211行（旧212计数含尾空行）。安全解析的本地`mcp_servers.renderdoc`仅`enabled=false`，没有command/transport/URL；当前工具metadata未暴露RenderDoc/Tracy入口，未尝试连接/捕获/采样，不将此解释为已安装程序失效。Tracy准确路径仍待既有资料；没有修改Root配置、权限或启动服务。
+
+文档结构核验发现的10个pending旧归档href已改为实际`../_archive/performance/01/`目标，未更改历史验收内容。当前flow另25个历史绝对产物链接再次逐个FileInfo得到FileNotFoundError（winerror3），目标不在；其余历史链接有实物，未统一删除或恢复。缺失25项保留原目的地和历史身份，不能当当前通过证据；整flow链接检查尚未通过，仅当前新增链接和已修目标作局部核验。缺失历史证据不等于Root清理过文件，本轮实际删除/释放0 B，供给/必要失败/共享/未知产物保留。当前native编译/测试、产品、性能及模块接受未增，goal与清理active。
+
+### 7.46 R4监视器回复、79-pin静态复核与公开执行入口边界（2026-10-13 UTC）
+
+[R4监视器回复](../../../.jenkins/records/engine-audit-20261009-01a12097-current-state-r4-to-jenkins-01a0f6e1.monitor-response-20261013T102109Z.json)已按task、message ID及R4的SHA/字节数关联，回复SHA256 `ad9467da675cdcf6232c8d554cb1a73020a3ebc71f0a28ce2ff0b3b9aa59d898`／10102 B。状态为`prepared-not-submitted-public-entry-pin-changed`；intake、native、formal及product均false，没有新请求或Cargo终态。这是records监视器回复，尚无指定Jenkins聊天的ACK或直接送达证据。7.45的“尚待观察”只记录R4创建时切片；原消息字节与原a1请求、attempt及receiver历史保持不变。
+
+Sol已读取84d44832胶囊的single与batch正文：二者都固定`execution_root=target.parent/inputs/source`，分别在runner 3135及2481/2487–2488用该准备区作native cwd；553–560的sourceView=checkout仅选择输入。materialize 283–412仍委派准备manifest/更新，底层copy/link callee未读；未运行这条路径或创建源码副本。runner pin `2dd91b66...`／232228 B/3331行，source preparation `42f8c8cd...`／27188 B/435行，与回复中的selected版本一致。此次回复另记录公共entry期望`81e20810...`而实际`f706924d...`，因此原请求仍未提交；正常tool owner需对账入口、driver/runtime和live job，Root没有repin、重装、重启、私有grant或新job。
+
+公开`tools/dev/local_cargo.py` main 490–524现已只读，pin `e9259f185e8af0c9b344fa329288dc124b1ac52c99c9d0cbb3065ec9befb5083`／29471 B/528行；wrapper全文pin `09be8665...`／4158 B/72行。main 507–509拒绝independent/evidence参数，521–524将异常投影pending/exit2；普通路径510–518仍交Jenkins。此为源码入口能力证据，未执行CLI或产生一次native失败。当前AGENTS的独立本地证据概述与实现不一致；未核helper外部/反射消费者，不能把`_run_with_evidence`称为全局无用或删除。Skill的本地例外要求不会创造可达入口，不申请一个当前入口无法执行的例外，也不调用私有helper作fallback。
+
+[当前关闭阅读](2026-10-13-shutdown-ownership-current-audit.md)的282行正文切片`a66f69fb...`／42394 B已由三Luna按App、资产/Core、Graph/fixture范围独立复核，无阻断；Root逐项metadata核对79个唯一source pin（80表行），累积68生产全文/14238行、7部分/969唯一正文行、4测试全文/1037行。图收窄App RuntimeSession/Library owner，已读gateway范围及真实PAM安装/partial-startup验收前提的文字切片`9e30646a...`／42905 B也经三Luna聚焦复核无阻断；最终`2ddad7fb...`／43064 B仅登记这一复核终态，生产正文与计数不变。真实watcher、active Graph Drop、App退出与真DLL行为继续待证；后续正文补读另记范围，当前无生产修复、测试执行或动态验收增量。
+
+artifact registry revision8已关联外部monitor回复及84d实现证据，保留历史7936与R4创建切片；没有指定recipient ACK或native接纳。35 GiB磁盘门槛在R4创建时满足，执行前仍需新观察和物理输出核验。原scope三迁移路径、完整compiler seal、无source写入时段及原请求正常恢复仍开放。10个pending归档href已核实；25个缺失历史绝对产物链接仍开放，未删除或重建。当前native/产品/性能/模块验收不增；Root删除/释放0 B，自有本轮读取/整合命令已terminal，供给/必要失败/共享/未知产物保留，goal与清理active。

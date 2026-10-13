@@ -3,7 +3,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
 use super::binary::{decode_binary_asset, encode_binary_asset, AnimationBinaryAssetKind};
-use super::error::AnimationAssetResult;
+use super::error::{AnimationAssetError, AnimationAssetResult};
 use crate::core::math::Real;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -39,7 +39,9 @@ impl<'de> Deserialize<'de> for AnimationSkeletonAsset {
             name: document.name,
             bones: document.bones,
         };
-        asset.validate_hierarchy().map_err(serde::de::Error::custom)?;
+        asset
+            .validate_hierarchy()
+            .map_err(serde::de::Error::custom)?;
         Ok(asset)
     }
 }
@@ -110,3 +112,7 @@ impl AnimationSkeletonAsset {
 #[cfg(test)]
 #[path = "../../../animation/asset/skeleton/tests/borrowed_encoding.rs"]
 mod borrowed_encoding_tests;
+
+#[cfg(test)]
+#[path = "../../../animation/asset/skeleton/tests/hierarchy_validation.rs"]
+mod hierarchy_validation_tests;

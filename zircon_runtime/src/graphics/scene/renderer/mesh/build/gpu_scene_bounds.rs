@@ -25,12 +25,7 @@ pub(super) fn project_local_bounds_for_gpu_scene(
     local_bounds: RenderMeshBounds,
     hzb_bounds_are_temporally_stable: bool,
 ) -> GpuSceneLocalBounds {
-    let bounds_are_finite = local_bounds
-        .center
-        .iter()
-        .all(|component| component.is_finite())
-        && local_bounds.radius.is_finite()
-        && local_bounds.radius >= 0.0;
+    let bounds_are_finite = local_bounds.is_finite();
     GpuSceneLocalBounds {
         center: if bounds_are_finite {
             local_bounds.center

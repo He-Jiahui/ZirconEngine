@@ -2,7 +2,9 @@ use std::fmt::Write as _;
 use std::hint::black_box;
 use std::time::Instant;
 
-use super::{format_u32_list, u32_list_capacity};
+use crate::asset::VirtualGeometryClusterPageHeaderAsset;
+
+use super::{format_u32_list, u32_list_capacity, write_page};
 
 const SAMPLE_PAIRS: usize = 21;
 const LISTS_PER_SAMPLE: usize = 1_024;
@@ -26,6 +28,29 @@ fn optimization_batch_20260826fp_runtime211_inspection_list_reserves_u32_upper_b
     assert!(source.contains("const MAX_U32_DECIMAL_DIGITS: usize = 10;"));
     assert!(!source.contains("let mut formatted = String::from(\"[\");"));
 }
+
+#[test]
+fn malformed_page_item_count_is_bounded_by_payload_words() {
+    let header = VirtualGeometryClusterPageHeaderAsset {
+        page_id: 17,
+        ..VirtualGeometryClusterPageHeaderAsset::default()
+    };
+    let mut payload = vec![0; PAYLOAD_HEADER_BYTES];
+    payload[PAYLOAD_ITEM_COUNT_OFFSET..PAYLOAD_ITEM_COUNT_OFFSET + 4]
+        .copy_from_slice(&u32::MAX.to_le_bytes());
+    let mut dump = String::new();
+
+    write_page(&mut dump, &header, Some(&payload));
+
+    assert!(dump.contains("item_count=4294967295"));
+    assert!(dump.contains(
+        "payload_items page_id=17 status=truncated declared_count=4294967295 available_count=0"
+    ));
+    assert!(!dump.contains("payload_item page_id=17 item_index="));
+}
+
+const PAYLOAD_HEADER_BYTES: usize = 7 * 4;
+const PAYLOAD_ITEM_COUNT_OFFSET: usize = 6 * 4;
 
 #[test]
 #[ignore = "managed Windows release performance evidence"]

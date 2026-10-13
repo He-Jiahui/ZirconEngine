@@ -1,6 +1,6 @@
 # Runtime87 Asset Reference P0 Progress
 
-Plan: `docs/plans/optimize/zircon_runtime/87-runtime-asset-reference-identity-locator-guid-subasset-redirector-rename-move-resolution-repair-migration-product-integration-current-source-review.md`
+Plan: `docs/plans/optimize/zircon_runtime/87-runtime-asset-reference-identity-locator-guid-subasset-redirector-rename-move-resolution-repair-migration.md`
 
 Status: `in_progress / implementation_and_static_validation_complete / managed_runtime_validation_running`
 

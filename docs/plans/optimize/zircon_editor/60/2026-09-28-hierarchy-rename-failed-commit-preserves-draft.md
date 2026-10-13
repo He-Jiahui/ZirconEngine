@@ -10,7 +10,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/tests/hierarchy_rename.rs
   - zircon_editor/src/ui/retained_host/app/tests/mod.rs
 plan_sources:
-  - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world.md
 frozen_predecessor_manifest: .codex/state/session-coordinator/async-validation-batches/2026-09-28-astra-editor-wave-source-manifest.json
 frozen_predecessor_manifest_sha256: 226787c74a8dd41af1cdddaa6e2097c9c3e2579c2211f3e3f623937130c1aeda
 preimage_sha256:

@@ -97,11 +97,13 @@ fn normalized_float_bits(value: f32) -> u32 {
 
 /// Stack semantics for nested clipping during render extraction.
 #[derive(Clone, Debug, Default, PartialEq)]
+#[cfg(test)]
 pub(super) struct UiClipStack {
     states: UiBatchClipStates,
     stack: Vec<UiClipState>,
 }
 
+#[cfg(test)]
 impl UiClipStack {
     pub(super) fn push(&mut self, requested: UiClipState) -> UiClipState {
         let effective = self
@@ -129,11 +131,13 @@ impl UiClipStack {
         self.resolve_linear(clip)
     }
 
+    #[cfg(test)]
     fn resolve_linear(&self, clip: &UiClipState) -> Option<&UiClipState> {
         self.states.states.iter().find(|state| *state == clip)
     }
 }
 
+#[cfg(test)]
 fn intersect_scissors(parent: &UiClipState, child: &UiClipState) -> Option<UiClipState> {
     // 只有矩形 Scissor 可在这里求交；其他裁剪模式继续保留请求状态。
     if parent.mode != UiClipMode::Scissor || child.mode != UiClipMode::Scissor {

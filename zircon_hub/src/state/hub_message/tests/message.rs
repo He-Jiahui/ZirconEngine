@@ -28,3 +28,11 @@ fn structured_message_renders_template_parameters() {
         "已打开 C:/Projects/Game"
     );
 }
+
+#[test]
+fn template_parameters_are_not_reinterpreted_as_later_placeholders() {
+    assert_eq!(
+        render_template("{0} then {1}", &["literal {1}".into(), "selected".into()]),
+        "literal {1} then selected"
+    );
+}

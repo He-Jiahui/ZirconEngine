@@ -39,6 +39,9 @@ pub(in crate::plugin::extension_registry) use system_registration::SystemRegistr
 
 // 将包或功能标识映射到约定的运行时模块 owner；调用方须传裸 plugin id，不能重复附加后缀。
 fn runtime_owner_key(plugin_id: &str) -> String {
+    if plugin_id.ends_with(".runtime") {
+        return plugin_id.to_owned();
+    }
     let capacity = plugin_id.len() + ".runtime".len();
     let mut owner = String::with_capacity(capacity);
     owner.push_str(plugin_id);

@@ -231,6 +231,7 @@ pub enum ReliableDatagramSendStatus {
     Queued,
     Fragmented,
     PayloadTooLarge,
+    SequenceWindowFull,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

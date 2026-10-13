@@ -6,7 +6,7 @@ scope:
 status: static_complete_dynamic_pending
 source_fingerprint: 887ffbf10a7a8a2fa674c8c4dee1737291fceab3f4fb73f0cc760831395d2e7d
 canonical_owners:
-  - docs/plans/optimize/zircon_runtime/99q-runtime-platform-host-window-registry-monitor-display-event-loop-application-lifecycle-surface-command-product-integration-current-source-review.md
+  - docs/plans/optimize/zircon_runtime/99q-runtime-platform-host-window-registry-monitor-display-event-loop-application-lifecycle-surface-command.md
   - docs/plans/optimize/zircon_runtime/45-preference-settings-scope-storage-overlay-bounded-io-generation-fence-durability-migration-multi-process-product-integration-review.md
 references:
   - dev/UnrealEngine/Engine/Source/Runtime/ApplicationCore/Public/GenericPlatform/GenericApplication.h

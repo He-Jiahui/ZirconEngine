@@ -329,6 +329,74 @@ fn availability_projection_registration_reports_filter_and_deduplicate_providers
 }
 
 #[test]
+fn failed_registration_and_deprecated_external_provider_do_not_satisfy_required_selection() {
+    let deprecated = descriptor_with_maturity(20, PluginMaturity::Deprecated);
+    let mut failed_registration = RuntimePluginRegistrationReport::from_plugin(&descriptor(21));
+    failed_registration
+        .diagnostics
+        .push("registration failed".into());
+    let descriptors = [deprecated, descriptor(21)];
+    let profile = RuntimeProfileDescriptor::new(
+        RuntimeProfileId::Dev,
+        "invalid providers",
+        RuntimeTargetMode::ClientRuntime,
+    )
+    .with_minimum_maturity(PluginMaturity::Stub);
+    let manifest = ProjectPluginManifest {
+        selections: [20, 21]
+            .into_iter()
+            .map(|index| {
+                ProjectPluginSelection::runtime_plugin(
+                    RuntimePluginId::new(format!("profile_perf_{index}")),
+                    true,
+                    false,
+                )
+            })
+            .collect(),
+    };
+    let report = profile.availability_report_for_manifest_and_registration_reports(
+        descriptors.iter(),
+        &manifest,
+        [&failed_registration].iter().copied(),
+    );
+
+    assert_eq!(report.blocked_by_maturity.len(), 1);
+    assert_eq!(
+        report.blocked_by_maturity[0].reason,
+        "plugin catalog entry is deprecated"
+    );
+    assert_eq!(report.missing_required.len(), 2);
+}
+
+#[test]
+fn externalized_descriptor_uses_matching_linked_provider() {
+    let externalized = descriptor_with_maturity(22, PluginMaturity::Externalized);
+    let mut registration = RuntimePluginRegistrationReport::from_plugin(&externalized);
+    registration.project_selection.packaging = ExportPackagingStrategy::LibraryEmbed;
+    let profile = RuntimeProfileDescriptor::new(
+        RuntimeProfileId::Dev,
+        "externalized linked provider",
+        RuntimeTargetMode::ClientRuntime,
+    );
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::new("profile_perf_22"),
+            true,
+            false,
+        )],
+    };
+    let report = profile.availability_report_for_manifest_and_registration_reports(
+        [&externalized],
+        &manifest,
+        [&registration].iter().copied(),
+    );
+
+    assert_eq!(report.linked.len(), 1);
+    assert_eq!(report.externalized_missing.len(), 0);
+    assert_eq!(report.missing_required.len(), 0);
+}
+
+#[test]
 fn availability_projection_profile_feature_path_preserves_manifest_bytes() {
     let manifest = ProjectPluginManifest::default();
     let without_features =
@@ -445,6 +513,10 @@ fn availability_profile_defaults_merge_duplicate_runtime_ids_with_required_or() 
 }
 
 fn descriptor(index: usize) -> RuntimePluginDescriptor {
+    descriptor_with_maturity(index, PluginMaturity::Beta)
+}
+
+fn descriptor_with_maturity(index: usize, maturity: PluginMaturity) -> RuntimePluginDescriptor {
     let id = format!("profile_perf_{index}");
     RuntimePluginDescriptor::builder(
         id.clone(),
@@ -453,6 +525,6 @@ fn descriptor(index: usize) -> RuntimePluginDescriptor {
         format!("zircon_plugin_profile_perf_{index}_runtime"),
     )
     .with_target_modes([RuntimeTargetMode::ClientRuntime])
-    .with_maturity(PluginMaturity::Beta)
+    .with_maturity(maturity)
     .build()
 }

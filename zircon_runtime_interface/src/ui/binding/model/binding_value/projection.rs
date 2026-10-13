@@ -78,6 +78,7 @@ impl UiBindingValue {
     }
 
     /// 为已校验的绑定值生成原生文本；解析器按文本语法重建值，整数类别不在文本中单独编码。
+    #[cfg(test)]
     pub(crate) fn native_repr(&self) -> String {
         let mut output = String::new();
         self.native_repr_into(&mut output);

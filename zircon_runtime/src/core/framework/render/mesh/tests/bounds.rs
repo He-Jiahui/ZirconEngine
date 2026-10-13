@@ -51,6 +51,21 @@ fn render_mesh_bounds_transform_rebuilds_derived_metadata_from_min_max() {
     assert!((canonical.radius - 3.0_f32.sqrt()).abs() <= 1.0e-5);
 }
 
+#[test]
+fn render_mesh_bounds_rejects_non_finite_positions() {
+    for invalid in [
+        [f32::NAN, 0.0, 0.0],
+        [0.0, f32::INFINITY, 0.0],
+        [0.0, 0.0, f32::NEG_INFINITY],
+    ] {
+        assert!(RenderMeshBounds::try_from_positions([[0.0; 3], invalid]).is_none());
+        assert!(
+            !RenderMeshBounds::from_positions([[0.0; 3], invalid]).is_finite(),
+            "legacy infallible construction must remain visibly invalid"
+        );
+    }
+}
+
 fn assert_vec3_close(actual: [f32; 3], expected: [f32; 3]) {
     for axis in 0..3 {
         assert!(

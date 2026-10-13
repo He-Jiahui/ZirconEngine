@@ -9,7 +9,17 @@ fn optimization_batch_gk_runtime493_root_relative_prefix_preserves_rules() {
         assert!(diagnostics.is_empty(), "unexpected diagnostic for {root}");
     }
 
-    let invalid = ["/assets/materials", "\\assets\\materials"];
+    let invalid = [
+        "/assets/materials",
+        "\\assets\\materials",
+        "C:/assets",
+        "C:assets",
+        "assets/C:/outside",
+        "assets/file:stream",
+        "assets/CON.txt",
+        "assets/COM¹",
+        "assets/lpt².data",
+    ];
     for root in invalid {
         let mut diagnostics = Vec::new();
         validate_runtime_plugin_package_root_relative("root", root, &mut diagnostics);

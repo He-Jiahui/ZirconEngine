@@ -2,7 +2,7 @@
 
 - Date: 2026-08-26
 - Owner: `root-runtime-events-20260824`
-- Source plan: `docs/plans/optimize/zircon_runtime/86-runtime-asset-type-schema-imported-payload-project-document-validation-dependency-serialization-versioning-product-integration-current-source-review.md`, G21/G22
+- Source plan: `docs/plans/optimize/zircon_runtime/86-runtime-asset-type-schema-imported-payload-project-document-validation-dependency-serialization-versioning.md`, G21/G22
 - Status: implementation and release gate authored; batched managed validation pending
 
 ## Problem

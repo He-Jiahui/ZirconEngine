@@ -1,10 +1,10 @@
 //! 对 RPC 调用执行方向、session、schema、quota 和 netspeed 检查，再调用 handler 或按优先级排队。
-//! handler 在锁外执行以允许回调访问 manager；timeout 只在同步 handler 返回后报告，不能抢占副作用。
+//! handler 在锁外执行以允许回调访问 manager；同步执行不能抢占，迟到完成保留真实结果并附诊断。
 
 use std::time::{Duration, Instant};
 
 use zircon_runtime::core::framework::net::{
-    NetRequestId, NetSessionHandshakeState, RpcDirection, RpcDispatchReport, RpcDispatchStatus,
+    NetRequestId, NetSessionHandshakeState, RpcDispatchReport, RpcDispatchStatus,
     RpcInvocationDescriptor, RpcPeerRole,
 };
 
@@ -29,10 +29,12 @@ impl NetRpcRuntimeManager {
         invocation: RpcInvocationDescriptor,
         caller: RpcPeerRole,
     ) -> RpcDispatchReport {
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
-        Self::validate_invocation(&mut state, &invocation, caller, true)
+        self.admit_invocation(&invocation, caller, true)
     }
 
+    /// Invoke synchronously. A zero timeout is rejected before execution; a positive
+    /// timeout measures handler execution, which cannot be cancelled. Late completions
+    /// retain their real status/response and carry a diagnostic to prevent unsafe retries.
     pub fn invoke_rpc(
         &self,
         invocation: RpcInvocationDescriptor,
@@ -43,17 +45,7 @@ impl NetRpcRuntimeManager {
                 .with_diagnostic("RPC invocation timed out before handler execution");
         }
 
-        let (mut report, handler) = {
-            let mut state = self.state.lock().expect("net RPC state mutex poisoned");
-            let report = Self::validate_invocation(&mut state, &invocation, caller, true);
-            let handler = if report.status == RpcDispatchStatus::Accepted {
-                Self::track_pending_request(&mut state, &invocation);
-                state.rpc_handlers.get(&invocation.rpc_id).cloned()
-            } else {
-                None
-            };
-            (report, handler)
-        };
+        let (mut report, handler) = self.admit_invocation_for_execution(&invocation, caller, true);
 
         let Some(handler) = handler else {
             if report.status == RpcDispatchStatus::Accepted {
@@ -63,8 +55,8 @@ impl NetRpcRuntimeManager {
             return report;
         };
 
+        let _pending_guard = PendingRequestGuard::new(self, invocation.request);
         let report = Self::invoke_handler_with_timeout(&invocation, report, handler);
-        self.complete_pending_request(&invocation);
         report
     }
 
@@ -73,11 +65,11 @@ impl NetRpcRuntimeManager {
         invocation: RpcInvocationDescriptor,
         caller: RpcPeerRole,
     ) -> RpcDispatchReport {
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
-        let mut report = Self::validate_invocation(&mut state, &invocation, caller, false);
+        let mut report = self.admit_invocation(&invocation, caller, false);
         if report.status != RpcDispatchStatus::Accepted {
             return report;
         }
+        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
         if state.queued_invocations.len() >= state.max_queue_depth {
             report.status = RpcDispatchStatus::QueueFull;
             return report.with_diagnostic("RPC queue depth exceeded");
@@ -128,17 +120,7 @@ impl NetRpcRuntimeManager {
         invocation: RpcInvocationDescriptor,
         caller: RpcPeerRole,
     ) -> RpcDispatchReport {
-        let (mut report, handler) = {
-            let mut state = self.state.lock().expect("net RPC state mutex poisoned");
-            let report = Self::validate_invocation(&mut state, &invocation, caller, false);
-            let handler = if report.status == RpcDispatchStatus::Accepted {
-                Self::track_pending_request(&mut state, &invocation);
-                state.rpc_handlers.get(&invocation.rpc_id).cloned()
-            } else {
-                None
-            };
-            (report, handler)
-        };
+        let (mut report, handler) = self.admit_invocation_for_execution(&invocation, caller, false);
 
         let Some(handler) = handler else {
             if report.status == RpcDispatchStatus::Accepted {
@@ -148,20 +130,23 @@ impl NetRpcRuntimeManager {
             return report;
         };
 
+        let _pending_guard = PendingRequestGuard::new(self, invocation.request);
         let report = Self::invoke_handler_with_timeout(&invocation, report, handler);
-        self.complete_pending_request(&invocation);
         report
     }
 
+    /// Expire requests that are waiting outside synchronous handler execution. Active
+    /// handlers remain pending until they return because this runtime cannot cancel them.
     pub fn expire_pending_requests(&self) -> Vec<RpcDispatchReport> {
         let now = Instant::now();
         let mut state = self.state.lock().expect("net RPC state mutex poisoned");
         let mut expired_reports = Vec::new();
         state.pending_requests.retain(|_, pending| {
-            let expired = pending.invocation.timeout_ms.is_some_and(|timeout_ms| {
-                timeout_ms == 0
-                    || now.duration_since(pending.started_at).as_millis() > timeout_ms as u128
-            });
+            let expired = !pending.handler_executing
+                && pending.invocation.timeout_ms.is_some_and(|timeout_ms| {
+                    timeout_ms == 0
+                        || now.duration_since(pending.started_at).as_millis() > timeout_ms as u128
+                });
             if expired {
                 expired_reports.push(
                     RpcDispatchReport::for_invocation(
@@ -202,8 +187,9 @@ impl NetRpcRuntimeManager {
             return report;
         }
 
-        // BUG: [CR-PLUGIN-NET-0016] 双向 descriptor 下的客户端调用跳过 session Joined 校验，缺失/未认证来源可进入 handler。
-        if descriptor.direction == RpcDirection::ClientToServer {
+        // Session admission follows the origin of this invocation, including when the
+        // registered descriptor is bidirectional.
+        if caller == RpcPeerRole::Client {
             let Some(source_session) = invocation.source_session else {
                 report.status = RpcDispatchStatus::SessionUnavailable;
                 return report.with_diagnostic("client-to-server RPC requires a source session");
@@ -234,15 +220,10 @@ impl NetRpcRuntimeManager {
         }
 
         if let Some(schema) = descriptor.payload_schema.as_ref() {
-            let Some(validator) = state.schema_validators.get(schema.schema_id()) else {
+            let Some(_validator) = state.schema_validators.get(schema.schema_id()) else {
                 report.status = RpcDispatchStatus::SchemaUnavailable;
                 return report.with_diagnostic("schema validator unavailable");
             };
-            // BUG: [CR-PLUGIN-NET-0017] 用户 validator 在全局状态锁内调用；回调重入查询/注册会等待同一 Mutex 并死锁。
-            if !validator(&invocation.payload) {
-                report.status = RpcDispatchStatus::SchemaRejected;
-                return report.with_diagnostic("schema validation rejected payload");
-            }
         }
 
         if account_limits {
@@ -277,12 +258,106 @@ impl NetRpcRuntimeManager {
         report
     }
 
+    /// Validate against a stable descriptor/validator snapshot. User code runs with no
+    /// manager lock held; a concurrent registration change rejects this admission.
+    fn admit_invocation(
+        &self,
+        invocation: &RpcInvocationDescriptor,
+        caller: RpcPeerRole,
+        account_limits: bool,
+    ) -> RpcDispatchReport {
+        self.admit_invocation_inner(invocation, caller, account_limits, false)
+            .0
+    }
+
+    fn admit_invocation_for_execution(
+        &self,
+        invocation: &RpcInvocationDescriptor,
+        caller: RpcPeerRole,
+        account_limits: bool,
+    ) -> (RpcDispatchReport, Option<RpcHandler>) {
+        self.admit_invocation_inner(invocation, caller, account_limits, true)
+    }
+
+    fn admit_invocation_inner(
+        &self,
+        invocation: &RpcInvocationDescriptor,
+        caller: RpcPeerRole,
+        account_limits: bool,
+        capture_handler: bool,
+    ) -> (RpcDispatchReport, Option<RpcHandler>) {
+        let (preflight, descriptor, validator, handler) = {
+            let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+            let report = Self::validate_invocation(&mut state, invocation, caller, false);
+            if report.status != RpcDispatchStatus::Accepted {
+                return (report, None);
+            }
+            let descriptor = state.rpc_descriptors.get(&invocation.rpc_id).cloned();
+            let validator = descriptor
+                .as_ref()
+                .and_then(|d| d.payload_schema.as_ref())
+                .and_then(|schema| state.schema_validators.get(schema.schema_id()))
+                .cloned();
+            let handler = state.rpc_handlers.get(&invocation.rpc_id).cloned();
+            (report, descriptor, validator, handler)
+        };
+
+        if let Some(validator) = validator.as_ref() {
+            if !validator(&invocation.payload) {
+                let mut rejected = preflight;
+                rejected.status = RpcDispatchStatus::SchemaRejected;
+                return (
+                    rejected.with_diagnostic("schema validation rejected payload"),
+                    None,
+                );
+            }
+        }
+
+        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let current_descriptor = state.rpc_descriptors.get(&invocation.rpc_id);
+        let descriptor_matches = current_descriptor == descriptor.as_ref();
+        let current_validator = descriptor
+            .as_ref()
+            .and_then(|d| d.payload_schema.as_ref())
+            .and_then(|schema| state.schema_validators.get(schema.schema_id()));
+        let validator_matches = match (current_validator, validator.as_ref()) {
+            (None, None) => true,
+            (Some(current), Some(validated)) => std::sync::Arc::ptr_eq(current, validated),
+            _ => false,
+        };
+        let current_handler = state.rpc_handlers.get(&invocation.rpc_id);
+        let handler_matches = match (current_handler, handler.as_ref()) {
+            (None, None) => true,
+            (Some(current), Some(validated)) => std::sync::Arc::ptr_eq(current, validated),
+            _ => false,
+        };
+        if !descriptor_matches || !validator_matches || (capture_handler && !handler_matches) {
+            let mut changed = preflight;
+            changed.status = RpcDispatchStatus::SessionUnavailable;
+            return (
+                changed.with_diagnostic("RPC admission policy changed during validation"),
+                None,
+            );
+        }
+        let report = Self::validate_invocation(&mut state, invocation, caller, account_limits);
+        if report.status != RpcDispatchStatus::Accepted || !capture_handler {
+            return (report, None);
+        }
+        if handler.is_some() {
+            Self::track_pending_request(&mut state, invocation);
+        }
+        (report, handler)
+    }
+
     fn invocation_timed_out(invocation: &RpcInvocationDescriptor) -> bool {
         invocation
             .timeout_ms
             .is_some_and(|timeout_ms| timeout_ms == 0)
     }
 
+    /// `timeout_ms == 0` is rejected before execution. For positive values, synchronous
+    /// handlers run to completion; an over-budget completion is returned with its real
+    /// result and a diagnostic so callers do not retry potentially committed effects.
     fn invoke_handler_with_timeout(
         invocation: &RpcInvocationDescriptor,
         mut report: RpcDispatchReport,
@@ -290,11 +365,12 @@ impl NetRpcRuntimeManager {
     ) -> RpcDispatchReport {
         let started_at = Instant::now();
         let handler_result = handler(invocation);
-        // Synchronous feature handlers cannot be preempted here, so timeout
-        // hardening reports and discards late completions after the closure returns.
+        // A synchronous handler cannot be cancelled. Preserve its actual completion
+        // result so the caller does not retry an operation whose side effects committed.
         if Self::handler_timed_out(invocation, started_at, Instant::now()) {
-            report.status = RpcDispatchStatus::TimedOut;
-            return report.with_diagnostic("RPC handler exceeded invocation timeout");
+            report = report.with_diagnostic(
+                "RPC handler completed after its deadline; synchronous execution was not cancelled",
+            );
         }
 
         match handler_result {
@@ -324,6 +400,7 @@ impl NetRpcRuntimeManager {
                 PendingRpcRequest {
                     invocation: invocation.clone(),
                     started_at: Instant::now(),
+                    handler_executing: true,
                 },
             );
         }
@@ -344,6 +421,30 @@ impl NetRpcRuntimeManager {
             timeout_ms == 0
                 || now.duration_since(queued.enqueued_at).as_millis() > timeout_ms as u128
         })
+    }
+}
+
+struct PendingRequestGuard<'a> {
+    manager: &'a NetRpcRuntimeManager,
+    request: Option<NetRequestId>,
+}
+
+impl<'a> PendingRequestGuard<'a> {
+    fn new(manager: &'a NetRpcRuntimeManager, request: Option<NetRequestId>) -> Self {
+        Self { manager, request }
+    }
+}
+
+impl Drop for PendingRequestGuard<'_> {
+    fn drop(&mut self) {
+        if let Some(request) = self.request {
+            self.manager
+                .state
+                .lock()
+                .expect("net RPC state mutex poisoned")
+                .pending_requests
+                .remove(&request);
+        }
     }
 }
 

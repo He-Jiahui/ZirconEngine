@@ -386,7 +386,8 @@ const CONTACT_SHADOW_CONTRACT: RenderPassExecutorContract = RenderPassExecutorCo
     declared_queue: QueueLane::AsyncCompute,
     flags: PassFlags {
         allow_culling: true,
-        has_side_effects: true,
+        // Output consumption keeps this pass live; it has no side effect outside the graph.
+        has_side_effects: false,
     },
     resources: CONTACT_SHADOW_RESOURCES,
 };
@@ -421,7 +422,6 @@ fn validate_context(context: &RenderPassExecutionContext<'_>) -> Result<(), Stri
             contract.executor_id, context.pass_name, contract.declared_queue, context.queue
         ));
     }
-    // BUG: [CR-PLUGIN-RENDERING-0008] 正常编译的接触阴影通道 has_side_effects=false，而静态 executor 合同写 true，故执行前必在此分支返回 flag mismatch；证据：同文件图测试断言 false，伪 context 测试直接从静态合同构造 true。
     if context.flags != contract.flags {
         return Err(format!(
             "contact shadow executor `{}` pass flag mismatch for pass `{}`: expected `{:?}`, got `{:?}`",

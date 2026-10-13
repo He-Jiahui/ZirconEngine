@@ -1,3 +1,8 @@
+//! 版本化文本 loader 的入口策略、校验顺序、迁移结果和错误边界。
+//!
+//! `FixtureDocument` 及其迁移链由同目录测试模块共享；这里还定义一条故意缺步的链，以证明
+//! 当前版本的 typed decode 也不能绕过完整迁移契约。
+
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 

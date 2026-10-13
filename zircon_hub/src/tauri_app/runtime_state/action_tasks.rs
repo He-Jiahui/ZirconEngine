@@ -702,6 +702,7 @@ impl HubRuntimeSession {
         let detail = HubMessage::new(HubMessageId::Shell(ShellMessageId::TaskCancelled));
         let (recovery, output_dir) = cancelled_action_recovery(action, request);
         self.record_action_and_persist(HubActionRecord {
+            id: crate::state::new_action_record_id(),
             finished_unix_ms: crate::projects::now_unix_ms(),
             action: action.action_kind(),
             status: HubActionStatus::Cancelled,

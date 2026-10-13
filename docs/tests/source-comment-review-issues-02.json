@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "taskId": "source-comment-audit-20261012",
+  "ownerThreadId": "01a13487-9050-7d12-95ff-22f61a654b62",
+  "legacyIssueLedger": "docs/tests/source-comment-review-issues.json",
+  "status": "active continuation; agent proposals pending root proof and final source hashes",
+  "issueIdPrefixes": {
+    "project-compatibility-005": "ZCA-PROJ05",
+    "serialization-005": "ZCA-SER05",
+    "ui-template-005": "ZCA-TPL05",
+    "plugin-core-005": "ZCA-PLUG05"
+  },
+  "issues": [],
+  "historicalLedgerObservations": [
+    {
+      "kind": "caller-evidence-drift",
+      "batchId": "core-session-003",
+      "path": "zircon_runtime_interface/src/runtime_api/session/events.rs",
+      "historicalSha256": "d2bd41c9d7243c5de4eb25acd1d613eb0d52d18ea8b5fffdcb624f0f1122d6e8",
+      "observedSha256": "b44a63486795ddbd2e28ff7bf5a174a25a689d1cfb287f0978b114328ef4cc09",
+      "evidence": "/root/core_review independently checked all 37 session caller pins: 36 matched; this one differed. Nine frozen source pins still matched. Historical evidence is retained, not promoted to current formal acceptance.",
+      "nextAction": "Obtain original owner handoff and reread actual event contract before original session batch validation or stage commit."
+    },
+    {
+      "kind": "historical-source-tag-status-drift",
+      "id": "ZCA-HST-001",
+      "path": "zircon_runtime_host/src/foreign_output/state.rs",
+      "observedLine": 149,
+      "observedSha256": "3c82599857fc4bb43970f6138c6a846879e6c75b736f59aabda4f6e51a9ed778",
+      "evidence": "/root/core_review observed the existing BUG tag on current source while legacy issue ledger said missing. Static status/error cleanup path remains a proof candidate; current modifier and old operation termination are unproven.",
+      "nextAction": "Original owner reconciles actual final hash and tag state; this continuation does not reinsert/remove tags or claim current acceptance."
+    },
+    {
+      "kind": "historical-source-tag-status-drift",
+      "id": "ZCA-ABI-001",
+      "path": "zircon_runtime_interface/src/runtime_api/abi/tests/host_api_shape_tests.rs",
+      "observedLine": 66,
+      "evidence": "/root/core_review observed the existing TODO tag on current source while legacy issue ledger said missing. No behavioral fix, current owner release or formal test result is inferred.",
+      "nextAction": "Original owner reconciles actual final hash, TODO evidence and source-tag state."
+    }
+  ],
+  "wholeRepositoryIssueConsistencyAccepted": false
+}
